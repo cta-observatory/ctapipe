@@ -163,7 +163,6 @@ class ApplyModels(Tool):
                     parent=self,
                 )
             )
-
         if self.disp_reconstructor_path is not None:
             self._reconstructors.append(
                 DispReconstructor.read(
@@ -236,29 +235,32 @@ class ApplyModels(Tool):
                 )
 
                 if isinstance(reconstructor, DispReconstructor):
-                   disp_predictions, altaz_predictions = reconstructor.predict_table(
-                       tel, table
-                   )
-                   table = hstack(
-                       [table, altaz_predictions, disp_predictions],
-                       join_type="exact",
-                       metadata_conflicts="ignore",
-                   )
-                   # tables should follow the container structure
-                   write_table(
-                       table[
-                           ["obs_id", "event_id", "tel_id"] + altaz_predictions.colnames
-                       ],
-                       self.output_path,
-                       f"/dl2/event/telescope/geometry/{prefix}/tel_{tel_id:03d}",
-                       append=True,
-                   )
-                   write_table(
-                       table[["obs_id", "event_id", "tel_id"] + disp_predictions.colnames],
-                       self.output_path,
-                       f"/dl2/event/telescope/disp/{prefix}/tel_{tel_id:03d}",
-                       append=True,
-                   )
+                    disp_predictions, altaz_predictions = reconstructor.predict_table(
+                        tel, table
+                    )
+                    table = hstack(
+                        [table, altaz_predictions, disp_predictions],
+                        join_type="exact",
+                        metadata_conflicts="ignore",
+                    )
+                    # tables should follow the container structure
+                    write_table(
+                        table[
+                            ["obs_id", "event_id", "tel_id"]
+                            + altaz_predictions.colnames
+                        ],
+                        self.output_path,
+                        f"/dl2/event/telescope/geometry/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
+                    write_table(
+                        table[
+                            ["obs_id", "event_id", "tel_id"] + disp_predictions.colnames
+                        ],
+                        self.output_path,
+                        f"/dl2/event/telescope/disp/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
                 else:
                     predictions = reconstructor.predict_table(tel, table)
                     table = hstack(

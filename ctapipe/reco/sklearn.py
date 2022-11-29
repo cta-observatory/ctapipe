@@ -521,8 +521,12 @@ class DispReconstructor(Reconstructor):
     property = "geometry"
     prefix = Unicode(default_value="disp", allow_none=False).tag(config=True)
     features = List(Unicode(), help="Features to use for both models").tag(config=True)
+    target = "true_norm"
+    log_target = Bool(
+        default_value=False,
+        help="If True, the model is trained to predict the natural logarithm of the absolute value.",
+    ).tag(config=True)
 
-    norm_target = "true_norm"
     norm_config = Dict({}, help="kwargs for the sklearn regressor").tag(config=True)
     norm_cls = Enum(
         SUPPORTED_REGRESSORS.keys(),
@@ -531,12 +535,6 @@ class DispReconstructor(Reconstructor):
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
-    norm_log_target = Bool(
-        default_value=False,
-        help="If True, the norm model is trained to predict the natural logarithm.",
-    ).tag(config=True)
-
-    sign_target = "true_sign"
     sign_config = Dict({}, help="kwargs for the sklearn classifier").tag(config=True)
     sign_cls = Enum(
         SUPPORTED_CLASSIFIERS.keys(),
@@ -582,7 +580,7 @@ class DispReconstructor(Reconstructor):
 
             self._norm_models = {} if norm_models is None else norm_models
             self._sign_models = {} if sign_models is None else sign_models
-            self.norm_unit = None
+            self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
@@ -611,17 +609,17 @@ class DispReconstructor(Reconstructor):
         Extract target values as numpy array from input table
         """
         # make sure we use the unit that was used during training
-        if self.norm_unit is not None:
-            norm_y = table[mask][self.norm_target].quantity.to_value(self.norm_unit)
+        if self.unit is not None:
+            norm_y = np.abs(table[mask][self.target].quantity.to_value(self.unit))
         else:
-            norm_y = np.array(table[self.norm_target][mask])
+            norm_y = np.abs(np.array(table[self.target][mask]))
 
-        if self.norm_log_target:
+        if self.log_target:
             if np.any(norm_y <= 0):
                 raise ValueError("norm_y contains negative values, cannot apply log")
             norm_y = np.log(norm_y)
 
-        sign_y = np.array(table[self.sign_target][mask])
+        sign_y = np.sign(np.array(table[self.target][mask]))
         return norm_y, sign_y
 
     def fit(self, key, table):
@@ -631,7 +629,7 @@ class DispReconstructor(Reconstructor):
         self._norm_models[key], self._sign_models[key] = self._new_models()
 
         X, valid = table_to_X(table, self.features, self.log)
-        self.norm_unit = table[self.norm_target].unit
+        self.unit = table[self.target].unit
         norm_y, sign_y = self._table_to_y(table, mask=valid)
         self._norm_models[key].fit(X, norm_y)
         self._sign_models[key].fit(X, sign_y)
@@ -684,15 +682,15 @@ class DispReconstructor(Reconstructor):
         if np.any(valid):
             valid_norms = self._norm_models[key].predict(X)
 
-            if self.norm_log_target:
+            if self.log_target:
                 norm_prediction[valid] = np.exp(valid_norms)
             else:
                 norm_prediction[valid] = valid_norms
 
             sign_prediction[valid] = self._sign_models[key].predict(X)
 
-        if self.norm_unit is not None:
-            norm_prediction = u.Quantity(norm_prediction, self.norm_unit, copy=False)
+        if self.unit is not None:
+            norm_prediction = u.Quantity(norm_prediction, self.unit, copy=False)
 
         return norm_prediction * sign_prediction, valid
 
@@ -744,7 +742,7 @@ class DispReconstructor(Reconstructor):
                     )
             else:
                 disp_container = DispContainer(
-                    norm=u.Quantity(np.nan, self.norm_unit),
+                    norm=u.Quantity(np.nan, self.unit),
                     is_valid=False,
                 )
                 altaz_container = ReconstructedGeometryContainer(
@@ -779,7 +777,7 @@ class DispReconstructor(Reconstructor):
         table = self.feature_generator(table)
 
         n_rows = len(table)
-        disp = u.Quantity(np.full(n_rows, np.nan), self.norm_unit, copy=False)
+        disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
         valid = self.quality_query.get_table_mask(table)
@@ -895,7 +893,7 @@ class CrossValidator(Component):
         )
 
         if isinstance(self.model_component, DispReconstructor):
-            cv_it = kfold.split(table, table[self.model_component.sign_target])
+            cv_it = kfold.split(table, np.sign(table[self.model_component.target]))
         else:
             cv_it = kfold.split(table, table[self.model_component.target])
 
@@ -961,17 +959,11 @@ class CrossValidator(Component):
     def _cross_validate_disp(self, telescope_type, train, test):
         models = self.model_component
         models.fit(telescope_type, train)
-
         prediction, _ = models._predict(telescope_type, test)
-        norm_truth = test[models.norm_target]
-        sign_truth = test[models.sign_target]
-        r2 = r2_score(norm_truth, np.abs(prediction))
-        accuracy = accuracy_score(sign_truth, np.sign(prediction))
-        return (
-            prediction,
-            norm_truth * sign_truth,
-            {"R^2": r2, "accuracy": accuracy},
-        )
+        truth = test[models.target]
+        r2 = r2_score(np.abs(truth), np.abs(prediction))
+        accuracy = accuracy_score(np.sign(truth), np.sign(prediction))
+        return prediction, truth, {"R^2": r2, "accuracy": accuracy}
 
     def write(self, overwrite=False):
         if self.output_path.exists() and not overwrite:

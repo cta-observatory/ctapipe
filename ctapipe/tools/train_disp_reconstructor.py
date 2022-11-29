@@ -132,12 +132,11 @@ class TrainDispReconstructor(Tool):
 
         table = self.models.feature_generator(table)
 
-        true_norm, true_sign = self._get_true_disp(table)
+        table[self.models.target] = self._get_true_disp(table)
 
         # Add true energy for energy-dependent performance plots
-        table = table[self.models.features + ["true_energy"]]
-        table[self.models.norm_target] = true_norm
-        table[self.models.sign_target] = true_sign
+        columns = self.models.features + [self.models.target, "true_energy"]
+        table = table[columns]
 
         valid = check_valid_rows(table)
         if np.any(~valid):
@@ -176,7 +175,7 @@ class TrainDispReconstructor(Tool):
         else:
             true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
 
-        return true_norm, true_sign.astype(np.int8)
+        return true_norm * true_sign
 
     def finish(self):
         """
