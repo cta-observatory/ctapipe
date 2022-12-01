@@ -22,3 +22,11 @@ exclude = '''
   | build
 )/
 '''
+
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "error::astropy.utils.exceptions.AstropyDeprecationWarning",
+]
