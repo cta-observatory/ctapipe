@@ -15,3 +15,9 @@ An overview can be found [here](https://towncrier.readthedocs.io/en/stable/quick
     ```
     Fixed ``crazy_function`` to be consistent with ``not_so_crazy_function``
     ```
+
+3. (For maintainers) How to generate a change log:
+    - Execute the following command in the base directory of the project
+    ```
+    towncrier build --version=<VERSION NUMBER>
+    ```
