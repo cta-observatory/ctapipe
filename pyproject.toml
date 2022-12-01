@@ -22,3 +22,9 @@ exclude = '''
   | build
 )/
 '''
+
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error::DeprecationWarning",
+]
