@@ -28,4 +28,5 @@ exclude = '''
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
+    "error::astropy.utils.exceptions.AstropyDeprecationWarning",
 ]
