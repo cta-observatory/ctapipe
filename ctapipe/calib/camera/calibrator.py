@@ -43,7 +43,7 @@ class CameraCalibrator(TelescopeComponent):
     Calibrator to handle the full camera calibration chain, in order to fill
     the DL1 data level in the event container.
 
-    Attributes
+    Parameters
     ----------
     data_volume_reducer_type: str
         The name of the DataVolumeReducer subclass to be used

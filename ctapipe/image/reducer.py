@@ -112,7 +112,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
 
-    Attributes
+    Parameters
     ----------
     image_extractor_type: String
         Name of the image_extractor to be used.

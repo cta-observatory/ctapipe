@@ -169,7 +169,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
         density_profile.peek()
 
 
-    Attributes
+    Parameters
     ----------
     scale_height: u.Quantity["m"]
         scale height (h0)
@@ -217,7 +217,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         print(profile(10 * u.km))
 
 
-    Attributes
+    Parameters
     ----------
     table: Table
         Points that define the model

@@ -76,7 +76,7 @@ class EventSource(Component):
     as these are mutable and may lead to errors when analyzing multiple events.
 
 
-    Attributes
+    Parameters
     ----------
     input_url : str
         Path to the input event file.

@@ -52,7 +52,7 @@ class SubarrayDescription:
     Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes
     along with their positions on the ground.
 
-    Attributes
+    Parameters
     ----------
     name: str
        name of subarray

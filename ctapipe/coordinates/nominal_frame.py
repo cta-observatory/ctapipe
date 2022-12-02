@@ -40,7 +40,7 @@ class NominalFrame(BaseCoordinateFrame):
     If the telescopes are in divergent pointing, this Frame can be
     used to transform to a common system.
 
-    Attributes
+    Parameters
     ----------
 
     origin: SkyCoord[AltAz]

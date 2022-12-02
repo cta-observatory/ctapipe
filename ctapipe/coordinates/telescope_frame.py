@@ -47,7 +47,7 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     This is what astropy calls a SkyOffsetCoordinate.
 
-    Attributes
+    Parameters
     ----------
 
     telescope_pointing: SkyCoord[AltAz]

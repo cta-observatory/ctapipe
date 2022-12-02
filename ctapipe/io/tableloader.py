@@ -163,7 +163,7 @@ class TableLoader(Component):
       different shapes for each of the telescope types as tables do not support
       variable length columns.
 
-    Attributes
+    Parameters
     ----------
     subarray : `~ctapipe.instrument.SubarrayDescription`
         The subarray as read from `input_url`.

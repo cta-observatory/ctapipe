@@ -213,7 +213,7 @@ class DeprecatedField(Field):
 
 _doc_template = """{doc}
 
-Attributes
+Parameters
 ----------
 {fields}
 meta : dict

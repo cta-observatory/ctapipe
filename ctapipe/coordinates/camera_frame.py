@@ -1,23 +1,22 @@
-import numpy as np
 import astropy.units as u
+import numpy as np
 from astropy.coordinates import (
-    BaseCoordinateFrame,
-    CoordinateAttribute,
-    QuantityAttribute,
+    AffineTransform,
+    AltAz,
     Attribute,
-    TimeAttribute,
+    BaseCoordinateFrame,
+    CartesianRepresentation,
+    CoordinateAttribute,
     EarthLocationAttribute,
     FunctionTransform,
-    frame_transform_graph,
-    CartesianRepresentation,
+    QuantityAttribute,
+    TimeAttribute,
     UnitSphericalRepresentation,
-    AltAz,
-    AffineTransform,
+    frame_transform_graph,
 )
 
-from .telescope_frame import TelescopeFrame
 from .representation import PlanarRepresentation
-
+from .telescope_frame import TelescopeFrame
 
 __all__ = ["CameraFrame"]
 
@@ -58,7 +57,7 @@ class CameraFrame(BaseCoordinateFrame):
     Standing at the dish, looking at the camera, x points right, y points up.
     To transform MAGIC/FACT to ctapipe, do x' = -y, y' = -x.
 
-    Attributes
+    Parameters
     ----------
 
     focal_length : u.Quantity[length]
@@ -96,7 +95,7 @@ class EngineeringCameraFrame(CameraFrame):
     HESS, ctapipe and sim_telarray use a different camera coordinate system:
     To transform H.E.S.S./ctapipe -> FACT/MAGIC, do x' = -y, y' = -x.
 
-    Attributes
+    Parameters
     ----------
     focal_length : u.Quantity[length]
         Focal length of the telescope as a unit quantity (usually meters)

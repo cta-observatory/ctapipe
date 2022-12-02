@@ -26,7 +26,7 @@ class TelescopeDescription:
     Describes a Cherenkov Telescope and its associated
     `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
 
-    Attributes
+    Parameters
     ----------
     name: str
         Telescope name
