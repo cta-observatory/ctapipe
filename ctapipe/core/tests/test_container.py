@@ -1,10 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-import warnings
 from functools import partial
 
 import numpy as np
 import pytest
-
 from astropy import units as u
 
 from ctapipe.core import Container, DeprecatedField, Field, FieldValidationError, Map
@@ -212,7 +210,7 @@ def test_container_brackets():
 
 def test_deprecated_field():
 
-    with warnings.catch_warnings(record=True) as warning:
+    with pytest.warns(DeprecationWarning, match="answer to all questions"):
 
         class ExampleContainer(Container):
             answer = DeprecatedField(
@@ -221,9 +219,6 @@ def test_deprecated_field():
 
         cont = ExampleContainer()
         cont.answer = 6
-        assert len(warning) == 1
-        assert issubclass(warning[-1].category, DeprecationWarning)
-        assert "deprecated" in str(warning[-1].message)
 
 
 def test_field_validation():
