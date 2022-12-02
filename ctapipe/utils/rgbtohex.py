@@ -1,8 +1,9 @@
-from matplotlib.cm import get_cmap
-import numpy as np
 import codecs
 
-viridis = get_cmap("viridis")
+import numpy as np
+from matplotlib import colormaps
+
+viridis = colormaps["viridis"]
 
 
 def intensity_to_rgb(array, minval=None, maxval=None):
