@@ -29,5 +29,5 @@ filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
-    "error::ctapipe.utils.deprecation.CtapipeDeprecationWarning",
+    "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
 ]

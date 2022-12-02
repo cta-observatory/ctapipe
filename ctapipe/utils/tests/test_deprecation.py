@@ -1,7 +1,7 @@
 import pytest
 
-from ..deprecation import (
-    CtapipeDeprecationWarning,
+from ctapipe.utils.deprecation import (
+    CTAPipeDeprecationWarning,
     deprecated,
     deprecated_attribute,
     deprecated_renamed_argument,
@@ -46,7 +46,7 @@ class some_class:
 def test_deprecated_function():
     assert "deprecated:: v1.1" in deprecated_function.__doc__
 
-    with pytest.warns(CtapipeDeprecationWarning, match="Use new_function instead"):
+    with pytest.warns(CTAPipeDeprecationWarning, match="Use new_function instead"):
         deprecated_function(1, 2)
 
 
@@ -54,27 +54,27 @@ def test_deprecated_class():
     assert "deprecated:: v1.2" in deprecated_class.__doc__
 
     with pytest.warns(
-        CtapipeDeprecationWarning, match="The deprecated_class class is deprecated"
+        CTAPipeDeprecationWarning, match="The deprecated_class class is deprecated"
     ):
         deprecated_class()
 
 
 def test_deprecated_argument():
-    with pytest.warns(CtapipeDeprecationWarning):
+    with pytest.warns(CTAPipeDeprecationWarning):
         res = deprecated_argument_function(a=1, y=2)
         assert res == 3
 
     with pytest.raises(TypeError):
-        with pytest.warns(CtapipeDeprecationWarning):
+        with pytest.warns(CTAPipeDeprecationWarning):
             deprecated_argument_function(a=1, x=2, y=2)
 
-    with pytest.warns(CtapipeDeprecationWarning):
+    with pytest.warns(CTAPipeDeprecationWarning):
         res = deprecated_argument_function_kwarg(old=2)
         assert res == 2
 
 
 def test_deprecated_attibute():
     object = some_class(1)
-    with pytest.warns(CtapipeDeprecationWarning):
+    with pytest.warns(CTAPipeDeprecationWarning):
         res = object.old_attribute
         assert res == 1
