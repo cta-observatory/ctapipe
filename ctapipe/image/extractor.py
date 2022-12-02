@@ -353,8 +353,9 @@ def integration_correction(
 
 def fwhm(waveforms, peak_index):   # = waveforms.max(axis=-1)):
     """
-    This function calculates the FWHM of waveforms. As a default, the maximum of the pulse is found locally.
-
+    Calculates the full width at half maximum (fwhm) of waveforms.
+    It will start at the maximum position and 'walk' left and right until it approaches the half values.
+    
     Parameters
     ----------
     waveforms : ndarray
@@ -366,17 +367,36 @@ def fwhm(waveforms, peak_index):   # = waveforms.max(axis=-1)):
     fwhm : ndarray
         Full width half maximum of a pulse.
         Shape: (n_pix)
+
     """
-    max_wv = peak_index
 
-    hm = (max_wv) / 2
+    n_pixels = waveforms.shape[0]
+    peak_ampl = waveforms[..., peak_index]
 
-    fwhms = []
-    for i in prange(0, len(waveforms)):
-        xs = [x for x in range(0, len(waveforms[i])) if waveforms[i][x] > hm[i]]
-        fwhms.append(max(xs, default=0) - min(xs, default=0))
+    fwhm = np.array([])
 
-    return fwhms
+    for pixel in prange(n_pixels):
+
+        if peakpos == -1:
+            peakpos = np.argmax(valuelist)
+
+        peakvalue = valuelist[peakpos]
+        phalf = peakvalue / 2.0
+
+        ind1 = peakpos
+        ind2 = peakpos   
+
+        while ind1 > 0 and valuelist[ind1] > phalf:
+            ind1 = ind1 - 1
+        
+        while ind2 < len(valuelist) - 1 and valuelist[ind2] > phalf:
+            ind2 = ind2 + 1
+   
+        width = ind2 - ind1
+
+        fwhm = np.append(fwhm, width)
+    
+    return fwhm
 
 
 def time_parameters(waveforms, upper_fract, lower_fract, peak_index):
