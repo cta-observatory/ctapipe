@@ -3,10 +3,10 @@ Functions to retrieve and interpolate atmosphere profiles.
 """
 import numpy as np
 from astropy.units import Quantity
-from astropy.utils.decorators import deprecated
 from scipy.interpolate import interp1d
 
-from ctapipe.utils import get_table_dataset
+from ..utils import get_table_dataset
+from ..utils.deprecation import deprecated
 
 __all__ = ["get_atmosphere_profile_table", "get_atmosphere_profile_functions"]
 
