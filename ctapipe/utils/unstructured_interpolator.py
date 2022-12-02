@@ -105,7 +105,7 @@ class UnstructuredInterpolator:
                 m = self._previous_m
             else:
                 s = self._tri.find_simplex(points)
-                v = self._tri.vertices[s]
+                v = self._tri.simplices[s]
                 m = self._tri.transform[s]
                 self._previous_v = v
                 self._previous_m = m
@@ -114,7 +114,7 @@ class UnstructuredInterpolator:
         else:
             s = self._tri.find_simplex(points)
             # get the vertices for each simplex
-            v = self._tri.vertices[s]
+            v = self._tri.simplices[s]
             # get transform matrices for each simplex
             m = self._tri.transform[s]
             self._previous_v = v
