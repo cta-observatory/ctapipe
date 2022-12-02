@@ -372,7 +372,7 @@ class CameraDisplay:
         self.axes.figure.canvas.draw()
         if self.colorbar is not None:
             self.colorbar.update_normal(self.pixels)
-            self.colorbar.draw_all()
+            self.axes.figure.draw_without_rendering()
 
     def add_colorbar(self, **kwargs):
         """

@@ -29,7 +29,6 @@ from ..coordinates import (
     project_to_ground,
 )
 from ..core import traits
-from ..instrument import get_atmosphere_profile_functions
 from .reconstructor import (
     GeometryReconstructor,
     InvalidWidthException,
@@ -83,8 +82,6 @@ class HillasIntersection(GeometryReconstructor):
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        _ = get_atmosphere_profile_functions(self.atmosphere_profile_name)
-        self.thickness_profile, self.altitude_profile = _
 
         # other weighting schemes can be implemented. just add them as additional methods
         if self.weighting == "Konrad":
