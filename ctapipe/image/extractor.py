@@ -351,7 +351,7 @@ def integration_correction(
     return correction
 
 
-def fwhm(waveforms, peak_index):   # = waveforms.max(axis=-1)):
+def fwhm(waveforms, peak_index=-1):   # = waveforms.max(axis=-1)):
     """
     Calculates the full width at half maximum (fwhm) of waveforms.
     It will start at the maximum position and 'walk' left and right until it approaches the half values.
@@ -362,6 +362,10 @@ def fwhm(waveforms, peak_index):   # = waveforms.max(axis=-1)):
         Waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
 
+    peak_index : ndarray
+        Peak index of waveforms
+        Shape: (n_pix, )
+
     Returns
     -------
     fwhm : ndarray
@@ -370,83 +374,34 @@ def fwhm(waveforms, peak_index):   # = waveforms.max(axis=-1)):
 
     """
 
-    n_pixels = waveforms.shape[0]
-    peak_ampl = waveforms[..., peak_index]
+    if peak_index == -1:
+        peak_index = np.argmax(waveforms, axis=-1)
+
+    nsamples = len(waveforms)
 
     fwhm = np.array([])
 
-    for pixel in prange(n_pixels):
-
-        if peakpos == -1:
-            peakpos = np.argmax(valuelist)
-
-        peakvalue = valuelist[peakpos]
-        phalf = peakvalue / 2.0
-
-        ind1 = peakpos
-        ind2 = peakpos   
-
-        while ind1 > 0 and valuelist[ind1] > phalf:
-            ind1 = ind1 - 1
+    for i in prange(0, nsamples):
+        waveform = waveforms[i]
+        n = waveform.size
+        peak = max(0, min(peak_index[i], n - 1))
         
-        while ind2 < len(valuelist) - 1 and valuelist[ind2] > phalf:
-            ind2 = ind2 + 1
-   
-        width = ind2 - ind1
+        peak_ampl = waveform[peak]
+        phalf = peak_ampl/2.0
 
-        fwhm = np.append(fwhm, width)
-    
+        ind1 = peak
+        ind2 = peak
+
+        while ind1 > 0 and waveform[ind1] > phalf:
+            ind1 = ind1 - 1
+
+        while ind2 < n-1 and waveform[ind2] > phalf:
+            ind2 = ind2 + 1
+
+        fwhm = np.append(fwhm, ind2 - ind1)    
+
     return fwhm
 
-
-def time_parameters(waveforms, upper_fract, lower_fract, peak_index):
-    """
-    This function calculates time-related parameters of the main pulse from the waveform.
-
-    Parameters
-    ----------
-    waveforms : ndarray
-        Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
-    peak_index: ndarray or int
-        Peak index for each pixel.
-    upper_fract: float
-        Upper fraction of the peak
-    lower_fract: float
-        Lower fraction of the peak
-
-    Returns
-    -------
-    fall_time : ndarray
-        Fall time of a pulse.
-        Shape: (n_pix)
-    rise_time : ndarray
-        Rise time of a pulse
-        Shape: (n_pix)
-    """
-
-    n_pixels = waveforms.shape[0]
-
-    upper_peak = upper_fract*waveforms[..., peak_index]
-    lower_peak = lower_fract*waveforms[..., peak_index]
-
-    peak_ampl = waveforms[..., peak_index]
-
-    rise_time = []
-    fall_time = []
-    for pixel in prange(n_pixels):
-        wv = waveforms[pixel]
-
-        rising = wv[wv < peak_ampl[pixel]]
-        falling = wv[wv > peak_ampl[pixel]]
-
-        wv_rise = np.where((rising > lower_peak[pixel]) & (rising < upper_peak[pixel]))[0]
-        wv_fall = np.where((falling > lower_peak[pixel]) & (falling < upper_peak[pixel]))[0]
-
-        rise_time.append(np.max(wv_rise) - np.min(wv_rise))
-        fall_time.append(np.max(wv_fall) - np.min(wv_fall))
-
-    return rise_time, fall_time
 
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
