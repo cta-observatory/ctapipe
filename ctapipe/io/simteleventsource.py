@@ -38,7 +38,6 @@ from ..containers import (
     SchedulingBlockContainer,
     SchedulingBlockType,
     SimulatedCameraContainer,
-    SimulatedPixelMonitoring,
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
@@ -812,6 +811,7 @@ class SimTelEventSource(EventSource):
                         impact_container = TelescopeImpactParameterContainer(
                             prefix="true_impact",
                         )
+
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
                         true_image_sum=true_image_sums[
                             self.telescope_indices_original[tel_id]

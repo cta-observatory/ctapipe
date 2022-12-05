@@ -717,6 +717,7 @@ class TelescopeImpactParameterContainer(Container):
     )
     distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
 
+
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -768,6 +769,7 @@ class SimulatedCameraContainer(Container):
         default_factory=TelescopeImpactParameterContainer,
         description="true impact parameter",
     )
+
 
 class SimulatedEventContainer(Container):
     shower = Field(
