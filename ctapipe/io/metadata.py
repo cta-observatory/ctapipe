@@ -23,7 +23,6 @@ them (as in `Activity.from_provenance()`)
 
 """
 import os
-import pwd
 import uuid
 import warnings
 from collections import OrderedDict
@@ -65,6 +64,18 @@ def convert(value):
     return value
 
 
+def _get_user_name():
+    """return the logged in user's name, as a fall-back if none is specified"""
+    try:
+        import pwd
+
+        return pwd.getpwuid(os.getuid()).pw_gecos
+    except ImportError:
+        # the pwd module is not available on some non-unix systems (Windows), so
+        # here we just fall back to a default name
+        return "Unknown User"
+
+
 class Contact(Configurable):
     """Contact information"""
 
@@ -76,7 +87,7 @@ class Contact(Configurable):
     def default_name(self):
         """if no name specified, use the system's user name"""
         try:
-            return pwd.getpwuid(os.getuid()).pw_gecos
+            return _get_user_name()
         except RuntimeError:
             return ""
 
