@@ -351,35 +351,45 @@ def integration_correction(
     return correction
 
 
-def fwhm(waveforms, peak_index=-1):   # = waveforms.max(axis=-1)):
+def time_parameters(waveforms, upper_limit, lower_limit, peak_index=-1):
     """
-    Calculates the full width at half maximum (fwhm) of waveforms.
-    It will start at the maximum position and 'walk' left and right until it approaches the half values.
+    Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
     
     Parameters
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
-
     peak_index : ndarray
         Peak index of waveforms
         Shape: (n_pix, )
+    upper_limit : float
+        Upper fraction of peak maximum
+    lower_limit : float
+        Lower fraction of peak maximum
 
     Returns
     -------
-    fwhm : ndarray
+    fwhm : list of int
         Full width half maximum of a pulse.
-        Shape: (n_pix)
+        Shape : (n_pix)
+    rise_time : list of int
+        Rise time of the pulse
+        Shape : (n_pix)
+    fall_time : list of int
+        Fall time of the pulse
+        Shape : (n_pix)
 
     """
 
-    if peak_index == -1:
+    if peak_index == -1:  # take the maximum as a default
         peak_index = np.argmax(waveforms, axis=-1)
 
     nsamples = len(waveforms)
 
-    fwhm = np.array([])
+    fwhm = []
+    rise_time = []
+    fall_time = []
 
     for i in prange(0, nsamples):
         waveform = waveforms[i]
@@ -387,21 +397,47 @@ def fwhm(waveforms, peak_index=-1):   # = waveforms.max(axis=-1)):
         peak = max(0, min(peak_index[i], n - 1))
         
         peak_ampl = waveform[peak]
-        phalf = peak_ampl/2.0
+        upper_ampl = upper_limit * peak_ampl
+        lower_ampl = lower_limit * peak_ampl
+        phalf = peak_ampl / 2.0
 
         ind1 = peak
         ind2 = peak
 
-        while ind1 > 0 and waveform[ind1] > phalf:
-            ind1 = ind1 - 1
+        while ind1 >= 0 and waveform[ind1] > phalf:
+            ind1 -= 1
 
-        while ind2 < n-1 and waveform[ind2] > phalf:
-            ind2 = ind2 + 1
+        while ind2 < n and waveform[ind2] > phalf:
+            ind2 += 1
 
-        fwhm = np.append(fwhm, ind2 - ind1)    
+        fwhm.append(ind2 - ind1)    
 
-    return fwhm
+        indices_high = []
+        indices_low = []
 
+        j = peak
+        k = peak
+        while j >= 0 and waveform[j] > lower_ampl:
+            if waveform[j] < upper_ampl:
+                indices_low.append(j)
+            j -= 1
+
+        while k < n and waveform[k] > lower_ampl:
+            if waveform[k] < upper_ampl:
+                 indices_high.append(k)
+            k += 1
+
+        if not indices_low:
+            rise_time.append(0)
+        else:
+            rise_time.append(np.argmin(indices_low) - np.argmax(indices_low))
+
+        if not indices_high:
+            fall_time.append(0)
+        else:
+            fall_time.append(np.argmax(indices_high) - np.argmin(indices_high))
+
+    return fwhm, rise_time, fall_time
 
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
