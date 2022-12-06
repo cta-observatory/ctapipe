@@ -92,6 +92,7 @@ def test_apply_all(
             "--StereoMeanCombiner.weights=konrad",
             "--chunk-size=5",  # small chunksize so we test multiple chunks for the test file
         ],
+        raises=True,
     )
     assert ret == 0
 
