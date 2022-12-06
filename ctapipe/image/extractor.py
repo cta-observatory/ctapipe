@@ -350,8 +350,7 @@ def integration_correction(
 
     return correction
 
-
-def time_parameters(waveforms, upper_limit, lower_limit, peak_index=-1):
+def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
     """
     Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
     
@@ -382,7 +381,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=-1):
 
     """
 
-    if peak_index == -1:  # take the maximum as a default
+    if peak_index == None:  # take the maximum as a default
         peak_index = np.argmax(waveforms, axis=-1)
 
     nsamples = len(waveforms)
@@ -391,7 +390,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=-1):
     rise_time = []
     fall_time = []
 
-    for i in prange(0, nsamples):
+    for i in range(0, nsamples):
         waveform = waveforms[i]
         n = waveform.size
         peak = max(0, min(peak_index[i], n - 1))
