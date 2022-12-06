@@ -107,11 +107,12 @@ jobs:
         # need to use a login shell for the conda setup to work
         shell: bash -leo pipefail {0}
         run: |
+          cd $(mktemp -d)
           pytest -n auto --dist loadscope \
             --cov --cov-report=xml \
             --doctest-modules --doctest-glob='*.rst' \
-            --ignore=docs/conf.py \
-            ctapipe docs
+            --ignore=$HOME/work/ctapipe/ctapipe/docs/conf.py \
+            --pyargs ctapipe $HOME/work/ctapipe/ctapipe/docs
 
           ctapipe-info --version
 
