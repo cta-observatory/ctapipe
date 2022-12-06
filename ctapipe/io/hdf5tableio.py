@@ -585,7 +585,7 @@ class HDF5TableReader(TableReader):
                 elif col_name is None or col_name not in column_attrs:
                     missing.append(field_name)
                     self.log.warning(
-                        f"Table {table_name} is missing column {col_name}"
+                        f"Table {table_name} is missing column {col_name} for field {field_name}"
                         f" of container {container}. It will be skipped."
                     )
                 else:
