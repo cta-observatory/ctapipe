@@ -51,6 +51,7 @@ extensions = [
     "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
 
 numpydoc_show_class_members = False
@@ -104,9 +105,11 @@ nitpick_ignore = [
     ("py:class", "traitlets.traitlets.ClassBasedTraitType"),
     ("py:class", "traitlets.traitlets.Int"),
     ("py:class", "traitlets.config.application.Application"),
+    ("py:class", "traitlets.utils.sentinel.Sentinel"),
+    ("py:class", "traitlets.traitlets.ObserveHandler"),
     ("py:obj", "traitlets.config.boolean_flag"),
     ("py:obj", "traitlets.TraitError"),
-    ("py:obj", "-v"),
+    ("py:obj", "-v"),  # fix for wrong syntax in a traitlets docstring
     ("py:meth", "MetaHasDescriptors.__init__"),
     ("py:meth", "HasTraits.__new__"),
     ("py:meth", "BaseDescriptor.instance_init"),
