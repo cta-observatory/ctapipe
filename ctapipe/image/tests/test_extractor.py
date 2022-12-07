@@ -27,10 +27,13 @@ from ctapipe.image.extractor import (
     integration_correction,
     neighbor_average_maximum,
     subtract_baseline,
+    time_parameters,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
+
+from scipy.signal import find_peaks, peak_widths
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -112,7 +115,6 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 def toymodel(subarray):
     return get_test_toymodel(subarray)
 
-
 def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
     tel_id = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -150,11 +152,25 @@ def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
 def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
     return get_test_toymodel_gradient(subarray_mst_fc)
 
-
 @pytest.fixture(scope="module")
 def toymodel_mst_fc(subarray_mst_fc: object) -> object:
     return get_test_toymodel(subarray_mst_fc)
 
+def test_fwhm(toymodel):
+    waveforms, _, _, _, _, _ = toymodel
+
+    fwhm_scp = np.array([])
+
+    for i in range(0, len(waveforms)):
+        peak_index = np.argmax(waveforms[i])
+        width, width_height, l_ips, r_ips = peak_widths(waveforms[i],
+                                 peaks=[peak_index,], rel_height=0.5,)
+
+        fwhm_scp = np.append(fwhm_scp, width)
+
+    fwhm, _, _ = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1)
+    
+    assert_allclose(fwhm, fwhm_scp, atol=1e-3)
 
 def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
