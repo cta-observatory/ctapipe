@@ -11,10 +11,7 @@ from astropy.coordinates import AltAz, SkyCoord
 from matplotlib import __version__ as mpl_version
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
+from ctapipe.containers import HillasParametersContainer
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.instrument import PixelShape, SubarrayDescription
 
@@ -95,8 +92,12 @@ def test_hillas_overlay(prod5_lst_cam, tmp_path):
 
     fig, ax = plt.subplots()
     disp = CameraDisplay(prod5_lst_cam, ax=ax)
-    hillas = CameraHillasParametersContainer(
-        x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
+    hillas = HillasParametersContainer(
+        fov_lon=0.2 * u.deg,
+        fov_lat=0.3 * u.deg,
+        length=0.15 * u.deg,
+        width=0.05 * u.deg,
+        psi=90 * u.deg,
     )
 
     disp.overlay_moments(hillas, color="w")

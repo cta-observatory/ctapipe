@@ -13,8 +13,6 @@ from ctapipe.instrument.optics import FocalLengthKind
 
 from ..containers import (
     ArrayEventContainer,
-    CameraHillasParametersContainer,
-    CameraTimingParametersContainer,
     ConcentrationContainer,
     DL1CameraContainer,
     EventIndexContainer,
@@ -354,18 +352,6 @@ class HDF5EventSource(EventSource):
 
         return scheduling_blocks, observation_blocks
 
-    def _is_hillas_in_camera_frame(self):
-        parameters_group = self.file_.root.dl1.event.telescope.parameters
-        telescope_tables = parameters_group._v_children.values()
-
-        # in case of no parameters, it doesn't matter, we just return False
-        if len(telescope_tables) == 0:
-            return False
-
-        # check the first telescope table
-        one_telescope = parameters_group._v_children.values()[0]
-        return "camera_frame_hillas_intensity" in one_telescope.colnames
-
     def _generator(self):
         """
         Yield ArrayEventContainer to iterate through events.
@@ -408,12 +394,6 @@ class HDF5EventSource(EventSource):
             timing_cls = TimingParametersContainer
             hillas_prefix = "hillas"
             timing_prefix = "timing"
-
-            if self._is_hillas_in_camera_frame():
-                hillas_cls = CameraHillasParametersContainer
-                timing_cls = CameraTimingParametersContainer
-                hillas_prefix = "camera_frame_hillas"
-                timing_prefix = "camera_frame_timing"
 
             param_readers = {
                 table.name: self.reader.read(

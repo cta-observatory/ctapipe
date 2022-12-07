@@ -479,8 +479,8 @@ class CameraDisplay:
             self.clear_overlays()
 
         # strip off any units
-        cen_x = u.Quantity(hillas_parameters.x).to_value(self.unit)
-        cen_y = u.Quantity(hillas_parameters.y).to_value(self.unit)
+        cen_x = u.Quantity(hillas_parameters.fov_lon).to_value(self.unit)
+        cen_y = u.Quantity(hillas_parameters.fov_lat).to_value(self.unit)
         length = u.Quantity(hillas_parameters.length).to_value(self.unit)
         width = u.Quantity(hillas_parameters.width).to_value(self.unit)
 
@@ -499,8 +499,8 @@ class CameraDisplay:
                 cen_x,
                 cen_y,
                 "({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
-                    hillas_parameters.x,
-                    hillas_parameters.y,
+                    hillas_parameters.fov_lon,
+                    hillas_parameters.fov_lat,
                     hillas_parameters.width,
                     hillas_parameters.length,
                 ),

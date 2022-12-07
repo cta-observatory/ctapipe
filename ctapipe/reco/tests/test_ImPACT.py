@@ -5,7 +5,7 @@ from astropy.coordinates import AltAz, Angle, SkyCoord
 from numpy.testing import assert_allclose
 
 from ctapipe.containers import (
-    CameraHillasParametersContainer,
+    HillasParametersContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
@@ -25,9 +25,9 @@ class TestImPACT:
         self.impact_reco = ImPACTReconstructor(root_dir=".")
         self.horizon_frame = AltAz()
 
-        self.h1 = CameraHillasParametersContainer(
-            x=1 * u.deg,
-            y=1 * u.deg,
+        self.h1 = HillasParametersContainer(
+            fov_lon=1 * u.deg,
+            fov_lat=1 * u.deg,
             r=1 * u.deg,
             phi=Angle(0 * u.rad),
             intensity=100,

@@ -32,8 +32,6 @@ __all__ = [
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
-    "BaseHillasParametersContainer",
-    "CameraHillasParametersContainer",
     "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
     "PedestalContainer",
@@ -184,38 +182,7 @@ class TelEventIndexContainer(Container):
     tel_id = tel_id_field()
 
 
-class BaseHillasParametersContainer(Container):
-    """
-    Base container for hillas parameters to
-    allow the CameraHillasParametersContainer to
-    be assigned to an ImageParametersContainer as well.
-    """
-
-    intensity = Field(nan, "total intensity (size)")
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
-
-
-class CameraHillasParametersContainer(BaseHillasParametersContainer):
-    """
-    Hillas Parameters in the camera frame. The cog position
-    is given in meter from the camera center.
-    """
-
-    default_prefix = "camera_frame_hillas"
-    x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
-    y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
-    r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
-    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
-
-    length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
-    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
-    width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
-    width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
-    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
-
-
-class HillasParametersContainer(BaseHillasParametersContainer):
+class HillasParametersContainer(Container):
     """
     Hillas Parameters in a spherical system centered on the pointing position
     (TelescopeFrame). The cog position is given as offset in
@@ -223,6 +190,9 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     """
 
     default_prefix = "hillas"
+    intensity = Field(nan, "total intensity (size)")
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
     fov_lon = Field(
         nan * u.deg,
         "longitude angle in a spherical system centered on the pointing position",
@@ -366,7 +336,7 @@ class ImageParametersContainer(Container):
     hillas = Field(
         default_factory=HillasParametersContainer,
         description="Hillas Parameters",
-        type=BaseHillasParametersContainer,
+        type=HillasParametersContainer,
     )
     timing = Field(
         default_factory=TimingParametersContainer,

@@ -15,13 +15,8 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ..containers import (
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-    ReconstructedGeometryContainer,
-)
+from ..containers import HillasParametersContainer, ReconstructedGeometryContainer
 from ..coordinates import (
-    CameraFrame,
     MissingFrameAttributeWarning,
     NominalFrame,
     TelescopeFrame,
@@ -188,24 +183,15 @@ class HillasIntersection(GeometryReconstructor):
         hillas_dict_mod = {}
 
         for tel_id, hillas in hillas_dict.items():
-            if isinstance(hillas, CameraHillasParametersContainer):
-                focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
-                camera_frame = CameraFrame(
-                    telescope_pointing=telescopes_pointings[tel_id],
-                    focal_length=focal_length,
-                )
-                cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
-                cog_coords_nom = cog_coords.transform_to(nom_frame)
-            else:
-                telescope_frame = TelescopeFrame(
-                    telescope_pointing=telescopes_pointings[tel_id]
-                )
-                cog_coords = SkyCoord(
-                    fov_lon=hillas.fov_lon,
-                    fov_lat=hillas.fov_lat,
-                    frame=telescope_frame,
-                )
-                cog_coords_nom = cog_coords.transform_to(nom_frame)
+            telescope_frame = TelescopeFrame(
+                telescope_pointing=telescopes_pointings[tel_id]
+            )
+            cog_coords = SkyCoord(
+                fov_lon=hillas.fov_lon,
+                fov_lat=hillas.fov_lat,
+                frame=telescope_frame,
+            )
+            cog_coords_nom = cog_coords.transform_to(nom_frame)
             hillas_dict_mod[tel_id] = HillasParametersContainer(
                 fov_lon=cog_coords_nom.fov_lon,
                 fov_lat=cog_coords_nom.fov_lat,

@@ -7,24 +7,24 @@ import math
 import numpy as np
 import numpy.ma as ma
 from astropy import units as u
-from astropy.coordinates import SkyCoord, AltAz
+from astropy.coordinates import AltAz, SkyCoord
 from iminuit import Minuit
-from scipy.optimize import minimize, least_squares
+from scipy.optimize import least_squares, minimize
 from scipy.stats import norm
 
-from ctapipe.core import Component
+from ctapipe.containers import (
+    ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
+)
 from ctapipe.coordinates import (
+    GroundFrame,
     NominalFrame,
     TiltedGroundFrame,
-    GroundFrame,
     project_to_ground,
 )
-from ctapipe.image import neg_log_likelihood, mean_poisson_likelihood_gaussian
+from ctapipe.core import Component
+from ctapipe.image import mean_poisson_likelihood_gaussian, neg_log_likelihood
 from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.containers import (
-    ReconstructedGeometryContainer,
-    ReconstructedEnergyContainer,
-)
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
@@ -204,8 +204,8 @@ class ImPACTReconstructor(Component):
         tel_num = 0
 
         for hillas in self.hillas_parameters:
-            peak_x[tel_num] = hillas.x.to(u.rad).value  # Fill up array
-            peak_y[tel_num] = hillas.y.to(u.rad).value
+            peak_x[tel_num] = hillas.fov_lon.to(u.rad).value  # Fill up array
+            peak_y[tel_num] = hillas.fov_lat.to(u.rad).value
             peak_amp[tel_num] = hillas.intensity
             tel_num += 1
 
