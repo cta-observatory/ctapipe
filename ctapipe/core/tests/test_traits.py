@@ -11,6 +11,7 @@ from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
     AstroTime,
     Bool,
+    BoolTelescopeParameter,
     Float,
     FloatTelescopeParameter,
     IntTelescopeParameter,
@@ -699,3 +700,18 @@ def test_component_name():
 
     expected = "A list of Base subclass names. Possible values: ['Foo', 'Bar']"
     assert MyListComponent.base_names.help == expected
+
+
+@pytest.mark.parametrize(
+    "trait_type",
+    [IntTelescopeParameter, FloatTelescopeParameter, BoolTelescopeParameter],
+)
+def test_telescope_parameter_none(trait_type, mock_subarray):
+    class Foo(TelescopeComponent):
+        bar = trait_type(default_value=None, allow_none=True).tag(config=True)
+
+    assert Foo(mock_subarray).bar.tel[1] is None
+    assert Foo(mock_subarray, bar=None).bar.tel[1] is None
+
+    f = Foo(mock_subarray, bar=[("type", "*", 1), ("id", 1, None)])
+    assert f.bar.tel[1] is None

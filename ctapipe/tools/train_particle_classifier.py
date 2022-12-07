@@ -2,7 +2,7 @@ import numpy as np
 from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Int, Path, TraitError, flag
+from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -56,7 +56,7 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
-    n_signal = Int(
+    n_signal = IntTelescopeParameter(
         default_value=None,
         allow_none=True,
         help=(
@@ -65,7 +65,7 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
-    n_background = Int(
+    n_background = IntTelescopeParameter(
         default_value=None,
         allow_none=True,
         help=(
@@ -93,6 +93,8 @@ class TrainParticleClassifier(Tool):
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
         "background": "TrainParticleClassifier.input_url_background",
+        "n-signal": "TrainParticleClassifier.n_signal",
+        "n-background": "TrainParticleClassifier.n_background",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
     }
@@ -130,6 +132,9 @@ class TrainParticleClassifier(Tool):
 
         if self.signal_loader.subarray != self.background_loader.subarray:
             raise ValueError("Signal and background subarrays do not match")
+
+        self.n_signal.attach_subarray(self.signal_loader.subarray)
+        self.n_background.attach_subarray(self.signal_loader.subarray)
 
         self.classifier = ParticleClassifier(
             subarray=self.signal_loader.subarray,
@@ -190,17 +195,26 @@ class TrainParticleClassifier(Tool):
             table = table[valid]
 
         if n_events is not None:
-            n_events = min(n_events, len(table))
-            idx = self.rng.choice(len(table), n_events, replace=False)
-            idx.sort()
-            table = table[idx]
+            if n_events > len(table):
+                self.log.warning(
+                    "Number of events in table (%d) is less than requested number of events %d",
+                    len(table),
+                    n_events,
+                )
+            else:
+                self.log.info("Sampling %d events", n_events)
+                idx = self.rng.choice(len(table), n_events, replace=False)
+                idx.sort()
+                table = table[idx]
 
         return table
 
     def _read_input_data(self, tel_type):
-        signal = self._read_table(tel_type, self.signal_loader, self.n_signal)
+        signal = self._read_table(
+            tel_type, self.signal_loader, self.n_signal.tel[tel_type]
+        )
         background = self._read_table(
-            tel_type, self.background_loader, self.n_background
+            tel_type, self.background_loader, self.n_background.tel[tel_type]
         )
         table = vstack([signal, background])
         self.log.info(
