@@ -164,7 +164,11 @@ class Path(TraitType):
             except ValueError:
                 return self.error(obj, value)
 
-            if url.scheme in ("http", "https"):
+            if len(url.scheme) == 1:
+                # looks like a windows drive letter, so assume it is
+                value = pathlib.Path(value)
+
+            elif url.scheme in ("http", "https"):
                 # here to avoid circular import, since every module imports
                 # from ctapipe.core
                 from ctapipe.utils.download import download_cached
