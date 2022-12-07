@@ -4,6 +4,7 @@ Component Wrappers around sklearn models
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
+from typing import Tuple
 
 import astropy.units as u
 import joblib
@@ -33,7 +34,6 @@ from ..core.traits import (
     List,
     Path,
     TraitError,
-    Tuple,
     Unicode,
 )
 from ..io import write_table
@@ -758,7 +758,7 @@ class DispReconstructor(Reconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Tuple(Table, Table):
+    def predict_table(self, key, table: Table) -> Tuple[Table, Table]:
         """Predict on a table of events
 
         Parameters
