@@ -40,7 +40,7 @@ dependencies:
   - setuptools-scm
   - sphinx=8
   - sphinx-gallery
-  - sphinx-automodapi
+  # - sphinx-automodapi
   - pydata-sphinx-theme
   - sphinx-design
   - sphinxcontrib-bibtex

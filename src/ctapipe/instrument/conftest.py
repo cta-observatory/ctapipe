@@ -2,7 +2,6 @@
 Common test fixtures for the instrument module
 """
 
-import os
 import shutil
 
 import astropy.units as u
@@ -33,17 +32,6 @@ def instrument_dir(tmp_path_factory):
         optics_path = path / "MonteCarloArray.optics.fits.gz"
         shutil.move(optics_path, path / "optics.fits.gz")
         return path
-
-
-@pytest.fixture(scope="function")
-def svc_path(instrument_dir):
-    before = os.getenv("CTAPIPE_SVC_PATH")
-    os.environ["CTAPIPE_SVC_PATH"] = str(instrument_dir.absolute())
-    yield
-    if before is None:
-        del os.environ["CTAPIPE_SVC_PATH"]
-    else:
-        os.environ["CTAPIPE_SVC_PATH"] = before
 
 
 @pytest.fixture()
@@ -78,3 +66,10 @@ def geometry_hexgrid_square_pixels():
         frame=CameraFrame(focal_length=10 * u.m),
     )
     return geom
+
+
+@pytest.fixture(scope="function")
+def svc_path(instrument_dir, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv("CTAPIPE_SVC_PATH", str(instrument_dir.absolute()))
+        yield

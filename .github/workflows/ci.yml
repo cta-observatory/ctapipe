@@ -90,6 +90,11 @@ jobs:
             extras: tests,all
             pytest-markers: "-m 'not vizier'"
 
+          - os: windows-latest
+            python-version: "3.12"
+            install-method: mamba
+            extras: tests,all
+            pytest-markers: "-m 'not vizier'"
 
     defaults:
       run:
@@ -120,6 +125,11 @@ jobs:
         run: |
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
+
+      - name: Force UTF-8
+        if: runner.os == 'Windows'
+        run: chcp 65001
+        shell: cmd
 
       - name: mamba setup
         if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
@@ -184,6 +194,7 @@ jobs:
           ctapipe-info --version
 
       - name: Store info for sonar
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
