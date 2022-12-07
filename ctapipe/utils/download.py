@@ -70,7 +70,7 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
     if os.getenv(env_override):
         base = Path(os.environ["CTAPIPE_CACHE"])
     else:
-        base = Path(os.environ["HOME"]) / ".cache" / cache_name
+        base = Path.home() / ".cache" / cache_name
 
     url = urlparse(url)
 
