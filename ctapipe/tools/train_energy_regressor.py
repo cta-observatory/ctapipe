@@ -145,11 +145,19 @@ class TrainEnergyRegressor(Tool):
             self.log.warning("Dropping non-predictable events.")
             table = table[valid]
 
-        if self.n_events.tel[telescope_type] is not None:
-            n_events = min(self.n_events.tel[telescope_type], len(table))
-            idx = self.rng.choice(len(table), n_events, replace=False)
-            idx.sort()
-            table = table[idx]
+        n_events = self.n_events.tel[telescope_type]
+        if n_events is not None:
+            if n_events > len(table):
+                self.log.warning(
+                    "Number of events in table (%d) is less than requested number of events %d",
+                    len(table),
+                    n_events,
+                )
+            else:
+                self.log.info("Sampling %d events", n_events)
+                idx = self.rng.choice(len(table), n_events, replace=False)
+                idx.sort()
+                table = table[idx]
 
         return table
 
