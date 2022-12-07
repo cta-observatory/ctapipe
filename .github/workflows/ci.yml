@@ -87,6 +87,11 @@ jobs:
             install-method: mamba
             extras: tests,all
 
+          - os: windows-latest
+            python-version: "3.12"
+            install-method: mamba
+            extras: tests,all
+
     defaults:
       run:
         # We need login shells (-l) for micromamba to work.
@@ -147,7 +152,9 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
           EXTRAS: ${{ matrix.extras }}
         run: |
-          python --version | grep "Python ${PYTHON_VERSION}"
+          which python
+          python --version
+          python --version | grep "Python $PYTHON_VERSION"
           pip install -e ".[${EXTRAS}]"
           pip install ./test_plugin
           pip freeze
@@ -174,6 +181,7 @@ jobs:
           ctapipe-info --version
 
       - name: Store info for sonar
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
