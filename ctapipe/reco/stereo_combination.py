@@ -249,8 +249,8 @@ class StereoMeanCombiner(StereoCombiner):
             valid = False
 
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
-            alt=mean_altaz.alt.to(u.deg),
-            az=mean_altaz.az.to(u.deg),
+            alt=mean_altaz.alt,
+            az=mean_altaz.az,
             ang_distance_uncert=u.Quantity(np.rad2deg(std), u.deg, copy=False),
             telescopes=ids,
             is_valid=valid,

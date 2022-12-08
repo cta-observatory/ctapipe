@@ -42,7 +42,7 @@ class TrainDispReconstructor(Tool):
         allow_none=True,
         help=(
             "Number of events for training the models."
-            " If not give, all available events will be used."
+            " If not given, all available events will be used."
         ),
     ).tag(config=True)
 
@@ -54,7 +54,12 @@ class TrainDispReconstructor(Tool):
 
     project_disp = Bool(
         default_value=False,
-        help="Project true source position on main shower axis for true |disp| calculation",
+        help=(
+            "If true, true |disp| is the distance between shower cog and"
+            " the true source position along the reconstructed main shower axis."
+            "If false, true |disp| is the distance between shower cog"
+            " and the true source position."
+        ),
     ).tag(config=True)
 
     flags = {

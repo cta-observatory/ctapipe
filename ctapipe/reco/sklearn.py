@@ -800,7 +800,8 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"] + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"] + disp * np.sin(psi)
 
-        # For now: Assume parallel pointing for each run
+        # FIXME: Assume parallel pointing for each run
+        self.log.warning("Assuming parallel pointing for each run")
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,

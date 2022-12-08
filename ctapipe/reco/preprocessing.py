@@ -59,6 +59,7 @@ def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
 def table_to_X(table: Table, features: list, log):
     """
     Extract features as numpy ndarray to be given to sklearn from input table
+    dropping all events for which one or more training features are nan
     """
     feature_table = table[features]
     valid = check_valid_rows(feature_table, log=log)
