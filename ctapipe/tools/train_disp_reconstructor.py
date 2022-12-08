@@ -2,7 +2,7 @@ import astropy.units as u
 import numpy as np
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Bool, Int, Path, TraitError, flag
+from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
@@ -37,7 +37,7 @@ class TrainDispReconstructor(Tool):
         ),
     ).tag(config=True)
 
-    n_events = Int(
+    n_events = IntTelescopeParameter(
         default_value=None,
         allow_none=True,
         help=(
@@ -74,6 +74,7 @@ class TrainDispReconstructor(Tool):
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainDispReconstructor.output_path",
+        "n-events": "TrainDispReconstructor.n_events",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -92,6 +93,7 @@ class TrainDispReconstructor(Tool):
             load_instrument=True,
             load_observation_info=True,
         )
+        self.n_events.attach_subarray(self.loader.subarray)
 
         self.models = DispReconstructor(self.loader.subarray, parent=self)
         self.cross_validate = CrossValidator(parent=self, model_component=self.models)
@@ -148,11 +150,19 @@ class TrainDispReconstructor(Tool):
             self.log.warning("Dropping non-predicable events.")
             table = table[valid]
 
-        if self.n_events is not None:
-            n_events = min(self.n_events, len(table))
-            idx = self.rng.choice(len(table), n_events, replace=False)
-            idx.sort()
-            table = table[idx]
+        n_events = self.n_events.tel[telescope_type]
+        if n_events is not None:
+            if n_events > len(table):
+                self.log.warning(
+                    "Number of events in table (%d) is less than requested number of events %d",
+                    len(table),
+                    n_events,
+                )
+            else:
+                self.log.info("Sampling %d events", n_events)
+                idx = self.rng.choice(len(table), n_events, replace=False)
+                idx.sort()
+                table = table[idx]
 
         return table
 
