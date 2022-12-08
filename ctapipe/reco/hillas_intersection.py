@@ -183,13 +183,10 @@ class HillasIntersection(GeometryReconstructor):
         hillas_dict_mod = {}
 
         for tel_id, hillas in hillas_dict.items():
-            telescope_frame = TelescopeFrame(
-                telescope_pointing=telescopes_pointings[tel_id]
-            )
-            cog_coords = SkyCoord(
+            cog_coords = TelescopeFrame(
                 fov_lon=hillas.fov_lon,
                 fov_lat=hillas.fov_lat,
-                frame=telescope_frame,
+                telescope_pointing=telescopes_pointings[tel_id],
             )
             cog_coords_nom = cog_coords.transform_to(nom_frame)
             hillas_dict_mod[tel_id] = HillasParametersContainer(
