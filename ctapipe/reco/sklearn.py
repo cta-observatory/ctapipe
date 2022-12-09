@@ -751,7 +751,7 @@ class DispReconstructor(Reconstructor):
                     is_valid=False,
                 )
 
-            disp_container.prefix = f"{self.prefix}_parameter_tel"
+            disp_container.prefix = f"{self.prefix}_parameter"
             altaz_container.prefix = f"{self.prefix}_tel"
             event.dl2.tel[tel_id].disp[self.prefix] = disp_container
             event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
@@ -785,8 +785,8 @@ class DispReconstructor(Reconstructor):
 
         disp_result = Table(
             {
-                f"{self.prefix}_parameter_tel_norm": disp,
-                f"{self.prefix}_parameter_tel_is_valid": is_valid,
+                f"{self.prefix}_parameter_norm": disp,
+                f"{self.prefix}_parameter_is_valid": is_valid,
             }
         )
         add_defaults_and_meta(
@@ -800,8 +800,8 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"] + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"] + disp * np.sin(psi)
 
-        # FIXME: Assume parallel pointing for each run
-        self.log.warning("Assuming parallel pointing for each run")
+        # FIXME: Assume constant and parallel pointing for each run
+        self.log.warning("Assuming constant and parallel pointing for each run")
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,

@@ -162,8 +162,8 @@ def test_process_apply_disp(
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
     tel_events = read_table(output, "/dl2/event/telescope/disp/disp/tel_004")
-    assert "disp_parameter_tel_norm" in tel_events.colnames
-    assert "disp_parameter_tel_is_valid" in tel_events.colnames
+    assert "disp_parameter_norm" in tel_events.colnames
+    assert "disp_parameter_is_valid" in tel_events.colnames
 
     tel_events = read_table(output, "/dl2/event/telescope/geometry/disp/tel_004")
     assert "disp_tel_alt" in tel_events.colnames

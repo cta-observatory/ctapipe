@@ -144,8 +144,8 @@ def test_apply_all(
     assert f"{prefix_disp}_tel_alt" in events.colnames
     assert f"{prefix_disp}_tel_az" in events.colnames
     assert f"{prefix_disp}_tel_is_valid" in events.colnames
-    assert f"{prefix_disp}_parameter_tel_norm" in events.colnames
-    assert f"{prefix_disp}_parameter_tel_is_valid" in events.colnames
+    assert f"{prefix_disp}_parameter_norm" in events.colnames
+    assert f"{prefix_disp}_parameter_is_valid" in events.colnames
 
     assert "ExtraTreesRegressor_energy" in events.colnames
 
