@@ -396,13 +396,12 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
         peak = max(0, min(peak_index[i], n - 1))
         
         peak_ampl = waveform[peak]
-        upper_ampl = upper_limit * peak_ampl
-        lower_ampl = lower_limit * peak_ampl
-        phalf = peak_ampl / 2.0
+        upper_ampl = peak_ampl - (peak_ampl - np.mean(waveform))*(1-upper_limit) 
+        lower_ampl = peak_ampl - (peak_ampl - np.mean(waveform))*(1-lower_limit)
+        phalf = peak_ampl - (peak_ampl - np.mean(waveform[:]))/ 2.0
 
         ind1 = peak
         ind2 = peak
-
         while ind1 >= 0 and waveform[ind1] > phalf:
             ind1 -= 1
 
@@ -426,15 +425,8 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
                  indices_high.append(k)
             k += 1
 
-        if not indices_low:
-            rise_time.append(0)
-        else:
-            rise_time.append(np.argmin(indices_low) - np.argmax(indices_low))
-
-        if not indices_high:
-            fall_time.append(0)
-        else:
-            fall_time.append(np.argmax(indices_high) - np.argmin(indices_high))
+        rise_time.append(min(indices_low, default=0) - max(indices_low, default=0))
+        fall_time.append(max(indices_high, default=0) - min(indices_high, default=0))
 
     return fwhm, rise_time, fall_time
 
