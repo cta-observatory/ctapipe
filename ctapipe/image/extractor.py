@@ -48,7 +48,7 @@ from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
 from .morphology import brightest_island, number_of_islands
 from .timing import timing_parameters
-
+from scipy.signal import filtfilt
 
 @guvectorize(
     [
@@ -350,7 +350,7 @@ def integration_correction(
 
     return correction
 
-def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
+def time_parameters(waveforms, upper_limit, lower_limit, upsampling, peak_index=None):
     """
     Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
     
@@ -366,6 +366,8 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
         Upper fraction of peak maximum
     lower_limit : float
         Lower fraction of peak maximum
+    upsampling : int
+
 
     Returns
     -------
@@ -381,8 +383,17 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
 
     """
 
+    if upsampling > 1:
+        waveforms = filtfilt(
+            np.ones(upsampling),
+            upsampling,
+            np.repeat(waveforms, upsampling, axis=-1),
+        )
+
     if peak_index == None:  # take the maximum as a default
         peak_index = np.argmax(waveforms, axis=-1)
+    else:
+        peak_index = peak_index*upsampling
 
     nsamples = len(waveforms)
 
@@ -398,7 +409,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
         peak_ampl = waveform[peak]
         upper_ampl = peak_ampl - (peak_ampl - np.mean(waveform))*(1-upper_limit) 
         lower_ampl = peak_ampl - (peak_ampl - np.mean(waveform))*(1-lower_limit)
-        phalf = peak_ampl - (peak_ampl - np.mean(waveform[:]))/ 2.0
+        phalf = peak_ampl - (peak_ampl - np.mean(waveform[:])) / 2.0
 
         ind1 = peak
         ind2 = peak
@@ -408,7 +419,10 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
         while ind2 < n and waveform[ind2] > phalf:
             ind2 += 1
 
-        fwhm.append(ind2 - ind1)    
+        if peak < 2 or peak > len(waveform) - 2:
+            fwhm.append((ind2 - ind1)*2/upsampling)
+        else:
+            fwhm.append((ind2 - ind1)/upsampling)    
 
         indices_high = []
         indices_low = []
@@ -425,8 +439,8 @@ def time_parameters(waveforms, upper_limit, lower_limit, peak_index=None):
                  indices_high.append(k)
             k += 1
 
-        rise_time.append(min(indices_low, default=0) - max(indices_low, default=0))
-        fall_time.append(max(indices_high, default=0) - min(indices_high, default=0))
+        rise_time.append(min(indices_low, default=0)/upsampling - max(indices_low, default=0)/upsampling)
+        fall_time.append(max(indices_high, default=0)/upsampling - min(indices_high, default=0)/upsampling)
 
     return fwhm, rise_time, fall_time
 
