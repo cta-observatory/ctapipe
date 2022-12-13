@@ -38,6 +38,7 @@ dependencies:
   - sphinx-automodapi
   - sphinx_rtd_theme
   - tomli
+  - towncrier
   - tqdm
   - traitlets
   - vitables

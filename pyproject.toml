@@ -23,7 +23,6 @@ exclude = '''
 )/
 '''
 
-
 [tool.pytest.ini_options]
 filterwarnings = [
     "error::DeprecationWarning",
@@ -31,3 +30,37 @@ filterwarnings = [
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
 ]
+
+[tool.towncrier]
+    package = "ctapipe"
+    directory = "docs/changes"
+    filename = "CHANGES.rst"
+    template = "docs/changes/template.rst"
+
+    [tool.towncrier.fragment.feature]
+        name = "New Feature"
+        showcontent = true
+
+    [tool.towncrier.fragment.bug]
+        name = "Bug Fixes"
+        showcontent = true
+
+    [tool.towncrier.fragment.api]
+        name = "API Changes"
+        showcontent = true
+    
+    [tool.towncrier.fragment.datamodel]
+        name = "Data Model Changes"
+        showcontent = true
+
+    [tool.towncrier.fragment.optimization]
+        name = "Refactoring and Optimization"
+        showcontent = true
+
+    [tool.towncrier.fragment.maintenance]
+        name = "Maintenance"
+        showcontent = true
+
+    [[tool.towncrier.section]]
+        name = ""
+        path = ""

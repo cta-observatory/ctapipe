@@ -1,7 +1,9 @@
+
 ==========
 Change Log
 ==========
 
+.. include:: ../CHANGES.rst
 
 v0.6.1
 ------

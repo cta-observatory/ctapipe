@@ -42,6 +42,9 @@ Keep in mind
 * Pull requests that cause tests to fail on *Travis* (the continuous
   integration system) will not be accepted until those tests pass.
 
+* make sure to add a news fragment for the changelog.  In order to do this add a file to the directory ``docs/changes`` and use the following naming scheme
+  ``<PULL REQUEST>.<TYPE>.rst`` (take a look at the ``README`` inside of the directory for more details). The file should contain a brief summary of the purpose of this pull request.
+
 
 Accepting a Pull Request
 ------------------------
