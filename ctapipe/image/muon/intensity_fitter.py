@@ -18,6 +18,8 @@ from numba import double, vectorize
 from scipy.constants import alpha
 from scipy.ndimage import correlate1d
 
+from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
+
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import CameraFrame, TelescopeFrame
 from ...core import TelescopeComponent
@@ -411,16 +413,7 @@ def build_negative_log_likelihood(
         # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
-        # A gaussian approximation is used here, where the total
-        # standard deviation is the pedestal standard deviation (e.g. by NSB) and
-        # the single photon resolution times the image magnitude.
-        sigma2 = pedestal**2 + prediction * (1 + spe_width**2)
-
-        # gaussian negative log-likelihood, analytically simplified and
-        # constant terms discarded
-        neg_log_l = np.log(sigma2) + (image - prediction) ** 2 / sigma2
-
-        return neg_log_l.sum()
+        return neg_log_likelihood_approx(image, prediction, spe_width, pedestal)
 
     return negative_log_likelihood
 
