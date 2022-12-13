@@ -101,7 +101,7 @@ def _empty_telescope_events_table():
     Create a new astropy table with correct column names and dtypes
     for telescope event based data.
     """
-    return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.int32, np.int64, np.int16])
+    return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.uint64, np.uint64, np.uint16])
 
 
 def _join_subarray_events(table1, table2):
@@ -316,14 +316,14 @@ class TableLoader(Component):
         """
         return read_table(self.h5file, SHOWER_DISTRIBUTION_TABLE)
 
-    def read_observation_information(self, start=None, stop=None):
+    def read_observation_information(self):
         """
         Read the observation information
         """
-        return read_table(self.h5file, OBSERVATION_TABLE, start=start, stop=stop)
+        return read_table(self.h5file, OBSERVATION_TABLE)
 
-    def _join_observation_info(self, table, start=None, stop=None):
-        observation_table = self.read_observation_information(start=start, stop=stop)
+    def _join_observation_info(self, table):
+        observation_table = self.read_observation_information()
         table = join_allow_empty(
             table, observation_table, keys="obs_id", join_type="left"
         )
@@ -361,7 +361,7 @@ class TableLoader(Component):
                         table = _merge_subarray_tables(table, dl2)
 
         if self.load_observation_info:
-            table = self._join_observation_info(table, start=start, stop=stop)
+            table = self._join_observation_info(table)
 
         if keep_order:
             self._sort_to_original_order(table)
