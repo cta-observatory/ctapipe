@@ -19,11 +19,7 @@ from astropy.coordinates import (
     UnitSphericalRepresentation,
     frame_transform_graph,
 )
-from astropy.coordinates.matrix_utilities import (
-    matrix_product,
-    matrix_transpose,
-    rotation_matrix,
-)
+from astropy.coordinates.matrix_utilities import matrix_transpose, rotation_matrix
 
 __all__ = ["TelescopeFrame"]
 
@@ -103,7 +99,7 @@ def altaz_to_telescope(altaz_coord, telescope_frame):
     )
     mat1 = rotation_matrix(-telescope_pointing.lat, "y")
     mat2 = rotation_matrix(telescope_pointing.lon, "z")
-    return matrix_product(mat1, mat2)
+    return mat1 @ mat2
 
 
 @frame_transform_graph.transform(DynamicMatrixTransform, TelescopeFrame, AltAz)
