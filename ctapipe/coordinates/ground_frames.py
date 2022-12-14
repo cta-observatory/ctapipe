@@ -16,11 +16,13 @@ TODO:
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import (
+    ITRS,
     AffineTransform,
     AltAz,
     BaseCoordinateFrame,
     CartesianRepresentation,
     CoordinateAttribute,
+    EarthLocationAttribute,
     FunctionTransform,
     RepresentationMapping,
     frame_transform_graph,
@@ -33,6 +35,23 @@ __all__ = [
     "project_to_ground",
     "EastingNorthingFrame",
 ]
+
+
+def _altaz_to_earthlocation(altaz):
+    local_itrs = altaz.transform_to(ITRS(location=altaz.location))
+    itrs = ITRS(local_itrs.cartesian + altaz.location.get_itrs().cartesian)
+    return itrs.earth_location
+
+
+def _earthlocation_to_altaz(location, reference_location):
+    # See
+    # https://docs.astropy.org/en/stable/coordinates/common_errors.html#altaz-calculations-for-earth-based-objects
+    # for why this is necessary and we cannot just do
+    # `get_itrs().transform_to(AltAz())`
+    itrs_cart = location.get_itrs().cartesian
+    itrs_ref_cart = reference_location.get_itrs().cartesian
+    local_itrs = ITRS(itrs_cart - itrs_ref_cart, location=reference_location)
+    return local_itrs.transform_to(AltAz(location=reference_location))
 
 
 class GroundFrame(BaseCoordinateFrame):
@@ -48,6 +67,24 @@ class GroundFrame(BaseCoordinateFrame):
     """
 
     default_representation = CartesianRepresentation
+    reference_location = EarthLocationAttribute()
+
+    def to_earth_location(self):
+        # in astropy, x points north, y points east, so we need a minus for y.
+        cart = CartesianRepresentation(self.x, -self.y, self.z)
+        altaz = AltAz(cart, location=self.reference_location)
+        return _altaz_to_earthlocation(altaz)
+
+    @classmethod
+    def from_earth_location(cls, location, reference_location):
+        altaz = _earthlocation_to_altaz(location, reference_location)
+        x, y, z = altaz.cartesian.xyz
+        # in astropy, x points north, y points east, so we need a minus for y.
+        return GroundFrame(x=x, y=-y, z=z, reference_location=reference_location)
+
+    @property
+    def observation_level(self):
+        return self.reference_location.height
 
 
 class EastingNorthingFrame(BaseCoordinateFrame):
@@ -59,6 +96,7 @@ class EastingNorthingFrame(BaseCoordinateFrame):
     """
 
     default_representation = CartesianRepresentation
+    reference_location = EarthLocationAttribute()
 
     frame_specific_representation_info = {
         CartesianRepresentation: [
@@ -67,6 +105,28 @@ class EastingNorthingFrame(BaseCoordinateFrame):
             RepresentationMapping("z", "height"),
         ]
     }
+
+    def to_earth_location(self):
+        # in astropy, x points north, y points east
+        cart = CartesianRepresentation(self.northing, self.easting, self.height)
+        altaz = AltAz(cart, location=self.reference_location)
+        return _altaz_to_earthlocation(altaz)
+
+    @classmethod
+    def from_earth_location(cls, location, reference_location):
+        altaz = _earthlocation_to_altaz(location, reference_location)
+        x, y, z = altaz.cartesian.xyz
+        # in astropy, x points north, y points east
+        return GroundFrame(
+            northing=x,
+            easting=y,
+            height=z,
+            reference_location=reference_location,
+        )
+
+    @property
+    def observation_level(self):
+        return self.reference_location.height
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
