@@ -331,7 +331,7 @@ class DataWriter(Component):
             self._write_dl2_stereo_event(self._writer, event)
 
         if self.write_muon_parameters:
-            pass
+            self._write_muon_telescope_events(self._writer, event)
 
     def finish(self):
         """called after all events are done"""
@@ -451,9 +451,6 @@ class DataWriter(Component):
 
         if not self.write_parameters:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
-
-        if not self.write_muon_parameters:
-            pass
 
         # Set up transforms
         if self.transform_image:
@@ -713,9 +710,18 @@ class DataWriter(Component):
                             true_parameters.intensity_statistics,
                         ],
                     )
-            # maybe write the muon parameters to 'dl1/event/telescope/parameters/muons'??
-            if self.write_muon_parameters:
-                pass
+
+    def _write_muon_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+
+        for tel_id, muon in event.muon.tel.items():
+            table_name = self.table_name(tel_id)
+            tel_index = _get_tel_index(event, tel_id)
+            writer.write(
+                f"dl1/event/telescope/muon/{table_name}",
+                [tel_index, muon.ring, muon.parameters, muon.efficiency],
+            )
 
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer

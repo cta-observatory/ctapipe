@@ -992,22 +992,27 @@ class MuonParametersContainer(Container):
     )
     intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
     mean_squared_error = Field(
-        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
+        nan * u.deg**2,
+        "MSE of the deviation of all pixels after cleaning from the ring fit",
     )
 
 
-class MuonContainer(Container):
+class MuonCameraContainer(Container):
     """
     Container for muon analysis
     """
 
     ring = Field(default_factory=MuonRingContainer, description="muon ring fit")
-    efficiency = Field(
-        default_factory=MuonEfficiencyContainer, description="muon efficiency"
-    )
     parameters = Field(
         default_factory=MuonParametersContainer, description="muon parameters"
     )
+    efficiency = Field(
+        default_factory=MuonEfficiencyContainer, description="muon efficiency"
+    )
+
+
+class MuonContainer(Container):
+    tel = Field(default_factory=partial(Map, MuonCameraContainer))
 
 
 class FlatFieldContainer(Container):

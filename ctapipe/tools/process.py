@@ -11,6 +11,7 @@ from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
+from ..image.muon import MuonProcessor
 from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
@@ -126,6 +127,12 @@ class ProcessorTool(Tool):
             "DataWriter.write_index_tables",
             "generate PyTables index tables for the parameter and image datasets",
         ),
+        **flag(
+            "write-muon-parameters",
+            "DataWriter.write_muon_parameters",
+            "store DL1/Event/Telescope muon parameters in output",
+            "don't store DL1/Event/Telescope muon parameters in output",
+        ),
         "camera-frame": (
             {"ImageProcessor": {"use_telescope_frame": False}},
             "Use camera frame for image parameters instead of telescope frame",
@@ -176,6 +183,7 @@ class ProcessorTool(Tool):
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)
         )
+        self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         # add ml reco classes if model paths were supplied via cli and not already configured
         reco_aliases = {
@@ -229,7 +237,11 @@ class ProcessorTool(Tool):
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
-        return self.write.write_parameters or self.should_compute_dl2
+        return (
+            self.write.write_parameters
+            or self.should_compute_dl2
+            or self.should_compute_muon_parameters
+        )
 
     @property
     def should_calibrate(self):
@@ -244,6 +256,13 @@ class ProcessorTool(Tool):
 
         if self.should_compute_dl1:
             return DataLevel.DL1_IMAGES not in self.event_source.datalevels
+
+        return False
+
+    @property
+    def should_compute_muon_parameters(self):
+        if self.write.write_muon_parameters:
+            return True
 
         return False
 
@@ -305,6 +324,9 @@ class ProcessorTool(Tool):
 
             if self.should_compute_dl1:
                 self.process_images(event)
+
+            if self.should_compute_muon_parameters:
+                self.process_muons(event)
 
             if self.should_compute_dl2:
                 self.process_shower(event)
