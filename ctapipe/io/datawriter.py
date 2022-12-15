@@ -194,6 +194,10 @@ class DataWriter(Component):
         help="Store DL2 stereo shower parameters if available", default_value=False
     ).tag(config=True)
 
+    write_muon_parameters = Bool(
+        help="Store muon parameters if available", default_value=False
+    ).tag(config=True)
+
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
     ).tag(config=True)
@@ -326,6 +330,9 @@ class DataWriter(Component):
             self._write_dl2_telescope_events(self._writer, event)
             self._write_dl2_stereo_event(self._writer, event)
 
+        if self.write_muon_parameters:
+            pass
+
     def finish(self):
         """called after all events are done"""
         self.log.info("Finishing output")
@@ -398,6 +405,7 @@ class DataWriter(Component):
             self.write_images,
             self.write_showers,
             self.write_waveforms,
+            self.write_muon_parameters,
         ]
         if not any(writable_things):
             raise ToolConfigurationError(
@@ -443,6 +451,9 @@ class DataWriter(Component):
 
         if not self.write_parameters:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
+
+        if not self.write_muon_parameters:
+            pass
 
         # Set up transforms
         if self.transform_image:
@@ -702,6 +713,9 @@ class DataWriter(Component):
                             true_parameters.intensity_statistics,
                         ],
                     )
+            # maybe write the muon parameters to 'dl1/event/telescope/parameters/muons'??
+            if self.write_muon_parameters:
+                pass
 
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer

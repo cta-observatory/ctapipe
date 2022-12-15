@@ -996,6 +996,20 @@ class MuonParametersContainer(Container):
     )
 
 
+class MuonContainer(Container):
+    """
+    Container for muon analysis
+    """
+
+    ring = Field(default_factory=MuonRingContainer, description="muon ring fit")
+    efficiency = Field(
+        default_factory=MuonEfficiencyContainer, description="muon efficiency"
+    )
+    parameters = Field(
+        default_factory=MuonParametersContainer, description="muon parameters"
+    )
+
+
 class FlatFieldContainer(Container):
     """
     Container for flat-field parameters obtained from a set of
@@ -1231,6 +1245,9 @@ class ArrayEventContainer(Container):
     mon = Field(
         default_factory=MonitoringContainer,
         description="container for event-wise monitoring data (MON)",
+    )
+    muon = Field(
+        default_factory=MuonContainer, description="Container for muon analysis results"
     )
 
 
