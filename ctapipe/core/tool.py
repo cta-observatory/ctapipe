@@ -11,6 +11,7 @@ from typing import Union
 
 import yaml
 from docutils.core import publish_parts
+from traitlets import TraitError
 
 try:
     import tomli as toml
@@ -359,8 +360,9 @@ class Tool(Application):
             self.finish()
             self.log.info(f"Finished: {self.name}")
             Provenance().finish_activity(activity_name=self.name)
-        except ToolConfigurationError as err:
-            self.log.error(f"{err}.  Use --help for more info")
+        except (ToolConfigurationError, TraitError) as err:
+            self.log.error("%s", err)
+            self.log.error("Use --help for more info")
             exit_status = 2  # wrong cmd line parameter
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
