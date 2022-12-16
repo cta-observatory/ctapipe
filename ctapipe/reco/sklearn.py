@@ -610,17 +610,17 @@ class DispReconstructor(Reconstructor):
         """
         # make sure we use the unit that was used during training
         if self.unit is not None:
-            norm_y = np.abs(table[mask][self.target].quantity.to_value(self.unit))
+            norm = table[mask][self.target].quantity.to_value(self.unit)
         else:
-            norm_y = np.abs(np.array(table[self.target][mask]))
+            norm = np.array(table[self.target][mask])
+
+        abs_norm = np.abs(norm)
+        sign_norm = np.sign(norm)
 
         if self.log_target:
-            if np.any(norm_y <= 0):
-                raise ValueError("norm_y contains negative values, cannot apply log")
-            norm_y = np.log(norm_y)
+            abs_norm = np.log(abs_norm)
 
-        sign_y = np.sign(np.array(table[self.target][mask]))
-        return norm_y, sign_y
+        return abs_norm, sign_norm
 
     def fit(self, key, table):
         """
@@ -630,9 +630,9 @@ class DispReconstructor(Reconstructor):
 
         X, valid = table_to_X(table, self.features, self.log)
         self.unit = table[self.target].unit
-        norm_y, sign_y = self._table_to_y(table, mask=valid)
-        self._norm_models[key].fit(X, norm_y)
-        self._sign_models[key].fit(X, sign_y)
+        norm, sign = self._table_to_y(table, mask=valid)
+        self._norm_models[key].fit(X, norm)
+        self._sign_models[key].fit(X, sign)
 
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
@@ -676,23 +676,22 @@ class DispReconstructor(Reconstructor):
                 f" available classifiers: {self._sign_models.keys()}"
             )
         X, valid = table_to_X(table, self.features, self.log)
-        norm_prediction = np.full(len(table), np.nan)
-        sign_prediction = np.full(len(table), 0, dtype=np.int8)
+        prediction = np.full(len(table), np.nan)
 
         if np.any(valid):
             valid_norms = self._norm_models[key].predict(X)
 
             if self.log_target:
-                norm_prediction[valid] = np.exp(valid_norms)
+                prediction[valid] = np.exp(valid_norms)
             else:
-                norm_prediction[valid] = valid_norms
+                prediction[valid] = valid_norms
 
-            sign_prediction[valid] = self._sign_models[key].predict(X)
+            prediction[valid] *= self._sign_models[key].predict(X)
 
         if self.unit is not None:
-            norm_prediction = u.Quantity(norm_prediction, self.unit, copy=False)
+            prediction = u.Quantity(prediction, self.unit, copy=False)
 
-        return norm_prediction * sign_prediction, valid
+        return prediction, valid
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.

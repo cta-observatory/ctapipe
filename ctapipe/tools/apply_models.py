@@ -200,31 +200,18 @@ class ApplyModels(Tool):
 
             for tel_id, table in chunk.items():
                 tel = self.loader.subarray.tel[tel_id]
-
-                if isinstance(reconstructor, DispReconstructor):
-                    if tel not in reconstructor._norm_models:
-                        self.log.warning(
-                            "No norm regressor for telescope type %s, skipping tel %d",
-                            tel,
-                            tel_id,
-                        )
-                        continue
-                    if tel not in reconstructor._sign_models:
-                        self.log.warning(
-                            "No sign classifier for telescope type %s, skipping tel %d",
-                            tel,
-                            tel_id,
-                        )
-                        continue
-                else:
-                    if tel not in reconstructor._models:
-                        self.log.warning(
-                            "No model in %s for telescope type %s, skipping tel %d",
-                            reconstructor,
-                            tel,
-                            tel_id,
-                        )
-                        continue
+                if (
+                    tel not in reconstructor._norm_models
+                    if isinstance(reconstructor, DispReconstructor)
+                    else tel not in reconstructor._models
+                ):
+                    self.log.warning(
+                        "No model in %s for telescope type %s, skipping tel %d",
+                        reconstructor,
+                        tel,
+                        tel_id,
+                    )
+                    continue
 
                 if len(table) == 0:
                     self.log.warning("No events for telescope %d", tel_id)

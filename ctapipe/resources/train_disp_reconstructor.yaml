@@ -43,9 +43,6 @@ TrainDispReconstructor:
       - morphology_n_medium_islands
       - morphology_n_pixels
       - morphology_n_small_islands
-      - HillasReconstructor_tel_impact_distance
-      - HillasReconstructor_average_intensity
-      - HillasReconstructor_h_max
       - peak_time_std
       - peak_time_skewness
       - peak_time_kurtosis

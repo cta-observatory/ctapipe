@@ -7,6 +7,7 @@ and adapted to work with astropy Tables instead of pandas dataframes
 """
 import logging
 import warnings
+from typing import List
 
 import astropy.units as u
 import numpy as np
@@ -56,7 +57,7 @@ def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
     return valid
 
 
-def table_to_X(table: Table, features: list, log):
+def table_to_X(table: Table, features: List[str], log=LOG):
     """
     Extract features as numpy ndarray to be given to sklearn from input table
     dropping all events for which one or more training features are nan
