@@ -77,7 +77,11 @@ parameter_nodes = {
 SIMULATED_IMAGE_GROUP = "/simulation/event/telescope/images"
 simulation_images = {SIMULATED_IMAGE_GROUP}
 
-dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
+dl2_subarray_nodes = {
+    "/dl2/event/subarray/geometry",
+    "/dl2/event/subarray/impact",
+    "/dl2/event/subarray/energy",
+}
 
 dl2_algorithm_tel_nodes = {
     "/dl2/event/telescope/geometry",
