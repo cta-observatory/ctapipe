@@ -350,7 +350,7 @@ def integration_correction(
 
     return correction
 
-def time_parameters(waveforms, upper_limit, lower_limit, upsampling, peak_index=None):
+def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_start, baseline_end, peak_index=None):
     """
     Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
     
@@ -367,7 +367,12 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, peak_index=
     lower_limit : float
         Lower fraction of peak maximum
     upsampling : int
-
+        Upsampling factor to use (>= 1); if > 1, the input waveforms are resampled
+        at upsampling times their original sampling rate.
+    baseline_start : int
+        Sample where the baseline window starts
+    baseline_end : int
+        Sample where the baseline window ends
 
     Returns
     -------
@@ -407,9 +412,9 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, peak_index=
         peak = max(0, min(peak_index[i], n - 1))
         
         peak_ampl = waveform[peak]
-        upper_ampl = peak_ampl - (peak_ampl - np.mean(waveform))*(1-upper_limit) 
-        lower_ampl = peak_ampl - (peak_ampl - np.mean(waveform))*(1-lower_limit)
-        phalf = peak_ampl - (peak_ampl - np.mean(waveform[:])) / 2.0
+        upper_ampl = (peak_ampl - np.mean(waveform[baseline_start:baseline_end]))*upper_limit 
+        lower_ampl = (peak_ampl - np.mean(waveform[baseline_start:baseline_end]))*lower_limit
+        phalf = (peak_ampl - np.mean(waveform[baseline_start:baseline_end])) / 2.0
 
         ind1 = peak
         ind2 = peak

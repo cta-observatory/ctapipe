@@ -168,7 +168,7 @@ def test_fwhm(toymodel):
 
         fwhm_scp = np.append(fwhm_scp, width)
 
-    fwhm, _, _ = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1)
+    fwhm, _, _ = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1, upsampling=10, baseline_start=19, baseline_end=24)
     
     assert_allclose(fwhm, fwhm_scp, atol=1e-3)
 
