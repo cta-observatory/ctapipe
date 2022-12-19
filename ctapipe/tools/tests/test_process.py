@@ -21,6 +21,7 @@ from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
 from ctapipe.utils import get_dataset_path, resource_file
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
+LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
 @pytest.mark.parametrize(
@@ -431,3 +432,61 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         events_from_simtel["true_core_x"],
         events_from_dl1["true_core_x"],
     )
+
+
+def test_muon_reconstruction_simtel(tmp_path):
+    muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
+    assert (
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--input={LST_MUONS}",
+                f"--output={muon_simtel_output_file}",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+                "--overwrite",
+                "--write-muon-parameters",
+            ],
+            cwd=tmp_path,
+        )
+        == 0
+    )
+
+    with tables.open_file(muon_simtel_output_file) as t:
+        table = t.root.dl1.event.telescope.muon.tel_001[:]
+        assert len(table) > 20
+        assert np.count_nonzero(np.isfinite(table["muonring_radius"])) > 0
+        assert np.all(
+            np.logical_or(
+                np.isfinite(table["muonring_radius"]),
+                np.isnan(table["muonring_radius"]),
+            )
+        )
+
+
+def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
+    muon_dl1_output_file = tmp_path / "muon_reco_on_dl1a.h5"
+    assert (
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--input={dl1_muon_file}",
+                f"--output={muon_dl1_output_file}",
+                "--HDF5EventSource.focal_length_choice=EQUIVALENT",
+                "--overwrite",
+                "--write-muon-parameters",
+            ],
+            cwd=tmp_path,
+        )
+        == 0
+    )
+
+    with tables.open_file(muon_dl1_output_file) as t:
+        table = t.root.dl1.event.telescope.muon.tel_001[:]
+        assert len(table) > 20
+        assert np.count_nonzero(np.isfinite(table["muonring_radius"])) > 0
+        assert np.all(
+            np.logical_or(
+                np.isfinite(table["muonring_radius"]),
+                np.isnan(table["muonring_radius"]),
+            )
+        )
