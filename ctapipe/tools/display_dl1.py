@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 from ..calib import CameraCalibrator
-from ..core import Component, Tool
+from ..core import Component, QualityQuery, Tool
 from ..core.traits import Bool, Int, Path, classes_with_traits, flag
 from ..image.extractor import ImageExtractor
 from ..io import EventSource
@@ -164,6 +164,8 @@ class DisplayDL1Calib(Tool):
 
     def setup(self):
         self.eventsource = EventSource.from_config(parent=self)
+        self.quality_query = QualityQuery(parent=self)
+
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 
         if not self.eventsource.has_any_datalevel(compatible_datalevels):
@@ -189,7 +191,8 @@ class DisplayDL1Calib(Tool):
                 tel_list = [self.telescope]
 
             for tel_id in tel_list:
-                self.plotter.plot(event, tel_id)
+                if all(self.quality_query(dl1=event.dl1.tel[tel_id])):
+                    self.plotter.plot(event, tel_id)
 
     def finish(self):
         self.plotter.finish()
