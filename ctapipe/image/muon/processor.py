@@ -20,6 +20,11 @@ from .ring_fitter import MuonRingFitter
 
 
 class DL1Query(QualityQuery):
+    """
+    For configuring quality checks performed on image parameters
+    before rings are fitted.
+    """
+
     quality_criteria = List(
         Tuple(Unicode(), Unicode()),
         default_value=[
@@ -36,6 +41,11 @@ class DL1Query(QualityQuery):
 
 
 class RingQuery(QualityQuery):
+    """
+    For configuring quality checks performed on the extracted rings before
+    computing efficiency parameters.
+    """
+
     quality_criteria = List(
         Tuple(Unicode(), Unicode()),
         default_value=[
@@ -53,6 +63,9 @@ class RingQuery(QualityQuery):
 
 
 class MuonProcessor(TelescopeComponent):
+    """
+    Takes cleaned images and extracts muon rings. Should be run after ImageProcessor.
+    """
 
     completeness_threshold = FloatTelescopeParameter(
         default_value=30.0, help="Threshold for calculating the ``ring_completeness``"
@@ -92,6 +105,16 @@ class MuonProcessor(TelescopeComponent):
             self._process_telescope_event(event, tel_id)
 
     def _process_telescope_event(self, event, tel_id):
+        """
+        Extract and process a ring from a single image.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
+            Collection of all event information
+        tel_id: int
+            Telescope ID of the instrument that has measured the image
+        """
         event_index = event.index
         event_id = event_index.event_id
 
@@ -159,7 +182,29 @@ class MuonProcessor(TelescopeComponent):
             ring=ring, efficiency=result, parameters=parameters
         )
 
-    def _calculate_muon_parameters(self, tel_id, image, clean_mask, ring):
+    def _calculate_muon_parameters(
+        self, tel_id, image, clean_mask, ring
+    ) -> MuonParametersContainer:
+        """
+        Calculate features from identified muon rings.
+
+        Parameters
+        ----------
+        tel_id: int
+            Telescope ID of the instrument that has measured the image
+        image: np.ndarray
+            Image to process
+        clean_mask: np.ndarray[bool]
+            DL1 Image cleaning mask
+        ring: MuonRingContainer
+            Collection of the fitted rings parameters
+
+        Returns
+        -------
+        MuonParametersContainer:
+            Collection of the fitted rings containment in the camera, completeness, intensity ratio
+            and the pixels MSE around the fitted ring.
+        """
         if np.isnan(ring.radius.value):
             return MuonParametersContainer()
 
