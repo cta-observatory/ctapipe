@@ -315,3 +315,11 @@ def test_recursive_validation():
         cont.map[0] = ChildContainer(x=1 * u.m)
         cont.map[1] = ChildContainer(x=1 * u.s)
         cont.validate()
+
+
+def test_long_field_repr():
+    field = Field(default_factory=lambda: np.geomspace(1.0, 1e4, 5))
+    assert repr(field) == "Field(default=[1.e+00 1.e+01 ... 1.e+03 1.e+04])"
+
+    field = Field(default_factory=lambda: np.linspace(1.0, 2.0, 5))
+    assert repr(field) == "Field(default=[1.   1.25 ... 1.75 2.  ])"
