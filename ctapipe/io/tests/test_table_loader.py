@@ -100,20 +100,6 @@ def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
         assert "muonefficiency_optical_efficiency" in table.colnames
         assert np.all(table["tel_id"] == 1)
 
-    with TableLoader(
-        dl1_muon_output_file,
-        load_dl1_images=True,
-        load_dl1_muons=True,
-        focal_length_choice="EQUIVALENT",
-    ) as table_loader:
-        table = table_loader.read_telescope_events([1])
-        assert "muonring_radius" in table.colnames
-        assert "muonparameters_containment" in table.colnames
-        assert "muonefficiency_optical_efficiency" in table.colnames
-        assert "image" in table.colnames
-        assert np.all(table["tel_id"] == 1)
-        assert table["obs_id"].dtype == np.int32
-
     assert not table_loader.h5file.isopen
 
 

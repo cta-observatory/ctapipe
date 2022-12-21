@@ -443,8 +443,7 @@ def dl1_muon_file(dl1_tmp_path):
             f"--input={infile}",
             f"--output={output}",
             "--write-images",
-            "--DataWriter.write_parameters=False",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
+            "--no-write-parameters",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -468,7 +467,8 @@ def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
         argv = [
             f"--input={dl1_muon_file}",
             f"--output={output}",
-            "--write-images",
+            "--no-write-images",
+            "--no-write-parameters",
             "--write-muon-parameters",
             "--HDF5EventSource.focal_length_choice=EQUIVALENT",
             "--max-events=30",
