@@ -1,3 +1,6 @@
+"""
+Tool for training the EnergyRegressor
+"""
 import numpy as np
 
 from ctapipe.core import Tool
@@ -35,8 +38,8 @@ class TrainEnergyRegressor(Tool):
         allow_none=False,
         directory_ok=False,
         help=(
-            "Ouput path for the trained reconstructor."
-            " At the moment, pickle is the only supported format.",
+            "Output path for the trained reconstructor."
+            " At the moment, pickle is the only supported format."
         ),
     ).tag(config=True)
 
