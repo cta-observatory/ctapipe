@@ -28,9 +28,9 @@ class QualityQuery(Component):
         Tuple(Unicode(), Unicode()),
         help=(
             "list of tuples of ('<description', 'expression string') to accept "
-            "(select) a given data value.  E.g. `[('mycut', 'x > 3'),]. "
-            "You may use `numpy` as `np` and `astropy.units` as `u`, but no other"
-            " modules."
+            "(select) a given data value.  E.g. ``[('mycut', 'x > 3'),]``. "
+            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``,"
+            " but no other modules."
         ),
     ).tag(config=True)
 

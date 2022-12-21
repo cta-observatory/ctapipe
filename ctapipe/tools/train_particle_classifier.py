@@ -1,3 +1,6 @@
+"""
+Tool for training the ParticleClassifier
+"""
 import numpy as np
 from astropy.table import vstack
 
@@ -52,7 +55,7 @@ class TrainParticleClassifier(Tool):
         directory_ok=False,
         help=(
             "Output file for the trained reconstructor."
-            " At the moment, pickle is the only supported format.",
+            " At the moment, pickle is the only supported format."
         ),
     ).tag(config=True)
 

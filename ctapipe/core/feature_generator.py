@@ -5,6 +5,11 @@ from .component import Component
 from .expression_engine import ExpressionEngine
 from .traits import List, Tuple, Unicode
 
+__all__ = [
+    "FeatureGenerator",
+    "FeatureGeneratorException",
+]
+
 
 class FeatureGeneratorException(TypeError):
     """Signal a problem with a user-defined selection criteria function"""
@@ -23,9 +28,9 @@ class FeatureGenerator(Component):
         Tuple(Unicode(), Unicode()),
         help=(
             "List of 2-Tuples of Strings: ('new_feature_name', 'expression to generate feature'). "
-            "You can use `numpy` as `np` and `astropy.units` as `u`. "
-            "Several math functions are usable without the `np`-prefix. "
-            "Use `feature.quantity.to_value(unit)` to create features without units."
+            "You can use ``numpy`` as ``np`` and ``astropy.units`` as ``u``. "
+            "Several math functions are usable without the ``np``-prefix. "
+            "Use ``feature.quantity.to_value(unit)`` to create features without units."
         ),
     ).tag(config=True)
 

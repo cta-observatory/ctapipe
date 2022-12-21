@@ -95,7 +95,9 @@ class Field:
                     func = repr(self.default_factory.func)
                 default = f"{func}({cls})"
             else:
-                default = str(self.default_factory())
+                # make sure numpy arrays are not dominating everything
+                with np.printoptions(threshold=4, precision=3, edgeitems=2):
+                    default = str(self.default_factory())
         else:
             default = str(self.default)
         cmps = [f"Field(default={default}"]
