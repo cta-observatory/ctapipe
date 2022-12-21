@@ -99,6 +99,7 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     ret = run_tool(
         DisplayDL1Calib(),
         argv=[f"--input={dl1_parameters_file}", "--max-events=1", "--telescope=11"],
+        raises=False,
     )
     assert ret == 1
     assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
