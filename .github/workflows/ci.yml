@@ -153,19 +153,3 @@ jobs:
           FOLDER: docs/_build/html
           CLEAN: true
           SINGLE_COMMIT: true
-
-  changelog:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Set environment
-        run: echo FRAGMENT_NAME="docs/changes/${GITHUB_PR_NUMBER}.*.rst" >> $GITHUB_ENV
-        
-      - name: Check for news fragment
-        uses: andstor/file-existence-action@v2
-        with: 
-          files: ${{ env.FRAGMENT_NAME }}
-          fail: true
