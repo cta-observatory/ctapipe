@@ -65,7 +65,7 @@ def test_check_order():
     )
 
 
-def test_telescope_events_for_tel_id(dl1_file):
+def test_telescope_events_for_tel_id(tmp_path, dl1_file):
     """Test loading data for a single telescope"""
     from ctapipe.io.tableloader import TableLoader
 
@@ -82,6 +82,36 @@ def test_telescope_events_for_tel_id(dl1_file):
         table = table_loader.read_telescope_events([8])
         assert "image" in table.colnames
         assert np.all(table["tel_id"] == 8)
+        assert table["obs_id"].dtype == np.int32
+
+    assert not table_loader.h5file.isopen
+
+
+def test_telescope_muon_events_for_tel_id(tmp_path, dl1_muon_output_file):
+    """Test loading muon data for a single telescope"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(
+        dl1_muon_output_file, load_dl1_muons=True, focal_length_choice="EQUIVALENT"
+    ) as table_loader:
+        table = table_loader.read_telescope_events([1])
+        assert "muonring_radius" in table.colnames
+        assert "muonparameters_containment" in table.colnames
+        assert "muonefficiency_optical_efficiency" in table.colnames
+        assert np.all(table["tel_id"] == 1)
+
+    with TableLoader(
+        dl1_muon_output_file,
+        load_dl1_images=True,
+        load_dl1_muons=True,
+        focal_length_choice="EQUIVALENT",
+    ) as table_loader:
+        table = table_loader.read_telescope_events([1])
+        assert "muonring_radius" in table.colnames
+        assert "muonparameters_containment" in table.colnames
+        assert "muonefficiency_optical_efficiency" in table.colnames
+        assert "image" in table.colnames
+        assert np.all(table["tel_id"] == 1)
         assert table["obs_id"].dtype == np.int32
 
     assert not table_loader.h5file.isopen
