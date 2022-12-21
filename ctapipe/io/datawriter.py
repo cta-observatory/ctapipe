@@ -165,7 +165,7 @@ class DataWriter(Component):
             "Additional metadata keywords and values that describe this data. "
             "This should be a dictionary where the keys will be appended to the "
             "CONTEXT section of the output file's attributes. Keys can be hierarchical "
-            "by using a space between each level, e.g. `SIMULATION PRODUCTION` "
+            "by using a space between each level, e.g. ``SIMULATION PRODUCTION`` "
             "would make a key PRODUCTION grouped under the key SIMULATION"
         )
     ).tag(config=True)

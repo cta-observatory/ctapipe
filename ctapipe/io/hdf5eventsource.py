@@ -158,10 +158,11 @@ class HDF5EventSource(EventSource):
         default_value=FocalLengthKind.EFFECTIVE,
         help=(
             "If both nominal and effective focal lengths are available, "
-            " which one to use for the `CameraFrame` attached"
-            " to the `CameraGeometry` instances in the `SubarrayDescription`"
-            ", which will be used in CameraFrame to TelescopeFrame coordinate"
-            " transforms. The 'nominal' focal length is the one used during "
+            " which one to use for the `~ctapipe.coordinates.CameraFrame` attached"
+            " to the `~ctapipe.instrument.CameraGeometry` instances in the"
+            " `~ctapipe.instrument.SubarrayDescription` which will be used in"
+            " CameraFrame to TelescopeFrame coordinate transforms."
+            " The 'nominal' focal length is the one used during "
             " the simulation, the 'effective' focal length is computed using specialized "
             " ray-tracing from a point light source"
         ),
