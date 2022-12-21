@@ -534,7 +534,7 @@ def test_telescope_parameter_to_config(mock_subarray):
     assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
 
 
-def test_telescope_parameter_from_cli(mock_subarray):
+def test_telescope_parameter_from_cli(tmp_path, mock_subarray):
     """
     Test we can pass single default for telescope components via cli
     see #1559
@@ -569,7 +569,7 @@ def test_telescope_parameter_from_cli(mock_subarray):
             tool,
             [
                 "--SomeComponent.path",
-                "test.h5",
+                f"{tmp_path}/test.h5",
                 "--SomeComponent.val",
                 "2.0",
                 "--SomeComponent.flag",
@@ -577,7 +577,7 @@ def test_telescope_parameter_from_cli(mock_subarray):
             ],
         )
         assert result == 0
-        assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
+        assert tool.comp.path == [("type", "*", tmp_path / "test.h5")]
         assert tool.comp.val == [("type", "*", 2.0)]
         assert tool.comp.flag == [("type", "*", False)]
 
