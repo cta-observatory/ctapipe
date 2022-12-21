@@ -65,7 +65,7 @@ def test_check_order():
     )
 
 
-def test_telescope_events_for_tel_id(tmp_path, dl1_file):
+def test_telescope_events_for_tel_id(dl1_file):
     """Test loading data for a single telescope"""
     from ctapipe.io.tableloader import TableLoader
 
@@ -87,7 +87,7 @@ def test_telescope_events_for_tel_id(tmp_path, dl1_file):
     assert not table_loader.h5file.isopen
 
 
-def test_telescope_muon_events_for_tel_id(tmp_path, dl1_muon_output_file):
+def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
     """Test loading muon data for a single telescope"""
     from ctapipe.io.tableloader import TableLoader
 
