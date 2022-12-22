@@ -200,11 +200,7 @@ class ApplyModels(Tool):
 
             for tel_id, table in chunk.items():
                 tel = self.loader.subarray.tel[tel_id]
-                if (
-                    tel not in reconstructor._norm_models
-                    if isinstance(reconstructor, DispReconstructor)
-                    else tel not in reconstructor._models
-                ):
+                if tel not in reconstructor._models:
                     self.log.warning(
                         "No model in %s for telescope type %s, skipping tel %d",
                         reconstructor,

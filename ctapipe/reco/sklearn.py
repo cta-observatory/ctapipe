@@ -555,7 +555,7 @@ class DispReconstructor(Reconstructor):
         help="If given, load serialized model from this path",
     ).tag(config=True)
 
-    def __init__(self, subarray=None, norm_models=None, sign_models=None, **kwargs):
+    def __init__(self, subarray=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -578,8 +578,7 @@ class DispReconstructor(Reconstructor):
             # to verify settings
             self._new_models()
 
-            self._norm_models = {} if norm_models is None else norm_models
-            self._sign_models = {} if sign_models is None else sign_models
+            self._models = {} if models is None else models
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
@@ -626,13 +625,13 @@ class DispReconstructor(Reconstructor):
         """
         Create and fit new models for ``key`` using the data in ``table``.
         """
-        self._norm_models[key], self._sign_models[key] = self._new_models()
+        self._models[key] = self._new_models()
 
         X, valid = table_to_X(table, self.features, self.log)
         self.unit = table[self.target].unit
         norm, sign = self._table_to_y(table, mask=valid)
-        self._norm_models[key].fit(X, norm)
-        self._sign_models[key].fit(X, sign)
+        self._models[key][0].fit(X, norm)
+        self._models[key][1].fit(X, sign)
 
     def write(self, path, overwrite=False):
         path = pathlib.Path(path)
@@ -665,28 +664,23 @@ class DispReconstructor(Reconstructor):
         return self.subarray.to_table("joined")
 
     def _predict(self, key, table):
-        if key not in self._norm_models:
+        if key not in self._models:
             raise KeyError(
-                f"No regressor available for key {key},"
-                f" available regressors: {self._norm_models.keys()}"
-            )
-        if key not in self._sign_models:
-            raise KeyError(
-                f"No classifier available for key {key},"
-                f" available classifiers: {self._sign_models.keys()}"
+                f"No model available for key {key},"
+                f" available models: {self._models.keys()}"
             )
         X, valid = table_to_X(table, self.features, self.log)
         prediction = np.full(len(table), np.nan)
 
         if np.any(valid):
-            valid_norms = self._norm_models[key].predict(X)
+            valid_norms = self._models[key][0].predict(X)
 
             if self.log_target:
                 prediction[valid] = np.exp(valid_norms)
             else:
                 prediction[valid] = valid_norms
 
-            prediction[valid] *= self._sign_models[key].predict(X)
+            prediction[valid] *= self._models[key][1].predict(X)
 
         if self.unit is not None:
             prediction = u.Quantity(prediction, self.unit, copy=False)
