@@ -59,6 +59,12 @@ def main(args=None):
     parser.add_argument(
         "--datamodel", action="store_true", help="Print data model info"
     )
+    parser.add_argument(
+        "--sources",
+        action="store_true",
+        help="Print available EventSource implementations",
+    )
+
     args = parser.parse_args(args)
 
     if len(sys.argv) <= 1:
@@ -77,6 +83,7 @@ def info(
     plugins=False,
     show_all=False,
     datamodel=False,
+    sources=False,
 ):
     """
     Display information about the current ctapipe installation.
@@ -103,6 +110,9 @@ def info(
 
     if plugins or show_all:
         _info_plugins()
+
+    if sources or show_all:
+        _info_sources()
 
 
 def _info_version():
@@ -215,6 +225,20 @@ def _info_plugins():
     for name in plugins:
         version = get_module_version(name)
         print(f"{name:>20s} -- {version}")
+
+
+def _info_sources():
+    from ctapipe.io import EventSource
+
+    detect_and_import_io_plugins()
+
+    print("\n*** ctapipe available EventSource implementations ***\n")
+    sources = EventSource.non_abstract_subclasses()
+    maxlen = max(len(source) for source in sources)
+    for source in sources.values():
+        print(
+            f"{source.__name__:>{maxlen}s} -- {source.__module__}.{source.__qualname__}"
+        )
 
 
 def _info_datamodel():
