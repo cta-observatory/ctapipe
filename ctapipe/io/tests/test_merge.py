@@ -39,6 +39,8 @@ def test_simple(tmp_path, dl1_file, dl1_proton_file):
     tel_groups = [
         "/dl1/event/telescope/parameters",
         "/dl1/event/telescope/images",
+        "/simulation/event/telescope/parameters",
+        "/simulation/event/telescope/images",
     ]
 
     tables_checked = 0

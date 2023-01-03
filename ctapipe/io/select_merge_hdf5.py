@@ -117,6 +117,17 @@ class SelectMergeHDF5(Component):
                 self.log.info("Appending %s", key)
                 self._append_table_group(other, other.root[key])
 
+            key = "/simulation/event/telescope/images"
+            if self.telescope_events and key in other.root:
+                self.log.info("Appending %s", key)
+                filter_columns = None if self.true_images else ["true_image"]
+                self._append_table_group(other, other.root[key], filter_columns)
+
+            key = "/simulation/event/telescope/parameters"
+            if self.telescope_events and self.true_parameters and key in other.root:
+                self.log.info("Appending %s", key)
+                self._append_table_group(other, other.root[key])
+
         self.h5file.flush()
 
     def __enter__(self):
