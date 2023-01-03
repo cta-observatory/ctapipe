@@ -56,11 +56,15 @@ class SelectMergeHDF5(Component):
 
     telescope_events = traits.Bool(default_value=True).tag(config=True)
 
-    dl1_images = traits.Bool(default_value=True).tag(config=True)
-    dl1_parameters = traits.Bool(default_value=True).tag(config=True)
+    simulation = traits.Bool(True).tag(config=True)
+    true_images = traits.Bool(True).tag(config=True)
+    true_parameters = traits.Bool(True).tag(config=True)
 
-    true_images = traits.Bool(default_value=True).tag(config=True)
-    true_parameters = traits.Bool(default_value=True).tag(config=True)
+    dl1_images = traits.Bool(True).tag(config=True)
+    dl1_parameters = traits.Bool(True).tag(config=True)
+
+    dl2_subarray = traits.Bool(True).tag(config=True)
+    dl2_telescope = traits.Bool(True).tag(config=True)
 
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
@@ -97,36 +101,78 @@ class SelectMergeHDF5(Component):
             other = stack.enter_context(tables.open_file(other, mode="r"))
 
         with stack:
+            # Configuration
             self._append_subarray(other)
 
-            key = "/dl1/event/subarray/trigger"
-            self._append_table(other, other.root[key])
-
-            key = "/dl1/event/telescope/trigger"
-            if self.telescope_events and key in other.root:
-                self.log.info("Appending %s", key)
+            key = "/configuration/observation/scheduling_block"
+            if key in other.root:
                 self._append_table(other, other.root[key])
 
-            key = "/dl1/event/telescope/images"
-            if self.telescope_events and self.dl1_images and key in other.root:
-                self.log.info("Appending %s", key)
-                self._append_table_group(other, other.root[key])
+            key = "/configuration/observation/observation_block"
+            if key in other.root:
+                self._append_table(other, other.root[key])
 
-            key = "/dl1/event/telescope/parameters"
-            if self.telescope_events and self.dl1_parameters and key in other.root:
-                self.log.info("Appending %s", key)
+            key = "/configuration/simulation/run"
+            if self.simulation and key in other.root:
+                self._append_table(other, other.root[key])
+
+            # Simulation
+            key = "/simulation/service/shower_distribution"
+            if self.simulation and key in other.root:
+                self._append_table(other, other.root[key])
+
+            key = "/simulation/event/subarray/shower"
+            if self.simulation and key in other.root:
+                self._append_table(other, other.root[key])
+
+            key = "/simulation/event/telescope/impact"
+            if self.telescope_events and self.simulation and key in other.root:
                 self._append_table_group(other, other.root[key])
 
             key = "/simulation/event/telescope/images"
-            if self.telescope_events and key in other.root:
+            if self.telescope_events and self.simulation and key in other.root:
                 self.log.info("Appending %s", key)
                 filter_columns = None if self.true_images else ["true_image"]
                 self._append_table_group(other, other.root[key], filter_columns)
 
             key = "/simulation/event/telescope/parameters"
-            if self.telescope_events and self.true_parameters and key in other.root:
-                self.log.info("Appending %s", key)
+            if (
+                self.telescope_events
+                and self.simulation
+                and self.true_parameters
+                and key in other.root
+            ):
                 self._append_table_group(other, other.root[key])
+
+            # DL1
+            key = "/dl1/event/subarray/trigger"
+            if key in other.root:
+                self._append_table(other, other.root[key])
+
+            key = "/dl1/event/telescope/trigger"
+            if self.telescope_events and key in other.root:
+                self._append_table(other, other.root[key])
+
+            key = "/dl1/event/telescope/images"
+            if self.telescope_events and self.dl1_images and key in other.root:
+                self._append_table_group(other, other.root[key])
+
+            key = "/dl1/event/telescope/parameters"
+            if self.telescope_events and self.dl1_parameters and key in other.root:
+                self._append_table_group(other, other.root[key])
+
+            # DL2
+            key = "/dl2/event/telescope"
+            if self.telescope_events and self.dl2_telescope and key in other.root:
+                for kind_group in other.root[key]._f_iter_nodes("Group"):
+                    for algorithm_group in kind_group._f_iter_nodes("Group"):
+                        self._append_table_group(other, algorithm_group)
+
+            key = "/dl2/event/subarray"
+            if self.dl2_subarray and key in other.root:
+                for kind_group in other.root[key]._f_iter_nodes("Group"):
+                    for table in kind_group._f_iter_nodes("Table"):
+                        self._append_table(other, table)
 
         self.h5file.flush()
 

@@ -24,29 +24,36 @@ def compare_table(in1, in2, merged, table):
     return 1
 
 
-def test_simple(tmp_path, dl1_file, dl1_proton_file):
+def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.io.select_merge_hdf5 import SelectMergeHDF5
 
     output = tmp_path / "merged_simple.dl1.h5"
 
     with SelectMergeHDF5(output) as merger:
-        merger(dl1_file)
-        merger(dl1_proton_file)
+        merger(gamma_train_clf)
+        merger(proton_train_clf)
 
-    subarray = SubarrayDescription.from_hdf(dl1_file)
+    subarray = SubarrayDescription.from_hdf(gamma_train_clf)
     assert subarray == SubarrayDescription.from_hdf(output), "Subarays do not match"
 
     tel_groups = [
         "/dl1/event/telescope/parameters",
         "/dl1/event/telescope/images",
+        "/dl2/event/telescope/impact/HillasReconstructor",
+        "/dl2/event/telescope/energy/ExtraTreesRegressor",
         "/simulation/event/telescope/parameters",
         "/simulation/event/telescope/images",
+        "/simulation/event/telescope/impact",
     ]
 
     tables_checked = 0
     tables_to_check = [
+        "/dl2/event/subaray/energy/ExtraTreesRegressor",
+        "/dl2/event/subarray/geometry/HillasReconstructor",
         "/dl1/event/telescope/trigger",
         "/dl1/event/subarray/trigger",
+        "/simulation/event/subarray/shower",
+        "/simulation/service/shower_distribution",
     ]
     for group in tel_groups:
         for tel_id in subarray.tel:
@@ -54,8 +61,8 @@ def test_simple(tmp_path, dl1_file, dl1_proton_file):
             tables_to_check.append(table)
 
     with (
-        tables.open_file(dl1_file) as in1,
-        tables.open_file(dl1_proton_file) as in2,
+        tables.open_file(gamma_train_clf) as in1,
+        tables.open_file(proton_train_clf) as in2,
         tables.open_file(output) as merged,
     ):
 
