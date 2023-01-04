@@ -7,7 +7,7 @@ from abc import abstractmethod
 import numpy as np
 from astropy import units as u
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import DL1TelescopeContainer
 from ctapipe.core import Component
 from ctapipe.core.traits import Int, List, Unicode
 from ctapipe.image.extractor import ImageExtractor
@@ -197,7 +197,7 @@ class PedestalIntegrator(PedestalCalculator):
         self.charges = None  # charge per event in sample
         self.sample_masked_pixels = None  # pixels tp be masked per event in sample
 
-    def _extract_charge(self, event) -> DL1CameraContainer:
+    def _extract_charge(self, event) -> DL1TelescopeContainer:
         """
         Extract the charge and the time from a pedestal event
 
@@ -224,7 +224,7 @@ class PedestalIntegrator(PedestalCalculator):
                 waveforms, self.tel_id, selected_gain_channel, broken_pixels
             )
         else:
-            return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
+            return DL1TelescopeContainer(image=0, peak_pos=0, is_valid=False)
 
     def calculate_pedestals(self, event):
         """
@@ -258,7 +258,7 @@ class PedestalIntegrator(PedestalCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        dl1: DL1CameraContainer = self._extract_charge(event)
+        dl1: DL1TelescopeContainer = self._extract_charge(event)
 
         if not dl1.is_valid:
             return False

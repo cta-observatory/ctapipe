@@ -97,8 +97,8 @@ def test_array_display(prod5_mst_nectarcam):
     from ctapipe.containers import (
         ArrayEventContainer,
         CoreParametersContainer,
-        DL1CameraContainer,
         DL1Container,
+        DL1TelescopeContainer,
         ImageParametersContainer,
     )
     from ctapipe.image import timing_parameters
@@ -119,7 +119,7 @@ def test_array_display(prod5_mst_nectarcam):
     # the image directions projected on the ground
     event = ArrayEventContainer()
     event.dl1 = DL1Container()
-    event.dl1.tel = {1: DL1CameraContainer(), 2: DL1CameraContainer()}
+    event.dl1.tel = {1: DL1TelescopeContainer(), 2: DL1TelescopeContainer()}
     event.dl1.tel[1].parameters = ImageParametersContainer()
     event.dl1.tel[2].parameters = ImageParametersContainer()
     event.dl1.tel[2].parameters.core = CoreParametersContainer()

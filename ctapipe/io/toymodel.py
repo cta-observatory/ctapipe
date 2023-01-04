@@ -10,7 +10,7 @@ import numpy as np
 
 from ..containers import (
     ArrayEventContainer,
-    DL1CameraContainer,
+    DL1TelescopeContainer,
     EventIndexContainer,
     ObservationBlockContainer,
     SchedulingBlockContainer,
@@ -159,6 +159,6 @@ class ToyEventSource(EventSource, TelescopeComponent):
             )
             image, _, _ = model.generate_image(cam, intensity)
 
-            event.dl1.tel[tel_id] = DL1CameraContainer(image=image)
+            event.dl1.tel[tel_id] = DL1TelescopeContainer(image=image)
 
         return event

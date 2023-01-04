@@ -16,7 +16,7 @@ from ..containers import (
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
-    DL1CameraContainer,
+    DL1TelescopeContainer,
     EventIndexContainer,
     HillasParametersContainer,
     ImageParametersContainer,
@@ -26,7 +26,7 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
-    R1CameraContainer,
+    R1TelescopeContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
     SchedulingBlockContainer,
@@ -372,7 +372,7 @@ class HDF5EventSource(EventSource):
         if DataLevel.R1 in self.datalevels:
             waveform_readers = {
                 table.name: self.reader.read(
-                    f"/r1/event/telescope/{table.name}", R1CameraContainer
+                    f"/r1/event/telescope/{table.name}", R1TelescopeContainer
                 )
                 for table in self.file_.root.r1.event.telescope
             }
@@ -387,7 +387,7 @@ class HDF5EventSource(EventSource):
             image_readers = {
                 table.name: self.reader.read(
                     f"/dl1/event/telescope/images/{table.name}",
-                    DL1CameraContainer,
+                    DL1TelescopeContainer,
                     ignore_columns=ignore_columns,
                 )
                 for table in self.file_.root.dl1.event.telescope.images

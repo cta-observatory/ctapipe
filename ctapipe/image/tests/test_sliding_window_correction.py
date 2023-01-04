@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 from traitlets.config.loader import Config
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import DL1TelescopeContainer
 from ctapipe.image.extractor import ImageExtractor, SlidingWindowMaxSum
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription
@@ -53,7 +53,7 @@ def test_sw_pulse_lst(prod5_lst):
     )
 
     broken_pixels = np.zeros(n_pixels, dtype=bool)
-    dl1: DL1CameraContainer = extractor(
+    dl1: DL1TelescopeContainer = extractor(
         waveform, tel_id, selected_gain_channel, broken_pixels
     )
     print(dl1.image / charge_true)

@@ -14,10 +14,10 @@ from .core import Container, Field, Map
 __all__ = [
     "ArrayEventContainer",
     "ConcentrationContainer",
-    "DL0CameraContainer",
+    "DL0TelescopeContainer",
     "DL0Container",
     "DL1CameraCalibrationContainer",
-    "DL1CameraContainer",
+    "DL1TelescopeContainer",
     "DL1Container",
     "DL2Container",
     "EventCalibrationContainer",
@@ -29,7 +29,7 @@ __all__ = [
     "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
-    "MonitoringCameraContainer",
+    "TelescopeMonitoringContainer",
     "MonitoringContainer",
     "MorphologyContainer",
     "BaseHillasParametersContainer",
@@ -38,14 +38,14 @@ __all__ = [
     "ParticleClassificationContainer",
     "PedestalContainer",
     "PixelStatusContainer",
-    "R0CameraContainer",
+    "R0TelescopeContainer",
     "R0Container",
-    "R1CameraContainer",
+    "R1TelescopeContainer",
     "R1Container",
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
-    "SimulatedCameraContainer",
+    "SimulatedTelescopeContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
@@ -398,7 +398,7 @@ class ImageParametersContainer(Container):
     )
 
 
-class DL1CameraContainer(Container):
+class DL1TelescopeContainer(Container):
     """
     Storage of output of camera calibration e.g the final calibrated
     image in intensity units and the pulse time.
@@ -442,8 +442,8 @@ class DL1Container(Container):
     """DL1 Calibrated Camera Images and associated data"""
 
     tel = Field(
-        default_factory=partial(Map, DL1CameraContainer),
-        description="map of tel_id to DL1CameraContainer",
+        default_factory=partial(Map, DL1TelescopeContainer),
+        description="map of tel_id to DL1TelescopeContainer",
     )
 
 
@@ -476,7 +476,7 @@ class DL1CameraCalibrationContainer(Container):
     )
 
 
-class R0CameraContainer(Container):
+class R0TelescopeContainer(Container):
     """
     Storage of raw data from a single telescope
     """
@@ -492,12 +492,12 @@ class R0Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, R0CameraContainer),
-        description="map of tel_id to R0CameraContainer",
+        default_factory=partial(Map, R0TelescopeContainer),
+        description="map of tel_id to R0TelescopeContainer",
     )
 
 
-class R1CameraContainer(Container):
+class R1TelescopeContainer(Container):
     """
     Storage of r1 calibrated data from a single telescope
     """
@@ -524,12 +524,12 @@ class R1Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, R1CameraContainer),
-        description="map of tel_id to R1CameraContainer",
+        default_factory=partial(Map, R1TelescopeContainer),
+        description="map of tel_id to R1TelescopeContainer",
     )
 
 
-class DL0CameraContainer(Container):
+class DL0TelescopeContainer(Container):
     """
     Storage of data volume reduced dl0 data from a single telescope
     """
@@ -559,8 +559,8 @@ class DL0Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, DL0CameraContainer),
-        description="map of tel_id to DL0CameraContainer",
+        default_factory=partial(Map, DL0TelescopeContainer),
+        description="map of tel_id to DL0TelescopeContainer",
     )
 
 
@@ -596,9 +596,9 @@ class SimulatedShowerContainer(Container):
     )
 
 
-class SimulatedCameraContainer(Container):
+class SimulatedTelescopeContainer(Container):
     """
-    True images and parameters derived from them, analgous to the `DL1CameraContainer`
+    True images and parameters derived from them, analgous to the `DL1TelescopeContainer`
     but for simulated data.
     """
 
@@ -632,7 +632,7 @@ class SimulatedEventContainer(Container):
         default_factory=SimulatedShowerContainer,
         description="True event information",
     )
-    tel = Field(default_factory=partial(Map, SimulatedCameraContainer))
+    tel = Field(default_factory=partial(Map, SimulatedTelescopeContainer))
 
 
 class SimulationConfigContainer(Container):
@@ -1118,7 +1118,7 @@ class WaveformCalibrationContainer(Container):
     )
 
 
-class MonitoringCameraContainer(Container):
+class TelescopeMonitoringContainer(Container):
     """
     Container for camera monitoring data
     """
@@ -1148,8 +1148,8 @@ class MonitoringContainer(Container):
 
     # create the camera container
     tel = Field(
-        default_factory=partial(Map, MonitoringCameraContainer),
-        description="map of tel_id to MonitoringCameraContainer",
+        default_factory=partial(Map, TelescopeMonitoringContainer),
+        description="map of tel_id to TelescopeMonitoringContainer",
     )
 
 

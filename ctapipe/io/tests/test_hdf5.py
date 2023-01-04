@@ -11,7 +11,7 @@ from ctapipe import containers
 from ctapipe.containers import (
     HillasParametersContainer,
     LeakageContainer,
-    R0CameraContainer,
+    R0TelescopeContainer,
     SimulatedShowerContainer,
     TelEventIndexContainer,
 )
@@ -25,7 +25,7 @@ def test_h5_file(tmp_path_factory):
     """Test hdf5 file with some tables for the reader tests"""
     path = tmp_path_factory.mktemp("hdf5") / "test.h5"
 
-    r0 = R0CameraContainer()
+    r0 = R0TelescopeContainer()
     shower = SimulatedShowerContainer()
     r0.waveform = np.random.uniform(size=(50, 10))
     r0.meta["test_attribute"] = 3.14159
@@ -380,8 +380,8 @@ def test_read_container(test_h5_file):
         # test supplying a single container as well as an
         # iterable with one entry only
         simtab = reader.read("/R0/sim_shower", (SimulatedShowerContainer,))
-        r0tab1 = reader.read("/R0/tel_001", R0CameraContainer)
-        r0tab2 = reader.read("/R0/tel_002", R0CameraContainer)
+        r0tab1 = reader.read("/R0/tel_001", R0TelescopeContainer)
+        r0tab2 = reader.read("/R0/tel_002", R0TelescopeContainer)
 
         # read all 3 tables in sync
         for _ in range(3):
