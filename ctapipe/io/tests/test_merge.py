@@ -24,6 +24,32 @@ def compare_table(in1, in2, merged, table):
     return 1
 
 
+def compare_stats_table(in1, in2, merged, table, required=True):
+    t1 = read_table(in1, table) if table in in1 else None
+    t2 = read_table(in2, table) if table in in2 else None
+
+    if required and t1 is None:
+        raise ValueError(f" table {table} not present in {in1.filename}")
+
+    if required and t2 is None:
+        raise ValueError(f" table {table} not present in {in1.filename}")
+
+    if t1 is None and t2 is None:
+        return 0
+
+    if t1 is not None and t2 is not None:
+        stacked = t1.copy()
+        for col in ("counts", "cumulative_counts"):
+            stacked[col] = t1[col] + t2[col]
+    elif t1 is None:
+        stacked = t2
+    else:
+        stacked = t1
+
+    assert_table_equal(stacked, read_table(merged, table))
+    return 1
+
+
 def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.io.select_merge_hdf5 import SelectMergeHDF5
 
@@ -60,6 +86,11 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
             table = f"{group}/tel_{tel_id:03d}"
             tables_to_check.append(table)
 
+    statistics_tables = [
+        "/dl1/service/image_statistics",
+        "/dl2/service/tel_event_statistics/HillasReconstructor",
+    ]
+
     with (
         tables.open_file(gamma_train_clf) as in1,
         tables.open_file(proton_train_clf) as in2,
@@ -71,3 +102,8 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
 
         print(f"Checked {tables_checked} tables")
         assert tables_checked > 0
+
+        for table in statistics_tables:
+            tables_checked += compare_stats_table(
+                in1, in2, merged, table, required=True
+            )

@@ -27,25 +27,6 @@ def split_h5path(path):
     return head, tail
 
 
-telescope_groups = {
-    "/dl1/event/telescope/images",
-    "/dl1/event/telescope/parameters",
-    "/dl1/monitoring/telescope/pointing",
-}
-
-algorithm_groups = {
-    "/dl2/event/subarray/geometry",
-    "/dl2/event/subarray/energy",
-    "/dl2/event/subarray/classification",
-}
-
-algorithm_tel_groups = {
-    "/dl2/event/subarray/geometry",
-    "/dl2/event/subarray/energy",
-    "/dl2/event/subarray/classification",
-}
-
-
 class SelectMergeHDF5(Component):
     """
     Class to copy / append / merge ctapipe hdf5 files
@@ -65,6 +46,8 @@ class SelectMergeHDF5(Component):
 
     dl2_subarray = traits.Bool(True).tag(config=True)
     dl2_telescope = traits.Bool(True).tag(config=True)
+
+    statistics = traits.Bool(True).tag(config=True)
 
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
@@ -174,6 +157,16 @@ class SelectMergeHDF5(Component):
                     for table in kind_group._f_iter_nodes("Table"):
                         self._append_table(other, table)
 
+            # quality query statistics
+            key = "/dl1/service/image_statistics"
+            if key in other.root:
+                self._add_statistics_table(other, other.root[key])
+
+            key = "/dl2/service/tel_event_statistics"
+            if key in other.root:
+                for node in other.root[key]._f_iter_nodes("Table"):
+                    self._add_statistics_table(other, node)
+
         self.h5file.flush()
 
     def __enter__(self):
@@ -197,48 +190,45 @@ class SelectMergeHDF5(Component):
         elif self.subarray != subarray:
             raise CannotMerge(f"Subarrays do not match for file: {other.filename}")
 
-    def _append_table_group(self, file, input_node, filter_columns=None):
+    def _append_table_group(self, file, input_group, filter_columns=None):
         """Add a group that has a number of child tables to outputfile"""
 
-        if not isinstance(input_node, tables.Group):
-            raise TypeError(f"node must be a `tables.Group`, got {input_node}")
+        if not isinstance(input_group, tables.Group):
+            raise TypeError(f"node must be a `tables.Group`, got {input_group}")
 
-        node_path = input_node._v_pathname
+        node_path = input_group._v_pathname
+        self._get_or_create_group(node_path)
 
-        if input_node not in self.h5file:
-            self._create_group(node_path)
-
-        for table in input_node._f_iter_nodes("Table"):
+        for table in input_group._f_iter_nodes("Table"):
             self._append_table(file, table, filter_columns=filter_columns)
 
-    def _append_table(self, file, input_node, filter_columns=None):
+    def _append_table(self, file, table, filter_columns=None):
         """Append a single table to the output file"""
-        if not isinstance(input_node, tables.Table):
-            raise TypeError(f"node must be a `tables.Table`, got {input_node}")
+        if not isinstance(table, tables.Table):
+            raise TypeError(f"node must be a `tables.Table`, got {table}")
 
-        node_path = input_node._v_pathname
-        group_path, node_name = split_h5path(node_path)
+        table_path = table._v_pathname
+        group_path, table_name = split_h5path(table_path)
 
-        if node_path in self.h5file:
-            output_table = self.h5file.get_node(node_path)
-            input_table = input_node[:]
+        if table_path in self.h5file:
+            output_table = self.h5file.get_node(table_path)
+            input_table = table[:]
             if filter_columns is not None:
                 input_table = recarray_drop_columns(input_table, filter_columns)
 
             output_table.append(input_table.astype(output_table.dtype))
 
         else:
-            if group_path not in self.h5file:
-                self._create_group(group_path)
+            self._get_or_create_group(group_path)
 
             if filter_columns is None:
-                self._copy_node(file, input_node)
+                self._copy_node(file, table)
             else:
-                input_table = recarray_drop_columns(input_node[:], filter_columns)
+                input_table = recarray_drop_columns(table[:], filter_columns)
                 self.h5file.create_table(
                     group_path,
-                    node_name,
-                    filters=input_node.filters,
+                    table_name,
+                    filters=table.filters,
                     createparents=True,
                     obj=input_table,
                 )
@@ -256,3 +246,24 @@ class SelectMergeHDF5(Component):
         group_path, _ = split_h5path(node._v_pathname)
         target_group = self._get_or_create_group(group_path)
         file.copy_node(node, newparent=target_group)
+
+    def _add_statistics_table(self, file: tables.File, input_table: tables.Table):
+        """
+        Creates table for image statistics and adds the entries together.
+
+        This does not append rows to the existing table
+        """
+        if not isinstance(input_table, tables.Table):
+            raise TypeError(f"node must be a `tables.Table`, got {input_table}")
+
+        table_path = input_table._v_pathname
+        if table_path in self.h5file.root:
+            table_out = self.h5file.root[table_path]
+
+            for col in ["counts", "cumulative_counts"]:
+                table_out.modify_column(
+                    colname=col,
+                    column=table_out.col(col) + input_table.col(col),
+                )
+        else:
+            self._copy_node(file, input_table)
