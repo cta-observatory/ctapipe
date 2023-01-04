@@ -91,12 +91,10 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
         "/dl2/service/tel_event_statistics/HillasReconstructor",
     ]
 
-    with (
-        tables.open_file(gamma_train_clf) as in1,
-        tables.open_file(proton_train_clf) as in2,
-        tables.open_file(output) as merged,
-    ):
-
+    in1 = tables.open_file(gamma_train_clf)
+    in2 = tables.open_file(proton_train_clf)
+    merged = tables.open_file(output)
+    with in1, in2, merged:
         for table in tables_to_check:
             tables_checked += compare_table(in1, in2, merged, table)
 
