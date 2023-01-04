@@ -124,28 +124,34 @@ class ImageProcessor(TelescopeComponent):
         tel_id,
         image,
         signal_pixels,
-        geometry,
         peak_time=None,
         default=DEFAULT_IMAGE_PARAMETERS,
     ) -> ImageParametersContainer:
-        """Apply image cleaning and calculate image features
+        """
+        Apply image cleaning and calculate image features
+
         Parameters
         ----------
-        tel_id: int
+        tel_id : int
             which telescope is being cleaned
-        image: np.ndarray
+        image : np.ndarray
             image to process
-        signal_pixels: np.ndarray[bool]
+        signal_pixels : np.ndarray[bool]
             image mask
-        peak_time: np.ndarray
+        peak_time : np.ndarray
             peak time image
+
         Returns
         -------
-        ImageParametersContainer:
-            cleaning mask, parameters
+        parameters : ImageParametersContainer
         """
-
         image_selected = image[signal_pixels]
+
+        if self.use_telescope_frame:
+            # Use the transformed geometries
+            geometry = self.telescope_frame_geometries[tel_id]
+        else:
+            geometry = self.subarray.tel[tel_id].camera.geometry
 
         # check if image can be parameterized:
         image_criteria = self.check_image(image=image_selected)
@@ -209,12 +215,6 @@ class ImageProcessor(TelescopeComponent):
         """
         for tel_id, dl1_camera in event.dl1.tel.items():
 
-            if self.use_telescope_frame:
-                # Use the transformed geometries
-                geometry = self.telescope_frame_geometries[tel_id]
-            else:
-                geometry = self.subarray.tel[tel_id].camera.geometry
-
             if self.apply_image_modifier.tel[tel_id]:
                 dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
 
@@ -229,7 +229,6 @@ class ImageProcessor(TelescopeComponent):
                 image=dl1_camera.image,
                 signal_pixels=dl1_camera.image_mask,
                 peak_time=dl1_camera.peak_time,
-                geometry=geometry,
                 default=self.default_image_container,
             )
 
@@ -245,7 +244,6 @@ class ImageProcessor(TelescopeComponent):
                     tel_id,
                     image=sim_camera.true_image,
                     signal_pixels=sim_camera.true_image > 0,
-                    geometry=geometry,
                     peak_time=None,  # true image from simulation has no peak time
                     default=DEFAULT_TRUE_IMAGE_PARAMETERS,
                 )
