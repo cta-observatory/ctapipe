@@ -1,0 +1,1 @@
+Rename 'Camera' Containers to 'Telescope' to be consistent with data model
