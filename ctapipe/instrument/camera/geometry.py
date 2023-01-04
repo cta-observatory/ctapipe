@@ -602,15 +602,6 @@ class CameraGeometry:
                 CAM_ROT=self.cam_rotation.deg,
             ),
         )
-
-        # clear `info` member from quantities set by table creation
-        # which impacts indexing performance because it is deepcopied
-        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
-        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
-            if hasattr(q, "__dict__"):
-                if "info" in q.__dict__:
-                    del q.__dict__["info"]
-
         return t
 
     @classmethod
