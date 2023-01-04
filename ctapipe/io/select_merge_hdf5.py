@@ -1,22 +1,22 @@
+import warnings
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Union
 
 import tables
+from astropy.time import Time
+from numba.core.extending import uuid
 
-from ctapipe.instrument.optics import FocalLengthKind
-from ctapipe.instrument.subarray import SubarrayDescription
-
-from ..core import Component, traits
+from ..core import Component, Provenance, traits
+from ..instrument.optics import FocalLengthKind
+from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
+from . import metadata
 from .hdf5tableio import DEFAULT_FILTERS
 
 
 class CannotMerge(IOError):
     """Raised when trying to merge incompatible files"""
-
-
-VERSION_KEY = "CTA PRODUCT DATA MODEL VERSION"
 
 
 def split_h5path(path):
@@ -27,13 +27,15 @@ def split_h5path(path):
     return head, tail
 
 
-class SelectMergeHDF5(Component):
+class HDF5Merger(Component):
     """
     Class to copy / append / merge ctapipe hdf5 files
     """
 
     output_path = traits.Path(directory_ok=False).tag(config=True)
+
     overwrite = traits.Bool(False).tag(config=True)
+    append = traits.Bool(False).tag(config=True)
 
     telescope_events = traits.Bool(default_value=True).tag(config=True)
 
@@ -53,22 +55,45 @@ class SelectMergeHDF5(Component):
         # enable using output_path as posarg
         if output_path not in {None, traits.Undefined}:
             kwargs["output_path"] = output_path
-
         super().__init__(**kwargs)
 
-        if self.overwrite or not self.output_path.exists():
-            mode = "w"
-            self.subarray = None
-            self.datamodel_version = None
-        else:
-            mode = "a"
+        output_exists = self.output_path.exists()
+
+        if self.overwrite and self.append:
+            raise traits.TraitError("overwrite and append are mutually exclusive")
+
+        if not self.append and not self.overwrite and output_exists:
+            raise traits.TraitError(
+                f"output_path '{self.output_path}' exists but neither append nor overwrite allowed"
+            )
+
+        if self.overwrite:
+            output_exists = False
 
         self.h5file = tables.open_file(
-            self.output_path, mode=mode, filters=DEFAULT_FILTERS
+            self.output_path,
+            mode="w" if self.overwrite else "a",
+            filters=DEFAULT_FILTERS,
         )
+        Provenance().add_output_file(str(self.output_path))
 
-        if mode == "a":
-            self.datamodel_version = self.h5file.root._v_attrs[VERSION_KEY]
+        self.data_model_version = None
+        self.subarray = None
+        self.meta = None
+        # output file existed, so read subarray and data model version to make sure
+        # any file given matches what we already have
+        if output_exists:
+            try:
+                self.meta = metadata.Reference.from_dict(
+                    metadata.read_metadata(self.h5file)
+                )
+            except Exception:
+                raise CannotMerge(
+                    f"CTA Rerence meta not found in existing output file: {self.output_path}"
+                )
+
+            self.data_model_version = self.meta.product.data_model_version
+
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
             self.subarray = SubarrayDescription.from_hdf(
@@ -79,100 +104,143 @@ class SelectMergeHDF5(Component):
         """
         Append file ``other`` to the ouput file
         """
-        stack = ExitStack()
+        exit_stack = ExitStack()
         if not isinstance(other, tables.File):
-            other = stack.enter_context(tables.open_file(other, mode="r"))
+            other = exit_stack.enter_context(tables.open_file(other, mode="r"))
 
-        with stack:
-            # Configuration
-            self._append_subarray(other)
+        with exit_stack:
+            self._check_can_merge(other)
+            Provenance().add_input_file(other.filename)
 
-            key = "/configuration/observation/scheduling_block"
-            if key in other.root:
-                self._append_table(other, other.root[key])
+            try:
+                self._append(other)
+            finally:
+                self._update_meta()
 
-            key = "/configuration/observation/observation_block"
-            if key in other.root:
-                self._append_table(other, other.root[key])
+    def _update_meta(self):
+        # update creation date and id
+        time = Time.now()
+        id_ = str(uuid.uuid4())
+        self.meta.product.id_ = id_
+        self.meta.product.creation_time = time
 
-            key = "/configuration/simulation/run"
-            if self.simulation and key in other.root:
-                self._append_table(other, other.root[key])
-
-            # Simulation
-            key = "/simulation/service/shower_distribution"
-            if self.simulation and key in other.root:
-                self._append_table(other, other.root[key])
-
-            key = "/simulation/event/subarray/shower"
-            if self.simulation and key in other.root:
-                self._append_table(other, other.root[key])
-
-            key = "/simulation/event/telescope/impact"
-            if self.telescope_events and self.simulation and key in other.root:
-                self._append_table_group(other, other.root[key])
-
-            key = "/simulation/event/telescope/images"
-            if self.telescope_events and self.simulation and key in other.root:
-                self.log.info("Appending %s", key)
-                filter_columns = None if self.true_images else ["true_image"]
-                self._append_table_group(other, other.root[key], filter_columns)
-
-            key = "/simulation/event/telescope/parameters"
-            if (
-                self.telescope_events
-                and self.simulation
-                and self.true_parameters
-                and key in other.root
-            ):
-                self._append_table_group(other, other.root[key])
-
-            # DL1
-            key = "/dl1/event/subarray/trigger"
-            if key in other.root:
-                self._append_table(other, other.root[key])
-
-            key = "/dl1/event/telescope/trigger"
-            if self.telescope_events and key in other.root:
-                self._append_table(other, other.root[key])
-
-            key = "/dl1/event/telescope/images"
-            if self.telescope_events and self.dl1_images and key in other.root:
-                self._append_table_group(other, other.root[key])
-
-            key = "/dl1/event/telescope/parameters"
-            if self.telescope_events and self.dl1_parameters and key in other.root:
-                self._append_table_group(other, other.root[key])
-
-            # DL2
-            key = "/dl2/event/telescope"
-            if self.telescope_events and self.dl2_telescope and key in other.root:
-                for kind_group in other.root[key]._f_iter_nodes("Group"):
-                    for algorithm_group in kind_group._f_iter_nodes("Group"):
-                        self._append_table_group(other, algorithm_group)
-
-            key = "/dl2/event/subarray"
-            if self.dl2_subarray and key in other.root:
-                for kind_group in other.root[key]._f_iter_nodes("Group"):
-                    for table in kind_group._f_iter_nodes("Table"):
-                        self._append_table(other, table)
-
-            # quality query statistics
-            key = "/dl1/service/image_statistics"
-            if key in other.root:
-                self._add_statistics_table(other, other.root[key])
-
-            key = "/dl2/service/tel_event_statistics"
-            if key in other.root:
-                for node in other.root[key]._f_iter_nodes("Table"):
-                    self._add_statistics_table(other, node)
-
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", tables.NaturalNameWarning)
+            self.h5file.root._v_attrs["CTA PRODUCT CREATION TIME"] = time.iso
+            self.h5file.root._v_attrs["CTA PRODUCT ID"] = id_
         self.h5file.flush()
+
+    def _check_can_merge(self, other):
+        try:
+            other_meta = metadata.Reference.from_dict(metadata.read_metadata(other))
+        except Exception:
+            raise CannotMerge(
+                f"CTA Rerence meta not found in input file: {other.filename}"
+            )
+
+        if self.meta is None:
+            self.meta = other_meta
+            self.data_model_version = self.meta.product.data_model_version
+            metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
+        else:
+            other_version = other_meta.product.data_model_version
+            if self.data_model_version != other_version:
+                raise CannotMerge(
+                    f"Input file {other.filename:!r} has different data model version:"
+                    f" {other_version}, expected {self.data_model_version}"
+                )
+
+    def _append(self, other):
+        # Configuration
+        self._append_subarray(other)
+
+        key = "/configuration/observation/scheduling_block"
+        if key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/configuration/observation/observation_block"
+        if key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/configuration/simulation/run"
+        if self.simulation and key in other.root:
+            self._append_table(other, other.root[key])
+
+        # Simulation
+        key = "/simulation/service/shower_distribution"
+        if self.simulation and key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/simulation/event/subarray/shower"
+        if self.simulation and key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/simulation/event/telescope/impact"
+        if self.telescope_events and self.simulation and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        key = "/simulation/event/telescope/images"
+        if self.telescope_events and self.simulation and key in other.root:
+            self.log.info("Appending %s", key)
+            filter_columns = None if self.true_images else ["true_image"]
+            self._append_table_group(other, other.root[key], filter_columns)
+
+        key = "/simulation/event/telescope/parameters"
+        if (
+            self.telescope_events
+            and self.simulation
+            and self.true_parameters
+            and key in other.root
+        ):
+            self._append_table_group(other, other.root[key])
+
+        # DL1
+        key = "/dl1/event/subarray/trigger"
+        if key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/dl1/event/telescope/trigger"
+        if self.telescope_events and key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/dl1/event/telescope/images"
+        if self.telescope_events and self.dl1_images and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        key = "/dl1/event/telescope/parameters"
+        if self.telescope_events and self.dl1_parameters and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        # DL2
+        key = "/dl2/event/telescope"
+        if self.telescope_events and self.dl2_telescope and key in other.root:
+            for kind_group in other.root[key]._f_iter_nodes("Group"):
+                for algorithm_group in kind_group._f_iter_nodes("Group"):
+                    self._append_table_group(other, algorithm_group)
+
+        key = "/dl2/event/subarray"
+        if self.dl2_subarray and key in other.root:
+            for kind_group in other.root[key]._f_iter_nodes("Group"):
+                for table in kind_group._f_iter_nodes("Table"):
+                    self._append_table(other, table)
+
+        # quality query statistics
+        key = "/dl1/service/image_statistics"
+        if key in other.root:
+            self._add_statistics_table(other, other.root[key])
+
+        key = "/dl2/service/tel_event_statistics"
+        if key in other.root:
+            for node in other.root[key]._f_iter_nodes("Table"):
+                self._add_statistics_table(other, node)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def close(self):
         if hasattr(self, "h5file"):
             self.h5file.close()
 

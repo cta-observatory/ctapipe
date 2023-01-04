@@ -276,9 +276,8 @@ class Reference(HasTraits):
 
             group = components[1].lower()
             key = "_".join(components[2:]).lower()
-            print(group, key, value)
 
-            # handle python builtins / statements
+            # handle python builtins / keywords
             if key in {"type", "id", "class"}:
                 key = key + "_"
 
