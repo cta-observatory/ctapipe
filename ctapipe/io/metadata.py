@@ -25,9 +25,8 @@ them (as in `Activity.from_provenance()`)
 import os
 import uuid
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from contextlib import ExitStack
-from pathlib import Path
 
 import tables
 from astropy.time import Time
@@ -92,7 +91,7 @@ class Contact(Configurable):
             return ""
 
     def __repr__(self):
-        return f"Contact(name={self.name}, email={self.email}, organization={self.organization})"
+        return f"{self.__class__.__name__}(name={self.name}, email={self.email}, organization={self.organization})"
 
 
 class Product(HasTraits):
@@ -109,7 +108,14 @@ class Product(HasTraits):
     data_model_url = Unicode("unknown")
     format = Unicode()
 
-    # pylint: disable=no-self-use
+    def __init__(self, **kwargs):
+        if "data_levels" in kwargs:
+            data_levels = kwargs["data_levels"]
+            if isinstance(data_levels, str):
+                kwargs["data_levels"] = data_levels.split(",")
+
+        super().__init__(**kwargs)
+
     @default("creation_time")
     def default_time(self):
         """return current time by default"""
@@ -193,6 +199,7 @@ class Instrument(Configurable):
         ],
         "Other",
     ).tag(config=True)
+
     type_ = Unicode("unspecified").tag(config=True)
     subtype = Unicode("unspecified").tag(config=True)
     version = Unicode("unspecified").tag(config=True)
@@ -200,8 +207,10 @@ class Instrument(Configurable):
 
     def __repr__(self):
         return (
-            f"Contact({self.site=}, {self.class_=}, {self.type_=}, "
-            f"{self.subtype=}, {self.version=}, {self.id_=})"
+            f"{self.__class__.__name__}("
+            f"site={self.site}, class_={self.class_}, type_={self.type_}"
+            f", subtype={self.subtype}, version={self.version}, id_={self.id_}"
+            ")"
         )
 
 
@@ -252,6 +261,40 @@ class Reference(HasTraits):
         meta.update(_to_dict(self.instrument, prefix=prefix + "INSTRUMENT "))
         return meta
 
+    @classmethod
+    def from_dict(cls, metadata):
+        kwargs = defaultdict(dict)
+        for hierarchical_key, value in metadata.items():
+
+            components = hierarchical_key.split(" ")
+
+            if components[0] != "CTA":
+                continue
+
+            if len(components) < 3:
+                continue
+
+            group = components[1].lower()
+            key = "_".join(components[2:]).lower()
+            print(group, key, value)
+
+            # handle python builtins / statements
+            if key in {"type", "id", "class"}:
+                key = key + "_"
+
+            kwargs[group][key] = value
+
+        return cls(
+            contact=Contact(**kwargs["contact"]),
+            product=Product(**kwargs["product"]),
+            process=Process(**kwargs["process"]),
+            activity=Activity(**kwargs["activity"]),
+            instrument=Instrument(**kwargs["instrument"]),
+        )
+
+    def __repr__(self):
+        return str(self.to_dict())
+
 
 def write_to_hdf5(metadata, h5file, path="/"):
     """
@@ -290,16 +333,11 @@ def read_metadata(h5file, path="/"):
     metadata: dictionnary
     """
     with ExitStack() as stack:
-        if isinstance(h5file, (str, Path)):
+        if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
-        elif isinstance(h5file, tables.file.File):
-            pass
-        else:
-            raise ValueError(
-                f"expected a string, Path, or PyTables "
-                f"filehandle for argument 'h5file', got {h5file}"
-            )
 
         node = h5file.get_node(path)
         metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
         return metadata
+
+    raise IOError("Could not read metadata")
