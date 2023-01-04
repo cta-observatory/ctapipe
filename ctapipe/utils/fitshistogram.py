@@ -1,8 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
-from scipy import ndimage
 from astropy.io import fits
 from astropy.wcs import WCS
+from scipy import ndimage
 
 __all__ = ["Histogram"]
 
@@ -63,7 +63,7 @@ class Histogram:
     """
 
     def __init__(self, nbins, ranges, name="Histogram", axis_names=None):
-        """ Initialize an unfilled histogram (need to call fill()  put data into it)
+        """Initialize an unfilled histogram (need to call fill()  put data into it)
 
         see also
         --------
@@ -99,7 +99,7 @@ class Histogram:
         else:
             self.axis_names = [f"axis{x}" for x in range(self.ndims)]
 
-    def __str__(self,):
+    def __str__(self):
         return (
             "Histogram(name='{name}', axes={axnames}, "
             "nbins={nbins}, ranges={ranges})".format(
@@ -250,6 +250,10 @@ class Histogram:
             hdu = input_fits
 
         data = hdu.data.T
+        # fits is always big-endian, convert to system byte order
+        # to avoid problems e.g. with scipy methods only working in native order
+        data = data.astype(data.dtype.newbyteorder("="))
+
         nbins = data.shape
         wcs = WCS(hdu.header)
         ndim = len(nbins)
@@ -290,7 +294,7 @@ class Histogram:
         return hist
 
     def get_value(self, coords, outlier_value=None):
-        """ Returns the values of the histogram at the given world
+        """Returns the values of the histogram at the given world
         coordinate(s)
 
         Parameters
@@ -397,6 +401,6 @@ class Histogram:
 
     @property
     def hist(self):
-        """ for backward compatibility. Use ``Histogram.data`` for read/write
+        """for backward compatibility. Use ``Histogram.data`` for read/write
         access"""
         return self.data
