@@ -1,0 +1,16 @@
+Implement Components and Tools to perform training and application of 
+machine learning models based on scikit-learn.
+
+Three new tools are implemented:
+- ``ctapipe-train-energy-regressor``
+- ``ctapipe-train-particle-classifier``
+- ``ctapipe-apply-models``
+
+The first two tools are used to train energy regression and particle classification
+respectively and the third tool can apply those models in bulk to input files.
+``ctapipe-process`` can now also apply models trained with the first two tools directly in
+the event loop.
+
+The intended workflow is to process training files to a combined dl1 / dl2 level
+using ``ctapipe-process``, merging those to large training files using ``ctapipe-merge``
+and then train the models.

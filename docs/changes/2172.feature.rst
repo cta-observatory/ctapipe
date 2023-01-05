@@ -1,0 +1,2 @@
+The ``ctapipe-display-dl1`` tool now has a ``QualityQuery`` instance which can be used
+to select which images should be displayed.

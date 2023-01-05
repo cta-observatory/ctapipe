@@ -1,0 +1,1 @@
+Speed-up table loader by using ``hstack`` instead of ``join`` where possible.

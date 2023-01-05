@@ -1,0 +1,2 @@
+Fix for ``TableLoader`` having the wrong data types for ``obs_id``,
+``event_id`` and ``tel_id``.

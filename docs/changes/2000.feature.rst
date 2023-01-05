@@ -1,0 +1,4 @@
+Implement atmospheric profiles for conversions from h_max to X_max.
+The new module ``ctapipe.atmosphere`` has classes for the most common cases
+of a simple ``ExponentialAtmosphereDensityProfile``, a ``TableAtmosphereDensityProfile``
+and CORSIKA's ``FiveLayerAtmosphereDensityProfile``.
