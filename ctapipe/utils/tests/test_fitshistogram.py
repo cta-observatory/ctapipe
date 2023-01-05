@@ -92,7 +92,7 @@ def test_histogram_fits(histogram_file):
 
     hist.to_fits().writeto(histogram_file, overwrite=True)
     newhist = Histogram.from_fits(histogram_file)
-
+    assert newhist.data.dtype.byteorder == "="
     # check that the values are the same
     compare_histograms(hist, newhist)
 
