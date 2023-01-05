@@ -44,7 +44,7 @@ The following datasets will be written to the group ``/dl1/event/`` in the  outp
       - :py:class:`~ctapipe.containers.TelEventIndexContainer` +, :py:class:`~ctapipe.containers.ImageParametersContainer`
     * - ``telescope/images/tel_{TEL_ID:03d}``
       - tables of telescope images (one per telescope)
-      - :py:class:`~ctapipe.containers.TelEventIndexContainer` +, :py:class:`~ctapipe.containers.DL1CameraContainer`
+      - :py:class:`~ctapipe.containers.TelEventIndexContainer` +, :py:class:`~ctapipe.containers.DL1TelescopeContainer`
 
 --------------
 DL2 Data Model
@@ -81,7 +81,7 @@ Simulation Data Model
       - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedShowerContainer`
     * - ``/simulation/event/telescope/images/tel_{TEL_ID:03d}``
       - simulated camera images
-      - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedCameraContainer`
+      - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedTelescopeContainer`
     * - ``/simulation/event/telescope/parameters/tel_{TEL_ID:03d}``
       - Parameters derived form the simulated camera images
       - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.ImageParametersContainer`
