@@ -38,7 +38,7 @@ filterwarnings = [
     template = "docs/changes/template.rst"
 
     [tool.towncrier.fragment.feature]
-        name = "New Feature"
+        name = "New Features"
         showcontent = true
 
     [tool.towncrier.fragment.bug]
