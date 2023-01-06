@@ -1,0 +1,2 @@
+The number of samples used for training machine learning models
+can now be specified per telescope type.

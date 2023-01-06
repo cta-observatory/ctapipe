@@ -1,0 +1,1 @@
+Fix ``Tool`` printing a large traceback in case of certain configuration errors.

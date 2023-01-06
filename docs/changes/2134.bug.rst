@@ -1,0 +1,1 @@
+Fix for Hillas lines in ``ArrayDisplay`` being wrong in the new ``EastingNorthingFrame``.

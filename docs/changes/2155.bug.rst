@@ -1,0 +1,1 @@
+Replace usage of ``$HOME`` with ``Path.home()`` for cross-platform compatibility.

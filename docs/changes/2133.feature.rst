@@ -1,0 +1,3 @@
+``ctapipe-apply-models`` can now apply models in chunks of subarray events,
+greatly improving memory efficiency by not having to load all events into
+memory at once.

@@ -135,10 +135,14 @@ jobs:
       - name: Install doc dependencies
         run: |
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
-          pip install -U pip setuptools wheel
+          pip install -U pip towncrier
           pip install -e .[docs]
           git describe --tags
           python -c 'import ctapipe; print(ctapipe.__version__)'
+
+      - name: Produce Changelog
+        run: |
+          towncrier build --yes
 
       - name: Build docs
         run: make doc
