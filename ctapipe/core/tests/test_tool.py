@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
+from subprocess import CalledProcessError
 
 import pytest
 from traitlets import Dict, Float, Int, TraitError
@@ -193,8 +194,8 @@ def test_tool_exit_code():
 
     assert exc.value.code == 1
 
-    assert run_tool(tool, ["--help"]) == 0
-    assert run_tool(tool, ["--non-existent-option"]) == 2
+    assert run_tool(tool, ["--help"], raises=False) == 0
+    assert run_tool(tool, ["--non-existent-option"], raises=False) == 2
 
 
 def test_tool_command_line_precedence():
@@ -334,14 +335,19 @@ def test_invalid_traits(tmp_path, caplog):
         param = Float(5.0, help="parameter").tag(config=True)
 
     # 2 means trait error
-    assert run_tool(MyTool(), ["--MyTool.foo=5"]) == 2
+    assert run_tool(MyTool(), ["--MyTool.foo=5"], raises=False) == 2
+
+    with pytest.raises(CalledProcessError):
+        run_tool(MyTool(), ["--MyTool.foo=5"], raises=True)
 
     # test that it also works for config files
     config = tmp_path / "config.json"
     with config.open("w") as f:
         json.dump({"MyTool": {"foo": 5}}, f)
 
-    assert run_tool(MyTool(), [f"--config={config}"]) == 2
+    assert run_tool(MyTool(), [f"--config={config}"], raises=False) == 2
+    with pytest.raises(CalledProcessError):
+        assert run_tool(MyTool(), [f"--config={config}"], raises=True)
 
 
 def test_tool_raises():
