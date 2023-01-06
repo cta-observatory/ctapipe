@@ -19,7 +19,8 @@ def detect_and_import_plugins(group):
         log.info("Loading %s plugin: %s", group, entry_point.value)
         try:
             plugin = entry_point.load()
-            modules.add(plugin.__module__)
+            if plugin.__module__.split(".")[0] != "ctapipe":
+                modules.add(plugin.__module__)
             log.info("Entrypoint provides: %s", plugin)
         except Exception:
             log.exception("Error loading %s plugin: '%s'", group, entry_point.value)

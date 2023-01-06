@@ -7,7 +7,7 @@ import sys
 from pkg_resources import resource_filename
 
 from ..core import Provenance, get_module_version
-from ..core.plugins import detect_and_import_io_plugins
+from ..core.plugins import detect_and_import_plugins
 from ..utils import datasets
 from .utils import get_parser
 
@@ -64,6 +64,11 @@ def main(args=None):
         action="store_true",
         help="Print available EventSource implementations",
     )
+    parser.add_argument(
+        "--reconstructors",
+        action="store_true",
+        help="Print available Reconstructor implementations",
+    )
 
     args = parser.parse_args(args)
 
@@ -84,6 +89,7 @@ def info(
     show_all=False,
     datamodel=False,
     sources=False,
+    reconstructors=False,
 ):
     """
     Display information about the current ctapipe installation.
@@ -113,6 +119,9 @@ def info(
 
     if sources or show_all:
         _info_sources()
+
+    if reconstructors or show_all:
+        _info_reconstructors()
 
 
 def _info_version():
@@ -215,25 +224,36 @@ def _info_system():
 
 
 def _info_plugins():
-    plugins = detect_and_import_io_plugins()
-    print("\n*** ctapipe io plugins ***\n")
+    for kind in ("io", "reco"):
+        plugins = detect_and_import_plugins(f"ctapipe_{kind}")
+        print(f"\n*** ctapipe_{kind} plugins ***\n")
 
-    if not plugins:
-        print("No io plugins installed")
-        return
+        if not plugins:
+            print(f"No {kind} plugins installed")
+            return
 
-    for name in plugins:
-        version = get_module_version(name)
-        print(f"{name:>20s} -- {version}")
+        for name in plugins:
+            version = get_module_version(name)
+            print(f"{name:>20s} -- {version}")
 
 
 def _info_sources():
     from ctapipe.io import EventSource
 
-    detect_and_import_io_plugins()
-
     print("\n*** ctapipe available EventSource implementations ***\n")
     sources = EventSource.non_abstract_subclasses()
+    maxlen = max(len(source) for source in sources)
+    for source in sources.values():
+        print(
+            f"{source.__name__:>{maxlen}s} -- {source.__module__}.{source.__qualname__}"
+        )
+
+
+def _info_reconstructors():
+    from ctapipe.reco import Reconstructor
+
+    print("\n*** ctapipe Reconstructor implementations ***\n")
+    sources = Reconstructor.non_abstract_subclasses()
     maxlen = max(len(source) for source in sources)
     for source in sources.values():
         print(
