@@ -1,0 +1,1 @@
+Fix missing comma in eventio version requirement in setup.cfg (#2185).
