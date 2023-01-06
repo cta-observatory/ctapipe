@@ -3,14 +3,17 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from subprocess import CalledProcessError
 
 import pytest
 from traitlets import Dict, Float, Int, TraitError
 from traitlets.config import Config
 
 from .. import Component, Tool
-from ..tool import export_tool_config_to_commented_yaml, run_tool
+from ..tool import (
+    ToolConfigurationError,
+    export_tool_config_to_commented_yaml,
+    run_tool,
+)
 
 
 def test_tool_simple():
@@ -337,7 +340,7 @@ def test_invalid_traits(tmp_path, caplog):
     # 2 means trait error
     assert run_tool(MyTool(), ["--MyTool.foo=5"], raises=False) == 2
 
-    with pytest.raises(CalledProcessError):
+    with pytest.raises(ToolConfigurationError):
         run_tool(MyTool(), ["--MyTool.foo=5"], raises=True)
 
     # test that it also works for config files
@@ -346,7 +349,7 @@ def test_invalid_traits(tmp_path, caplog):
         json.dump({"MyTool": {"foo": 5}}, f)
 
     assert run_tool(MyTool(), [f"--config={config}"], raises=False) == 2
-    with pytest.raises(CalledProcessError):
+    with pytest.raises(ToolConfigurationError):
         assert run_tool(MyTool(), [f"--config={config}"], raises=True)
 
 

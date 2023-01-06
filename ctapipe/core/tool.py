@@ -369,6 +369,8 @@ class Tool(Application):
             self.log.error("%s", err)
             self.log.error("Use --help for more info")
             exit_status = 2  # wrong cmd line parameter
+            if raises:
+                raise
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
@@ -378,7 +380,7 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
             if raises:
-                raise err
+                raise
         finally:
             if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                 self.write_provenance()
