@@ -11,6 +11,9 @@ def test_plugin(subarray_prod5_paranal, caplog):
     with caplog.at_level(logging.INFO, logger="ctapipe.core.plugins"):
         reconstructor = Reconstructor.from_name("PluginReconstructor", subarray)
 
+    assert reconstructor.__module__ == "ctapipe_test_plugin"
+    assert reconstructor.__class__.__name__ == "PluginReconstructor"
+
     assert caplog.record_tuples == [
         (
             "ctapipe.core.plugins",
@@ -23,4 +26,3 @@ def test_plugin(subarray_prod5_paranal, caplog):
             "Entrypoint provides: <class 'ctapipe_test_plugin.PluginReconstructor'>",
         ),
     ]
-    assert reconstructor.__module__ == "ctapipe_test_plugin"

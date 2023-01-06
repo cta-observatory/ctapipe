@@ -8,7 +8,6 @@ from typing import Dict, Generator, List, Tuple
 from traitlets.config.loader import LazyConfigValue
 
 from ctapipe.atmosphere import AtmosphereDensityProfile
-from ctapipe.core.plugins import detect_and_import_io_plugins
 
 from ..containers import (
     ArrayEventContainer,
@@ -17,7 +16,7 @@ from ..containers import (
     SimulationConfigContainer,
 )
 from ..core import Provenance, ToolConfigurationError
-from ..core.component import Component, find_config_in_hierarchy, non_abstract_children
+from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
@@ -89,6 +88,7 @@ class EventSource(Component):
         generated events. If None, all available telescopes are used.
     """
 
+    #: ctapipe_io entry points may provide EventSource implementations
     plugin_entry_point = "ctapipe_io"
 
     input_url = Path(help="Path to the input file containing events.").tag(config=True)
@@ -115,8 +115,6 @@ class EventSource(Component):
         Returns a compatible subclass for given input url, either
         directly or via config / parent
         """
-        detect_and_import_io_plugins()
-
         # needed to break recursion, as __new__ of subclass will also
         # call this method
         if cls is not EventSource:
@@ -342,14 +340,14 @@ class EventSource(Component):
         # to make sure it's compatible and to raise the correct error
         input_url = EventSource.input_url.validate(obj=None, value=input_url)
 
-        available_classes = non_abstract_children(cls)
+        available_classes = cls.non_abstract_subclasses()
 
-        for subcls in available_classes:
+        for name, subcls in available_classes.items():
             try:
                 if subcls.is_compatible(input_url):
                     return subcls
             except Exception as e:
-                warnings.warn(f"{subcls.__name__}.is_compatible raised exception: {e}")
+                warnings.warn(f"{name}.is_compatible raised exception: {e}")
 
         # provide a more helpful error for non-existing input_url
         if not input_url.exists():

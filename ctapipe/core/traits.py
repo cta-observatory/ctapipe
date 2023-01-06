@@ -228,6 +228,12 @@ class ComponentName(Unicode):
     """A trait that is the name of a Component class"""
 
     def __init__(self, cls, **kwargs):
+        # we need to prevent triggering importing plugins at
+        # import time to avoid circular imports, this flag is used
+        # to prevent calling the full plugin mechenism at defintion
+        # time of a `ComponentName`
+        self._init_done = False
+
         if not issubclass(cls, Component):
             raise TypeError(f"cls must be a Component, got {cls}")
 
@@ -235,13 +241,14 @@ class ComponentName(Unicode):
         super().__init__(**kwargs)
         if "help" not in kwargs:
             self.help = f"The name of a {cls.__name__} subclass"
+        self._init_done = True
 
     @property
     def help(self):
-        if hasattr(self.cls, "plugin_entry_point"):
-            detect_and_import_plugins(self.cls.plugin_entry_point)
-
-        children = list(self.cls.non_abstract_subclasses())
+        if self._init_done:
+            children = list(self.cls.non_abstract_subclasses())
+        else:
+            children = []
         return f"{self._help}. Possible values: {children}"
 
     @help.setter
@@ -250,7 +257,10 @@ class ComponentName(Unicode):
 
     @property
     def info_text(self):
-        return f"Any of {list(self.cls.non_abstract_subclasses())}"
+        if self._init_done:
+            return f"Any of {list(self.cls.non_abstract_subclasses())}"
+        else:
+            return f"Any subclass of {self.cls}"
 
     def validate(self, obj, value):
         if self.allow_none and value is None:
@@ -266,6 +276,11 @@ class ComponentNameList(List):
     """A trait that is a list of Component classes"""
 
     def __init__(self, cls, **kwargs):
+        # we need to prevent triggering importing plugins at
+        # import time to avoid circular imports, this flag is used
+        # to prevent calling the full plugin mechenism at defintion
+        # time of a `ComponentNameList`
+        self._init_done = False
         if not issubclass(cls, Component):
             raise TypeError(f"cls must be a Component, got {cls}")
 
@@ -275,10 +290,14 @@ class ComponentNameList(List):
 
         if "help" not in kwargs:
             self.help = f"A list of {cls.__name__} subclass names"
+        self._init_done = True
 
     @property
     def help(self):
-        children = list(self.cls.non_abstract_subclasses())
+        if self._init_done:
+            children = list(self.cls.non_abstract_subclasses())
+        else:
+            children = []
         return f"{self._help}. Possible values: {children}"
 
     @help.setter
@@ -287,7 +306,10 @@ class ComponentNameList(List):
 
     @property
     def info_text(self):
-        return f"A list of {list(self.cls.non_abstract_subclasses())}"
+        if self._init_done:
+            return f"A list of {list(self.cls.non_abstract_subclasses())}"
+        else:
+            return f"A list of {self.cls} subclasses"
 
 
 def classes_with_traits(base_class):
