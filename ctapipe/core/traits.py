@@ -10,6 +10,8 @@ import traitlets.config
 from astropy.time import Time
 from traitlets import Undefined
 
+from ctapipe.core.plugins import detect_and_import_plugins
+
 from .component import Component, non_abstract_children
 from .telescope_component import TelescopeParameter
 
@@ -236,6 +238,9 @@ class ComponentName(Unicode):
 
     @property
     def help(self):
+        if hasattr(self.cls, "plugin_entry_point"):
+            detect_and_import_plugins(self.cls.plugin_entry_point)
+
         children = list(self.cls.non_abstract_subclasses())
         return f"{self._help}. Possible values: {children}"
 
@@ -288,6 +293,10 @@ class ComponentNameList(List):
 def classes_with_traits(base_class):
     """Returns a list of the base class plus its non-abstract children
     if they have traits"""
+
+    if hasattr(base_class, "plugin_entry_point"):
+        detect_and_import_plugins(base_class.plugin_entry_point)
+
     all_classes = [base_class] + non_abstract_children(base_class)
     with_traits = []
 

@@ -1,3 +1,4 @@
+"""An example (and test) plugin for ctapipe providing an EventSource and a Reconstructor"""
 import astropy.units as u
 import numpy as np
 
@@ -6,6 +7,7 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     SchedulingBlockContainer,
 )
+from ctapipe.core import traits
 from ctapipe.instrument import (
     CameraDescription,
     CameraGeometry,
@@ -19,6 +21,12 @@ from ctapipe.instrument import (
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import ArrayEventContainer
 from ctapipe.reco import Reconstructor
+
+__all__ = [
+    "PluginEventSource",
+    "PluginReconstructor",
+]
+
 
 optics = OpticsDescription(
     "plugin",
@@ -66,6 +74,10 @@ subarray = SubarrayDescription(
 class PluginEventSource(EventSource):
     """A minimal plugin event source"""
 
+    foo = traits.Bool(
+        True, help="example traitlet to see that it is included in --help"
+    ).tag(config=True)
+
     is_simulation = False
     datalevels = (DataLevel.DL1_IMAGES,)
     subarray = subarray
@@ -74,9 +86,11 @@ class PluginEventSource(EventSource):
 
     @classmethod
     def is_compatible(cls, path):
+        """Foo"""
         return str(path).endswith(".plugin")
 
     def _generator(self):
+        """Foo"""
         for i in range(10):
             yield ArrayEventContainer(count=i)
 
@@ -84,5 +98,10 @@ class PluginEventSource(EventSource):
 class PluginReconstructor(Reconstructor):
     """A plugin Reconstructor"""
 
+    foo = traits.Bool(
+        True, help="example traitlet to see that it is included in --help"
+    ).tag(config=True)
+
     def __call__(self, event: ArrayEventContainer):
+        """Foo"""
         event.dl2.geometry["PluginReconstructor"] = ReconstructedGeometryContainer()

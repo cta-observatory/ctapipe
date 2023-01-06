@@ -89,6 +89,8 @@ class EventSource(Component):
         generated events. If None, all available telescopes are used.
     """
 
+    plugin_entry_point = "ctapipe_io"
+
     input_url = Path(help="Path to the input file containing events.").tag(config=True)
 
     max_events = Int(

@@ -9,6 +9,8 @@ from docutils.core import publish_parts
 from traitlets import TraitError
 from traitlets.config import Configurable
 
+from .plugins import detect_and_import_plugins
+
 __all__ = ["non_abstract_children", "Component"]
 
 
@@ -192,6 +194,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         instace
             Instance of subclass to this class
         """
+        if hasattr(cls, "plugin_entry_point"):
+            detect_and_import_plugins(cls.plugin_entry_point)
+
         requested_subclass = cls.non_abstract_subclasses()[name]
         return requested_subclass(config=config, parent=parent, **kwargs)
 
