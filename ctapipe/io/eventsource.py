@@ -360,7 +360,7 @@ class EventSource(Component):
             "Cannot find compatible EventSource for \n"
             "\turl:{}\n"
             "in available EventSources:\n"
-            "\t{}".format(input_url, [c.__name__ for c in available_classes])
+            "\t{}".format(input_url, [c for c in available_classes])
         )
 
     @classmethod
