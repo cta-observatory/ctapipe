@@ -194,9 +194,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         instace
             Instance of subclass to this class
         """
-        if hasattr(cls, "plugin_entry_point"):
-            detect_and_import_plugins(cls.plugin_entry_point)
-
         requested_subclass = cls.non_abstract_subclasses()[name]
         return requested_subclass(config=config, parent=parent, **kwargs)
 
@@ -206,6 +203,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         get dict{name: cls} of non abstract subclasses,
         subclasses can possibly be definded in plugins
         """
+        if hasattr(cls, "plugin_entry_point"):
+            detect_and_import_plugins(cls.plugin_entry_point)
+
         subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         return subclasses
 
