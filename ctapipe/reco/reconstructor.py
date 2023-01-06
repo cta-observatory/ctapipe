@@ -6,6 +6,7 @@ from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import QualityQuery, TelescopeComponent
+from ctapipe.core.plugins import detect_and_import_reco_plugins
 from ctapipe.core.traits import List
 
 from ..coordinates import shower_impact_distance
@@ -65,6 +66,12 @@ class Reconstructor(TelescopeComponent):
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
         """
+
+    @classmethod
+    def from_name(cls, name, subarray, **kwargs):
+        """Create a new Reconstructor from class name, imports plugins"""
+        detect_and_import_reco_plugins()
+        return super().from_name(name=name, subarray=subarray, **kwargs)
 
 
 class GeometryReconstructor(Reconstructor):

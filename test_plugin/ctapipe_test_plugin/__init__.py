@@ -1,9 +1,11 @@
-from inspect import isabstract
-
 import astropy.units as u
 import numpy as np
 
-from ctapipe.containers import ObservationBlockContainer, SchedulingBlockContainer
+from ctapipe.containers import (
+    ObservationBlockContainer,
+    ReconstructedGeometryContainer,
+    SchedulingBlockContainer,
+)
 from ctapipe.instrument import (
     CameraDescription,
     CameraGeometry,
@@ -16,6 +18,7 @@ from ctapipe.instrument import (
 )
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import ArrayEventContainer
+from ctapipe.reco import Reconstructor
 
 optics = OpticsDescription(
     "plugin",
@@ -76,3 +79,10 @@ class PluginEventSource(EventSource):
     def _generator(self):
         for i in range(10):
             yield ArrayEventContainer(count=i)
+
+
+class PluginReconstructor(Reconstructor):
+    """A plugin Reconstructor"""
+
+    def __call__(self, event: ArrayEventContainer):
+        event.dl2.geometry["PluginReconstructor"] = ReconstructedGeometryContainer()

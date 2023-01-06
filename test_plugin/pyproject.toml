@@ -15,3 +15,6 @@ find = {}  # Scan the project directory with the default parameters
 
 [project.entry-points.ctapipe_io]
 PluginEventSource = "ctapipe_test_plugin:PluginEventSource"
+
+[project.entry-points.ctapipe_reco]
+PluginReconstructor = "ctapipe_test_plugin:PluginReconstructor"
