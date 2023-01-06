@@ -7,6 +7,7 @@ import re
 import textwrap
 from abc import abstractmethod
 from inspect import cleandoc
+from subprocess import CalledProcessError
 from tempfile import mkdtemp
 from typing import Union
 
@@ -565,11 +566,14 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
     """
     current_cwd = pathlib.Path().absolute()
     cwd = pathlib.Path(cwd) if cwd is not None else mkdtemp()
+    argv = argv or []
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
-        tool.run(argv or [], raises=raises)
+        tool.run(argv, raises=raises)
     except SystemExit as e:
+        if raises and e.code != 0:
+            raise CalledProcessError(e.code, [tool.name] + argv)
         return e.code
     finally:
         os.chdir(current_cwd)
