@@ -640,7 +640,6 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
     expected = np.average([29, 30, 31], weights=[5, 10, 3])
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
 
-
 def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
     # Test on toy model
     (
@@ -663,11 +662,13 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
     with EventSource(prod5_gamma_simtel_path) as source:
         subarray = source.subarray
         extractor = FlashCamExtractor(subarray)
-        for event in source:
-            for tel_id in subarray.get_tel_ids_for_type("MST_MST_FlashCam"):
+        
+        def is_flashcam(tel_id):
+            return subarray.tel[tel_id].camera.name == "FlashCam"
+
+        for event in source:    
+            for tel_id in filter(is_flashcam, event.trigger.tels_with_trigger):
                 true_charge = event.simulation.tel[tel_id].true_image
-                if true_charge is None:
-                    continue  # telescope did not trigger
 
                 waveforms = event.r1.tel[tel_id].waveform
                 selected_gain_channel = np.zeros(waveforms.shape[0], dtype=np.int64)
