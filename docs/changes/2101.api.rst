@@ -1,0 +1,4 @@
+ctapipe now uses entry points for plugin discovery. ``EventSource`` implementations 
+no need to advertise a ``ctapipe_io`` entry point, to be discovered by ctapipe.
+Additionally, ctapipe now includes preliminary support for discovering ``Reconstructor``
+implementations via the ``ctapipe_reco`` entry_point.
