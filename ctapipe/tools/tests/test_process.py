@@ -4,6 +4,8 @@
 Test ctapipe-process on a few different use cases
 """
 
+from subprocess import CalledProcessError
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -152,7 +154,7 @@ def test_stage1_datalevels(tmp_path):
     config = resource_file("stage1_config.json")
     tool = ProcessorTool()
 
-    assert (
+    with pytest.raises(CalledProcessError):
         run_tool(
             tool,
             argv=[
@@ -164,8 +166,7 @@ def test_stage1_datalevels(tmp_path):
             ],
             cwd=tmp_path,
         )
-        == 1
-    )
+
     # make sure the dummy event source was really used
     assert isinstance(tool.event_source, DummyEventSource)
 
