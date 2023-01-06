@@ -1,0 +1,2 @@
+The ``ctapipe-info`` tool now supports printing information about
+the available ``EventSource`` implementations.
