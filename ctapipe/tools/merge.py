@@ -15,7 +15,7 @@ from ctapipe.utils.arrays import recarray_drop_columns
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, CInt, Set, Unicode, flag
 from ..instrument import SubarrayDescription
-from ..io import HDF5EventSource, HDF5TableWriter, get_hdf5_datalevels
+from ..io import HDF5EventSource, get_hdf5_datalevels
 from ..io import metadata as meta
 
 PROV = Provenance()
@@ -481,7 +481,6 @@ class MergeTool(Tool):
 
     def finish(self):
         datalevels = [d.name for d in get_hdf5_datalevels(self.output_file)]
-        self.output_file.close()
 
         activity = PROV.current_activity.provenance
         process_type_ = "Observation"
@@ -512,11 +511,8 @@ class MergeTool(Tool):
         )
 
         headers = reference.to_dict()
-
-        with HDF5TableWriter(
-            self.output_path, parent=self, mode="a", add_prefix=True
-        ) as writer:
-            meta.write_to_hdf5(headers, writer.h5file)
+        meta.write_to_hdf5(headers, self.output_file)
+        self.output_file.close()
 
 
 def main():
