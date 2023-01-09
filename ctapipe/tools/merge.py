@@ -37,6 +37,7 @@ optional_nodes = {
     "/simulation/event/telescope/impact",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
+    "/dl1/event/telescope/muon",
     "/dl2/event/telescope/geometry",
     "/dl2/event/telescope/impact",
     "/dl2/event/telescope/energy",
