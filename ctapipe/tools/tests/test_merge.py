@@ -64,15 +64,17 @@ def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
     open(dl1_file.parent / "foo.h5", "w").close()
 
     # copy to make sure we don't have other files in the dl1 dir disturb this
+    indir = tmp_path / "input"
+    indir.mkdir()
     for f in (dl1_file, dl1_proton_file):
-        shutil.copy(f, tmp_path)
+        shutil.copy(f, indir)
 
     output = tmp_path / "merged_pattern.dl1.h5"
     run_tool(
         tool=MergeTool(),
         argv=[
             "-i",
-            str(tmp_path),
+            str(indir),
             "-p",
             "*.dl1.h5",
             f"--output={output}",
