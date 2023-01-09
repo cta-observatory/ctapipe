@@ -5,7 +5,6 @@ import os
 import pathlib
 from urllib.parse import urlparse
 
-import numpy as np
 import traitlets
 import traitlets.config
 from astropy.time import Time

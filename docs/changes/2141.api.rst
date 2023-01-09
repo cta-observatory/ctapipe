@@ -1,0 +1,6 @@
+Drop support for ``CameraFrame`` in ``ImageProcessor``
+
+``ImageProcessor`` now only uses the ``TelescopeFrame`` to perform all image operations.
+This also drops support for calculating the ``HillasParameters`` in ``CameraFrame``.
+
+Reading files with DL1 parameters in ``CameraFrame`` is also no longer supported.
