@@ -1,5 +1,5 @@
 """
-Merge DL1-files from ctapipe-process tool
+Merge multiple ctapipe HDF5 files into one
 """
 import sys
 from argparse import ArgumentParser
@@ -16,10 +16,15 @@ from ..io.select_merge_hdf5 import HDF5Merger
 
 
 class MergeTool(Tool):
+    """
+    Merge multiple ctapipe HDF5 files into one
+    """
+
     name = "ctapipe-merge"
-    description = "Merges DL1-files created by the stage1-tool"
+    description = "Merge multiple ctapipe HDF5 files into one"
+
     examples = """
-    To merge DL1-files created by the stage1-tool from current directory:
+    To merge several files in the current directory:
 
     > ctapipe-merge file1.h5 file2.h5 file3.h5 --output=/path/output_file.h5 --progress
 
@@ -28,11 +33,11 @@ class MergeTool(Tool):
     > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5 --progress
     --pattern='*.dl1.h5'
 
-    If no pattern is given, all .h5 files of the given directory will be taken as input.
+    If no pattern is given, all .h5 files in the given directory will be taken as input.
     """
     input_dir = traits.Path(
         default_value=None,
-        help="Input dl1-directory",
+        help="Input directory",
         allow_none=True,
         exists=True,
         directory_ok=True,
@@ -42,7 +47,7 @@ class MergeTool(Tool):
     input_files = List(
         traits.Path(exists=True, directory_ok=False),
         default_value=[],
-        help="Input dl1-files",
+        help="Input CTA HDF5 files",
     ).tag(config=True)
 
     progress_bar = Bool(
@@ -51,7 +56,8 @@ class MergeTool(Tool):
     ).tag(config=True)
 
     file_pattern = Unicode(
-        default_value="*.h5", help="Give a specific file pattern for the input files"
+        default_value="*.h5",
+        help="Give a specific file pattern for matching files in ``input_dir``",
     ).tag(config=True)
 
     parser = ArgumentParser()
