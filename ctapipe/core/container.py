@@ -190,18 +190,23 @@ class Field:
                     f"{errorstr} Should have dimensionality {self.ndim}"
                 )
             if value.dtype != self.dtype:
-                raise FieldValidationError(
-                    f"{errorstr} Has dtype "
-                    f"{value.dtype}, should have dtype"
-                    f" {self.dtype}"
-                )
-        else:
+                if np.can_cast(value, self.dtype, casting="safe"):
+                    value = value.astype(self.dtype)
+                else:
+                    raise FieldValidationError(
+                        f"{errorstr} Has dtype "
+                        f"{value.dtype}, should have dtype"
+                        f" {self.dtype}"
+                    )
             # not a numpy array
             if self.dtype is not None:
-                if not isinstance(value, self.dtype.type):
-                    raise FieldValidationError(
-                        f"{errorstr} Should have numpy dtype {self.dtype}"
-                    )
+                if np.can_cast(value, self.dtype, casting="safe"):
+                    value = value.astype(self.dtype)
+                else:
+                    if not isinstance(value, self.dtype.type):
+                        raise FieldValidationError(
+                            f"{errorstr} Should have numpy dtype {self.dtype}"
+                        )
 
 
 class DeprecatedField(Field):
