@@ -238,6 +238,8 @@ def test_field_validation():
     #   test dtype
     with pytest.raises(FieldValidationError):
         field_f.validate(np.ones((2, 2), dtype=np.int32))
+    # This is castable without loss of precision
+    field_f.validate(np.ones((2, 2), dtype=np.float32))
 
     #   test ndims
     with pytest.raises(FieldValidationError):
