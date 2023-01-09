@@ -11,7 +11,11 @@ from ctapipe.calib.camera.pedestals import (
     PedestalIntegrator,
     calc_pedestals_from_traces,
 )
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import (
+    ArrayEventContainer,
+    MonitoringCameraContainer,
+    R1CameraContainer,
+)
 from ctapipe.instrument import SubarrayDescription
 
 
@@ -44,11 +48,13 @@ def test_pedestal_integrator(prod5_sst):
     data.trigger.time = Time.now()
 
     # fill the values necessary for the pedestal calculation
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
-        (n_gain, n_pixels), dtype=bool
+    mon = MonitoringCameraContainer()
+    mon.pixel_status.hardware_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
+    data.mon.tel[tel_id] = mon
+    data.r1.tel[tel_id] = R1CameraContainer(
+        waveform=np.full((2, n_pixels, 40), ped_level),
+        selected_gain_channel=np.zeros(n_pixels, dtype=np.uint8),
     )
-    data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
-    data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
     while ped_calculator.n_events_seen < n_events:
         if ped_calculator.calculate_pedestals(data):

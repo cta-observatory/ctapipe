@@ -906,7 +906,7 @@ class SimTelEventSource(EventSource):
 
         central_time = parse_simtel_time(trigger["gps_time"])
 
-        tel = Map(TelescopeTriggerContainer)
+        tel = Map((int, np.integer), TelescopeTriggerContainer)
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):

@@ -36,6 +36,7 @@ from ..containers import (
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
+    TelescopeReconstructedContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
     TimingParametersContainer,
@@ -661,8 +662,10 @@ class HDF5EventSource(EventSource):
                             intensity_statistics=simulated_params[4],
                         )
 
+                data.dl2.tel[tel_id] = TelescopeReconstructedContainer()
                 for kind, algorithms in dl2_tel_readers.items():
                     c = getattr(data.dl2.tel[tel_id], kind)
+
                     for algorithm, readers in algorithms.items():
                         c[algorithm] = next(readers[key])
 

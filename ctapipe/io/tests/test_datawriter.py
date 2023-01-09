@@ -14,6 +14,7 @@ from ctapipe.containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    TelescopeReconstructedContainer,
 )
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
@@ -27,8 +28,10 @@ def generate_dummy_dl2(event):
 
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
-    for algo in algos:
-        for tel_id in event.dl1.tel:
+    for tel_id in event.dl1.tel:
+        event.dl2.tel[tel_id] = TelescopeReconstructedContainer()
+
+        for algo in algos:
             event.dl2.tel[tel_id].geometry[algo] = ReconstructedGeometryContainer(
                 alt=70 * u.deg,
                 az=120 * u.deg,
@@ -46,13 +49,13 @@ def generate_dummy_dl2(event):
                 prefix=f"{algo}_tel",
             )
 
+    for algo in algos:
         event.dl2.stereo.geometry[algo] = ReconstructedGeometryContainer(
             alt=72 * u.deg,
             az=121 * u.deg,
             telescopes=[1, 2, 4],
             prefix=algo,
         )
-
         event.dl2.stereo.energy[algo] = ReconstructedEnergyContainer(
             energy=10 * u.TeV,
             telescopes=[1, 2, 4],

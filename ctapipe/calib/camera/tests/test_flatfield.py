@@ -6,7 +6,11 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import (
+    ArrayEventContainer,
+    MonitoringCameraContainer,
+    R1CameraContainer,
+)
 from ctapipe.instrument import SubarrayDescription
 
 
@@ -42,17 +46,15 @@ def test_flasherflatfieldcalculator(prod5_sst):
     data.trigger.time = Time.now()
 
     # initialize mon and r1 data
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
-        (n_gain, n_pixels), dtype=bool
+    mon = MonitoringCameraContainer()
+    mon.pixel_status.hardware_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
+    mon.pixel_status.pedestal_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
+    mon.pixel_status.flatfield_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
+    data.mon.tel[tel_id] = mon
+    data.r1.tel[tel_id] = R1CameraContainer(
+        waveform=np.zeros((n_gain, n_pixels, 40)),
+        selected_gain_channel=np.zeros(n_pixels, dtype=np.uint8),
     )
-    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels = np.zeros(
-        (n_gain, n_pixels), dtype=bool
-    )
-    data.mon.tel[tel_id].pixel_status.flatfield_failing_pixels = np.zeros(
-        (n_gain, n_pixels), dtype=bool
-    )
-    data.r1.tel[tel_id].waveform = np.zeros((n_gain, n_pixels, 40))
-    data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
     # flat-field signal put == delta function of height ff_level at sample 20
     data.r1.tel[tel_id].waveform[:, :, 20] = ff_level

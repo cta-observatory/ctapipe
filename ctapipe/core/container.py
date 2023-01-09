@@ -86,8 +86,8 @@ class Field:
             if isclass(self.default_factory):
                 default = _fqdn(self.default_factory)
             elif isinstance(self.default_factory, partial):
-                # case for `partial(Map, Container)`
-                cls = _fqdn(self.default_factory.args[0])
+                # case for `partial(Map, key_type, Container)`
+                cls = _fqdn(self.default_factory.args[1])
                 if self.default_factory.func is Map:
                     func = "Map"
                 else:

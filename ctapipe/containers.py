@@ -11,6 +11,9 @@ from numpy import nan
 
 from .core import Container, Field, Map
 
+INT_TYPES = (int, np.integer)
+
+
 __all__ = [
     "ArrayEventContainer",
     "ConcentrationContainer",
@@ -442,7 +445,7 @@ class DL1Container(Container):
     """DL1 Calibrated Camera Images and associated data"""
 
     tel = Field(
-        default_factory=partial(Map, int, DL1CameraContainer),
+        default_factory=partial(Map, INT_TYPES, DL1CameraContainer),
         description="map of tel_id to DL1CameraContainer",
     )
 
@@ -492,7 +495,7 @@ class R0Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, int, R0CameraContainer),
+        default_factory=partial(Map, INT_TYPES, R0CameraContainer),
         description="map of tel_id to R0CameraContainer",
     )
 
@@ -524,7 +527,7 @@ class R1Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, int, R1CameraContainer),
+        default_factory=partial(Map, INT_TYPES, R1CameraContainer),
         description="map of tel_id to R1CameraContainer",
     )
 
@@ -559,7 +562,7 @@ class DL0Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, int, DL0CameraContainer),
+        default_factory=partial(Map, INT_TYPES, DL0CameraContainer),
         description="map of tel_id to DL0CameraContainer",
     )
 
@@ -632,7 +635,7 @@ class SimulatedEventContainer(Container):
         default_factory=SimulatedShowerContainer,
         description="True event information",
     )
-    tel = Field(default_factory=partial(Map, int, SimulatedCameraContainer))
+    tel = Field(default_factory=partial(Map, INT_TYPES, SimulatedCameraContainer))
 
 
 class SimulationConfigContainer(Container):
@@ -738,7 +741,7 @@ class TriggerContainer(Container):
     )
     event_type = Field(EventType.SUBARRAY, description="Event type")
     tel = Field(
-        default_factory=partial(Map, int, TelescopeTriggerContainer),
+        default_factory=partial(Map, INT_TYPES, TelescopeTriggerContainer),
         description="telescope-wise trigger information",
     )
 
@@ -884,7 +887,7 @@ class DL2Container(Container):
     """
 
     tel = Field(
-        default_factory=partial(Map, int, TelescopeReconstructedContainer),
+        default_factory=partial(Map, INT_TYPES, TelescopeReconstructedContainer),
         description="map of tel_id to single-telescope reconstruction (DL2a)",
     )
     stereo = Field(
@@ -907,7 +910,7 @@ class TelescopePointingContainer(Container):
 
 class PointingContainer(Container):
     tel = Field(
-        default_factory=partial(Map, int, TelescopePointingContainer),
+        default_factory=partial(Map, INT_TYPES, TelescopePointingContainer),
         description="Telescope pointing positions",
     )
     array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
@@ -934,7 +937,7 @@ class EventCalibrationContainer(Container):
 
     # create the camera container
     tel = Field(
-        default_factory=partial(Map, int, EventCameraCalibrationContainer),
+        default_factory=partial(Map, INT_TYPES, EventCameraCalibrationContainer),
         description="map of tel_id to EventCameraCalibrationContainer",
     )
 
@@ -1148,7 +1151,7 @@ class MonitoringContainer(Container):
 
     # create the camera container
     tel = Field(
-        default_factory=partial(Map, int, MonitoringCameraContainer),
+        default_factory=partial(Map, INT_TYPES, MonitoringCameraContainer),
         description="map of tel_id to MonitoringCameraContainer",
     )
 
