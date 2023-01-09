@@ -7,6 +7,7 @@ import re
 import textwrap
 from abc import abstractmethod
 from inspect import cleandoc
+from subprocess import CalledProcessError
 from tempfile import mkdtemp
 from typing import Union
 
@@ -368,6 +369,8 @@ class Tool(Application):
             self.log.error("%s", err)
             self.log.error("Use --help for more info")
             exit_status = 2  # wrong cmd line parameter
+            if raises:
+                raise
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
@@ -377,7 +380,7 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
             if raises:
-                raise err
+                raise
         finally:
             if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                 self.write_provenance()
@@ -565,11 +568,14 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
     """
     current_cwd = pathlib.Path().absolute()
     cwd = pathlib.Path(cwd) if cwd is not None else mkdtemp()
+    argv = argv or []
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
-        tool.run(argv or [], raises=raises)
+        tool.run(argv, raises=raises)
     except SystemExit as e:
+        if raises and e.code != 0:
+            raise CalledProcessError(e.code, [tool.name] + argv)
         return e.code
     finally:
         os.chdir(current_cwd)
