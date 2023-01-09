@@ -92,7 +92,10 @@ def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
     from ctapipe.io.tableloader import TableLoader
 
     with TableLoader(
-        dl1_muon_output_file, load_dl1_muons=True, focal_length_choice="EQUIVALENT"
+        dl1_muon_output_file,
+        load_dl1_muons=True,
+        load_dl1_parameters=False,
+        focal_length_choice="EQUIVALENT",
     ) as table_loader:
         table = table_loader.read_telescope_events([1])
         assert "muonring_radius" in table.colnames
