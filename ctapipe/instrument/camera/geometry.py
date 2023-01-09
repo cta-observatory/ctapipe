@@ -602,6 +602,14 @@ class CameraGeometry:
                 CAM_ROT=self.cam_rotation.deg,
             ),
         )
+
+        # clear `info` member from quantities set by table creation
+        # which impacts indexing performance because it is deepcopied
+        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
+        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
+            if hasattr(q, "__dict__"):
+                q.__dict__.pop("info", None)
+
         return t
 
     @classmethod
@@ -627,7 +635,7 @@ class CameraGeometry:
         if version not in cls.SUPPORTED_TAB_VERSIONS:
             raise IOError(f"Unsupported camera geometry table version: {version}")
 
-        return cls(
+        cam = cls(
             name=tab.meta.get("CAM_ID", "Unknown"),
             pix_id=tab["pix_id"],
             pix_x=tab["pix_x"].quantity,
@@ -637,6 +645,14 @@ class CameraGeometry:
             pix_rotation=Angle(tab.meta["PIX_ROT"], u.deg),
             cam_rotation=Angle(tab.meta["CAM_ROT"], u.deg),
         )
+
+        # clear `info` member from quantities set by table creation
+        # which impacts indexing performance because it is deepcopied
+        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
+        for q in (cam.pix_id, cam.pix_x, cam.pix_y, cam.pix_area):
+            if hasattr(q, "__dict__"):
+                q.__dict__.pop("info", None)
+        return cam
 
     def __repr__(self):
         return (
