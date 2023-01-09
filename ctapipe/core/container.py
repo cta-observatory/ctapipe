@@ -198,10 +198,14 @@ class Field:
                         f"{value.dtype}, should have dtype"
                         f" {self.dtype}"
                     )
+        else:
             # not a numpy array
             if self.dtype is not None:
-                if np.can_cast(value, self.dtype, casting="safe"):
-                    value = value.astype(self.dtype)
+                # Workaround for string input
+                if np.issubdtype(type(value), np.number) and (
+                    np.can_cast(value, self.dtype, casting="safe")
+                ):
+                    value = self.dtype.type(value)
                 else:
                     if not isinstance(value, self.dtype.type):
                         raise FieldValidationError(
