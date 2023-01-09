@@ -123,8 +123,10 @@ class MuonProcessor(TelescopeComponent):
 
         if self.subarray.tel[tel_id].optics.n_mirrors != 1:
             self.log.warning(
-                f"Skipping non-single mirror telescope {tel_id}"
-                " set --allowed_tels to get rid of this warning"
+                f"Skipping non-single mirror telescope {tel_id},"
+                " muon-fitting for dual-mirror telescope is currently"
+                " not supported. Exclude dual mirror telescopes via setting"
+                " 'EventSource.allowed_tels'."
             )
             event.muon.tel[tel_id] = MuonCameraContainer()
             return
