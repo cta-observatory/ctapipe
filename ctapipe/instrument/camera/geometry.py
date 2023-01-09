@@ -448,6 +448,7 @@ class CameraGeometry:
         -------
         (rows, columns) of each pixel if transformed onto an orthogonal grid
         """
+        pix_unit = self.pix_x.unit
         if self.pix_type in {PixelShape.HEXAGON, PixelShape.CIRCLE}:
             # cam rotation should be 0 unless the derotation is turned off in the init
             rot_x, rot_y = unskew_hex_pixel_grid(
@@ -456,13 +457,14 @@ class CameraGeometry:
                 cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
             )
             x_edges, y_edges, _ = get_orthogonal_grid_edges(
-                rot_x.to_value(u.m), rot_y.to_value(u.m)
+                rot_x.to_value(pix_unit), rot_y.to_value(pix_unit)
             )
             square_mask = np.histogramdd(
-                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
+                [rot_x.to_value(pix_unit), rot_y.to_value(pix_unit)],
+                bins=(x_edges, y_edges),
             )[0].astype(bool)
             hex_to_rect_map = np.histogramdd(
-                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
+                [rot_x.to_value(pix_unit), rot_y.to_value(pix_unit)],
                 bins=(x_edges, y_edges),
                 weights=np.arange(len(self.pix_y)),
             )[0].astype(int)
