@@ -204,6 +204,9 @@ class HDF5EventSource(EventSource):
 
         version = self.file_.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
         self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
+        self._obs_ids = tuple(
+            self.file_.root.configuration.observation.observation_block.col("obs_id")
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -282,9 +285,9 @@ class HDF5EventSource(EventSource):
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return read_atmosphere_density_profile(self.file_)
 
-    @lazyproperty
+    @property
     def obs_ids(self):
-        return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
+        return self._obs_ids
 
     @property
     def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:

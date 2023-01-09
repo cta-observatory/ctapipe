@@ -120,7 +120,7 @@ class ApplyModels(Tool):
 
         shutil.copy(self.input_url, self.output_path)
 
-        self.h5file = tables.open_file(self.output_path, mode="r+")
+        self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))
         self.loader = TableLoader(
             parent=self,
             h5file=self.h5file,
@@ -157,7 +157,9 @@ class ApplyModels(Tool):
             # the table loader does not seem to see the newly written tables
             # we close and reopen the file and then table loader loads also the new tables
             self.h5file.close()
-            self.h5file = tables.open_file(self.output_path, mode="r+")
+            self.h5file = self.enter_context(
+                tables.open_file(self.output_path, mode="r+")
+            )
             self.loader.h5file = self.h5file
 
     def _apply(self, reconstructor):
