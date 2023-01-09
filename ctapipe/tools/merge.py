@@ -123,8 +123,6 @@ class MergeTool(Tool):
     classes = [HDF5Merger]
 
     def setup(self):
-        self.merger = HDF5Merger(parent=self)
-
         # Get input Files
         args = self.parser.parse_args(self.extra_args)
         self.input_files.extend(args.input_files)
@@ -138,6 +136,7 @@ class MergeTool(Tool):
             )
             sys.exit(1)
 
+        self.merger = HDF5Merger(parent=self)
         if self.merger.output_path in self.input_files:
             raise ToolConfigurationError(
                 "Output path contained in input files. Fix your configuration / cli arguments."
