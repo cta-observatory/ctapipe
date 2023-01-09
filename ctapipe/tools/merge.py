@@ -8,6 +8,8 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from traitlets import List
 
+from ctapipe.core.tool import ToolConfigurationError
+
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
 from ..io.select_merge_hdf5 import HDF5Merger
@@ -135,6 +137,11 @@ class MergeTool(Tool):
                 "or input files as positional arguments"
             )
             sys.exit(1)
+
+        if self.merger.output_path in self.input_files:
+            raise ToolConfigurationError(
+                "Output path contained in input files. Fix your configuration / cli arguments."
+            )
 
     def start(self):
         n_merged = 0
