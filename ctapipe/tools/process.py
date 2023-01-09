@@ -245,6 +245,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_calibrate(self):
+        """returns true if data should be calibrated"""
         if self.force_recompute_dl1:
             return True
 
@@ -261,6 +262,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_muon_parameters(self):
+        """returns true if we should compute muon parameters info"""
         if self.write.write_muon_parameters:
             return True
 

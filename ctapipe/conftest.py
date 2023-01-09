@@ -453,7 +453,8 @@ def dl1_muon_file(dl1_tmp_path):
 @pytest.fixture(scope="session")
 def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
     """
-    DL1 file containing images, parameters and muon ring parameters from a muon simulation set.
+    DL1 file containing images, parameters and muon ring parameters
+    from a muon simulation set.
     """
     from ctapipe.tools.process import ProcessorTool
 

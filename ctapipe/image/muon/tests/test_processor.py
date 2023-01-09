@@ -1,11 +1,16 @@
+"""
+Tests for MuonProcessor functionality
+"""
 import numpy as np
 
 from ctapipe.image import ImageProcessor
+from ctapipe.image.muon import MuonProcessor
 from ctapipe.io import EventSource
 
 
 def test_processor(dl1_muon_file):
-    from ctapipe.image.muon import MuonProcessor
+    """Test that the MuonProcessor component analyses events or
+    at least provides defaults."""
 
     with EventSource(dl1_muon_file, focal_length_choice="EQUIVALENT") as source:
         image_processor = ImageProcessor(source.subarray)

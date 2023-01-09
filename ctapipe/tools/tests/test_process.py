@@ -15,7 +15,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io import TableLoader, read_table
+from ctapipe.io import EventSource, TableLoader, read_table
 from ctapipe.io.tests.test_event_source import DummyEventSource
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
@@ -424,8 +424,7 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
 
 
 def test_muon_reconstruction_simtel(tmp_path):
-    from ctapipe.io import EventSource
-
+    """ensure processor tool generates expected output when used to analyze muons"""
     muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
     run_tool(
         ProcessorTool(),

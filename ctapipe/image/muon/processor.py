@@ -1,3 +1,6 @@
+"""
+High level muon analysis  (MuonProcessor Component)
+"""
 import numpy as np
 
 from ctapipe.containers import (
@@ -119,7 +122,7 @@ class MuonProcessor(TelescopeComponent):
         event_id = event_index.event_id
 
         if self.subarray.tel[tel_id].optics.n_mirrors != 1:
-            self.log.warn(
+            self.log.warning(
                 f"Skipping non-single mirror telescope {tel_id}"
                 " set --allowed_tels to get rid of this warning"
             )
@@ -146,7 +149,7 @@ class MuonProcessor(TelescopeComponent):
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
         # three iterations seems to be enough for most rings
-        for i in range(3):
+        for _ in range(3):
             ring = self.ring_fitter(x, y, image, mask)
             dist = np.sqrt((x - ring.center_x) ** 2 + (y - ring.center_y) ** 2)
             mask = np.abs(dist - ring.radius) / ring.radius < 0.4
@@ -202,8 +205,9 @@ class MuonProcessor(TelescopeComponent):
         Returns
         -------
         MuonParametersContainer:
-            Collection of the fitted rings containment in the camera, completeness, intensity ratio
-            and the pixels MSE around the fitted ring.
+            Collection of the fitted rings containment in the camera,
+            completeness, intensity ratio and the pixels MSE around
+            the fitted ring.
         """
         if np.isnan(ring.radius.value):
             return MuonParametersContainer()

@@ -444,7 +444,7 @@ class DL1Container(Container):
 
     tel = Field(
         default_factory=partial(Map, DL1CameraContainer),
-        description="map of tel_id to DL1CameraContainer",
+        description="Map of tel_id to DL1CameraContainer",
     )
 
 
@@ -1012,7 +1012,12 @@ class MuonCameraContainer(Container):
 
 
 class MuonContainer(Container):
-    tel = Field(default_factory=partial(Map, MuonCameraContainer))
+    """Root container for muon parameters"""
+
+    tel = Field(
+        default_factory=partial(Map, MuonCameraContainer),
+        description="Map of tel_id to MuonCameraContainer",
+    )
 
 
 class FlatFieldContainer(Container):
