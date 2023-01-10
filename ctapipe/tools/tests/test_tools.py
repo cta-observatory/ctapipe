@@ -5,16 +5,12 @@ import subprocess
 import sys
 
 import matplotlib as mpl
-import numpy as np
 
 # pylint: disable=C0103,C0116,C0415
 import pytest
-import tables
-
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
-from ctapipe.io.tableloader import TableLoader
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
