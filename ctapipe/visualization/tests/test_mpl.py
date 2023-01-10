@@ -7,11 +7,14 @@ import numpy as np
 # skip these tests if matplotlib can't be imported
 import pytest
 from astropy import units as u
+from astropy.coordinates import AltAz, SkyCoord
 
+from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
 )
+from ctapipe.coordinates.telescope_frame import TelescopeFrame
 from ctapipe.instrument import PixelShape, SubarrayDescription
 
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -270,3 +273,45 @@ def test_picker(prod5_lst_cam):
     disp.pixels.pick(event)
 
     assert len(clicked_pixels) > 0
+
+
+def test_overlay_coord(tmp_path, subarray_and_event_gamma_off_axis_500_gev):
+    from ctapipe.visualization import CameraDisplay
+
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    calib = CameraCalibrator(subarray)
+    calib(event)
+
+    pointing = AltAz(
+        alt=event.pointing.array_altitude,
+        az=event.pointing.array_azimuth,
+    )
+
+    # add pointing here, so the transform to CameraFrame / TelescopeFrame works
+    true_coord = SkyCoord(
+        alt=event.simulation.shower.alt,
+        az=event.simulation.shower.az,
+        telescope_pointing=pointing,
+        frame=AltAz(),
+    )
+
+    geometry = subarray.tel[1].camera.geometry
+    image = event.dl1.tel[1].image
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), layout="constrained")
+
+    display = CameraDisplay(geometry, ax=ax1)
+    display.image = image
+    display.overlay_coordinate(
+        true_coord, color="xkcd:yellow", markeredgecolor="k", mew=1, ms=10
+    )
+
+    geometry_tel_frame = geometry.transform_to(TelescopeFrame())
+    display = CameraDisplay(geometry_tel_frame, ax=ax2)
+    display.image = image
+    display.overlay_coordinate(
+        true_coord, color="xkcd:yellow", markeredgecolor="k", mew=1, ms=10
+    )
+
+    fig.savefig(tmp_path / "coord_overlay.png", dpi=300)

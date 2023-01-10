@@ -1,0 +1,3 @@
+``CameraDisplay.overlay_coordinate`` can now be used to 
+plot coordinates into the camera display, e.g. to show 
+the source position or the position of stars in the FoV.
