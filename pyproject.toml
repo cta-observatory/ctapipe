@@ -43,14 +43,14 @@ filterwarnings = [
         name = "New Features"
         showcontent = true
 
-    [tool.towncrier.fragment.bug]
+    [tool.towncrier.fragment.bugfix]
         name = "Bug Fixes"
         showcontent = true
 
     [tool.towncrier.fragment.api]
         name = "API Changes"
         showcontent = true
-    
+
     [tool.towncrier.fragment.datamodel]
         name = "Data Model Changes"
         showcontent = true
