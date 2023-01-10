@@ -126,7 +126,7 @@ def collect_features(
 
 @u.quantity_input(alt=u.deg, az=u.deg, pointing_alt=u.deg, pointing_az=u.deg)
 def horizontal_to_telescope(alt, az, pointing_alt, pointing_az):
-    """Transform coordinates form horizontal coordinates into TelescopeFrame"""
+    """Transform coordinates from horizontal coordinates into TelescopeFrame"""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 

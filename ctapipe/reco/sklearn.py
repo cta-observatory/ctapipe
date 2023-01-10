@@ -9,6 +9,7 @@ from typing import Tuple
 import astropy.units as u
 import joblib
 import numpy as np
+from astropy.coordinates import AltAz
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
 from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
@@ -23,6 +24,7 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
+from ..coordinates import TelescopeFrame
 from ..core import Component, FeatureGenerator, Provenance, QualityQuery
 from ..core.traits import (
     Bool,
@@ -716,15 +718,17 @@ class DispReconstructor(Reconstructor):
 
                     fov_lon = hillas.fov_lon + disp * np.cos(psi)
                     fov_lat = hillas.fov_lat + disp * np.sin(psi)
-                    alt, az = telescope_to_horizontal(
-                        lon=fov_lon,
-                        lat=fov_lat,
-                        pointing_alt=event.pointing.tel[tel_id].altitude.to(u.deg),
-                        pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
-                    )
+                    altaz = TelescopeFrame(
+                        fov_lon=fov_lon,
+                        fov_lat=fov_lat,
+                        telescope_pointing=AltAz(
+                            alt=event.pointing.tel[tel_id].altitude,
+                            az=event.pointing.tel[tel_id].azimuth,
+                        ),
+                    ).transform_to(AltAz())
 
                     altaz_container = ReconstructedGeometryContainer(
-                        alt=alt[0], az=az[0], is_valid=True
+                        alt=altaz.alt, az=altaz.az, is_valid=True
                     )
 
                 else:
@@ -790,8 +794,8 @@ class DispReconstructor(Reconstructor):
         )
 
         psi = table["hillas_psi"].quantity.to_value(u.rad)
-        fov_lon = table["hillas_fov_lon"] + disp * np.cos(psi)
-        fov_lat = table["hillas_fov_lat"] + disp * np.sin(psi)
+        fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
+        fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
         # FIXME: Assume constant and parallel pointing for each run
         self.log.warning("Assuming constant and parallel pointing for each run")
