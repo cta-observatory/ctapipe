@@ -190,18 +190,17 @@ class Field:
                     f"{errorstr} Should have dimensionality {self.ndim}"
                 )
 
-        else:
-            if self.dtype is not None:
-                value = np.asanyarray(value)
-                if value.dtype != self.dtype:
-                    try:
-                        value = value.astype(self.dtype, casting="same_kind")
-                    except TypeError as err:
-                        raise FieldValidationError(
-                            f"{errorstr} Has dtype "
-                            f"{value.dtype}, should have dtype"
-                            f" {self.dtype} and could not cast it."
-                        ) from err
+        if self.dtype is not None:
+            value = np.asanyarray(value)
+            if value.dtype != self.dtype:
+                try:
+                    value = value.astype(self.dtype, casting="same_kind")
+                except TypeError as err:
+                    raise FieldValidationError(
+                        f"{errorstr} Has dtype "
+                        f"{value.dtype}, should have dtype"
+                        f" {self.dtype} and could not cast it."
+                    ) from err
 
 
 class DeprecatedField(Field):

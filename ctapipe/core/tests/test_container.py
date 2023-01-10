@@ -239,7 +239,7 @@ def test_field_validation():
     field_f.validate(np.ones((2, 2), dtype=np.float32))
     field_f.validate(np.ones((2, 2), dtype=np.int32))
     with pytest.raises(FieldValidationError):
-        field_f.validate(np.ones((2), dtype=np.str_))
+        field_f.validate(np.ones((2, 2), dtype=np.str_))
 
     #   test ndims
     with pytest.raises(FieldValidationError):
