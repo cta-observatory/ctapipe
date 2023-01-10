@@ -49,6 +49,8 @@ class HDF5Merger(Component):
     dl2_subarray = traits.Bool(True).tag(config=True)
     dl2_telescope = traits.Bool(True).tag(config=True)
 
+    monitoring = traits.Bool(True).tag(config=True)
+
     statistics = traits.Bool(True).tag(config=True)
 
     def __init__(self, output_path=None, **kwargs):
@@ -110,8 +112,8 @@ class HDF5Merger(Component):
 
         with exit_stack:
             self._check_can_merge(other)
-            Provenance().add_input_file(other.filename)
 
+            Provenance().add_input_file(other.filename)
             try:
                 self._append(other)
             finally:
@@ -223,6 +225,15 @@ class HDF5Merger(Component):
             for kind_group in other.root[key]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
                     self._append_table(other, table)
+
+        # monitoring
+        key = "/dl1/monitoring/subarray/pointing"
+        if self.monitoring and key in other.root:
+            self._append_table(other, other.root[key])
+
+        key = "/dl1/monitoring/telescope/pointing"
+        if self.monitoring and self.telescope_events and key in other.root:
+            self._append_table_group(other, other.root[key])
 
         # quality query statistics
         key = "/dl1/service/image_statistics"
