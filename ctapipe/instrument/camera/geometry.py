@@ -15,7 +15,7 @@ from astropy.utils import lazyproperty
 from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import cKDTree
 
-from ctapipe.coordinates import CameraFrame
+from ctapipe.coordinates import CameraFrame, get_representation_component_names
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 
@@ -250,13 +250,11 @@ class CameraGeometry:
         )
         points_trans = points.transform_to(frame)
 
-        x_name, y_name = list(cam.frame.get_representation_component_names().keys())
+        x_name, y_name = get_representation_component_names(cam.frame)
         points_x = getattr(points, x_name)
         points_y = getattr(points, y_name)
 
-        trans_x_name, trans_y_name = list(
-            frame.get_representation_component_names().keys()
-        )
+        trans_x_name, trans_y_name = get_representation_component_names(frame)
         points_trans_x = getattr(points_trans, trans_x_name)
         points_trans_y = getattr(points_trans, trans_y_name)
 

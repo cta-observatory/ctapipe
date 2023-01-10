@@ -12,7 +12,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.patches import Circle, Ellipse, RegularPolygon
 
-from ctapipe.instrument import PixelShape
+from ..coordinates import get_representation_component_names
+from ..instrument import PixelShape
 
 __all__ = ["CameraDisplay"]
 
@@ -110,6 +111,7 @@ class CameraDisplay:
         # derotate camera so we don't duplicate the rotation handling code
         self.geom = copy.deepcopy(geometry)
         self.geom.rotate(self.geom.cam_rotation)
+        self.unit = self.geom.pix_x.unit
 
         if title is None:
             title = geometry.name
@@ -120,13 +122,13 @@ class CameraDisplay:
         if hasattr(self.geom, "mask"):
             self.mask = self.geom.mask
         else:
-            self.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
+            self.mask = np.ones(self.geom.n_pixels, dtype=bool)
 
         patches = self.create_patches(
             shape=self.geom.pix_type,
-            pix_x=self.geom.pix_x.value[self.mask],
-            pix_y=self.geom.pix_y.value[self.mask],
-            pix_width=self.geom.pixel_width.value[self.mask],
+            pix_x=self.geom.pix_x.to_value(self.unit)[self.mask],
+            pix_y=self.geom.pix_y.to_value(self.unit)[self.mask],
+            pix_width=self.geom.pixel_width.to_value(self.unit)[self.mask],
             pix_rotation=self.geom.pix_rotation,
         )
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
@@ -262,7 +264,7 @@ class CameraDisplay:
     def enable_pixel_picker(self):
         """enable ability to click on pixels"""
         self.pixels.set_picker(True)
-        self.pixels.set_pickradius(self.geom.pixel_width.value[0] / 2)
+        self.pixels.set_pickradius(self.geom.pixel_width.to_value(self.unit)[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
@@ -423,6 +425,22 @@ class CameraDisplay:
         self.update()
         return ellipse
 
+    def overlay_coordinate(self, coord, keep_old=False, **kwargs):
+        if not keep_old:
+            self.clear_overlays()
+
+        frame = self.geom.frame
+        coord = coord.transform_to(frame)
+
+        x_name, y_name = get_representation_component_names(frame)
+        x = getattr(coord, x_name).to_value(self.unit)
+        y = getattr(coord, y_name).to_value(self.unit)
+
+        kwargs.setdefault("marker", "*")
+        kwargs.setdefault("linestyle", "none")
+        (plot,) = self.axes.plot(x, y, **kwargs)
+        self._axes_overlays.append(plot)
+
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, **kwargs
     ):
@@ -444,10 +462,10 @@ class CameraDisplay:
             self.clear_overlays()
 
         # strip off any units
-        cen_x = u.Quantity(hillas_parameters.x).value
-        cen_y = u.Quantity(hillas_parameters.y).value
-        length = u.Quantity(hillas_parameters.length).value
-        width = u.Quantity(hillas_parameters.width).value
+        cen_x = u.Quantity(hillas_parameters.x).to_value(self.unit)
+        cen_y = u.Quantity(hillas_parameters.y).to_value(self.unit)
+        length = u.Quantity(hillas_parameters.length).to_value(self.unit)
+        width = u.Quantity(hillas_parameters.width).to_value(self.unit)
 
         el = self.add_ellipse(
             centroid=(cen_x, cen_y),
@@ -483,8 +501,8 @@ class CameraDisplay:
     def _on_pick(self, event):
         """handler for when a pixel is clicked"""
         pix_id = event.ind[-1]
-        x = self.geom.pix_x[pix_id].value
-        y = self.geom.pix_y[pix_id].value
+        x = self.geom.pix_x[pix_id].to_value(self.unit)
+        y = self.geom.pix_y[pix_id].to_value(self.unit)
 
         self._active_pixel.xy = (x, y)
         self._active_pixel.set_visible(True)
