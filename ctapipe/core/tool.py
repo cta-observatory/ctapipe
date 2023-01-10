@@ -75,8 +75,16 @@ class Tool(Application):
     which will automatically add their configuration parameters to the
     tool.
 
-    Once a tool is constructed and the virtual methods defined, the
-    user can call the `run` method to setup and start it.
+    Once a tool is constructed and the abstract methods are implemented,
+    the user can call the `run` method to setup and start it.
+
+    Tools have an `~contextlib.ExitStack` to guarantee cleanup tasks are
+    run when the tool terminates, also in case of errors. If a task needs
+    a cleanup, it must be a context manager and ``Tool.enter_context``
+    must be called on the object. This will guarantee that the ``__exit__``
+    method of the context manager is called after the tool has finished
+    executing. This happens after the ``finish`` method has run or
+    in case of exceptions.
 
 
     .. code:: python
