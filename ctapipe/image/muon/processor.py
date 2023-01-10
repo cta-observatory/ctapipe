@@ -145,15 +145,18 @@ class MuonProcessor(TelescopeComponent):
             return
 
         geometry = self.geometries[tel_id]
-        x = geometry.pix_x
-        y = geometry.pix_y
+        fov_lon = geometry.pix_x
+        fov_lat = geometry.pix_y
 
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
         # three iterations seems to be enough for most rings
         for _ in range(3):
-            ring = self.ring_fitter(x, y, image, mask)
-            dist = np.sqrt((x - ring.center_x) ** 2 + (y - ring.center_y) ** 2)
+            ring = self.ring_fitter(fov_lon, fov_lat, image, mask)
+            dist = np.sqrt(
+                (fov_lon - ring.center_fov_lon) ** 2
+                + (fov_lat - ring.center_fov_lat) ** 2
+            )
             mask = np.abs(dist - ring.radius) / ring.radius < 0.4
 
         parameters = self._calculate_muon_parameters(
@@ -169,8 +172,8 @@ class MuonProcessor(TelescopeComponent):
 
         result = self.intensity_fitter(
             tel_id,
-            ring.center_x,
-            ring.center_y,
+            ring.center_fov_lon,
+            ring.center_fov_lat,
             ring.radius,
             image,
             mask=mask,
@@ -216,42 +219,42 @@ class MuonProcessor(TelescopeComponent):
 
         geometry = self.geometries[tel_id]
         fov_radius = self.fov_radius[tel_id]
-        x = geometry.pix_x
-        y = geometry.pix_y
+        fov_lon = geometry.pix_x
+        fov_lat = geometry.pix_y
 
         # add ring containment, not filled in fit
         containment = ring_containment(
-            ring.radius, ring.center_x, ring.center_y, fov_radius
+            ring.radius, ring.center_fov_lon, ring.center_fov_lat, fov_radius
         )
 
         completeness = ring_completeness(
-            x,
-            y,
+            fov_lon,
+            fov_lat,
             image,
             ring.radius,
-            ring.center_x,
-            ring.center_y,
+            ring.center_fov_lon,
+            ring.center_fov_lat,
             threshold=self.completeness_threshold.tel[tel_id],
         )
 
         pixel_width = geometry.pixel_width[clean_mask]
         intensity_ratio = intensity_ratio_inside_ring(
-            x[clean_mask],
-            y[clean_mask],
+            fov_lon[clean_mask],
+            fov_lat[clean_mask],
             image[clean_mask],
             ring.radius,
-            ring.center_x,
-            ring.center_y,
+            ring.center_fov_lon,
+            ring.center_fov_lat,
             width=self.ratio_width.tel[tel_id] * pixel_width,
         )
 
         mse = mean_squared_error(
-            x[clean_mask],
-            y[clean_mask],
+            fov_lon[clean_mask],
+            fov_lat[clean_mask],
             image[clean_mask],
             ring.radius,
-            ring.center_x,
-            ring.center_y,
+            ring.center_fov_lon,
+            ring.center_fov_lat,
         )
 
         return MuonParametersContainer(

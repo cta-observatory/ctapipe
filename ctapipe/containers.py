@@ -961,10 +961,14 @@ class EventCalibrationContainer(Container):
 
 
 class MuonRingContainer(Container):
-    """Container for the result of a ring fit, center_x, center_y"""
+    """Container for the result of a ring fit in a telescope frame"""
 
-    center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
-    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    center_fov_lon = Field(
+        nan * u.deg, "center (fov_lon) of the fitted muon ring", unit=u.deg
+    )
+    center_fov_lat = Field(
+        nan * u.deg, "center (fov_lat) of the fitted muon ring", unit=u.deg
+    )
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
     center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
