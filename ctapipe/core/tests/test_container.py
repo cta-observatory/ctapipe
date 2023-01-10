@@ -227,39 +227,38 @@ def test_field_validation():
     field_u = Field(None, "float with units", unit="m")
     field_u.validate(3.0 * u.m)
     field_u.validate(3.0 * u.km)
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="unit"):
         field_u.validate(3.0)
 
     # test numpy arrays
-
     field_f = Field(None, "float array", dtype=np.float64, ndim=2)
     field_f.validate(np.ones((2, 2), dtype=np.float64))
 
-    #   test dtype
+    # test dtype
     field_f.validate(np.ones((2, 2), dtype=np.float32))
     field_f.validate(np.ones((2, 2), dtype=np.int32))
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="dtype"):
         field_f.validate(np.ones((2, 2), dtype=np.str_))
 
-    #   test ndims
-    with pytest.raises(FieldValidationError):
+    # test ndims
+    with pytest.raises(FieldValidationError, match="dimension"):
         field_f.validate(np.ones((2), dtype=np.float64))
 
     # test scalars
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="array"):
         field_f.validate(7.0)
 
     # test scalar dtypes
     field_s = Field(None, "scalar with type", dtype="int32")
     field_s.validate(np.int32(3))
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="dtype"):
         field_s.validate(3.3)
 
     field_s2 = Field(None, "scalar with type", dtype="float32")
     field_s2.validate(np.float32(3.3))
     field_s2.validate(3.3)
     field_s2.validate(3)
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="dtype"):
         field_s2.validate("3.3")
 
     field_s3 = Field(1.0, "scalar with dtype and unit", dtype="float32", unit="m")
@@ -276,12 +275,12 @@ def test_field_validation():
     field_n.validate(None)
 
     field_n2 = Field(None, "test", allow_none=False, dtype="float32")
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="dtype"):
         field_n2.validate(None)
 
     field_type = Field(None, "foo", type=str)
     field_type.validate("foo")
-    with pytest.raises(FieldValidationError):
+    with pytest.raises(FieldValidationError, match="instance"):
         field_type.validate(5)
 
 
