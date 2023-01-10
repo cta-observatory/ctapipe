@@ -1,15 +1,18 @@
 """
 Test individual tool functionality
 """
-# pylint: disable=C0103,C0116,C0415
 import subprocess
 import sys
 
 import matplotlib as mpl
 import numpy as np
+
+# pylint: disable=C0103,C0116,C0415
+import pytest
 import tables
 
 from ctapipe.core import run_tool
+from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
@@ -75,34 +78,32 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     mpl.use("Agg")
 
     # test simtel
-    assert (
-        run_tool(
-            DisplayDL1Calib(),
-            argv=[
-                "--max-events=1",
-                "--telescope=11",
-                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        DisplayDL1Calib(),
+        argv=[
+            "--max-events=1",
+            "--telescope=11",
+            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
     # test DL1A
-    assert (
+    run_tool(
+        DisplayDL1Calib(),
+        argv=[f"--input={dl1_image_file}", "--max-events=1", "--telescope=11"],
+        raises=True,
+    )
+
+    # test DL1B, should error since nothing to plot
+    with pytest.raises(ToolConfigurationError):
         run_tool(
             DisplayDL1Calib(),
-            argv=[f"--input={dl1_image_file}", "--max-events=1", "--telescope=11"],
+            argv=[f"--input={dl1_parameters_file}", "--max-events=1", "--telescope=11"],
+            raises=True,
         )
-        == 0
-    )
-    # test DL1B, should error since nothing to plot
-    ret = run_tool(
-        DisplayDL1Calib(),
-        argv=[f"--input={dl1_parameters_file}", "--max-events=1", "--telescope=11"],
-        raises=False,
-    )
-    assert ret == 1
-    assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
+
+    run_tool(DisplayDL1Calib(), ["--help-all"], raises=True)
 
 
 def test_info():

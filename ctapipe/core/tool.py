@@ -6,6 +6,7 @@ import pathlib
 import re
 import textwrap
 from abc import abstractmethod
+from contextlib import ExitStack
 from inspect import cleandoc
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
@@ -74,8 +75,16 @@ class Tool(Application):
     which will automatically add their configuration parameters to the
     tool.
 
-    Once a tool is constructed and the virtual methods defined, the
-    user can call the `run` method to setup and start it.
+    Once a tool is constructed and the abstract methods are implemented,
+    the user can call the `run` method to setup and start it.
+
+    Tools have an `~contextlib.ExitStack` to guarantee cleanup tasks are
+    run when the tool terminates, also in case of errors. If a task needs
+    a cleanup, it must be a context manager and ``Tool.enter_context``
+    must be called on the object. This will guarantee that the ``__exit__``
+    method of the context manager is called after the tool has finished
+    executing. This happens after the ``finish`` method has run or
+    in case of exceptions.
 
 
     .. code:: python
@@ -96,16 +105,16 @@ class Tool(Application):
             iterations = Integer(5,help="Number of times to run",
                                  allow_none=False).tag(config=True)
 
-            def setup_comp(self):
+            def setup(self):
                 self.comp = MyComponent(self, parent=self)
                 self.comp2 = SecondaryMyComponent(self, parent=self)
 
-            def setup_advanced(self):
-                self.advanced = AdvancedComponent(self, parent=self)
+                # correct use of component that is a context manager
+                # using it like this makes sure __exit__ will be called
+                # at the end of Tool.run, even in case of exceptions
+                self.comp3 = self.enter_context(MyComponent(parent=self))
 
-            def setup(self):
-                self.setup_comp()
-                self.setup_advanced()
+                self.advanced = AdvancedComponent(parent=self)
 
             def start(self):
                 self.log.info("Performing {} iterations..."\
@@ -149,6 +158,7 @@ class Tool(Application):
     ).tag(config=True)
 
     log_config = Dict(default_value={}).tag(config=True)
+
     log_file = Path(
         default_value=None,
         exists=None,
@@ -156,11 +166,13 @@ class Tool(Application):
         help="Filename for the log",
         allow_none=True,
     ).tag(config=True)
+
     log_file_level = Enum(
         values=Application.log_level.values,
         default_value="INFO",
         help="Logging Level for File Logging",
     ).tag(config=True)
+
     quiet = Bool(default_value=False).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
@@ -172,8 +184,9 @@ class Tool(Application):
         return self.name + ".provenance.log"
 
     def __init__(self, **kwargs):
-        # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
+
+        # make sure there are some default aliases in all Tools:
         aliases = {
             ("c", "config"): "Tool.config_files",
             "log-level": "Tool.log_level",
@@ -203,6 +216,20 @@ class Tool(Application):
         self.log = logging.getLogger(f"{self.module_name}.{self.name}")
         self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
+        self._exit_stack = ExitStack()
+
+    def enter_context(self, context_manager):
+        """
+        Add a new context manager to the `~contextlib.ExitStack` of this Tool
+
+        This method should be used with things that need a cleanup step,
+        also in case of exception. ``enter_context`` will call
+        ``context_manager.__enter__`` and return its result.
+
+        This will guarantee that ``context_manager.__exit__`` is called when
+        `~ctapipe.core.Tool.run` finishes, even when an error occurs.
+        """
+        return self._exit_stack.enter_context(context_manager)
 
     def initialize(self, argv=None):
         """handle config and any other low-level setup"""
@@ -345,45 +372,48 @@ class Tool(Application):
 
         exit_status = 0
 
-        try:
-            self.initialize(argv)
-            self.log.info(f"Starting: {self.name}")
-            Provenance().start_activity(self.name)
-            self.setup()
-            self.is_setup = True
-            self.log.debug(f"CONFIG: {self.get_current_config()}")
-            Provenance().add_config(self.get_current_config())
+        with self._exit_stack:
+            try:
+                self.initialize(argv)
+                self.log.info(f"Starting: {self.name}")
+                Provenance().start_activity(self.name)
+                self.setup()
+                self.is_setup = True
+                self.log.debug(f"CONFIG: {self.get_current_config()}")
+                Provenance().add_config(self.get_current_config())
 
-            # check for any traitlets warnings using our custom handler
-            if len(self.trait_warning_handler.errors) > 0:
-                raise ToolConfigurationError("Found config errors")
+                # check for any traitlets warnings using our custom handler
+                if len(self.trait_warning_handler.errors) > 0:
+                    raise ToolConfigurationError("Found config errors")
 
-            # remove handler to not impact performance with regex matching
-            self.log.removeHandler(self.trait_warning_handler)
+                # remove handler to not impact performance with regex matching
+                self.log.removeHandler(self.trait_warning_handler)
 
-            self.start()
-            self.finish()
-            self.log.info(f"Finished: {self.name}")
-            Provenance().finish_activity(activity_name=self.name)
-        except (ToolConfigurationError, TraitError) as err:
-            self.log.error("%s", err)
-            self.log.error("Use --help for more info")
-            exit_status = 2  # wrong cmd line parameter
-            if raises:
-                raise
-        except KeyboardInterrupt:
-            self.log.warning("WAS INTERRUPTED BY CTRL-C")
-            Provenance().finish_activity(activity_name=self.name, status="interrupted")
-            exit_status = 130  # Script terminated by Control-C
-        except Exception as err:
-            self.log.exception(f"Caught unexpected exception: {err}")
-            Provenance().finish_activity(activity_name=self.name, status="error")
-            exit_status = 1  # any other error
-            if raises:
-                raise
-        finally:
-            if not {"-h", "--help", "--help-all"}.intersection(self.argv):
-                self.write_provenance()
+                self.start()
+                self.finish()
+                self.log.info(f"Finished: {self.name}")
+                Provenance().finish_activity(activity_name=self.name)
+            except (ToolConfigurationError, TraitError) as err:
+                self.log.error("%s", err)
+                self.log.error("Use --help for more info")
+                exit_status = 2  # wrong cmd line parameter
+                if raises:
+                    raise
+            except KeyboardInterrupt:
+                self.log.warning("WAS INTERRUPTED BY CTRL-C")
+                Provenance().finish_activity(
+                    activity_name=self.name, status="interrupted"
+                )
+                exit_status = 130  # Script terminated by Control-C
+            except Exception as err:
+                self.log.exception(f"Caught unexpected exception: {err}")
+                Provenance().finish_activity(activity_name=self.name, status="error")
+                exit_status = 1  # any other error
+                if raises:
+                    raise
+            finally:
+                if not {"-h", "--help", "--help-all"}.intersection(self.argv):
+                    self.write_provenance()
 
         self.exit(exit_status)
 
@@ -579,3 +609,45 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
         return e.code
     finally:
         os.chdir(current_cwd)
+
+
+def test_exit_stack():
+    """Test that components that are context managers are properly handled"""
+
+    class TestManager:
+        def __init__(self):
+            self.enter_called = False
+            self.exit_called = False
+
+        def __enter__(self):
+            self.enter_called = True
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.exit_called = True
+
+    class AtExitTool(Tool):
+        def setup(self):
+            self.manager = self.enter_context(TestManager())
+
+    tool = AtExitTool()
+    assert not tool.manager.enter_called
+    assert not tool.manager.exit_called
+    run_tool(tool)
+    assert tool.manager.enter_called
+    assert tool.manager.exit_called
+
+    # test this also works when there is an exception in the user code
+    class FailTool(Tool):
+        def setup(self):
+            self.manager = self.enter_context(TestManager())
+
+        def start(self):
+            raise Exception("Failed")
+
+    tool = FailTool()
+    assert not tool.manager.enter_called
+    assert not tool.manager.exit_called
+    run_tool(tool)
+    assert tool.manager.enter_called
+    assert tool.manager.exit_called

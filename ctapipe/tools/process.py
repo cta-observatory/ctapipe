@@ -160,12 +160,14 @@ class ProcessorTool(Tool):
     def setup(self):
 
         # setup components:
-        self.event_source = EventSource(parent=self)
+        self.event_source = self.enter_context(EventSource(parent=self))
+
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
-                "%s  needs the EventSource to provide either R1 or DL0 or DL1A data"
+                "%s  needs the EventSource to provide at least one of these datalevels: %s"
                 ", %s provides only %s",
                 self.name,
+                COMPATIBLE_DATALEVELS,
                 self.event_source,
                 self.event_source.datalevels,
             )
@@ -176,7 +178,9 @@ class ProcessorTool(Tool):
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
-        self.write = DataWriter(event_source=self.event_source, parent=self)
+        self.write = self.enter_context(
+            DataWriter(event_source=self.event_source, parent=self)
+        )
 
         # add ml reco classes if model paths were supplied via cli and not already configured
         reco_aliases = {
@@ -316,8 +320,6 @@ class ProcessorTool(Tool):
         Last steps after processing events.
         """
         self.write.write_simulation_histograms(self.event_source)
-        self.write.finish()
-        self.event_source.close()
         self._write_processing_statistics()
 
 
