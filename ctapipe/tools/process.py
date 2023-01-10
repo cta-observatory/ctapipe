@@ -320,7 +320,6 @@ class ProcessorTool(Tool):
         Last steps after processing events.
         """
         self.write.write_simulation_histograms(self.event_source)
-        self.event_source.close()
         self._write_processing_statistics()
 
 
