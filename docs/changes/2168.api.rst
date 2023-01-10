@@ -1,0 +1,21 @@
+Migrate muon analysis into the ``ctapipe-process`` tool:
+
+1. The former ``muon_reconstruction`` tool is dropped and all functionalities are transferred 
+   into the ``ctapipe-process`` tool.
+
+2. The ``process`` tool now has a ``write_moun_parameters`` flag which defaults to ``false``.
+   Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1b image 
+   parameters so even if ``write_parameters`` is ``false`` and no parameters are present in the 
+   ``EventSource`` those are computed. 
+
+3. Two instances of ``QualityQuery``, ``MuonProcessor.DL1Query`` and ``MuonProcessor.RingQuery`` 
+   are added to the muon analysis to either preselect images according to image parameters and 
+   to select images according to the initial, geometrical ring fit for further processing. 
+   Deselected events or those where the muon analysis fails are being returned and written 
+   filled with ``NaN``s instead of being ignored.
+   Base configure options for the muon analysis were added to the ``base_config.yaml``.
+
+4. The ``DataWriter`` now writes the results of a muon analysis into ``/dl1/event/telescope/muon/tel_id``,
+   given ``write_moun_parameters`` is set to ``true``.
+
+5. Muon nodes were added to the ``HDF5EventSource``, the ``TableLoader`` and the ``ctapipe-merge`` tool.
