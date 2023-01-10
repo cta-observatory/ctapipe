@@ -184,7 +184,7 @@ def test_telescope_parameter_scalar_default(mock_subarray):
     assert comp_float.tel_param.tel[1] == 1.5
 
 
-def test_telescope_parameter_resolver():
+def test_telescope_parameter_resolver(mock_subarray):
     """check that you can resolve the rules specified in a
     TelescopeParameter trait"""
 
@@ -211,40 +211,19 @@ def test_telescope_parameter_resolver():
         )
 
     comp = SomeComponent()
-
-    # need to mock a SubarrayDescription
-    subarray = mock.MagicMock()
-    subarray.tel_ids = [1, 2, 3, 4]
-    subarray.get_tel_ids_for_type = (
-        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
-    )
-    subarray.telescope_types = [
-        "LST_LST_LSTCam",
-        "MST_MST_NectarCam",
-        "MST_MST_FlashCam",
-    ]
-
-    comp.tel_param1.attach_subarray(subarray)
-    comp.tel_param2.attach_subarray(subarray)
-    comp.tel_param3.attach_subarray(subarray)
+    comp.tel_param1.attach_subarray(mock_subarray)
+    comp.tel_param2.attach_subarray(mock_subarray)
+    comp.tel_param3.attach_subarray(mock_subarray)
 
     assert comp.tel_param1.tel[1] == 10
     assert comp.tel_param1.tel[3] == 100
 
-    assert list(map(comp.tel_param2.tel.__getitem__, [1, 2, 3, 4])) == [
-        10.0,
-        10.0,
-        200.0,
-        100.0,
-    ]
+    for tel_id, expected in enumerate([10.0, 10.0, 200.0, 100.0], start=1):
+        assert comp.tel_param2.tel[tel_id] == expected, f"mismatch for tel_id={tel_id}"
 
-    assert list(map(comp.tel_param3.tel.__getitem__, [1, 2, 3, 4, 100])) == [
-        200.0,
-        200.0,
-        200.0,
-        200.0,
-        300.0,
-    ]
+    expected = {1: 200.0, 2: 200.0, 3: 200.0, 4: 200.0, 100: 300.0}
+    for tel_id, value in expected.items():
+        assert comp.tel_param3.tel[tel_id] == value, f"mismatch for tel_id={tel_id}"
 
 
 def test_telescope_parameter_component_arg(mock_subarray):

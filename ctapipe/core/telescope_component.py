@@ -67,10 +67,11 @@ class TelescopeComponent(Component):
             This argument is typically only specified when using this method
             from within a Tool (config need not be passed if parent is used).
         kwargs
+            Are passed to the subclass
 
         Returns
         -------
-        instace
+        Instance
             Instance of subclass to this class
         """
         requested_subclass = cls.non_abstract_subclasses()[name]
