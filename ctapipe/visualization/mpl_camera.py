@@ -426,6 +426,23 @@ class CameraDisplay:
         return ellipse
 
     def overlay_coordinate(self, coord, keep_old=False, **kwargs):
+        """
+        Plot a coordinate into the ``CameraDisplay``
+
+        Parameters
+        ----------
+        coord : `~astropy.coordinates.SkyCoord`
+            The coordinate to plot. Must be able to be transformed into
+            the frame of the camera geometry of this display.
+            Most of the time, this means you need to add the telescope
+            pointing as a coordinate attribute like this:
+            ``SkyCoord(..., telescope_pointing=pointing)``
+        keep_old : bool
+            If False, any previously created overlays will be removed
+            before plotting the new one
+        kwargs :
+            All kwargs are passed to ``matplotlib.Axes.plot``
+        """
         if not keep_old:
             self.clear_overlays()
 
