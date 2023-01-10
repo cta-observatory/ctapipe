@@ -716,8 +716,8 @@ class DispReconstructor(Reconstructor):
                     hillas = event.dl1.tel[tel_id].parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
 
-                    fov_lon = hillas.fov_lon + disp * np.cos(psi)
-                    fov_lat = hillas.fov_lat + disp * np.sin(psi)
+                    fov_lon = hillas.fov_lon + disp[0] * np.cos(psi)
+                    fov_lat = hillas.fov_lat + disp[0] * np.sin(psi)
                     altaz = TelescopeFrame(
                         fov_lon=fov_lon,
                         fov_lat=fov_lat,
