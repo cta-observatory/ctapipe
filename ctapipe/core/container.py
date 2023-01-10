@@ -190,20 +190,20 @@ class Field:
                     f"{errorstr} Should have dimensionality {self.ndim}"
                 )
             if value.dtype != self.dtype:
-                if np.can_cast(value, self.dtype, casting="safe"):
-                    value = value.astype(self.dtype)
-                else:
+                try:
+                    value = value.astype(self.dtype, casting="same_kind")
+                except TypeError:
                     raise FieldValidationError(
                         f"{errorstr} Has dtype "
                         f"{value.dtype}, should have dtype"
-                        f" {self.dtype}"
+                        f" {self.dtype} and could not cast it."
                     )
         else:
             # not a numpy array
             if self.dtype is not None:
                 # Workaround for string input
                 if np.issubdtype(type(value), np.number) and (
-                    np.can_cast(value, self.dtype, casting="safe")
+                    np.can_cast(value, self.dtype, casting="same_kind")
                 ):
                     value = self.dtype.type(value)
                 else:
