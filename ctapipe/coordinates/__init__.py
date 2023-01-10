@@ -62,7 +62,7 @@ def altaz_to_altaz(from_coo, to_frame):
     location = from_coo.location
     if from_coo.obstime is None:
         warnings.warn(
-            "Horizontal coordinate has no location, assuming same frame",
+            "AltAz coordinate has no location, assuming same frame",
             MissingFrameAttributeWarning,
         )
         location = to_frame.location
