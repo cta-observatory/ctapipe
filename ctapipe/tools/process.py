@@ -37,8 +37,14 @@ __all__ = ["ProcessorTool"]
 
 class ProcessorTool(Tool):
     """
-    Process data from lower-data levels up to DL1, including both image
-    extraction and optinally image parameterization
+    Process data from lower-data levels up to DL1 and DL2, including image
+    extraction and optionally image parameterization as well as muon analysis
+    and shower reconstruction.
+
+    Note that the muon analysis and shower reconstruction both depend on
+    parametrized images and therefore compute image parameters even if
+    DataWriter.write_parameters=False in case these are not already present
+    in the input file.
     """
 
     name = "ctapipe-process"
