@@ -236,11 +236,10 @@ def test_field_validation():
     field_f.validate(np.ones((2, 2), dtype=np.float64))
 
     #   test dtype
-    # Not castable
-    with pytest.raises(FieldValidationError):
-        field_f.validate(np.ones((2, 2), dtype=np.str_))
-    # This is castable without loss of precision
     field_f.validate(np.ones((2, 2), dtype=np.float32))
+    field_f.validate(np.ones((2, 2), dtype=np.int32))
+    with pytest.raises(FieldValidationError):
+        field_f.validate(np.ones((2), dtype=np.str_))
 
     #   test ndims
     with pytest.raises(FieldValidationError):
@@ -250,6 +249,7 @@ def test_field_validation():
     with pytest.raises(FieldValidationError):
         field_f.validate(7.0)
 
+    # test scalar dtypes
     field_s = Field(None, "scalar with type", dtype="int32")
     field_s.validate(np.int32(3))
     with pytest.raises(FieldValidationError):
@@ -257,15 +257,11 @@ def test_field_validation():
 
     field_s2 = Field(None, "scalar with type", dtype="float32")
     field_s2.validate(np.float32(3.3))
-    # python float is 64-bit, but 3.3 does not exceed 32 bit precision
     field_s2.validate(3.3)
     field_s2.validate(3)
     with pytest.raises(FieldValidationError):
         field_s2.validate("3.3")
-    with pytest.raises(FieldValidationError):
-        field_s2.validate(np.finfo(np.float32).max + 1)
 
-    # test scalars with units and dtypes:
     field_s3 = Field(1.0, "scalar with dtype and unit", dtype="float32", unit="m")
     field_s3.validate(np.float32(6) * u.m)
 

@@ -189,28 +189,19 @@ class Field:
                 raise FieldValidationError(
                     f"{errorstr} Should have dimensionality {self.ndim}"
                 )
-            if value.dtype != self.dtype:
-                try:
-                    value = value.astype(self.dtype, casting="same_kind")
-                except TypeError:
-                    raise FieldValidationError(
-                        f"{errorstr} Has dtype "
-                        f"{value.dtype}, should have dtype"
-                        f" {self.dtype} and could not cast it."
-                    )
+
         else:
-            # not a numpy array
             if self.dtype is not None:
-                # Workaround for string input
-                if np.issubdtype(type(value), np.number) and (
-                    np.can_cast(value, self.dtype, casting="same_kind")
-                ):
-                    value = self.dtype.type(value)
-                else:
-                    if not isinstance(value, self.dtype.type):
+                value = np.asanyarray(value)
+                if value.dtype != self.dtype:
+                    try:
+                        value = value.astype(self.dtype, casting="same_kind")
+                    except TypeError as err:
                         raise FieldValidationError(
-                            f"{errorstr} Should have numpy dtype {self.dtype}"
-                        )
+                            f"{errorstr} Has dtype "
+                            f"{value.dtype}, should have dtype"
+                            f" {self.dtype} and could not cast it."
+                        ) from err
 
 
 class DeprecatedField(Field):
