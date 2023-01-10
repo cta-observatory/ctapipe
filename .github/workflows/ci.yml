@@ -157,3 +157,7 @@ jobs:
           FOLDER: docs/_build/html
           CLEAN: true
           SINGLE_COMMIT: true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: docs
+          path: docs/_build/html
