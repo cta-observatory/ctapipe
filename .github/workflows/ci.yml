@@ -22,15 +22,15 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: "3.8"
-            install-method: conda
+            install-method: mamba
 
           - os: ubuntu-latest
             python-version: "3.9"
-            install-method: conda
+            install-method: mamba
 
           - os: ubuntu-latest
             python-version: "3.10"
-            install-method: conda
+            install-method: mamba
             codecov: true
 
           - os: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
 
           - os: macos-latest
             python-version: "3.10"
-            install-method: conda
+            install-method: mamba
 
           - os: macos-latest
             python-version: "3.8"
@@ -47,7 +47,8 @@ jobs:
 
     defaults:
       run:
-        shell: bash -l {0}
+        # We need login shells (-l) for micromamba to work.
+        shell: bash -leo pipefail {0}
 
     steps:
       - uses: actions/checkout@v3
@@ -60,36 +61,34 @@ jobs:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data
 
-      - name: Prepare conda installation
-        if: matrix.install-method == 'conda'
+      - name: Prepare mamba installation
+        if: matrix.install-method == 'mamba'
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          # fix mamba error that the directory does not exist
-          mkdir -p ~/conda_pkgs_dir/cache
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
-      - name: Conda setup
-        if: matrix.install-method == 'conda'
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          mamba-version: "*"
-          auto-update-conda: true
-          activate-environment: "cta-dev"
-          environment-file: environment.yml
+      - name: mamba setup
+        if: matrix.install-method == 'mamba'
+        uses: mamba-org/provision-with-micromamba@v14
 
       - name: Python setup
         if: matrix.install-method == 'pip'
-        uses: conda-incubator/setup-miniconda@v2
+        uses: actions/setup-python@v4
         with:
-          mamba-version: "*"
-          channels: conda-forge,default
           python-version: ${{ matrix.python-version }}
+          check-latest: true
 
-      - name: Update pip
-        if: matrix.install-method == 'pip'
-        run: pip install -U pip
+      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }}
+        name: Fix Python PATH on macOS
+        # See https://github.com/actions/setup-python/issues/132 and
+        # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
+        # Login shells on macOS prepend system paths, so we need to
+        # prepend the python path from actions/setup-python.
+        # Micromamba sets up ~/.bash_profile, where we need to set the path now.
+        run: |
+          tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
       - name: Install dependencies
         run: |
@@ -99,14 +98,10 @@ jobs:
           pip freeze
 
       - name: Static codechecks
-        # need to use a login shell for the conda setup to work
-        shell: bash -leo pipefail {0}
         run: |
           flake8 ctapipe
 
       - name: Tests
-        # need to use a login shell for the conda setup to work
-        shell: bash -leo pipefail {0}
         run: |
           cd $(mktemp -d)
           pytest -n auto --dist loadscope \
@@ -147,7 +142,7 @@ jobs:
       - name: Build docs
         run: make doc
 
-      - name: Deploy to gihub pages
+      - name: Deploy to github pages
         # only run on push to master
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         uses: JamesIves/github-pages-deploy-action@3.7.1
