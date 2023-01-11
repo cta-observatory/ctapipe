@@ -91,7 +91,7 @@ def test_hillas_overlay(prod5_lst_cam, tmp_path):
     from ctapipe.visualization import CameraDisplay
 
     fig, ax = plt.subplots()
-    disp = CameraDisplay(prod5_lst_cam, ax=ax)
+    disp = CameraDisplay(prod5_lst_cam.transform_to(TelescopeFrame()), ax=ax)
     hillas = HillasParametersContainer(
         fov_lon=0.2 * u.deg,
         fov_lat=0.3 * u.deg,
