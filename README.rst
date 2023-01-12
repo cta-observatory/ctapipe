@@ -7,7 +7,7 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
     :alt: Test Status
 .. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115
   :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
-.. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/installer/conda.svg
+.. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
 .. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe
@@ -61,20 +61,20 @@ first, to isolate the installed version and dependencies from your master
 environment (this is optional).
 
 
-The following command will set up a conda virtual environment, add the
+The following command will set up a conda virtual environment using mamba, add the
 necessary package channels, and install ctapipe specified version and its dependencies::
 
   CTAPIPE_VER=0.17.0
   wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
-  conda env create -n cta -f environment.yml
-  conda activate cta
-  conda install -c conda-forge ctapipe=$CTAPIPE_VER
+  mamba env create -n cta -f environment.yml
+  mamba activate cta
+  mamba install -c conda-forge ctapipe=$CTAPIPE_VER
 
 **Note**: this environment contains many useful packages that are not strictly requirements of ctapipe.
-To get only ctapipe and its direct dependencies, just do ``conda install -c conda-forge ctapipe[=<version>]`` in an environment
+To get only ctapipe and its direct dependencies, just do ``mamba install -c conda-forge ctapipe[=<version>]`` in an environment
 of your choice. 
 
-**Note**: If you encounter long ``Solving environment`` times with conda, try using ``mamba`` (https://github.com/mamba-org/mamba) instead.
+**Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`_.
 
 The file *environment.yml* can be found in this repo. 
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
