@@ -61,22 +61,18 @@ first, to isolate the installed version and dependencies from your master
 environment (this is optional).
 
 
-The following command will set up a conda virtual environment using mamba, add the
-necessary package channels, and install ctapipe specified version and its dependencies::
+The latest version of ``ctapipe`` can be installed via::
 
-  CTAPIPE_VER=0.17.0
-  wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
-  mamba env create -n cta -f environment.yml
-  mamba activate cta
-  mamba install -c conda-forge ctapipe=$CTAPIPE_VER
+  mamba install -c conda-forge ctapipe
 
-**Note**: this environment contains many useful packages that are not strictly requirements of ctapipe.
-To get only ctapipe and its direct dependencies, just do ``mamba install -c conda-forge ctapipe[=<version>]`` in an environment
-of your choice. 
+or via::
+
+  pip install ctapipe
+
+**Note**: to install a specific version of ctapipe take look at the documentation `here <https://cta-observatory.github.io/ctapipe/getting_started_users>`_.
 
 **Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`_.
 
-The file *environment.yml* can be found in this repo. 
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 Developers should follow the development install instructions found in the
