@@ -13,6 +13,7 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
+  SONAR_HOST_URL: https://sonar-cta-dpps.zeuthen.desy.de
 
 jobs:
   lint:
@@ -143,6 +144,13 @@ jobs:
         with:
           fail_ci_if_error: true
 
+      # check code quality and coverage with SonarScanner
+      - uses: SonarSource/sonarqube-scan-action@master
+        if: contains(matrix.extra-args, 'codecov')
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+
   docs:
     runs-on: ubuntu-latest
     steps:
@@ -185,3 +193,4 @@ jobs:
         with:
           name: docs
           path: docs/_build/html
+
