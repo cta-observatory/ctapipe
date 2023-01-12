@@ -760,11 +760,6 @@ class SimTelEventSource(EventSource):
                 impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
             for tel_id, telescope_event in telescope_events.items():
-                adc_samples = telescope_event.get("adc_samples")
-                if adc_samples is None:
-                    adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
-
-                n_gains, n_pixels, n_samples = adc_samples.shape
                 true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
@@ -797,8 +792,6 @@ class SimTelEventSource(EventSource):
                     tracking_positions[tel_id]
                 )
 
-                data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
-
                 cam_mon = array_event["camera_monitorings"][tel_id]
                 pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
                 dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
@@ -810,25 +803,32 @@ class SimTelEventSource(EventSource):
                 mon.calibration.pedestal_per_sample = pedestal
                 mon.pixel_status = self._get_pixels_status(tel_id)
 
-                r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples,
-                    pedestal,
-                    dc_to_pe,
-                    self.gain_selector,
-                    self.calib_scale,
-                    self.calib_shift,
-                )
-                data.r1.tel[tel_id] = R1CameraContainer(
-                    waveform=r1_waveform,
-                    selected_gain_channel=selected_gain_channel,
-                )
+                adc_samples = telescope_event.get("adc_samples")
+                if adc_samples is not None:
+                    data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
+                    r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
+                        adc_samples,
+                        pedestal,
+                        dc_to_pe,
+                        self.gain_selector,
+                        self.calib_scale,
+                        self.calib_shift,
+                    )
+                    data.r1.tel[tel_id] = R1CameraContainer(
+                        waveform=r1_waveform,
+                        selected_gain_channel=selected_gain_channel,
+                    )
 
-                # get time_shift from laser calibration
-                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                pix_index = np.arange(n_pixels)
+                    # get time_shift from laser calibration
+                    time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
+                    n_pixels = self.subarray.tel[tel_id].camera.geometry.n_pixels
+                    pix_index = np.arange(n_pixels)
+                    dl1_calib = data.calibration.tel[tel_id].dl1
+                    dl1_calib.time_shift = time_calib[selected_gain_channel, pix_index]
 
-                dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib[selected_gain_channel, pix_index]
+                adc_sums = telescope_event.get("adc_sums")
+                if adc_sums is not None:
+                    data.dl1.tel[tel_id].image = adc_sums
 
             yield data
 
