@@ -59,6 +59,8 @@ from .pixel_likelihood import (
     neg_log_likelihood_numeric,
 )
 from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolumeReducer
+from .showermodel import GaussianShowermodel
+from .showermodel_predictor import ShowermodelPredictor
 from .statistics import descriptive_statistics
 from .timing import timing_parameters
 
@@ -117,4 +119,6 @@ __all__ = [
     "TailCutsDataVolumeReducer",
     "InvalidPixelHandler",
     "NeighborAverage",
+    "ShowermodelPredictor",
+    "GaussianShowermodel",
 ]

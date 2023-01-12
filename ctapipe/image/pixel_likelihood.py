@@ -95,9 +95,11 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     """
     theta = pedestal**2 + prediction * (1 + spe_width**2)
 
-    neg_log_l = np.log(theta + EPSILON) + (image - prediction) ** 2 / theta
+    neg_log_l = np.log(np.sqrt(2 * np.pi * theta) + EPSILON) + (
+        image - prediction
+    ) ** 2 / (2 * theta)
 
-    return np.sum(neg_log_l)
+    return np.mean(neg_log_l)
 
 
 def neg_log_likelihood_numeric(

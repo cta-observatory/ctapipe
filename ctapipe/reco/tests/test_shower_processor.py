@@ -33,6 +33,9 @@ def test_shower_processor_geometry(
         subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
     )
 
+    if "Model3DGeometryReconstuctor" in reconstructor_types:
+        reconstructor_types.insert(0, "HillasReconstructor")
+
     process_shower = ShowerProcessor(
         subarray=example_subarray, reconstructor_types=reconstructor_types
     )
@@ -46,20 +49,21 @@ def test_shower_processor_geometry(
 
     for reco_type in reconstructor_types:
         DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
-        print(DL2a)
         assert isfinite(DL2a.alt)
         assert isfinite(DL2a.az)
         assert isfinite(DL2a.core_x)
-        assert isfinite(DL2a.core_x)
         assert isfinite(DL2a.core_y)
         assert DL2a.is_valid
-        assert isfinite(DL2a.average_intensity)
+        assert isfinite(DL2a.average_intensity) or isfinite(DL2a.total_photons)
 
     # Increase some quality cuts and check that we get defaults
     for reco_type in reconstructor_types:
         config[reco_type].StereoQualityQuery.quality_criteria = [
             ("> 500 phes", "parameters.hillas.intensity > 500")
         ]
+
+    if "Model3DGeometryReconstuctor" in reconstructor_types:
+        reconstructor_types.pop()
 
     process_shower = ShowerProcessor(
         config=config,
@@ -72,10 +76,8 @@ def test_shower_processor_geometry(
 
     for reco_type in reconstructor_types:
         DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
-        print(DL2a)
         assert not isfinite(DL2a.alt)
         assert not isfinite(DL2a.az)
-        assert not isfinite(DL2a.core_x)
         assert not isfinite(DL2a.core_x)
         assert not isfinite(DL2a.core_y)
         assert not DL2a.is_valid
