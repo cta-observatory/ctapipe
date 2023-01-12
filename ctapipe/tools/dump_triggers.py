@@ -23,7 +23,7 @@ class DumpTriggersTool(Tool):
     # =============================================
 
     input_path = Path(
-        exists=True, directory_ok=False, help="input simtelarray file"
+        exists=True, directory_ok=False, help="input simtelarray file", allow_none=False
     ).tag(config=True)
 
     output_path = Path(
@@ -103,8 +103,6 @@ class DumpTriggersTool(Tool):
     def setup(self):
         """setup function, called before `start()`"""
 
-        if self.input_path == "":
-            raise ToolConfigurationError("No 'input_path' parameter was specified. ")
         if self.output_path.exists():
             if self.overwrite:
                 self.log.warning(f"Overwriting {self.output_path}")
