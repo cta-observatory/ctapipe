@@ -93,11 +93,13 @@ class MuonAnalysis(Tool):
     def setup(self):
         if self.output is None:
             raise ToolConfigurationError("You need to provide an --output file")
-
-        if self.output.exists() and not self.overwrite:
-            raise ToolConfigurationError(
-                "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
-            )
+        if self.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.output_path}")
+            else:
+                raise ToolConfigurationError(
+                    f"Output path {self.output_path} exists, but overwrite=False"
+                )
 
         self.source = EventSource(parent=self)
         subarray = self.source.subarray

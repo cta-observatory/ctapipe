@@ -220,11 +220,13 @@ class MergeTool(Tool):
             sys.exit(1)
 
         self.output_path = self.output_path.expanduser()
-
-        if self.output_path.exists() and not self.overwrite:
-            raise ToolConfigurationError(
-                f"Output path {self.output_path} exists, but overwrite=False"
-            )
+        if self.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.output_path}")
+            else:
+                raise ToolConfigurationError(
+                    f"Output path {self.output_path} exists, but overwrite=False"
+                )
 
         PROV.add_output_file(str(self.output_path))
 

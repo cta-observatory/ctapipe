@@ -147,13 +147,17 @@ class TrainParticleClassifier(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
         )
-
-        if self.output_path.exists() and not self.overwrite:
-            raise ToolConfigurationError(
-                f"Output path {self.output_path} exists, but overwrite=False"
-            )
-        if self.cross_validate.output_path:
-            if self.cross_validate.output_path.exists() and not self.overwrite:
+        if self.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.output_path}")
+            else:
+                raise ToolConfigurationError(
+                    f"Output path {self.output_path} exists, but overwrite=False"
+                )
+        if self.cross_validate.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.cross_validate.output_path}")
+            else:
                 raise ToolConfigurationError(
                     f"Output path {self.cross_validate.output_path} exists, but overwrite=False"
                 )

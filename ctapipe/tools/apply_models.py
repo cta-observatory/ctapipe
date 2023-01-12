@@ -126,10 +126,13 @@ class ApplyModels(Tool):
         Initialize components from config
         """
         self.log.info("Copying to output destination.")
-        if self.output_path.exists() and not self.overwrite:
-            raise ToolConfigurationError(
-                f"Output path {self.output_path} exists, but overwrite=False"
-            )
+        if self.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.output_path}")
+            else:
+                raise ToolConfigurationError(
+                    f"Output path {self.output_path} exists, but overwrite=False"
+                )
 
         shutil.copy(self.input_url, self.output_path)
 
