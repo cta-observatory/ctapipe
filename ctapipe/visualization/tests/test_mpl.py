@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
+from matplotlib import __version__ as mpl_version
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.containers import (
@@ -25,7 +26,41 @@ def prod5_lst_cam(prod5_lst):
     return prod5_lst.camera.geometry
 
 
-def test_camera_display_single(prod5_lst_cam):
+@pytest.mark.skipif(
+    mpl_version != "3.6.3",
+    reason="See test below (test_camera_display_single)",
+)
+def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
+    """With matplotlib==3.6.3 we can not change the norm
+    parameter of a CameraDisplay after we attached a colorbar."""
+    from ..mpl_camera import CameraDisplay
+
+    image = np.ones(prod5_lst_cam.pix_x.shape)
+
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(prod5_lst_cam, ax=ax)
+    disp.image = image
+    disp.norm = "log"
+    disp.add_colorbar()
+
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(prod5_lst_cam, ax=ax)
+    disp.image = image
+    disp.add_colorbar()
+    with pytest.raises(ValueError):
+        disp.norm = "log"
+
+
+@pytest.mark.skipif(
+    mpl_version == "3.6.3",
+    reason=(
+        "There is a problem in changing the norm after adding a colorbar. "
+        + "This issue came up in #2207 and "
+        + "should be fixed in a separate PR."
+        + "See the test above (test_norm_after_colorbar)."
+    ),
+)
+def test_camera_display_single(prod5_lst_cam, tmp_path):
     """test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
