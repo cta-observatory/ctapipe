@@ -31,7 +31,7 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.10"
             install-method: mamba
-            codecov: true
+            extra-args: ['codecov']
 
           - os: ubuntu-latest
             python-version: "3.10"
@@ -112,8 +112,8 @@ jobs:
 
           ctapipe-info --version
 
-      - uses: codecov/codecov-action@v2
-        if: matrix.codecov
+      - uses: codecov/codecov-action@v3
+        if: contains(matrix.extra-args, 'codecov')
 
   docs:
     runs-on: ubuntu-latest
