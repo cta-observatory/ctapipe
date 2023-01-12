@@ -81,10 +81,6 @@ class ProcessorTool(Tool):
     }
 
     flags = {
-        "f": (
-            {"DataWriter": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
         **flag(
             "overwrite",
             "DataWriter.overwrite",

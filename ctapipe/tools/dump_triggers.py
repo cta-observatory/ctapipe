@@ -7,10 +7,9 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
+from ..core import Provenance, Tool, ToolConfigurationError
+from ..core.traits import Bool, Dict, Path, Unicode, flag
 from ..io import EventSource
-from ..core import Provenance, ToolConfigurationError
-from ..core.traits import Unicode, Dict, Bool, Path, flag
-from ..core import Tool
 
 MAX_TELS = 1000
 
@@ -23,11 +22,11 @@ class DumpTriggersTool(Tool):
     # configuration parameters:
     # =============================================
 
-    infile = Path(exists=True, directory_ok=False, help="input simtelarray file").tag(
-        config=True
-    )
+    input_path = Path(
+        exists=True, directory_ok=False, help="input simtelarray file"
+    ).tag(config=True)
 
-    outfile = Path(
+    output_path = Path(
         default_value="triggers.fits",
         directory_ok=False,
         help="output filename (*.fits, *.h5)",
@@ -40,14 +39,13 @@ class DumpTriggersTool(Tool):
     # =============================================
 
     aliases = Dict(
-        {"infile": "DumpTriggersTool.infile", "outfile": "DumpTriggersTool.outfile"}
+        {
+            "input_path": "DumpTriggersTool.input_path",
+            "output_path": "DumpTriggersTool.output_path",
+        }
     )
 
     flags = {
-        "f": (
-            {"DumpTriggersTool": {"overwrite": True}},
-            "Enable overwriting of output file",
-        ),
         **flag(
             "overwrite"
             "DumpTriggersTool.overwrite"
@@ -57,8 +55,8 @@ class DumpTriggersTool(Tool):
     }
 
     examples = (
-        "ctapipe-dump-triggers --infile gamma.simtel.gz "
-        "--outfile trig.fits --overwrite"
+        "ctapipe-dump-triggers --input_path gamma.simtel.gz "
+        "--output_path trig.fits --overwrite"
         "\n\n"
         "If you want to see more output, use --log_level=DEBUG"
     )
@@ -103,10 +101,15 @@ class DumpTriggersTool(Tool):
         )
 
     def setup(self):
-        """ setup function, called before `start()` """
+        """setup function, called before `start()`"""
 
-        if self.infile == "":
-            raise ToolConfigurationError("No 'infile' parameter was specified. ")
+        if self.input_path == "":
+            raise ToolConfigurationError("No 'input_path' parameter was specified. ")
+
+        if self.output_path.exists() and not self.overwrite:
+            raise ToolConfigurationError(
+                f"Output path {self.output_path} exists, but overwrite=False"
+            )
 
         self.events = Table(
             names=["EVENT_ID", "T_REL", "DELTA_T", "N_TRIG", "TRIGGERED_TELS"],
@@ -117,15 +120,15 @@ class DumpTriggersTool(Tool):
         self.events["T_REL"].unit = u.s
         self.events["T_REL"].description = "Time relative to first event"
         self.events["DELTA_T"].unit = u.s
-        self.events.meta["INPUT"] = str(self.infile)
+        self.events.meta["INPUT"] = str(self.input_path)
 
         self._current_trigpattern = np.zeros(MAX_TELS)
         self._current_starttime = None
         self._prev_time = None
 
     def start(self):
-        """ main event loop """
-        with EventSource(self.infile) as source:
+        """main event loop"""
+        with EventSource(self.input_path) as source:
             for event in source:
                 self.add_event_to_table(event)
 
@@ -136,16 +139,16 @@ class DumpTriggersTool(Tool):
         """
         # write out the final table
         try:
-            if ".fits" in self.outfile.suffixes:
-                self.events.write(self.outfile, overwrite=self.overwrite)
-            elif self.outfile.suffix in (".hdf5", ".h5", ".hdf"):
+            if ".fits" in self.output_path.suffixes:
+                self.events.write(self.output_path, overwrite=self.overwrite)
+            elif self.output_path.suffix in (".hdf5", ".h5", ".hdf"):
                 self.events.write(
-                    self.outfile, path="/events", overwrite=self.overwrite
+                    self.output_path, path="/events", overwrite=self.overwrite
                 )
             else:
-                self.events.write(self.outfile)
+                self.events.write(self.output_path)
 
-            Provenance().add_output_file(self.outfile)
+            Provenance().add_output_file(self.output_path)
         except IOError as err:
             self.log.warning("Couldn't write output (%s)", err)
 

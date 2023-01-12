@@ -4,8 +4,8 @@ Tool for training the ParticleClassifier
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
+from ctapipe.core.tool import Tool, ToolConfigurationError
+from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -148,15 +148,20 @@ class TrainParticleClassifier(Tool):
             parent=self, model_component=self.classifier
         )
 
+        if self.output_path.exists() and not self.overwrite:
+            raise ToolConfigurationError(
+                f"Output path {self.output_path} exists, but overwrite=False"
+            )
+        if self.cross_validate.output_path:
+            if self.cross_validate.output_path.exists() and not self.overwrite:
+                raise ToolConfigurationError(
+                    f"Output path {self.cross_validate.output_path} exists, but overwrite=False"
+                )
+
         if self.output_path.suffix != ".pkl":
             self.log.warning(
                 "Expected .pkl extension for output_path, got %s",
                 self.output_path.suffix,
-            )
-
-        if self.output_path.exists() and not self.overwrite:
-            raise TraitError(
-                f"output_path '{self.output_path}' exists and overwrite=False"
             )
 
     def start(self):

@@ -8,7 +8,7 @@ import tables
 from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
-from ctapipe.core.tool import Tool
+from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Bool, Integer, Path, flag
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
@@ -111,10 +111,6 @@ class ApplyModels(Tool):
             "Overwrite tables in output file if it exists",
             "Don't overwrite tables in output file if it exists",
         ),
-        "f": (
-            {"ApplyModels": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
     }
 
     classes = [
@@ -131,7 +127,9 @@ class ApplyModels(Tool):
         """
         self.log.info("Copying to output destination.")
         if self.output_path.exists() and not self.overwrite:
-            raise IOError(f"Output path {self.output_path} exists, but overwrite=False")
+            raise ToolConfigurationError(
+                f"Output path {self.output_path} exists, but overwrite=False"
+            )
 
         shutil.copy(self.input_url, self.output_path)
 

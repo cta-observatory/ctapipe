@@ -12,7 +12,7 @@ from traitlets import List
 
 from ctapipe.utils.arrays import recarray_drop_columns
 
-from ..core import Provenance, Tool, traits
+from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import Bool, CInt, Set, Unicode, flag
 from ..instrument import SubarrayDescription
 from ..io import HDF5EventSource, HDF5TableWriter, get_hdf5_datalevels
@@ -177,7 +177,6 @@ class MergeTool(Tool):
     }
 
     flags = {
-        "f": ({"MergeTool": {"overwrite": True}}, "Overwrite output file if it exists"),
         **flag(
             "overwrite",
             "MergeTool.overwrite",
@@ -221,16 +220,11 @@ class MergeTool(Tool):
             sys.exit(1)
 
         self.output_path = self.output_path.expanduser()
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-                self.output_path.unlink()
-            else:
-                self.log.critical(
-                    f"Output file {self.output_path} exists, "
-                    "use `--overwrite` to overwrite"
-                )
-                sys.exit(1)
+
+        if self.output_path.exists() and not self.overwrite:
+            raise ToolConfigurationError(
+                f"Output path {self.output_path} exists, but overwrite=False"
+            )
 
         PROV.add_output_file(str(self.output_path))
 
