@@ -1,17 +1,14 @@
 """ Class to handle configuration for algorithms """
+import warnings
 from abc import ABCMeta
-from inspect import isabstract
+from inspect import cleandoc, isabstract
 from logging import getLogger
-from docutils.core import publish_parts
-from inspect import cleandoc
 
+from docutils.core import publish_parts
 from traitlets import TraitError
 from traitlets.config import Configurable
 
-import warnings
-
-
-__all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
+__all__ = ["non_abstract_children", "Component"]
 
 
 def find_config_in_hierarchy(parent, class_name, trait_name):
@@ -261,55 +258,3 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         lines.append("</table>")
         lines.append("</div>")
         return "\n".join(lines)
-
-
-class TelescopeComponent(Component):
-    """
-    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,
-    and which contains configurable `~ctapipe.core.traits.TelescopeParameter` fields
-    that must be configured on construction.
-    """
-
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
-        super().__init__(config, parent, **kwargs)
-
-        self.subarray = subarray
-        # configure all of the TelescopeParameters
-        for trait in list(self.class_traits()):
-            try:
-                getattr(self, trait).attach_subarray(subarray)
-            except (AttributeError, TypeError):
-                pass
-
-    @classmethod
-    def from_name(cls, name, subarray, config=None, parent=None, **kwargs):
-        """
-        Obtain an instance of a subclass via its name
-
-        Parameters
-        ----------
-        name : str
-            Name of the subclass to obtain
-        subarray: ctapipe.instrument.SubarrayDescription
-            The current subarray for this TelescopeComponent.
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This argument is typically only specified when using this method
-            from within a Tool.
-        parent : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger and configuration to the component.
-            This argument is typically only specified when using this method
-            from within a Tool (config need not be passed if parent is used).
-        kwargs
-
-        Returns
-        -------
-        instace
-            Instance of subclass to this class
-        """
-        requested_subclass = cls.non_abstract_subclasses()[name]
-        return requested_subclass(
-            subarray=subarray, config=config, parent=parent, **kwargs
-        )
