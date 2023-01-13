@@ -84,7 +84,9 @@ class SKLearnReconstructor(Reconstructor):
     target: str = None
 
     prefix = Unicode(
-        default_value=None, allow_none=True, help="Prefix for output of this model"
+        default_value=None,
+        allow_none=True,
+        help="Prefix for the output of this model. If None, ``model_cls`` is used.",
     ).tag(config=True)
     features = List(Unicode(), help="Features to use for this model").tag(config=True)
     model_config = Dict({}, help="kwargs for the sklearn model").tag(config=True)
