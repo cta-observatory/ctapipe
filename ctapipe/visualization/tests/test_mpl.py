@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
+from matplotlib import __version__ as mpl_version
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.containers import (
@@ -25,12 +26,47 @@ def prod5_lst_cam(prod5_lst):
     return prod5_lst.camera.geometry
 
 
-def test_camera_display_single(prod5_lst_cam):
+@pytest.mark.skipif(
+    mpl_version != "3.6.3",
+    reason="See test below (test_camera_display_single)",
+)
+def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
+    """With matplotlib==3.6.3 we can not change the norm
+    parameter of a CameraDisplay after we attached a colorbar."""
+    from ..mpl_camera import CameraDisplay
+
+    image = np.ones(prod5_lst_cam.pix_x.shape)
+
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(prod5_lst_cam, ax=ax)
+    disp.image = image
+    disp.norm = "log"
+    disp.add_colorbar()
+
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(prod5_lst_cam, ax=ax)
+    disp.image = image
+    disp.add_colorbar()
+    with pytest.raises(ValueError):
+        disp.norm = "log"
+
+
+@pytest.mark.skipif(
+    mpl_version == "3.6.3",
+    reason=(
+        "There is a problem in changing the norm after adding a colorbar. "
+        + "This issue came up in #2207 and "
+        + "should be fixed in a separate PR."
+        + "See the test above (test_norm_after_colorbar)."
+    ),
+)
+def test_camera_display_single(prod5_lst_cam, tmp_path):
     """test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
+    fig, ax = plt.subplots()
     geom = prod5_lst_cam
-    disp = CameraDisplay(geom)
+    disp = CameraDisplay(geom, ax=ax)
     image = np.random.normal(size=len(geom.pix_x))
     disp.image = image
     disp.add_colorbar()
@@ -51,36 +87,41 @@ def test_camera_display_single(prod5_lst_cam):
 
     disp.add_ellipse(centroid=(0, 0), width=0.1, length=0.1, angle=0.1)
     disp.clear_overlays()
+    fig.savefig(tmp_path / "result.png")
 
 
-def test_hillas_overlay(prod5_lst_cam):
+def test_hillas_overlay(prod5_lst_cam, tmp_path):
     from ctapipe.visualization import CameraDisplay
 
-    disp = CameraDisplay(prod5_lst_cam)
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(prod5_lst_cam, ax=ax)
     hillas = CameraHillasParametersContainer(
         x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
     )
 
-    disp.overlay_moments(hillas)
+    disp.overlay_moments(hillas, color="w")
+    fig.savefig(tmp_path / "result.png")
 
 
 @pytest.mark.parametrize("pix_type", PixelShape.__members__.values())
-def test_pixel_shapes(pix_type, prod5_lst_cam):
+def test_pixel_shapes(pix_type, prod5_lst_cam, tmp_path):
     """test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
     geom = prod5_lst_cam
     geom.pix_type = pix_type
 
-    disp = CameraDisplay(geom)
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(geom, ax=ax)
     image = np.random.normal(size=len(geom.pix_x))
     disp.image = image
     disp.add_colorbar()
     disp.highlight_pixels([1, 2, 3, 4, 5])
     disp.add_ellipse(centroid=(0, 0), width=0.1, length=0.1, angle=0.1)
+    fig.savefig(tmp_path / "result.png")
 
 
-def test_camera_display_multiple(prod5_lst_cam):
+def test_camera_display_multiple(prod5_lst_cam, tmp_path):
     """create a figure with 2 subplots, each with a CameraDisplay"""
     from ..mpl_camera import CameraDisplay
 
@@ -93,6 +134,7 @@ def test_camera_display_multiple(prod5_lst_cam):
     image = np.ones(len(geom.pix_x), dtype=float)
     d1.image = image
     d2.image = image
+    fig.savefig(tmp_path / "result.png")
 
 
 def test_array_display(prod5_mst_nectarcam):
