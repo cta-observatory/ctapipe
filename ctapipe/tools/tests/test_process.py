@@ -10,10 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 import tables
+from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io import read_table
+from ctapipe.io import TableLoader, read_table
 from ctapipe.io.tests.test_event_source import DummyEventSource
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
@@ -348,3 +349,85 @@ def test_quickstart(tmp_path):
 
     for config in CONFIGS_TO_WRITE:
         assert (tmp_path / "ProdX" / config).exists()
+
+
+def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
+    """In #2057 reading a subset of allowed tels from
+    simtel yields another result as reading from DL1,
+    which was produced with all tels.
+
+    This test has three steps:
+    1) Create a DL2 file from simtel.
+    2) Create a DL1 file from simtel.
+    3) Create from that DL1 file another DL2 file.
+
+    Keep in mind that both DL2 allowed_tels need to be the same,
+    but different from the allowed_tels in the simtel->DL1 step!
+    """
+
+    input_path = prod5_proton_simtel_path
+
+    many_tels = [
+        f"--EventSource.allowed_tels={i}"
+        for i in (30, 100, 102, 105, 106, 108, 111, 112, 113, 114, 115, 121, 122, 128)
+    ]
+    few_tels = [
+        f"--EventSource.allowed_tels={i}" for i in (102, 108, 111, 112, 121, 122, 128)
+    ]
+
+    # 1) Create DL2 from simtel.
+    dl2_from_simtel = tmp_path / "from_simtel.dl2.h5"
+    argv = [
+        f"--input={input_path}",
+        f"--output={dl2_from_simtel}",
+        "--write-showers",
+        "--write-parameters",
+        "--progress",
+        "--EventSource.focal_length_choice=EQUIVALENT",
+    ] + few_tels
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+
+    # 2) Create DL1 from simtel.
+    dl1_from_simtel = tmp_path / "from_simtel.dl1.h5"
+    argv = [
+        f"--input={input_path}",
+        f"--output={dl1_from_simtel}",
+        "--write-showers",
+        "--write-parameters",
+        "--progress",
+        "--EventSource.focal_length_choice=EQUIVALENT",
+    ] + many_tels
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+
+    # 3) Create from that DL1 file another DL2 file.
+    dl2_from_dl1 = tmp_path / "from_dl1.dl2.h5"
+    argv = [
+        f"--input={dl1_from_simtel}",
+        f"--output={dl2_from_dl1}",
+        "--write-showers",
+        "--write-parameters",
+        "--progress",
+        "--EventSource.focal_length_choice=EQUIVALENT",
+    ] + few_tels
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+
+    args = dict(load_dl2=True, load_simulated=True)
+    with TableLoader(dl2_from_simtel, **args) as loader:
+        events_from_simtel = loader.read_subarray_events()
+    with TableLoader(dl2_from_dl1, **args) as loader:
+        events_from_dl1 = loader.read_subarray_events()
+
+    # both files should contain identical data
+    assert_array_equal(events_from_simtel["event_id"], events_from_dl1["event_id"])
+
+    assert_allclose(
+        events_from_simtel["HillasReconstructor_core_x"],
+        events_from_dl1["HillasReconstructor_core_x"],
+    )
+
+    # regression test: before the simulation iterator was not incremented,
+    # so the simulated events don't match the reconstructed events
+    assert_allclose(
+        events_from_simtel["true_core_x"],
+        events_from_dl1["true_core_x"],
+    )

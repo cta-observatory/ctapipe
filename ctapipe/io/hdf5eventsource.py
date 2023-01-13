@@ -576,15 +576,22 @@ class HDF5EventSource(EventSource):
 
                 data.trigger.tel[tel_index.tel_id] = tel_trigger
 
+            if self.is_simulation:
+                data.simulation.shower = next(mc_shower_reader)
+
+            for kind, readers in dl2_readers.items():
+                c = getattr(data.dl2.stereo, kind)
+                for algorithm, reader in readers.items():
+                    c[algorithm] = next(reader)
+
             # this needs to stay *after* reading the telescope trigger table
+            # and after reading all subarray event information, so that we don't
+            # go out of sync
             if len(data.trigger.tels_with_trigger) == 0:
                 continue
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
-
-            if self.is_simulation:
-                data.simulation.shower = next(mc_shower_reader)
 
             for tel_id in data.trigger.tel.keys():
                 key = f"tel_{tel_id:03d}"
@@ -669,11 +676,6 @@ class HDF5EventSource(EventSource):
                         if kind == "impact" and self.datamodel_version == (4, 0, 0):
                             prefix = f"{algorithm}_tel_{c[algorithm].default_prefix}"
                             c[algorithm].prefix = prefix
-
-            for kind, readers in dl2_readers.items():
-                c = getattr(data.dl2.stereo, kind)
-                for algorithm, reader in readers.items():
-                    c[algorithm] = next(reader)
 
             yield data
             counter += 1
