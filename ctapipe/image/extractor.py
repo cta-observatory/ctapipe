@@ -360,7 +360,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
         Waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
     peak_index : ndarray
-        Peak index of waveforms
+        Peak index
         Shape: (n_pix, )
     upper_limit : float
         Upper fraction of peak maximum
@@ -395,56 +395,48 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
             np.repeat(waveforms, upsampling, axis=-1),
         )
 
-    if peak_index == None:  # take the maximum as a default
+    if peak_index == None:  # take the maximum of the waveform as a default
         peak_index = np.argmax(waveforms, axis=-1)
     else:
-        peak_index = peak_index*upsampling
+        peak_index = peak_index*upsampling  # to correct for upsampling
 
-    nsamples = len(waveforms)
+    n_wv = len(waveforms)
 
     fwhm = []
     rise_time = []
     fall_time = []
 
-    for i in range(0, nsamples):
+    for i in range(0, n_wv):
         waveform = waveforms[i]
-        n = waveform.size
-        peak = max(0, min(peak_index[i], n - 1))
+        n_samples = waveform.size
         
-        peak_ampl = waveform[peak]
-        upper_ampl = (peak_ampl - np.mean(waveform[baseline_start:baseline_end]))*upper_limit 
-        lower_ampl = (peak_ampl - np.mean(waveform[baseline_start:baseline_end]))*lower_limit
-        phalf = (peak_ampl - np.mean(waveform[baseline_start:baseline_end])) / 2.0
+        peak_amplitude = waveform[peak_index[i]]
+        upper_amplitude = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end]))*upper_limit 
+        lower_amplitude = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end]))*lower_limit
+        phalf = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end])) / 2.0
 
-        ind1 = peak
-        ind2 = peak
-        while ind1 >= 0 and waveform[ind1] > phalf:
-            ind1 -= 1
-
-        while ind2 < n and waveform[ind2] > phalf:
-            ind2 += 1
-
-        if peak < 2 or peak > len(waveform) - 2:
-            fwhm.append((ind2 - ind1)*2/upsampling)
-        else:
-            fwhm.append((ind2 - ind1)/upsampling)    
+        start = peak_index[i] - 1
+        stop = peak_index[i] + 1
+        while start >= 0 and waveform[start] >= phalf:
+            start -= 1
+        while stop < n_samples and waveform[stop] >= phalf:
+            stop += 1
+        fwhm.append((stop - start)/upsampling)    
 
         indices_high = []
         indices_low = []
 
-        j = peak
-        k = peak
-        while j >= 0 and waveform[j] > lower_ampl:
-            if waveform[j] < upper_ampl:
-                indices_low.append(j)
-            j -= 1
-
-        while k < n and waveform[k] > lower_ampl:
-            if waveform[k] < upper_ampl:
-                 indices_high.append(k)
-            k += 1
-
-        rise_time.append(min(indices_low, default=0)/upsampling - max(indices_low, default=0)/upsampling)
+        rise_ind = peak_index[i] - 1
+        fall_ind = peak_index[i] + 1
+        while rise_ind >= 0 and waveform[rise_ind] >= lower_amplitude:
+            if waveform[rise_ind] <= upper_amplitude:
+                indices_low.append(rise_ind)
+            rise_ind -= 1
+        while fall_ind < n_samples and waveform[fall_ind] >= lower_amplitude:
+            if waveform[fall_ind] <= upper_amplitude:
+                 indices_high.append(fall_ind)
+            fall_ind += 1
+        rise_time.append(max(indices_low, default=0)/upsampling - min(indices_low, default=0)/upsampling)
         fall_time.append(max(indices_high, default=0)/upsampling - min(indices_high, default=0)/upsampling)
 
     return fwhm, rise_time, fall_time

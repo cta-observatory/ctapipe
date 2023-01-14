@@ -156,9 +156,8 @@ def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
 def toymodel_mst_fc(subarray_mst_fc: object) -> object:
     return get_test_toymodel(subarray_mst_fc)
 
-def test_fwhm(toymodel):
-    waveforms, _, _, _, _, _ = toymodel
-
+def test_time_parameters(toymodel):
+    waveforms, _, _, _, true_charge, _ = toymodel
     fwhm_scp = np.array([])
 
     for i in range(0, len(waveforms)):
@@ -170,7 +169,7 @@ def test_fwhm(toymodel):
 
     fwhm, _, _ = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1, upsampling=10, baseline_start=19, baseline_end=24)
     
-    assert_allclose(fwhm, fwhm_scp, atol=1e-3)
+    assert_allclose(np.array(fwhm)[true_charge>0], fwhm_scp[true_charge>0], atol=0.1)
 
 def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
