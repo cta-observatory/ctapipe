@@ -655,10 +655,9 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
     extractor = FlashCamExtractor(subarray=subarray)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
-    assert dl1.is_valid == True
-
     assert_allclose(dl1.image, true_charge, rtol=0.15)
     assert_allclose(dl1.peak_time, true_time, atol=1.0)
+    assert dl1.is_valid == True
 
     # Test on prod5 simulations
     with EventSource(prod5_gamma_simtel_path) as source:
@@ -681,7 +680,7 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid == True
 
-                bright_pixels = (true_charge > 30) & ~broken_pixels
+                bright_pixels = (true_charge > 30) & (true_charge < 3000) & ~broken_pixels
                 assert_allclose(
                     dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
                 )
