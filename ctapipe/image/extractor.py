@@ -48,7 +48,7 @@ from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
 from .morphology import brightest_island, number_of_islands
 from .timing import timing_parameters
-
+import astropy.units as u
 
 @guvectorize(
     [
@@ -1292,7 +1292,6 @@ class TwoPassWindowSum(ImageExtractor):
         )
 
 
-@lru_cache
 def deconvolution_parameters(
     camera: CameraDescription,
     upsampling: int,
@@ -1344,32 +1343,31 @@ def deconvolution_parameters(
         raise ValueError(f"window_width must be > 0, got {window_width}")
 
     ref_pulse_shapes = camera.readout.reference_pulse_shape
-    ref_sample_width_nsec = camera.readout.reference_pulse_sample_width.to_value("ns")
-    camera_sample_width_nsec = 1.0 / camera.readout.sampling_rate.to_value("GHz")
+    ref_sample_width_nsec = camera.readout.reference_pulse_sample_width.to_value(u.ns)
+    camera_sample_width_nsec = 1.0 / camera.readout.sampling_rate.to_value(u.GHz)
 
     if camera_sample_width_nsec < ref_sample_width_nsec:
         raise ValueError(
             f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be equal to or shorter than the camera sampling time (got {camera_sample_width_nsec} ns); need a reference single p.e. pulse shape with finer sampling!"
         )
-    avg_step = int(camera_sample_width_nsec / ref_sample_width_nsec + 0.5)
+    avg_step = int(round(camera_sample_width_nsec / ref_sample_width_nsec))
 
-    pzs = []  # avg. pole-zero deconvolution parameters
+    pole_zeros = []  # avg. pole-zero deconvolution parameters
     for ref_pulse_shape in ref_pulse_shapes:
         phase_pzs = []
         for phase in range(avg_step):
             x = ref_pulse_shape[phase::avg_step]
             i_min = np.argmin(np.diff(x)) + 1
-            if i_min < x.size and x[i_min] != 0:
-                phase_pzs.append(x[i_min + 1] / x[i_min])
+            phase_pzs.append(x[i_min + 1] / x[i_min])
 
         if len(phase_pzs) == 0:
             raise ValueError(
                 "ref_pulse_shape is malformed - cannot find deconvolution parameter"
             )
-        pzs.append(np.mean(phase_pzs))
+        pole_zeros.append(np.mean(phase_pzs))
 
     gains, shifts, pz2d_shifts = [], [], []  # avg. gains and timing shifts
-    for pz, ref_pulse_shape in zip(pzs, ref_pulse_shapes):
+    for pz, ref_pulse_shape in zip(pole_zeros, ref_pulse_shapes):
         if time_profile_pdf:  # convolve ref_pulse_shape with time profile PDF
             t = (
                 np.arange(ref_pulse_shape.size) - ref_pulse_shape.size / 2
@@ -1385,7 +1383,7 @@ def deconvolution_parameters(
             x = np.atleast_2d(ref_pulse_shape[phase::avg_step])
             y = deconvolve(x, 0.0, upsampling, pz)[0]
             i_max = y.argmax()
-            start = i_max - window_shift  # TODO should use extract_around_peak here
+            start = i_max - window_shift
             stop = start + window_width
             if start >= 0 and stop <= y.size:
                 if leading_edge_timing:
@@ -1412,7 +1410,7 @@ def deconvolution_parameters(
         shifts.append(np.mean(phase_shifts))
         pz2d_shifts.append(np.mean(phase_pz2d_shifts))
 
-    return pzs, gains, shifts, pz2d_shifts
+    return pole_zeros, gains, shifts, pz2d_shifts
 
 
 def deconvolve(
@@ -1468,7 +1466,7 @@ def deconvolve(
     nopython=True,
     cache=True,
 )
-def adaptive_centroid(waveforms, peak_index, rel_descend_limit, cog):
+def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
     """
     Calculates the pulse centroid for all samples down to rel_descend_limit * peak_amplitude.
 
@@ -1484,22 +1482,24 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, cog):
         Peak index for each pixel.
     rel_descend_limit : ndarray or float
         Fraction of the peak value down to which samples are accumulated in the centroid calculation.
-    cog : ndarray
+    centroids : ndarray
         Return argument for ufunc (ignore)
         Returns the peak centroid in units "samples"
 
     Returns
     -------
-    cog : ndarray
+    centroids : ndarray
         Peak centroid in units "samples"
     """
-    cog[0] = peak_index  # preload in case of errors
+    centroids[0] = peak_index  # preload in case of errors
 
-    nsamples = waveforms.size
-    if nsamples == 0:
+    n_samples = waveforms.size
+    if n_samples == 0:
         return
 
-    peak_index = max(0, min(peak_index, nsamples - 1))
+    if (peak_index > (n_samples - 1)) or (peak_index < 0):
+        raise ValueError("peak_index must be within the waveform limits")
+
     peak_amplitude = waveforms[peak_index]
     if peak_amplitude < 0.0:
         return
@@ -1508,6 +1508,7 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, cog):
 
     sum = float64(0.0)
     jsum = float64(0.0)
+
     j = peak_index
     while j >= 0 and waveforms[j] > descend_limit:
         sum += waveforms[j]
@@ -1517,7 +1518,7 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, cog):
             descend_limit = rel_descend_limit * peak_amplitude
 
     j = peak_index + 1
-    while j < nsamples and waveforms[j] > descend_limit:
+    while j < n_samples and waveforms[j] > descend_limit:
         sum += waveforms[j]
         jsum += j * waveforms[j]
         j += 1
@@ -1525,10 +1526,26 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, cog):
             descend_limit = rel_descend_limit * peak_amplitude
 
     if sum != 0.0:
-        cog[0] = jsum / sum
+        centroids[0] = jsum / sum
 
 
 class FlashCamExtractor(ImageExtractor):
+    """
+
+    The waveforms are first upsampled to achieve one nanosecond sampling (as a default, for the FlashCam). 
+    A pole-zero deconvolution [1] is then performed to the waveforms to recover the original impulse or narrow 
+    the resulting pulse due to convolution with detector response. The modified waveform is integrated in a 
+    window around a peak, which is defined by the neighbors of the pixel. The waveforms are clipped in
+    order to reduce the contribution from the afterpulses in the neighbor sum. If leading_edge_timing is
+    set to True, the so-called leading edge time is found (with the adaptive_centroid function) instead of the peak time.
+    
+    This extractor has been optimized for the FlashCam [2].
+    
+    [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to Digital Signal Processing (California Technical Publishing)
+    [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium. 
+    A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
+
+    """
     upsampling = IntTelescopeParameter(
         default_value=4, help="Define the upsampling factor for waveforms"
     ).tag(config=True, min=1)
@@ -1616,18 +1633,15 @@ class FlashCamExtractor(ImageExtractor):
         leading_edge_timing = self.leading_edge_timing.tel[tel_id]
         leading_edge_rel_descend_limit = self.leading_edge_rel_descend_limit.tel[tel_id]
 
-        pzs, gains, shifts, pz2ds = self.deconvolution_pars[tel_id]
-        pz, gain, shift, pz2d = pzs[0], gains[0], shifts[0], pz2ds[0]
+        pole_zeros, gains, shifts, pz2ds = self.deconvolution_pars[tel_id]
+        pz, gain, shift, pz2d = pole_zeros[0], gains[0], shifts[0], pz2ds[0]
 
-        if leading_edge_timing:
-            d_waveforms = deconvolve(waveforms, 0.0, upsampling, 1)
-
-        waveforms = deconvolve(waveforms, 0.0, upsampling, pz)
+        t_waveforms = deconvolve(waveforms, 0.0, upsampling, pz)
 
         if neighbour_sum_clipping == 0.0 or np.isinf(neighbour_sum_clipping):
-            nn_waveforms = waveforms
+            nn_waveforms = t_waveforms
         else:
-            nn_waveforms = self.clip(waveforms / neighbour_sum_clipping)
+            nn_waveforms = self.clip(t_waveforms / neighbour_sum_clipping)
 
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
         peak_index = neighbor_average_maximum(
@@ -1639,7 +1653,7 @@ class FlashCamExtractor(ImageExtractor):
         )
 
         charge, peak_time = extract_around_peak(
-            waveforms,
+            t_waveforms,
             peak_index,
             integration_window_width,
             integration_window_shift,
@@ -1647,9 +1661,10 @@ class FlashCamExtractor(ImageExtractor):
         )
 
         if leading_edge_timing:
+            d_waveforms = deconvolve(waveforms, 0.0, upsampling, 1)
             peak_time = adaptive_centroid(
                 d_waveforms,
-                np.round(peak_index - pz2d).astype(int),
+                max(0, min(np.round(peak_index - pz2d).astype(int))),
                 leading_edge_rel_descend_limit,
             )
 
