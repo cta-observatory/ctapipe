@@ -48,7 +48,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.mathjax",
     "sphinx_automodapi.automodapi",
-    "nbsphinx",
+    "myst_nb",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "IPython.sphinxext.ipython_console_highlighting",

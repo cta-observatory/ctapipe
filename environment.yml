@@ -9,7 +9,7 @@ dependencies:
   - astropy=5
   - black
   - bokeh=2
-  - nbsphinx
+  - myst-nb
   - cython
   - graphviz
   - h5py
