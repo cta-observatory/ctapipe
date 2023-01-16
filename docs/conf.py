@@ -55,8 +55,7 @@ extensions = [
 ]
 
 numpydoc_show_class_members = False
-nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
-
+nb_render_text_lexer = "ipython"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
