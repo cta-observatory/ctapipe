@@ -163,7 +163,7 @@ class ApplyModels(Tool):
             self.loader.h5file = self.h5file
 
     def _apply(self, reconstructor):
-        prefix = reconstructor.model_cls
+        prefix = reconstructor.prefix
         property = reconstructor.property
 
         desc = f"Applying {reconstructor.__class__.__name__}"

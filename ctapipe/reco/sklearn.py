@@ -83,6 +83,11 @@ class SKLearnReconstructor(Reconstructor):
     #: Name of the target column in training table
     target: str = None
 
+    prefix = Unicode(
+        default_value=None,
+        allow_none=True,
+        help="Prefix for the output of this model. If None, ``model_cls`` is used.",
+    ).tag(config=True)
     features = List(Unicode(), help="Features to use for this model").tag(config=True)
     model_config = Dict({}, help="kwargs for the sklearn model").tag(config=True)
     model_cls = Enum(SUPPORTED_MODELS.keys(), default_value=None, allow_none=True).tag(
@@ -117,6 +122,10 @@ class SKLearnReconstructor(Reconstructor):
                     "__init__() missing 1 required positional argument: 'subarray'"
                 )
 
+            if self.prefix is None:
+                # Default prefix is model_cls
+                self.prefix = self.model_cls
+
             super().__init__(subarray, **kwargs)
             self.subarray = subarray
             self.feature_generator = FeatureGenerator(parent=self)
@@ -129,7 +138,7 @@ class SKLearnReconstructor(Reconstructor):
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
-                prefix=self.model_cls,
+                prefix=self.prefix,
                 property=self.property,
                 parent=self,
             )
@@ -144,6 +153,9 @@ class SKLearnReconstructor(Reconstructor):
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
+
+            if self.prefix is None:
+                self.prefix = self.model_cls
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -413,8 +425,8 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
                     is_valid=False,
                 )
 
-            container.prefix = f"{self.model_cls}_tel"
-            event.dl2.tel[tel_id].energy[self.model_cls] = container
+            container.prefix = f"{self.prefix}_tel"
+            event.dl2.tel[tel_id].energy[self.prefix] = container
 
         self.stereo_combiner(event)
 
@@ -431,14 +443,14 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
         result = Table(
             {
-                f"{self.model_cls}_tel_energy": energy,
-                f"{self.model_cls}_tel_is_valid": is_valid,
+                f"{self.prefix}_tel_energy": energy,
+                f"{self.prefix}_tel_is_valid": is_valid,
             }
         )
         add_defaults_and_meta(
             result,
             ReconstructedEnergyContainer,
-            prefix=self.model_cls,
+            prefix=self.prefix,
             stereo=False,
         )
         return result
@@ -479,8 +491,8 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
                     prediction=np.nan, is_valid=False
                 )
 
-            container.prefix = f"{self.model_cls}_tel"
-            event.dl2.tel[tel_id].classification[self.model_cls] = container
+            container.prefix = f"{self.prefix}_tel"
+            event.dl2.tel[tel_id].classification[self.prefix] = container
 
         self.stereo_combiner(event)
 
@@ -497,12 +509,12 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
 
         result = Table(
             {
-                f"{self.model_cls}_tel_prediction": score,
-                f"{self.model_cls}_tel_is_valid": is_valid,
+                f"{self.prefix}_tel_prediction": score,
+                f"{self.prefix}_tel_is_valid": is_valid,
             }
         )
         add_defaults_and_meta(
-            result, ParticleClassificationContainer, prefix=self.model_cls, stereo=False
+            result, ParticleClassificationContainer, prefix=self.prefix, stereo=False
         )
         return result
 
