@@ -28,7 +28,7 @@ from ctapipe.utils import Histogram
 %matplotlib inline
 ```
 
-### load an example datacube 
+## load an example datacube 
 (an energy table generated for a
 small subset of HESS simulations) to use as a lookup table. Here
 we will use the `Histogram` class, which automatically loads both
@@ -42,7 +42,7 @@ energy_table = Histogram.from_fits(energy_hdu)
 print(energy_table)
 ```
 
-### construct an interpolator that we can use to get values at any point:
+## construct an interpolator that we can use to get values at any point:
 
 Here we will use a `RegularGridInterpolator`, since it is the most appropriate for this type of data, but others are available (see the SciPy documentation)
 
@@ -55,7 +55,7 @@ energy_lookup = RegularGridInterpolator(centers, energy_table.hist,
 `energy_lookup` is now just a continuous function of `log(SIZE)`,
 `DISTANCE` in m. 
 
-### Now plot some curves from the interpolator.  
+## Now plot some curves from the interpolator.  
 
 Note that the LUT we used is does not have very high statistics,
 so the interpolation starts to be affected by noise at the high
