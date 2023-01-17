@@ -385,6 +385,9 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
     fall_time : list of int
         Fall time of the pulse
         Shape : (n_pix)
+    saturation_time : list of int
+        Number of samples with amplitude equal to the maximum of the pulse
+        Shape : (n_pix)
 
     """
 
@@ -405,6 +408,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
     fwhm = []
     rise_time = []
     fall_time = []
+    saturation_time = []
 
     for i in range(0, n_wv):
         waveform = waveforms[i]
@@ -439,7 +443,10 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
         rise_time.append(max(indices_low, default=0)/upsampling - min(indices_low, default=0)/upsampling)
         fall_time.append(max(indices_high, default=0)/upsampling - min(indices_high, default=0)/upsampling)
 
-    return fwhm, rise_time, fall_time
+        between_ind = np.where(waveform > peak_amplitude*0.99)[0]  #count number of samples with amplitude roughly equal to maximum
+        saturation_time.append(max(between_ind, default=0) - min(between_ind, default=0))
+
+    return fwhm, rise_time, fall_time, saturation_time
 
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
