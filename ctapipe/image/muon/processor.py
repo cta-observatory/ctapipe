@@ -5,8 +5,8 @@ import numpy as np
 
 from ctapipe.containers import (
     ArrayEventContainer,
-    MuonCameraContainer,
     MuonParametersContainer,
+    MuonTelescopeContainer,
 )
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import QualityQuery, TelescopeComponent
@@ -21,8 +21,11 @@ from .features import (
 from .intensity_fitter import MuonIntensityFitter
 from .ring_fitter import MuonRingFitter
 
+INVALID = MuonTelescopeContainer()
+INVALID_PARAMETERS = MuonParametersContainer()
 
-class DL1Query(QualityQuery):
+
+class ImageParameterQuery(QualityQuery):
     """
     For configuring quality checks performed on image parameters
     before rings are fitted.
@@ -34,12 +37,7 @@ class DL1Query(QualityQuery):
             ("min_pixels", "p.morphology.n_pixels > 100"),
             ("min_intensity", "p.hillas.intensity > 500"),
         ],
-        help=(
-            "list of tuples of ('<description', 'expression string') to accept "
-            "(select) a given data value.  E.g. `[('mycut', 'x > 3'),]. "
-            "You may use `numpy` as `np` and `astropy.units` as `u`, but no other"
-            " modules."
-        ),
+        help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
 
@@ -56,12 +54,7 @@ class RingQuery(QualityQuery):
             ("min_pixels", "np.count_nonzero(mask) > 50"),
             ("ring_containment", "parameters.containment > 0.5"),
         ],
-        help=(
-            "list of tuples of ('<description', 'expression string') to accept "
-            "(select) a given data value.  E.g. `[('mycut', 'x > 3'),]. "
-            "You may use `numpy` as `np` and `astropy.units` as `u`, but no other"
-            " modules."
-        ),
+        help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
 
@@ -88,10 +81,12 @@ class MuonProcessor(TelescopeComponent):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray, **kwargs)
-        self.dl1_query = DL1Query(parent=self)
+        self.dl1_query = ImageParameterQuery(parent=self)
         self.ring_query = RingQuery(parent=self)
+
+        frame = TelescopeFrame()
         self.geometries = {
-            tel_id: tel.camera.geometry.transform_to(TelescopeFrame())
+            tel_id: tel.camera.geometry.transform_to(frame)
             for tel_id, tel in self.subarray.tel.items()
         }
         self.fov_radius = {
@@ -128,7 +123,7 @@ class MuonProcessor(TelescopeComponent):
                 " not supported. Exclude dual mirror telescopes via setting"
                 " 'EventSource.allowed_tels'."
             )
-            event.muon.tel[tel_id] = MuonCameraContainer()
+            event.muon.tel[tel_id] = INVALID
             return
 
         self.log.debug(f"Processing event {event_id}, telescope {tel_id}")
@@ -141,7 +136,7 @@ class MuonProcessor(TelescopeComponent):
         checks = self.dl1_query(p=dl1.parameters)
 
         if not all(checks):
-            event.muon.tel[tel_id] = MuonCameraContainer()
+            event.muon.tel[tel_id] = INVALID
             return
 
         geometry = self.geometries[tel_id]
@@ -165,12 +160,12 @@ class MuonProcessor(TelescopeComponent):
 
         checks = self.ring_query(parameters=parameters, ring=ring, mask=mask)
         if not all(checks):
-            event.muon.tel[tel_id] = MuonCameraContainer(
+            event.muon.tel[tel_id] = MuonTelescopeContainer(
                 parameters=parameters, ring=ring
             )
             return
 
-        result = self.intensity_fitter(
+        efficiency = self.intensity_fitter(
             tel_id,
             ring.center_fov_lon,
             ring.center_fov_lat,
@@ -180,14 +175,14 @@ class MuonProcessor(TelescopeComponent):
             pedestal=np.full(mask.shape, self.pedestal.tel[tel_id]),
         )
 
-        self.log.info(
+        self.log.debug(
             f"Muon fit: r={ring.radius:.2f}"
-            f", width={result.width:.4f}"
-            f", efficiency={result.optical_efficiency:.2%}"
+            f", width={efficiency.width:.4f}"
+            f", efficiency={efficiency.optical_efficiency:.2%}"
         )
 
-        event.muon.tel[tel_id] = MuonCameraContainer(
-            ring=ring, efficiency=result, parameters=parameters
+        event.muon.tel[tel_id] = MuonTelescopeContainer(
+            ring=ring, efficiency=efficiency, parameters=parameters
         )
 
     def _calculate_muon_parameters(
@@ -215,7 +210,7 @@ class MuonProcessor(TelescopeComponent):
             the fitted ring.
         """
         if np.isnan(ring.radius.value):
-            return MuonParametersContainer()
+            return INVALID_PARAMETERS
 
         geometry = self.geometries[tel_id]
         fov_radius = self.fov_radius[tel_id]

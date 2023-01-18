@@ -117,7 +117,7 @@ ShowerProcessor:
 # It is only run if DataWriter.write_muon_parameters=True.
 MuonProcessor:
   # Choose which events should be considered for muon analysis
-  DL1Query:
+  ImageParameterQuery:
     # quality critieria should be a list of pairs of [name, filter_expression]
     # The filter expression should contain the variable `p` which are the
     # image parameters.

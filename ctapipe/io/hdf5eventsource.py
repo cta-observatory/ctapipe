@@ -23,10 +23,10 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
-    MuonCameraContainer,
     MuonEfficiencyContainer,
     MuonParametersContainer,
     MuonRingContainer,
+    MuonTelescopeContainer,
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
@@ -665,7 +665,7 @@ class HDF5EventSource(EventSource):
 
                 if self.has_muon_parameters:
                     ring, parameters, efficiency = next(muon_readers[key])
-                    data.muon.tel[tel_id] = MuonCameraContainer(
+                    data.muon.tel[tel_id] = MuonTelescopeContainer(
                         ring=ring,
                         parameters=parameters,
                         efficiency=efficiency,
