@@ -1,6 +1,7 @@
 """
 Algorithms for the data volume reduction.
 """
+import weakref
 from abc import abstractmethod
 
 import numpy as np
@@ -162,7 +163,9 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
         if cleaner is None:
-            self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
+            self.cleaner = TailcutsImageCleaner(
+                parent=weakref.proxy(self), subarray=self.subarray
+            )
         else:
             self.cleaner = cleaner
 
@@ -170,7 +173,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         if image_extractor is None:
             for (_, _, name) in self.image_extractor_type:
                 self.image_extractors[name] = ImageExtractor.from_name(
-                    name, subarray=self.subarray, parent=self
+                    name, subarray=self.subarray, parent=weakref.proxy(self)
                 )
         else:
             name = image_extractor.__class__.__name__

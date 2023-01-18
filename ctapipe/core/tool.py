@@ -106,15 +106,15 @@ class Tool(Application):
                                  allow_none=False).tag(config=True)
 
             def setup(self):
-                self.comp = MyComponent(self, parent=self)
-                self.comp2 = SecondaryMyComponent(self, parent=self)
+                self.comp = MyComponent(self, parent=weakref.proxy(self))
+                self.comp2 = SecondaryMyComponent(self, parent=weakref.proxy(self))
 
                 # correct use of component that is a context manager
                 # using it like this makes sure __exit__ will be called
                 # at the end of Tool.run, even in case of exceptions
-                self.comp3 = self.enter_context(MyComponent(parent=self))
+                self.comp3 = self.enter_context(MyComponent(parent=weakref.proxy(self)))
 
-                self.advanced = AdvancedComponent(parent=self)
+                self.advanced = AdvancedComponent(parent=weakref.proxy(self))
 
             def start(self):
                 self.log.info("Performing {} iterations..."\
@@ -318,7 +318,7 @@ class Tool(Application):
         --------
         .. code-block:: python3
 
-            self.mycomp = self.add_component(MyComponent(parent=self))
+            self.mycomp = self.add_component(MyComponent(parent=weakref.proxy(self)))
 
         """
         self._registered_components.append(component_instance)

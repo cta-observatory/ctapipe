@@ -2,8 +2,8 @@
 Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
-
 import warnings
+import weakref
 
 import astropy.units as u
 import numpy as np
@@ -131,7 +131,7 @@ class CameraCalibrator(TelescopeComponent):
         if image_extractor is None:
             for (_, _, name) in self.image_extractor_type:
                 self.image_extractors[name] = ImageExtractor.from_name(
-                    name, subarray=self.subarray, parent=self
+                    name, subarray=self.subarray, parent=weakref.proxy(self)
                 )
         else:
             name = image_extractor.__class__.__name__
@@ -140,7 +140,9 @@ class CameraCalibrator(TelescopeComponent):
 
         if data_volume_reducer is None:
             self.data_volume_reducer = DataVolumeReducer.from_name(
-                self.data_volume_reducer_type, subarray=self.subarray, parent=self
+                self.data_volume_reducer_type,
+                subarray=self.subarray,
+                parent=weakref.proxy(self),
             )
         else:
             self.data_volume_reducer = data_volume_reducer
@@ -150,7 +152,7 @@ class CameraCalibrator(TelescopeComponent):
             self.invalid_pixel_handler = InvalidPixelHandler.from_name(
                 self.invalid_pixel_handler_type,
                 subarray=self.subarray,
-                parent=self,
+                parent=weakref.proxy(self),
             )
 
     def _check_r1_empty(self, waveforms):

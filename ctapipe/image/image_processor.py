@@ -1,6 +1,7 @@
 """
 High level image processing  (ImageProcessor Component)
 """
+import weakref
 from copy import deepcopy
 
 import numpy as np
@@ -99,11 +100,11 @@ class ImageProcessor(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.clean = ImageCleaner.from_name(
-            self.image_cleaner_type, subarray=subarray, parent=self
+            self.image_cleaner_type, subarray=subarray, parent=weakref.proxy(self)
         )
-        self.modify = ImageModifier(subarray=subarray, parent=self)
+        self.modify = ImageModifier(subarray=subarray, parent=weakref.proxy(self))
 
-        self.check_image = ImageQualityQuery(parent=self)
+        self.check_image = ImageQualityQuery(parent=weakref.proxy(self))
 
         self.default_image_container = DEFAULT_IMAGE_PARAMETERS_CAMFRAME
         if self.use_telescope_frame:

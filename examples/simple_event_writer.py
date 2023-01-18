@@ -6,6 +6,8 @@ process the events and apply pre-selection cuts to the images
 An HDF5 file is written with image MC and moment parameters
 (e.g. length, width, image amplitude, etc.).
 """
+import weakref
+
 from tqdm.auto import tqdm
 
 from ctapipe.calib import CameraCalibrator
@@ -42,13 +44,16 @@ class SimpleEventWriter(Tool):
         EventSource.input_url.default_value = get_dataset_path(
             "lst_prod3_calibration_and_mcphotons.simtel.zst"
         )
-        self.event_source = EventSource(parent=self)
+        self.event_source = EventSource(parent=weakref.proxy(self))
 
         self.calibrator = CameraCalibrator(
-            subarray=self.event_source.subarray, parent=self
+            subarray=self.event_source.subarray, parent=weakref.proxy(self)
         )
         self.writer = HDF5TableWriter(
-            filename=self.output, group_name="image_infos", overwrite=True, parent=self
+            filename=self.output,
+            group_name="image_infos",
+            overwrite=True,
+            parent=weakref.proxy(self),
         )
 
     def start(self):

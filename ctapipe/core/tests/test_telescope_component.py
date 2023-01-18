@@ -1,4 +1,5 @@
 import tempfile
+import weakref
 from unittest import mock
 
 import pytest
@@ -303,7 +304,9 @@ def test_telescope_parameter_from_cli(tmp_path, mock_subarray):
             classes = tool_classes
 
             def setup(self):
-                self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+                self.comp = SomeComponent(
+                    subarray=mock_subarray, parent=weakref.proxy(self)
+                )
 
         tool = TelescopeTool()
         assert run_tool(tool) == 0

@@ -6,6 +6,7 @@ automatically generated.
 """
 import os
 import pathlib
+import weakref
 
 from ctapipe.core import Provenance, Tool
 from ctapipe.core.traits import Enum, Path, Unicode
@@ -40,7 +41,7 @@ class DumpInstrumentTool(Tool):
     classes = [EventSource]
 
     def setup(self):
-        with EventSource(parent=self) as source:
+        with EventSource(parent=weakref.proxy(self)) as source:
             self.infile = source.input_url
             self.subarray = source.subarray
 

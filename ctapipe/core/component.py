@@ -125,7 +125,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         parent: Tool or Component
             If a Component is created by another Component or Tool,
             you need to pass the creating Component as parent, e.g.
-            `parent=self`. This makes sure the config is correctly
+            `parent=weakref.proxy(self)`. This makes sure the config is correctly
             handed down to the child components.
             Do not pass config in this case.
         kwargs
@@ -136,7 +136,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         if parent is not None and config is not None:
             raise ValueError(
                 "Only one of `config` or `parent` allowed"
-                " If you create a Component as part of another, give `parent=self`"
+                " If you create a Component as part of another, give `parent=weakref.proxy(self)`"
                 " and not `config`"
             )
 

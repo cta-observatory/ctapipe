@@ -1,6 +1,7 @@
 """
 Calibrate dl0 data to dl1, and plot the photoelectron images.
 """
+import weakref
 from contextlib import ExitStack
 from copy import copy
 
@@ -173,8 +174,10 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.enter_context(EventSource.from_config(parent=self))
-        self.quality_query = QualityQuery(parent=self)
+        self.eventsource = self.enter_context(
+            EventSource.from_config(parent=weakref.proxy(self))
+        )
+        self.quality_query = QualityQuery(parent=weakref.proxy(self))
 
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 
@@ -185,8 +188,12 @@ class DisplayDL1Calib(Tool):
             )
         subarray = self.eventsource.subarray
 
-        self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
-        self.plotter = self.enter_context(ImagePlotter(parent=self, subarray=subarray))
+        self.calibrator = CameraCalibrator(
+            parent=weakref.proxy(self), subarray=subarray
+        )
+        self.plotter = self.enter_context(
+            ImagePlotter(parent=weakref.proxy(self), subarray=subarray)
+        )
 
     def start(self):
         for event in self.eventsource:

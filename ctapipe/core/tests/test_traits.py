@@ -1,6 +1,7 @@
 import os
 import pathlib
 import tempfile
+import weakref
 from abc import ABCMeta, abstractmethod
 from unittest import mock
 
@@ -303,7 +304,7 @@ def test_component_name():
 
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.base = Base.from_name(self.base_name, parent=self)
+            self.base = Base.from_name(self.base_name, parent=weakref.proxy(self))
             self.base.stuff()
 
     class MyListComponent(Component):
@@ -319,7 +320,8 @@ def test_component_name():
 
             if self.base_names is not None:
                 self.bases = [
-                    Base.from_name(name, parent=self) for name in self.base_names
+                    Base.from_name(name, parent=weakref.proxy(self))
+                    for name in self.base_names
                 ]
 
             for base in self.bases:

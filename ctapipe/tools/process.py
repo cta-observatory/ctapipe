@@ -3,6 +3,7 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 # pylint: disable=W0201
 import sys
+import weakref
 
 from tqdm.auto import tqdm
 
@@ -160,7 +161,7 @@ class ProcessorTool(Tool):
     def setup(self):
 
         # setup components:
-        self.event_source = self.enter_context(EventSource(parent=self))
+        self.event_source = self.enter_context(EventSource(parent=weakref.proxy(self)))
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
@@ -174,12 +175,18 @@ class ProcessorTool(Tool):
             sys.exit(1)
 
         subarray = self.event_source.subarray
-        self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
-        self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
-        self.process_images = ImageProcessor(subarray=subarray, parent=self)
-        self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
+        self.software_trigger = SoftwareTrigger(
+            parent=weakref.proxy(self), subarray=subarray
+        )
+        self.calibrate = CameraCalibrator(parent=weakref.proxy(self), subarray=subarray)
+        self.process_images = ImageProcessor(
+            subarray=subarray, parent=weakref.proxy(self)
+        )
+        self.process_shower = ShowerProcessor(
+            subarray=subarray, parent=weakref.proxy(self)
+        )
         self.write = self.enter_context(
-            DataWriter(event_source=self.event_source, parent=self)
+            DataWriter(event_source=self.event_source, parent=weakref.proxy(self))
         )
 
         # add ml reco classes if model paths were supplied via cli and not already configured
@@ -195,14 +202,14 @@ class ProcessorTool(Tool):
                 )
                 reconstructor = Reconstructor.from_name(
                     name,
-                    parent=self.process_shower,
+                    parent=weakref.proxy(self).process_shower,
                     subarray=subarray,
                 )
                 self.process_shower.reconstructors.append(reconstructor)
                 self.process_shower.reconstructor_types.append(name)
                 self.write.write_showers = True
 
-        self.event_type_filter = EventTypeFilter(parent=self)
+        self.event_type_filter = EventTypeFilter(parent=weakref.proxy(self))
 
         # warn if max_events prevents writing the histograms
         if (

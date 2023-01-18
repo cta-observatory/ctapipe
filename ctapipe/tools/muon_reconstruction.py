@@ -1,3 +1,5 @@
+import weakref
+
 import numpy as np
 from astropy.coordinates import SkyCoord
 from tqdm.auto import tqdm
@@ -99,15 +101,19 @@ class MuonAnalysis(Tool):
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
 
-        self.source = EventSource(parent=self)
+        self.source = EventSource(parent=weakref.proxy(self))
         subarray = self.source.subarray
 
-        self.calib = CameraCalibrator(subarray=subarray, parent=self)
-        self.ring_fitter = MuonRingFitter(parent=self)
-        self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
-        self.cleaning = TailcutsImageCleaner(parent=self, subarray=subarray)
+        self.calib = CameraCalibrator(subarray=subarray, parent=weakref.proxy(self))
+        self.ring_fitter = MuonRingFitter(parent=weakref.proxy(self))
+        self.intensity_fitter = MuonIntensityFitter(
+            subarray=subarray, parent=weakref.proxy(self)
+        )
+        self.cleaning = TailcutsImageCleaner(
+            parent=weakref.proxy(self), subarray=subarray
+        )
         self.writer = HDF5TableWriter(
-            self.output, "", add_prefix=True, parent=self, mode="w"
+            self.output, "", add_prefix=True, parent=weakref.proxy(self), mode="w"
         )
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}

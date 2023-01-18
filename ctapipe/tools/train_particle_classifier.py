@@ -1,6 +1,8 @@
 """
 Tool for training the ParticleClassifier
 """
+import weakref
+
 import numpy as np
 from astropy.table import vstack
 
@@ -114,7 +116,7 @@ class TrainParticleClassifier(Tool):
         """
 
         self.signal_loader = TableLoader(
-            parent=self,
+            parent=weakref.proxy(self),
             input_url=self.input_url_signal,
             load_dl1_images=False,
             load_dl1_parameters=True,
@@ -124,7 +126,7 @@ class TrainParticleClassifier(Tool):
         )
 
         self.background_loader = TableLoader(
-            parent=self,
+            parent=weakref.proxy(self),
             input_url=self.input_url_background,
             load_dl1_images=False,
             load_dl1_parameters=True,
@@ -141,11 +143,11 @@ class TrainParticleClassifier(Tool):
 
         self.classifier = ParticleClassifier(
             subarray=self.signal_loader.subarray,
-            parent=self,
+            parent=weakref.proxy(self),
         )
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
-            parent=self, model_component=self.classifier
+            parent=weakref.proxy(self), model_component=self.classifier
         )
 
         if self.output_path.suffix != ".pkl":
