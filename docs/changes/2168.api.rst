@@ -8,7 +8,7 @@ Migrate muon analysis into the ``ctapipe-process`` tool:
    parameters so even if ``write_parameters`` is ``false`` and no parameters are present in the 
    ``EventSource`` those are computed. 
 
-3. Two instances of ``QualityQuery``, ``MuonProcessor.DL1Query`` and ``MuonProcessor.RingQuery`` 
+3. Two instances of ``QualityQuery``, ``MuonProcessor.ImageParameterQuery`` and ``MuonProcessor.RingQuery`` 
    are added to the muon analysis to either preselect images according to image parameters and 
    to select images according to the initial, geometrical ring fit for further processing. 
    Deselected events or those where the muon analysis fails are being returned and written 
