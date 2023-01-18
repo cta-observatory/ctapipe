@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import tempfile
-import weakref
 from pathlib import Path
 
 import pytest
@@ -114,7 +113,7 @@ def test_tool_html_rep(tmp_path):
         classes = [MyComponent]
 
         def setup(self):
-            self.comp = MyComponent(parent=weakref.proxy(self))
+            self.comp = MyComponent(parent=self)
 
         def start(self):
             pass
@@ -155,14 +154,14 @@ def test_tool_current_config_subcomponents():
 
         def __init__(self, config=None, parent=None):
             super().__init__(config=config, parent=parent)
-            self.sub = SubComponent(parent=weakref.proxy(self))
+            self.sub = SubComponent(parent=self)
 
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
         def setup(self):
-            self.my_comp = MyComponent(parent=weakref.proxy(self))
+            self.my_comp = MyComponent(parent=self)
 
     config = Config()
     config.MyTool.userparam = 2.0
@@ -218,7 +217,7 @@ def test_tool_command_line_precedence():
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):
-            self.sub = SubComponent(parent=weakref.proxy(self))
+            self.sub = SubComponent(parent=self)
 
     config = Config(
         {"MyTool": {"userparam": 12.0}, "SubComponent": {"component_param": 15.0}}

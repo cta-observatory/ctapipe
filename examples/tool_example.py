@@ -23,9 +23,7 @@ When the config attribute of an Application is updated, it will fire all of
 the trait's events for all of the config=True attributes.
 """
 
-import weakref
-
-from traitlets import Bool, Dict, Int, Unicode
+from traitlets import Bool, Unicode, Int, List, Dict
 
 from ctapipe.core import Component, Tool
 
@@ -44,13 +42,13 @@ class AComponent(Component):
 
 
 class BComponent(Component):
-    """Some Other Component"""
+    """ Some Other Component """
 
     enabled = Bool(True, help="Enable bar.").tag(config=True)
 
 
 class MyTool(Tool):
-    """My Tool"""
+    """ My Tool """
 
     name = Unicode("myapp")
     running = Bool(False, help="Is the app running?").tag(config=True)
@@ -76,29 +74,29 @@ class MyTool(Tool):
     )
 
     def init_a_component(self):
-        """setup the Foo component"""
+        """ setup the Foo component"""
         self.log.info("INIT FOO")
-        self.a_component = AComponent(parent=weakref.proxy(self))
+        self.a_component = AComponent(parent=self)
 
     def init_b_component(self):
-        """setup the Bar component"""
+        """ setup the Bar component"""
         self.log.info("INIT BAR")
-        self.b_component = BComponent(parent=weakref.proxy(self))
+        self.b_component = BComponent(parent=self)
 
     def setup(self):
-        """Setup all components and the tool"""
+        """ Setup all components and the tool"""
         self.init_a_component()
         self.init_b_component()
 
     def start(self):
-        """run the tool"""
+        """ run the tool"""
         self.log.info("app.config:")
         self.log.info("THE CONFIGURATION: %s", self.get_current_config())
         self.a_component()
 
 
 def main():
-    """run the app"""
+    """ run the app """
     tool = MyTool()
     tool.run()
 

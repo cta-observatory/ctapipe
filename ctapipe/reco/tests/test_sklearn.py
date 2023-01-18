@@ -1,5 +1,3 @@
-import weakref
-
 import astropy.units as u
 import numpy as np
 import pytest
@@ -214,7 +212,7 @@ def test_io_with_parent(example_table, tmp_path, example_subarray):
         def __init__(self, config):
             super().__init__(config=config)
             self.classifier = ParticleClassifier(
-                parent=weakref.proxy(self),
+                parent=self,
                 subarray=example_subarray,
             )
 

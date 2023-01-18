@@ -1,6 +1,5 @@
 import enum
 import warnings
-import weakref
 from contextlib import nullcontext
 from enum import Enum, auto, unique
 from gzip import GzipFile
@@ -521,7 +520,7 @@ class SimTelEventSource(EventSource):
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
-            self.gain_selector_type, parent=weakref.proxy(self)
+            self.gain_selector_type, parent=self
         )
 
         self._atmosphere_density_profile = read_atmosphere_profile_from_simtel(

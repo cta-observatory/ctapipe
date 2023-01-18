@@ -1,7 +1,7 @@
 """
 Factory for the estimation of the flat field coefficients
 """
-import weakref
+
 from abc import abstractmethod
 
 import numpy as np
@@ -122,7 +122,7 @@ class PedestalCalculator(Component):
 
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, parent=weakref.proxy(self), subarray=subarray
+            self.charge_product, parent=self, subarray=subarray
         )
         self.log.info(f"extractor {self.extractor}")
 

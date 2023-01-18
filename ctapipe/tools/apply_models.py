@@ -2,7 +2,6 @@
 Tool to apply machine learning models in bulk (as opposed to event by event).
 """
 import shutil
-import weakref
 
 import numpy as np
 import tables
@@ -123,7 +122,7 @@ class ApplyModels(Tool):
 
         self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))
         self.loader = TableLoader(
-            parent=weakref.proxy(self),
+            parent=self,
             h5file=self.h5file,
             load_dl1_parameters=True,
             load_dl2=True,
@@ -138,14 +137,14 @@ class ApplyModels(Tool):
             self._reconstructors.append(
                 EnergyRegressor.read(
                     self.energy_regressor_path,
-                    parent=weakref.proxy(self),
+                    parent=self,
                 )
             )
         if self.particle_classifier_path is not None:
             self._reconstructors.append(
                 ParticleClassifier.read(
                     self.particle_classifier_path,
-                    parent=weakref.proxy(self),
+                    parent=self,
                 )
             )
 

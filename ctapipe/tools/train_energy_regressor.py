@@ -1,8 +1,6 @@
 """
 Tool for training the EnergyRegressor
 """
-import weakref
-
 import numpy as np
 
 from ctapipe.core import Tool
@@ -87,7 +85,7 @@ class TrainEnergyRegressor(Tool):
         Initialize components from config
         """
         self.loader = TableLoader(
-            parent=weakref.proxy(self),
+            parent=self,
             load_dl1_images=False,
             load_dl1_parameters=True,
             load_dl2=True,
@@ -96,11 +94,9 @@ class TrainEnergyRegressor(Tool):
         )
         self.n_events.attach_subarray(self.loader.subarray)
 
-        self.regressor = EnergyRegressor(
-            self.loader.subarray, parent=weakref.proxy(self)
-        )
+        self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
         self.cross_validate = CrossValidator(
-            parent=weakref.proxy(self), model_component=self.regressor
+            parent=self, model_component=self.regressor
         )
         self.rng = np.random.default_rng(self.random_seed)
 

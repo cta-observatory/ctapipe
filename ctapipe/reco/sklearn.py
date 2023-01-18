@@ -2,7 +2,6 @@
 Component Wrappers around sklearn models
 """
 import pathlib
-import weakref
 from abc import abstractmethod
 from collections import defaultdict
 
@@ -129,8 +128,8 @@ class SKLearnReconstructor(Reconstructor):
 
             super().__init__(subarray, **kwargs)
             self.subarray = subarray
-            self.feature_generator = FeatureGenerator(parent=weakref.proxy(self))
-            self.quality_query = MLQualityQuery(parent=weakref.proxy(self))
+            self.feature_generator = FeatureGenerator(parent=self)
+            self.quality_query = MLQualityQuery(parent=self)
 
             # to verify settings
             self._new_model()
@@ -141,7 +140,7 @@ class SKLearnReconstructor(Reconstructor):
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
                 property=self.property,
-                parent=weakref.proxy(self),
+                parent=self,
             )
         else:
             loaded = self.read(self.load_path)

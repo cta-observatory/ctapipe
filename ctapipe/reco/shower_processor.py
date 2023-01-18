@@ -1,8 +1,6 @@
 """
 High level processing of showers.
 """
-import weakref
-
 from ..containers import ArrayEventContainer
 from ..core import Component
 from ..core.traits import ComponentNameList
@@ -67,7 +65,7 @@ class ShowerProcessor(Component):
             Reconstructor.from_name(
                 reco_type,
                 subarray=self.subarray,
-                parent=weakref.proxy(self),
+                parent=self,
             )
             for reco_type in self.reconstructor_types
         ]

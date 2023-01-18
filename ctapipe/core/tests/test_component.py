@@ -1,5 +1,4 @@
 import warnings
-import weakref
 from abc import ABC, abstractmethod
 
 import pytest
@@ -49,12 +48,12 @@ def test_get_config_from_hierarchy():
     class Middle(Component):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.bottom = Bottom(parent=weakref.proxy(self))
+            self.bottom = Bottom(parent=self)
 
     class Top(Component):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.middle = Middle(parent=weakref.proxy(self))
+            self.middle = Middle(parent=self)
 
     # test with root present
     c = Config({"Top": {"Middle": {"Bottom": {"val": 5}}}})
@@ -84,7 +83,7 @@ class ExampleComponent(Component):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sub = SubComponent(parent=weakref.proxy(self))
+        self.sub = SubComponent(parent=self)
 
 
 class ExampleSubclass1(ExampleComponent):
@@ -410,7 +409,7 @@ def test_full_config():
 
         def __init__(self, config=None, parent=None):
             super().__init__(config=config, parent=parent)
-            self.sub = SubComponent(parent=weakref.proxy(self))
+            self.sub = SubComponent(parent=self)
 
     comp = MyComponent()
     assert comp.get_current_config() == {
@@ -437,13 +436,13 @@ def test_logging_hierarchy():
     class Bar(Component):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.foo = Foo(parent=weakref.proxy(self))
+            self.foo = Foo(parent=self)
 
     class Baz(Tool):
         name = "baz"
 
         def setup(self):
-            self.bar = Bar(parent=weakref.proxy(self))
+            self.bar = Bar(parent=self)
 
         def start(self):
             pass

@@ -20,7 +20,6 @@ __all__ = [
 ]
 
 
-import weakref
 from abc import abstractmethod
 from functools import lru_cache
 from typing import Tuple
@@ -892,7 +891,7 @@ class TwoPassWindowSum(ImageExtractor):
             self.invalid_pixel_handler = InvalidPixelHandler.from_name(
                 self.invalid_pixel_handler_type,
                 self.subarray,
-                parent=weakref.proxy(self),
+                parent=self,
             )
 
     @lru_cache(maxsize=4096)

@@ -50,7 +50,7 @@ class EventSource(Component):
     An ``EventSource`` can also be created through the configuration system,
     by passing ``config`` or ``parent`` as appropriate.
     E.g. if using ``EventSource`` inside of a ``Tool``, you would do:
-    >>> self.source = EventSource(parent=weakref.proxy(self)) # doctest: +SKIP
+    >>> self.source = EventSource(parent=self) # doctest: +SKIP
 
     To loop through the events in a file:
     >>> source = EventSource(input_url="dataset://gamma_prod5.simtel.zst", max_events=2)

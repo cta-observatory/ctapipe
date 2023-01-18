@@ -3,8 +3,8 @@
 Class to write DL1 (a,b) and DL2 (a) data from an event stream
 """
 
+
 import pathlib
-import weakref
 from collections import defaultdict
 from typing import List
 
@@ -149,7 +149,7 @@ class DataWriter(Component):
 
     .. code-block:: python
 
-        with DataWriter(parent=weakref.proxy(self)) as write_data:
+        with DataWriter(parent=self) as write_data:
             for event in source:
                 calibrate(event)
                 process_images(event)
@@ -251,8 +251,8 @@ class DataWriter(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         self.event_source = event_source
-        self.contact_info = meta.Contact(parent=weakref.proxy(self))
-        self.instrument_info = meta.Instrument(parent=weakref.proxy(self))
+        self.contact_info = meta.Contact(parent=self)
+        self.instrument_info = meta.Instrument(parent=self)
 
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
@@ -411,7 +411,7 @@ class DataWriter(Component):
         """
         writer = HDF5TableWriter(
             str(self.output_path),
-            parent=weakref.proxy(self),
+            parent=self,
             mode="a",
             add_prefix=True,
             filters=self._hdf5_filters,

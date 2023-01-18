@@ -1,4 +1,3 @@
-import weakref
 from abc import abstractmethod
 
 import astropy.units as u
@@ -49,7 +48,7 @@ class Reconstructor(TelescopeComponent):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
-        self.quality_query = StereoQualityQuery(parent=weakref.proxy(self))
+        self.quality_query = StereoQualityQuery(parent=self)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):

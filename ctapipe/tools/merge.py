@@ -3,7 +3,6 @@ Merge DL1-files from ctapipe-process tool
 """
 import os
 import sys
-import weakref
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -522,7 +521,7 @@ class MergeTool(Tool):
         headers = reference.to_dict()
 
         with HDF5TableWriter(
-            self.output_path, parent=weakref.proxy(self), mode="a", add_prefix=True
+            self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
             meta.write_to_hdf5(headers, writer.h5file)
 
