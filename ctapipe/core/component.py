@@ -1,5 +1,6 @@
 """ Class to handle configuration for algorithms """
 import warnings
+import weakref
 from abc import ABCMeta
 from inspect import cleandoc, isabstract
 from logging import getLogger
@@ -155,6 +156,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         with warnings.catch_warnings():
             warnings.filterwarnings("error", message=".*Config option.*not recognized")
             try:
+                if parent is not None:
+                    parent = weakref.proxy(parent)
                 super().__init__(parent=parent, config=config, **kwargs)
             except UserWarning as e:
                 raise TraitError(e) from None
