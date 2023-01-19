@@ -40,6 +40,7 @@ General documentation
   :maxdepth: 1
   :glob:
 
+  getting_started_users/index
   getting_started/index
   development/index
   tutorials/index
