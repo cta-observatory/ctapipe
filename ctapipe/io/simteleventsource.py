@@ -828,7 +828,8 @@ class SimTelEventSource(EventSource):
 
                 adc_sums = telescope_event.get("adc_sums")
                 if adc_sums is not None:
-                    data.dl1.tel[tel_id].image = adc_sums
+                    image_hg = (adc_sums[0] - cam_mon["pedestal"][0]) * dc_to_pe[0]
+                    data.dl1.tel[tel_id].image = image_hg
 
             yield data
 

@@ -591,3 +591,15 @@ def test_float32_pihalf(sign):
     assert shower.alt.value == sign * np.pi / 2
     # check we cana create a Latitude:
     Latitude(shower.alt.value, u.rad)
+
+
+def test_adcsums():
+    from ctapipe.io import SimTelEventSource
+
+    path = "./gamma_HESS_example.simhess.gz"
+    with SimTelEventSource(path, focal_length_choice="EQUIVALENT") as source:
+        for event in source:
+            for tel_id, sim in event.simulation.tel.items():
+                assert np.isclose(
+                    sim.true_image_sum, event.dl1.tel[tel_id].image.sum(), rtol=0.25
+                )
