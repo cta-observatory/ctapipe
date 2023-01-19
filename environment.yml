@@ -19,7 +19,7 @@ dependencies:
   - joblib
   - jupyter
   - matplotlib
-  - numba
+  - numba=0.56
   - numpy>=1.17
   - numpydoc
   - pandas
