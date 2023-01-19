@@ -2,6 +2,7 @@
 Component Wrappers around sklearn models
 """
 import pathlib
+import weakref
 from abc import abstractmethod
 from collections import defaultdict
 
@@ -204,6 +205,8 @@ class SKLearnReconstructor(Reconstructor):
             instance = joblib.load(f)
 
         for attr, value in kwargs.items():
+            if attr == "parent":
+                value = weakref.proxy(value)
             setattr(instance, attr, value)
 
         if not isinstance(instance, cls):
