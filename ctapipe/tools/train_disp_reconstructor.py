@@ -1,36 +1,30 @@
-"""
-Tool for training the EnergyRegressor
-"""
+import astropy.units as u
 import numpy as np
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
 from ctapipe.io import TableLoader
-from ctapipe.reco import CrossValidator, EnergyRegressor
-from ctapipe.reco.preprocessing import check_valid_rows
-
-__all__ = [
-    "TrainEnergyRegressor",
-]
+from ctapipe.reco import CrossValidator, DispReconstructor
+from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
 
 
-class TrainEnergyRegressor(Tool):
+class TrainDispReconstructor(Tool):
     """
-    Tool to train a `~ctapipe.reco.EnergyRegressor` on dl1b/dl2 data.
+    Tool to train a `~ctapipe.reco.DispReconstructor` on dl1b/dl2 data.
 
     The tool first performs a cross validation to give an initial estimate
-    on the quality of the estimation and then finally trains one model
-    per telescope type on the full dataset.
+    on the quality of the estimation and then finally trains two models
+    (|disp| and sign(disp)) per telescope type on the full dataset.
     """
 
-    name = "ctapipe-train-energy-regressor"
+    name = "ctapipe-train-disp-reconstructor"
     description = __doc__
 
     examples = """
-    ctapipe-train-energy-regressor \\
-        --config train_energy_regressor.yaml \\
+    ctapipe-train-disp-reconstructor \\
+        --config train_disp_reconstructor.yaml \\
         --input gamma.dl2.h5 \\
-        --output energy_regressor.pkl
+        --output disp_models.pkl
     """
 
     output_path = Path(
@@ -38,8 +32,8 @@ class TrainEnergyRegressor(Tool):
         allow_none=False,
         directory_ok=False,
         help=(
-            "Output path for the trained reconstructor."
-            " At the moment, pickle is the only supported format."
+            "Ouput path for the trained reconstructor."
+            " At the moment, pickle is the only supported format.",
         ),
     ).tag(config=True)
 
@@ -47,7 +41,7 @@ class TrainEnergyRegressor(Tool):
         default_value=None,
         allow_none=True,
         help=(
-            "Number of events for training the model."
+            "Number of events for training the models."
             " If not given, all available events will be used."
         ),
     ).tag(config=True)
@@ -58,10 +52,20 @@ class TrainEnergyRegressor(Tool):
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
+    project_disp = Bool(
+        default_value=False,
+        help=(
+            "If true, true |disp| is the distance between shower cog and"
+            " the true source position along the reconstructed main shower axis."
+            "If false, true |disp| is the distance between shower cog"
+            " and the true source position."
+        ),
+    ).tag(config=True)
+
     flags = {
         **flag(
             "overwrite",
-            "TrainEnergyRegressor.overwrite",
+            "TrainDispReconstructor.overwrite",
             "Overwrite output existing output files",
             "Don't overwrite existing output files",
         ),
@@ -69,20 +73,16 @@ class TrainEnergyRegressor(Tool):
 
     aliases = {
         ("i", "input"): "TableLoader.input_url",
-        ("o", "output"): "TrainEnergyRegressor.output_path",
-        "n-events": "TrainEnergyRegressor.n_events",
+        ("o", "output"): "TrainDispReconstructor.output_path",
+        "n-events": "TrainDispReconstructor.n_events",
         "cv-output": "CrossValidator.output_path",
     }
 
-    classes = [
-        TableLoader,
-        EnergyRegressor,
-        CrossValidator,
-    ]
+    classes = [TableLoader, DispReconstructor, CrossValidator]
 
     def setup(self):
         """
-        Initialize components from config
+        Initialize components from config.
         """
         self.loader = TableLoader(
             parent=self,
@@ -91,13 +91,12 @@ class TrainEnergyRegressor(Tool):
             load_dl2=True,
             load_simulated=True,
             load_instrument=True,
+            load_observation_info=True,
         )
         self.n_events.attach_subarray(self.loader.subarray)
 
-        self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
-        self.cross_validate = CrossValidator(
-            parent=self, model_component=self.regressor
-        )
+        self.models = DispReconstructor(self.loader.subarray, parent=self)
+        self.cross_validate = CrossValidator(parent=self, model_component=self.models)
         self.rng = np.random.default_rng(self.random_seed)
 
         if self.output_path.suffix != ".pkl":
@@ -113,39 +112,42 @@ class TrainEnergyRegressor(Tool):
 
     def start(self):
         """
-        Train models per telescope type.
+        Train models per telescope type using a cross-validation.
         """
-
         types = self.loader.subarray.telescope_types
         self.log.info("Inputfile: %s", self.loader.input_url)
+
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
             table = self._read_table(tel_type)
 
-            self.log.info("Train on %s events", len(table))
+            self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.regressor.fit(tel_type, table)
+            self.models.fit(tel_type, table)
             self.log.info("done")
 
     def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
-
         self.log.info("Events read from input: %d", len(table))
-        mask = self.regressor.quality_query.get_table_mask(table)
+
+        mask = self.models.quality_query.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
 
-        table = self.regressor.feature_generator(table)
+        table = self.models.feature_generator(table)
 
-        feature_names = self.regressor.features + [self.regressor.target]
-        table = table[feature_names]
+        table[self.models.target] = self._get_true_disp(table)
+
+        # Add true energy for energy-dependent performance plots
+        columns = self.models.features + [self.models.target, "true_energy"]
+        table = table[columns]
 
         valid = check_valid_rows(table)
         if np.any(~valid):
-            self.log.warning("Dropping non-predictable events.")
+            self.log.warning("Dropping non-predicable events.")
             table = table[valid]
 
         n_events = self.n_events.tel[telescope_type]
@@ -164,19 +166,45 @@ class TrainEnergyRegressor(Tool):
 
         return table
 
+    def _get_true_disp(self, table):
+        fov_lon, fov_lat = horizontal_to_telescope(
+            alt=table["true_alt"],
+            az=table["true_az"],
+            pointing_alt=table["subarray_pointing_lat"],
+            pointing_az=table["subarray_pointing_lon"],
+        )
+
+        # numpy's trigonometric functions need radians
+        psi = table["hillas_psi"].quantity.to_value(u.rad)
+        cog_lon = table["hillas_fov_lon"].quantity
+        cog_lat = table["hillas_fov_lat"].quantity
+
+        delta_lon = fov_lon - cog_lon
+        delta_lat = fov_lat - cog_lat
+
+        true_disp = np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
+        true_sign = np.sign(true_disp)
+
+        if self.project_disp:
+            true_norm = np.abs(true_disp)
+        else:
+            true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
+
+        return true_norm * true_sign
+
     def finish(self):
         """
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        self.regressor.write(self.output_path, overwrite=self.overwrite)
+        self.models.write(self.output_path, overwrite=self.overwrite)
         if self.cross_validate.output_path:
             self.cross_validate.write(overwrite=self.overwrite)
         self.loader.close()
 
 
 def main():
-    TrainEnergyRegressor().run()
+    TrainDispReconstructor().run()
 
 
 if __name__ == "__main__":

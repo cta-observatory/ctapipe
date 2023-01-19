@@ -45,6 +45,7 @@ __all__ = [
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
+    "DispContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -754,6 +755,11 @@ class ReconstructedGeometryContainer(Container):
     alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
     az = Field(nan * u.deg, "reconstructed azimuth", unit=u.deg)
     az_uncert = Field(nan * u.deg, "reconstructed azimuth uncertainty", unit=u.deg)
+    ang_distance_uncert = Field(
+        nan * u.deg,
+        "uncertainty radius of reconstructed altitude-azimuth position",
+        unit=u.deg,
+    )
     core_x = Field(
         nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
     )
@@ -843,6 +849,17 @@ class ParticleClassificationContainer(Container):
     telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
+class DispContainer(Container):
+    """
+    Standard output of disp reconstruction algorithms for origin reconstruction
+    """
+
+    default_prefix = "disp_parameter"
+
+    norm = Field(nan * u.deg, "reconstructed value for disp", unit=u.deg)
+    is_valid = Field(False, "true if the predictions are valid")
+
+
 class ReconstructedContainer(Container):
     """Reconstructed shower info from multiple algorithms"""
 
@@ -874,6 +891,10 @@ class TelescopeReconstructedContainer(ReconstructedContainer):
     impact = Field(
         default_factory=partial(Map, TelescopeImpactParameterContainer),
         description="map of algorithm to impact parameter info",
+    )
+    disp = Field(
+        default_factory=partial(Map, DispContainer),
+        description="map of algorithm to reconstructed disp parameters",
     )
 
 

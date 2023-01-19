@@ -87,7 +87,7 @@ class TrainParticleClassifier(Tool):
     flags = {
         **flag(
             "overwrite",
-            "TrainEnergyRegressor.overwrite",
+            "TrainParticleClassifier.overwrite",
             "Overwrite output existing output files",
             "Don't overwrite existing output files",
         ),
@@ -189,7 +189,8 @@ class TrainParticleClassifier(Tool):
 
         table = self.classifier.feature_generator(table)
 
-        columns = self.classifier.features + [self.classifier.target]
+        # Add true energy for energy-dependent performance plots
+        columns = self.classifier.features + [self.classifier.target, "true_energy"]
         table = table[columns]
 
         valid = check_valid_rows(table)

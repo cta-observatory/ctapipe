@@ -76,6 +76,7 @@ class ProcessorTool(Tool):
         ("m", "max-events"): "EventSource.max_events",
         "energy-regressor": "ShowerProcessor.EnergyRegressor.load_path",
         "particle-classifier": "ShowerProcessor.ParticleClassifier.load_path",
+        "disp-reconstructor": "ShowerProcessor.DispReconstructor.load_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -186,6 +187,7 @@ class ProcessorTool(Tool):
         reco_aliases = {
             "--energy-regressor": "EnergyRegressor",
             "--particle-classifier": "ParticleClassifier",
+            "--disp-reconstructor": "DispReconstructor",
         }
         for alias, name in reco_aliases.items():
             has_alias = any(arg.startswith(alias) for arg in self.argv)
