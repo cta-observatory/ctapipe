@@ -149,11 +149,6 @@ class TrainParticleClassifier(Tool):
         if self.cross_validate.output_path:
             output_files.append(self.cross_validate.output_path)
         self.check_output(output_files)
-        if self.output_path.suffix != ".pkl":
-            self.log.warning(
-                "Expected .pkl extension for output_path, got %s",
-                self.output_path.suffix,
-            )
 
     def start(self):
         """

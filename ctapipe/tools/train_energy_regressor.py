@@ -95,11 +95,6 @@ class TrainEnergyRegressor(Tool):
             parent=self, model_component=self.regressor
         )
 
-        if self.output_path.suffix != ".pkl":
-            self.log.warning(
-                "Expected .pkl extension for output_path, got %s",
-                self.output_path.suffix,
-            )
         output_files = [
             self.output_path,
         ]
