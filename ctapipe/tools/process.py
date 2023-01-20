@@ -150,6 +150,7 @@ class ProcessorTool(Tool):
             CameraCalibrator,
             DataWriter,
             ImageProcessor,
+            MuonProcessor,
             ShowerProcessor,
             metadata.Instrument,
             metadata.Contact,
