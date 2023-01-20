@@ -13,6 +13,7 @@ from ctapipe.containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
+from ctapipe.reco.reconstructor import ReconstructionProperty
 from ctapipe.reco.stereo_combination import StereoMeanCombiner
 
 
@@ -66,7 +67,7 @@ def mono_table():
 def test_predict_mean_energy(weights, mono_table):
     combine = StereoMeanCombiner(
         prefix="dummy",
-        property="energy",
+        property=ReconstructionProperty.ENERGY,
         weights=weights,
     )
     stereo = combine.predict_table(mono_table)
@@ -93,7 +94,7 @@ def test_predict_mean_energy(weights, mono_table):
 def test_predict_mean_classification(mono_table):
     combine = StereoMeanCombiner(
         prefix="classifier",
-        property="classification",
+        property=ReconstructionProperty.PARTICLE_TYPE,
     )
     stereo = combine.predict_table(mono_table)
     assert stereo.colnames == [
@@ -119,7 +120,7 @@ def test_predict_mean_classification(mono_table):
 def test_predict_mean_disp(mono_table):
     combine = StereoMeanCombiner(
         prefix="disp",
-        property="geometry",
+        property=ReconstructionProperty.GEOMETRY,
     )
     stereo = combine.predict_table(mono_table)
 
@@ -204,17 +205,17 @@ def test_mean_prediction_single_event(weights):
 
     combine_energy = StereoMeanCombiner(
         prefix="dummy",
-        property="energy",
+        property=ReconstructionProperty.ENERGY,
         weights=weights,
     )
     combine_classification = StereoMeanCombiner(
         prefix="dummy",
-        property="classification",
+        property=ReconstructionProperty.PARTICLE_TYPE,
         weights=weights,
     )
     combine_geometry = StereoMeanCombiner(
         prefix="dummy",
-        property="geometry",
+        property=ReconstructionProperty.GEOMETRY,
         weights=weights,
     )
     combine_energy(event)
