@@ -54,8 +54,8 @@ To create a new command-line Tool, follow the following procedure:
 
 1. make a subclass of `ctapipe.core.Tool`
 2. define any user-configurable parameters of the tool
-3. register any configurable `ctapipe.core.Component` lasses
-   that you will use with the Tool via its ``classes`` attribute
+3. register *all* configurable `ctapipe.core.Component` classes
+   that you want to be configured via the the Tool via its ``classes`` attribute
 4. use the ``aliases`` attribute to promote any parameters from one of
    the sub-Components to a high-level a command-line parameter (they
    can still be specified using the advanced command-line command
