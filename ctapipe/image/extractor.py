@@ -350,7 +350,7 @@ def integration_correction(
 
     return correction
 
-def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_start, baseline_end, peak_index=None):
+def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_start, baseline_end, thr, peak_index=None):
     """
     Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
     
@@ -373,6 +373,8 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
         Sample where the baseline window starts
     baseline_end : int
         Sample where the baseline window ends
+    thr : int
+        Threshold to find the time over thr
 
     Returns
     -------
@@ -385,8 +387,8 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
     fall_time : list of int
         Fall time of the pulse
         Shape : (n_pix)
-    saturation_time : list of int
-        Number of samples with amplitude equal to the maximum of the pulse
+    time_over_thr : list of int
+        Number of samples with amplitude > thr
         Shape : (n_pix)
 
     """
@@ -408,7 +410,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
     fwhm = []
     rise_time = []
     fall_time = []
-    saturation_time = []
+    time_over_thr = []
 
     for i in range(0, n_wv):
         waveform = waveforms[i]
@@ -443,10 +445,10 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
         rise_time.append(max(indices_low, default=0)/upsampling - min(indices_low, default=0)/upsampling)
         fall_time.append(max(indices_high, default=0)/upsampling - min(indices_high, default=0)/upsampling)
 
-        between_ind = np.where(waveform > peak_amplitude*0.99)[0]  #count number of samples with amplitude roughly equal to maximum
-        saturation_time.append(max(between_ind, default=0) - min(between_ind, default=0))
+        between_ind = np.where(waveform > thr)[0]  #count number of samples with amplitude > thr
+        time_over_thr.append(max(between_ind, default=0) - min(between_ind, default=0))
 
-    return fwhm, rise_time, fall_time, saturation_time
+    return fwhm, rise_time, fall_time, time_over_thr
 
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
