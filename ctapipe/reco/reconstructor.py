@@ -1,4 +1,6 @@
 from abc import abstractmethod
+from enum import Enum
+from typing import Tuple
 
 import astropy.units as u
 import numpy as np
@@ -18,12 +20,32 @@ __all__ = [
 ]
 
 
+class ReconstructionProperty(str, Enum):
+    """
+    Primary particle properties estimated by a `Reconstructor`
+
+    The str values of this enum are used for data storage.
+    """
+
+    #: Energy if the primary particle
+    ENERGY = "energy"
+    #: Geometric properties of the primary particle,
+    #: direction and impact point
+    GEOMETRY = "geometry"
+    #: Prediction score that a particle belongs to a certain class
+    PARTICLE_TYPE = "classification"
+    #: Disp, distance of the source position from the Hillas COG along the main axis
+    DISP = "disp"
+
+
 class TooFewTelescopesException(Exception):
-    pass
+    """
+    Less valid telescope events than required in an array event.
+    """
 
 
 class InvalidWidthException(Exception):
-    pass
+    """Hillas width is 0 or nan"""
 
 
 class StereoQualityQuery(QualityQuery):
@@ -50,6 +72,10 @@ class Reconstructor(TelescopeComponent):
         super().__init__(subarray=subarray, **kwargs)
         self.quality_query = StereoQualityQuery(parent=self)
 
+    #: The properties this Reconstructor is able to predict
+    #: To be defined in subclasses
+    properties: Tuple[ReconstructionProperty] = NotImplemented
+
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
         """
@@ -71,6 +97,8 @@ class GeometryReconstructor(Reconstructor):
     """
     Base class for algorithms predicting only the shower geometry
     """
+
+    properties = (ReconstructionProperty.GEOMETRY,)
 
     def _create_hillas_dict(self, event):
         hillas_dict = {

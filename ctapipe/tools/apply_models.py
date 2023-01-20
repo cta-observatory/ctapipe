@@ -5,7 +5,7 @@ import shutil
 
 import numpy as np
 import tables
-from astropy.table.operations import hstack, vstack
+from astropy.table.operations import vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
@@ -170,7 +170,6 @@ class ApplyModels(Tool):
 
     def _apply(self, reconstructor):
         prefix = reconstructor.prefix
-        property = reconstructor.property
 
         desc = f"Applying {reconstructor.__class__.__name__}"
         unit = "chunk"
@@ -200,47 +199,22 @@ class ApplyModels(Tool):
                     [c for c in table.colnames if c.startswith(prefix)]
                 )
 
-                if isinstance(reconstructor, DispReconstructor):
-                    disp_predictions, altaz_predictions = reconstructor.predict_table(
-                        tel, table
-                    )
-                    table = hstack(
-                        [table, altaz_predictions, disp_predictions],
-                        join_type="exact",
-                        metadata_conflicts="ignore",
-                    )
-                    # tables should follow the container structure
-                    write_table(
-                        table[
-                            ["obs_id", "event_id", "tel_id"]
-                            + altaz_predictions.colnames
-                        ],
-                        self.output_path,
-                        f"/dl2/event/telescope/geometry/{prefix}/tel_{tel_id:03d}",
-                        append=True,
-                    )
-                    write_table(
-                        table[
-                            ["obs_id", "event_id", "tel_id"] + disp_predictions.colnames
-                        ],
-                        self.output_path,
-                        f"/dl2/event/telescope/disp/{prefix}/tel_{tel_id:03d}",
-                        append=True,
-                    )
-                else:
-                    predictions = reconstructor.predict_table(tel, table)
-                    table = hstack(
-                        [table, predictions],
-                        join_type="exact",
-                        metadata_conflicts="ignore",
-                    )
-                    write_table(
-                        table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
-                        self.output_path,
-                        f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
-                        append=True,
-                    )
+                predictions = reconstructor.predict_table(tel, table)
 
+                for prop, prediction_table in predictions.items():
+                    new_columns = prediction_table.colnames
+                    output_columns = ["obs_id", "event_id", "tel_id"] + new_columns
+
+                    # copy columns into full feature table
+                    for col in new_columns:
+                        table[col] = prediction_table[col]
+
+                    write_table(
+                        table[output_columns],
+                        self.output_path,
+                        f"/dl2/event/telescope/{prop}/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
                 tel_tables.append(table)
 
             if len(tel_tables) == 0:

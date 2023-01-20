@@ -5,7 +5,7 @@ import pathlib
 import weakref
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Tuple
+from typing import Dict
 
 import astropy.units as u
 import joblib
@@ -26,22 +26,10 @@ from ..containers import (
     ReconstructedGeometryContainer,
 )
 from ..coordinates import TelescopeFrame
-from ..core import Component, FeatureGenerator, Provenance, QualityQuery
-from ..core.traits import (
-    Bool,
-    ComponentName,
-    Dict,
-    Enum,
-    Int,
-    Integer,
-    List,
-    Path,
-    TraitError,
-    Unicode,
-)
+from ..core import Component, FeatureGenerator, Provenance, QualityQuery, traits
 from ..io import write_table
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
-from .reconstructor import Reconstructor
+from .reconstructor import ReconstructionProperty, Reconstructor
 from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
 
@@ -64,7 +52,7 @@ SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 class MLQualityQuery(QualityQuery):
     """Quality criteria for machine learning models with different defaults"""
 
-    quality_criteria = List(
+    quality_criteria = traits.List(
         default_value=[
             ("> 50 phe", "hillas_intensity > 50"),
             ("Positive width", "hillas_width > 0"),
@@ -85,29 +73,29 @@ class SKLearnReconstructor(Reconstructor):
     from a pickled file if the ``load_path`` traitlet is given.
     """
 
-    #: What particle property is being predicted, one of "energy", "geometry", "classification"
-    property = None
     #: Name of the target column in training table
-    target: str = None
+    target: str = ""
 
-    prefix = Unicode(
+    prefix = traits.Unicode(
         default_value=None,
         allow_none=True,
         help="Prefix for the output of this model. If None, ``model_cls`` is used.",
     ).tag(config=True)
-    features = List(Unicode(), help="Features to use for this model").tag(config=True)
-    model_config = Dict({}, help="kwargs for the sklearn model").tag(config=True)
-    model_cls = Enum(SUPPORTED_MODELS.keys(), default_value=None, allow_none=True).tag(
+    features = traits.List(traits.Unicode(), help="Features to use for this model").tag(
         config=True
     )
+    model_config = traits.Dict({}, help="kwargs for the sklearn model").tag(config=True)
+    model_cls = traits.Enum(
+        SUPPORTED_MODELS.keys(), default_value=None, allow_none=True
+    ).tag(config=True)
 
-    stereo_combiner_cls = ComponentName(
+    stereo_combiner_cls = traits.ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
         help="Which stereo combination method to use",
     ).tag(config=True)
 
-    load_path = Path(
+    load_path = traits.Path(
         default_value=None,
         allow_none=True,
         help="If given, load serialized model from this path",
@@ -120,7 +108,7 @@ class SKLearnReconstructor(Reconstructor):
 
         if self.load_path is None:
             if self.model_cls is None:
-                raise TraitError(
+                raise traits.TraitError(
                     "Must provide `model_cls` if not loading model from file"
                 )
 
@@ -145,7 +133,7 @@ class SKLearnReconstructor(Reconstructor):
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
-                property=self.property,
+                property=self.properties[0],
                 parent=self,
             )
         else:
@@ -262,14 +250,14 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
     Base class for regression tasks
     """
 
-    model_cls = Enum(
+    model_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
         allow_none=True,
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
-    log_target = Bool(
+    log_target = traits.Bool(
         default_value=False,
         help="If True, the model is trained to predict the natural logarithm.",
     ).tag(config=True)
@@ -318,18 +306,18 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     Base class for classification tasks
     """
 
-    model_cls = Enum(
+    model_cls = traits.Enum(
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
         allow_none=True,
         help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
-    invalid_class = Integer(
+    invalid_class = traits.Integer(
         default_value=-1, help="The label to fill in case no prediction could be made"
     ).tag(config=True)
 
-    positive_class = Integer(
+    positive_class = traits.Integer(
         default_value=1,
         help=(
             "The label value of the positive class in case of binary classification."
@@ -396,7 +384,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     #: Name of the target table column for training
     target = "true_energy"
-    property = "energy"
+    properties = (ReconstructionProperty.ENERGY,)
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -429,7 +417,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Table:
+    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
         table = self.feature_generator(table)
 
@@ -452,7 +440,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             prefix=self.prefix,
             stereo=False,
         )
-        return result
+        return {ReconstructionProperty.ENERGY: result}
 
 
 class ParticleClassifier(SKLearnClassificationReconstructor):
@@ -462,12 +450,13 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     #: Name of the target table column for training
     target = "true_shower_primary_id"
-    property = "classification"
 
-    positive_class = Integer(
+    positive_class = traits.Integer(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
+
+    properties = (ReconstructionProperty.PARTICLE_TYPE,)
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
@@ -495,7 +484,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Table:
+    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
         table = self.feature_generator(table)
 
@@ -515,7 +504,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         add_defaults_and_meta(
             result, ParticleClassificationContainer, prefix=self.prefix, stereo=False
         )
-        return result
+        return {ReconstructionProperty.PARTICLE_TYPE: result}
 
 
 class DispReconstructor(Reconstructor):
@@ -523,38 +512,45 @@ class DispReconstructor(Reconstructor):
     Predict absolute value and sign for disp origin reconstruction for each telescope.
     """
 
-    property = "geometry"
-    prefix = Unicode(default_value="disp", allow_none=False).tag(config=True)
-    features = List(Unicode(), help="Features to use for both models").tag(config=True)
     target = "true_norm"
-    log_target = Bool(
+    properties = (ReconstructionProperty.GEOMETRY, ReconstructionProperty.DISP)
+
+    prefix = traits.Unicode(default_value="disp", allow_none=False).tag(config=True)
+    features = traits.List(
+        traits.Unicode(), help="Features to use for both models"
+    ).tag(config=True)
+    log_target = traits.Bool(
         default_value=False,
         help="If True, the model is trained to predict the natural logarithm of the absolute value.",
     ).tag(config=True)
 
-    norm_config = Dict({}, help="kwargs for the sklearn regressor").tag(config=True)
-    norm_cls = Enum(
+    norm_config = traits.Dict({}, help="kwargs for the sklearn regressor").tag(
+        config=True
+    )
+    norm_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
         allow_none=True,
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
-    sign_config = Dict({}, help="kwargs for the sklearn classifier").tag(config=True)
-    sign_cls = Enum(
+    sign_config = traits.Dict({}, help="kwargs for the sklearn classifier").tag(
+        config=True
+    )
+    sign_cls = traits.Enum(
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
         allow_none=True,
         help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
-    stereo_combiner_cls = ComponentName(
+    stereo_combiner_cls = traits.ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
         help="Which stereo combination method to use",
     ).tag(config=True)
 
-    load_path = Path(
+    load_path = traits.Path(
         default_value=None,
         allow_none=True,
         help="If given, load serialized model from this path",
@@ -567,7 +563,7 @@ class DispReconstructor(Reconstructor):
 
         if self.load_path is None:
             if self.norm_cls is None or self.sign_cls is None:
-                raise TraitError(
+                raise traits.TraitError(
                     "Must provide `norm_cls` and `sign_cls` if not loading from file"
                 )
 
@@ -588,7 +584,7 @@ class DispReconstructor(Reconstructor):
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
-                property=self.property,
+                property=ReconstructionProperty.GEOMETRY,
                 parent=self,
             )
         else:
@@ -758,7 +754,7 @@ class DispReconstructor(Reconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Tuple[Table, Table]:
+    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events
 
         Parameters
@@ -823,7 +819,10 @@ class DispReconstructor(Reconstructor):
             stereo=False,
         )
 
-        return disp_result, altaz_result
+        return {
+            ReconstructionProperty.DISP: disp_result,
+            ReconstructionProperty.GEOMETRY: altaz_result,
+        }
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -835,9 +834,9 @@ class DispReconstructor(Reconstructor):
 class CrossValidator(Component):
     """Class to train sklearn based reconstructors in a cross validation"""
 
-    n_cross_validations = Int(5).tag(config=True)
+    n_cross_validations = traits.Int(5).tag(config=True)
 
-    output_path = Path(
+    output_path = traits.Path(
         default_value=None,
         allow_none=True,
         directory_ok=False,
@@ -849,9 +848,9 @@ class CrossValidator(Component):
         ),
     ).tag(config=True)
 
-    rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
-        config=True
-    )
+    rng_seed = traits.Int(
+        default_value=1337, help="Seed for the random number generator"
+    ).tag(config=True)
 
     def __init__(self, model_component, **kwargs):
         super().__init__(**kwargs)

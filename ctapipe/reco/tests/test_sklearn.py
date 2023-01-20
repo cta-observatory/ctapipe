@@ -8,6 +8,7 @@ from traitlets.config import Config
 
 from ctapipe.core import Component
 from ctapipe.reco import EnergyRegressor, ParticleClassifier
+from ctapipe.reco.reconstructor import ReconstructionProperty
 
 KEY = "LST_LST_LSTCam"
 
@@ -116,15 +117,17 @@ def test_regressor(model_cls, example_table, log_target, example_subarray):
     )
 
     regressor.fit(KEY, example_table)
-    table = regressor.predict_table(KEY, example_table)
-    prediction = table[f"{model_cls}_tel_energy"].quantity
+    prediction = regressor.predict_table(KEY, example_table)
+    table = prediction[ReconstructionProperty.ENERGY]
+    reco_energy = table[f"{model_cls}_tel_energy"].quantity
+
     valid = table[f"{model_cls}_tel_is_valid"]
-    assert prediction.shape == (100,)
-    assert prediction.unit == u.TeV
+    assert reco_energy.shape == (100,)
+    assert reco_energy.unit == u.TeV
     assert not valid[10]
     assert not valid[30]
-    assert np.isfinite(prediction[valid]).all()
-    assert np.isnan(prediction[~valid]).all()
+    assert np.isfinite(reco_energy[valid]).all()
+    assert np.isnan(reco_energy[~valid]).all()
 
     assert regressor.stereo_combiner.property == "energy"
     assert regressor.stereo_combiner.prefix == model_cls
@@ -143,21 +146,23 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
     )
     regressor.fit(KEY, example_table)
 
-    table = regressor.predict_table(KEY, example_table[[0]])
-    prediction = table[f"{model_cls}_tel_energy"].quantity
+    prediction = regressor.predict_table(KEY, example_table[[0]])
+    table = prediction[ReconstructionProperty.ENERGY]
+    reco_energy = table[f"{model_cls}_tel_energy"].quantity
     valid = table[f"{model_cls}_tel_is_valid"]
-    assert prediction.unit == u.TeV
-    assert prediction.shape == (1,)
+    assert reco_energy.unit == u.TeV
+    assert reco_energy.shape == (1,)
 
     # now test with a single invalid event
     invalid = example_table[[0]].copy()
     for col in filter(lambda col: col.startswith("X"), invalid.colnames):
         invalid[col][:] = np.nan
 
-    table = regressor.predict_table(KEY, invalid)
-    prediction = table[f"{model_cls}_tel_energy"].quantity
+    prediction = regressor.predict_table(KEY, invalid)
+    table = prediction[ReconstructionProperty.ENERGY]
+    reco_energy = table[f"{model_cls}_tel_energy"].quantity
     valid = table[f"{model_cls}_tel_is_valid"]
-    assert prediction.shape == (1,)
+    assert reco_energy.shape == (1,)
     assert valid[0] == False
 
 
@@ -194,7 +199,8 @@ def test_classifier(model_cls, example_table, example_subarray):
     valid = np.isfinite(score)
     assert_array_equal((score[valid] < 0.5).astype(int), prediction[valid])
 
-    result_table = classifier.predict_table(KEY, example_table)
+    result = classifier.predict_table(KEY, example_table)
+    result_table = result[ReconstructionProperty.PARTICLE_TYPE]
     score = result_table[f"{model_cls}_tel_prediction"].quantity
     valid = result_table[f"{model_cls}_tel_is_valid"]
     assert score.shape == (100,)
