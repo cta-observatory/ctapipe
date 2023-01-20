@@ -12,7 +12,7 @@ from traitlets import List
 
 from ctapipe.utils.arrays import recarray_drop_columns
 
-from ..core import Provenance, Tool, ToolConfigurationError, traits
+from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, CInt, Set, Unicode, flag
 from ..instrument import SubarrayDescription
 from ..io import HDF5EventSource, HDF5TableWriter, get_hdf5_datalevels
@@ -129,7 +129,7 @@ class MergeTool(Tool):
         help="Input dl1-files",
     ).tag(config=True)
     output_path = traits.Path(
-        help="Merged-DL1 output filename", directory_ok=False
+        help="Merged-DL1 output filename", directory_ok=False, allow_none=False
     ).tag(config=True)
     skip_images = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
@@ -145,9 +145,6 @@ class MergeTool(Tool):
     ).tag(config=True)
     skip_broken_files = Bool(
         help="Skip broken files instead of raising an error", default_value=False
-    ).tag(config=True)
-    overwrite = Bool(
-        help="Overwrite output file if it exists", default_value=False
     ).tag(config=True)
     progress_bar = Bool(
         help="Show progress bar during processing", default_value=False
@@ -220,13 +217,11 @@ class MergeTool(Tool):
             sys.exit(1)
 
         self.output_path = self.output_path.expanduser()
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.output_path} exists, but overwrite=False"
-                )
+        self.check_output(
+            [
+                self.output_path,
+            ]
+        )
 
         PROV.add_output_file(str(self.output_path))
 

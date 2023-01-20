@@ -3,8 +3,8 @@ Tool for training the EnergyRegressor
 """
 import numpy as np
 
-from ctapipe.core import Tool, ToolConfigurationError
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, flag
+from ctapipe.core import Tool
+from ctapipe.core.traits import Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, EnergyRegressor
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -52,18 +52,14 @@ class TrainEnergyRegressor(Tool):
         ),
     ).tag(config=True)
 
-    overwrite = Bool(help="overwrite existing output files").tag(config=True)
-
     random_seed = Int(
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
     flags = {
-        **flag(
-            "overwrite",
-            "TrainEnergyRegressor.overwrite",
-            "Overwrite output existing output files",
-            "Don't overwrite existing output files",
+        "overwrite": (
+            {"ApplyModels": {"overwrite": True}, "CrossValidator": {"overwrite": True}},
+            "Overwrite output file if it exists",
         ),
     }
 
@@ -98,21 +94,19 @@ class TrainEnergyRegressor(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.regressor
         )
+
+        if self.output_path.suffix != ".pkl":
+            self.log.warning(
+                "Expected .pkl extension for output_path, got %s",
+                self.output_path.suffix,
+            )
+        output_files = [
+            self.output_path,
+        ]
+        if self.cross_validate.output_path:
+            output_files.append(self.cross_validate.output_path)
+        self.check_output(output_files)
         self.rng = np.random.default_rng(self.random_seed)
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.output_path} exists, but overwrite=False"
-                )
-        if self.cross_validate.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.cross_validate.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.cross_validate.output_path} exists, but overwrite=False"
-                )
 
     def start(self):
         """

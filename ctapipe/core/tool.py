@@ -174,6 +174,7 @@ class Tool(Application):
     ).tag(config=True)
 
     quiet = Bool(default_value=False).tag(config=True)
+    overwrite = Bool(default_value=False).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -323,6 +324,26 @@ class Tool(Application):
         """
         self._registered_components.append(component_instance)
         return component_instance
+
+    def check_output(self, output_paths):
+        """
+        Test if output files exist and if they do, throw an error
+        unless `self.overwrite` is set to True.
+        This should be checked during tool setup to avoid having a tool only
+        realize the output can not be written after some long-running calculations
+        (e.g. training of ML-models).
+        Because we currently do not collect all created output files in the tool
+        (they can be attached to some component), the output files need
+        to be given and can not easily be derived from `self`.
+        """
+        for output in output_paths:
+            if output.exists():
+                if self.overwrite:
+                    self.log.warning(f"Overwriting {output}")
+                else:
+                    raise ToolConfigurationError(
+                        f"Output path {output} exists, but overwrite=False"
+                    )
 
     @abstractmethod
     def setup(self):

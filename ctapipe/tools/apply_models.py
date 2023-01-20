@@ -8,8 +8,8 @@ import tables
 from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
-from ctapipe.core.tool import Tool, ToolConfigurationError
-from ctapipe.core.traits import Bool, Integer, Path, flag
+from ctapipe.core.tool import Tool
+from ctapipe.core.traits import Integer, Path, flag
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
@@ -47,8 +47,6 @@ class ApplyModels(Tool):
         --particle-classifier particle-classifier.pkl \\
         --output gamma_applied.dl2.h5
     """
-
-    overwrite = Bool(default_value=False).tag(config=True)
 
     input_url = Path(
         default_value=None,
@@ -125,15 +123,12 @@ class ApplyModels(Tool):
         """
         Initialize components from config
         """
+        self.check_output(
+            [
+                self.output_path,
+            ]
+        )
         self.log.info("Copying to output destination.")
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.output_path} exists, but overwrite=False"
-                )
-
         shutil.copy(self.input_url, self.output_path)
 
         self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))

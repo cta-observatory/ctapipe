@@ -4,8 +4,8 @@ Tool for training the ParticleClassifier
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.core.tool import Tool, ToolConfigurationError
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, flag
+from ctapipe.core.tool import Tool
+from ctapipe.core.traits import Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -77,19 +77,15 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
-    overwrite = Bool(help="overwrite existing output files").tag(config=True)
-
     random_seed = Int(
         default_value=0,
         help="Random number seed for sampling and the cross validation splitting",
     ).tag(config=True)
 
     flags = {
-        **flag(
-            "overwrite",
-            "TrainParticleClassifier.overwrite",
-            "Overwrite output existing output files",
-            "Don't overwrite existing output files",
+        "overwrite": (
+            {"ApplyModels": {"overwrite": True}, "CrossValidator": {"overwrite": True}},
+            "Overwrite output file if it exists",
         ),
     }
 
@@ -147,21 +143,12 @@ class TrainParticleClassifier(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
         )
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.output_path} exists, but overwrite=False"
-                )
-        if self.cross_validate.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.cross_validate.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.cross_validate.output_path} exists, but overwrite=False"
-                )
-
+        output_files = [
+            self.output_path,
+        ]
+        if self.cross_validate.output_path:
+            output_files.append(self.cross_validate.output_path)
+        self.check_output(output_files)
         if self.output_path.suffix != ".pkl":
             self.log.warning(
                 "Expected .pkl extension for output_path, got %s",
