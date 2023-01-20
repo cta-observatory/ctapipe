@@ -335,6 +335,12 @@ class Tool(Application):
         Because we currently do not collect all created output files in the tool
         (they can be attached to some component), the output files need
         to be given and can not easily be derived from `self`.
+
+        Parameters
+        ----------
+        output_paths: Path
+            One or more output path to check.
+
         """
         for output in output_paths:
             if output is not None and output.exists():
