@@ -69,7 +69,7 @@ class MuonProcessor(TelescopeComponent):
 
     ratio_width = FloatTelescopeParameter(
         default_value=1.5,
-        help=("Ring width for intensity ratio computation in units of pixel diameter"),
+        help="Ring width for intensity ratio computation in units of pixel diameter",
     ).tag(config=True)
 
     pedestal = FloatTelescopeParameter(
