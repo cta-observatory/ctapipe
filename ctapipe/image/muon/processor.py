@@ -24,6 +24,8 @@ from .ring_fitter import MuonRingFitter
 INVALID = MuonTelescopeContainer()
 INVALID_PARAMETERS = MuonParametersContainer()
 
+__all__ = ["MuonProcessor"]
+
 
 class ImageParameterQuery(QualityQuery):
     """
