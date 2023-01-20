@@ -328,13 +328,13 @@ class Tool(Application):
     def check_output(self, *output_paths):
         """
         Test if output files exist and if they do, throw an error
-        unless `self.overwrite` is set to True.
+        unless ``self.overwrite`` is set to True.
         This should be checked during tool setup to avoid having a tool only
         realize the output can not be written after some long-running calculations
         (e.g. training of ML-models).
         Because we currently do not collect all created output files in the tool
         (they can be attached to some component), the output files need
-        to be given and can not easily be derived from `self`.
+        to be given and can not easily be derived from ``self``.
 
         Parameters
         ----------
