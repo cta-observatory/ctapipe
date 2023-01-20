@@ -2,7 +2,7 @@ import astropy.units as u
 import numpy as np
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
+from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
@@ -46,8 +46,6 @@ class TrainDispReconstructor(Tool):
         ),
     ).tag(config=True)
 
-    overwrite = Bool(help="overwrite existing output files").tag(config=True)
-
     random_seed = Int(
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
@@ -63,11 +61,9 @@ class TrainDispReconstructor(Tool):
     ).tag(config=True)
 
     flags = {
-        **flag(
-            "overwrite",
-            "TrainDispReconstructor.overwrite",
-            "Overwrite output existing output files",
-            "Don't overwrite existing output files",
+        "overwrite": (
+            {"ApplyModels": {"overwrite": True}, "CrossValidator": {"overwrite": True}},
+            "Overwrite existing output",
         ),
     }
 
@@ -99,16 +95,12 @@ class TrainDispReconstructor(Tool):
         self.cross_validate = CrossValidator(parent=self, model_component=self.models)
         self.rng = np.random.default_rng(self.random_seed)
 
-        if self.output_path.suffix != ".pkl":
-            self.log.warning(
-                "Expected .pkl extension for output_path, got %s",
-                self.output_path.suffix,
-            )
-
-        if self.output_path.exists() and not self.overwrite:
-            raise TraitError(
-                f"output_path '{self.output_path}' exists and overwrite=False"
-            )
+        output_files = [
+            self.output_path,
+        ]
+        if self.cross_validate.output_path:
+            output_files.append(self.cross_validate.output_path)
+        self.check_output(output_files)
 
     def start(self):
         """
