@@ -38,8 +38,8 @@ class DumpTriggersTool(Tool):
 
     aliases = Dict(
         {
-            "input_path": "DumpTriggersTool.input_path",
-            "output_path": "DumpTriggersTool.output_path",
+            "input": "DumpTriggersTool.input_path",
+            "output": "DumpTriggersTool.output_path",
         }
     )
 
@@ -53,8 +53,8 @@ class DumpTriggersTool(Tool):
     }
 
     examples = (
-        "ctapipe-dump-triggers --input_path gamma.simtel.gz "
-        "--output_path trig.fits --overwrite"
+        "ctapipe-dump-triggers --input gamma.simtel.gz "
+        "--output trig.fits --overwrite"
         "\n\n"
         "If you want to see more output, use --log_level=DEBUG"
     )
