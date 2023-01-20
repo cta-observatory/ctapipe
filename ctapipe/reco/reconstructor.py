@@ -1,13 +1,15 @@
+import weakref
 from abc import abstractmethod
 from enum import Enum
 from typing import Tuple
 
 import astropy.units as u
+import joblib
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ctapipe.core import QualityQuery, TelescopeComponent
+from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
 from ctapipe.core.traits import List
 
 from ..coordinates import shower_impact_distance
@@ -92,6 +94,24 @@ class Reconstructor(TelescopeComponent):
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
         """
+
+    @classmethod
+    def read(cls, path, **kwargs):
+        with open(path, "rb") as f:
+            instance = joblib.load(f)
+
+        for attr, value in kwargs.items():
+            if attr == "parent":
+                value = weakref.proxy(value)
+            setattr(instance, attr, value)
+
+        if not isinstance(instance, cls):
+            raise TypeError(
+                f"{path} did not contain an instance of {cls}, got {instance}"
+            )
+
+        Provenance().add_input_file(path, role="reconstructor")
+        return instance
 
 
 class GeometryReconstructor(Reconstructor):

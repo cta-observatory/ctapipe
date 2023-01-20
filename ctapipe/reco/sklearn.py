@@ -2,7 +2,6 @@
 Component Wrappers around sklearn models
 """
 import pathlib
-import weakref
 from abc import abstractmethod
 from collections import defaultdict
 from typing import Dict
@@ -191,24 +190,6 @@ class SKLearnReconstructor(Reconstructor):
         with path.open("wb") as f:
             Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
-
-    @classmethod
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            if attr == "parent":
-                value = weakref.proxy(value)
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        Provenance().add_input_file(path, role="ml-model")
-        return instance
 
     @lazyproperty
     def instrument_table(self):

@@ -9,7 +9,7 @@ from astropy.table.operations import vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Integer, Path
+from ctapipe.core.traits import Integer, List, Path
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
@@ -20,6 +20,7 @@ from ctapipe.reco import (
     ParticleClassifier,
     StereoCombiner,
 )
+from ctapipe.reco.reconstructor import Reconstructor
 
 __all__ = [
     "ApplyModels",
@@ -63,28 +64,10 @@ class ApplyModels(Tool):
         help="Output file",
     ).tag(config=True)
 
-    energy_regressor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained EnergyRegressor",
-    ).tag(config=True)
-
-    particle_classifier_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained ParticleClassifier",
-    ).tag(config=True)
-
-    disp_reconstructor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained DispReconstructor",
+    reconstructor_paths = List(
+        Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="Paths to trained reconstructors to be applied to the input data",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -95,9 +78,7 @@ class ApplyModels(Tool):
 
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
-        "energy-regressor": "ApplyModels.energy_regressor_path",
-        "particle-classifier": "ApplyModels.particle_classifier_path",
-        "disp-reconstructor": "ApplyModels.disp_reconstructor_path",
+        ("r", "reconstructor"): "ApplyModels.reconstructor_paths",
         ("o", "output"): "ApplyModels.output_path",
         "chunk-size": "ApplyModels.chunk_size",
     }
@@ -130,29 +111,9 @@ class ApplyModels(Tool):
             load_observation_info=True,
         )
 
-        self._reconstructors = []
-
-        if self.energy_regressor_path is not None:
-            self._reconstructors.append(
-                EnergyRegressor.read(
-                    self.energy_regressor_path,
-                    parent=self,
-                )
-            )
-        if self.particle_classifier_path is not None:
-            self._reconstructors.append(
-                ParticleClassifier.read(
-                    self.particle_classifier_path,
-                    parent=self,
-                )
-            )
-        if self.disp_reconstructor_path is not None:
-            self._reconstructors.append(
-                DispReconstructor.read(
-                    self.disp_reconstructor_path,
-                    parent=self,
-                )
-            )
+        self._reconstructors = [
+            Reconstructor.read(path) for path in self.reconstructor_paths
+        ]
 
     def start(self):
         """Apply models to input tables"""
