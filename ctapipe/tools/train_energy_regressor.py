@@ -94,14 +94,7 @@ class TrainEnergyRegressor(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.regressor
         )
-
-        output_files = [
-            self.output_path,
-        ]
-        if self.cross_validate.output_path:
-            output_files.append(self.cross_validate.output_path)
-        self.check_output(output_files)
-        self.rng = np.random.default_rng(self.random_seed)
+        self.check_output(self.output_path, self.cross_validate.output_path)
 
     def start(self):
         """

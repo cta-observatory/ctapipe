@@ -123,11 +123,7 @@ class ApplyModels(Tool):
         """
         Initialize components from config
         """
-        self.check_output(
-            [
-                self.output_path,
-            ]
-        )
+        self.check_output(self.output_path)
         self.log.info("Copying to output destination.")
         shutil.copy(self.input_url, self.output_path)
 

@@ -217,11 +217,7 @@ class MergeTool(Tool):
             sys.exit(1)
 
         self.output_path = self.output_path.expanduser()
-        self.check_output(
-            [
-                self.output_path,
-            ]
-        )
+        self.check_output(self.output_path)
 
         PROV.add_output_file(str(self.output_path))
 

@@ -86,11 +86,7 @@ class MuonAnalysis(Tool):
     }
 
     def setup(self):
-        self.check_output(
-            [
-                self.output,
-            ]
-        )
+        self.check_output(self.output)
         self.source = EventSource(parent=self)
         subarray = self.source.subarray
 

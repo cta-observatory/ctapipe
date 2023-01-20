@@ -7,8 +7,8 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ..core import Provenance, Tool, ToolConfigurationError
-from ..core.traits import Bool, Dict, Path, Unicode, flag
+from ..core import Provenance, Tool
+from ..core.traits import Dict, Path, Unicode, flag
 from ..io import EventSource
 
 MAX_TELS = 1000
@@ -31,8 +31,6 @@ class DumpTriggersTool(Tool):
         directory_ok=False,
         help="output filename (*.fits, *.h5)",
     ).tag(config=True)
-
-    overwrite = Bool(False, help="overwrite existing output file").tag(config=True)
 
     # =============================================
     # map low-level options to high-level command-line options
@@ -103,14 +101,7 @@ class DumpTriggersTool(Tool):
     def setup(self):
         """setup function, called before `start()`"""
 
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-            else:
-                raise ToolConfigurationError(
-                    f"Output path {self.output_path} exists, but overwrite=False"
-                )
-
+        self.check_output(self.output_path)
         self.events = Table(
             names=["EVENT_ID", "T_REL", "DELTA_T", "N_TRIG", "TRIGGERED_TELS"],
             dtype=[np.int64, np.float64, np.float64, np.int32, np.uint8],

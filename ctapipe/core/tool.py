@@ -325,7 +325,7 @@ class Tool(Application):
         self._registered_components.append(component_instance)
         return component_instance
 
-    def check_output(self, output_paths):
+    def check_output(self, *output_paths):
         """
         Test if output files exist and if they do, throw an error
         unless `self.overwrite` is set to True.
@@ -337,7 +337,7 @@ class Tool(Application):
         to be given and can not easily be derived from `self`.
         """
         for output in output_paths:
-            if output.exists():
+            if output is not None and output.exists():
                 if self.overwrite:
                     self.log.warning(f"Overwriting {output}")
                 else:
