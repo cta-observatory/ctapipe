@@ -17,6 +17,7 @@ __all__ = [
     "GeometryReconstructor",
     "TooFewTelescopesException",
     "InvalidWidthException",
+    "ReconstructionProperty",
 ]
 
 
