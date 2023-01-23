@@ -70,6 +70,10 @@ class GroundFrame(BaseCoordinateFrame):
     reference_location = EarthLocationAttribute()
 
     def to_earth_location(self):
+        """Convert this GroundFrame coordinate into an `astropy.coordinates.EarthLocation`
+
+        This requires that the ``reference_location`` is set.
+        """
         # in astropy, x points north, y points east, so we need a minus for y.
         cart = CartesianRepresentation(self.x, -self.y, self.z)
         altaz = AltAz(cart, location=self.reference_location)
@@ -77,6 +81,21 @@ class GroundFrame(BaseCoordinateFrame):
 
     @classmethod
     def from_earth_location(cls, location, reference_location):
+        """
+        Convert `~astropy.coordinates.EarthLocation` into Groundframe.
+
+        Parameters
+        ----------
+        location : astropy.coordinates.EarthLocation
+            The location to convert
+        reference_location : astropy.coordinates.EarthLocation
+            Reference location for the GroundFrame
+
+        Returns
+        -------
+        ground_frame : GroundFrame
+            EarthLocation converted to GroundFrame
+        """
         altaz = _earthlocation_to_altaz(location, reference_location)
         x, y, z = altaz.cartesian.xyz
         # in astropy, x points north, y points east, so we need a minus for y.
@@ -84,6 +103,7 @@ class GroundFrame(BaseCoordinateFrame):
 
     @property
     def observation_level(self):
+        """Height of the reference location"""
         return self.reference_location.height
 
 
