@@ -33,7 +33,7 @@ def get_parser(function=None, description="N/A"):
 def get_installed_tools():
     """Get list of installed scripts via ``pkg-resources``.
 
-    See http://peak.telecommunity.com/DevCenter/PkgResources#convenience-api
+    See https://setuptools.pypa.io/en/latest/pkg_resources.html#convenience-api
 
     TODO: not sure if this will be useful ... maybe to check if the list
     of installed packages matches the available scripts somehow?

@@ -271,7 +271,7 @@ intersphinx_mapping = {
     "pytables": ("http://www.pytables.org/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
-    "cython": ("http://docs.cython.org/en/latest/", None),
+    "cython": ("https://docs.cython.org/en/latest/", None),
     "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }

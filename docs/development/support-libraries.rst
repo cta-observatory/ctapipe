@@ -20,13 +20,13 @@ Math/Stats
 ==========
 
 A large variety of advanced math and statistcs functions can be found
-in the `numpy <http://www.numpy.org>`_  (data structures and numerics
-)and `scipy <http://www.scipy.org>`_ packages (advanced mathematics).
+in the `numpy <https://www.numpy.org>`_  (data structures and numerics
+)and `scipy <https://www.scipy.org>`_ packages (advanced mathematics).
 
-* NumPy user guide : http://docs.scipy.org/doc/numpy/user/  (more high-level)
-* NumPy reference  : http://docs.scipy.org/doc/numpy/reference/
-* SciPy user guide : http://docs.scipy.org/doc/scipy/reference/
-* SciPy reference : http://docs.scipy.org/doc/scipy/reference/index.html
+* NumPy user guide : https://docs.scipy.org/doc/numpy/user/  (more high-level)
+* NumPy reference  : https://docs.scipy.org/doc/numpy/reference/
+* SciPy user guide : https://docs.scipy.org/doc/scipy/reference/
+* SciPy reference : https://docs.scipy.org/doc/scipy/reference/index.html
 
 Specific functionality:
 
@@ -46,7 +46,7 @@ which provide c-like speeds.
 Multivariate Analysis and Machine Learning
 ==========================================
 
-`SciKit-Learn <http://scikit-learn.org>`_, an extension of SciPy, provides
+`SciKit-Learn <https://scikit-learn.org>`_, an extension of SciPy, provides
 very friendly and well-documented interface to a wide variety of MVA
 techniques, both for classification and regression.
 
@@ -63,7 +63,7 @@ techniques, both for classification and regression.
 Astronomical Calculations
 =========================
 
-`AstroPy <http://astropy.org>`_ is the accepted package for all
+`AstroPy <https://astropy.org>`_ is the accepted package for all
 astronomical calculations. Specifically:
 
 * ``astropy.coordinates``: coordinate transforms and frames

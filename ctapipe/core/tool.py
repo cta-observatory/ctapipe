@@ -368,7 +368,7 @@ class Tool(Application):
         """
 
         # return codes are taken from:
-        #  http://tldp.org/LDP/abs/html/exitcodes.html
+        #  https://tldp.org/LDP/abs/html/exitcodes.html
 
         exit_status = 0
 

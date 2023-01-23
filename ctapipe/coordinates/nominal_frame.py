@@ -1,6 +1,6 @@
 """
 The code in this module is basically a copy of
-http://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/skyoffset.html
+https://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/skyoffset.html
 
 We are just not creating a metaclass and a factory but directly building the
 corresponding class.
