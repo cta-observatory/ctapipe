@@ -20,12 +20,12 @@ Math/Stats
 ==========
 
 A large variety of advanced math and statistcs functions can be found
-in the `numpy <https://www.numpy.org>`_  (data structures and numerics
-)and `scipy <https://www.scipy.org>`_ packages (advanced mathematics).
+in the `numpy <https://www.numpy.org>`_ (data structures and numerics)
+and `scipy <https://www.scipy.org>`_ packages (advanced mathematics).
 
-* NumPy user guide : https://docs.scipy.org/doc/numpy/user/  (more high-level)
+* NumPy user guide : https://docs.scipy.org/doc/numpy/user/ (more high-level)
 * NumPy reference  : https://docs.scipy.org/doc/numpy/reference/
-* SciPy user guide : https://docs.scipy.org/doc/scipy/reference/
+* SciPy user guide : https://docs.scipy.org/doc/scipy/tutorial/index.html
 * SciPy reference : https://docs.scipy.org/doc/scipy/reference/index.html
 
 Specific functionality:
