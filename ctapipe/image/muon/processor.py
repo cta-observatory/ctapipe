@@ -36,10 +36,16 @@ class ImageParameterQuery(QualityQuery):
     quality_criteria = List(
         Tuple(Unicode(), Unicode()),
         default_value=[
-            ("min_pixels", "p.morphology.n_pixels > 100"),
-            ("min_intensity", "p.hillas.intensity > 500"),
+            ("min_pixels", "dl1_params.morphology.n_pixels > 100"),
+            ("min_intensity", "dl1_params.hillas.intensity > 500"),
         ],
-        help=QualityQuery.quality_criteria.help,
+        help=(
+            "list of tuples of ('<description', 'expression string') to accept "
+            "(select) a given data value.  E.g. ``[('mycut', 'x > 3'),]``. "
+            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
+            "but no other modules. DL1 image parameters can be excessed "
+            "by prefixing the wanted parameter with ``dl1_params``."
+        ),
     ).tag(config=True)
 
 
@@ -56,7 +62,14 @@ class RingQuery(QualityQuery):
             ("min_pixels", "np.count_nonzero(mask) > 50"),
             ("ring_containment", "parameters.containment > 0.5"),
         ],
-        help=QualityQuery.quality_criteria.help,
+        help=(
+            "list of tuples of ('<description', 'expression string') to accept "
+            "(select) a given data value.  E.g. ``[('mycut', 'x > 3'),]``. "
+            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
+            "but no other modules. Ring parameters and geometry can be excessed by "
+            "prefixing the wanted quantity with ``parameters`` or ``ring``, "
+            "the ring mask can be excessed as ``mask``."
+        ),
     ).tag(config=True)
 
 
@@ -132,7 +145,7 @@ class MuonProcessor(TelescopeComponent):
         if mask is None:
             mask = image > 0
 
-        checks = self.dl1_query(p=dl1.parameters)
+        checks = self.dl1_query(dl1_params=dl1.parameters)
 
         if not all(checks):
             event.muon.tel[tel_id] = INVALID
