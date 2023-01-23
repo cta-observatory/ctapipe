@@ -60,7 +60,7 @@ def main(args=None):
         "--datamodel", action="store_true", help="Print data model info"
     )
     parser.add_argument(
-        "--sources",
+        "--event-sources",
         action="store_true",
         help="Print available EventSource implementations",
     )
@@ -88,7 +88,7 @@ def info(
     plugins=False,
     show_all=False,
     datamodel=False,
-    sources=False,
+    event_sources=False,
     reconstructors=False,
 ):
     """
@@ -117,7 +117,7 @@ def info(
     if plugins or show_all:
         _info_plugins()
 
-    if sources or show_all:
+    if event_sources or show_all:
         _info_sources()
 
     if reconstructors or show_all:
