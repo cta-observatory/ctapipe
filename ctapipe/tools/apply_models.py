@@ -9,7 +9,7 @@ from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Integer, Path, flag
+from ctapipe.core.traits import Integer, Path
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
@@ -103,11 +103,9 @@ class ApplyModels(Tool):
     }
 
     flags = {
-        **flag(
-            "overwrite",
-            "ApplyModels.overwrite",
+        "overwrite": (
+            {"ApplyModels": {"overwrite": True}},
             "Overwrite tables in output file if it exists",
-            "Don't overwrite tables in output file if it exists",
         ),
     }
 

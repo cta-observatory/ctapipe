@@ -8,7 +8,7 @@ from astropy import units as u
 from astropy.table import Table
 
 from ..core import Provenance, Tool
-from ..core.traits import Dict, Path, Unicode, flag
+from ..core.traits import Dict, Path, Unicode
 from ..io import EventSource
 
 MAX_TELS = 1000
@@ -44,11 +44,9 @@ class DumpTriggersTool(Tool):
     )
 
     flags = {
-        **flag(
-            "overwrite"
-            "DumpTriggersTool.overwrite"
-            "Enable overwriting of output file.",
-            "Disable overwriting of output file.",
+        "overwrite": (
+            {"DumpTriggersTool": {"overwrite": True}},
+            "Overwrite output file if it exists",
         ),
     }
 

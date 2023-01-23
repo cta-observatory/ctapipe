@@ -62,7 +62,10 @@ class TrainDispReconstructor(Tool):
 
     flags = {
         "overwrite": (
-            {"ApplyModels": {"overwrite": True}, "CrossValidator": {"overwrite": True}},
+            {
+                "TrainDispReconstructor": {"overwrite": True},
+                "CrossValidator": {"overwrite": True},
+            },
             "Overwrite existing output",
         ),
     }

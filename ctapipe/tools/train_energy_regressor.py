@@ -58,7 +58,10 @@ class TrainEnergyRegressor(Tool):
 
     flags = {
         "overwrite": (
-            {"ApplyModels": {"overwrite": True}, "CrossValidator": {"overwrite": True}},
+            {
+                "TrainEnergyReconstructor": {"overwrite": True},
+                "CrossValidator": {"overwrite": True},
+            },
             "Overwrite existing output",
         ),
     }

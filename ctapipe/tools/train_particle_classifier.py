@@ -84,7 +84,10 @@ class TrainParticleClassifier(Tool):
 
     flags = {
         "overwrite": (
-            {"ApplyModels": {"overwrite": True}, "CrossValidator": {"overwrite": True}},
+            {
+                "TrainParticleClassifier": {"overwrite": True},
+                "CrossValidator": {"overwrite": True},
+            },
             "Overwrite existing output",
         ),
     }

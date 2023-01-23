@@ -15,7 +15,6 @@ from ..calib import CameraCalibrator
 from ..containers import MuonParametersContainer, TelEventIndexContainer
 from ..coordinates import CameraFrame, TelescopeFrame
 from ..core import Provenance, Tool, traits
-from ..core.traits import flag
 from ..image.cleaning import TailcutsImageCleaner
 from ..instrument import CameraGeometry
 from ..io import EventSource, HDF5TableWriter
@@ -77,11 +76,9 @@ class MuonAnalysis(Tool):
     }
 
     flags = {
-        **flag(
-            "overwrite",
-            "MuonAnalysis.overwrite",
-            "Overwrite output file",
-            "Don't overwrite output file",
+        "overwrite": (
+            {"MuonAnalysis": {"overwrite": True}},
+            "Overwrite output file if it exists",
         ),
     }
 

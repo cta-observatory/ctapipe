@@ -174,11 +174,9 @@ class MergeTool(Tool):
     }
 
     flags = {
-        **flag(
-            "overwrite",
-            "MergeTool.overwrite",
+        "overwrite": (
+            {"MergeTool": {"overwrite": True}},
             "Overwrite output file if it exists",
-            "Don't overwrite output file if it exists",
         ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
