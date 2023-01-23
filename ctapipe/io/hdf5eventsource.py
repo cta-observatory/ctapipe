@@ -675,6 +675,13 @@ class HDF5EventSource(EventSource):
                         peak_time_statistics=params[6],
                     )
                     if self.has_simulated_dl1:
+                        if key not in simulated_param_readers:
+                            logger.debug(
+                                f"Triggered telescope {tel_id} is missing "
+                                "from the simulated parameters table, but was "
+                                "present at the reconstructed parameters table."
+                            )
+                            continue
                         simulated_params = next(simulated_param_readers[key])
                         simulated.true_parameters = ImageParametersContainer(
                             hillas=simulated_params[0],
