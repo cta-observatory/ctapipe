@@ -48,6 +48,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.mathjax",
     "sphinx_automodapi.automodapi",
+    "sphinx_automodapi.smart_resolver",
     "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",

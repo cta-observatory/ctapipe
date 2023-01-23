@@ -77,7 +77,7 @@ class Reconstructor(TelescopeComponent):
 
     #: The properties this Reconstructor is able to predict
     #: To be defined in subclasses
-    properties: Tuple[ReconstructionProperty] = NotImplemented
+    properties: Tuple[ReconstructionProperty, ...] = NotImplemented
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):

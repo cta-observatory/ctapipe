@@ -4,7 +4,7 @@ Component Wrappers around sklearn models
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Tuple
 
 import astropy.units as u
 import joblib
@@ -74,6 +74,10 @@ class SKLearnReconstructor(Reconstructor):
 
     #: Name of the target column in training table
     target: str = ""
+
+    #: The properties this Reconstructor is able to predict
+    #: To be defined in subclasses
+    properties: Tuple[ReconstructionProperty, ...] = NotImplemented
 
     prefix = traits.Unicode(
         default_value=None,
@@ -231,6 +235,10 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
     Base class for regression tasks
     """
 
+    #: The properties this Reconstructor is able to predict
+    #: To be defined in subclasses
+    properties: Tuple[ReconstructionProperty, ...] = NotImplemented
+
     model_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
@@ -286,6 +294,10 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     """
     Base class for classification tasks
     """
+
+    #: The properties this Reconstructor is able to predict
+    #: To be defined in subclasses
+    properties: Tuple[ReconstructionProperty, ...] = NotImplemented
 
     model_cls = traits.Enum(
         SUPPORTED_CLASSIFIERS.keys(),
@@ -365,6 +377,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     #: Name of the target table column for training
     target = "true_energy"
+    #: The properties this reconstructor is able to predict, only energy
     properties = (ReconstructionProperty.ENERGY,)
 
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -437,6 +450,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
 
+    #: The properties this reconstructor is able to predict, only particle type
     properties = (ReconstructionProperty.PARTICLE_TYPE,)
 
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -494,12 +508,16 @@ class DispReconstructor(Reconstructor):
     """
 
     target = "true_norm"
+
+    #: The properties this reconstructor is able to predict, geometry (altaz part) and disp
     properties = (ReconstructionProperty.GEOMETRY, ReconstructionProperty.DISP)
 
     prefix = traits.Unicode(default_value="disp", allow_none=False).tag(config=True)
+
     features = traits.List(
         traits.Unicode(), help="Features to use for both models"
     ).tag(config=True)
+
     log_target = traits.Bool(
         default_value=False,
         help="If True, the model is trained to predict the natural logarithm of the absolute value.",
@@ -508,6 +526,7 @@ class DispReconstructor(Reconstructor):
     norm_config = traits.Dict({}, help="kwargs for the sklearn regressor").tag(
         config=True
     )
+
     norm_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
@@ -518,6 +537,7 @@ class DispReconstructor(Reconstructor):
     sign_config = traits.Dict({}, help="kwargs for the sklearn classifier").tag(
         config=True
     )
+
     sign_cls = traits.Enum(
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
