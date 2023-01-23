@@ -174,10 +174,6 @@ class MergeTool(Tool):
     }
 
     flags = {
-        "overwrite": (
-            {"MergeTool": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",

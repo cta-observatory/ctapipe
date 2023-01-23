@@ -75,13 +75,6 @@ class MuonAnalysis(Tool):
         ("t", "allowed-tels"): "EventSource.allowed_tels",
     }
 
-    flags = {
-        "overwrite": (
-            {"MuonAnalysis": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
-    }
-
     def setup(self):
         self.check_output(self.output)
         self.source = EventSource(parent=self)

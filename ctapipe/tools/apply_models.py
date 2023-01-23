@@ -102,13 +102,6 @@ class ApplyModels(Tool):
         "chunk-size": "ApplyModels.chunk_size",
     }
 
-    flags = {
-        "overwrite": (
-            {"ApplyModels": {"overwrite": True}},
-            "Overwrite tables in output file if it exists",
-        ),
-    }
-
     classes = [
         TableLoader,
         EnergyRegressor,

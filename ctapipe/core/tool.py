@@ -204,8 +204,12 @@ class Tool(Application):
                 {"Tool": {"log_level": "DEBUG"}},
                 "Set log level to DEBUG",
             ),
+            "overwrite": (
+                {"Tool": {"overwrite": True}},
+                "Overwrite existing output files without asking",
+            ),
         }
-        self.flags.update(flags)
+        self.flags = {**flags, **self.flags}
 
         self.is_setup = False
         self.version = version

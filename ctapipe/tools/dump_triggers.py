@@ -43,13 +43,6 @@ class DumpTriggersTool(Tool):
         }
     )
 
-    flags = {
-        "overwrite": (
-            {"DumpTriggersTool": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
-    }
-
     examples = (
         "ctapipe-dump-triggers --input gamma.simtel.gz "
         "--output trig.fits --overwrite"
