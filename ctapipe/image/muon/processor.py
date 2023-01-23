@@ -40,11 +40,12 @@ class ImageParameterQuery(QualityQuery):
             ("min_intensity", "dl1_params.hillas.intensity > 500"),
         ],
         help=(
-            "list of tuples of ('<description', 'expression string') to accept "
-            "(select) a given data value.  E.g. ``[('mycut', 'x > 3'),]``. "
+            "Quality cuts as list of tuples of ('description', 'expression string'), "
+            "e.g. ``[('mycut', 'x > 3'),]``, to select muon images for analysis. "
             "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
-            "but no other modules. DL1 image parameters can be excessed "
-            "by prefixing the wanted parameter with ``dl1_params``."
+            "but no other modules. "
+            "DL1 image parameters can be accessed by prefixing the wanted parameter "
+            "with ``dl1_params``. "
         ),
     ).tag(config=True)
 
@@ -63,12 +64,14 @@ class RingQuery(QualityQuery):
             ("ring_containment", "parameters.containment > 0.5"),
         ],
         help=(
-            "list of tuples of ('<description', 'expression string') to accept "
-            "(select) a given data value.  E.g. ``[('mycut', 'x > 3'),]``. "
-            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
-            "but no other modules. Ring parameters and geometry can be excessed by "
-            "prefixing the wanted quantity with ``parameters`` or ``ring``, "
-            "the ring mask can be excessed as ``mask``."
+            "Quality cuts as list of tuples of ('description', 'expression string'), "
+            "e.g. ``[('mycut', 'x > 3'),]``, to select fitted muons for further "
+            "intensity fitting."
+            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, but "
+            "no other modules. "
+            "Ring parameters and geometry can be accessed by prefixing the wanted "
+            "parameter with ``parameters`` or ``ring``, the ring mask can be accessed "
+            "as ``mask``."
         ),
     ).tag(config=True)
 
