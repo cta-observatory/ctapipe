@@ -119,11 +119,11 @@ MuonProcessor:
   # Choose which events should be considered for muon analysis
   ImageParameterQuery:
     # quality critieria should be a list of pairs of [name, filter_expression]
-    # The filter expression should contain the variable `p` which are the
+    # The filter expression should contain the variable `dl1_params` which are the
     # image parameters.
     quality_criteria:
-      - ["min_pixels", "p.morphology.n_pixels > 100"]
-      - ["min_intensity", "p.hillas.intensity > 500"]
+      - ["min_pixels", "dl1_params.morphology.n_pixels > 100"]
+      - ["min_intensity", "dl1_params.hillas.intensity > 500"]
 
   # Choose which rings should be processed to the actual muon parameters
   RingQuery:
