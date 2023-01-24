@@ -349,7 +349,7 @@ class Tool(Application):
         for output in output_paths:
             if output is not None and output.exists():
                 if self.overwrite:
-                    self.log.warning(f"Overwriting {output}")
+                    self.log.warning("Overwriting %s", output)
                 else:
                     raise ToolConfigurationError(
                         f"Output path {output} exists, but overwrite=False"
