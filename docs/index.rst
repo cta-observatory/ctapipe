@@ -62,6 +62,6 @@ we reach version 1.0.
 Development Help
 ================
 
-* Development workflow examples from AstroPy: http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
+* Development workflow examples from AstroPy: https://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
 * GIT tutorial: https://www.atlassian.com/git/tutorials/syncing/git-pull
 * Code distribution and Packaging https://packaging.python.org/en/latest/
