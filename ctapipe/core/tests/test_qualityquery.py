@@ -145,3 +145,13 @@ def test_setup():
     # 3-tuple fails
     with pytest.raises(TraitError):
         QualityQuery(quality_criteria=[("1", "2", "3")])
+
+
+def test_with_lambda():
+    """Test that we raise an error when using lambda expresssions,
+    which we don't support since v0.16.0"""
+
+    with pytest.raises(ValueError, match="lambda"):
+        QualityQuery(
+            quality_criteria=[("a", "lambda p: p > 2")],
+        )
