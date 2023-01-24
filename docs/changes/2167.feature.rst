@@ -1,0 +1,4 @@
+It's now possible to transform between ``GroundFrame`` coordinates
+and ``astropy.coordinates.EarthLocation``, enabling the conversion
+between relative array coordinates (used in the simulation) and
+absolute real-world coordinates.
