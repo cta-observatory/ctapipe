@@ -41,7 +41,8 @@ class ImageParameterQuery(QualityQuery):
         ],
         help=(
             "Quality cuts as list of tuples of ('description', 'expression string'), "
-            "e.g. ``[('mycut', 'x > 3'),]``, to select muon images for analysis. "
+            "e.g. ``[('min_pixels', 'dl1_params.morphology.n_pixels > 100'),]``, "
+            "to select muon images for analysis. "
             "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
             "but no other modules. "
             "DL1 image parameters can be accessed by prefixing the wanted parameter "
@@ -65,8 +66,8 @@ class RingQuery(QualityQuery):
         ],
         help=(
             "Quality cuts as list of tuples of ('description', 'expression string'), "
-            "e.g. ``[('mycut', 'x > 3'),]``, to select fitted muons for further "
-            "intensity fitting."
+            "e.g. ``[('radius_not_nan', 'np.isfinite(ring.radius.value)'),]``, "
+            "to select fitted muons for further intensity fitting. "
             "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, but "
             "no other modules. "
             "Ring parameters and geometry can be accessed by prefixing the wanted "
