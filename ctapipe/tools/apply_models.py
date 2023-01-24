@@ -9,7 +9,7 @@ from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Integer, Path, flag
+from ctapipe.core.traits import Integer, Path
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
@@ -47,8 +47,6 @@ class ApplyModels(Tool):
         --particle-classifier particle-classifier.pkl \\
         --output gamma_applied.dl2.h5
     """
-
-    overwrite = Bool(default_value=False).tag(config=True)
 
     input_url = Path(
         default_value=None,
@@ -104,19 +102,6 @@ class ApplyModels(Tool):
         "chunk-size": "ApplyModels.chunk_size",
     }
 
-    flags = {
-        **flag(
-            "overwrite",
-            "ApplyModels.overwrite",
-            "Overwrite tables in output file if it exists",
-            "Don't overwrite tables in output file if it exists",
-        ),
-        "f": (
-            {"ApplyModels": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
-    }
-
     classes = [
         TableLoader,
         EnergyRegressor,
@@ -129,10 +114,8 @@ class ApplyModels(Tool):
         """
         Initialize components from config
         """
+        self.check_output(self.output_path)
         self.log.info("Copying to output destination.")
-        if self.output_path.exists() and not self.overwrite:
-            raise IOError(f"Output path {self.output_path} exists, but overwrite=False")
-
         shutil.copy(self.input_url, self.output_path)
 
         self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))

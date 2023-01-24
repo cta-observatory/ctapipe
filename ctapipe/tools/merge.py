@@ -129,7 +129,7 @@ class MergeTool(Tool):
         help="Input dl1-files",
     ).tag(config=True)
     output_path = traits.Path(
-        help="Merged-DL1 output filename", directory_ok=False
+        help="Merged-DL1 output filename", directory_ok=False, allow_none=False
     ).tag(config=True)
     skip_images = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
@@ -145,9 +145,6 @@ class MergeTool(Tool):
     ).tag(config=True)
     skip_broken_files = Bool(
         help="Skip broken files instead of raising an error", default_value=False
-    ).tag(config=True)
-    overwrite = Bool(
-        help="Overwrite output file if it exists", default_value=False
     ).tag(config=True)
     progress_bar = Bool(
         help="Show progress bar during processing", default_value=False
@@ -177,13 +174,6 @@ class MergeTool(Tool):
     }
 
     flags = {
-        "f": ({"MergeTool": {"overwrite": True}}, "Overwrite output file if it exists"),
-        **flag(
-            "overwrite",
-            "MergeTool.overwrite",
-            "Overwrite output file if it exists",
-            "Don't overwrite output file if it exists",
-        ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
@@ -221,16 +211,7 @@ class MergeTool(Tool):
             sys.exit(1)
 
         self.output_path = self.output_path.expanduser()
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-                self.output_path.unlink()
-            else:
-                self.log.critical(
-                    f"Output file {self.output_path} exists, "
-                    "use `--overwrite` to overwrite"
-                )
-                sys.exit(1)
+        self.check_output(self.output_path)
 
         PROV.add_output_file(str(self.output_path))
 

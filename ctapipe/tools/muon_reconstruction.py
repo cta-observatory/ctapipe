@@ -14,8 +14,7 @@ from ctapipe.image.muon import (
 from ..calib import CameraCalibrator
 from ..containers import MuonParametersContainer, TelEventIndexContainer
 from ..coordinates import CameraFrame, TelescopeFrame
-from ..core import Provenance, Tool, ToolConfigurationError, traits
-from ..core.traits import flag
+from ..core import Provenance, Tool, traits
 from ..image.cleaning import TailcutsImageCleaner
 from ..instrument import CameraGeometry
 from ..io import EventSource, HDF5TableWriter
@@ -33,9 +32,9 @@ class MuonAnalysis(Tool):
     name = "ctapipe-reconstruct-muons"
     description = traits.Unicode(__doc__)
 
-    output = traits.Path(directory_ok=False, help="HDF5 output file name").tag(
-        config=True
-    )
+    output = traits.Path(
+        directory_ok=False, allow_none=False, help="HDF5 output file name"
+    ).tag(config=True)
 
     completeness_threshold = traits.FloatTelescopeParameter(
         default_value=30.0, help="Threshold for calculating the ``ring_completeness``"
@@ -47,10 +46,6 @@ class MuonAnalysis(Tool):
             "Ring width for intensity ratio"
             " computation as multiple of pixel diameter"
         ),
-    ).tag(config=True)
-
-    overwrite = traits.Bool(
-        default_value=False, help="If true, overwrite outputfile without asking"
     ).tag(config=True)
 
     min_pixels = traits.IntTelescopeParameter(
@@ -80,25 +75,8 @@ class MuonAnalysis(Tool):
         ("t", "allowed-tels"): "EventSource.allowed_tels",
     }
 
-    flags = {
-        "f": ({"MuonAnalysis": {"overwrite": True}}, "Overwrite output file"),
-        **flag(
-            "overwrite",
-            "MuonAnalysis.overwrite",
-            "Overwrite output file",
-            "Don't overwrite output file",
-        ),
-    }
-
     def setup(self):
-        if self.output is None:
-            raise ToolConfigurationError("You need to provide an --output file")
-
-        if self.output.exists() and not self.overwrite:
-            raise ToolConfigurationError(
-                "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
-            )
-
+        self.check_output(self.output)
         self.source = EventSource(parent=self)
         subarray = self.source.subarray
 

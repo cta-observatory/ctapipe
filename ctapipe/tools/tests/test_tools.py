@@ -138,12 +138,12 @@ def test_dump_triggers(tmp_path):
     from ctapipe.tools.dump_triggers import DumpTriggersTool
 
     sys.argv = ["dump_triggers"]
-    outfile = tmp_path / "triggers.fits"
-    tool = DumpTriggersTool(infile=PROD5B_PATH, outfile=str(outfile))
+    output_path = tmp_path / "triggers.fits"
+    tool = DumpTriggersTool(input_path=PROD5B_PATH, output_path=str(output_path))
 
     assert run_tool(tool, cwd=tmp_path) == 0
 
-    assert outfile.exists()
+    assert output_path.exists()
     assert run_tool(tool, ["--help-all"]) == 0
 
 

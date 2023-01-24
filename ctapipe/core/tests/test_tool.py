@@ -329,6 +329,20 @@ def test_tool_logging_quiet(capsys):
     assert len(log) == 0
 
 
+def test_tool_overwrite_output(capsys, tmp_path):
+    path = tmp_path / "overwrite_dummy"
+    tool = Tool()
+    # path does not exist
+    tool.check_output(path)
+    # path exists and no overwrite
+    path.touch()
+    with pytest.raises(ToolConfigurationError):
+        tool.check_output(path)
+    # path exists and overwrite is True
+    tool.overwrite = True
+    tool.check_output(path)
+
+
 def test_invalid_traits(tmp_path, caplog):
     caplog.set_level(logging.INFO, logger="ctapipe")
 

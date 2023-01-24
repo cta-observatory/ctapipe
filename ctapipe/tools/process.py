@@ -81,15 +81,9 @@ class ProcessorTool(Tool):
     }
 
     flags = {
-        "f": (
+        "overwrite": (
             {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
-        ),
-        **flag(
-            "overwrite",
-            "DataWriter.overwrite",
-            "Overwrite output file if it exists",
-            "Don't overwrite output file if it exists",
         ),
         **flag(
             "progress",
