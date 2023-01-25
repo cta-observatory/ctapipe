@@ -1,6 +1,7 @@
 """
 ctapipe io module
 
+# order matters to prevent circular imports
 isort:skip_file
 """
 from .astropy_helpers import read_table, write_table
@@ -10,10 +11,10 @@ from .eventseeker import EventSeeker
 from .tableio import TableReader, TableWriter
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableloader import TableLoader
+from .hdf5merger import HDF5Merger
 
-# import event sources to make them visible to EventSource.from_url
-from .simteleventsource import SimTelEventSource
 from .hdf5eventsource import HDF5EventSource, get_hdf5_datalevels
+from .simteleventsource import SimTelEventSource
 
 from .datawriter import DATA_MODEL_VERSION, DataWriter
 
@@ -21,6 +22,7 @@ from .datawriter import DATA_MODEL_VERSION, DataWriter
 __all__ = [
     "HDF5TableWriter",
     "HDF5TableReader",
+    "HDF5Merger",
     "TableWriter",
     "TableReader",
     "TableLoader",
