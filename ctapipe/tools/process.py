@@ -175,10 +175,6 @@ class ProcessorTool(Tool):
             DataWriter(event_source=self.event_source, parent=self)
         )
 
-        # Assume that if someone configured a stereo reconstructor, they want it written out
-        if len(self.process_shower.reconstructors) > 0:
-            self.write.write_showers = True
-
         self.event_type_filter = EventTypeFilter(parent=self)
 
         # warn if max_events prevents writing the histograms
