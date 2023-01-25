@@ -34,43 +34,82 @@ class HDF5Merger(Component):
 
     output_path = traits.Path(directory_ok=False).tag(config=True)
 
-    overwrite = traits.Bool(False).tag(config=True)
-    append = traits.Bool(False).tag(config=True)
+    overwrite = traits.Bool(
+        False,
+        help="If true, the ``output_path`` is overwritten in case it exists. See also ``append``",
+    ).tag(config=True)
 
-    telescope_events = traits.Bool(default_value=True).tag(config=True)
+    append = traits.Bool(
+        False,
+        help="If true, the ``output_path`` is appended to. See also ``overwrite``",
+    ).tag(config=True)
 
-    simulation = traits.Bool(True).tag(config=True)
-    true_images = traits.Bool(True).tag(config=True)
-    true_parameters = traits.Bool(True).tag(config=True)
+    telescope_events = traits.Bool(
+        True,
+        help="Whether to include telescope-wise data in merged output",
+    ).tag(config=True)
 
-    dl1_images = traits.Bool(True).tag(config=True)
-    dl1_parameters = traits.Bool(True).tag(config=True)
+    simulation = traits.Bool(
+        True,
+        help="Whether to include data only known for simulations in merged output",
+    ).tag(config=True)
 
-    dl2_subarray = traits.Bool(True).tag(config=True)
-    dl2_telescope = traits.Bool(True).tag(config=True)
+    true_images = traits.Bool(
+        True,
+        help="Whether to include true images in merged output",
+    ).tag(config=True)
 
-    monitoring = traits.Bool(True).tag(config=True)
+    true_parameters = traits.Bool(
+        True,
+        help="Whether to include parameters calculated on true images in merged output",
+    ).tag(config=True)
 
-    statistics = traits.Bool(True).tag(config=True)
+    dl1_images = traits.Bool(
+        True,
+        help="Whether to include dl1 images in merged output",
+    ).tag(config=True)
+
+    dl1_parameters = traits.Bool(
+        True,
+        help="Whether to include dl1 image parameters in merged output",
+    ).tag(config=True)
+
+    dl2_subarray = traits.Bool(
+        True, help="Whether to include dl2 subarray-event-wise data in merged output"
+    ).tag(config=True)
+
+    dl2_telescope = traits.Bool(
+        True, help="Whether to include dl2 telescope-event-wise data in merged output"
+    ).tag(config=True)
+
+    monitoring = traits.Bool(
+        True, help="Whether to include monitoring data in merged output"
+    ).tag(config=True)
+
+    processing_statistics = traits.Bool(
+        True, help="Whether to include processing statistics in merged output"
+    ).tag(config=True)
 
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
         if output_path not in {None, traits.Undefined}:
             kwargs["output_path"] = output_path
+
         super().__init__(**kwargs)
 
-        output_exists = self.output_path.exists()
+        appending = self.output_path.exists()
 
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
 
-        if not self.append and not self.overwrite and output_exists:
+        if not self.append and not self.overwrite and appending:
             raise traits.TraitError(
                 f"output_path '{self.output_path}' exists but neither append nor overwrite allowed"
             )
 
+        self.required_nodes = set()
         if self.overwrite:
-            output_exists = False
+            appending = False
 
         self.h5file = tables.open_file(
             self.output_path,
@@ -84,7 +123,7 @@ class HDF5Merger(Component):
         self.meta = None
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
-        if output_exists:
+        if appending:
             try:
                 self.meta = metadata.Reference.from_dict(
                     metadata.read_metadata(self.h5file)
