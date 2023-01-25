@@ -174,7 +174,10 @@ class DisplayDL1Calib(Tool):
 
     def setup(self):
         self.eventsource = self.enter_context(EventSource.from_config(parent=self))
-        self.quality_query = QualityQuery(parent=self)
+        self.quality_query = QualityQuery(
+            parent=self,
+            subarray=self.evensource.subarray,
+        )
 
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 

@@ -135,7 +135,7 @@ class SKLearnReconstructor(Reconstructor):
 
             super().__init__(subarray, **kwargs)
             self.feature_generator = FeatureGenerator(parent=self)
-            self.quality_query = MLQualityQuery(parent=self)
+            self.quality_query = MLQualityQuery(parent=self, subarray=subarray)
 
             # to verify settings
             self._new_model()
@@ -577,7 +577,7 @@ class DispReconstructor(Reconstructor):
                 )
 
             super().__init__(subarray, **kwargs)
-            self.quality_query = MLQualityQuery(parent=self)
+            self.quality_query = MLQualityQuery(parent=self, subarray=subarray)
             self.feature_generator = FeatureGenerator(parent=self)
 
             # to verify settings

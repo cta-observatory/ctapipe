@@ -103,7 +103,7 @@ class ImageProcessor(TelescopeComponent):
         )
         self.modify = ImageModifier(subarray=subarray, parent=self)
 
-        self.check_image = ImageQualityQuery(parent=self)
+        self.check_image = ImageQualityQuery(parent=self, subarray=subarray)
 
         self.default_image_container = DEFAULT_IMAGE_PARAMETERS_CAMFRAME
         if self.use_telescope_frame:
