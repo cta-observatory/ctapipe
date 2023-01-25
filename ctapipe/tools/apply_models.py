@@ -9,18 +9,12 @@ from astropy.table.operations import vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Integer, List, Path
+from ctapipe.core.traits import Integer, List, Path, classes_with_traits
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.io.tableloader import _join_subarray_events
-from ctapipe.reco import (
-    DispReconstructor,
-    EnergyRegressor,
-    ParticleClassifier,
-    StereoCombiner,
-)
-from ctapipe.reco.reconstructor import Reconstructor
+from ctapipe.reco import Reconstructor
 
 __all__ = [
     "ApplyModels",
@@ -83,13 +77,7 @@ class ApplyModels(Tool):
         "chunk-size": "ApplyModels.chunk_size",
     }
 
-    classes = [
-        TableLoader,
-        EnergyRegressor,
-        ParticleClassifier,
-        DispReconstructor,
-        StereoCombiner,
-    ]
+    classes = [TableLoader] + classes_with_traits(Reconstructor)
 
     def setup(self):
         """
