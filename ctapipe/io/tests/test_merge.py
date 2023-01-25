@@ -1,9 +1,12 @@
+import pytest
 import tables
 from astropy.table import vstack
+from astropy.utils.data import shutil
 
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
+from ctapipe.utils.datasets import get_dataset_path
 
 
 def compare_table(in1, in2, merged, table):
@@ -105,3 +108,22 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
             tables_checked += compare_stats_table(
                 in1, in2, merged, table, required=True
             )
+
+
+def test_append(tmp_path, gamma_train_clf, proton_train_clf):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    gamma_train_en = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+
+    output = tmp_path / "merged_simple.dl2.h5"
+    shutil.copy2(gamma_train_clf, output)
+
+    with HDF5Merger(output, append=True) as merger:
+        # this should work
+        merger(proton_train_clf)
+
+        # this shouldn't, because train_en does not alraedy contain energy
+        with pytest.raises(
+            CannotMerge, match="Required node .*/energy/ExtraTreesRegressor"
+        ):
+            merger(gamma_train_en)

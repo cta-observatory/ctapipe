@@ -1,3 +1,4 @@
+import enum
 import warnings
 from contextlib import ExitStack
 from pathlib import Path
@@ -13,6 +14,63 @@ from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
 from .hdf5tableio import DEFAULT_FILTERS
+
+
+class NodeType(enum.Enum):
+    # a single table
+    TABLE = enum.auto()
+    # a group comprising tel_XXX tables
+    TEL_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<algorithm table>
+    ALGORITHM_GROUP = enum.auto()
+    # a group with children of the form /<property group>/<algorithm group>/<tel_XXX table>
+    ALGORITHM_TEL_GROUP = enum.auto()
+
+
+#: nodes to check for merge-ability
+_NODES_TO_CHECK = {
+    "/configuration/observation/scheduling_block": NodeType.TABLE,
+    "/configuration/observation/observation_block": NodeType.TABLE,
+    "/configuration/simulation/run": NodeType.TABLE,
+    "/simulation/service/shower_distribution": NodeType.TABLE,
+    "/simulation/event/subarray/shower": NodeType.TABLE,
+    "/simulation/event/telescope/impact": NodeType.TEL_GROUP,
+    "/simulation/event/telescope/images": NodeType.TEL_GROUP,
+    "/simulation/event/telescope/parameters": NodeType.TEL_GROUP,
+    "/dl1/event/subarray/trigger": NodeType.TABLE,
+    "/dl1/event/telescope/trigger": NodeType.TABLE,
+    "/dl1/event/telescope/images": NodeType.TEL_GROUP,
+    "/dl1/event/telescope/parameters": NodeType.TEL_GROUP,
+    "/dl2/event/telescope": NodeType.ALGORITHM_TEL_GROUP,
+    "/dl2/event/subarray": NodeType.ALGORITHM_GROUP,
+    "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
+    "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
+}
+
+
+def _get_required_nodes(h5file):
+    """Return nodes to be required in a new file for appending to ``h5file``"""
+    required_nodes = set()
+    for node, node_type in _NODES_TO_CHECK.items():
+        if node not in h5file.root:
+            continue
+
+        if node_type in (NodeType.TABLE, NodeType.TEL_GROUP):
+            required_nodes.add(node)
+
+        elif node_type is NodeType.ALGORITHM_GROUP:
+            for kind_group in h5file.root[node]._f_iter_nodes("Group"):
+                for table in kind_group._f_iter_nodes("Table"):
+                    required_nodes.add(table._v_pathname)
+
+        elif node_type is NodeType.ALGORITHM_TEL_GROUP:
+            for kind_group in h5file.root[node]._f_iter_nodes("Group"):
+                for algorithm_group in kind_group._f_iter_nodes("Group"):
+                    required_nodes.add(algorithm_group._v_pathname)
+        else:
+            raise ValueError(f"Unhandled node type: {node_type} of {node}")
+
+    return required_nodes
 
 
 class CannotMerge(IOError):
@@ -140,6 +198,7 @@ class HDF5Merger(Component):
             self.subarray = SubarrayDescription.from_hdf(
                 self.h5file, focal_length_choice=FocalLengthKind.EQUIVALENT
             )
+            self.required_nodes = _get_required_nodes(self.h5file)
 
     def __call__(self, other: Union[str, Path, tables.File]):
         """
@@ -191,38 +250,50 @@ class HDF5Merger(Component):
                     f" {other_version}, expected {self.data_model_version}"
                 )
 
+        for node_path in self.required_nodes:
+            if node_path not in other.root:
+                raise CannotMerge(
+                    f"Required node {node_path} not found in {other.filename}"
+                )
+
     def _append(self, other):
         # Configuration
         self._append_subarray(other)
 
         key = "/configuration/observation/scheduling_block"
         if key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/configuration/observation/observation_block"
         if key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/configuration/simulation/run"
         if self.simulation and key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         # Simulation
         key = "/simulation/service/shower_distribution"
         if self.simulation and key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/simulation/event/subarray/shower"
         if self.simulation and key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/simulation/event/telescope/impact"
         if self.telescope_events and self.simulation and key in other.root:
+            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         key = "/simulation/event/telescope/images"
         if self.telescope_events and self.simulation and key in other.root:
-            self.log.info("Appending %s", key)
+            self.required_nodes.add(key)
             filter_columns = None if self.true_images else ["true_image"]
             self._append_table_group(other, other.root[key], filter_columns)
 
@@ -233,23 +304,28 @@ class HDF5Merger(Component):
             and self.true_parameters
             and key in other.root
         ):
+            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         # DL1
         key = "/dl1/event/subarray/trigger"
         if key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/dl1/event/telescope/trigger"
         if self.telescope_events and key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/dl1/event/telescope/images"
         if self.telescope_events and self.dl1_images and key in other.root:
+            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         key = "/dl1/event/telescope/parameters"
         if self.telescope_events and self.dl1_parameters and key in other.root:
+            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         # DL2
@@ -257,21 +333,25 @@ class HDF5Merger(Component):
         if self.telescope_events and self.dl2_telescope and key in other.root:
             for kind_group in other.root[key]._f_iter_nodes("Group"):
                 for algorithm_group in kind_group._f_iter_nodes("Group"):
+                    self.required_nodes.add(algorithm_group._v_pathname)
                     self._append_table_group(other, algorithm_group)
 
         key = "/dl2/event/subarray"
         if self.dl2_subarray and key in other.root:
             for kind_group in other.root[key]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
+                    self.required_nodes.add(table._v_pathname)
                     self._append_table(other, table)
 
         # monitoring
         key = "/dl1/monitoring/subarray/pointing"
         if self.monitoring and key in other.root:
+            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/dl1/monitoring/telescope/pointing"
         if self.monitoring and self.telescope_events and key in other.root:
+            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         # quality query statistics
