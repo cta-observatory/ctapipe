@@ -1,7 +1,6 @@
 import weakref
 from abc import abstractmethod
 from enum import Enum
-from typing import Tuple
 
 import astropy.units as u
 import joblib
@@ -75,10 +74,6 @@ class Reconstructor(TelescopeComponent):
         super().__init__(subarray=subarray, **kwargs)
         self.quality_query = StereoQualityQuery(parent=self)
 
-    #: The properties this Reconstructor is able to predict
-    #: To be defined in subclasses
-    properties: Tuple[ReconstructionProperty, ...] = NotImplemented
-
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
         """
@@ -118,8 +113,6 @@ class GeometryReconstructor(Reconstructor):
     """
     Base class for algorithms predicting only the shower geometry
     """
-
-    properties = (ReconstructionProperty.GEOMETRY,)
 
     def _create_hillas_dict(self, event):
         hillas_dict = {
