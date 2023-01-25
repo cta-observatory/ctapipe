@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 from traitlets import List
 
 from ctapipe.core.tool import ToolConfigurationError
+from ctapipe.io.hdf5merger import CannotMerge
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
@@ -59,6 +60,11 @@ class MergeTool(Tool):
     file_pattern = Unicode(
         default_value="*.h5",
         help="Give a specific file pattern for matching files in ``input_dir``",
+    ).tag(config=True)
+
+    skip_broken_files = Bool(
+        False,
+        help="Skip files that cannot be merged instead of raising an error",
     ).tag(config=True)
 
     parser = ArgumentParser()
@@ -158,8 +164,13 @@ class MergeTool(Tool):
             unit="Files",
             disable=not self.progress_bar,
         ):
-            self.merger(input_path)
-            n_merged += 1
+            try:
+                self.merger(input_path)
+                n_merged += 1
+            except CannotMerge as error:
+                if not self.skip_broken_files:
+                    raise
+                self.log.warning("Skipping broken file: %s", error)
 
         self.log.info(
             "%d out of %d files have been merged!",
