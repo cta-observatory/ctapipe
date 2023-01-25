@@ -16,6 +16,7 @@ from ..containers import (
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
+    CoordinateFrameType,
     DL1CameraContainer,
     EventIndexContainer,
     HillasParametersContainer,
@@ -34,6 +35,7 @@ from ..containers import (
     SimulatedShowerContainer,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
+    TelescopePointingContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
     TimingParametersContainer,
@@ -533,14 +535,18 @@ class HDF5EventSource(EventSource):
             ignore_columns={"trigger_pixels"},
         )
 
-        array_pointing_finder = IndexFinder(
-            self.file_.root.dl1.monitoring.subarray.pointing.col("time")
-        )
+        array_pointing_finder = None
+        if "/dl1/monitoring/subarray/pointing" in self.file_.root:
+            array_pointing_finder = IndexFinder(
+                self.file_.root.dl1.monitoring.subarray.pointing.col("time")
+            )
 
-        tel_pointing_finder = {
-            table.name: IndexFinder(table.col("time"))
-            for table in self.file_.root.dl1.monitoring.telescope.pointing
-        }
+        tel_pointing_finder = {}
+        if "/dl1/monitoring/telescope/pointing" in self.file_.root:
+            tel_pointing_finder = {
+                table.name: IndexFinder(table.col("time"))
+                for table in self.file_.root.dl1.monitoring.telescope.pointing
+            }
 
         counter = 0
         for trigger, index in events:
@@ -690,55 +696,79 @@ class HDF5EventSource(EventSource):
         pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
         return get_column_attrs(pointing_group[f"tel_{tel_id:03d}"])
 
-    def _fill_array_pointing(self, data, array_pointing_finder):
+    def _fill_array_pointing(self, event, array_pointing_finder):
         """
         Fill the array pointing information of a given event
         """
+        # no monitoring info in file, use observation block
+        if array_pointing_finder is None:
+            ob = self.observation_blocks[event.index.obs_id]
+            lon = ob.subarray_pointing_lon
+            lat = ob.subarray_pointing_lat
+            if ob.subarray_pointing_frame is CoordinateFrameType.ALTAZ:
+                event.pointing.array_azimuth = lon
+                event.pointing.array_altitude = lat
+            elif ob.subarray_pointing_frame is CoordinateFrameType.ICRS:
+                event.pointing.array_ra = lon
+                event.pointing.array_dec = lat
+            return
+
         # Only unique pointings are stored, so reader.read() wont work as easily
         # Thats why we match the pointings based on trigger time
-        closest_time_index = array_pointing_finder.closest(data.trigger.time.mjd)
+        closest_time_index = array_pointing_finder.closest(event.trigger.time.mjd)
         table = self.file_.root.dl1.monitoring.subarray.pointing
         array_pointing = table[closest_time_index]
 
-        data.pointing.array_azimuth = u.Quantity(
+        event.pointing.array_azimuth = u.Quantity(
             array_pointing["array_azimuth"],
             self._subarray_pointing_attrs["array_azimuth"]["UNIT"],
         )
-        data.pointing.array_altitude = u.Quantity(
+        event.pointing.array_altitude = u.Quantity(
             array_pointing["array_altitude"],
             self._subarray_pointing_attrs["array_altitude"]["UNIT"],
         )
-        data.pointing.array_ra = u.Quantity(
+        event.pointing.array_ra = u.Quantity(
             array_pointing["array_ra"],
             self._subarray_pointing_attrs["array_ra"]["UNIT"],
         )
-        data.pointing.array_dec = u.Quantity(
+        event.pointing.array_dec = u.Quantity(
             array_pointing["array_dec"],
             self._subarray_pointing_attrs["array_dec"]["UNIT"],
         )
 
-    def _fill_telescope_pointing(self, data, tel_pointing_finder):
+    def _fill_telescope_pointing(self, event, tel_pointing_finder):
         """
         Fill the telescope pointing information of a given event
         """
         # Same comments as to _fill_array_pointing apply
-        pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
-        for tel_id in data.trigger.tel.keys():
+
+        for tel_id in event.trigger.tel.keys():
+
+            if tel_id not in tel_pointing_finder:
+                # no per-event or time-based monitoring info, use array pointing
+                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                    azimuth=event.pointing.array_azimuth,
+                    altitude=event.pointing.array_altitude,
+                )
+                continue
+
+            pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
+
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
             tel_pointing_table = pointing_group[f"tel_{tel_id:03d}"]
             closest_time_index = tel_pointing_finder[f"tel_{tel_id:03d}"].closest(
-                data.trigger.tel[tel_id].time.mjd
+                event.trigger.tel[tel_id].time.mjd
             )
 
             pointing_telescope = tel_pointing_table[closest_time_index]
             attrs = self._telescope_pointing_attrs(tel_id)
-            data.pointing.tel[tel_id].azimuth = u.Quantity(
+            event.pointing.tel[tel_id].azimuth = u.Quantity(
                 pointing_telescope["azimuth"],
                 attrs["azimuth"]["UNIT"],
             )
-            data.pointing.tel[tel_id].altitude = u.Quantity(
+            event.pointing.tel[tel_id].altitude = u.Quantity(
                 pointing_telescope["altitude"],
                 attrs["altitude"]["UNIT"],
             )
