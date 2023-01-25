@@ -27,11 +27,10 @@ def test_process_apply_energy(
             "ShowerProcessor": {
                 "reconstructor_types": [
                     "HillasReconstructor",
-                    "EnergyRegressor",
                 ],
-                "EnergyRegressor": {
-                    "load_path": str(energy_regressor_path),
-                },
+                "reconstructor_paths": [
+                    str(energy_regressor_path),
+                ],
             },
         }
     }
@@ -79,8 +78,6 @@ def test_process_apply_classification(
             "ShowerProcessor": {
                 "reconstructor_types": [
                     "HillasReconstructor",
-                    "EnergyRegressor",
-                    "ParticleClassifier",
                 ]
             },
         }
@@ -94,8 +91,8 @@ def test_process_apply_classification(
         f"--output={output}",
         "--write-images",
         "--write-showers",
-        f"--energy-regressor={energy_regressor_path}",
-        f"--particle-classifier={particle_classifier_path}",
+        f"--reconstructor={energy_regressor_path}",
+        f"--reconstructor={particle_classifier_path}",
         f"--config={config_path}",
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
@@ -140,8 +137,6 @@ def test_process_apply_disp(
             "ShowerProcessor": {
                 "reconstructor_types": [
                     "HillasReconstructor",
-                    "EnergyRegressor",
-                    "DispReconstructor",
                 ]
             },
         }
@@ -155,8 +150,8 @@ def test_process_apply_disp(
         f"--output={output}",
         "--write-images",
         "--write-showers",
-        f"--energy-regressor={energy_regressor_path}",
-        f"--disp-reconstructor={disp_reconstructor_path}",
+        f"--reconstructor={energy_regressor_path}",
+        f"--reconstructor={disp_reconstructor_path}",
         f"--config={config_path}",
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0

@@ -2,8 +2,7 @@
 High level processing of showers.
 """
 from ..containers import ArrayEventContainer
-from ..core import Component
-from ..core.traits import ComponentNameList
+from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .reconstructor import Reconstructor
 
@@ -29,7 +28,7 @@ class ShowerProcessor(Component):
     in which case the order of ``reconstructor_types`` is important.
     """
 
-    reconstructor_types = ComponentNameList(
+    reconstructor_types = traits.ComponentNameList(
         Reconstructor,
         default_value=["HillasReconstructor"],
         help=(
@@ -37,6 +36,15 @@ class ShowerProcessor(Component):
             " The reconstructors are applied in the order given,"
             " which is important if e.g. the `~ctapipe.reco.ParticleClassifier`"
             " uses the output of the `~ctapipe.reco.EnergyRegressor` as input."
+        ),
+    ).tag(config=True)
+
+    reconstructor_paths = traits.List(
+        traits.Path(exists=True, directory_ok=False),
+        help=(
+            "Trained stereo reconstructors to be read from path."
+            " These are loaded and applied after the ones configured"
+            " through ``reconstructor_types``"
         ),
     ).tag(config=True)
 
@@ -69,6 +77,11 @@ class ShowerProcessor(Component):
             )
             for reco_type in self.reconstructor_types
         ]
+
+        for path in self.reconstructor_paths:
+            self.reconstructors.append(
+                Reconstructor.read(path, subarray=self.subarray, parent=self)
+            )
 
     def __call__(self, event: ArrayEventContainer):
         """

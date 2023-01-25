@@ -38,8 +38,8 @@ class ApplyModels(Tool):
     examples = """
     ctapipe-apply-models \\
         --input gamma.dl2.h5 \\
-        --energy-regressor energy_regressor.pkl \\
-        --particle-classifier particle-classifier.pkl \\
+        --reconstructor energy_regressor.pkl \\
+        --reconstructor particle-classifier.pkl \\
         --output gamma_applied.dl2.h5
     """
 
