@@ -1,4 +1,5 @@
 import enum
+import uuid
 import warnings
 from contextlib import ExitStack
 from pathlib import Path
@@ -6,7 +7,6 @@ from typing import Union
 
 import tables
 from astropy.time import Time
-from numba.core.extending import uuid
 
 from ..core import Component, Provenance, traits
 from ..instrument.optics import FocalLengthKind
