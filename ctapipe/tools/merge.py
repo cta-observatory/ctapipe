@@ -12,7 +12,8 @@ from ctapipe.core.tool import ToolConfigurationError
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
-from ..io.select_merge_hdf5 import HDF5Merger
+from ..io import metadata as meta
+from ..io.hdf5merger import HDF5Merger
 
 
 class MergeTool(Tool):

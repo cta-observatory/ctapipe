@@ -51,7 +51,7 @@ def compare_stats_table(in1, in2, merged, table, required=True):
 
 
 def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
-    from ctapipe.io.select_merge_hdf5 import HDF5Merger
+    from ctapipe.io.hdf5merger import HDF5Merger
 
     output = tmp_path / "merged_simple.dl1.h5"
 
