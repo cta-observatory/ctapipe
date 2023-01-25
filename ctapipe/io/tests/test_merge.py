@@ -35,7 +35,7 @@ def compare_stats_table(in1, in2, merged, table, required=True):
         raise ValueError(f" table {table} not present in {in1.filename}")
 
     if required and t2 is None:
-        raise ValueError(f" table {table} not present in {in1.filename}")
+        raise ValueError(f" table {table} not present in {in2.filename}")
 
     if t1 is None and t2 is None:
         return 0

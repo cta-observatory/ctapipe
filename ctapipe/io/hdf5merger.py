@@ -155,27 +155,27 @@ class HDF5Merger(Component):
 
         super().__init__(**kwargs)
 
-        appending = self.output_path.exists()
-
         if self.overwrite and self.append:
             raise traits.TraitError("overwrite and append are mutually exclusive")
 
-        if not self.append and not self.overwrite and appending:
+        output_exists = self.output_path.exists()
+        appending = False
+        if output_exists and not (self.append or self.overwrite):
             raise traits.TraitError(
                 f"output_path '{self.output_path}' exists but neither append nor overwrite allowed"
             )
 
-        self.required_nodes = set()
-        if self.overwrite:
-            appending = False
+        if output_exists and self.append:
+            appending = True
 
         self.h5file = tables.open_file(
             self.output_path,
-            mode="w" if self.overwrite else "a",
+            mode="a" if appending else "w",
             filters=DEFAULT_FILTERS,
         )
         Provenance().add_output_file(str(self.output_path))
 
+        self.required_nodes = set()
         self.data_model_version = None
         self.subarray = None
         self.meta = None
@@ -202,14 +202,20 @@ class HDF5Merger(Component):
 
     def __call__(self, other: Union[str, Path, tables.File]):
         """
-        Append file ``other`` to the ouput file
+        Append file ``other`` to the output file
         """
         exit_stack = ExitStack()
         if not isinstance(other, tables.File):
             other = exit_stack.enter_context(tables.open_file(other, mode="r"))
 
         with exit_stack:
-            self._check_can_merge(other)
+            # first file to be merged
+            if self.meta is None:
+                self.meta = self._read_meta(other)
+                self.data_model_version = self.meta.product.data_model_version
+                metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
+            else:
+                self._check_can_merge(other)
 
             Provenance().add_input_file(other.filename)
             try:
@@ -230,25 +236,22 @@ class HDF5Merger(Component):
             self.h5file.root._v_attrs["CTA PRODUCT ID"] = id_
         self.h5file.flush()
 
-    def _check_can_merge(self, other):
+    def _read_meta(self, h5file):
         try:
-            other_meta = metadata.Reference.from_dict(metadata.read_metadata(other))
+            return metadata.Reference.from_dict(metadata.read_metadata(h5file))
         except Exception:
             raise CannotMerge(
-                f"CTA Rerence meta not found in input file: {other.filename}"
+                f"CTA Rerence meta not found in input file: {h5file.filename}"
             )
 
-        if self.meta is None:
-            self.meta = other_meta
-            self.data_model_version = self.meta.product.data_model_version
-            metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
-        else:
-            other_version = other_meta.product.data_model_version
-            if self.data_model_version != other_version:
-                raise CannotMerge(
-                    f"Input file {other.filename:!r} has different data model version:"
-                    f" {other_version}, expected {self.data_model_version}"
-                )
+    def _check_can_merge(self, other):
+        other_meta = self._read_meta(other)
+        other_version = other_meta.product.data_model_version
+        if self.data_model_version != other_version:
+            raise CannotMerge(
+                f"Input file {other.filename:!r} has different data model version:"
+                f" {other_version}, expected {self.data_model_version}"
+            )
 
         for node_path in self.required_nodes:
             if node_path not in other.root:
