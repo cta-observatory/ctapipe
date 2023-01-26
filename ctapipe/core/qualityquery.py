@@ -32,7 +32,9 @@ class QualityQuery(TelescopeComponent):
 
     quality_criteria = List(
         Tuple(Unicode(), TelescopeParameter(Unicode())),
-        help="List of tuples...",
+        help="List of tuples of query name and TelescopeParameter or expression."
+        "Example: [('positive', 'x > 0')] or"
+        " [('high_intensity', [('type', '*', 'hillas_intensity > 50'), ('type', 'SST*', 'hillas_intensity > 100')])]",
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
