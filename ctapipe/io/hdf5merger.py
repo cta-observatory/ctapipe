@@ -262,31 +262,25 @@ class HDF5Merger(Component):
         # Configuration
         self._append_subarray(other)
 
-        key = "/configuration/observation/scheduling_block"
-        if key in other.root:
-            self.required_nodes.add(key)
-            self._append_table(other, other.root[key])
-
-        key = "/configuration/observation/observation_block"
-        if key in other.root:
-            self.required_nodes.add(key)
-            self._append_table(other, other.root[key])
-
-        key = "/configuration/simulation/run"
-        if self.simulation and key in other.root:
-            self.required_nodes.add(key)
-            self._append_table(other, other.root[key])
+        config_keys = [
+            "/configuration/observation/scheduling_block",
+            "/configuration/observation/observation_block",
+        ]
+        for key in config_keys:
+            if key in other.root:
+                self.required_nodes.add(key)
+                self._append_table(other, other.root[key])
 
         # Simulation
-        key = "/simulation/service/shower_distribution"
-        if self.simulation and key in other.root:
-            self.required_nodes.add(key)
-            self._append_table(other, other.root[key])
-
-        key = "/simulation/event/subarray/shower"
-        if self.simulation and key in other.root:
-            self.required_nodes.add(key)
-            self._append_table(other, other.root[key])
+        simulation_table_keys = [
+            "/configuration/simulation/run",
+            "/simulation/service/shower_distribution",
+            "/simulation/event/subarray/shower",
+        ]
+        for key in simulation_table_keys:
+            if self.simulation and key in other.root:
+                self.required_nodes.add(key)
+                self._append_table(other, other.root[key])
 
         key = "/simulation/event/telescope/impact"
         if self.telescope_events and self.simulation and key in other.root:
