@@ -32,10 +32,10 @@ def compare_stats_table(in1, in2, merged, table):
     t2 = read_table(in2, table) if table in in2 else None
 
     if t1 is None:
-        raise ValueError(f" table {table} not present in {in1.filename}")
+        raise ValueError(f"table {table} not present in {in1.filename}")
 
     if t2 is None:
-        raise ValueError(f" table {table} not present in {in2.filename}")
+        raise ValueError(f"table {table} not present in {in2.filename}")
 
     stacked = t1.copy()
     for col in ("counts", "cumulative_counts"):
@@ -80,7 +80,6 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
         "/simulation/event/telescope/impact",
     ]
 
-    tables_checked = 0
     tables_to_check = [
         "/dl2/event/subaray/energy/ExtraTreesRegressor",
         "/dl2/event/subarray/geometry/HillasReconstructor",
@@ -103,11 +102,12 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
     in2 = tables.open_file(proton_train_clf)
     merged = tables.open_file(output)
     with in1, in2, merged:
+        tables_checked = 0
         for table in tables_to_check:
             tables_checked += compare_table(in1, in2, merged, table)
 
-        print(f"Checked {tables_checked} tables")
-        assert tables_checked > 0
+        # regression test, no special meaning of the 83
+        assert tables_checked == 83
 
         for table in statistics_tables:
             compare_stats_table(in1, in2, merged, table)
