@@ -5,71 +5,18 @@ import subprocess
 import sys
 
 import matplotlib as mpl
-import numpy as np
 
 # pylint: disable=C0103,C0116,C0415
 import pytest
-import tables
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
-LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 PROD5B_PATH = get_dataset_path(
     "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 )
-
-
-def test_muon_reconstruction_simtel(tmp_path):
-    from ctapipe.tools.muon_reconstruction import MuonAnalysis
-
-    muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
-    assert (
-        run_tool(
-            MuonAnalysis(),
-            argv=[
-                f"--input={LST_MUONS}",
-                f"--output={muon_simtel_output_file}",
-                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    with tables.open_file(muon_simtel_output_file) as t:
-        table = t.root.dl1.event.telescope.parameters.muons[:]
-        assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
-
-
-def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
-    from ctapipe.tools.muon_reconstruction import MuonAnalysis
-
-    muon_dl1_output_file = tmp_path / "muon_reco_on_dl1a.h5"
-    assert (
-        run_tool(
-            MuonAnalysis(),
-            argv=[
-                f"--input={dl1_muon_file}",
-                f"--output={muon_dl1_output_file}",
-                "--HDF5EventSource.focal_length_choice=EQUIVALENT",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    with tables.open_file(muon_dl1_output_file) as t:
-        table = t.root.dl1.event.telescope.parameters.muons[:]
-        assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
-
-    assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
 def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):

@@ -26,6 +26,7 @@ DataWriter:
   write_showers: false # store DL2 stereo geometry
   write_raw_waveforms: false # write R0 waveforms
   write_waveforms: false # write R1 waveforms
+  write_muon_parameters: false # analyze and write muon parameters
 
 # The CameraCalibrator takes data from R1 or DL0 to DL1a level, applying finer
 # calibration and turning waveforms into images. It is run only if DL1a images
@@ -111,3 +112,26 @@ ShowerProcessor:
         - [Positive width, "parameters.hillas.width.value > 0"]
         - [enough pixels, "parameters.morphology.n_pixels > 3"]
         - [not clipped, "parameters.leakage.intensity_width_2 < 0.8"]
+
+# The MuonProcessor analyses DL1 images for muons and writes muon parameters.
+# It is only run if DataWriter.write_muon_parameters=True.
+MuonProcessor:
+  # Choose which events should be considered for muon analysis
+  ImageParameterQuery:
+    # quality critieria should be a list of pairs of [name, filter_expression]
+    # The filter expression should contain the variable `dl1_params` which are the
+    # image parameters.
+    quality_criteria:
+      - ["min_pixels", "dl1_params.morphology.n_pixels > 100"]
+      - ["min_intensity", "dl1_params.hillas.intensity > 500"]
+
+  # Choose which rings should be processed to the actual muon parameters
+  RingQuery:
+    # quality critieria should be a list of pairs of [name, filter_expression]
+    # The filter expression can either contain the variable `parameters` 
+    # (muon ring parameters like containment), `ring` (muon ring position and radius) 
+    # or `mask` (pixel mask masking the rings pixels)
+    quality_criteria:
+      - ["radius_not_nan", "np.isfinite(ring.radius.value)"]
+      - ["min_pixels", "np.count_nonzero(mask) > 50"]
+      - ["ring_containment", "parameters.containment > 0.5"]

@@ -15,7 +15,7 @@ from ctapipe.utils.arrays import recarray_drop_columns
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, CInt, Set, Unicode, flag
 from ..instrument import SubarrayDescription
-from ..io import HDF5EventSource, HDF5TableWriter, get_hdf5_datalevels
+from ..io import HDF5EventSource, get_hdf5_datalevels
 from ..io import metadata as meta
 
 PROV = Provenance()
@@ -37,6 +37,7 @@ optional_nodes = {
     "/simulation/event/telescope/impact",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
+    "/dl1/event/telescope/muon",
     "/dl2/event/telescope/geometry",
     "/dl2/event/telescope/impact",
     "/dl2/event/telescope/energy",
@@ -61,6 +62,7 @@ simulation_nodes = {
 nodes_with_tels = {
     "/dl1/monitoring/telescope/pointing",
     "/dl1/event/telescope/parameters",
+    "/dl1/event/telescope/muon",
     "/dl1/event/telescope/images",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
@@ -72,6 +74,7 @@ image_nodes = {
 parameter_nodes = {
     "/simulation/event/telescope/parameters",
     "/dl1/event/telescope/parameters",
+    "/dl1/event/telescope/muon",
 }
 
 SIMULATED_IMAGE_GROUP = "/simulation/event/telescope/images"
@@ -262,7 +265,12 @@ class MergeTool(Tool):
                     self.usable_nodes.remove(node)
 
         # create output file with subarray from first file
-        self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
+        self.first_subarray = SubarrayDescription.from_hdf(
+            self.input_files[0],
+            # focal length choice has no effect here, so use EQUIVALENT
+            # to support merging files that do not have EFFECTIVE
+            focal_length_choice="EQUIVALENT",
+        )
         if self.allowed_tels:
             self.first_subarray = self.first_subarray.select_subarray(
                 tel_ids=self.allowed_tels
@@ -286,7 +294,12 @@ class MergeTool(Tool):
             )
             return True
 
-        current_subarray = SubarrayDescription.from_hdf(file_path)
+        current_subarray = SubarrayDescription.from_hdf(
+            file_path,
+            # focal length choice has no effect here, so use EQUIVALENT
+            # to support merging files that do not have EFFECTIVE
+            focal_length_choice="EQUIVALENT",
+        )
         if self.allowed_tels:
             current_subarray = current_subarray.select_subarray(
                 tel_ids=self.allowed_tels
@@ -469,7 +482,6 @@ class MergeTool(Tool):
 
     def finish(self):
         datalevels = [d.name for d in get_hdf5_datalevels(self.output_file)]
-        self.output_file.close()
 
         activity = PROV.current_activity.provenance
         process_type_ = "Observation"
@@ -500,11 +512,8 @@ class MergeTool(Tool):
         )
 
         headers = reference.to_dict()
-
-        with HDF5TableWriter(
-            self.output_path, parent=self, mode="a", add_prefix=True
-        ) as writer:
-            meta.write_to_hdf5(headers, writer.h5file)
+        meta.write_to_hdf5(headers, self.output_file)
+        self.output_file.close()
 
 
 def main():

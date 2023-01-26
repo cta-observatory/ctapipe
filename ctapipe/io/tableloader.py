@@ -22,6 +22,7 @@ __all__ = ["TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
+MUON_GROUP = "/dl1/event/telescope/muon"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
@@ -177,6 +178,9 @@ class TableLoader(Component):
     load_dl1_parameters = traits.Bool(
         True, help="load reconstructed image parameters"
     ).tag(config=True)
+    load_dl1_muons = traits.Bool(False, help="load muon ring parameters").tag(
+        config=True
+    )
 
     load_dl2 = traits.Bool(False, help="load available dl2 stereo parameters").tag(
         config=True
@@ -434,6 +438,12 @@ class TableLoader(Component):
                 PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, parameters)
+
+        if self.load_dl1_muons:
+            muon_parameters = self._read_telescope_table(
+                MUON_GROUP, tel_id, start=tel_start, stop=tel_stop
+            )
+            table = _merge_telescope_tables(table, muon_parameters)
 
         if self.load_dl1_images:
             images = self._read_telescope_table(

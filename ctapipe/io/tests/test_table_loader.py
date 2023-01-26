@@ -87,6 +87,25 @@ def test_telescope_events_for_tel_id(dl1_file):
     assert not table_loader.h5file.isopen
 
 
+def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
+    """Test loading muon data for a single telescope"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(
+        dl1_muon_output_file,
+        load_dl1_muons=True,
+        load_dl1_parameters=False,
+        focal_length_choice="EQUIVALENT",
+    ) as table_loader:
+        table = table_loader.read_telescope_events([1])
+        assert "muonring_radius" in table.colnames
+        assert "muonparameters_containment" in table.colnames
+        assert "muonefficiency_optical_efficiency" in table.colnames
+        assert np.all(table["tel_id"] == 1)
+
+    assert not table_loader.h5file.isopen
+
+
 def test_load_instrument(dl1_file):
     """Test joining instrument data onto telescope events"""
     from ctapipe.io.tableloader import TableLoader

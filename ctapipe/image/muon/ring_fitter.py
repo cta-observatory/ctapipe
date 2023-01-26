@@ -1,9 +1,10 @@
 import numpy as np
-from ctapipe.core import Component
-from ctapipe.containers import MuonRingContainer
-from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 import traitlets as traits
 
+from ctapipe.containers import MuonRingContainer
+from ctapipe.core import Component
+
+from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 
 # the fit methods do not expose the same interface, so we
 # force the same interface onto them, here.
@@ -11,14 +12,14 @@ import traitlets as traits
 # exposed to the user via the string traitlet `fit_method`
 
 
-def kundu_chaudhuri(x, y, weights, mask):
-    """kundu_chaudhuri_circle_fit with x, y, weights, mask interface"""
-    return kundu_chaudhuri_circle_fit(x[mask], y[mask], weights[mask])
+def kundu_chaudhuri(fov_lon, fov_lat, weights, mask):
+    """kundu_chaudhuri_circle_fit with fov_lon, fov_lat, weights, mask interface"""
+    return kundu_chaudhuri_circle_fit(fov_lon[mask], fov_lat[mask], weights[mask])
 
 
-def taubin(x, y, weights, mask):
-    """taubin_circle_fit with x, y, weights, mask interface"""
-    return taubin_circle_fit(x, y, mask)
+def taubin(fov_lon, fov_lat, weights, mask):
+    """taubin_circle_fit with fov_lon, fov_lat, weights, mask interface"""
+    return taubin_circle_fit(fov_lon, fov_lat, mask)
 
 
 FIT_METHOD_BY_NAME = {m.__name__: m for m in [kundu_chaudhuri, taubin]}
@@ -34,17 +35,19 @@ class MuonRingFitter(Component):
         default_value=list(FIT_METHOD_BY_NAME.keys())[0],
     ).tag(config=True)
 
-    def __call__(self, x, y, img, mask):
+    def __call__(self, fov_lon, fov_lat, img, mask):
         """allows any fit to be called in form of
-            MuonRingFitter(fit_method = "name of the fit")
+        MuonRingFitter(fit_method = "name of the fit")
         """
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
-        radius, center_x, center_y = fit_function(x, y, img, mask)
+        radius, center_fov_lon, center_fov_lat = fit_function(
+            fov_lon, fov_lat, img, mask
+        )
 
         return MuonRingContainer(
-            center_x=center_x,
-            center_y=center_y,
+            center_fov_lon=center_fov_lon,
+            center_fov_lat=center_fov_lat,
             radius=radius,
-            center_phi=np.arctan2(center_y, center_x),
-            center_distance=np.sqrt(center_x ** 2 + center_y ** 2),
+            center_phi=np.arctan2(center_fov_lat, center_fov_lon),
+            center_distance=np.sqrt(center_fov_lon**2 + center_fov_lat**2),
         )
