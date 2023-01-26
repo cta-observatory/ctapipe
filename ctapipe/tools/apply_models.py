@@ -154,6 +154,16 @@ class ApplyModels(Tool):
                 )
             )
 
+        self._check_subarrays()
+
+    def _check_subarrays(self):
+        for reconstructor in self._reconstructors:
+            if self.loader.subarray != reconstructor.subarray:
+                raise Exception(
+                    f"Subarray of reconstructor {reconstructor.__class__.__name__} does not match"
+                    f" loaded subarray from file {self.loader.input_url}."
+                )
+
     def start(self):
         """Apply models to input tables"""
         for reconstructor in self._reconstructors:
