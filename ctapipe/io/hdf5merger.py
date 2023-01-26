@@ -182,21 +182,14 @@ class HDF5Merger(Component):
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
         if appending:
-            try:
-                self.meta = metadata.Reference.from_dict(
-                    metadata.read_metadata(self.h5file)
-                )
-            except Exception:
-                raise CannotMerge(
-                    f"CTA Rerence meta not found in existing output file: {self.output_path}"
-                )
-
+            self.meta = self._read_meta(self.h5file)
             self.data_model_version = self.meta.product.data_model_version
 
             # focal length choice doesn't matter here, set to equivalent so we don't get
             # an error if only the effective focal length is available in the file
             self.subarray = SubarrayDescription.from_hdf(
-                self.h5file, focal_length_choice=FocalLengthKind.EQUIVALENT
+                self.h5file,
+                focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
             self.required_nodes = _get_required_nodes(self.h5file)
 
