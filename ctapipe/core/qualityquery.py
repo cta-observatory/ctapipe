@@ -32,9 +32,11 @@ class QualityQuery(TelescopeComponent):
 
     quality_criteria = List(
         Tuple(Unicode(), TelescopeParameter(Unicode())),
-        help="List of tuples of query name and TelescopeParameter or expression."
-        "Example: [('positive', 'x > 0')] or"
-        " [('high_intensity', [('type', '*', 'hillas_intensity > 50'), ('type', 'SST*', 'hillas_intensity > 100')])]",
+        help="List of tuples of ('query name', TelescopeParameter or expression) to accept"
+        " (select) a given data value. Example: ``[('positive', 'x > 0')]`` or"
+        " ``[('high_intensity', [('type', '*', 'hillas_intensity > 50'), ('type', 'SST*', 'hillas_intensity > 100')])]``"
+        " You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``,"
+        " but no other modules.",
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
