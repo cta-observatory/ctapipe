@@ -431,3 +431,14 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         events_from_simtel["true_core_x"],
         events_from_dl1["true_core_x"],
     )
+
+
+def test_plugin_help(capsys):
+    ProcessorTool().print_help(classes=True)
+    captured = capsys.readouterr()
+    assert (
+        "PluginEventSource.foo" in captured.out
+    ), "Tool help is missing plugin classes"
+    assert (
+        "PluginReconstructor.foo" in captured.out
+    ), "Tool help is missing plugin classes"

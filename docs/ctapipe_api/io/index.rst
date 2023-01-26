@@ -49,9 +49,21 @@ the underlying file type does not support random access.
 Creating a New EventSource Plugin
 =================================
 
-An example can be found in:
+``ctapipe`` uses entry points to discover possible ``EventSource`` implementations.
+When using ``EventSource(path)``, all available implementations are tried and
+the first where ``<cls>.is_compatible(path)`` returns ``True`` is returned.
 
-https://github.com/cta-observatory/ctapipe_io_lst
+To register an ``EventSource`` implementation, a package needs to add an
+``ctapipe_io`` entry point providing the source implementation, e.g. like
+this in ``setup.cfg``:
+
+.. code::
+
+   [options.entry_points]
+   ctapipe_io =
+       MyAwesomeEventSource = ctapipe_io_awesome:MyAwesomeEventSource
+
+A basic example can be found in the ``test_plugin`` directory.
 
 
 Container Classes
