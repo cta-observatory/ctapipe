@@ -13,7 +13,7 @@ from ..instrument.optics import FocalLengthKind
 from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
-from .hdf5tableio import DEFAULT_FILTERS
+from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta
 
 
 class NodeType(enum.Enum):
@@ -408,7 +408,7 @@ class HDF5Merger(Component):
             raise TypeError(f"node must be a `tables.Table`, got {table}")
 
         table_path = table._v_pathname
-        group_path, table_name = split_h5path(table_path)
+        group_path, _ = split_h5path(table_path)
 
         if table_path in self.h5file:
             output_table = self.h5file.get_node(table_path)
@@ -424,14 +424,33 @@ class HDF5Merger(Component):
             if filter_columns is None:
                 self._copy_node(file, table)
             else:
-                input_table = recarray_drop_columns(table[:], filter_columns)
-                self.h5file.create_table(
-                    group_path,
-                    table_name,
-                    filters=table.filters,
-                    createparents=True,
-                    obj=input_table,
-                )
+                self._copy_node_filter_columns(table, filter_columns)
+
+    def _copy_node_filter_columns(self, table, filter_columns):
+        group_path, table_name = split_h5path(table._v_pathname)
+        input_table = recarray_drop_columns(table[:], filter_columns)
+
+        out_table = self.h5file.create_table(
+            group_path,
+            table_name,
+            filters=table.filters,
+            createparents=True,
+            obj=input_table,
+        )
+
+        # copy metadata
+        meta = get_node_meta(table)
+        for key, val in meta.items():
+            out_table.attrs[key] = val
+
+        # set column attrs
+        column_attrs = get_column_attrs(table)
+        for pos, colname in enumerate(out_table.colnames):
+            for key, value in column_attrs[colname].items():
+                # these are taken from the table object itself, not actually from the attrs
+                if key in {"POS", "DTYPE"}:
+                    continue
+                out_table.attrs[f"CTAFIELD_{pos}_{key}"] = value
 
     def _create_group(self, node):
         parent, name = split_h5path(node)

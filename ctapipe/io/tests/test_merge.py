@@ -130,3 +130,21 @@ def test_append(tmp_path, gamma_train_clf, proton_train_clf):
             CannotMerge, match="Required node .*/energy/ExtraTreesRegressor"
         ):
             merger(gamma_train_en)
+
+
+def test_filter_column(tmp_path, dl2_shower_geometry_file):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    output_path = tmp_path / "no_images.h5"
+    with HDF5Merger(output_path, dl1_images=False, true_images=False) as merger:
+        merger(dl2_shower_geometry_file)
+
+    key = "/simulation/event/telescope/images/tel_003"
+    with tables.open_file(output_path, "r") as f:
+        assert key in f.root
+        table = f.root[key]
+        assert "true_image" not in table.colnames
+        assert "CTAPIPE_VERSION" in table.attrs
+
+    table = read_table(output_path, key)
+    assert table["obs_id"].description == "Observation Block ID"
