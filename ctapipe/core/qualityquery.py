@@ -41,13 +41,6 @@ class QualityQuery(TelescopeComponent):
 
         for name, criteria in self.quality_criteria:
             for i, (command, arg, expr) in enumerate(criteria):
-                if "lambda" in expr:
-                    raise ValueError(
-                        "As of ctapipe 0.16, do not give lambda expressions"
-                        " to QualityQuery. Directly give the expression."
-                        " E.g. instead of `lambda p: p.hillas.width.value > 0`"
-                        " use `parameters.hillas.width.value > 0`"
-                    )
                 criteria[i] = (command, arg, ExpressionEngine(((name, expr),)))
 
             self.criteria_names.append(name)
