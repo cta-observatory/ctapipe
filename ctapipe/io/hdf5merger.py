@@ -216,7 +216,7 @@ class HDF5Merger(Component):
             else:
                 self._check_can_merge(other)
 
-            Provenance().add_input_file(other.filename)
+            Provenance().add_input_file(other.filename, "data product to merge")
             try:
                 self._append(other)
             finally:
