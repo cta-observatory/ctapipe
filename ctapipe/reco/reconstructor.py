@@ -79,7 +79,7 @@ class GeometryReconstructor(Reconstructor):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.quality_query(parameters=dl1.parameters))
+            if all(self.quality_query(parameters=dl1.parameters, tel_id=tel_id))
         }
 
         if len(hillas_dict) < 2:
