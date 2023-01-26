@@ -9,6 +9,8 @@ from docutils.core import publish_parts
 from traitlets import TraitError
 from traitlets.config import Configurable
 
+from .plugins import detect_and_import_plugins
+
 __all__ = ["non_abstract_children", "Component"]
 
 
@@ -201,6 +203,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         get dict{name: cls} of non abstract subclasses,
         subclasses can possibly be definded in plugins
         """
+        if hasattr(cls, "plugin_entry_point"):
+            detect_and_import_plugins(cls.plugin_entry_point)
+
         subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         return subclasses
 

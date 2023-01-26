@@ -467,3 +467,14 @@ def test_muon_reconstruction_simtel(tmp_path):
                 efficiency[event.count],
                 equal_nan=True,
             )
+
+
+def test_plugin_help(capsys):
+    ProcessorTool().print_help(classes=True)
+    captured = capsys.readouterr()
+    assert (
+        "PluginEventSource.foo" in captured.out
+    ), "Tool help is missing plugin classes"
+    assert (
+        "PluginReconstructor.foo" in captured.out
+    ), "Tool help is missing plugin classes"
