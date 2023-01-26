@@ -307,6 +307,9 @@ class ProcessorTool(Tool):
         """
         self.log.info("(re)compute DL1: %s", self.should_compute_dl1)
         self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
+        self.log.info(
+            "compute muon parameters: %s", self.should_compute_muon_parameters
+        )
         self.event_source.subarray.info(printer=self.log.info)
 
         for event in tqdm(

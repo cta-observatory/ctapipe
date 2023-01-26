@@ -3,7 +3,7 @@ Migrate muon analysis into the ``ctapipe-process`` tool:
 1. The former ``muon_reconstruction`` tool is dropped and all functionalities are transferred 
    into the ``ctapipe-process`` tool.
 
-2. The ``process`` tool now has a ``write_moun_parameters`` flag which defaults to ``false``.
+2. The ``process`` tool now has a ``write_muon_parameters`` flag which defaults to ``false``.
    Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1b image 
    parameters so even if ``write_parameters`` is ``false`` and no parameters are present in the 
    ``EventSource`` those are computed. 
