@@ -172,14 +172,16 @@ def test_printing(subarray_prod5_paranal):
 
 def test_setup(subarray_prod5_paranal):
     """Test that tuples can only have length 2"""
-    QualityQuery(
+    query = QualityQuery(
         quality_criteria=[
-            ("foo", [("type", "*", "expression")]),
-            ("bar", [("type", "*", "expression"), ("id", "1", "another-expresssion")]),
-            ("baz", "expression"),
+            ("foo", [("type", "*", "x > 0")]),
+            ("bar", [("type", "*", "x > 1"), ("id", "1", "x > 2")]),
+            ("baz", "x > 3"),
         ],
         subarray=subarray_prod5_paranal,
     )
+
+    query(tel_id=1, x=0)
 
 
 def test_with_lambda(subarray_prod5_paranal):
@@ -205,3 +207,20 @@ def test_telescope_component(subarray_prod5_paranal):
     x = 1
     assert query(x=x, tel_id=1)
     assert not query(x=x, tel_id=2)
+
+
+def test_inheritance_default_value(subarray_prod5_paranal):
+    """test that we can inherit from qualityquery and give default values"""
+
+    class ExampleQualityQuery(QualityQuery):
+        """Available variables: x"""
+
+        quality_criteria = List(
+            [
+                ("high_enough", [("type", "*", "x > 3")]),
+                ("smallish", "x < np.sqrt(100)"),
+            ],
+        ).tag(config=True)
+
+    query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
+    assert np.all(query(tel_id=1, x=5))

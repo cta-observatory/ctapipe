@@ -5,12 +5,14 @@ Data Quality selection
 __all__ = ["QualityQuery", "QualityCriteriaError"]
 
 import numpy as np  # for use in selection functions
+from astropy.table import Table
 
 from .expression_engine import ExpressionEngine
 from .telescope_component import (
     TelescopeComponent,
     TelescopeParameter,
     TelescopeParameterLookup,
+    TelescopePatternList,
 )
 from .traits import List, Tuple, Unicode
 
@@ -36,16 +38,25 @@ class QualityQuery(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
+        self._compile()
+
+    def _compile(self):
         self.engines = []
         self.criteria_names = []
 
-        for name, criteria in self.quality_criteria:
-            for i, (command, arg, expr) in enumerate(criteria):
-                criteria[i] = (command, arg, ExpressionEngine(((name, expr),)))
+        for name, criteria_list in self.quality_criteria:
+
+            if not isinstance(criteria_list, (tuple, list, TelescopePatternList)):
+                criteria_list = TelescopePatternList([criteria_list])
+
+            for i, crit in enumerate(criteria_list):
+                command, arg, expr = crit
+                par = (command, arg, ExpressionEngine(((name, expr),)))
+                criteria_list[i] = par
 
             self.criteria_names.append(name)
 
-            lookup = TelescopeParameterLookup(criteria)
+            lookup = TelescopeParameterLookup(criteria_list)
             lookup.attach_subarray(self.subarray)
             self.engines.append((name, lookup))
 
@@ -54,7 +65,7 @@ class QualityQuery(TelescopeComponent):
         self._counts = np.zeros(n, dtype=np.int64)
         self._cumulative_counts = np.zeros(n, dtype=np.int64)
 
-    def to_table(self):
+    def to_table(self, functions=False) -> Table:
         """
         Return a tabular view of the latest quality summary
 
@@ -67,7 +78,6 @@ class QualityQuery(TelescopeComponent):
         -------
         astropy.table.Table
         """
-        from astropy.table import Table
 
         cols = {
             "criteria": ["TOTAL"] + self.criteria_names,
