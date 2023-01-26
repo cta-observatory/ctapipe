@@ -53,6 +53,20 @@ def compare_stats_table(in1, in2, merged, table, required=True):
     return 1
 
 
+def test_split_h5path():
+    from ctapipe.io.hdf5merger import split_h5path
+
+    assert split_h5path("/") == ("/", "")
+    assert split_h5path("/foo") == ("/", "foo")
+    assert split_h5path("/foo/") == ("/", "foo")
+    assert split_h5path("/foo/bar") == ("/foo", "bar")
+    assert split_h5path("/foo/bar/") == ("/foo", "bar")
+    assert split_h5path("/foo/bar/baz") == ("/foo/bar", "baz")
+
+    with pytest.raises(ValueError, match="Path must start with /"):
+        split_h5path("foo/bar")
+
+
 def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.io.hdf5merger import HDF5Merger
 

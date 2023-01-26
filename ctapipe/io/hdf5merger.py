@@ -81,7 +81,13 @@ def split_h5path(path):
     """
     Split a path inside an hdf5 file into parent / child
     """
+    if not path.startswith("/"):
+        raise ValueError("Path must start with /")
+
     head, _, tail = path.rstrip("/").rpartition("/")
+    if head == "":
+        head = "/"
+
     return head, tail
 
 
