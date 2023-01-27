@@ -147,14 +147,15 @@ class QualityQuery(TelescopeComponent):
         n_criteria = len(self.criteria_names) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
-        table["__index__"] = range(len(table))
+        index_table = Table({"tel_id": table["tel_id"], "index": np.arange(len(table))})
+        grouped = index_table.group_by("tel_id")
+        del index_table
 
-        by_id = table.group_by("tel_id")
         for i, (_, engine) in enumerate(self.engines, start=1):
-            for key, group in zip(by_id.groups.keys, by_id.groups):
-                result[i][group["__index__"]] = next(engine[key[0]](group))
-
-        del table["__index__"]
+            for key, group_index in zip(grouped.groups.keys, grouped.groups):
+                tel_id = key["tel_id"]
+                index = group_index["index"]
+                result[i][index] = next(engine[tel_id](table[index]))
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
