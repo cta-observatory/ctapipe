@@ -67,9 +67,6 @@ class SKLearnReconstructor(Reconstructor):
 
     Keeps a dictionary of sklearn models, the current tools are designed
     to train one model per telescope type.
-
-    Models can either be instantiated normally, or they can load themselves
-    from a pickled file if the ``load_path`` traitlet is given.
     """
 
     #: Name of the target column in training table
@@ -97,61 +94,31 @@ class SKLearnReconstructor(Reconstructor):
         help="Which stereo combination method to use",
     ).tag(config=True)
 
-    load_path = traits.Path(
-        default_value=None,
-        allow_none=True,
-        help="If given, load serialized model from this path",
-    ).tag(config=True)
+    def __init__(self, subarray, models=None, **kwargs):
+        super().__init__(subarray, **kwargs)
 
-    def __init__(self, subarray=None, models=None, **kwargs):
-        # Run the Component __init__ first to handle the configuration
-        # and make `self.load_path` available
-        Component.__init__(self, **kwargs)
-
-        if self.load_path is None:
-            if self.model_cls is None:
-                raise traits.TraitError(
-                    "Must provide `model_cls` if not loading model from file"
-                )
-
-            if subarray is None:
-                raise TypeError(
-                    "__init__() missing 1 required positional argument: 'subarray'"
-                )
-
-            if self.prefix is None:
-                # Default prefix is model_cls
-                self.prefix = self.model_cls
-
-            super().__init__(subarray, **kwargs)
-            self.feature_generator = FeatureGenerator(parent=self)
-            self.quality_query = MLQualityQuery(parent=self)
-
-            # to verify settings
-            self._new_model()
-
-            self._models = {} if models is None else models
-            self.unit = None
-            self.stereo_combiner = StereoCombiner.from_name(
-                self.stereo_combiner_cls,
-                prefix=self.prefix,
-                property=self.property,
-                parent=self,
+        if self.model_cls is None:
+            raise traits.TraitError(
+                "Must provide `model_cls` if not loading model from file"
             )
-        else:
-            loaded = self.read(self.load_path)
-            if (
-                subarray is not None
-                and loaded.subarray.telescope_types != subarray.telescope_types
-            ):
-                self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
-                )
-            self.__dict__.update(loaded.__dict__)
-            self.subarray = subarray
 
-            if self.prefix is None:
-                self.prefix = self.model_cls
+        if self.prefix is None:
+            # Default prefix is model_cls
+            self.prefix = self.model_cls
+
+        self.feature_generator = FeatureGenerator(parent=self)
+        self.quality_query = MLQualityQuery(parent=self)
+
+        self._new_model()
+
+        self._models = {} if models is None else models
+        self.unit = None
+        self.stereo_combiner = StereoCombiner.from_name(
+            self.stereo_combiner_cls,
+            prefix=self.prefix,
+            property=self.property,
+            parent=self,
+        )
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -537,54 +504,28 @@ class DispReconstructor(Reconstructor):
         help="Which stereo combination method to use",
     ).tag(config=True)
 
-    load_path = traits.Path(
-        default_value=None,
-        allow_none=True,
-        help="If given, load serialized model from this path",
-    ).tag(config=True)
+    def __init__(self, subarray, models=None, **kwargs):
+        super().__init__(subarray, **kwargs)
 
-    def __init__(self, subarray=None, models=None, **kwargs):
-        # Run the Component __init__ first to handle the configuration
-        # and make `self.load_path` available
-        Component.__init__(self, **kwargs)
-
-        if self.load_path is None:
-            if self.norm_cls is None or self.sign_cls is None:
-                raise traits.TraitError(
-                    "Must provide `norm_cls` and `sign_cls` if not loading from file"
-                )
-
-            if subarray is None:
-                raise TypeError(
-                    "__init__() missing 1 required positional argument: 'subarray'"
-                )
-
-            super().__init__(subarray, **kwargs)
-            self.quality_query = MLQualityQuery(parent=self)
-            self.feature_generator = FeatureGenerator(parent=self)
-
-            # to verify settings
-            self._new_models()
-
-            self._models = {} if models is None else models
-            self.unit = None
-            self.stereo_combiner = StereoCombiner.from_name(
-                self.stereo_combiner_cls,
-                prefix=self.prefix,
-                property=ReconstructionProperty.GEOMETRY,
-                parent=self,
+        if self.norm_cls is None or self.sign_cls is None:
+            raise traits.TraitError(
+                "Must provide `norm_cls` and `sign_cls` if not loading from file"
             )
-        else:
-            loaded = self.read(self.load_path)
-            if (
-                subarray is not None
-                and loaded.subarray.telescope_types != subarray.telescope_types
-            ):
-                self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
-                )
-            self.__dict__.update(loaded.__dict__)
-            self.subarray = subarray
+
+        self.quality_query = MLQualityQuery(parent=self)
+        self.feature_generator = FeatureGenerator(parent=self)
+
+        # to verify settings
+        self._new_models()
+
+        self._models = {} if models is None else models
+        self.unit = None
+        self.stereo_combiner = StereoCombiner.from_name(
+            self.stereo_combiner_cls,
+            prefix=self.prefix,
+            property=ReconstructionProperty.GEOMETRY,
+            parent=self,
+        )
 
     def _new_models(self):
         norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**self.norm_config)

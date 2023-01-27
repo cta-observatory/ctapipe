@@ -95,15 +95,25 @@ class Reconstructor(TelescopeComponent):
         with open(path, "rb") as f:
             instance = joblib.load(f)
 
-        for attr, value in kwargs.items():
-            if attr == "parent":
-                value = weakref.proxy(value)
-            setattr(instance, attr, value)
-
         if not isinstance(instance, cls):
             raise TypeError(
                 f"{path} did not contain an instance of {cls}, got {instance}"
             )
+
+        # first deal with kwargs that would need "special" treatmet, parent and subarray
+        if parent := kwargs.pop("parent", None):
+            instance.parent = weakref.proxy(parent)
+            instance.log = parent.log.getChild(instance.__class__.__name__)
+
+        if subarray := kwargs.pop("subarray", None):
+            if instance.subarray.telescope_types != subarray.telescope_types:
+                instance.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded from file"
+                )
+            instance.subarray = subarray
+
+        for attr, value in kwargs.items():
+            setattr(instance, attr, value)
 
         Provenance().add_input_file(path, role="reconstructor")
         return instance

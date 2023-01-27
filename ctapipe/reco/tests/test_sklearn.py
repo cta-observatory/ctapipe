@@ -237,7 +237,7 @@ def test_io_with_parent(example_table, tmp_path, example_subarray):
     path = tmp_path / "classifier.pkl"
 
     parent.classifier.write(path)
-    loaded = ParticleClassifier(load_path=path)
+    loaded = ParticleClassifier.read(path)
     assert loaded.features == parent.classifier.features
     assert_array_equal(
         loaded._models[KEY].feature_importances_,
