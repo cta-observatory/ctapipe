@@ -154,7 +154,7 @@ class ImageProcessor(TelescopeComponent):
             geometry = self.subarray.tel[tel_id].camera.geometry
 
         # check if image can be parameterized:
-        image_criteria = self.check_image(image=image_selected, tel_id=tel_id)
+        image_criteria = self.check_image(image=image_selected, key=tel_id)
         self.log.debug(
             "image_criteria: %s",
             list(zip(self.check_image.criteria_names[1:], image_criteria)),
