@@ -181,7 +181,7 @@ class HDF5Merger(Component):
         )
         Provenance().add_output_file(str(self.output_path))
 
-        self.required_nodes = set()
+        self.required_nodes = None
         self.data_model_version = None
         self.subarray = None
         self.meta = None
@@ -219,6 +219,12 @@ class HDF5Merger(Component):
             Provenance().add_input_file(other.filename, "data product to merge")
             try:
                 self._append(other)
+                # if first file, update required nodes
+                if self.required_nodes is None:
+                    self.required_nodes = _get_required_nodes(self.h5file)
+                    self.log.info(
+                        "Updated required nodes to %s", sorted(self.required_nodes)
+                    )
             finally:
                 self._update_meta()
 
@@ -268,7 +274,6 @@ class HDF5Merger(Component):
         ]
         for key in config_keys:
             if key in other.root:
-                self.required_nodes.add(key)
                 self._append_table(other, other.root[key])
 
         # Simulation
@@ -279,17 +284,14 @@ class HDF5Merger(Component):
         ]
         for key in simulation_table_keys:
             if self.simulation and key in other.root:
-                self.required_nodes.add(key)
                 self._append_table(other, other.root[key])
 
         key = "/simulation/event/telescope/impact"
         if self.telescope_events and self.simulation and key in other.root:
-            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         key = "/simulation/event/telescope/images"
         if self.telescope_events and self.simulation and key in other.root:
-            self.required_nodes.add(key)
             filter_columns = None if self.true_images else ["true_image"]
             self._append_table_group(other, other.root[key], filter_columns)
 
@@ -300,28 +302,23 @@ class HDF5Merger(Component):
             and self.true_parameters
             and key in other.root
         ):
-            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         # DL1
         key = "/dl1/event/subarray/trigger"
         if key in other.root:
-            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/dl1/event/telescope/trigger"
         if self.telescope_events and key in other.root:
-            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/dl1/event/telescope/images"
         if self.telescope_events and self.dl1_images and key in other.root:
-            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         key = "/dl1/event/telescope/parameters"
         if self.telescope_events and self.dl1_parameters and key in other.root:
-            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         # DL2
@@ -329,25 +326,21 @@ class HDF5Merger(Component):
         if self.telescope_events and self.dl2_telescope and key in other.root:
             for kind_group in other.root[key]._f_iter_nodes("Group"):
                 for algorithm_group in kind_group._f_iter_nodes("Group"):
-                    self.required_nodes.add(algorithm_group._v_pathname)
                     self._append_table_group(other, algorithm_group)
 
         key = "/dl2/event/subarray"
         if self.dl2_subarray and key in other.root:
             for kind_group in other.root[key]._f_iter_nodes("Group"):
                 for table in kind_group._f_iter_nodes("Table"):
-                    self.required_nodes.add(table._v_pathname)
                     self._append_table(other, table)
 
         # monitoring
         key = "/dl1/monitoring/subarray/pointing"
         if self.monitoring and key in other.root:
-            self.required_nodes.add(key)
             self._append_table(other, other.root[key])
 
         key = "/dl1/monitoring/telescope/pointing"
         if self.monitoring and self.telescope_events and key in other.root:
-            self.required_nodes.add(key)
             self._append_table_group(other, other.root[key])
 
         # quality query statistics
