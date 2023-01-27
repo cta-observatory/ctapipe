@@ -4,6 +4,8 @@ Data Quality selection
 
 __all__ = ["QualityQuery", "QualityCriteriaError"]
 
+from typing import Literal
+
 import numpy as np  # for use in selection functions
 from astropy.table import Table
 
@@ -69,7 +71,7 @@ class QualityQuery(TelescopeComponent):
         self._counts = np.zeros(n, dtype=np.int64)
         self._cumulative_counts = np.zeros(n, dtype=np.int64)
 
-    def to_table(self, functions=False) -> Table:
+    def to_table(self) -> Table:
         """
         Return a tabular view of the latest quality summary
 
@@ -98,7 +100,11 @@ class QualityQuery(TelescopeComponent):
         """Print a formatted string representation of the entire table."""
         return str(self.to_table())
 
-    def __call__(self, tel_id, **kwargs) -> np.ndarray:
+    def __call__(
+        self,
+        key: [int, str, Literal[None]] = None,
+        **kwargs,
+    ) -> np.ndarray:
         """
         Test that value passes all cuts
 
@@ -116,7 +122,7 @@ class QualityQuery(TelescopeComponent):
         result = np.ones(len(self.engines) + 1, dtype=bool)
 
         for i, (_, lookup) in enumerate(self.engines, start=1):
-            expr = lookup[tel_id]
+            expr = lookup[key]
             result[i] = list(expr(kwargs))[0]
 
         self._counts += result.astype(int)

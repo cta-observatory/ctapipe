@@ -15,7 +15,7 @@ def test_selector(subarray_prod5_paranal):
         """Available variables: x"""
 
         quality_criteria = List(
-            [
+            default_value=[
                 ("high_enough", [("type", "*", "x > 3")]),
                 ("a_value_not_too_high", [("type", "*", "x < 100")]),
                 ("smallish", [("type", "*", "x < np.sqrt(100)")]),
@@ -24,17 +24,17 @@ def test_selector(subarray_prod5_paranal):
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
 
-    criteria1 = query(tel_id=1, x=0)  # pass smallish
+    criteria1 = query(x=0)  # pass smallish
     assert len(criteria1) == 3
     assert (criteria1 == [False, True, True]).all()
 
-    criteria2 = query(tel_id=1, x=20)  # pass high_enough + not_too_high
+    criteria2 = query(x=20)  # pass high_enough + not_too_high
     assert (criteria2 == [True, True, False]).all()
 
-    criteria3 = query(tel_id=1, x=200)  # pass high_enough, fail not_too_high
+    criteria3 = query(x=200)  # pass high_enough, fail not_too_high
     assert (criteria3 == [True, False, False]).all()
 
-    criteria4 = query(tel_id=1, x=8)  # pass all
+    criteria4 = query(x=8)  # pass all
     assert np.all(criteria4)
 
     tab = query.to_table()
@@ -75,7 +75,7 @@ def test_invalid_input(subarray_prod5_paranal):
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
     with pytest.raises(ExpressionError):
-        query(tel_id=1, y=5)
+        query(y=5)
 
 
 def test_bad_selector(subarray_prod5_paranal):
@@ -90,7 +90,7 @@ def test_bad_selector(subarray_prod5_paranal):
         subarray=subarray_prod5_paranal,
     )
     with pytest.raises(ExpressionError):
-        query(tel_id=1, x=5)
+        query(x=5)
 
     # ensure we can't run arbitrary code.
     # try to construct something that is not in the
@@ -101,7 +101,7 @@ def test_bad_selector(subarray_prod5_paranal):
             quality_criteria=[("dangerous", [("type", "*", "Component()")])],
             subarray=subarray_prod5_paranal,
         )
-        query(tel_id=1, x=10)
+        query(x=10)
 
     # test we only support expressions, not statements
     with pytest.raises(ExpressionError):
@@ -149,11 +149,11 @@ def test_to_table_after_call(subarray_prod5_paranal):
         ],
         subarray=subarray_prod5_paranal,
     )
-    assert np.all(query(tel_id=1, x=0.3, y=0))
-    assert not np.all(query(tel_id=1, x=1, y=0))
+    assert np.all(query(x=0.3, y=0))
+    assert not np.all(query(x=1, y=0))
 
-    assert np.all(query(tel_id=2, x=0.3, y=0))
-    assert not np.all(query(tel_id=2, x=1, y=0))
+    assert np.all(query(x=0.3, y=0))
+    assert not np.all(query(x=1, y=0))
 
     stats = query.to_table()
     np.testing.assert_equal(stats["counts"], [4, 2, 2])
@@ -181,7 +181,7 @@ def test_setup(subarray_prod5_paranal):
         subarray=subarray_prod5_paranal,
     )
 
-    query(tel_id=1, x=0)
+    assert not np.any(query(tel_id=1, x=0))
 
 
 def test_with_lambda(subarray_prod5_paranal):
@@ -205,8 +205,8 @@ def test_telescope_component(subarray_prod5_paranal):
     )
 
     x = 1
-    assert query(x=x, tel_id=1)
-    assert not query(x=x, tel_id=2)
+    assert query(x=x, key=1)
+    assert not query(x=x, key=2)
 
 
 def test_inheritance_default_value(subarray_prod5_paranal):
@@ -223,4 +223,4 @@ def test_inheritance_default_value(subarray_prod5_paranal):
         ).tag(config=True)
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
-    assert np.all(query(tel_id=1, x=5))
+    assert np.all(query(x=5))
