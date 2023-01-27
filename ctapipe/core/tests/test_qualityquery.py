@@ -16,9 +16,9 @@ def test_selector(subarray_prod5_paranal):
 
         quality_criteria = List(
             default_value=[
-                ("high_enough", [("type", "*", "x > 3")]),
-                ("a_value_not_too_high", [("type", "*", "x < 100")]),
-                ("smallish", [("type", "*", "x < np.sqrt(100)")]),
+                ("high_enough", "x > 3"),
+                ("a_value_not_too_high", "x < 100"),
+                ("smallish", "x < sqrt(100)"),
             ],
         ).tag(config=True)
 
@@ -66,10 +66,10 @@ def test_invalid_input(subarray_prod5_paranal):
         """Available variables: x"""
 
         quality_criteria = List(
-            [
-                ("high_enough", [("type", "*", "x > 3")]),
-                ("a_value_not_too_high", [("type", "*", "x < 100")]),
-                ("smallish", [("type", "*", "x < np.sqrt(100)")]),
+            default_value=[
+                ("high_enough", "x > 3"),
+                ("a_value_not_too_high", "x < 100"),
+                ("smallish", "x < np.sqrt(100)"),
             ],
         ).tag(config=True)
 
@@ -83,9 +83,9 @@ def test_bad_selector(subarray_prod5_paranal):
 
     query = QualityQuery(
         quality_criteria=[
-            ("high_enough", [("type", "*", "x > 3")]),
-            ("not good", [("type", "*", "foo")]),
-            ("smallish", [("type", "*", "x < np.sqrt(100)")]),
+            ("high_enough", "x > 3"),
+            ("not_good", "foo"),
+            ("smallish", "x < 10"),
         ],
         subarray=subarray_prod5_paranal,
     )
@@ -98,7 +98,7 @@ def test_bad_selector(subarray_prod5_paranal):
     # and see if it works in a function
     with pytest.raises(ExpressionError):
         query = QualityQuery(
-            quality_criteria=[("dangerous", [("type", "*", "Component()")])],
+            quality_criteria=[("dangerous", "Component()")],
             subarray=subarray_prod5_paranal,
         )
         query(x=10)
@@ -106,9 +106,7 @@ def test_bad_selector(subarray_prod5_paranal):
     # test we only support expressions, not statements
     with pytest.raises(ExpressionError):
         query = QualityQuery(
-            quality_criteria=[
-                ("dangerous", [("type", "*", "import numpy; np.array([])")])
-            ],
+            quality_criteria=[("dangerous", "import numpy; np.array([])")],
             subarray=subarray_prod5_paranal,
         )
 
@@ -117,8 +115,8 @@ def test_table_mask_and_to_table(subarray_prod5_paranal):
     """Test getting a mask for a whole table"""
     query = QualityQuery(
         quality_criteria=[
-            ("inside unit circle", [("type", "*", "(x**2 + y**2) < 1.0")]),
-            ("less than half", [("type", "*", "x < 0.5")]),
+            ("foo", "(x**2 + y**2) < 1.0"),
+            ("bar", "x < 0.5"),
         ],
         subarray=subarray_prod5_paranal,
     )
@@ -144,8 +142,8 @@ def test_to_table_after_call(subarray_prod5_paranal):
     """Test counting and conversion to table."""
     query = QualityQuery(
         quality_criteria=[
-            ("inside unit circle", [("type", "*", "(x**2 + y**2) < 1.0")]),
-            ("less than half", [("type", "*", "x < 0.5")]),
+            ("foo", "(x**2 + y**2) < 1.0"),
+            ("bar", "x < 0.5"),
         ],
         subarray=subarray_prod5_paranal,
     )
@@ -163,7 +161,7 @@ def test_to_table_after_call(subarray_prod5_paranal):
 def test_printing(subarray_prod5_paranal):
     """Just check the query can be stringified correctly"""
     query = QualityQuery(
-        quality_criteria=[("check", [("type", "*", "x>3")])],
+        quality_criteria=[("check", "x>3")],
         subarray=subarray_prod5_paranal,
     )
 
@@ -172,16 +170,16 @@ def test_printing(subarray_prod5_paranal):
 
 def test_setup(subarray_prod5_paranal):
     """Test that tuples can only have length 2"""
-    query = QualityQuery(
-        quality_criteria=[
-            ("foo", [("type", "*", "x > 0")]),
-            ("bar", [("type", "*", "x > 1"), ("id", "1", "x > 2")]),
-            ("baz", "x > 3"),
-        ],
-        subarray=subarray_prod5_paranal,
-    )
+    from traitlets import TraitError
 
-    assert not np.any(query(tel_id=1, x=0))
+    # 2-tuple works
+    QualityQuery(quality_criteria=[("1", "2")], subarray=subarray_prod5_paranal)
+
+    # 3-tuple fails
+    with pytest.raises(TraitError):
+        QualityQuery(
+            quality_criteria=[("1", "2", "3")], subarray=subarray_prod5_paranal
+        )
 
 
 def test_with_lambda(subarray_prod5_paranal):
