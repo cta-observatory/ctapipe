@@ -97,8 +97,8 @@ class MuonProcessor(TelescopeComponent):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray, **kwargs)
-        self.dl1_query = ImageParameterQuery(parent=self)
-        self.ring_query = RingQuery(parent=self)
+        self.dl1_query = ImageParameterQuery(parent=self, subarray=subarray)
+        self.ring_query = RingQuery(parent=self, subarray=subarray)
 
         frame = TelescopeFrame()
         self.geometries = {
