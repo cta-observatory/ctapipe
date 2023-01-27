@@ -123,7 +123,7 @@ class QualityQuery(TelescopeComponent):
 
         for i, (_, lookup) in enumerate(self.engines, start=1):
             expr = lookup[key]
-            result[i] = list(expr(kwargs))[0]
+            result[i] = next(expr(kwargs))
 
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
@@ -147,10 +147,14 @@ class QualityQuery(TelescopeComponent):
         n_criteria = len(self.criteria_names) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
+        table["__index__"] = range(len(table))
+
+        by_id = table.group_by("tel_id")
         for i, (_, engine) in enumerate(self.engines, start=1):
-            for tel_id in np.unique(table["tel_id"]):
-                tel_mask = table["tel_id"] == tel_id
-                result[i][tel_mask] = list(engine[tel_id](table[tel_mask]))[0]
+            for key, group in zip(by_id.groups.keys, by_id.groups):
+                result[i][group["__index__"]] = next(engine[key[0]](group))
+
+        del table["__index__"]
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)

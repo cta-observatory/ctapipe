@@ -123,7 +123,7 @@ def test_table_mask_and_to_table(subarray_prod5_paranal):
 
     table = Table(
         {
-            "tel_id": [1, 2, 3, 4, 5],
+            "tel_id": [1, 2, 1, 4, 1],
             "x": [1.0, 0.2, -0.5, 0.6, 0.7],
             "y": [0.0, 0.5, 1.0, 0.2, 0.1],
         }
