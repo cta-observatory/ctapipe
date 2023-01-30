@@ -64,15 +64,17 @@ def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
     open(dl1_file.parent / "foo.h5", "w").close()
 
     # copy to make sure we don't have other files in the dl1 dir disturb this
+    indir = tmp_path / "input"
+    indir.mkdir()
     for f in (dl1_file, dl1_proton_file):
-        shutil.copy(f, tmp_path)
+        shutil.copy(f, indir)
 
     output = tmp_path / "merged_pattern.dl1.h5"
     run_tool(
         tool=MergeTool(),
         argv=[
             "-i",
-            str(tmp_path),
+            str(indir),
             "-p",
             "*.dl1.h5",
             f"--output={output}",
@@ -95,7 +97,8 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
             str(dl1_file),
             str(dl1_proton_file),
             f"--output={output}",
-            "--skip-images",
+            "--no-dl1-images",
+            "--no-true-images",
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -110,33 +113,6 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
     t = read_table(output, "/simulation/event/telescope/images/tel_001")
     assert "true_image" not in t.colnames
     assert "true_image_sum" in t.colnames
-
-
-def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
-    from ctapipe.instrument import SubarrayDescription
-    from ctapipe.tools.merge import MergeTool
-
-    # create file to test 'allowed-tels' option
-    output = tmp_path / "merged_allowed_tels.dl1.h5"
-
-    allowed_tels = {25, 125}
-
-    argv = [str(dl1_file), str(dl1_proton_file), f"--output={output}", "--overwrite"]
-    for tel_id in allowed_tels:
-        argv.append(f"--allowed-tels={tel_id}")
-
-    run_tool(MergeTool(), argv=argv, cwd=tmp_path, raises=True)
-
-    s = SubarrayDescription.from_hdf(output)
-    assert s.tel.keys() == allowed_tels
-
-    tel_keys = {f"tel_{tel_id:03d}" for tel_id in allowed_tels}
-    with tables.open_file(output) as f:
-        assert set(f.root.dl1.event.telescope.parameters._v_children).issubset(tel_keys)
-        assert set(f.root.dl1.event.telescope.images._v_children).issubset(tel_keys)
-        assert set(f.root.dl1.monitoring.telescope.pointing._v_children).issubset(
-            tel_keys
-        )
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):

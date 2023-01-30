@@ -21,12 +21,13 @@ from ..containers import (
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
-from . import EventSource, HDF5TableWriter, TableWriter
 from . import metadata as meta
 from .astropy_helpers import write_table
 from .datalevels import DataLevel
+from .eventsource import EventSource
+from .hdf5tableio import HDF5TableWriter
 from .simteleventsource import SimTelEventSource
-from .tableio import FixedPointColumnTransform, TelListToMaskTransform
+from .tableio import FixedPointColumnTransform, TableWriter, TelListToMaskTransform
 
 __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
@@ -364,6 +365,8 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
+        if self.write_muon_parameters:
+            data_levels.append(DataLevel.DL1_MUON)
         if self.write_showers:
             data_levels.append(DataLevel.DL2)
         if self.write_raw_waveforms:
