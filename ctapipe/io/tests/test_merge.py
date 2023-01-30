@@ -148,3 +148,19 @@ def test_filter_column(tmp_path, dl2_shower_geometry_file):
 
     table = read_table(output_path, key)
     assert table["obs_id"].description == "Observation Block ID"
+
+
+def test_muon(tmp_path, dl1_muon_output_file):
+    from ctapipe.io.hdf5merger import HDF5Merger
+
+    output = tmp_path / "muon_merged.dl2.h5"
+
+    with HDF5Merger(output) as merger:
+        merger(dl1_muon_output_file)
+
+    table = read_table(output, "/dl1/event/telescope/muon/tel_001")
+    input_table = read_table(dl1_muon_output_file, "/dl1/event/telescope/muon/tel_001")
+
+    n_input = len(input_table)
+    assert len(table) == n_input
+    assert_table_equal(table, input_table)
