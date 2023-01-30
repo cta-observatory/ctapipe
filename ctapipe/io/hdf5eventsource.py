@@ -86,6 +86,9 @@ def get_hdf5_datalevels(h5file):
     if "/dl1/event/telescope/parameters" in h5file.root:
         datalevels.append(DataLevel.DL1_PARAMETERS)
 
+    if "/dl1/event/telescope/muon" in h5file.root:
+        datalevels.append(DataLevel.DL1_MUON)
+
     if "/dl2" in h5file.root:
         datalevels.append(DataLevel.DL2)
 
@@ -254,7 +257,13 @@ class HDF5EventSource(EventSource):
             # we can now read both R1 and DL1
             has_muons = "/dl1/event/telescope/muon" in f.root
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            datalevels = datalevels & {"R1", "DL1_IMAGES", "DL1_PARAMETERS", "DL2"}
+            datalevels = datalevels & {
+                "R1",
+                "DL1_IMAGES",
+                "DL1_PARAMETERS",
+                "DL2",
+                "DL1_MUON",
+            }
             if not datalevels and not has_muons:
                 return False
 

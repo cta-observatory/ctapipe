@@ -365,6 +365,8 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
+        if self.write_muon_parameters:
+            data_levels.append(DataLevel.DL1_MUON)
         if self.write_showers:
             data_levels.append(DataLevel.DL2)
         if self.write_raw_waveforms:
