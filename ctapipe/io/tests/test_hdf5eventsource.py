@@ -9,11 +9,15 @@ def test_is_not_compatible(prod5_gamma_simtel_path):
     assert not HDF5EventSource.is_compatible(prod5_gamma_simtel_path)
 
 
-@pytest.mark.parametrize("compatible_file", ["dl1_file", "dl2_only_file"])
+@pytest.mark.parametrize(
+    "compatible_file", ["dl1_file", "dl2_only_file", "dl1_muon_output_file"]
+)
 def test_is_compatible(compatible_file, request):
+    old_files = {"dl1_muon_output_file"}
+    focal_length = "EQUIVALENT" if compatible_file in old_files else "EFFECTIVE"
     file = request.getfixturevalue(compatible_file)
     assert HDF5EventSource.is_compatible(file)
-    with EventSource(input_url=file) as source:
+    with EventSource(input_url=file, focal_length_choice=focal_length) as source:
         assert isinstance(source, HDF5EventSource)
 
 

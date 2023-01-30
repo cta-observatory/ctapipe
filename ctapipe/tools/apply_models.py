@@ -9,12 +9,17 @@ from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Integer, Path, flag
+from ctapipe.core.traits import Integer, Path
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.io.tableloader import _join_subarray_events
-from ctapipe.reco import EnergyRegressor, ParticleClassifier, StereoCombiner
+from ctapipe.reco import (
+    DispReconstructor,
+    EnergyRegressor,
+    ParticleClassifier,
+    StereoCombiner,
+)
 
 __all__ = [
     "ApplyModels",
@@ -42,8 +47,6 @@ class ApplyModels(Tool):
         --particle-classifier particle-classifier.pkl \\
         --output gamma_applied.dl2.h5
     """
-
-    overwrite = Bool(default_value=False).tag(config=True)
 
     input_url = Path(
         default_value=None,
@@ -76,6 +79,14 @@ class ApplyModels(Tool):
         help="Input path for the trained ParticleClassifier",
     ).tag(config=True)
 
+    disp_reconstructor_path = Path(
+        default_value=None,
+        allow_none=True,
+        exists=True,
+        directory_ok=False,
+        help="Input path for the trained DispReconstructor",
+    ).tag(config=True)
+
     chunk_size = Integer(
         default_value=100000,
         allow_none=True,
@@ -86,27 +97,16 @@ class ApplyModels(Tool):
         ("i", "input"): "ApplyModels.input_url",
         "energy-regressor": "ApplyModels.energy_regressor_path",
         "particle-classifier": "ApplyModels.particle_classifier_path",
+        "disp-reconstructor": "ApplyModels.disp_reconstructor_path",
         ("o", "output"): "ApplyModels.output_path",
         "chunk-size": "ApplyModels.chunk_size",
-    }
-
-    flags = {
-        **flag(
-            "overwrite",
-            "ApplyModels.overwrite",
-            "Overwrite tables in output file if it exists",
-            "Don't overwrite tables in output file if it exists",
-        ),
-        "f": (
-            {"ApplyModels": {"overwrite": True}},
-            "Overwrite output file if it exists",
-        ),
     }
 
     classes = [
         TableLoader,
         EnergyRegressor,
         ParticleClassifier,
+        DispReconstructor,
         StereoCombiner,
     ]
 
@@ -114,10 +114,8 @@ class ApplyModels(Tool):
         """
         Initialize components from config
         """
+        self.check_output(self.output_path)
         self.log.info("Copying to output destination.")
-        if self.output_path.exists() and not self.overwrite:
-            raise IOError(f"Output path {self.output_path} exists, but overwrite=False")
-
         shutil.copy(self.input_url, self.output_path)
 
         self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))
@@ -129,6 +127,7 @@ class ApplyModels(Tool):
             load_instrument=True,
             load_dl1_images=False,
             load_simulated=False,
+            load_observation_info=True,
         )
 
         self._reconstructors = []
@@ -144,6 +143,13 @@ class ApplyModels(Tool):
             self._reconstructors.append(
                 ParticleClassifier.read(
                     self.particle_classifier_path,
+                    parent=self,
+                )
+            )
+        if self.disp_reconstructor_path is not None:
+            self._reconstructors.append(
+                DispReconstructor.read(
+                    self.disp_reconstructor_path,
                     parent=self,
                 )
             )
@@ -163,7 +169,7 @@ class ApplyModels(Tool):
             self.loader.h5file = self.h5file
 
     def _apply(self, reconstructor):
-        prefix = reconstructor.model_cls
+        prefix = reconstructor.prefix
         property = reconstructor.property
 
         desc = f"Applying {reconstructor.__class__.__name__}"
@@ -177,7 +183,6 @@ class ApplyModels(Tool):
 
             for tel_id, table in chunk.items():
                 tel = self.loader.subarray.tel[tel_id]
-
                 if tel not in reconstructor._models:
                     self.log.warning(
                         "No model in %s for telescope type %s, skipping tel %d",
@@ -195,18 +200,47 @@ class ApplyModels(Tool):
                     [c for c in table.colnames if c.startswith(prefix)]
                 )
 
-                predictions = reconstructor.predict_table(tel, table)
-                table = hstack(
-                    [table, predictions],
-                    join_type="exact",
-                    metadata_conflicts="ignore",
-                )
-                write_table(
-                    table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
-                    self.output_path,
-                    f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
-                    append=True,
-                )
+                if isinstance(reconstructor, DispReconstructor):
+                    disp_predictions, altaz_predictions = reconstructor.predict_table(
+                        tel, table
+                    )
+                    table = hstack(
+                        [table, altaz_predictions, disp_predictions],
+                        join_type="exact",
+                        metadata_conflicts="ignore",
+                    )
+                    # tables should follow the container structure
+                    write_table(
+                        table[
+                            ["obs_id", "event_id", "tel_id"]
+                            + altaz_predictions.colnames
+                        ],
+                        self.output_path,
+                        f"/dl2/event/telescope/geometry/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
+                    write_table(
+                        table[
+                            ["obs_id", "event_id", "tel_id"] + disp_predictions.colnames
+                        ],
+                        self.output_path,
+                        f"/dl2/event/telescope/disp/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
+                else:
+                    predictions = reconstructor.predict_table(tel, table)
+                    table = hstack(
+                        [table, predictions],
+                        join_type="exact",
+                        metadata_conflicts="ignore",
+                    )
+                    write_table(
+                        table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
+                        self.output_path,
+                        f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
+
                 tel_tables.append(table)
 
             if len(tel_tables) == 0:

@@ -95,11 +95,16 @@ jobs:
           python --version
           pip install codecov pytest-cov flake8 pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
+          pip install ./test_plugin
           pip freeze
 
       - name: Static codechecks
         run: |
           flake8 ctapipe
+
+      - name: ctapipe-info
+        run: |
+          ctapipe-info --all
 
       - name: Tests
         run: |
@@ -132,6 +137,7 @@ jobs:
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
           pip install -U pip towncrier
           pip install -e .[docs]
+          pip install ./test_plugin
           git describe --tags
           python -c 'import ctapipe; print(ctapipe.__version__)'
 

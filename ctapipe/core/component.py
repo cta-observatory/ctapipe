@@ -1,5 +1,6 @@
 """ Class to handle configuration for algorithms """
 import warnings
+import weakref
 from abc import ABCMeta
 from inspect import cleandoc, isabstract
 from logging import getLogger
@@ -7,6 +8,8 @@ from logging import getLogger
 from docutils.core import publish_parts
 from traitlets import TraitError
 from traitlets.config import Configurable
+
+from .plugins import detect_and_import_plugins
 
 __all__ = ["non_abstract_children", "Component"]
 
@@ -69,7 +72,7 @@ def non_abstract_children(base):
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     """
     Metaclass to be able to make Component abstract
-    see: http://stackoverflow.com/a/7314847/3838691
+    see: https://stackoverflow.com/a/7314847/3838691
     """
 
     pass
@@ -155,6 +158,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         with warnings.catch_warnings():
             warnings.filterwarnings("error", message=".*Config option.*not recognized")
             try:
+                if parent is not None:
+                    parent = weakref.proxy(parent)
                 super().__init__(parent=parent, config=config, **kwargs)
             except UserWarning as e:
                 raise TraitError(e) from None
@@ -198,6 +203,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         get dict{name: cls} of non abstract subclasses,
         subclasses can possibly be definded in plugins
         """
+        if hasattr(cls, "plugin_entry_point"):
+            detect_and_import_plugins(cls.plugin_entry_point)
+
         subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         return subclasses
 

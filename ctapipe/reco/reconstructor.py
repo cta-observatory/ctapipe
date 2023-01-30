@@ -46,6 +46,9 @@ class Reconstructor(TelescopeComponent):
     algorithms should inherit from
     """
 
+    #: ctapipe_rco entry points may provide Reconstructor implementations
+    plugin_entry_point = "ctapipe_reco"
+
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
         self.quality_query = StereoQualityQuery(parent=self)

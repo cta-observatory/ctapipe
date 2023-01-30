@@ -4,7 +4,7 @@ Tool for training the EnergyRegressor
 import numpy as np
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
+from ctapipe.core.traits import Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, EnergyRegressor
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -30,7 +30,7 @@ class TrainEnergyRegressor(Tool):
     ctapipe-train-energy-regressor \\
         --config train_energy_regressor.yaml \\
         --input gamma.dl2.h5 \\
-        --ouput energy_regressor.pkl
+        --output energy_regressor.pkl
     """
 
     output_path = Path(
@@ -52,18 +52,17 @@ class TrainEnergyRegressor(Tool):
         ),
     ).tag(config=True)
 
-    overwrite = Bool(help="overwrite existing output files").tag(config=True)
-
     random_seed = Int(
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
     flags = {
-        **flag(
-            "overwrite",
-            "TrainEnergyRegressor.overwrite",
-            "Overwrite output existing output files",
-            "Don't overwrite existing output files",
+        "overwrite": (
+            {
+                "TrainEnergyReconstructor": {"overwrite": True},
+                "CrossValidator": {"overwrite": True},
+            },
+            "Overwrite existing output",
         ),
     }
 
@@ -98,18 +97,7 @@ class TrainEnergyRegressor(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.regressor
         )
-        self.rng = np.random.default_rng(self.random_seed)
-
-        if self.output_path.suffix != ".pkl":
-            self.log.warning(
-                "Expected .pkl extension for output_path, got %s",
-                self.output_path.suffix,
-            )
-
-        if self.output_path.exists() and not self.overwrite:
-            raise TraitError(
-                f"output_path '{self.output_path}' exists and overwrite=False"
-            )
+        self.check_output(self.output_path, self.cross_validate.output_path)
 
     def start(self):
         """

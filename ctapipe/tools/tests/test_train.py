@@ -16,6 +16,12 @@ def test_train_particle_classifier(particle_classifier_path):
     ParticleClassifier.read(particle_classifier_path)
 
 
+def test_train_disp_reconstructor(disp_reconstructor_path):
+    from ctapipe.reco import DispReconstructor
+
+    DispReconstructor.read(disp_reconstructor_path)
+
+
 def test_too_few_events(tmp_path, dl2_shower_geometry_file):
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
 
@@ -37,6 +43,7 @@ def test_too_few_events(tmp_path, dl2_shower_geometry_file):
 
 
 def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
+    from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
@@ -76,3 +83,21 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     )
     assert ret == 0
     assert classifier_cv_out_file.exists()
+
+    tool = TrainDispReconstructor()
+    config = resource_file("train_disp_reconstructor.yaml")
+    out_file = tmp_path / "disp_reconstructor_.pkl"
+    disp_cv_out_file = tmp_path / "disp_cv_results.h5"
+
+    ret = run_tool(
+        tool,
+        argv=[
+            f"--input={gamma_train_clf}",
+            f"--output={out_file}",
+            f"--config={config}",
+            f"--cv-output={disp_cv_out_file}",
+            "--log-level=INFO",
+        ],
+    )
+    assert ret == 0
+    assert disp_cv_out_file.exists()

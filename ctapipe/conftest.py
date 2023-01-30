@@ -344,7 +344,6 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--camera-frame",
             "--write-images",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -446,9 +445,36 @@ def dl1_muon_file(dl1_tmp_path):
             f"--input={infile}",
             f"--output={output}",
             "--write-images",
-            "--DataWriter.write_parameters=False",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
+            "--no-write-parameters",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
+    """
+    DL1 file containing images, parameters and muon ring parameters
+    from a muon simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "muon_output.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={dl1_muon_file}",
+            f"--output={output}",
+            "--no-write-images",
+            "--no-write-parameters",
+            "--write-muon-parameters",
+            "--HDF5EventSource.focal_length_choice=EQUIVALENT",
+            "--max-events=30",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -544,9 +570,7 @@ def proton_train_clf(model_tmp_path, energy_regressor_path):
 
 
 @pytest.fixture(scope="session")
-def particle_classifier_path(
-    model_tmp_path, energy_regressor_path, gamma_train_clf, proton_train_clf
-):
+def particle_classifier_path(model_tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
@@ -561,6 +585,30 @@ def particle_classifier_path(
             argv=[
                 f"--signal={gamma_train_clf}",
                 f"--background={proton_train_clf}",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+            ],
+        )
+        assert ret == 0
+        return out_file
+
+
+@pytest.fixture(scope="session")
+def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
+    from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
+
+    out_file = model_tmp_path / "disp_reconstructor.pkl"
+    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+        if out_file.is_file():
+            return out_file
+
+        config = resource_file("train_disp_reconstructor.yaml")
+
+        ret = run_tool(
+            TrainDispReconstructor(),
+            argv=[
+                f"--input={gamma_train_clf}",
                 f"--output={out_file}",
                 f"--config={config}",
                 "--log-level=INFO",

@@ -43,6 +43,6 @@ def test_MuonRingFitter(method, prod5_mst_flashcam):
     print(fit_result)
     print(center_xs, center_ys, radius)
 
-    assert u.isclose(fit_result.center_x, center_xs, 5e-2)
-    assert u.isclose(fit_result.center_y, center_ys, 5e-2)
+    assert u.isclose(fit_result.center_fov_lon, center_xs, 5e-2)
+    assert u.isclose(fit_result.center_fov_lat, center_ys, 5e-2)
     assert u.isclose(fit_result.radius, radius, 5e-2)

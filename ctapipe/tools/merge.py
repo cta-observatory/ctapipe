@@ -15,7 +15,7 @@ from ctapipe.utils.arrays import recarray_drop_columns
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, CInt, Set, Unicode, flag
 from ..instrument import SubarrayDescription
-from ..io import HDF5EventSource, HDF5TableWriter, get_hdf5_datalevels
+from ..io import HDF5EventSource, get_hdf5_datalevels
 from ..io import metadata as meta
 
 PROV = Provenance()
@@ -37,6 +37,7 @@ optional_nodes = {
     "/simulation/event/telescope/impact",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
+    "/dl1/event/telescope/muon",
     "/dl2/event/telescope/geometry",
     "/dl2/event/telescope/impact",
     "/dl2/event/telescope/energy",
@@ -61,6 +62,7 @@ simulation_nodes = {
 nodes_with_tels = {
     "/dl1/monitoring/telescope/pointing",
     "/dl1/event/telescope/parameters",
+    "/dl1/event/telescope/muon",
     "/dl1/event/telescope/images",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
@@ -72,6 +74,7 @@ image_nodes = {
 parameter_nodes = {
     "/simulation/event/telescope/parameters",
     "/dl1/event/telescope/parameters",
+    "/dl1/event/telescope/muon",
 }
 
 SIMULATED_IMAGE_GROUP = "/simulation/event/telescope/images"
@@ -129,7 +132,7 @@ class MergeTool(Tool):
         help="Input dl1-files",
     ).tag(config=True)
     output_path = traits.Path(
-        help="Merged-DL1 output filename", directory_ok=False
+        help="Merged-DL1 output filename", directory_ok=False, allow_none=False
     ).tag(config=True)
     skip_images = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
@@ -145,9 +148,6 @@ class MergeTool(Tool):
     ).tag(config=True)
     skip_broken_files = Bool(
         help="Skip broken files instead of raising an error", default_value=False
-    ).tag(config=True)
-    overwrite = Bool(
-        help="Overwrite output file if it exists", default_value=False
     ).tag(config=True)
     progress_bar = Bool(
         help="Show progress bar during processing", default_value=False
@@ -177,13 +177,6 @@ class MergeTool(Tool):
     }
 
     flags = {
-        "f": ({"MergeTool": {"overwrite": True}}, "Overwrite output file if it exists"),
-        **flag(
-            "overwrite",
-            "MergeTool.overwrite",
-            "Overwrite output file if it exists",
-            "Don't overwrite output file if it exists",
-        ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
@@ -221,16 +214,7 @@ class MergeTool(Tool):
             sys.exit(1)
 
         self.output_path = self.output_path.expanduser()
-        if self.output_path.exists():
-            if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
-                self.output_path.unlink()
-            else:
-                self.log.critical(
-                    f"Output file {self.output_path} exists, "
-                    "use `--overwrite` to overwrite"
-                )
-                sys.exit(1)
+        self.check_output(self.output_path)
 
         PROV.add_output_file(str(self.output_path))
 
@@ -281,7 +265,12 @@ class MergeTool(Tool):
                     self.usable_nodes.remove(node)
 
         # create output file with subarray from first file
-        self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
+        self.first_subarray = SubarrayDescription.from_hdf(
+            self.input_files[0],
+            # focal length choice has no effect here, so use EQUIVALENT
+            # to support merging files that do not have EFFECTIVE
+            focal_length_choice="EQUIVALENT",
+        )
         if self.allowed_tels:
             self.first_subarray = self.first_subarray.select_subarray(
                 tel_ids=self.allowed_tels
@@ -305,7 +294,12 @@ class MergeTool(Tool):
             )
             return True
 
-        current_subarray = SubarrayDescription.from_hdf(file_path)
+        current_subarray = SubarrayDescription.from_hdf(
+            file_path,
+            # focal length choice has no effect here, so use EQUIVALENT
+            # to support merging files that do not have EFFECTIVE
+            focal_length_choice="EQUIVALENT",
+        )
         if self.allowed_tels:
             current_subarray = current_subarray.select_subarray(
                 tel_ids=self.allowed_tels
@@ -488,7 +482,6 @@ class MergeTool(Tool):
 
     def finish(self):
         datalevels = [d.name for d in get_hdf5_datalevels(self.output_file)]
-        self.output_file.close()
 
         activity = PROV.current_activity.provenance
         process_type_ = "Observation"
@@ -519,11 +512,8 @@ class MergeTool(Tool):
         )
 
         headers = reference.to_dict()
-
-        with HDF5TableWriter(
-            self.output_path, parent=self, mode="a", add_prefix=True
-        ) as writer:
-            meta.write_to_hdf5(headers, writer.h5file)
+        meta.write_to_hdf5(headers, self.output_file)
+        self.output_file.close()
 
 
 def main():

@@ -174,6 +174,7 @@ class Tool(Application):
     ).tag(config=True)
 
     quiet = Bool(default_value=False).tag(config=True)
+    overwrite = Bool(default_value=False).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -203,8 +204,12 @@ class Tool(Application):
                 {"Tool": {"log_level": "DEBUG"}},
                 "Set log level to DEBUG",
             ),
+            "overwrite": (
+                {"Tool": {"overwrite": True}},
+                "Overwrite existing output files without asking",
+            ),
         }
-        self.flags.update(flags)
+        self.flags = {**flags, **self.flags}
 
         self.is_setup = False
         self.version = version
@@ -324,6 +329,32 @@ class Tool(Application):
         self._registered_components.append(component_instance)
         return component_instance
 
+    def check_output(self, *output_paths):
+        """
+        Test if output files exist and if they do, throw an error
+        unless ``self.overwrite`` is set to True.
+        This should be checked during tool setup to avoid having a tool only
+        realize the output can not be written after some long-running calculations
+        (e.g. training of ML-models).
+        Because we currently do not collect all created output files in the tool
+        (they can be attached to some component), the output files need
+        to be given and can not easily be derived from ``self``.
+
+        Parameters
+        ----------
+        output_paths: Path
+            One or more output path to check.
+
+        """
+        for output in output_paths:
+            if output is not None and output.exists():
+                if self.overwrite:
+                    self.log.warning("Overwriting %s", output)
+                else:
+                    raise ToolConfigurationError(
+                        f"Output path {output} exists, but overwrite=False"
+                    )
+
     @abstractmethod
     def setup(self):
         """Set up the tool.
@@ -368,7 +399,7 @@ class Tool(Application):
         """
 
         # return codes are taken from:
-        #  http://tldp.org/LDP/abs/html/exitcodes.html
+        #  https://tldp.org/LDP/abs/html/exitcodes.html
 
         exit_status = 0
 
@@ -609,45 +640,3 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
         return e.code
     finally:
         os.chdir(current_cwd)
-
-
-def test_exit_stack():
-    """Test that components that are context managers are properly handled"""
-
-    class TestManager:
-        def __init__(self):
-            self.enter_called = False
-            self.exit_called = False
-
-        def __enter__(self):
-            self.enter_called = True
-            return self
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            self.exit_called = True
-
-    class AtExitTool(Tool):
-        def setup(self):
-            self.manager = self.enter_context(TestManager())
-
-    tool = AtExitTool()
-    assert not tool.manager.enter_called
-    assert not tool.manager.exit_called
-    run_tool(tool)
-    assert tool.manager.enter_called
-    assert tool.manager.exit_called
-
-    # test this also works when there is an exception in the user code
-    class FailTool(Tool):
-        def setup(self):
-            self.manager = self.enter_context(TestManager())
-
-        def start(self):
-            raise Exception("Failed")
-
-    tool = FailTool()
-    assert not tool.manager.enter_called
-    assert not tool.manager.exit_called
-    run_tool(tool)
-    assert tool.manager.enter_called
-    assert tool.manager.exit_called

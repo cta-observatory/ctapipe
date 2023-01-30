@@ -18,7 +18,7 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     which needs to be present in the ctapipe-extra package. The included Yale bright
     star catalog contains all 9096 stars, excluding the Nova objects present in the
     original catalog from  Hoffleit & Jaschek (1991),
-    http://adsabs.harvard.edu/abs/1991bsc..book.....H, and is complete down to
+    https://adsabs.harvard.edu/abs/1991bsc..book.....H, and is complete down to
     magnitude ~6.5, while the faintest included star has mag=7.96.
 
     Parameters
