@@ -4,6 +4,7 @@ Tests for ImageProcessor functionality
 from numpy import isfinite
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import ImageProcessor
 from ctapipe.image.cleaning import MARSImageCleaner
 
@@ -13,7 +14,8 @@ def test_image_processor(example_event, example_subarray):
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
-        subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
+        subarray=example_subarray.transform_camera_geometries_to(TelescopeFrame()),
+        image_cleaner_type="MARSImageCleaner",
     )
 
     assert isinstance(process_images.clean, MARSImageCleaner)

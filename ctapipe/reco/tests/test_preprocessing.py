@@ -3,6 +3,8 @@ import numpy as np
 from astropy.table import Table
 from numpy.testing import assert_array_equal
 
+from ctapipe.coordinates import TelescopeFrame
+
 
 def test_table_to_float32():
     from ctapipe.reco.preprocessing import table_to_float
@@ -74,7 +76,9 @@ def test_collect_features(example_event, example_subarray):
     subarray = example_subarray
 
     calib = CameraCalibrator(subarray)
-    image_processor = ImageProcessor(subarray)
+    image_processor = ImageProcessor(
+        subarray.transform_camera_geometries_to(TelescopeFrame())
+    )
     shower_processor = ShowerProcessor(subarray)
 
     calib(event)

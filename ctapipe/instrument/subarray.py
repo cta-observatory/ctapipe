@@ -3,7 +3,7 @@ Description of Arrays or Subarrays of telescopes
 """
 import warnings
 from contextlib import ExitStack
-from copy import copy
+from copy import copy, deepcopy
 from itertools import groupby
 from typing import Dict, Iterable, Tuple, Union
 
@@ -374,6 +374,22 @@ class SubarrayDescription:
 
         newsub = SubarrayDescription(
             name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
+        )
+        return newsub
+
+    def transform_camera_geometries_to(self, frame):
+        """
+        return a new SubarrayDescription with all geometries in the desired frame
+        """
+        tel_descriptions = deepcopy(self.tel)
+        for tid in tel_descriptions:
+            geometry = tel_descriptions[tid].camera.geometry.transform_to(frame)
+            tel_descriptions[tid].camera.geometry = geometry
+
+        newsub = SubarrayDescription(
+            f"{self.name}_{frame.name}",
+            tel_positions=self.positions,
+            tel_descriptions=tel_descriptions,
         )
         return newsub
 

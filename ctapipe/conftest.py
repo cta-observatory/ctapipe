@@ -7,6 +7,7 @@ from copy import deepcopy
 import pytest
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from ctapipe.io import SimTelEventSource
@@ -115,7 +116,9 @@ def _subarray_and_event_gamma_off_axis_500_gev():
         calib = CameraCalibrator(source.subarray)
         calib(event)
 
-        image_processor = ImageProcessor(source.subarray)
+        image_processor = ImageProcessor(
+            source.subarray.transform_camera_geometries_to(TelescopeFrame())
+        )
 
         # make dl1b available
         image_processor(event)

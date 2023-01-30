@@ -8,6 +8,7 @@ from numpy import isfinite
 from traitlets.config.loader import Config
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import ImageProcessor
 from ctapipe.reco import GeometryReconstructor, ShowerProcessor
 
@@ -30,7 +31,8 @@ def test_shower_processor_geometry(
     config = Config()
 
     process_images = ImageProcessor(
-        subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
+        subarray=example_subarray.transform_camera_geometries_to(TelescopeFrame()),
+        image_cleaner_type="MARSImageCleaner",
     )
 
     process_shower = ShowerProcessor(

@@ -2,6 +2,7 @@ import pytest
 from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import ImageProcessor
 from ctapipe.io import EventSource
 from ctapipe.reco import HillasIntersection, HillasReconstructor
@@ -30,7 +31,9 @@ def test_reconstructors(reconstructors):
     source = EventSource(filename, max_events=10, focal_length_choice="EQUIVALENT")
     subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
-    image_processor = ImageProcessor(source.subarray)
+    image_processor = ImageProcessor(
+        source.subarray.transform_camera_geometries_to(TelescopeFrame())
+    )
 
     for event in source:
         calib(event)

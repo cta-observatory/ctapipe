@@ -7,6 +7,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
+from ..coordinates import TelescopeFrame
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
@@ -170,9 +171,14 @@ class ProcessorTool(Tool):
             sys.exit(1)
 
         subarray = self.event_source.subarray
+        subarray_telescopeframe = subarray.transform_camera_geometries_to(
+            TelescopeFrame()
+        )
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
-        self.process_images = ImageProcessor(subarray=subarray, parent=self)
+        self.process_images = ImageProcessor(
+            subarray=subarray_telescopeframe, parent=self
+        )
         self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)

@@ -7,7 +7,11 @@ from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.containers import HillasParametersContainer
-from ctapipe.coordinates import GroundFrame, altaz_to_righthanded_cartesian
+from ctapipe.coordinates import (
+    GroundFrame,
+    TelescopeFrame,
+    altaz_to_righthanded_cartesian,
+)
 from ctapipe.image.image_processor import ImageProcessor
 from ctapipe.reco.hillas_reconstructor import HillasReconstructor
 
@@ -69,7 +73,9 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     # we'll clean it and parametrize it again in the TelescopeFrame
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
     calib = CameraCalibrator(subarray)
-    image_processor = ImageProcessor(subarray)
+    image_processor = ImageProcessor(
+        subarray.transform_camera_geometries_to(TelescopeFrame())
+    )
 
     # perform no quality cuts, so we can see if our additional checks on valid
     # input work
@@ -138,7 +144,9 @@ def test_reconstruction_against_simulation_telescope_frame(
 
     # define reconstructor
     calib = CameraCalibrator(subarray)
-    image_processor = ImageProcessor(subarray)
+    image_processor = ImageProcessor(
+        subarray.transform_camera_geometries_to(TelescopeFrame())
+    )
     reconstructor = HillasReconstructor(subarray)
 
     # Get shower geometry

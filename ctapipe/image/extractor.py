@@ -30,7 +30,6 @@ from scipy.ndimage import convolve1d
 from traitlets import Bool, Int
 
 from ctapipe.containers import DL1CameraContainer
-from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -1052,9 +1051,7 @@ class TwoPassWindowSum(ImageExtractor):
         # Apply correction to 1st pass charges
         charge_1stpass = charge_1stpass_uncorrected * correction[selected_gain_channel]
 
-        camera_geometry = self.subarray.tel[tel_id].camera.geometry.transform_to(
-            TelescopeFrame()
-        )
+        camera_geometry = self.subarray.tel[tel_id].camera.geometry
         if self.invalid_pixel_handler is not None:
             charge_1stpass, pulse_time_1stpass = self.invalid_pixel_handler(
                 tel_id,
