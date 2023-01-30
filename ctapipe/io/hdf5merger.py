@@ -41,6 +41,7 @@ _NODES_TO_CHECK = {
     "/dl1/event/telescope/trigger": NodeType.TABLE,
     "/dl1/event/telescope/images": NodeType.TEL_GROUP,
     "/dl1/event/telescope/parameters": NodeType.TEL_GROUP,
+    "/dl1/event/telescope/muon": NodeType.TEL_GROUP,
     "/dl2/event/telescope": NodeType.ALGORITHM_TEL_GROUP,
     "/dl2/event/subarray": NodeType.ALGORITHM_GROUP,
     "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
@@ -136,6 +137,11 @@ class HDF5Merger(Component):
     dl1_parameters = traits.Bool(
         True,
         help="Whether to include dl1 image parameters in merged output",
+    ).tag(config=True)
+
+    dl1_muon = traits.Bool(
+        True,
+        help="Whether to include dl1 muon parameters in merged output",
     ).tag(config=True)
 
     dl2_subarray = traits.Bool(
@@ -319,6 +325,10 @@ class HDF5Merger(Component):
 
         key = "/dl1/event/telescope/parameters"
         if self.telescope_events and self.dl1_parameters and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        key = "/dl1/event/telescope/muon"
+        if self.telescope_events and self.dl1_muon and key in other.root:
             self._append_table_group(other, other.root[key])
 
         # DL2
