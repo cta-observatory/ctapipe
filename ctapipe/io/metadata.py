@@ -112,7 +112,10 @@ class Product(HasTraits):
         if "data_levels" in kwargs:
             data_levels = kwargs["data_levels"]
             if isinstance(data_levels, str):
-                kwargs["data_levels"] = data_levels.split(",")
+                if data_levels.strip() == "":
+                    kwargs["data_levels"] = []
+                else:
+                    kwargs["data_levels"] = data_levels.split(",")
 
         super().__init__(**kwargs)
 
