@@ -112,11 +112,11 @@ def test_bad_selector(subarray_prod5_paranal):
 
 
 def test_table_mask_and_to_table(subarray_prod5_paranal):
-    """Test getting a mask for a whole table"""
+    """Test getting a mask for a whole table, based on global and specific keys."""
     query = QualityQuery(
         quality_criteria=[
             ("foo", "(x**2 + y**2) < 1.0"),
-            ("bar", "x < 0.5"),
+            ("bar", [("type", "*", "x < 0.5"), ("id", "1", "x > 0")]),
         ],
         subarray=subarray_prod5_paranal,
     )
@@ -136,6 +136,9 @@ def test_table_mask_and_to_table(subarray_prod5_paranal):
     stats = query.to_table()
     np.testing.assert_equal(stats["counts"], [5, 3, 2])
     np.testing.assert_equal(stats["cumulative_counts"], [5, 3, 1])
+
+    mask = query.get_table_mask(table, "tel_id")
+    np.testing.assert_equal(mask, [False, True, False, False, True])
 
 
 def test_to_table_after_call(subarray_prod5_paranal):

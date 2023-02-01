@@ -131,7 +131,7 @@ class QualityQuery(TelescopeComponent):
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
 
-    def get_table_mask(self, table: Table, key: Union[int, str, Literal[None]] = None):
+    def get_table_mask(self, table: Table, key: Union[str, Literal[None]] = None):
         """
         Get a boolean mask for the entries that pass the quality checks.
 
@@ -140,8 +140,8 @@ class QualityQuery(TelescopeComponent):
         table : `~astropy.table.Table`
             Table with columns matching the expressions used in the
             `QualityQuery.quality_criteria`.
-        key : int, str, TelescopeDescription, or None
-            Lookup parameter for the `TelescopeParameter`.
+        key : str or None
+            Column name of the lookup parameter for the `TelescopeParameter`.
 
         Returns
         -------
