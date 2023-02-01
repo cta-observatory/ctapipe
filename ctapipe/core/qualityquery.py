@@ -151,6 +151,14 @@ class QualityQuery(TelescopeComponent):
         n_criteria = len(self.criteria_names) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
+        if n_criteria == 1:
+            self._counts += np.count_nonzero(result, axis=1)
+            self._cumulative_counts += np.count_nonzero(
+                np.cumprod(result, axis=0),
+                axis=1,
+            )
+            return np.all(result, axis=0)
+
         if key is None:
             for i, (_, engine) in enumerate(self.engines, start=1):
                 result[i] = next(engine[key](table))
