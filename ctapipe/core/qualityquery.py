@@ -111,7 +111,7 @@ class QualityQuery(TelescopeComponent):
         Parameters
         ----------
         key : int, str, TelescopeDescription, or None
-            Lookup parameter for the `TelescopeParameter`.
+            Lookup parameter for the `ctapipe.core.telescope_component.TelescopeParameter`.
         **kwargs:
             Are passed as locals to evaluate the given expression
 
@@ -141,7 +141,7 @@ class QualityQuery(TelescopeComponent):
             Table with columns matching the expressions used in the
             `QualityQuery.quality_criteria`.
         key : str or None
-            Column name of the lookup parameter for the `TelescopeParameter`.
+            Column name of the lookup parameter for the `ctapipe.core.telescope_component.TelescopeParameter`.
 
         Returns
         -------
