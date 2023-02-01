@@ -4,7 +4,7 @@ Data Quality selection
 
 __all__ = ["QualityQuery", "QualityCriteriaError"]
 
-from typing import Literal
+from typing import Literal, Union
 
 import numpy as np  # for use in selection functions
 from astropy.table import Table
@@ -102,7 +102,7 @@ class QualityQuery(TelescopeComponent):
 
     def __call__(
         self,
-        key: [int, str, Literal[None]] = None,
+        key: Union[int, str, Literal[None]] = None,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -110,6 +110,8 @@ class QualityQuery(TelescopeComponent):
 
         Parameters
         ----------
+        key : int, str, TelescopeDescription, or None
+            Lookup parameter for the `TelescopeParameter`.
         **kwargs:
             Are passed as locals to evaluate the given expression
 
@@ -129,7 +131,7 @@ class QualityQuery(TelescopeComponent):
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
 
-    def get_table_mask(self, table):
+    def get_table_mask(self, table: Table, key: Union[int, str, Literal[None]] = None):
         """
         Get a boolean mask for the entries that pass the quality checks.
 
@@ -138,6 +140,8 @@ class QualityQuery(TelescopeComponent):
         table : `~astropy.table.Table`
             Table with columns matching the expressions used in the
             `QualityQuery.quality_criteria`.
+        key : int, str, TelescopeDescription, or None
+            Lookup parameter for the `TelescopeParameter`.
 
         Returns
         -------
@@ -147,15 +151,20 @@ class QualityQuery(TelescopeComponent):
         n_criteria = len(self.criteria_names) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
-        index_table = Table({"tel_id": table["tel_id"], "index": np.arange(len(table))})
-        grouped = index_table.group_by("tel_id")
-        del index_table
+        if key is None:
+            for i, (_, engine) in enumerate(self.engines, start=1):
+                result[i] = next(engine[key](table))
 
-        for i, (_, engine) in enumerate(self.engines, start=1):
-            for key, group_index in zip(grouped.groups.keys, grouped.groups):
-                tel_id = key["tel_id"]
-                index = group_index["index"]
-                result[i][index] = next(engine[tel_id](table[index]))
+        else:
+            index_table = Table({key: table[key], "index": np.arange(len(table))})
+            grouped = index_table.group_by(key)
+            del index_table
+
+            for i, (_, engine) in enumerate(self.engines, start=1):
+                for group_keys, group_index in zip(grouped.groups.keys, grouped.groups):
+                    _key = group_keys[key]
+                    index = group_index["index"]
+                    result[i][index] = next(engine[_key](table[index]))
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)

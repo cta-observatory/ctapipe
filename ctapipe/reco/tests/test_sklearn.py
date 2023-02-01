@@ -58,7 +58,6 @@ def example_table():
         n_samples=100, n_features=5, n_informative=3, random_state=0
     )
     t = Table({f"X{i}": col for i, col in enumerate(X.T)})
-    t["tel_id"] = np.arange(len(t))
     t["true_energy"] = y * u.TeV
     t["X0"][10] = np.nan
     t["X1"][30] = np.nan
