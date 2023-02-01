@@ -407,7 +407,10 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             table = self.feature_generator(table)
 
             # get_table_mask returns a table with a single row
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(
+                table,
+                key="tel_id",
+            )[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict(
@@ -437,7 +440,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         energy = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
-        valid = self.quality_query.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table, key="tel_description")
         energy[valid], is_valid[valid] = self._predict(key, table[valid])
 
         result = Table(
@@ -473,7 +476,10 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table)
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(
+                table,
+                key="tel_id",
+            )[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict_score(
@@ -503,7 +509,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         score = np.full(n_rows, np.nan)
         is_valid = np.full(n_rows, False)
 
-        valid = self.quality_query.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table, key="tel_description")
         score[valid], is_valid[valid] = self._predict_score(key, table[valid])
 
         result = Table(
@@ -706,7 +712,10 @@ class DispReconstructor(Reconstructor):
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table)
 
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(
+                table,
+                key="tel_id",
+            )[0]
 
             if passes_quality_checks:
                 disp, valid = self._predict(self.subarray.tel[tel_id], table)
@@ -780,7 +789,7 @@ class DispReconstructor(Reconstructor):
         disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
-        valid = self.quality_query.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table, key="tel_description")
         disp[valid], is_valid[valid] = self._predict(key, table[valid])
 
         disp_result = Table(
