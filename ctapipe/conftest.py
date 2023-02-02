@@ -525,6 +525,7 @@ def energy_regressor_path(model_tmp_path):
                 f"--output={out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
+                "--overwrite",
             ],
         )
         assert ret == 0
@@ -586,6 +587,7 @@ def particle_classifier_path(model_tmp_path, gamma_train_clf, proton_train_clf):
                 f"--output={out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
+                "--overwrite",
             ],
         )
         assert ret == 0
