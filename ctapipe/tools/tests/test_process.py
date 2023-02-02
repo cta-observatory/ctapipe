@@ -474,7 +474,7 @@ def test_plugin_help(capsys):
     captured = capsys.readouterr()
     assert (
         "PluginEventSource.foo" in captured.out
-    ), "Tool help is missing plugin classes"
+    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
     assert (
         "PluginReconstructor.foo" in captured.out
-    ), "Tool help is missing plugin classes"
+    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
