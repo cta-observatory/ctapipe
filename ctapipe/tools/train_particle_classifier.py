@@ -82,16 +82,6 @@ class TrainParticleClassifier(Tool):
         help="Random number seed for sampling and the cross validation splitting",
     ).tag(config=True)
 
-    flags = {
-        "overwrite": (
-            {
-                "TrainParticleClassifier": {"overwrite": True},
-                "CrossValidator": {"overwrite": True},
-            },
-            "Overwrite existing output",
-        ),
-    }
-
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
         "background": "TrainParticleClassifier.input_url_background",
