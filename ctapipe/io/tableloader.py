@@ -3,7 +3,7 @@ Class and related functions to read DL1 (a,b) and/or DL2 (a) data
 from an HDF5 file produced with ctapipe-process.
 """
 import warnings
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from pathlib import Path
 from typing import Dict
 
@@ -39,6 +39,9 @@ SUBARRAY_EVENT_KEYS = ["obs_id", "event_id"]
 TELESCOPE_EVENT_KEYS = ["obs_id", "event_id", "tel_id"]
 
 
+Chunk = namedtuple("Chunk", ["start", "stop", "data"])
+
+
 class IndexNotMatching(UserWarning):
     """Warning that is raised if the order of two tables is not matching as expected"""
 
@@ -71,30 +74,29 @@ class ChunkIterator:
         self.func = func
         self.n_total = n_total
         self.chunk_size = chunk_size
-        self._current_chunk = 0
         self.n_chunks = int(np.ceil(self.n_total / self.chunk_size))
         self.args = args
         self.kwargs = kwargs
-        self.start = None
-        self.end = None
 
     def __len__(self):
         return self.n_chunks
 
-    def __iter__(self):
-        self._current_chunk = 0
-        return self
+    def __getitem__(self, chunk):
 
-    def __next__(self):
-        if self._current_chunk == self.n_chunks:
-            raise StopIteration
+        if chunk < 0:
+            chunk = self.n_chunks - chunk
 
-        chunk = self._current_chunk
-        self.start = chunk * self.chunk_size
-        self.stop = min(self.n_total, (chunk + 1) * self.chunk_size)
+        if chunk >= self.n_chunks:
+            raise IndexError(
+                f"Index {chunk} is out of bounds for {self.__class__.__name__}"
+                f" of length {len(self)}"
+            )
 
-        self._current_chunk += 1
-        return self.func(*self.args, start=self.start, stop=self.stop, **self.kwargs)
+        start = chunk * self.chunk_size
+        stop = min(self.n_total, (chunk + 1) * self.chunk_size)
+        return Chunk(
+            start, stop, self.func(*self.args, start=start, stop=stop, **self.kwargs)
+        )
 
 
 def _empty_telescope_events_table():

@@ -1,0 +1,2 @@
+The ``_chunked`` methods of the ``TableLoader`` now return
+an Iterator over namedtuples with start, stop, data.
