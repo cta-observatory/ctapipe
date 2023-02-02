@@ -642,34 +642,13 @@ class HDF5EventSource(EventSource):
                     simulated = data.simulation.tel[tel_id]
 
                 if DataLevel.DL1_IMAGES in self.datalevels:
-                    if key not in image_readers:
-                        logger.debug(
-                            f"Triggered telescope {tel_id} is missing "
-                            "from the image table."
-                        )
-                        continue
-
                     data.dl1.tel[tel_id] = next(image_readers[key])
 
                     if self.has_simulated_dl1:
-                        if key not in simulated_image_iterators:
-                            logger.warning(
-                                f"Triggered telescope {tel_id} is missing "
-                                "from the simulated image table, but was present at the "
-                                "reconstructed image table."
-                            )
-                            continue
-
                         simulated_image_row = next(simulated_image_iterators[key])
                         simulated.true_image = simulated_image_row["true_image"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    if key not in param_readers:
-                        logger.debug(
-                            f"Triggered telescope {tel_id} is missing "
-                            "from the parameters table."
-                        )
-                        continue
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
@@ -684,13 +663,6 @@ class HDF5EventSource(EventSource):
                         peak_time_statistics=params[6],
                     )
                     if self.has_simulated_dl1:
-                        if key not in simulated_param_readers:
-                            logger.debug(
-                                f"Triggered telescope {tel_id} is missing "
-                                "from the simulated parameters table, but was "
-                                "present at the reconstructed parameters table."
-                            )
-                            continue
                         simulated_params = next(simulated_param_readers[key])
                         simulated.true_parameters = ImageParametersContainer(
                             hillas=simulated_params[0],
