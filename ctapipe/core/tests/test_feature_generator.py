@@ -35,12 +35,17 @@ def test_feature_generator():
 
 def test_existing_feature():
     """If the feature already exists, fail"""
-    expressions = [("foo", "bar")]
+    expressions = [("foo", "2"), ("bar", "3")]
     generator = FeatureGenerator(features=expressions)
     table = Table({"foo": [1], "bar": [1]})
 
     with pytest.raises(FeatureGeneratorException):
         generator(table)
+
+    generator.overwrite = True
+    generator(table)
+    assert (table["foo"] == 2).all()
+    assert (table["bar"] == 3).all()
 
 
 def test_missing_colname():
