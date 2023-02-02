@@ -13,7 +13,7 @@ def test_plugin(subarray_prod5_paranal):
         reconstructor = Reconstructor.from_name("PluginReconstructor", subarray)
     except KeyError:
         pytest.fail(
-            "plugin event source not found, did you run pip install -e ./test_plugin"
+            "plugin event source not found, did you run `pip install -e ./test_plugin`?"
         )
 
     assert reconstructor.__module__ == "ctapipe_test_plugin"
