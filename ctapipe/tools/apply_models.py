@@ -178,7 +178,7 @@ class ApplyModels(Tool):
         chunk_iterator = self.loader.read_telescope_events_by_id_chunked(
             self.chunk_size
         )
-        for chunk in tqdm(chunk_iterator, desc=desc, unit=unit):
+        for start, stop, chunk in tqdm(chunk_iterator, desc=desc, unit=unit):
             tel_tables = []
 
             for tel_id, table in chunk.items():
@@ -249,8 +249,8 @@ class ApplyModels(Tool):
             self._combine(
                 reconstructor.stereo_combiner,
                 vstack(tel_tables),
-                start=chunk_iterator.start,
-                stop=chunk_iterator.stop,
+                start=start,
+                stop=stop,
             )
 
     def _combine(self, combiner, mono_predictions, start=None, stop=None):

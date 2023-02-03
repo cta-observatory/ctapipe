@@ -303,9 +303,18 @@ def test_chunked(dl2_shower_geometry_file):
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
         for chunk, (events, tel_events, by_type, by_id) in enumerate(zip(*iters)):
+
+            expected_start = chunk * chunk_size
+            expected_stop = min(n_events, (chunk + 1) * chunk_size)
+
+            start, stop, events = events
+            tel_events = tel_events.data
+            by_type = by_type.data
+            by_id = by_id.data
+            assert expected_start == start
+            assert expected_stop == stop
+
             n_read += len(events)
-            start = chunk * chunk_size
-            stop = min(n_events, (chunk + 1) * chunk_size)
 
             # last chunk might be smaller
             if chunk == (n_chunks - 1):
