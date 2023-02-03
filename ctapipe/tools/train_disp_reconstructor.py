@@ -60,16 +60,6 @@ class TrainDispReconstructor(Tool):
         ),
     ).tag(config=True)
 
-    flags = {
-        "overwrite": (
-            {
-                "TrainDispReconstructor": {"overwrite": True},
-                "CrossValidator": {"overwrite": True},
-            },
-            "Overwrite existing output",
-        ),
-    }
-
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainDispReconstructor.output_path",

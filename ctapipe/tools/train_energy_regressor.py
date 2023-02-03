@@ -56,16 +56,6 @@ class TrainEnergyRegressor(Tool):
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
-    flags = {
-        "overwrite": (
-            {
-                "TrainEnergyReconstructor": {"overwrite": True},
-                "CrossValidator": {"overwrite": True},
-            },
-            "Overwrite existing output",
-        ),
-    }
-
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
