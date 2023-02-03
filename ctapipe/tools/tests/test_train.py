@@ -42,6 +42,26 @@ def test_too_few_events(tmp_path, dl2_shower_geometry_file):
         )
 
 
+def test_sampling(tmp_path, dl2_shower_geometry_file):
+    from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
+
+    tool = TrainEnergyRegressor()
+    config = resource_file("train_energy_regressor.yaml")
+    out_file = tmp_path / "energy.pkl"
+
+    run_tool(
+        tool,
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output={out_file}",
+            f"--config={config}",
+            "--log-level=INFO",
+            "--n-events=100",
+        ],
+        raises=True,
+    )
+
+
 def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
     from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
