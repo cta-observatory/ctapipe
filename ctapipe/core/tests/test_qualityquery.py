@@ -2,7 +2,6 @@
 import numpy as np
 import pytest
 from astropy.table import Table
-
 from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.qualityquery import QualityQuery
 from ctapipe.core.traits import List
@@ -139,6 +138,31 @@ def test_table_mask_and_to_table(subarray_prod5_paranal):
 
     mask = query.get_table_mask(table, "tel_id")
     np.testing.assert_equal(mask, [False, True, False, False, True])
+
+
+def test_table_no_criteria(subarray_prod5_paranal):
+    """Test getting a mask for a whole table, based on global and specific keys."""
+    query = QualityQuery(
+        quality_criteria=[],
+        subarray=subarray_prod5_paranal,
+    )
+
+    table = Table(
+        {
+            "tel_id": [1, 2, 1, 4, 1],
+            "x": [1.0, 0.2, -0.5, 0.6, 0.7],
+            "y": [0.0, 0.5, 1.0, 0.2, 0.1],
+        }
+    )
+
+    mask = query.get_table_mask(table)
+    assert len(mask) == len(table)
+    assert mask.dtype == np.bool_
+    assert np.all(mask)
+
+    stats = query.to_table()
+    np.testing.assert_equal(stats["counts"], [5])
+    np.testing.assert_equal(stats["cumulative_counts"], [5])
 
 
 def test_to_table_after_call(subarray_prod5_paranal):

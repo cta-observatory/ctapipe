@@ -149,22 +149,21 @@ class QualityQuery(TelescopeComponent):
             Boolean mask of valid entries.
         """
         n_criteria = len(self.criteria_names) + 1
-        result = np.ones((n_criteria, len(table)), dtype=bool)
+        tlen = len(table)
 
         if n_criteria == 1:
-            self._counts += np.count_nonzero(result, axis=1)
-            self._cumulative_counts += np.count_nonzero(
-                np.cumprod(result, axis=0),
-                axis=1,
-            )
-            return np.all(result, axis=0)
+            self._counts += tlen
+            self._cumulative_counts += tlen
+            return np.ones(tlen, dtype=bool)
+
+        result = np.ones((n_criteria, tlen), dtype=bool)
 
         if key is None:
             for i, (_, engine) in enumerate(self.engines, start=1):
                 result[i] = next(engine[key](table))
 
         else:
-            index_table = Table({key: table[key], "index": np.arange(len(table))})
+            index_table = Table({key: table[key], "index": np.arange(tlen)})
             grouped = index_table.group_by(key)
             del index_table
 
