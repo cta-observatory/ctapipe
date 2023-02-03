@@ -274,13 +274,13 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
         help="If True, the model is trained to predict the natural logarithm.",
     ).tag(config=True)
 
-    def _predict(self, key, table):
+    def _predict(self, key, table, generated):
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
                 f" available models: {self._models.keys()}"
             )
-        X, valid = table_to_X(table, self.features, self.log)
+        X, valid = table_to_X(table, generated, self.features, self.log)
         n_outputs = getattr(self._models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
@@ -338,14 +338,14 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
         ),
     ).tag(config=True)
 
-    def _predict(self, key, table):
+    def _predict(self, key, table, generated):
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
                 f" available models: {self._models.keys()}"
             )
 
-        X, valid = table_to_X(table, self.features, self.log)
+        X, valid = table_to_X(table, generated, self.features, self.log)
         n_outputs = getattr(self._models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
@@ -359,14 +359,14 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
 
         return prediction, valid
 
-    def _predict_score(self, key, table):
+    def _predict_score(self, key, table, generated):
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
                 f" available models: {self._models.keys()}"
             )
 
-        X, valid = table_to_X(table, self.features, self.log)
+        X, valid = table_to_X(table, generated, self.features, self.log)
 
         n_classes = getattr(self._models[key], "n_classes_", 2)
         n_rows = len(table)
@@ -404,7 +404,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table)
+            generated = self.feature_generator(table)
 
             # get_table_mask returns a table with a single row
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
@@ -413,6 +413,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
                 prediction, valid = self._predict(
                     self.subarray.tel[tel_id],
                     table,
+                    generated,
                 )
                 container = ReconstructedEnergyContainer(
                     energy=prediction[0],
@@ -431,14 +432,14 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     def predict_table(self, key, table: Table) -> Table:
         """Predict on a table of events"""
-        table = self.feature_generator(table)
+        generated = self.feature_generator(table)
 
         n_rows = len(table)
         energy = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
         valid = self.quality_query.get_table_mask(table)
-        energy[valid], is_valid[valid] = self._predict(key, table[valid])
+        energy[valid], is_valid[valid] = self._predict(key, table[valid], generated[valid])
 
         result = Table(
             {
@@ -472,13 +473,14 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table)
+            generated = self.feature_generator(table)
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict_score(
                     self.subarray.tel[tel_id],
                     table,
+                    generated,
                 )
 
                 container = ParticleClassificationContainer(
@@ -497,14 +499,14 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     def predict_table(self, key, table: Table) -> Table:
         """Predict on a table of events"""
-        table = self.feature_generator(table)
+        generated = self.feature_generator(table)
 
         n_rows = len(table)
         score = np.full(n_rows, np.nan)
         is_valid = np.full(n_rows, False)
 
         valid = self.quality_query.get_table_mask(table)
-        score[valid], is_valid[valid] = self._predict_score(key, table[valid])
+        score[valid], is_valid[valid] = self._predict_score(key, table[valid], generated[valid])
 
         result = Table(
             {
@@ -668,13 +670,13 @@ class DispReconstructor(Reconstructor):
     def instrument_table(self):
         return self.subarray.to_table("joined")
 
-    def _predict(self, key, table):
+    def _predict(self, key, table, generated):
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
                 f" available models: {self._models.keys()}"
             )
-        X, valid = table_to_X(table, self.features, self.log)
+        X, valid = table_to_X(table, generated, self.features, self.log)
         prediction = np.full(len(table), np.nan)
 
         if np.any(valid):
@@ -704,12 +706,12 @@ class DispReconstructor(Reconstructor):
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table)
+            generated = self.feature_generator(table)
 
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
-                disp, valid = self._predict(self.subarray.tel[tel_id], table)
+                disp, valid = self._predict(self.subarray.tel[tel_id], table, generated)
                 disp_container = DispContainer(
                     norm=disp[0],
                     is_valid=valid[0],
@@ -774,14 +776,14 @@ class DispReconstructor(Reconstructor):
         altaz_table : `~astropy.table.Table`
             Table with resulting predictions of horizontal coordinates
         """
-        table = self.feature_generator(table)
+        generated = self.feature_generator(table)
 
         n_rows = len(table)
         disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
         valid = self.quality_query.get_table_mask(table)
-        disp[valid], is_valid[valid] = self._predict(key, table[valid])
+        disp[valid], is_valid[valid] = self._predict(key, table[valid], generated)
 
         disp_result = Table(
             {

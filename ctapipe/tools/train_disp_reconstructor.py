@@ -126,19 +126,7 @@ class TrainDispReconstructor(Tool):
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
 
-        table = self.models.feature_generator(table)
-
-        table[self.models.target] = self._get_true_disp(table)
-
-        # Add true energy for energy-dependent performance plots
-        columns = self.models.features + [self.models.target, "true_energy"]
-        table = table[columns]
-
-        valid = check_valid_rows(table)
-        if np.any(~valid):
-            self.log.warning("Dropping non-predicable events.")
-            table = table[valid]
-
+        table = self.models.
         n_events = self.n_events.tel[telescope_type]
         if n_events is not None:
             if n_events > len(table):
