@@ -40,14 +40,17 @@ class FeatureGenerator(Component):
         self._feature_names = [name for name, _ in self.features]
 
     def __call__(self, table):
+        new_features = {}
         for result, name in zip(self.engine(table), self._feature_names):
             if name in table.colnames:
                 raise FeatureGeneratorException(f"{name} is already a column of table.")
             try:
-                table[name] = result
+                new_features[name] = result
             except Exception as err:
                 raise err
-        return table
+
+        # this makes it so that we return QTable or Table depending on the input automatically
+        return table.__class__(new_features)
 
     def __len__(self):
         return len(self.features)

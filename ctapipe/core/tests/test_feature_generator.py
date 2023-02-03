@@ -17,20 +17,29 @@ def test_feature_generator():
 
     generator = FeatureGenerator(features=expressions)
 
-    table = Table({"intensity": [1, 10, 100], "length": [2, 4, 8], "width": [1, 2, 4]})
+    input_table = Table({"intensity": [1, 10, 100], "length": [2, 4, 8], "width": [1, 2, 4]})
+    input_columns = list(input_table.colnames)
+    new_columns = [name for name, _ in expressions]
+
     log_intensity = [0, 1, 2]
     area = [2, 8, 32]
     eccentricity = np.sqrt(0.75)
 
-    table = generator(table)
+    new_features = generator(input_table)
 
-    assert "log_intensity" in table.colnames
-    assert "area" in table.colnames
-    assert "eccentricity" in table.colnames
+    # check we don't modify the input column and only get the new new_features
+    # in the output column
+    for column in input_columns:
+        assert column not in new_features.colnames
+        assert column in input_table.colnames
 
-    assert np.all(table["log_intensity"] == log_intensity)
-    assert np.all(table["area"] == area)
-    assert np.all(table["eccentricity"] == eccentricity)
+    for column in new_columns:
+        assert column not in input_table.colnames
+        assert column in new_features.colnames
+
+    assert np.all(new_features["log_intensity"] == log_intensity)
+    assert np.all(new_features["area"] == area)
+    assert np.all(new_features["eccentricity"] == eccentricity)
 
 
 def test_existing_feature():
