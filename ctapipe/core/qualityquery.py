@@ -14,7 +14,6 @@ from .telescope_component import (
     TelescopeComponent,
     TelescopeParameter,
     TelescopeParameterLookup,
-    TelescopePatternList,
 )
 from .traits import List, Tuple, Unicode
 
@@ -51,9 +50,6 @@ class QualityQuery(TelescopeComponent):
         self.criteria_names = []
 
         for name, criteria_list in self.quality_criteria:
-
-            if not isinstance(criteria_list, (tuple, list, TelescopePatternList)):
-                criteria_list = TelescopePatternList([criteria_list])
 
             for i, crit in enumerate(criteria_list):
                 command, arg, expr = crit

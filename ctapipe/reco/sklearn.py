@@ -10,6 +10,7 @@ from typing import Tuple
 import astropy.units as u
 import joblib
 import numpy as np
+import traitlets
 from astropy.coordinates import AltAz
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
@@ -64,15 +65,14 @@ SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 class MLQualityQuery(QualityQuery):
     """Quality criteria for machine learning models with different defaults"""
 
-    quality_criteria = List(
-        default_value=[
+    @traitlets.default("quality_criteria")
+    def quality_criteria_default(self):
+        return [
             ("> 50 phe", "hillas_intensity > 50"),
             ("Positive width", "hillas_width > 0"),
             ("> 3 pixels", "morphology_n_pixels > 3"),
             ("valid stereo reco", "HillasReconstructor_is_valid"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+        ]
 
 
 class SKLearnReconstructor(Reconstructor):

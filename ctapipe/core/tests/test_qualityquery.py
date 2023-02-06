@@ -1,10 +1,11 @@
 """ Tests of Selectors """
 import numpy as np
 import pytest
+import traitlets
 from astropy.table import Table
+
 from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.qualityquery import QualityQuery
-from ctapipe.core.traits import List
 
 
 def test_selector(subarray_prod5_paranal):
@@ -13,13 +14,13 @@ def test_selector(subarray_prod5_paranal):
     class ExampleQualityQuery(QualityQuery):
         """Available variables: x"""
 
-        quality_criteria = List(
-            default_value=[
+        @traitlets.default("quality_criteria")
+        def quality_criteria_default(self):
+            return [
                 ("high_enough", "x > 3"),
                 ("a_value_not_too_high", "x < 100"),
                 ("smallish", "x < sqrt(100)"),
-            ],
-        ).tag(config=True)
+            ]
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
 
@@ -64,13 +65,13 @@ def test_invalid_input(subarray_prod5_paranal):
     class ExampleQualityQuery(QualityQuery):
         """Available variables: x"""
 
-        quality_criteria = List(
-            default_value=[
+        @traitlets.default("quality_criteria")
+        def quality_criteria_default(self):
+            return [
                 ("high_enough", "x > 3"),
                 ("a_value_not_too_high", "x < 100"),
                 ("smallish", "x < np.sqrt(100)"),
-            ],
-        ).tag(config=True)
+            ]
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
     with pytest.raises(ExpressionError):
@@ -240,12 +241,12 @@ def test_inheritance_default_value(subarray_prod5_paranal):
     class ExampleQualityQuery(QualityQuery):
         """Available variables: x"""
 
-        quality_criteria = List(
-            [
+        @traitlets.default("quality_criteria")
+        def quality_criteria_default(self):
+            return [
                 ("high_enough", [("type", "*", "x > 3")]),
                 ("smallish", "x < np.sqrt(100)"),
-            ],
-        ).tag(config=True)
+            ]
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
     assert np.all(query(x=5))

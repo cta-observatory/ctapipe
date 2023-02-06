@@ -2,11 +2,11 @@ from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
+import traitlets
 from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import QualityQuery, TelescopeComponent
-from ctapipe.core.traits import List
 
 from ..coordinates import shower_impact_distance
 
@@ -30,14 +30,13 @@ class StereoQualityQuery(QualityQuery):
     """Quality criteria for dl1 parameters checked for telescope events to enter
     into stereo reconstruction"""
 
-    quality_criteria = List(
-        default_value=[
+    @traitlets.default("quality_criteria")
+    def quality_criteria_default(self):
+        return [
             ("> 50 phe", "parameters.hillas.intensity > 50"),
             ("Positive width", "parameters.hillas.width.value > 0"),
             ("> 3 pixels", "parameters.morphology.n_pixels > 3"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+        ]
 
 
 class Reconstructor(TelescopeComponent):

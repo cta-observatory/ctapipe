@@ -2,6 +2,7 @@
 High level muon analysis  (MuonProcessor Component)
 """
 import numpy as np
+import traitlets
 
 from ctapipe.containers import (
     ArrayEventContainer,
@@ -10,7 +11,7 @@ from ctapipe.containers import (
 )
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import QualityQuery, TelescopeComponent
-from ctapipe.core.traits import FloatTelescopeParameter, List, Tuple, Unicode
+from ctapipe.core.traits import FloatTelescopeParameter
 
 from .features import (
     intensity_ratio_inside_ring,
@@ -31,50 +32,46 @@ class ImageParameterQuery(QualityQuery):
     """
     For configuring quality checks performed on image parameters
     before rings are fitted.
+
+    Quality cuts as list of tuples of ('description', TelescopeParameter),
+    e.g. ``[('min_pixels', 'dl1_params.morphology.n_pixels > 100'),]``,
+    to select muon images for analysis.
+    You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``,
+    but no other modules.
+    DL1 image parameters can be accessed by prefixing the wanted parameter
+    with ``dl1_params``.
     """
 
-    quality_criteria = List(
-        Tuple(Unicode(), Unicode()),
-        default_value=[
+    @traitlets.default("quality_criteria")
+    def quality_criteria_default(self):
+        return [
             ("min_pixels", "dl1_params.morphology.n_pixels > 100"),
             ("min_intensity", "dl1_params.hillas.intensity > 500"),
-        ],
-        help=(
-            "Quality cuts as list of tuples of ('description', 'expression string'), "
-            "e.g. ``[('min_pixels', 'dl1_params.morphology.n_pixels > 100'),]``, "
-            "to select muon images for analysis. "
-            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
-            "but no other modules. "
-            "DL1 image parameters can be accessed by prefixing the wanted parameter "
-            "with ``dl1_params``. "
-        ),
-    ).tag(config=True)
+        ]
 
 
 class RingQuery(QualityQuery):
     """
     For configuring quality checks performed on the extracted rings before
     computing efficiency parameters.
+
+    Quality cuts as list of tuples of ('description', TelescopeParameter),
+    e.g. ``[('radius_not_nan', 'np.isfinite(ring.radius.value)'),]``,
+    to select fitted muons for further intensity fitting.
+    You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, but
+    no other modules.
+    Ring parameters and geometry can be accessed by prefixing the wanted
+    parameter with ``parameters`` or ``ring``, the ring mask can be accessed
+    as ``mask``.
     """
 
-    quality_criteria = List(
-        Tuple(Unicode(), Unicode()),
-        default_value=[
+    @traitlets.default("quality_criteria")
+    def quality_criteria_default(self):
+        return [
             ("radius_not_nan", "np.isfinite(ring.radius.value)"),
             ("min_pixels", "np.count_nonzero(mask) > 50"),
             ("ring_containment", "parameters.containment > 0.5"),
-        ],
-        help=(
-            "Quality cuts as list of tuples of ('description', 'expression string'), "
-            "e.g. ``[('radius_not_nan', 'np.isfinite(ring.radius.value)'),]``, "
-            "to select fitted muons for further intensity fitting. "
-            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, but "
-            "no other modules. "
-            "Ring parameters and geometry can be accessed by prefixing the wanted "
-            "parameter with ``parameters`` or ``ring``, the ring mask can be accessed "
-            "as ``mask``."
-        ),
-    ).tag(config=True)
+        ]
 
 
 class MuonProcessor(TelescopeComponent):
