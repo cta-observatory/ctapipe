@@ -39,15 +39,6 @@ class ShowerProcessor(Component):
         ),
     ).tag(config=True)
 
-    reconstructor_paths = traits.List(
-        traits.Path(exists=True, directory_ok=False),
-        help=(
-            "Trained stereo reconstructors to be read from path."
-            " These are loaded and applied after the ones configured"
-            " through ``reconstructor_types``"
-        ),
-    ).tag(config=True)
-
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
@@ -77,11 +68,6 @@ class ShowerProcessor(Component):
             )
             for reco_type in self.reconstructor_types
         ]
-
-        for path in self.reconstructor_paths:
-            self.reconstructors.append(
-                Reconstructor.read(path, subarray=self.subarray, parent=self)
-            )
 
     def __call__(self, event: ArrayEventContainer):
         """

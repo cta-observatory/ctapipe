@@ -74,7 +74,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "reconstructor": "ShowerProcessor.reconstructor_paths",
+        "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
