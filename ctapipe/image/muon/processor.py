@@ -33,11 +33,9 @@ class ImageParameterQuery(QualityQuery):
     For configuring quality checks performed on image parameters
     before rings are fitted.
 
-    Quality cuts as list of tuples of ('description', TelescopeParameter),
-    e.g. ``[('min_pixels', 'dl1_params.morphology.n_pixels > 100'),]``,
+    Set quality cuts as list of tuples of ('description', TelescopeParameter),
+    e.g. ``[('min_pixels', 'dl1_params.morphology.n_pixels > 100')]``,
     to select muon images for analysis.
-    You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``,
-    but no other modules.
     DL1 image parameters can be accessed by prefixing the wanted parameter
     with ``dl1_params``.
     """
@@ -55,11 +53,9 @@ class RingQuery(QualityQuery):
     For configuring quality checks performed on the extracted rings before
     computing efficiency parameters.
 
-    Quality cuts as list of tuples of ('description', TelescopeParameter),
-    e.g. ``[('radius_not_nan', 'np.isfinite(ring.radius.value)'),]``,
+    Set quality cuts as list of tuples of ('description', TelescopeParameter),
+    e.g. ``[('radius_not_nan', 'np.isfinite(ring.radius.value)')]``,
     to select fitted muons for further intensity fitting.
-    You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, but
-    no other modules.
     Ring parameters and geometry can be accessed by prefixing the wanted
     parameter with ``parameters`` or ``ring``, the ring mask can be accessed
     as ``mask``.
