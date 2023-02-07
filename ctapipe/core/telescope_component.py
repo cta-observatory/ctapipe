@@ -34,6 +34,13 @@ class TelescopeComponent(Component):
         super().__init__(config, parent, **kwargs)
         self.subarray = subarray
 
+    @property
+    def subarray(self):
+        return self._subarray
+
+    @subarray.setter
+    def subarray(self, subarray):
+        self._subarray = subarray
         # configure all of the TelescopeParameters
         for attr, trait in self.class_traits().items():
             if not isinstance(trait, TelescopeParameter):

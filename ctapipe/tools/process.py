@@ -81,9 +81,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "energy-regressor": "ShowerProcessor.EnergyRegressor.load_path",
-        "particle-classifier": "ShowerProcessor.ParticleClassifier.load_path",
-        "disp-reconstructor": "ShowerProcessor.DispReconstructor.load_path",
+        "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -191,27 +189,6 @@ class ProcessorTool(Tool):
             DataWriter(event_source=self.event_source, parent=self)
         )
         self.process_muons = MuonProcessor(subarray=subarray, parent=self)
-
-        # add ml reco classes if model paths were supplied via cli and not already configured
-        reco_aliases = {
-            "--energy-regressor": "EnergyRegressor",
-            "--particle-classifier": "ParticleClassifier",
-            "--disp-reconstructor": "DispReconstructor",
-        }
-        for alias, name in reco_aliases.items():
-            has_alias = any(arg.startswith(alias) for arg in self.argv)
-            if has_alias and name not in self.process_shower.reconstructor_types:
-                self.log.info(
-                    "Adding %s to ShowerProcesser because path was given on cli", name
-                )
-                reconstructor = Reconstructor.from_name(
-                    name,
-                    parent=self.process_shower,
-                    subarray=subarray,
-                )
-                self.process_shower.reconstructors.append(reconstructor)
-                self.process_shower.reconstructor_types.append(name)
-                self.write.write_showers = True
 
         self.event_type_filter = EventTypeFilter(parent=self)
 

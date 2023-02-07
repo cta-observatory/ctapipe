@@ -33,7 +33,7 @@ def test_process_apply_energy(
                     "load_path": str(energy_regressor_path),
                 },
             },
-        }
+        },
     }
 
     with config_path.open("w") as f:
@@ -76,13 +76,6 @@ def test_process_apply_classification(
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
-            "ShowerProcessor": {
-                "reconstructor_types": [
-                    "HillasReconstructor",
-                    "EnergyRegressor",
-                    "ParticleClassifier",
-                ]
-            },
         }
     }
 
@@ -92,13 +85,17 @@ def test_process_apply_classification(
     argv = [
         f"--input={input_url}",
         f"--output={output}",
+        f"--config={config_path}",
         "--write-images",
         "--write-showers",
-        f"--energy-regressor={energy_regressor_path}",
-        f"--particle-classifier={particle_classifier_path}",
-        f"--config={config_path}",
+        "--reconstructor=HillasReconstructor",
+        "--reconstructor=EnergyRegressor",
+        "--reconstructor=ParticleClassifier",
+        f"--EnergyRegressor.load_path={energy_regressor_path}",
+        f"--ParticleClassifier.load_path={particle_classifier_path}",
     ]
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
+    tool = ProcessorTool()
+    run_tool(tool, argv=argv, cwd=tmp_path, raises=True)
 
     tel_events = read_table(
         output, "/dl2/event/telescope/classification/ExtraTreesClassifier/tel_004"
@@ -155,11 +152,13 @@ def test_process_apply_disp(
         f"--output={output}",
         "--write-images",
         "--write-showers",
-        f"--energy-regressor={energy_regressor_path}",
-        f"--disp-reconstructor={disp_reconstructor_path}",
         f"--config={config_path}",
+        f"--EnergyRegressor.load_path={energy_regressor_path}",
+        f"--DispReconstructor.load_path={disp_reconstructor_path}",
     ]
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
+
+    tool = ProcessorTool()
+    run_tool(tool, argv=argv, cwd=tmp_path, raises=True)
 
     tel_events = read_table(output, "/dl2/event/telescope/disp/disp/tel_004")
     assert "disp_parameter_norm" in tel_events.colnames

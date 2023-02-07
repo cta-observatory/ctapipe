@@ -543,7 +543,7 @@ def gamma_train_clf(model_tmp_path, energy_regressor_path):
         argv=[
             f"--input={inpath}",
             f"--output={outpath}",
-            f"--energy-regressor={energy_regressor_path}",
+            f"--reconstructor={energy_regressor_path}",
         ],
         raises=True,
     )
@@ -561,7 +561,7 @@ def proton_train_clf(model_tmp_path, energy_regressor_path):
         argv=[
             f"--input={inpath}",
             f"--output={outpath}",
-            f"--energy-regressor={energy_regressor_path}",
+            f"--reconstructor={energy_regressor_path}",
         ],
         raises=True,
     )

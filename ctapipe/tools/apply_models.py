@@ -5,21 +5,16 @@ import shutil
 
 import numpy as np
 import tables
-from astropy.table.operations import hstack, vstack
+from astropy.table.operations import vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Integer, Path
+from ctapipe.core.traits import Integer, List, Path, classes_with_traits
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.io.tableloader import _join_subarray_events
-from ctapipe.reco import (
-    DispReconstructor,
-    EnergyRegressor,
-    ParticleClassifier,
-    StereoCombiner,
-)
+from ctapipe.reco import Reconstructor
 
 __all__ = [
     "ApplyModels",
@@ -43,8 +38,8 @@ class ApplyModels(Tool):
     examples = """
     ctapipe-apply-models \\
         --input gamma.dl2.h5 \\
-        --energy-regressor energy_regressor.pkl \\
-        --particle-classifier particle-classifier.pkl \\
+        --reconstructor energy_regressor.pkl \\
+        --reconstructor particle-classifier.pkl \\
         --output gamma_applied.dl2.h5
     """
 
@@ -63,28 +58,10 @@ class ApplyModels(Tool):
         help="Output file",
     ).tag(config=True)
 
-    energy_regressor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained EnergyRegressor",
-    ).tag(config=True)
-
-    particle_classifier_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained ParticleClassifier",
-    ).tag(config=True)
-
-    disp_reconstructor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained DispReconstructor",
+    reconstructor_paths = List(
+        Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="Paths to trained reconstructors to be applied to the input data",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -95,20 +72,12 @@ class ApplyModels(Tool):
 
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
-        "energy-regressor": "ApplyModels.energy_regressor_path",
-        "particle-classifier": "ApplyModels.particle_classifier_path",
-        "disp-reconstructor": "ApplyModels.disp_reconstructor_path",
+        ("r", "reconstructor"): "ApplyModels.reconstructor_paths",
         ("o", "output"): "ApplyModels.output_path",
         "chunk-size": "ApplyModels.chunk_size",
     }
 
-    classes = [
-        TableLoader,
-        EnergyRegressor,
-        ParticleClassifier,
-        DispReconstructor,
-        StereoCombiner,
-    ]
+    classes = [TableLoader] + classes_with_traits(Reconstructor)
 
     def setup(self):
         """
@@ -130,29 +99,9 @@ class ApplyModels(Tool):
             load_observation_info=True,
         )
 
-        self._reconstructors = []
-
-        if self.energy_regressor_path is not None:
-            self._reconstructors.append(
-                EnergyRegressor.read(
-                    self.energy_regressor_path,
-                    parent=self,
-                )
-            )
-        if self.particle_classifier_path is not None:
-            self._reconstructors.append(
-                ParticleClassifier.read(
-                    self.particle_classifier_path,
-                    parent=self,
-                )
-            )
-        if self.disp_reconstructor_path is not None:
-            self._reconstructors.append(
-                DispReconstructor.read(
-                    self.disp_reconstructor_path,
-                    parent=self,
-                )
-            )
+        self._reconstructors = [
+            Reconstructor.read(path) for path in self.reconstructor_paths
+        ]
 
     def start(self):
         """Apply models to input tables"""
@@ -170,7 +119,6 @@ class ApplyModels(Tool):
 
     def _apply(self, reconstructor):
         prefix = reconstructor.prefix
-        property = reconstructor.property
 
         desc = f"Applying {reconstructor.__class__.__name__}"
         unit = "chunk"
@@ -200,47 +148,22 @@ class ApplyModels(Tool):
                     [c for c in table.colnames if c.startswith(prefix)]
                 )
 
-                if isinstance(reconstructor, DispReconstructor):
-                    disp_predictions, altaz_predictions = reconstructor.predict_table(
-                        tel, table
-                    )
-                    table = hstack(
-                        [table, altaz_predictions, disp_predictions],
-                        join_type="exact",
-                        metadata_conflicts="ignore",
-                    )
-                    # tables should follow the container structure
-                    write_table(
-                        table[
-                            ["obs_id", "event_id", "tel_id"]
-                            + altaz_predictions.colnames
-                        ],
-                        self.output_path,
-                        f"/dl2/event/telescope/geometry/{prefix}/tel_{tel_id:03d}",
-                        append=True,
-                    )
-                    write_table(
-                        table[
-                            ["obs_id", "event_id", "tel_id"] + disp_predictions.colnames
-                        ],
-                        self.output_path,
-                        f"/dl2/event/telescope/disp/{prefix}/tel_{tel_id:03d}",
-                        append=True,
-                    )
-                else:
-                    predictions = reconstructor.predict_table(tel, table)
-                    table = hstack(
-                        [table, predictions],
-                        join_type="exact",
-                        metadata_conflicts="ignore",
-                    )
-                    write_table(
-                        table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
-                        self.output_path,
-                        f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
-                        append=True,
-                    )
+                predictions = reconstructor.predict_table(tel, table)
 
+                for prop, prediction_table in predictions.items():
+                    new_columns = prediction_table.colnames
+                    output_columns = ["obs_id", "event_id", "tel_id"] + new_columns
+
+                    # copy columns into full feature table
+                    for col in new_columns:
+                        table[col] = prediction_table[col]
+
+                    write_table(
+                        table[output_columns],
+                        self.output_path,
+                        f"/dl2/event/telescope/{prop}/{prefix}/tel_{tel_id:03d}",
+                        append=True,
+                    )
                 tel_tables.append(table)
 
             if len(tel_tables) == 0:

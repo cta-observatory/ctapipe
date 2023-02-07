@@ -266,3 +266,10 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         lines.append("</table>")
         lines.append("</div>")
         return "\n".join(lines)
+
+    def __getstate__(self):
+        """Make Components pickle-able by removing non-pickleable members"""
+        state = self.__dict__.copy()
+        state["_trait_values"]["parent"] = None
+        state["_trait_notifiers"] = {}
+        return state
