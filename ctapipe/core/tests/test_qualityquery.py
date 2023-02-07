@@ -250,3 +250,18 @@ def test_inheritance_default_value(subarray_prod5_paranal):
 
     query = ExampleQualityQuery(subarray=subarray_prod5_paranal)
     assert np.all(query(x=5))
+
+
+def test_no_subarray():
+    """Test that you don't need a subarray attached to the QualityQuery."""
+    query = QualityQuery(quality_criteria=[("foo", "x > 0")])
+
+    assert query(x=5)
+
+    table = Table({"x": [1, 2, 3]})
+    mask = query.get_table_mask(table)
+    assert np.all(mask)
+
+    # will fail if giving a key
+    with pytest.raises(ValueError, match="TelescopeParameterLookup: No subarray at"):
+        query(x=5, key=1)

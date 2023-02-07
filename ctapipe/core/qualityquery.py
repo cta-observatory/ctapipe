@@ -29,6 +29,8 @@ class QualityQuery(TelescopeComponent):
     returns a boolean array of whether or not each criterion passed. It  also keeps
     track of the total number of times each criterium is passed, as well as a
     cumulative product of criterium (i.e. the criteria applied in-order)
+
+    It is possible to use this without attaching a subarray (default is ``None``).
     """
 
     quality_criteria = List(
@@ -40,7 +42,7 @@ class QualityQuery(TelescopeComponent):
         " but no other modules.",
     ).tag(config=True)
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
+    def __init__(self, subarray=None, config=None, parent=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self._compile()
@@ -59,7 +61,8 @@ class QualityQuery(TelescopeComponent):
             self.criteria_names.append(name)
 
             lookup = TelescopeParameterLookup(criteria_list)
-            lookup.attach_subarray(self.subarray)
+            if self.subarray is not None:
+                lookup.attach_subarray(self.subarray)
             self.engines.append((name, lookup))
 
         # arrays for recording overall statistics, add one for total count

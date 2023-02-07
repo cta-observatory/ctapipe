@@ -1,5 +1,10 @@
 ``QualityQuery`` is now a ``TelescopeComponent``.
 
 You can now give different quality queries per telescope type or ID.
-Configurations from before this change still work and
+Change is backwards compatible, older configurations still work and
 set the query-expression to the global value of the ``TelescopeComponent``.
+
+It is still possible to use this as a ``Component``, when given no
+``subarray`` during initialization (which is the default).
+Here it does not make sense to give a ``key`` when calling or getting the table
+mask, and it will fail if done so.
