@@ -1,5 +1,5 @@
 ``QualityQuery`` is now a ``TelescopeComponent``.
 
-You can now give different quality queries per telescope type or id.
-Change is backwards compatible, older configurations still work and
-set the query-expression to the global value of the TelescopeComponent.
+You can now give different quality queries per telescope type or ID.
+Configurations from before this change still work and
+set the query-expression to the global value of the ``TelescopeComponent``.
