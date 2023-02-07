@@ -110,7 +110,7 @@ class TelescopePatternList(UserList):
         # make sure we only change things that are not already a
         # pattern tuple
         if (
-            not isinstance(value, (list, tuple))
+            not isinstance(value, tuple)
             or len(value) != 3
             or value[0] not in {"type", "id"}
         ):
