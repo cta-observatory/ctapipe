@@ -280,7 +280,7 @@ class ProcessorTool(Tool):
         # NOTE: don't remove this, not part of DataWriter
 
         if self.should_compute_dl1:
-            image_stats = self.process_images.check_image.to_table(functions=True)
+            image_stats = self.process_images.check_image.to_table()
             write_table(
                 image_stats,
                 self.write.output_path,
@@ -295,7 +295,7 @@ class ProcessorTool(Tool):
                 reconstructor_names, reconstructors
             ):
                 write_table(
-                    reconstructor.quality_query.to_table(functions=True),
+                    reconstructor.quality_query.to_table(),
                     self.write.output_path,
                     f"/dl2/service/tel_event_statistics/{reconstructor_name}",
                     append=True,

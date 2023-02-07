@@ -4,6 +4,7 @@ High level image processing  (ImageProcessor Component)
 from copy import deepcopy
 
 import numpy as np
+import traitlets
 
 from ctapipe.coordinates import TelescopeFrame
 
@@ -17,7 +18,7 @@ from ..containers import (
     TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import Bool, BoolTelescopeParameter, ComponentName, List
+from ..core.traits import Bool, BoolTelescopeParameter, ComponentName
 from ..instrument import SubarrayDescription
 from .cleaning import ImageCleaner
 from .concentration import concentration_parameters
@@ -52,10 +53,9 @@ DEFAULT_IMAGE_PARAMETERS_CAMFRAME.timing = CameraTimingParametersContainer()
 class ImageQualityQuery(QualityQuery):
     """for configuring image-wise data checks"""
 
-    quality_criteria = List(
-        default_value=[("size_greater_0", "image.sum() > 0")],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+    @traitlets.default("quality_criteria")
+    def quality_criteria_default(self):
+        return [("size_greater_0", "image.sum() > 0")]
 
 
 class ImageProcessor(TelescopeComponent):
@@ -103,7 +103,7 @@ class ImageProcessor(TelescopeComponent):
         )
         self.modify = ImageModifier(subarray=subarray, parent=self)
 
-        self.check_image = ImageQualityQuery(parent=self)
+        self.check_image = ImageQualityQuery(parent=self, subarray=subarray)
 
         self.default_image_container = DEFAULT_IMAGE_PARAMETERS_CAMFRAME
         if self.use_telescope_frame:
@@ -154,7 +154,7 @@ class ImageProcessor(TelescopeComponent):
             geometry = self.subarray.tel[tel_id].camera.geometry
 
         # check if image can be parameterized:
-        image_criteria = self.check_image(image=image_selected)
+        image_criteria = self.check_image(image=image_selected, key=tel_id)
         self.log.debug(
             "image_criteria: %s",
             list(zip(self.check_image.criteria_names[1:], image_criteria)),

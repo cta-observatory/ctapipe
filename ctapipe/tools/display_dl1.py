@@ -174,7 +174,10 @@ class DisplayDL1Calib(Tool):
 
     def setup(self):
         self.eventsource = self.enter_context(EventSource.from_config(parent=self))
-        self.quality_query = QualityQuery(parent=self)
+        self.quality_query = QualityQuery(
+            parent=self,
+            subarray=self.eventsource.subarray,
+        )
 
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 
@@ -201,7 +204,7 @@ class DisplayDL1Calib(Tool):
                 tel_list = [self.telescope]
 
             for tel_id in tel_list:
-                if all(self.quality_query(dl1=event.dl1.tel[tel_id])):
+                if all(self.quality_query(dl1=event.dl1.tel[tel_id], key=tel_id)):
                     self.plotter.plot(event, tel_id)
 
     def finish(self):

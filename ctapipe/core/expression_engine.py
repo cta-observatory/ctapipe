@@ -28,6 +28,13 @@ class ExpressionEngine:
     def _compile(self):
         self.compiled = []
         for name, expression in self.expressions:
+            if "lambda" in expression:
+                raise ValueError(
+                    "As of ctapipe 0.16, do not give lambda expressions,"
+                    " instead directly give the expression."
+                    " E.g. instead of `lambda p: p.hillas.width.value > 0`"
+                    " use `parameters.hillas.width.value > 0`"
+                )
             try:
                 self.compiled.append(compile(expression, __name__, mode="eval"))
             except Exception as err:

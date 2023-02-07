@@ -10,6 +10,7 @@ from typing import Tuple
 import astropy.units as u
 import joblib
 import numpy as np
+import traitlets
 from astropy.coordinates import AltAz
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
@@ -64,15 +65,14 @@ SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 class MLQualityQuery(QualityQuery):
     """Quality criteria for machine learning models with different defaults"""
 
-    quality_criteria = List(
-        default_value=[
+    @traitlets.default("quality_criteria")
+    def quality_criteria_default(self):
+        return [
             ("> 50 phe", "hillas_intensity > 50"),
             ("Positive width", "hillas_width > 0"),
             ("> 3 pixels", "morphology_n_pixels > 3"),
             ("valid stereo reco", "HillasReconstructor_is_valid"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+        ]
 
 
 class SKLearnReconstructor(Reconstructor):
@@ -135,7 +135,7 @@ class SKLearnReconstructor(Reconstructor):
 
             super().__init__(subarray, **kwargs)
             self.feature_generator = FeatureGenerator(parent=self)
-            self.quality_query = MLQualityQuery(parent=self)
+            self.quality_query = MLQualityQuery(parent=self, subarray=subarray)
 
             # to verify settings
             self._new_model()
@@ -407,7 +407,10 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             table = self.feature_generator(table)
 
             # get_table_mask returns a table with a single row
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(
+                table,
+                key="tel_id",
+            )[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict(
@@ -437,7 +440,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         energy = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
-        valid = self.quality_query.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table, key="tel_description")
         energy[valid], is_valid[valid] = self._predict(key, table[valid])
 
         result = Table(
@@ -473,7 +476,10 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table)
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(
+                table,
+                key="tel_id",
+            )[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict_score(
@@ -503,7 +509,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         score = np.full(n_rows, np.nan)
         is_valid = np.full(n_rows, False)
 
-        valid = self.quality_query.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table, key="tel_description")
         score[valid], is_valid[valid] = self._predict_score(key, table[valid])
 
         result = Table(
@@ -577,7 +583,7 @@ class DispReconstructor(Reconstructor):
                 )
 
             super().__init__(subarray, **kwargs)
-            self.quality_query = MLQualityQuery(parent=self)
+            self.quality_query = MLQualityQuery(parent=self, subarray=subarray)
             self.feature_generator = FeatureGenerator(parent=self)
 
             # to verify settings
@@ -706,7 +712,10 @@ class DispReconstructor(Reconstructor):
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table)
 
-            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(
+                table,
+                key="tel_id",
+            )[0]
 
             if passes_quality_checks:
                 disp, valid = self._predict(self.subarray.tel[tel_id], table)
@@ -780,7 +789,7 @@ class DispReconstructor(Reconstructor):
         disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
-        valid = self.quality_query.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table, key="tel_description")
         disp[valid], is_valid[valid] = self._predict(key, table[valid])
 
         disp_result = Table(

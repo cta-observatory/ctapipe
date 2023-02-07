@@ -154,6 +154,20 @@ class ApplyModels(Tool):
                 )
             )
 
+        self._attach_subarray_to_quality_query()
+
+    def _attach_subarray_to_quality_query(self):
+        for reconstructor in self._reconstructors:
+            if reconstructor.subarray != self.loader.subarray:
+                self.log.warning(
+                    f"Subarray of reconstructor {reconstructor.__class__.__name__}"
+                    f" des not match subarray of file {self.loader.input_url}."
+                    " Attaching this subarray to QualityQuery, to"
+                    " use global queries for new telescopes."
+                )
+                for engine in reconstructor.quality_query.engines:
+                    engine[-1].attach_subarray(self.loader.subarray)
+
     def start(self):
         """Apply models to input tables"""
         for reconstructor in self._reconstructors:
