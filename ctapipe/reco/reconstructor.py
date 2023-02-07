@@ -91,7 +91,27 @@ class Reconstructor(TelescopeComponent):
         """
 
     @classmethod
-    def read(cls, path, **kwargs):
+    def read(cls, path, parent=None, subarray=None, **kwargs):
+        """Read a joblib-pickled reconstructor from ``path``
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path to a Reconstructor instance pickled using joblib
+        parent : None or Component or Tool
+            Attach a new parent to the loaded class, this will properly
+        subarray : SubarrayDescription
+            Attach a new subarray to the loaded reconstructor
+            A warning will be raised if the telescope types of the
+            subarray stored in the pickled class do not match with the
+            provided subarray.
+
+        **kwargs are set on the loaded instance
+
+        Returns
+        -------
+        Reconstructor instance loaded from file
+        """
         with open(path, "rb") as f:
             instance = joblib.load(f)
 
@@ -101,11 +121,11 @@ class Reconstructor(TelescopeComponent):
             )
 
         # first deal with kwargs that would need "special" treatmet, parent and subarray
-        if parent := kwargs.pop("parent", None):
+        if parent is not None:
             instance.parent = weakref.proxy(parent)
             instance.log = parent.log.getChild(instance.__class__.__name__)
 
-        if subarray := kwargs.pop("subarray", None):
+        if subarray is not None:
             if instance.subarray.telescope_types != subarray.telescope_types:
                 instance.log.warning(
                     "Supplied subarray has different telescopes than subarray loaded from file"
