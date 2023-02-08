@@ -88,16 +88,16 @@ class ApplyModels(Tool):
             "don't show a progress bar during event processing",
         ),
         **flag(
+            "dl1-parameters",
+            "HDF5Merger.dl1_parameters",
+            "Include dl1 parameters",
+            "Exclude dl1 parameters",
+        ),
+        **flag(
             "dl1-images",
             "HDF5Merger.dl1_images",
             "Include dl1 images",
             "Exclude dl1 images",
-        ),
-        **flag(
-            "true-images",
-            "HDF5Merger.true_images",
-            "Include true images",
-            "Exclude true images",
         ),
         **flag(
             "true-parameters",
@@ -106,10 +106,10 @@ class ApplyModels(Tool):
             "Exclude true parameters",
         ),
         **flag(
-            "dl1-parameters",
-            "HDF5Merger.dl1_parameters",
-            "Include dl1 parameters",
-            "Exclude dl1 parameters",
+            "true-images",
+            "HDF5Merger.true_images",
+            "Include true images",
+            "Exclude true images",
         ),
     }
 
