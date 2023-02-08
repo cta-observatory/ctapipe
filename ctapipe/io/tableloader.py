@@ -344,18 +344,22 @@ class TableLoader(Component):
 
     def _join_observation_info(self, table):
         obs_table = self.read_observation_information()
-        # in v0.17, obs_id had inconsitent dtypes and joint
-        # get's messed up then because a join between int32 and uint64
+        # in v0.17, obs_id had inconsistent dtypes in different tables
+        # Joining then gets messed up then because a join between int32 and uint64
         # casts the obs_id in the joint result to float.
-        # fixing by casting here.
         obs_table["obs_id"] = obs_table["obs_id"].astype(table["obs_id"].dtype)
+
+        # to be able to sort to original table order
         self._add_index_if_needed(table)
+
         joint = join_allow_empty(
             table,
             obs_table,
             keys="obs_id",
             join_type="left",
         )
+
+        # sort back to original order and remove index col
         self._sort_to_original_order(joint)
         del table["__index__"]
         return joint

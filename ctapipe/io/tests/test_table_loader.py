@@ -410,7 +410,7 @@ def test_read_empty_table(dl2_shower_geometry_file):
 
 
 def test_order_merged():
-    """Reading an empty table should return an empty table."""
+    """Test reading functions return data in correct event order"""
     from ctapipe.io import TableLoader
 
     path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
