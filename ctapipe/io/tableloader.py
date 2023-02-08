@@ -345,7 +345,10 @@ class TableLoader(Component):
     def _join_observation_info(self, table):
         observation_table = self.read_observation_information()
         table = join_allow_empty(
-            table, observation_table, keys="obs_id", join_type="left"
+            table,
+            observation_table,
+            keys="obs_id",
+            join_type="left",
         )
         return table
 

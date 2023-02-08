@@ -126,15 +126,17 @@ class ApplyModels(Tool):
             merger(self.input_url)
 
         self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))
-        self.loader = TableLoader(
-            self.input_url,
-            parent=self,
-            load_dl1_parameters=True,
-            load_dl2=True,
-            load_instrument=True,
-            load_dl1_images=False,
-            load_simulated=False,
-            load_observation_info=True,
+        self.loader = self.enter_context(
+            TableLoader(
+                self.input_url,
+                parent=self,
+                load_dl1_parameters=True,
+                load_dl2=True,
+                load_instrument=True,
+                load_dl1_images=False,
+                load_simulated=False,
+                load_observation_info=True,
+            )
         )
 
         self._reconstructors = [
@@ -213,6 +215,8 @@ class ApplyModels(Tool):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
             stereo_predictions[c.name].description = c.description
 
+        # stacking the single telescope tables and joining
+        # potentially changes the order of the subarray events.
         # to ensure events are stored in the correct order,
         # we resort to trigger table order
         trigger = read_table(
@@ -231,17 +235,12 @@ class ApplyModels(Tool):
             append=True,
         )
 
-        # store stereo prediction in tel_tables
-        for table in tel_tables.values():
-            _add_stereo_prediction(table, stereo_predictions)
-
-    def finish(self):
-        """Close input file"""
-        self.h5file.close()
+        for tel_table in tel_tables.values():
+            _add_stereo_prediction(tel_table, stereo_predictions)
 
 
 def _add_stereo_prediction(tel_events, array_events):
-    """Add columns from array_event table to stereo event table"""
+    """Add columns from array_events table to tel_events table"""
     join_table = Table(
         {
             "obs_id": tel_events["obs_id"],
