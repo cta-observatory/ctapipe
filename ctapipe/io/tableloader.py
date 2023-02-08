@@ -251,6 +251,19 @@ class TableLoader(Component):
         if self.load_instrument:
             self.instrument_table = self.subarray.to_table("joined")
 
+        groups = {
+            "load_dl1_parameters": PARAMETERS_GROUP,
+            "load_dl1_images": IMAGES_GROUP,
+            "load_true_parameters": TRUE_PARAMETERS_GROUP,
+            "load_true_images": TRUE_IMAGES_GROUP,
+        }
+        for attr, group in groups.items():
+            if getattr(self, attr) and group not in self.h5file.root:
+                self.log.info(
+                    "Setting %s to False, input file does not contain such data", attr
+                )
+                setattr(self, attr, False)
+
     def close(self):
         """Close the underlying hdf5 file"""
         if self._should_close:
