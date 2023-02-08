@@ -427,3 +427,8 @@ def test_order_merged():
         for tel_id, table in tables.items():
             mask = tel_trigger["tel_id"] == tel_id
             check_equal_array_event_order(table, tel_trigger[mask])
+
+        tables = loader.read_telescope_events_by_type()
+        for tel, table in tables.items():
+            mask = np.isin(tel_trigger["tel_id"], loader.subarray.get_tel_ids(tel))
+            check_equal_array_event_order(table, tel_trigger[mask])
