@@ -1,0 +1,19 @@
+AstroTime
+=========
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: AstroTime
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~AstroTime.info
+      ~AstroTime.validate
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: info
+   .. automethod:: validate

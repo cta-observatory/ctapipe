@@ -1,0 +1,59 @@
+SimTelEventSource
+=================
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: SimTelEventSource
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimTelEventSource.atmosphere_density_profile
+      ~SimTelEventSource.atmosphere_profile_choice
+      ~SimTelEventSource.back_seekable
+      ~SimTelEventSource.calib_scale
+      ~SimTelEventSource.calib_shift
+      ~SimTelEventSource.datalevels
+      ~SimTelEventSource.focal_length_choice
+      ~SimTelEventSource.gain_selector_type
+      ~SimTelEventSource.is_simulation
+      ~SimTelEventSource.is_stream
+      ~SimTelEventSource.observation_blocks
+      ~SimTelEventSource.scheduling_blocks
+      ~SimTelEventSource.simulation_config
+      ~SimTelEventSource.skip_calibration_events
+      ~SimTelEventSource.subarray
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SimTelEventSource.close
+      ~SimTelEventSource.is_compatible
+      ~SimTelEventSource.prepare_subarray_info
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: atmosphere_density_profile
+   .. autoattribute:: atmosphere_profile_choice
+   .. autoattribute:: back_seekable
+   .. autoattribute:: calib_scale
+   .. autoattribute:: calib_shift
+   .. autoattribute:: datalevels
+   .. autoattribute:: focal_length_choice
+   .. autoattribute:: gain_selector_type
+   .. autoattribute:: is_simulation
+   .. autoattribute:: is_stream
+   .. autoattribute:: observation_blocks
+   .. autoattribute:: scheduling_blocks
+   .. autoattribute:: simulation_config
+   .. autoattribute:: skip_calibration_events
+   .. autoattribute:: subarray
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: close
+   .. automethod:: is_compatible
+   .. automethod:: prepare_subarray_info

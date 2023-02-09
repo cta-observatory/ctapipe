@@ -1,0 +1,29 @@
+Reconstructor
+=============
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: Reconstructor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Reconstructor.plugin_entry_point
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Reconstructor.__call__
+      ~Reconstructor.read
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: plugin_entry_point
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: read

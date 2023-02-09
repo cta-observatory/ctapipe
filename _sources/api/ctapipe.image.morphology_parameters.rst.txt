@@ -1,0 +1,6 @@
+morphology_parameters
+=====================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: morphology_parameters

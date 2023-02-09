@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.utils.fitshistogram &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.utils.fitshistogram</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.utils.fitshistogram</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Histogram&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Histogram"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram">[docs]</a><span class="k">class</span> <span class="nc">Histogram</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An N-D histogram class with FITS image I/O.</span>
+
+<span class="sd">    The output FITS file will contain an ImageHDU datacube and</span>
+<span class="sd">    associated WCS headers to describe the axes of the histogram.</span>
+<span class="sd">    Thus, the output files should work correctly in any program</span>
+<span class="sd">    capable of working with FITS datacubes (like SAOImage DS9).</span>
+
+<span class="sd">    Internally, it uses `numpy.histogramdd` to generate the histograms.</span>
+
+<span class="sd">    All axes are assumed to be linear, with equally spaced bins</span>
+<span class="sd">    (otherwise they could not be stored in a FITS image HDU)</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data: np.ndarray</span>
+<span class="sd">        the histogram counts.</span>
+<span class="sd">    nbins: array_like(int)</span>
+<span class="sd">        list of number of bins for each dimension</span>
+<span class="sd">    ranges: list(tuple)</span>
+<span class="sd">        list of (min,max) values for each dimension</span>
+<span class="sd">    name: str</span>
+<span class="sd">        name of histogram (will be used as FITS extension name when written</span>
+<span class="sd">        to a file</span>
+<span class="sd">    axis_names: list(str)</span>
+<span class="sd">        name of each axis</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; hist = Histogram(nbins=(10,10), ranges=[[-1,1], [-1,1]])</span>
+<span class="sd">    &gt;&gt;&gt; data = np.random.normal(size=(100, 2)) # make 100 random 2D events</span>
+<span class="sd">    &gt;&gt;&gt; hist.fill(data)</span>
+
+
+<span class="sd">    Get a point in the histogram (can also get multiple values at once by</span>
+<span class="sd">    passing an array)</span>
+
+<span class="sd">    &gt;&gt;&gt; val = hist.get_value([0.1,-0.5])</span>
+<span class="sd">    &gt;&gt;&gt; vals = hist.get_value([[0.1,-0.5], [0.9,0.9]])</span>
+
+<span class="sd">    Get the full data array and do things with it:</span>
+
+<span class="sd">    &gt;&gt;&gt; meanx = hist.data.mean(axis=0)</span>
+
+<span class="sd">    Write it to a FITS image file:</span>
+
+<span class="sd">    &gt;&gt;&gt; hist.to_fits().writeto(&quot;output.fits&quot;)</span>
+
+<span class="sd">    Read it from FITS image file:</span>
+
+<span class="sd">    &gt;&gt;&gt; hist2 = Histogram.from_fits(&quot;output.fits&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">ranges</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Histogram&quot;</span><span class="p">,</span> <span class="n">axis_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize an unfilled histogram (need to call fill()  put data into it)</span>
+
+<span class="sd">        see also</span>
+<span class="sd">        --------</span>
+<span class="sd">        The `Histogram.from_fits()` constructor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bin_lower_edges</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">nbins</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ranges</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value_scale</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value_zero</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ctypes</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span> <span class="o">=</span> <span class="n">axis_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numsamples</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># sanity check on inputs:</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndims</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No dimensions specified&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Dimensions of ranges </span><span class="si">{}</span><span class="s2"> don&#39;t match bins </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndims</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># ensure the array is size ndims</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndims</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;axis</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndims</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;Histogram(name=&#39;</span><span class="si">{name}</span><span class="s2">&#39;, axes=</span><span class="si">{axnames}</span><span class="s2">, &quot;</span>
+            <span class="s2">&quot;nbins=</span><span class="si">{nbins}</span><span class="s2">, ranges=</span><span class="si">{ranges}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">ranges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">,</span>
+                <span class="n">nbins</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">,</span>
+                <span class="n">axnames</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bin_lower_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        lower edges of bins. The length of the array will be nbins+1,</span>
+<span class="sd">        since the final edge of the last bin is included for ease of</span>
+<span class="sd">        use in vector operations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bin_lower_edges</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bin_lower_edges</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndims</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bin_lower_edges</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ranges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ndims</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">outliers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns the number of outlier points (the number of input</span>
+<span class="sd">        datapoints - the sum of the histogram). This assumes the data</span>
+<span class="sd">        of the histogram is unmodified (and represents &quot;counts&quot;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numsamples</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Histogram.fill"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.fill">[docs]</a>    <span class="k">def</span> <span class="nf">fill</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datapoints</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        generate a histogram from data points.  Since the results of</span>
+<span class="sd">        fill() are added to the current histogram, you can call fill()</span>
+<span class="sd">        multiple times to fill a single Histogram.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        datapoints: array_like</span>
+<span class="sd">            array of N-d points (see `numpy.histogramdd` documentation)</span>
+<span class="sd">        kwargs:</span>
+<span class="sd">            any extra options to pass to `numpy.histogramdd` when</span>
+<span class="sd">            creating the histogram</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">hist</span><span class="p">,</span> <span class="n">__</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span>
+            <span class="n">datapoints</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">+=</span> <span class="n">hist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_numsamples</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">datapoints</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Histogram.bin_centers"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.bin_centers">[docs]</a>    <span class="k">def</span> <span class="nf">bin_centers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns array of bin centers for the given index</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_lower_edges</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_lower_edges</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Histogram.to_fits"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.to_fits">[docs]</a>    <span class="k">def</span> <span class="nf">to_fits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the `Histogram` into an `astropy.io.fits.ImageHDU`,</span>
+<span class="sd">        suitable for writing to a file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ohdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">ImageHDU</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
+        <span class="n">ohdu</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">)</span>
+
+        <span class="c1"># the lower-left edge of the first bin is (Xed[0],Yed[0]), which</span>
+        <span class="c1"># is (0.5,0.5) in FITS pixel coordinates (the center of the bin is</span>
+        <span class="c1"># at (1.0,1.0))</span>
+
+        <span class="c1"># now note that this defines the first pixel in FITS coordinates</span>
+        <span class="c1"># with the center (1.0,1.0). in integer python coordinates it is [0,0]</span>
+
+        <span class="c1"># to transform a world value, you need to subtract 1.0 and round</span>
+        <span class="c1"># down to get the bin number:</span>
+        <span class="c1">#       ibin = round( Vpix-1.0 )</span>
+        <span class="c1"># To get the value of ibin, you need to go the other way:</span>
+        <span class="c1">#       Vworld[ibin] = wcs.wcs_pix2world( ibin+0.5 )</span>
+
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">):</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">width</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+            <span class="n">bin0pix</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># lower-left corner of first bin</span>
+            <span class="n">bin0coord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ranges</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+
+            <span class="n">ctype</span> <span class="o">=</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;-   &quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctypes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ctype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctypes</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;CTYPE</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ctype</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;CDELT</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">delta</span><span class="p">)</span>
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;CRVAL</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">bin0coord</span><span class="p">)</span>
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;CRPIX</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">bin0pix</span><span class="p">)</span>
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;CNAME</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="p">[</span><span class="n">dim</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_scale</span><span class="p">:</span>
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;BSCALE&quot;</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_scale</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_zero</span><span class="p">:</span>
+            <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;BZERO&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_zero</span><span class="p">))</span>
+
+        <span class="n">ohdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+            <span class="s2">&quot;NSAMP&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_numsamples</span><span class="p">,</span> <span class="s2">&quot;Number of samples &quot;</span> <span class="s2">&quot;originally filled&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ohdu</span></div>
+
+<div class="viewcode-block" id="Histogram.from_fits"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.from_fits">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_fits</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">input_fits</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a `Histogram` from a previously written FITS histogram file</span>
+<span class="sd">        or HDU (see `Histogram.to_fits()`)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_fits: string or astropy.io.fits.ImageHDU</span>
+<span class="sd">            File or HDU to read into histogram (Should be a FITS HDU</span>
+<span class="sd">            originally created by `Histogram.to_fits()`, may not work for</span>
+<span class="sd">            general FITS images)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_fits</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_fits</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hdu</span> <span class="o">=</span> <span class="n">input_fits</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">T</span>
+        <span class="c1"># fits is always big-endian, convert to system byte order</span>
+        <span class="c1"># to avoid problems e.g. with scipy methods only working in native order</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">))</span>
+
+        <span class="n">nbins</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ranges</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">axis_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ctypes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">):</span>
+            <span class="c1"># note that histogramdd returns edges for 0-N+1 (including</span>
+            <span class="c1"># the lower edge of the non-existant next bin), so we do</span>
+            <span class="c1"># the same here to keep things the same</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbins</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ndim</span><span class="p">))</span>
+            <span class="n">ax</span><span class="p">[:,</span> <span class="n">dim</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nbins</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs_pix2world</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="n">dim</span><span class="p">])</span>
+            <span class="n">ranges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">edges</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">edges</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;CTYPE</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
+            <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CNAME</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="n">axis_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;CNAME</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">axis_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctypes</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+
+        <span class="n">hist</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">nbins</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">ranges</span><span class="o">=</span><span class="n">ranges</span><span class="p">)</span>
+        <span class="n">hist</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="n">hist</span><span class="o">.</span><span class="n">axis_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">axis_names</span><span class="p">)</span>
+        <span class="n">hist</span><span class="o">.</span><span class="n">_bin_lower_edges</span> <span class="o">=</span> <span class="n">edges</span>
+
+        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BSCALE&quot;</span><span class="p">):</span>
+            <span class="n">hist</span><span class="o">.</span><span class="n">value_scale</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;BSCALE&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BSCALE&quot;</span><span class="p">):</span>
+            <span class="n">hist</span><span class="o">.</span><span class="n">value_zero</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;BZERO&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NSAMP&quot;</span><span class="p">):</span>
+            <span class="n">hist</span><span class="o">.</span><span class="n">_numsamples</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NSAMP&quot;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">hist</span></div>
+
+<div class="viewcode-block" id="Histogram.get_value"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">outlier_value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the values of the histogram at the given world</span>
+<span class="sd">        coordinate(s)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        coords: array_like</span>
+<span class="sd">            array of M coordinates of dimension N (where</span>
+<span class="sd">            the N is the histogram dimension)</span>
+<span class="sd">        outlier_value: float or None</span>
+<span class="sd">          value for outliers, if None, coordinates outside the edges of the</span>
+<span class="sd">          histogram will be given the edge value</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># if (self._bin_lower_edges == None):</span>
+        <span class="c1">#     raise ValueError(&quot;Histogram is not filled&quot;)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bad coordinate value&quot;</span><span class="p">)</span>
+
+        <span class="n">world</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># at least 2D</span>
+        <span class="n">ndims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span><span class="p">)</span>
+
+        <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">world</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_lower_edges</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndims</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">maxbin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="c1"># deal with out-of-range values:</span>
+        <span class="k">if</span> <span class="n">outlier_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># extrapolate (simply for now, just takes edge value)</span>
+            <span class="n">bins</span><span class="p">[</span><span class="n">bins</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndims</span><span class="p">):</span>
+                <span class="n">bins</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">bins</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">maxbin</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span> <span class="o">=</span> <span class="n">maxbin</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">bins</span> <span class="o">&gt;=</span> <span class="n">maxbin</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">bins</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">outlier_value</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">bins</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="Histogram.draw_2d"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.draw_2d">[docs]</a>    <span class="k">def</span> <span class="nf">draw_2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;draw the histogram using pcolormesh() (only works for 2D</span>
+<span class="sd">        histograms currently)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dims: (int,int)</span>
+<span class="sd">            indices of which dimensions to draw</span>
+<span class="sd">        kwargs:</span>
+<span class="sd">            arguments to pass to matplotlib `~matplotlib.pyplot.pcolormesh` command</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Too few dimensions&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dims must be a length-2 integer array&quot;</span><span class="p">)</span>
+
+        <span class="n">pyplot</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_lower_edges</span><span class="p">[</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_lower_edges</span><span class="p">[</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pyplot</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">pyplot</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="p">[</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">pyplot</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis_names</span><span class="p">[</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span></div>
+
+<div class="viewcode-block" id="Histogram.draw_1d"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.draw_1d">[docs]</a>    <span class="k">def</span> <span class="nf">draw_1d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span>
+
+        <span class="c1"># todo fix this to work properly with dim argument!</span>
+        <span class="n">pyplot</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_centers</span><span class="p">(</span><span class="n">dim</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">drawstyle</span><span class="o">=</span><span class="s2">&quot;steps-mid&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Histogram.resample_inplace"><a class="viewcode-back" href="../../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram.resample_inplace">[docs]</a>    <span class="k">def</span> <span class="nf">resample_inplace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change the shape of the histogram using an n-dimensional</span>
+<span class="sd">        interpolation function (via ``ndimage.map_coordinates``).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nbins: tuple of int</span>
+<span class="sd">            a tuple of the new number of bins to resample_inplace</span>
+<span class="sd">            this histogram over (e.g. if the original histogram was</span>
+<span class="sd">            (100,100), setting bins to (200,200) would provide double</span>
+<span class="sd">            the resolution, with the interviening bins interpolated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">oldbins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span>
+        <span class="c1"># iold = np.indices(oldbins)</span>
+        <span class="n">inew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">inew</span><span class="p">[</span><span class="n">X</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">oldbins</span><span class="p">[</span><span class="n">X</span><span class="p">])</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">nbins</span><span class="p">[</span><span class="n">X</span><span class="p">])</span> <span class="k">for</span> <span class="n">X</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">))]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nbins</span> <span class="o">=</span> <span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bin_lower_edges</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># need to be recalculated</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;for backward compatibility. Use ``Histogram.data`` for read/write</span>
+<span class="sd">        access&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.reco.hillas_intersection &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.reco.hillas_intersection</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.reco.hillas_intersection</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">TODO:</span>
+<span class="sd">- Speed tests, need to be certain the looping on all telescopes is not killing</span>
+<span class="sd">performance</span>
+<span class="sd">- Introduce new weighting schemes</span>
+<span class="sd">- Make intersect_lines code more readable</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">SkyCoord</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CameraHillasParametersContainer</span><span class="p">,</span>
+    <span class="n">HillasParametersContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CameraFrame</span><span class="p">,</span>
+    <span class="n">MissingFrameAttributeWarning</span><span class="p">,</span>
+    <span class="n">NominalFrame</span><span class="p">,</span>
+    <span class="n">TelescopeFrame</span><span class="p">,</span>
+    <span class="n">TiltedGroundFrame</span><span class="p">,</span>
+    <span class="n">project_to_ground</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">traits</span>
+<span class="kn">from</span> <span class="nn">.reconstructor</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">GeometryReconstructor</span><span class="p">,</span>
+    <span class="n">InvalidWidthException</span><span class="p">,</span>
+    <span class="n">TooFewTelescopesException</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HillasIntersection&quot;</span><span class="p">]</span>
+
+
+<span class="n">INVALID</span> <span class="o">=</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+    <span class="n">telescopes</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;HillasIntersection&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="HillasIntersection"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection">[docs]</a><span class="k">class</span> <span class="nc">HillasIntersection</span><span class="p">(</span><span class="n">GeometryReconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is a simple re-implementation of Hillas parameter based event</span>
+<span class="sd">    reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333</span>
+
+<span class="sd">    In this case the Hillas parameters are all constructed in the shared</span>
+<span class="sd">    angular (Nominal) system. Direction reconstruction is performed by</span>
+<span class="sd">    extrapolation of the major axes of the Hillas parameters in the nominal</span>
+<span class="sd">    system and the weighted average of the crossing points is taken. Core</span>
+<span class="sd">    reconstruction is performed by performing the same procedure in the</span>
+<span class="sd">    tilted ground system.</span>
+
+<span class="sd">    The height of maximum is reconstructed by the projection os the image</span>
+<span class="sd">    centroid onto the shower axis, taking the weighted average of all images.</span>
+
+<span class="sd">    Uncertainties on the positions are provided by taking the spread of the</span>
+<span class="sd">    crossing points, however this means that no uncertainty can be provided</span>
+<span class="sd">    for multiplicity 2 events.</span>
+
+<span class="sd">    Note: only input from CameraFrame is currently supported</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">atmosphere_profile_name</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">CaselessStrEnum</span><span class="p">(</span>
+        <span class="p">[</span><span class="s2">&quot;paranal&quot;</span><span class="p">],</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;paranal&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;name of atmosphere profile to use&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">weighting</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">CaselessStrEnum</span><span class="p">(</span>
+        <span class="p">[</span><span class="s2">&quot;Konrad&quot;</span><span class="p">,</span> <span class="s2">&quot;hess&quot;</span><span class="p">],</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;Konrad&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weighting Method name&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Weighting must be a function similar to the weight_konrad already implemented</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># We need a conversion function from height above ground to depth of maximum</span>
+        <span class="c1"># To do this we need the conversion table from CORSIKA</span>
+
+        <span class="c1"># other weighting schemes can be implemented. just add them as additional methods</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighting</span> <span class="o">==</span> <span class="s2">&quot;Konrad&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weight_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_konrad</span>
+
+<div class="viewcode-block" id="HillasIntersection.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform stereo reconstruction on event.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        event : `~ctapipe.containers.ArrayEventContainer`</span>
+<span class="sd">            The event, needs to have dl1 parameters.</span>
+<span class="sd">            Will be filled with the corresponding dl2 containers,</span>
+<span class="sd">            reconstructed stereo geometry and telescope-wise impact position.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">hillas_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hillas_dict</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">TooFewTelescopesException</span><span class="p">,</span> <span class="n">InvalidWidthException</span><span class="p">):</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">INVALID</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_store_impact_parameter</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Due to tracking the pointing of the array will never be a constant</span>
+        <span class="n">array_pointing</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">az</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">array_azimuth</span><span class="p">,</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">array_altitude</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">AltAz</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="n">telescope_pointings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_telescope_pointings</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span>
+            <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">array_pointing</span><span class="p">,</span> <span class="n">telescope_pointings</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_store_impact_parameter</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">array_pointing</span><span class="p">,</span> <span class="n">telescopes_pointings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hillas_dict: dict</span>
+<span class="sd">            Dictionary containing Hillas parameters for all telescopes</span>
+<span class="sd">            in reconstruction</span>
+<span class="sd">        inst : ctapipe.io.InstrumentContainer</span>
+<span class="sd">            instrumental description</span>
+<span class="sd">        array_pointing: SkyCoord[AltAz]</span>
+<span class="sd">            pointing direction of the array</span>
+<span class="sd">        telescopes_pointings: dict[SkyCoord[AltAz]]</span>
+<span class="sd">            dictionary of pointing direction per each telescope</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ReconstructedGeometryContainer:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># filter warnings for missing obs time. this is needed because MC data has no obs time</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">MissingFrameAttributeWarning</span><span class="p">)</span>
+
+        <span class="c1"># stereoscopy needs at least two telescopes</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TooFewTelescopesException</span><span class="p">(</span>
+                <span class="s2">&quot;need at least two telescopes, have </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="c1"># check for np.nan or 0 width&#39;s as these screw up weights</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()]):</span>
+            <span class="k">raise</span> <span class="n">InvalidWidthException</span><span class="p">(</span>
+                <span class="s2">&quot;A HillasContainer contains an ellipse of width==np.nan&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()]):</span>
+            <span class="k">raise</span> <span class="n">InvalidWidthException</span><span class="p">(</span>
+                <span class="s2">&quot;A HillasContainer contains an ellipse of width==0&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">telescopes_pointings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">telescopes_pointings</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">tel_id</span><span class="p">:</span> <span class="n">array_pointing</span> <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="p">}</span>
+
+        <span class="n">tilted_frame</span> <span class="o">=</span> <span class="n">TiltedGroundFrame</span><span class="p">(</span><span class="n">pointing_direction</span><span class="o">=</span><span class="n">array_pointing</span><span class="p">)</span>
+        <span class="n">grd_coord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_coords</span>
+        <span class="n">tilt_coord</span> <span class="o">=</span> <span class="n">grd_coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">tilted_frame</span><span class="p">)</span>
+
+        <span class="n">tel_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hillas_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">tel_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_ids_to_indices</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">)</span>
+
+        <span class="n">tel_x</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">tel_id</span><span class="p">:</span> <span class="n">tilt_coord</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">tel_index</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">tel_index</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">,</span> <span class="n">tel_indices</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">tel_y</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">tel_id</span><span class="p">:</span> <span class="n">tilt_coord</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">tel_index</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">tel_index</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">,</span> <span class="n">tel_indices</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="n">nom_frame</span> <span class="o">=</span> <span class="n">NominalFrame</span><span class="p">(</span><span class="n">origin</span><span class="o">=</span><span class="n">array_pointing</span><span class="p">)</span>
+
+        <span class="n">hillas_dict_mod</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">hillas</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hillas</span><span class="p">,</span> <span class="n">CameraHillasParametersContainer</span><span class="p">):</span>
+                <span class="n">focal_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">equivalent_focal_length</span>
+                <span class="n">camera_frame</span> <span class="o">=</span> <span class="n">CameraFrame</span><span class="p">(</span>
+                    <span class="n">telescope_pointing</span><span class="o">=</span><span class="n">telescopes_pointings</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+                    <span class="n">focal_length</span><span class="o">=</span><span class="n">focal_length</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cog_coords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">camera_frame</span><span class="p">)</span>
+                <span class="n">cog_coords_nom</span> <span class="o">=</span> <span class="n">cog_coords</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">nom_frame</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">telescope_frame</span> <span class="o">=</span> <span class="n">TelescopeFrame</span><span class="p">(</span>
+                    <span class="n">telescope_pointing</span><span class="o">=</span><span class="n">telescopes_pointings</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">cog_coords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+                    <span class="n">fov_lon</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">fov_lon</span><span class="p">,</span>
+                    <span class="n">fov_lat</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">fov_lat</span><span class="p">,</span>
+                    <span class="n">frame</span><span class="o">=</span><span class="n">telescope_frame</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cog_coords_nom</span> <span class="o">=</span> <span class="n">cog_coords</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">nom_frame</span><span class="p">)</span>
+            <span class="n">hillas_dict_mod</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">HillasParametersContainer</span><span class="p">(</span>
+                <span class="n">fov_lon</span><span class="o">=</span><span class="n">cog_coords_nom</span><span class="o">.</span><span class="n">fov_lon</span><span class="p">,</span>
+                <span class="n">fov_lat</span><span class="o">=</span><span class="n">cog_coords_nom</span><span class="o">.</span><span class="n">fov_lat</span><span class="p">,</span>
+                <span class="n">psi</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">psi</span><span class="p">,</span>
+                <span class="n">width</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
+                <span class="n">length</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">length</span><span class="p">,</span>
+                <span class="n">intensity</span><span class="o">=</span><span class="n">hillas</span><span class="o">.</span><span class="n">intensity</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">src_fov_lon</span><span class="p">,</span> <span class="n">src_fov_lat</span><span class="p">,</span> <span class="n">err_fov_lon</span><span class="p">,</span> <span class="n">err_fov_lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstruct_nominal</span><span class="p">(</span>
+            <span class="n">hillas_dict_mod</span>
+        <span class="p">)</span>
+        <span class="n">core_x</span><span class="p">,</span> <span class="n">core_y</span><span class="p">,</span> <span class="n">core_err_x</span><span class="p">,</span> <span class="n">core_err_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstruct_tilted</span><span class="p">(</span>
+            <span class="n">hillas_dict_mod</span><span class="p">,</span> <span class="n">tel_x</span><span class="p">,</span> <span class="n">tel_y</span>
+        <span class="p">)</span>
+
+        <span class="n">err_fov_lon</span> <span class="o">*=</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+        <span class="n">err_fov_lat</span> <span class="o">*=</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+
+        <span class="n">nom</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">fov_lon</span><span class="o">=</span><span class="n">src_fov_lon</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">fov_lat</span><span class="o">=</span><span class="n">src_fov_lat</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">nom_frame</span>
+        <span class="p">)</span>
+        <span class="n">sky_pos</span> <span class="o">=</span> <span class="n">nom</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">array_pointing</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">tilt</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">core_x</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">core_y</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">tilted_frame</span><span class="p">)</span>
+        <span class="n">grd</span> <span class="o">=</span> <span class="n">project_to_ground</span><span class="p">(</span><span class="n">tilt</span><span class="p">)</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstruct_xmax</span><span class="p">(</span>
+            <span class="n">nom</span><span class="o">.</span><span class="n">fov_lon</span><span class="p">,</span>
+            <span class="n">nom</span><span class="o">.</span><span class="n">fov_lat</span><span class="p">,</span>
+            <span class="n">tilt</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">tilt</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">hillas_dict_mod</span><span class="p">,</span>
+            <span class="n">tel_x</span><span class="p">,</span>
+            <span class="n">tel_y</span><span class="p">,</span>
+            <span class="mi">90</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span> <span class="o">-</span> <span class="n">array_pointing</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">src_error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">err_fov_lon</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">err_fov_lat</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">sky_pos</span><span class="o">.</span><span class="n">altaz</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">az</span><span class="o">=</span><span class="n">sky_pos</span><span class="o">.</span><span class="n">altaz</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">core_x</span><span class="o">=</span><span class="n">grd</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">core_y</span><span class="o">=</span><span class="n">grd</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">core_tilted_x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">core_x</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">core_tilted_y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">core_y</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">core_tilted_uncert_x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">core_err_x</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">core_tilted_uncert_y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">core_err_y</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">telescopes</span><span class="o">=</span><span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict_mod</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+            <span class="n">average_intensity</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">intensity</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict_mod</span><span class="o">.</span><span class="n">values</span><span class="p">()]),</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">alt_uncert</span><span class="o">=</span><span class="n">src_error</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">az_uncert</span><span class="o">=</span><span class="n">src_error</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">h_max</span><span class="o">=</span><span class="n">x_max</span><span class="p">,</span>
+            <span class="n">h_max_uncert</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="o">*</span> <span class="n">x_max</span><span class="o">.</span><span class="n">unit</span><span class="p">),</span>
+            <span class="n">goodness_of_fit</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="HillasIntersection.reconstruct_nominal"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.reconstruct_nominal">[docs]</a>    <span class="k">def</span> <span class="nf">reconstruct_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hillas_parameters</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform event reconstruction by simple Hillas parameter intersection</span>
+<span class="sd">        in the nominal system</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hillas_parameters: dict</span>
+<span class="sd">            Hillas parameter objects</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Reconstructed event position in the horizon system</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># Throw away events with &lt; 2 images</span>
+
+        <span class="c1"># Find all pairs of Hillas parameters</span>
+        <span class="n">combos</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">hillas_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">combos</span><span class="p">)</span>
+
+        <span class="c1"># Copy parameters we need to a numpy array to speed things up</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">map</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">h</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fov_lon</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fov_lat</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">intensity</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="n">hillas_pairs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+
+        <span class="n">h2</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">map</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">h</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">fov_lon</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">fov_lat</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                    <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">intensity</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="n">hillas_pairs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+
+        <span class="c1"># Perform intersection</span>
+        <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersect_lines</span><span class="p">(</span><span class="n">h1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">h1</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">h1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">h2</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">h2</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">h2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Weight by chosen method</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_method</span><span class="p">(</span><span class="n">h1</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">h2</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="c1"># And sin of interception angle</span>
+        <span class="n">weight</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_sin</span><span class="p">(</span><span class="n">h1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">h2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Make weighted average of all possible pairs</span>
+        <span class="n">x_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">sx</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">y_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">sy</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">var_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">((</span><span class="n">sx</span> <span class="o">-</span> <span class="n">x_pos</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">var_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">((</span><span class="n">sy</span> <span class="o">-</span> <span class="n">y_pos</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_pos</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var_x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var_y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HillasIntersection.reconstruct_tilted"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.reconstruct_tilted">[docs]</a>    <span class="k">def</span> <span class="nf">reconstruct_tilted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hillas_parameters</span><span class="p">,</span> <span class="n">tel_x</span><span class="p">,</span> <span class="n">tel_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Core position reconstruction by image axis intersection in the tilted</span>
+<span class="sd">        system</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hillas_parameters: dict</span>
+<span class="sd">            Hillas parameter objects</span>
+<span class="sd">        tel_x: dict</span>
+<span class="sd">            Telescope X positions, tilted system</span>
+<span class="sd">        tel_y: dict</span>
+<span class="sd">            Telescope Y positions, tilted system</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        (float, float, float, float):</span>
+<span class="sd">            core position X, core position Y, core uncertainty X,</span>
+<span class="sd">            core uncertainty X</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># Throw away events with &lt; 2 images</span>
+        <span class="n">hill_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">tx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">ty</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="c1"># Need to loop here as dict is unordered</span>
+        <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">hillas_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">hill_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="p">[</span><span class="n">tel</span><span class="p">])</span>
+            <span class="n">tx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_x</span><span class="p">[</span><span class="n">tel</span><span class="p">])</span>
+            <span class="n">ty</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_y</span><span class="p">[</span><span class="n">tel</span><span class="p">])</span>
+
+        <span class="c1"># Find all pairs of Hillas parameters</span>
+        <span class="n">hillas_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">hill_list</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">tel_x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">tel_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="n">tx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">ty</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_y</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tel_x</span><span class="p">):</span>
+            <span class="n">tx</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">tx</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_x</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">tel_x</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+            <span class="n">ty</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">ty</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_y</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">tel_y</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+        <span class="n">tel_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tx</span><span class="p">)</span>
+        <span class="n">tel_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ty</span><span class="p">)</span>
+
+        <span class="c1"># Copy parameters we need to a numpy array to speed things up</span>
+        <span class="n">hillas1</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">h</span><span class="p">:</span> <span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span> <span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">intensity</span><span class="p">],</span> <span class="n">hillas_pairs</span>
+        <span class="p">)</span>
+        <span class="n">hillas1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">hillas1</span><span class="p">))</span>
+        <span class="n">hillas1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">hillas1</span><span class="p">)</span>
+
+        <span class="n">hillas2</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">h</span><span class="p">:</span> <span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span> <span class="n">h</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">intensity</span><span class="p">],</span> <span class="n">hillas_pairs</span>
+        <span class="p">)</span>
+        <span class="n">hillas2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">hillas2</span><span class="p">))</span>
+        <span class="n">hillas2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">hillas2</span><span class="p">)</span>
+
+        <span class="c1"># Perform intersection</span>
+        <span class="n">crossing_x</span><span class="p">,</span> <span class="n">crossing_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersect_lines</span><span class="p">(</span>
+            <span class="n">tel_x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">tel_y</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">hillas1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tel_x</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tel_y</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">hillas2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Weight by chosen method</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_method</span><span class="p">(</span><span class="n">hillas1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hillas2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># And sin of interception angle</span>
+        <span class="n">weight</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_sin</span><span class="p">(</span><span class="n">hillas1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hillas2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Make weighted average of all possible pairs</span>
+        <span class="n">x_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">crossing_x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">y_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">crossing_y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">var_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">((</span><span class="n">crossing_x</span> <span class="o">-</span> <span class="n">x_pos</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">var_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">((</span><span class="n">crossing_y</span> <span class="o">-</span> <span class="n">y_pos</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_pos</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var_x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var_y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HillasIntersection.reconstruct_xmax"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.reconstruct_xmax">[docs]</a>    <span class="k">def</span> <span class="nf">reconstruct_xmax</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">core_x</span><span class="p">,</span> <span class="n">core_y</span><span class="p">,</span> <span class="n">hillas_parameters</span><span class="p">,</span> <span class="n">tel_x</span><span class="p">,</span> <span class="n">tel_y</span><span class="p">,</span> <span class="n">zen</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Geometrical depth of shower maximum reconstruction, assuming the shower</span>
+<span class="sd">        maximum lies at the image centroid</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_x: float</span>
+<span class="sd">            Source X position in nominal system</span>
+<span class="sd">        source_y: float</span>
+<span class="sd">            Source Y position in nominal system</span>
+<span class="sd">        core_x: float</span>
+<span class="sd">            Core X position in nominal system</span>
+<span class="sd">        core_y: float</span>
+<span class="sd">            Core Y position in nominal system</span>
+<span class="sd">        hillas_parameters: dict</span>
+<span class="sd">            Dictionary of hillas parameters objects</span>
+<span class="sd">        tel_x: dict</span>
+<span class="sd">            Dictionary of telescope X positions in tilted frame</span>
+<span class="sd">        tel_y: dict</span>
+<span class="sd">            Dictionary of telescope Y positions in tilted frame</span>
+<span class="sd">        zen: float</span>
+<span class="sd">            Zenith angle of shower</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float:</span>
+<span class="sd">            Estimated depth of shower maximum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cog_x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">cog_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">amp</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="n">tx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">ty</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="c1"># Loops over telescopes in event</span>
+        <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">hillas_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">cog_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span><span class="o">.</span><span class="n">fov_lon</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">))</span>
+            <span class="n">cog_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span><span class="o">.</span><span class="n">fov_lat</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">))</span>
+            <span class="n">amp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hillas_parameters</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span><span class="o">.</span><span class="n">intensity</span><span class="p">)</span>
+
+            <span class="n">tx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_x</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">))</span>
+            <span class="n">ty</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_y</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">))</span>
+
+        <span class="n">height</span> <span class="o">=</span> <span class="n">get_shower_height</span><span class="p">(</span>
+            <span class="n">source_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">source_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cog_x</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cog_y</span><span class="p">),</span>
+            <span class="n">core_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">core_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tx</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ty</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">amp</span><span class="p">)</span>
+        <span class="n">mean_height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">height</span> <span class="o">*</span> <span class="n">weight</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="c1"># This value is height above telescope in the tilted system,</span>
+        <span class="c1"># we should convert to height above ground</span>
+        <span class="n">mean_height</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">zen</span><span class="p">)</span>
+
+        <span class="c1"># Add on the height of the detector above sea level</span>
+        <span class="n">mean_height</span> <span class="o">+=</span> <span class="mi">2100</span>  <span class="c1"># TODO: replace with instrument info</span>
+
+        <span class="k">if</span> <span class="n">mean_height</span> <span class="o">&gt;</span> <span class="mi">100000</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">mean_height</span><span class="p">):</span>
+            <span class="n">mean_height</span> <span class="o">=</span> <span class="mi">100000</span>
+
+        <span class="n">mean_height</span> <span class="o">*=</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+        <span class="c1"># Lookup this height in the depth tables, the convert Hmax to Xmax</span>
+        <span class="c1"># x_max = self.thickness_profile(mean_height.to(u.km))</span>
+        <span class="c1"># Convert to slant depth</span>
+        <span class="c1"># x_max /= np.cos(zen)</span>
+
+        <span class="k">return</span> <span class="n">mean_height</span></div>
+
+<div class="viewcode-block" id="HillasIntersection.intersect_lines"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.intersect_lines">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">intersect_lines</span><span class="p">(</span><span class="n">xp1</span><span class="p">,</span> <span class="n">yp1</span><span class="p">,</span> <span class="n">phi1</span><span class="p">,</span> <span class="n">xp2</span><span class="p">,</span> <span class="n">yp2</span><span class="p">,</span> <span class="n">phi2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform intersection of two lines. This code is borrowed from read_hess.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xp1: ndarray</span>
+<span class="sd">            X position of first image</span>
+<span class="sd">        yp1: ndarray</span>
+<span class="sd">            Y position of first image</span>
+<span class="sd">        phi1: ndarray</span>
+<span class="sd">            Rotation angle of first image</span>
+<span class="sd">        xp2: ndarray</span>
+<span class="sd">            X position of second image</span>
+<span class="sd">        yp2: ndarray</span>
+<span class="sd">            Y position of second image</span>
+<span class="sd">        phi2: ndarray</span>
+<span class="sd">            Rotation angle of second image</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray of x and y crossing points for all pairs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sin_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi1</span><span class="p">)</span>
+        <span class="n">cos_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi1</span><span class="p">)</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">sin_1</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">cos_1</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="n">yp1</span> <span class="o">*</span> <span class="n">cos_1</span> <span class="o">-</span> <span class="n">xp1</span> <span class="o">*</span> <span class="n">sin_1</span>
+
+        <span class="n">sin_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi2</span><span class="p">)</span>
+        <span class="n">cos_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi2</span><span class="p">)</span>
+
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">sin_2</span>
+        <span class="n">b2</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">cos_2</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">yp2</span> <span class="o">*</span> <span class="n">cos_2</span> <span class="o">-</span> <span class="n">xp2</span> <span class="o">*</span> <span class="n">sin_2</span>
+
+        <span class="n">det_ab</span> <span class="o">=</span> <span class="n">a1</span> <span class="o">*</span> <span class="n">b2</span> <span class="o">-</span> <span class="n">a2</span> <span class="o">*</span> <span class="n">b1</span>
+        <span class="n">det_bc</span> <span class="o">=</span> <span class="n">b1</span> <span class="o">*</span> <span class="n">c2</span> <span class="o">-</span> <span class="n">b2</span> <span class="o">*</span> <span class="n">c1</span>
+        <span class="n">det_ca</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">*</span> <span class="n">a2</span> <span class="o">-</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">a1</span>
+
+        <span class="c1"># if  math.fabs(det_ab) &lt; 1e-14 : # /* parallel */</span>
+        <span class="c1">#    return 0,0</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">det_bc</span> <span class="o">/</span> <span class="n">det_ab</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">det_ca</span> <span class="o">/</span> <span class="n">det_ab</span>
+
+        <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span></div>
+
+<div class="viewcode-block" id="HillasIntersection.weight_konrad"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.weight_konrad">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">weight_konrad</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">p1</span> <span class="o">+</span> <span class="n">p2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HillasIntersection.weight_sin"><a class="viewcode-back" href="../../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.HillasIntersection.weight_sin">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">weight_sin</span><span class="p">(</span><span class="n">phi1</span><span class="p">,</span> <span class="n">phi2</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi1</span> <span class="o">-</span> <span class="n">phi2</span><span class="p">))</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">get_shower_height</span><span class="p">(</span>
+    <span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">cog_x</span><span class="p">,</span> <span class="n">cog_y</span><span class="p">,</span> <span class="n">core_x</span><span class="p">,</span> <span class="n">core_y</span><span class="p">,</span> <span class="n">tel_pos_x</span><span class="p">,</span> <span class="n">tel_pos_y</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to calculate the depth of shower maximum geometrically under the assumption</span>
+<span class="sd">    that the shower maximum lies at the brightest point of the camera image.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source_x: float</span>
+<span class="sd">        Event source position in nominal frame</span>
+<span class="sd">    source_y: float</span>
+<span class="sd">        Event source position in nominal frame</span>
+<span class="sd">    cog_x: list[float]</span>
+<span class="sd">        Center of gravity x-position for all the telescopes in rad</span>
+<span class="sd">    cog_y: list[float]</span>
+<span class="sd">        Center of gravity y-position for all the telescopes in rad</span>
+<span class="sd">    core_x: float</span>
+<span class="sd">        Event core position in telescope tilted frame</span>
+<span class="sd">    core_y: float</span>
+<span class="sd">        Event core position in telescope tilted frame</span>
+<span class="sd">    tel_pos_x: list</span>
+<span class="sd">        List of telescope X positions in tilted frame</span>
+<span class="sd">    tel_pos_y: list</span>
+<span class="sd">        List of telescope Y positions in tilted frame</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float: Depth of maximum of air shower</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Calculate displacement of image centroid from source position (in rad)</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">cog_x</span> <span class="o">-</span> <span class="n">source_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">cog_y</span> <span class="o">-</span> <span class="n">source_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Calculate impact parameter of the shower</span>
+    <span class="n">impact</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">tel_pos_x</span> <span class="o">-</span> <span class="n">core_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">tel_pos_y</span> <span class="o">-</span> <span class="n">core_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Distance above telescope is ration of these two (small angle)</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">impact</span> <span class="o">/</span> <span class="n">disp</span>
+
+    <span class="k">return</span> <span class="n">height</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

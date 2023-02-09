@@ -1,0 +1,21 @@
+Component
+=========
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: Component
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Component.from_name
+      ~Component.get_current_config
+      ~Component.non_abstract_subclasses
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_name
+   .. automethod:: get_current_config
+   .. automethod:: non_abstract_subclasses

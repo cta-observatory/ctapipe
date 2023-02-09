@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.calib.camera.calibrator &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.calib.camera.calibrator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.calib.camera.calibrator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Definition of the `CameraCalibrator` class, providing all steps needed to apply</span>
+<span class="sd">calibration and image extraction, as well as supporting algorithms.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">float32</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">guvectorize</span><span class="p">,</span> <span class="n">int64</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.containers</span> <span class="kn">import</span> <span class="n">DL1CameraContainer</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core.traits</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BoolTelescopeParameter</span><span class="p">,</span>
+    <span class="n">ComponentName</span><span class="p">,</span>
+    <span class="n">TelescopeParameter</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ctapipe.image.extractor</span> <span class="kn">import</span> <span class="n">ImageExtractor</span>
+<span class="kn">from</span> <span class="nn">ctapipe.image.invalid_pixels</span> <span class="kn">import</span> <span class="n">InvalidPixelHandler</span>
+<span class="kn">from</span> <span class="nn">ctapipe.image.reducer</span> <span class="kn">import</span> <span class="n">DataVolumeReducer</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CameraCalibrator&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_get_invalid_pixels</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">pixel_status</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">):</span>
+    <span class="n">broken_pixels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">)</span>
+    <span class="n">masks</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pixel_status</span><span class="o">.</span><span class="n">hardware_failing_pixels</span><span class="p">,</span>
+        <span class="n">pixel_status</span><span class="o">.</span><span class="n">pedestal_failing_pixels</span><span class="p">,</span>
+        <span class="n">pixel_status</span><span class="o">.</span><span class="n">flatfield_failing_pixels</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">broken_pixels</span> <span class="o">|=</span> <span class="n">mask</span><span class="p">[</span><span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">broken_pixels</span>
+
+
+<div class="viewcode-block" id="CameraCalibrator"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.calibrator.CameraCalibrator.html#ctapipe.calib.CameraCalibrator">[docs]</a><span class="k">class</span> <span class="nc">CameraCalibrator</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calibrator to handle the full camera calibration chain, in order to fill</span>
+<span class="sd">    the DL1 data level in the event container.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data_volume_reducer_type: str</span>
+<span class="sd">        The name of the DataVolumeReducer subclass to be used</span>
+<span class="sd">        for data volume reduction</span>
+
+<span class="sd">    image_extractor_type: str</span>
+<span class="sd">        The name of the ImageExtractor subclass to be used for image extraction</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data_volume_reducer_type</span> <span class="o">=</span> <span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">DataVolumeReducer</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;NullDataVolumeReducer&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">image_extractor_type</span> <span class="o">=</span> <span class="n">TelescopeParameter</span><span class="p">(</span>
+        <span class="n">trait</span><span class="o">=</span><span class="n">ComponentName</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;NeighborPeakWindowSum&quot;</span><span class="p">),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;NeighborPeakWindowSum&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of the ImageExtractor subclass to be used.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">invalid_pixel_handler_type</span> <span class="o">=</span> <span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">InvalidPixelHandler</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;NeighborAverage&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of the InvalidPixelHandler to use&quot;</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_waveform_time_shift</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Apply waveform time shift corrections.&quot;</span>
+            <span class="s2">&quot; The minimal integer shift to synchronize waveforms is applied&quot;</span>
+            <span class="s2">&quot; before peak extraction if this option is True&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_peak_time_shift</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Apply peak time shift corrections.&quot;</span>
+            <span class="s2">&quot; Apply the remaining absolute and fractional time shift corrections&quot;</span>
+            <span class="s2">&quot; to the peak time after pulse extraction.&quot;</span>
+            <span class="s2">&quot; If `apply_waveform_time_shift` is False, this will apply the full time shift&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">subarray</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">image_extractor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">data_volume_reducer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        subarray: ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">            Description of the subarray. Provides information about the</span>
+<span class="sd">            camera which are useful in calibration. Also required for</span>
+<span class="sd">            configuring the TelescopeParameter traitlets.</span>
+<span class="sd">        config: traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            This is mutually exclusive with passing a ``parent``.</span>
+<span class="sd">        parent: ctapipe.core.Component or ctapipe.core.Tool</span>
+<span class="sd">            Parent of this component in the configuration hierarchy,</span>
+<span class="sd">            this is mutually exclusive with passing ``config``</span>
+<span class="sd">        data_volume_reducer: ctapipe.image.reducer.DataVolumeReducer</span>
+<span class="sd">            The DataVolumeReducer to use.</span>
+<span class="sd">            This is used to override the options from the config system</span>
+<span class="sd">            and to enable passing a preconfigured reducer.</span>
+<span class="sd">        image_extractor: ctapipe.image.extractor.ImageExtractor</span>
+<span class="sd">            The ImageExtractor to use. If None, the default via the</span>
+<span class="sd">            configuration system will be constructed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_r1_empty_warn</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dl0_empty_warn</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_extractors</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">image_extractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_extractor_type</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image_extractors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ImageExtractor</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+                    <span class="n">name</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">image_extractor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image_extractor_type</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image_extractors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">image_extractor</span>
+
+        <span class="k">if</span> <span class="n">data_volume_reducer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_volume_reducer</span> <span class="o">=</span> <span class="n">DataVolumeReducer</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_volume_reducer_type</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_volume_reducer</span> <span class="o">=</span> <span class="n">data_volume_reducer</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span> <span class="o">=</span> <span class="n">InvalidPixelHandler</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler_type</span><span class="p">,</span>
+                <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_check_r1_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">waveforms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_r1_empty_warn</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Encountered an event with no R1 data. &quot;</span>
+                    <span class="s2">&quot;DL0 is unchanged in this circumstance.&quot;</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_r1_empty_warn</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_check_dl0_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">waveforms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dl0_empty_warn</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Encountered an event with no DL0 data. &quot;</span>
+                    <span class="s2">&quot;DL1 is unchanged in this circumstance.&quot;</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dl0_empty_warn</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_calibrate_dl0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+        <span class="n">waveforms</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">waveform</span>
+        <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">selected_gain_channel</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_r1_empty</span><span class="p">(</span><span class="n">waveforms</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="n">reduced_waveforms_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_volume_reducer</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="o">=</span><span class="n">selected_gain_channel</span>
+        <span class="p">)</span>
+
+        <span class="n">waveforms_copy</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">waveforms_copy</span><span class="p">[</span><span class="o">~</span><span class="n">reduced_waveforms_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">dl0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">waveform</span> <span class="o">=</span> <span class="n">waveforms_copy</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">dl0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">selected_gain_channel</span>
+
+    <span class="k">def</span> <span class="nf">_calibrate_dl1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+        <span class="n">waveforms</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">waveform</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_dl0_empty</span><span class="p">(</span><span class="n">waveforms</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="n">n_pixels</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">selected_gain_channel</span>
+        <span class="n">broken_pixels</span> <span class="o">=</span> <span class="n">_get_invalid_pixels</span><span class="p">(</span>
+            <span class="n">n_pixels</span><span class="p">,</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">mon</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_status</span><span class="p">,</span>
+            <span class="n">selected_gain_channel</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">dl1_calib</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">dl1</span>
+        <span class="n">time_shift</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">time_shift</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+
+        <span class="c1"># subtract any remaining pedestal before extraction</span>
+        <span class="k">if</span> <span class="n">dl1_calib</span><span class="o">.</span><span class="n">pedestal_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># this copies intentionally, we don&#39;t want to modify the dl0 data</span>
+            <span class="c1"># waveforms have shape (n_pixel, n_samples), pedestals (n_pixels, )</span>
+            <span class="n">waveforms</span> <span class="o">=</span> <span class="n">waveforms</span> <span class="o">-</span> <span class="n">dl1_calib</span><span class="o">.</span><span class="n">pedestal_offset</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">n_samples</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># To handle ASTRI and dst</span>
+            <span class="c1"># TODO: Improved handling of ASTRI and dst</span>
+            <span class="c1">#   - dst with custom EventSource?</span>
+            <span class="c1">#   - Read into dl1 container directly?</span>
+            <span class="c1">#   - Don&#39;t do anything if dl1 container already filled</span>
+            <span class="c1">#   - Update on SST review decision</span>
+            <span class="n">dl1</span> <span class="o">=</span> <span class="n">DL1CameraContainer</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">waveforms</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="n">peak_time</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># shift waveforms if time_shift calibration is available</span>
+            <span class="k">if</span> <span class="n">time_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_waveform_time_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+                    <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">)</span>
+                    <span class="n">time_shift_samples</span> <span class="o">=</span> <span class="n">time_shift</span> <span class="o">*</span> <span class="n">sampling_rate</span>
+                    <span class="n">waveforms</span><span class="p">,</span> <span class="n">remaining_shift</span> <span class="o">=</span> <span class="n">shift_waveforms</span><span class="p">(</span>
+                        <span class="n">waveforms</span><span class="p">,</span> <span class="n">time_shift_samples</span>
+                    <span class="p">)</span>
+                    <span class="n">remaining_shift</span> <span class="o">/=</span> <span class="n">sampling_rate</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">remaining_shift</span> <span class="o">=</span> <span class="n">time_shift</span>
+
+            <span class="n">extractor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_extractors</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">image_extractor_type</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]]</span>
+            <span class="n">dl1</span> <span class="o">=</span> <span class="n">extractor</span><span class="p">(</span>
+                <span class="n">waveforms</span><span class="p">,</span>
+                <span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">,</span>
+                <span class="n">selected_gain_channel</span><span class="o">=</span><span class="n">selected_gain_channel</span><span class="p">,</span>
+                <span class="n">broken_pixels</span><span class="o">=</span><span class="n">broken_pixels</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># correct non-integer remainder of the shift if given</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_peak_time_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="ow">and</span> <span class="n">time_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dl1</span><span class="o">.</span><span class="n">peak_time</span> <span class="o">-=</span> <span class="n">remaining_shift</span>
+
+        <span class="c1"># Calibrate extracted charge</span>
+        <span class="n">dl1</span><span class="o">.</span><span class="n">image</span> <span class="o">*=</span> <span class="n">dl1_calib</span><span class="o">.</span><span class="n">relative_factor</span> <span class="o">/</span> <span class="n">dl1_calib</span><span class="o">.</span><span class="n">absolute_factor</span>
+
+        <span class="c1"># handle invalid pixels</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dl1</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">dl1</span><span class="o">.</span><span class="n">peak_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="p">,</span>
+                <span class="n">dl1</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                <span class="n">dl1</span><span class="o">.</span><span class="n">peak_time</span><span class="p">,</span>
+                <span class="n">broken_pixels</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># store the results in the event structure</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">dl1</span>
+
+<div class="viewcode-block" id="CameraCalibrator.__call__"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.calibrator.CameraCalibrator.html#ctapipe.calib.CameraCalibrator.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the full camera calibration from R1 to DL1. Any calibration</span>
+<span class="sd">        relating to data levels before the data level the file is read into</span>
+<span class="sd">        will be skipped.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        event : container</span>
+<span class="sd">            A `~ctapipe.containers.ArrayEventContainer` event container</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: How to handle different calibrations depending on tel_id?</span>
+        <span class="n">tel</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span> <span class="ow">or</span> <span class="n">event</span><span class="o">.</span><span class="n">dl0</span><span class="o">.</span><span class="n">tel</span> <span class="ow">or</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calibrate_dl0</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calibrate_dl1</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">)</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">shift_waveforms</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">time_shift_samples</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Shift the waveforms by the mean integer shift to mediate</span>
+<span class="sd">    time differences between pixels.</span>
+<span class="sd">    The remaining shift (mean + fractional part) is returned</span>
+<span class="sd">    to be applied later to the extracted peak time.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms: ndarray of shape (n_pixels, n_samples)</span>
+<span class="sd">        The waveforms to shift</span>
+<span class="sd">    time_shift_samples: ndarray of shape (n_pixels, )</span>
+<span class="sd">        The shift to apply in units of samples.</span>
+<span class="sd">        Waveforms are shifted to the left by the smallest integer</span>
+<span class="sd">        that minimizes inter-pixel differences.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    shifted_waveforms: ndarray of shape (n_pixels, n_samples)</span>
+<span class="sd">        The shifted waveforms</span>
+<span class="sd">    remaining_shift: ndarray of shape (n_pixels, )</span>
+<span class="sd">        The remaining shift after applying the integer shift to the waveforms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mean_shift</span> <span class="o">=</span> <span class="n">time_shift_samples</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">integer_shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">time_shift_samples</span> <span class="o">-</span> <span class="n">mean_shift</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int16&quot;</span><span class="p">)</span>
+    <span class="n">remaining_shift</span> <span class="o">=</span> <span class="n">time_shift_samples</span> <span class="o">-</span> <span class="n">integer_shift</span>
+    <span class="n">shifted_waveforms</span> <span class="o">=</span> <span class="n">_shift_waveforms_by_integer</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">integer_shift</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">shifted_waveforms</span><span class="p">,</span> <span class="n">remaining_shift</span>
+
+
+<span class="nd">@guvectorize</span><span class="p">(</span>
+    <span class="p">[(</span><span class="n">float64</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">[:]),</span> <span class="p">(</span><span class="n">float32</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float32</span><span class="p">[:])],</span>
+    <span class="s2">&quot;(s),()-&gt;(s)&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">_shift_waveforms_by_integer</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">integer_shift</span><span class="p">,</span> <span class="n">shifted_waveforms</span><span class="p">):</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="k">for</span> <span class="n">new_sample_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">):</span>
+        <span class="c1"># repeat first value if out ouf bounds to the left</span>
+        <span class="c1"># repeat last value if out ouf bounds to the right</span>
+        <span class="n">sample_idx</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">new_sample_idx</span> <span class="o">+</span> <span class="n">integer_shift</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">n_samples</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">shifted_waveforms</span><span class="p">[</span><span class="n">new_sample_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

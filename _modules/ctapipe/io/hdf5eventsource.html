@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.hdf5eventsource &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.hdf5eventsource</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.hdf5eventsource</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">lazyproperty</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.atmosphere</span> <span class="kn">import</span> <span class="n">AtmosphereDensityProfile</span>
+<span class="kn">from</span> <span class="nn">ctapipe.instrument.optics</span> <span class="kn">import</span> <span class="n">FocalLengthKind</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArrayEventContainer</span><span class="p">,</span>
+    <span class="n">CameraHillasParametersContainer</span><span class="p">,</span>
+    <span class="n">CameraTimingParametersContainer</span><span class="p">,</span>
+    <span class="n">ConcentrationContainer</span><span class="p">,</span>
+    <span class="n">DL1CameraContainer</span><span class="p">,</span>
+    <span class="n">EventIndexContainer</span><span class="p">,</span>
+    <span class="n">HillasParametersContainer</span><span class="p">,</span>
+    <span class="n">ImageParametersContainer</span><span class="p">,</span>
+    <span class="n">IntensityStatisticsContainer</span><span class="p">,</span>
+    <span class="n">LeakageContainer</span><span class="p">,</span>
+    <span class="n">MorphologyContainer</span><span class="p">,</span>
+    <span class="n">MuonEfficiencyContainer</span><span class="p">,</span>
+    <span class="n">MuonParametersContainer</span><span class="p">,</span>
+    <span class="n">MuonRingContainer</span><span class="p">,</span>
+    <span class="n">MuonTelescopeContainer</span><span class="p">,</span>
+    <span class="n">ObservationBlockContainer</span><span class="p">,</span>
+    <span class="n">ParticleClassificationContainer</span><span class="p">,</span>
+    <span class="n">PeakTimeStatisticsContainer</span><span class="p">,</span>
+    <span class="n">R1CameraContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+    <span class="n">SchedulingBlockContainer</span><span class="p">,</span>
+    <span class="n">SimulatedEventContainer</span><span class="p">,</span>
+    <span class="n">SimulatedShowerContainer</span><span class="p">,</span>
+    <span class="n">SimulationConfigContainer</span><span class="p">,</span>
+    <span class="n">TelescopeImpactParameterContainer</span><span class="p">,</span>
+    <span class="n">TelescopeTriggerContainer</span><span class="p">,</span>
+    <span class="n">TelEventIndexContainer</span><span class="p">,</span>
+    <span class="n">TimingParametersContainer</span><span class="p">,</span>
+    <span class="n">TriggerContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Container</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">UseEnum</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SubarrayDescription</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">IndexFinder</span>
+<span class="kn">from</span> <span class="nn">.astropy_helpers</span> <span class="kn">import</span> <span class="n">read_table</span>
+<span class="kn">from</span> <span class="nn">.datalevels</span> <span class="kn">import</span> <span class="n">DataLevel</span>
+<span class="kn">from</span> <span class="nn">.eventsource</span> <span class="kn">import</span> <span class="n">EventSource</span>
+<span class="kn">from</span> <span class="nn">.hdf5tableio</span> <span class="kn">import</span> <span class="n">HDF5TableReader</span><span class="p">,</span> <span class="n">get_column_attrs</span>
+<span class="kn">from</span> <span class="nn">.tableloader</span> <span class="kn">import</span> <span class="n">DL2_SUBARRAY_GROUP</span><span class="p">,</span> <span class="n">DL2_TELESCOPE_GROUP</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HDF5EventSource&quot;</span><span class="p">]</span>
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="n">DL2_CONTAINERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+    <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+    <span class="s2">&quot;classification&quot;</span><span class="p">:</span> <span class="n">ParticleClassificationContainer</span><span class="p">,</span>
+    <span class="s2">&quot;impact&quot;</span><span class="p">:</span> <span class="n">TelescopeImpactParameterContainer</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="n">COMPATIBLE_DATA_MODEL_VERSIONS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;v4.0.0&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;v5.0.0&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_hdf5_datalevels"><a class="viewcode-back" href="../../../api/ctapipe.io.get_hdf5_datalevels.html#ctapipe.io.get_hdf5_datalevels">[docs]</a><span class="k">def</span> <span class="nf">get_hdf5_datalevels</span><span class="p">(</span><span class="n">h5file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the data levels present in the hdf5 file&quot;&quot;&quot;</span>
+    <span class="n">datalevels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="s2">&quot;/r1/event/telescope&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+        <span class="n">datalevels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DataLevel</span><span class="o">.</span><span class="n">R1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;/dl1/event/telescope/images&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+        <span class="n">datalevels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_IMAGES</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;/dl1/event/telescope/parameters&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+        <span class="n">datalevels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_PARAMETERS</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;/dl1/event/telescope/muon&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+        <span class="n">datalevels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_MUON</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;/dl2&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+        <span class="n">datalevels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DataLevel</span><span class="o">.</span><span class="n">DL2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">datalevels</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">read_atmosphere_density_profile</span><span class="p">(</span>
+    <span class="n">h5file</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/simulation/service/atmosphere_density_profile&quot;</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;return a subclass of AtmosphereDensityProfile by</span>
+<span class="sd">    reading a table in a h5 file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    h5file: tables.File</span>
+<span class="sd">        file handle of HDF5 file</span>
+<span class="sd">    path: str</span>
+<span class="sd">        path in the file where the serialized model is stored as an</span>
+<span class="sd">        astropy.table.Table</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    AtmosphereDensityProfile:</span>
+<span class="sd">        subclass depending on type of table</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">h5file</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">table</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="n">h5file</span><span class="o">=</span><span class="n">h5file</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">AtmosphereDensityProfile</span><span class="o">.</span><span class="n">from_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="HDF5EventSource"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5EventSource.html#ctapipe.io.HDF5EventSource">[docs]</a><span class="k">class</span> <span class="nc">HDF5EventSource</span><span class="p">(</span><span class="n">EventSource</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Event source for files in the ctapipe DL1 format.</span>
+<span class="sd">    For general information about the concept of event sources,</span>
+<span class="sd">    take a look at the parent class ctapipe.io.EventSource.</span>
+
+<span class="sd">    To use this event source, create an instance of this class</span>
+<span class="sd">    specifying the file to be read.</span>
+
+<span class="sd">    Looping over the EventSource yields events from the _generate_events</span>
+<span class="sd">    method. An event equals an ArrayEventContainer instance.</span>
+<span class="sd">    See ctapipe.containers.ArrayEventContainer for details.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_url: str</span>
+<span class="sd">        Path to the input event file.</span>
+<span class="sd">    file: tables.File</span>
+<span class="sd">        File object</span>
+<span class="sd">    obs_ids: list</span>
+<span class="sd">        Observation ids of te recorded runs. For unmerged files, this</span>
+<span class="sd">        should only contain a single number.</span>
+<span class="sd">    subarray: ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">        The subarray configuration of the recorded run.</span>
+<span class="sd">    datalevels: Tuple</span>
+<span class="sd">        One or both of ctapipe.io.datalevels.DataLevel.DL1_IMAGES</span>
+<span class="sd">        and ctapipe.io.datalevels.DataLevel.DL1_PARAMETERS</span>
+<span class="sd">        depending on the information present in the file.</span>
+<span class="sd">    is_simulation: Boolean</span>
+<span class="sd">        Whether the events are simulated or observed.</span>
+<span class="sd">    simulation_configs: Dict</span>
+<span class="sd">        Mapping of obs_id to ctapipe.containers.SimulationConfigContainer</span>
+<span class="sd">        if the file contains simulated events.</span>
+<span class="sd">    has_simulated_dl1: Boolean</span>
+<span class="sd">        Whether the file contains simulated camera images and/or</span>
+<span class="sd">        image parameters evaluated on these.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">focal_length_choice</span> <span class="o">=</span> <span class="n">UseEnum</span><span class="p">(</span>
+        <span class="n">FocalLengthKind</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EFFECTIVE</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;If both nominal and effective focal lengths are available, &quot;</span>
+            <span class="s2">&quot; which one to use for the `~ctapipe.coordinates.CameraFrame` attached&quot;</span>
+            <span class="s2">&quot; to the `~ctapipe.instrument.CameraGeometry` instances in the&quot;</span>
+            <span class="s2">&quot; `~ctapipe.instrument.SubarrayDescription` which will be used in&quot;</span>
+            <span class="s2">&quot; CameraFrame to TelescopeFrame coordinate transforms.&quot;</span>
+            <span class="s2">&quot; The &#39;nominal&#39; focal length is the one used during &quot;</span>
+            <span class="s2">&quot; the simulation, the &#39;effective&#39; focal length is computed using specialized &quot;</span>
+            <span class="s2">&quot; ray-tracing from a point light source&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        EventSource for dl1 files in the standard DL1 data format</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        -----------</span>
+<span class="sd">        input_url : str</span>
+<span class="sd">            Path of the file to load</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            Set to None if no configuration to pass.</span>
+<span class="sd">        parent:</span>
+<span class="sd">            Parent from which the config is used. Mutually exclusive with config</span>
+<span class="sd">        kwargs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">input_url</span><span class="o">=</span><span class="n">input_url</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_full_subarray</span> <span class="o">=</span> <span class="n">SubarrayDescription</span><span class="o">.</span><span class="n">from_hdf</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span>
+            <span class="n">focal_length_choice</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">focal_length_choice</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_full_subarray</span><span class="o">.</span><span class="n">select_subarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_full_subarray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_configs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_simulation_configs</span><span class="p">()</span>
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scheduling_block</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_observation_block</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_sb_and_ob_configs</span><span class="p">()</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">_v_attrs</span><span class="p">[</span><span class="s2">&quot;CTA PRODUCT DATA MODEL VERSION&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datamodel_version</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">version</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;v&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_obs_ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">observation</span><span class="o">.</span><span class="n">observation_block</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;obs_id&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="HDF5EventSource.close"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5EventSource.html#ctapipe.io.HDF5EventSource.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="HDF5EventSource.is_compatible"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5EventSource.html#ctapipe.io.HDF5EventSource.is_compatible">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_compatible</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">magic_number</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">magic_number</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x89</span><span class="s2">HDF</span><span class="se">\r\n\x1a\n</span><span class="s2">&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">with</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">_v_attrs</span>
+
+            <span class="k">if</span> <span class="s2">&quot;CTA PRODUCT DATA MODEL VERSION&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">_v_attrnames</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="n">version</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;CTA PRODUCT DATA MODEL VERSION&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">COMPATIBLE_DATA_MODEL_VERSIONS</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;File is a ctapipe HDF5 file but has unsupported data model&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot; version </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;, supported versions are </span><span class="si">{</span><span class="n">COMPATIBLE_DATA_MODEL_VERSIONS</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="s2">&quot; You may need to downgrade ctapipe (if the file version is older)&quot;</span>
+                    <span class="s2">&quot;, update ctapipe (if the file version is newer) or&quot;</span>
+                    <span class="s2">&quot; reproduce the file with your current ctapipe version.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="k">if</span> <span class="s2">&quot;CTA PRODUCT DATA LEVELS&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">_v_attrnames</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="c1"># we can now read both R1 and DL1</span>
+            <span class="n">has_muons</span> <span class="o">=</span> <span class="s2">&quot;/dl1/event/telescope/muon&quot;</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">root</span>
+            <span class="n">datalevels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;CTA PRODUCT DATA LEVELS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">))</span>
+            <span class="n">datalevels</span> <span class="o">=</span> <span class="n">datalevels</span> <span class="o">&amp;</span> <span class="p">{</span>
+                <span class="s2">&quot;R1&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DL1_IMAGES&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DL1_PARAMETERS&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DL2&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DL1_MUON&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">datalevels</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has_muons</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        True for files with a simulation group at the root of the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;simulation&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_simulated_dl1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        True for files with telescope-wise event information in the simulation group</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_simulation</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;telescope&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">event</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">has_muon_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        True for files that contain muon parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;/dl1/event/telescope/muon&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">datalevels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">get_hdf5_datalevels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">atmosphere_density_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AtmosphereDensityProfile</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">read_atmosphere_density_profile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">obs_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obs_ids</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scheduling_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">SchedulingBlockContainer</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduling_block</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">observation_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ObservationBlockContainer</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observation_block</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">simulation_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">SimulationConfigContainer</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the simulation config(s) as</span>
+<span class="sd">        a dict mapping obs_id to the respective config.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_configs</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_events</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">trigger</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_events</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_events</span>
+
+    <span class="k">def</span> <span class="nf">_parse_simulation_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a dict of SimulationConfigContainers from the</span>
+<span class="sd">        self.file_.root.configuration.simulation.run.</span>
+<span class="sd">        These are used to match the correct header to each event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Just returning next(reader) would work as long as there are no merged files</span>
+        <span class="c1"># The reader ignores obs_id making the setup somewhat tricky</span>
+        <span class="c1"># This is ugly but supports multiple headers so each event can have</span>
+        <span class="c1"># the correct mcheader assigned by matching the obs_id</span>
+        <span class="c1"># Alternatively this becomes a flat list</span>
+        <span class="c1"># and the obs_id matching part needs to be done in _generate_events()</span>
+        <span class="k">class</span> <span class="nc">ObsIdContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+            <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">obs_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;simulation&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">configuration</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                <span class="s2">&quot;/configuration/simulation/run&quot;</span><span class="p">,</span>
+                <span class="n">containers</span><span class="o">=</span><span class="p">(</span><span class="n">SimulationConfigContainer</span><span class="p">,</span> <span class="n">ObsIdContainer</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">index</span><span class="o">.</span><span class="n">obs_id</span><span class="p">:</span> <span class="n">config</span> <span class="k">for</span> <span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">_parse_sb_and_ob_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;read Observation and Scheduling block configurations&quot;&quot;&quot;</span>
+
+        <span class="n">sb_reader</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+            <span class="s2">&quot;/configuration/observation/scheduling_block&quot;</span><span class="p">,</span>
+            <span class="n">containers</span><span class="o">=</span><span class="n">SchedulingBlockContainer</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">scheduling_blocks</span> <span class="o">=</span> <span class="p">{</span><span class="n">sb</span><span class="o">.</span><span class="n">sb_id</span><span class="p">:</span> <span class="n">sb</span> <span class="k">for</span> <span class="n">sb</span> <span class="ow">in</span> <span class="n">sb_reader</span><span class="p">}</span>
+
+        <span class="n">ob_reader</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+            <span class="s2">&quot;/configuration/observation/observation_block&quot;</span><span class="p">,</span>
+            <span class="n">containers</span><span class="o">=</span><span class="n">ObservationBlockContainer</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">observation_blocks</span> <span class="o">=</span> <span class="p">{</span><span class="n">ob</span><span class="o">.</span><span class="n">obs_id</span><span class="p">:</span> <span class="n">ob</span> <span class="k">for</span> <span class="n">ob</span> <span class="ow">in</span> <span class="n">ob_reader</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">scheduling_blocks</span><span class="p">,</span> <span class="n">observation_blocks</span>
+
+    <span class="k">def</span> <span class="nf">_is_hillas_in_camera_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parameters_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="n">telescope_tables</span> <span class="o">=</span> <span class="n">parameters_group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+        <span class="c1"># in case of no parameters, it doesn&#39;t matter, we just return False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">telescope_tables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># check the first telescope table</span>
+        <span class="n">one_telescope</span> <span class="o">=</span> <span class="n">parameters_group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s2">&quot;camera_frame_hillas_intensity&quot;</span> <span class="ow">in</span> <span class="n">one_telescope</span><span class="o">.</span><span class="n">colnames</span>
+
+    <span class="k">def</span> <span class="nf">_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Yield ArrayEventContainer to iterate through events.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">R1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+            <span class="n">waveform_readers</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;/r1/event/telescope/</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">R1CameraContainer</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span>
+            <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_IMAGES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+            <span class="n">ignore_columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;parameters&quot;</span><span class="p">}</span>
+
+            <span class="c1"># if there are no parameters, there are no image_mask, avoids warnings</span>
+            <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_PARAMETERS</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+                <span class="n">ignore_columns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;image_mask&quot;</span><span class="p">)</span>
+
+            <span class="n">image_readers</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;/dl1/event/telescope/images/</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">DL1CameraContainer</span><span class="p">,</span>
+                    <span class="n">ignore_columns</span><span class="o">=</span><span class="n">ignore_columns</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">images</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_simulated_dl1</span><span class="p">:</span>
+                <span class="n">simulated_image_iterators</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">images</span><span class="p">[</span>
+                        <span class="n">table</span><span class="o">.</span><span class="n">name</span>
+                    <span class="p">]</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">images</span>
+                <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_PARAMETERS</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+            <span class="n">hillas_cls</span> <span class="o">=</span> <span class="n">HillasParametersContainer</span>
+            <span class="n">timing_cls</span> <span class="o">=</span> <span class="n">TimingParametersContainer</span>
+            <span class="n">hillas_prefix</span> <span class="o">=</span> <span class="s2">&quot;hillas&quot;</span>
+            <span class="n">timing_prefix</span> <span class="o">=</span> <span class="s2">&quot;timing&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_hillas_in_camera_frame</span><span class="p">():</span>
+                <span class="n">hillas_cls</span> <span class="o">=</span> <span class="n">CameraHillasParametersContainer</span>
+                <span class="n">timing_cls</span> <span class="o">=</span> <span class="n">CameraTimingParametersContainer</span>
+                <span class="n">hillas_prefix</span> <span class="o">=</span> <span class="s2">&quot;camera_frame_hillas&quot;</span>
+                <span class="n">timing_prefix</span> <span class="o">=</span> <span class="s2">&quot;camera_frame_timing&quot;</span>
+
+            <span class="n">param_readers</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;/dl1/event/telescope/parameters/</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">containers</span><span class="o">=</span><span class="p">(</span>
+                        <span class="n">hillas_cls</span><span class="p">,</span>
+                        <span class="n">timing_cls</span><span class="p">,</span>
+                        <span class="n">LeakageContainer</span><span class="p">,</span>
+                        <span class="n">ConcentrationContainer</span><span class="p">,</span>
+                        <span class="n">MorphologyContainer</span><span class="p">,</span>
+                        <span class="n">IntensityStatisticsContainer</span><span class="p">,</span>
+                        <span class="n">PeakTimeStatisticsContainer</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">prefixes</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">hillas_prefix</span><span class="p">,</span>
+                        <span class="n">timing_prefix</span><span class="p">,</span>
+                        <span class="s2">&quot;leakage&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;concentration&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;morphology&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;intensity&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;peak_time&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_simulated_dl1</span><span class="p">:</span>
+                <span class="n">simulated_param_readers</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;/simulation/event/telescope/parameters/</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">containers</span><span class="o">=</span><span class="p">[</span>
+                            <span class="n">hillas_cls</span><span class="p">,</span>
+                            <span class="n">LeakageContainer</span><span class="p">,</span>
+                            <span class="n">ConcentrationContainer</span><span class="p">,</span>
+                            <span class="n">MorphologyContainer</span><span class="p">,</span>
+                            <span class="n">IntensityStatisticsContainer</span><span class="p">,</span>
+                        <span class="p">],</span>
+                        <span class="n">prefixes</span><span class="o">=</span><span class="p">[</span>
+                            <span class="sa">f</span><span class="s2">&quot;true_</span><span class="si">{</span><span class="n">hillas_prefix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;true_leakage&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;true_concentration&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;true_morphology&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;true_intensity&quot;</span><span class="p">,</span>
+                        <span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">parameters</span>
+                <span class="p">}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_muon_parameters</span><span class="p">:</span>
+            <span class="n">muon_readers</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;/dl1/event/telescope/muon/</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">containers</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">MuonRingContainer</span><span class="p">,</span>
+                        <span class="n">MuonParametersContainer</span><span class="p">,</span>
+                        <span class="n">MuonEfficiencyContainer</span><span class="p">,</span>
+                    <span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">muon</span>
+            <span class="p">}</span>
+
+        <span class="n">dl2_readers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">DL2_SUBARRAY_GROUP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+            <span class="n">dl2_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">DL2_SUBARRAY_GROUP</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">dl2_group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">container</span> <span class="o">=</span> <span class="n">DL2_CONTAINERS</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Unknown DL2 stereo group </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="n">dl2_readers</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">algorithm</span><span class="p">:</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                        <span class="n">table</span><span class="o">.</span><span class="n">_v_pathname</span><span class="p">,</span>
+                        <span class="n">containers</span><span class="o">=</span><span class="n">container</span><span class="p">,</span>
+                        <span class="n">prefixes</span><span class="o">=</span><span class="p">(</span><span class="n">algorithm</span><span class="p">,),</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">algorithm</span><span class="p">,</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+
+        <span class="n">dl2_tel_readers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">DL2_TELESCOPE_GROUP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+            <span class="n">dl2_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">DL2_TELESCOPE_GROUP</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">dl2_group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">container</span> <span class="o">=</span> <span class="n">DL2_CONTAINERS</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Unknown DL2 telescope group </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="n">dl2_tel_readers</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">algorithm</span><span class="p">,</span> <span class="n">algorithm_group</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">dl2_tel_readers</span><span class="p">[</span><span class="n">kind</span><span class="p">][</span><span class="n">algorithm</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">key</span><span class="p">:</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                            <span class="n">table</span><span class="o">.</span><span class="n">_v_pathname</span><span class="p">,</span>
+                            <span class="n">containers</span><span class="o">=</span><span class="n">container</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">algorithm_group</span><span class="o">.</span><span class="n">_v_children</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">}</span>
+
+        <span class="n">true_impact_readers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_simulation</span><span class="p">:</span>
+            <span class="c1"># simulated shower wide information</span>
+            <span class="n">mc_shower_reader</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                <span class="s2">&quot;/simulation/event/subarray/shower&quot;</span><span class="p">,</span>
+                <span class="n">SimulatedShowerContainer</span><span class="p">,</span>
+                <span class="n">prefixes</span><span class="o">=</span><span class="s2">&quot;true&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;impact&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="p">:</span>
+                <span class="n">true_impact_readers</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;/simulation/event/telescope/impact/</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">containers</span><span class="o">=</span><span class="n">TelescopeImpactParameterContainer</span><span class="p">,</span>
+                        <span class="n">prefixes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;true_impact&quot;</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">impact</span>
+                <span class="p">}</span>
+
+        <span class="c1"># Setup iterators for the array events</span>
+        <span class="n">events</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+            <span class="s2">&quot;/dl1/event/subarray/trigger&quot;</span><span class="p">,</span>
+            <span class="p">[</span><span class="n">TriggerContainer</span><span class="p">,</span> <span class="n">EventIndexContainer</span><span class="p">],</span>
+            <span class="n">ignore_columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;tel&quot;</span><span class="p">},</span>
+        <span class="p">)</span>
+        <span class="n">telescope_trigger_reader</span> <span class="o">=</span> <span class="n">HDF5TableReader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+            <span class="s2">&quot;/dl1/event/telescope/trigger&quot;</span><span class="p">,</span>
+            <span class="p">[</span><span class="n">TelEventIndexContainer</span><span class="p">,</span> <span class="n">TelescopeTriggerContainer</span><span class="p">],</span>
+            <span class="n">ignore_columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;trigger_pixels&quot;</span><span class="p">},</span>
+        <span class="p">)</span>
+
+        <span class="n">array_pointing_finder</span> <span class="o">=</span> <span class="n">IndexFinder</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">tel_pointing_finder</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">IndexFinder</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">pointing</span>
+        <span class="p">}</span>
+
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">trigger</span><span class="p">,</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">ArrayEventContainer</span><span class="p">(</span>
+                <span class="n">trigger</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+                <span class="n">count</span><span class="o">=</span><span class="n">counter</span><span class="p">,</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+                <span class="n">simulation</span><span class="o">=</span><span class="n">SimulatedEventContainer</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_simulation</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Maybe take some other metadata, but there are still some &#39;unknown&#39;</span>
+            <span class="c1"># written out by the stage1 tool</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">_v_attrs</span><span class="p">[</span><span class="s2">&quot;CTA PROCESS TYPE&quot;</span><span class="p">]</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;input_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;max_events&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span>
+
+            <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_full_subarray</span><span class="o">.</span><span class="n">tel_mask_to_tel_ids</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span>
+            <span class="p">)</span>
+            <span class="n">full_tels_with_trigger</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">))</span>
+                <span class="p">)</span>
+
+            <span class="c1"># the telescope trigger table contains triggers for all telescopes</span>
+            <span class="c1"># that participated in the event, so we need to read a row for each</span>
+            <span class="c1"># of them, ignoring the ones not in allowed_tels after reading</span>
+            <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">full_tels_with_trigger</span><span class="p">:</span>
+                <span class="n">tel_index</span><span class="p">,</span> <span class="n">tel_trigger</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">telescope_trigger_reader</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span> <span class="ow">and</span> <span class="n">tel_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_index</span><span class="o">.</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_trigger</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_simulation</span><span class="p">:</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">shower</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">mc_shower_reader</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">readers</span> <span class="ow">in</span> <span class="n">dl2_readers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">algorithm</span><span class="p">,</span> <span class="n">reader</span> <span class="ow">in</span> <span class="n">readers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">c</span><span class="p">[</span><span class="n">algorithm</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
+
+            <span class="c1"># this needs to stay *after* reading the telescope trigger table</span>
+            <span class="c1"># and after reading all subarray event information, so that we don&#39;t</span>
+            <span class="c1"># go out of sync</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fill_array_pointing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">array_pointing_finder</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fill_telescope_pointing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">tel_pointing_finder</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tel_</span><span class="si">{</span><span class="n">tel_id</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span> <span class="ow">and</span> <span class="n">tel_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">true_impact_readers</span><span class="p">:</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">impact</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">true_impact_readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">R1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">waveform_readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_simulated_dl1</span><span class="p">:</span>
+                    <span class="n">simulated</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_IMAGES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">image_readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_simulated_dl1</span><span class="p">:</span>
+                        <span class="n">simulated_image_row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">simulated_image_iterators</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                        <span class="n">simulated</span><span class="o">.</span><span class="n">true_image</span> <span class="o">=</span> <span class="n">simulated_image_row</span><span class="p">[</span><span class="s2">&quot;true_image&quot;</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_PARAMETERS</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+                    <span class="c1"># Is there a smarter way to unpack this?</span>
+                    <span class="c1"># Best would probbaly be if we could directly read</span>
+                    <span class="c1"># into the ImageParametersContainer</span>
+                    <span class="n">params</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">param_readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">ImageParametersContainer</span><span class="p">(</span>
+                        <span class="n">hillas</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">timing</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">leakage</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                        <span class="n">concentration</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                        <span class="n">morphology</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                        <span class="n">intensity_statistics</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                        <span class="n">peak_time_statistics</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_simulated_dl1</span><span class="p">:</span>
+                        <span class="n">simulated_params</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">simulated_param_readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                        <span class="n">simulated</span><span class="o">.</span><span class="n">true_parameters</span> <span class="o">=</span> <span class="n">ImageParametersContainer</span><span class="p">(</span>
+                            <span class="n">hillas</span><span class="o">=</span><span class="n">simulated_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                            <span class="n">leakage</span><span class="o">=</span><span class="n">simulated_params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                            <span class="n">concentration</span><span class="o">=</span><span class="n">simulated_params</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                            <span class="n">morphology</span><span class="o">=</span><span class="n">simulated_params</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                            <span class="n">intensity_statistics</span><span class="o">=</span><span class="n">simulated_params</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                        <span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_muon_parameters</span><span class="p">:</span>
+                    <span class="n">ring</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">efficiency</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">muon_readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">muon</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">MuonTelescopeContainer</span><span class="p">(</span>
+                        <span class="n">ring</span><span class="o">=</span><span class="n">ring</span><span class="p">,</span>
+                        <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                        <span class="n">efficiency</span><span class="o">=</span><span class="n">efficiency</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">algorithms</span> <span class="ow">in</span> <span class="n">dl2_tel_readers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span> <span class="n">kind</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">algorithm</span><span class="p">,</span> <span class="n">readers</span> <span class="ow">in</span> <span class="n">algorithms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">c</span><span class="p">[</span><span class="n">algorithm</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">readers</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+                        <span class="c1"># change prefix to new data model</span>
+                        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;impact&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">datamodel_version</span> <span class="o">==</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+                            <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algorithm</span><span class="si">}</span><span class="s2">_tel_</span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="n">algorithm</span><span class="p">]</span><span class="o">.</span><span class="n">default_prefix</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">c</span><span class="p">[</span><span class="n">algorithm</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+
+            <span class="k">yield</span> <span class="n">data</span>
+            <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_subarray_pointing_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">pointing</span>
+        <span class="k">return</span> <span class="n">get_column_attrs</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_telescope_pointing_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+        <span class="n">pointing_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">pointing</span>
+        <span class="k">return</span> <span class="n">get_column_attrs</span><span class="p">(</span><span class="n">pointing_group</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;tel_</span><span class="si">{</span><span class="n">tel_id</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_fill_array_pointing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">array_pointing_finder</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill the array pointing information of a given event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Only unique pointings are stored, so reader.read() wont work as easily</span>
+        <span class="c1"># Thats why we match the pointings based on trigger time</span>
+        <span class="n">closest_time_index</span> <span class="o">=</span> <span class="n">array_pointing_finder</span><span class="o">.</span><span class="n">closest</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">mjd</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">pointing</span>
+        <span class="n">array_pointing</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">closest_time_index</span><span class="p">]</span>
+
+        <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">array_azimuth</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="n">array_pointing</span><span class="p">[</span><span class="s2">&quot;array_azimuth&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_pointing_attrs</span><span class="p">[</span><span class="s2">&quot;array_azimuth&quot;</span><span class="p">][</span><span class="s2">&quot;UNIT&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">array_altitude</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="n">array_pointing</span><span class="p">[</span><span class="s2">&quot;array_altitude&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_pointing_attrs</span><span class="p">[</span><span class="s2">&quot;array_altitude&quot;</span><span class="p">][</span><span class="s2">&quot;UNIT&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">array_ra</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="n">array_pointing</span><span class="p">[</span><span class="s2">&quot;array_ra&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_pointing_attrs</span><span class="p">[</span><span class="s2">&quot;array_ra&quot;</span><span class="p">][</span><span class="s2">&quot;UNIT&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">array_dec</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="n">array_pointing</span><span class="p">[</span><span class="s2">&quot;array_dec&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_pointing_attrs</span><span class="p">[</span><span class="s2">&quot;array_dec&quot;</span><span class="p">][</span><span class="s2">&quot;UNIT&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fill_telescope_pointing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">tel_pointing_finder</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill the telescope pointing information of a given event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Same comments as to _fill_array_pointing apply</span>
+        <span class="n">pointing_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">telescope</span><span class="o">.</span><span class="n">pointing</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;tel_</span><span class="si">{</span><span class="n">tel_id</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span> <span class="ow">and</span> <span class="n">tel_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">tel_pointing_table</span> <span class="o">=</span> <span class="n">pointing_group</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">closest_time_index</span> <span class="o">=</span> <span class="n">tel_pointing_finder</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">closest</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">mjd</span>
+            <span class="p">)</span>
+
+            <span class="n">pointing_telescope</span> <span class="o">=</span> <span class="n">tel_pointing_table</span><span class="p">[</span><span class="n">closest_time_index</span><span class="p">]</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_telescope_pointing_attrs</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">azimuth</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">pointing_telescope</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">],</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">][</span><span class="s2">&quot;UNIT&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">altitude</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">pointing_telescope</span><span class="p">[</span><span class="s2">&quot;altitude&quot;</span><span class="p">],</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;altitude&quot;</span><span class="p">][</span><span class="s2">&quot;UNIT&quot;</span><span class="p">],</span>
+            <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

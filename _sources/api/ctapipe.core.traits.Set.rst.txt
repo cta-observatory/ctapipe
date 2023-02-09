@@ -1,0 +1,17 @@
+Set
+===
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Set
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Set.default_value_repr
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: default_value_repr

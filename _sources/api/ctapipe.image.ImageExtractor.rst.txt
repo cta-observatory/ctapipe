@@ -1,0 +1,17 @@
+ImageExtractor
+==============
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: ImageExtractor
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ImageExtractor.__call__
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

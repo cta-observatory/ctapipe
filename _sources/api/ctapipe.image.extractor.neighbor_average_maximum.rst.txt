@@ -1,0 +1,6 @@
+neighbor_average_maximum
+========================
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autofunction:: neighbor_average_maximum

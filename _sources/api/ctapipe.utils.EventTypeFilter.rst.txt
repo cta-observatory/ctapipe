@@ -1,0 +1,27 @@
+EventTypeFilter
+===============
+
+.. currentmodule:: ctapipe.utils
+
+.. autoclass:: EventTypeFilter
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EventTypeFilter.allowed_types
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~EventTypeFilter.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: allowed_types
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

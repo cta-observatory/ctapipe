@@ -1,0 +1,6 @@
+UnknownPixelShapeWarning
+========================
+
+.. currentmodule:: ctapipe.instrument.camera
+
+.. autoexception:: UnknownPixelShapeWarning

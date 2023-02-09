@@ -1,0 +1,19 @@
+Map
+===
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: Map
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Map.as_dict
+      ~Map.reset
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: as_dict
+   .. automethod:: reset

@@ -1,0 +1,6 @@
+TraitError
+==========
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoexception:: TraitError

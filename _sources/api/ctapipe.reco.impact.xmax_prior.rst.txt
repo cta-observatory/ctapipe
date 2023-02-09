@@ -1,0 +1,6 @@
+xmax_prior
+==========
+
+.. currentmodule:: ctapipe.reco.impact
+
+.. autofunction:: xmax_prior

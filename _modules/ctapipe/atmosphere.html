@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.atmosphere &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.atmosphere</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.atmosphere</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="sd">&quot;&quot;&quot;Atmosphere density models and functions to transform between column density</span>
+<span class="sd">(X in grammage units) and height (meters) units.</span>
+
+<span class="sd">Zenith angle is taken into account in the line-of-sight integral to compute the</span>
+<span class="sd">column density X assuming Earth as a flat plane (the curvature is not taken into</span>
+<span class="sd">account)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;AtmosphereDensityProfile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ExponentialAtmosphereDensityProfile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TableAtmosphereDensityProfile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;FiveLayerAtmosphereDensityProfile&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">SUPPORTED_TABLE_VERSIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="AtmosphereDensityProfile"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.AtmosphereDensityProfile.html#ctapipe.atmosphere.AtmosphereDensityProfile">[docs]</a><span class="k">class</span> <span class="nc">AtmosphereDensityProfile</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for models of atmosphere density.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AtmosphereDensityProfile.__call__"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.AtmosphereDensityProfile.html#ctapipe.atmosphere.AtmosphereDensityProfile.__call__">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        u.Quantity[&quot;g cm-3&quot;]</span>
+<span class="sd">            the density at height h</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="AtmosphereDensityProfile.integral"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.AtmosphereDensityProfile.html#ctapipe.atmosphere.AtmosphereDensityProfile.integral">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Integral of the profile along the height axis, i.e. the *atmospheric</span>
+<span class="sd">        depth* :math:`X`.</span>
+
+<span class="sd">        .. math:: X(h) = \int_{h}^{\infty} \rho(h&#39;) dh&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        u.Quantity[&quot;g/cm2&quot;]:</span>
+<span class="sd">            Integral of the density from height h to infinity</span>
+
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="AtmosphereDensityProfile.line_of_sight_integral"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.AtmosphereDensityProfile.html#ctapipe.atmosphere.AtmosphereDensityProfile.line_of_sight_integral">[docs]</a>    <span class="k">def</span> <span class="nf">line_of_sight_integral</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">,</span> <span class="n">zenith_angle</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">output_units</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Line-of-sight integral from the shower distance to infinity, along</span>
+<span class="sd">        the direction specified by the zenith angle. This is sometimes called</span>
+<span class="sd">        the *slant depth*. The atmosphere here is assumed to be Cartesian, the</span>
+<span class="sd">        curvature of the Earth is not taken into account.</span>
+
+<span class="sd">        .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h&#39; \cos{\Psi}) dh&#39;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        distance: u.Quantity[&quot;length&quot;]</span>
+<span class="sd">           line-of-site distance from observer to point</span>
+<span class="sd">        zenith_angle: u.Quantity[&quot;angle&quot;]</span>
+<span class="sd">           zenith angle of observation</span>
+<span class="sd">        output_units: u.Unit</span>
+<span class="sd">           unit to output (must be convertible to g/cm2)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">integral</span><span class="p">(</span><span class="n">distance</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">zenith_angle</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">zenith_angle</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">output_units</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AtmosphereDensityProfile.peek"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.AtmosphereDensityProfile.html#ctapipe.atmosphere.AtmosphereDensityProfile.peek">[docs]</a>    <span class="k">def</span> <span class="nf">peek</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Draw quick plot of profile</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+        <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;linear&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">density</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Height / </span><span class="si">{</span><span class="n">height</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Density / </span><span class="si">{</span><span class="n">density</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span>
+        <span class="k">for</span> <span class="n">zenith_angle</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">:</span>
+            <span class="n">column_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_of_sight_integral</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">zenith_angle</span><span class="p">)</span>
+            <span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">column_density</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">Psi$=</span><span class="si">{</span><span class="n">zenith_angle</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Distance / </span><span class="si">{</span><span class="n">distance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column Density / </span><span class="si">{</span><span class="n">column_density</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">zenith_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+        <span class="k">for</span> <span class="n">distance</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">:</span>
+            <span class="n">column_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">line_of_sight_integral</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">zenith_angle</span><span class="p">)</span>
+            <span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">zenith_angle</span><span class="p">,</span> <span class="n">column_density</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Height=</span><span class="si">{</span><span class="n">distance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Zenith Angle $</span><span class="se">\\</span><span class="s2">Psi$ / </span><span class="si">{</span><span class="n">zenith_angle</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column Density / </span><span class="si">{</span><span class="n">column_density</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axis</span></div>
+
+<div class="viewcode-block" id="AtmosphereDensityProfile.from_table"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.AtmosphereDensityProfile.html#ctapipe.atmosphere.AtmosphereDensityProfile.from_table">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_table</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return a subclass of AtmosphereDensityProfile from a serialized</span>
+<span class="sd">        table&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="s2">&quot;TAB_TYPE&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;expected a TAB_TYPE metadata field&quot;</span><span class="p">)</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SUPPORTED_TABLE_VERSIONS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table version not supported: &#39;</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="n">tabtype</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAB_TYPE&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">tabtype</span> <span class="o">==</span> <span class="s2">&quot;ctapipe.atmosphere.TableAtmosphereDensityProfile&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">TableAtmosphereDensityProfile</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tabtype</span> <span class="o">==</span> <span class="s2">&quot;ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">FiveLayerAtmosphereDensityProfile</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown AtmosphereDensityProfile type: &#39;</span><span class="si">{</span><span class="n">tabtype</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ExponentialAtmosphereDensityProfile"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.ExponentialAtmosphereDensityProfile.html#ctapipe.atmosphere.ExponentialAtmosphereDensityProfile">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">ExponentialAtmosphereDensityProfile</span><span class="p">(</span><span class="n">AtmosphereDensityProfile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A simple functional density profile modeled as an exponential.</span>
+
+<span class="sd">    The is defined following the form:</span>
+
+<span class="sd">    .. math:: \\rho(h) = \\rho_0 e^{-h/h_0}</span>
+
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from ctapipe.atmosphere import ExponentialAtmosphereDensityProfile</span>
+<span class="sd">        density_profile = ExponentialAtmosphereDensityProfile()</span>
+<span class="sd">        density_profile.peek()</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    scale_height: u.Quantity[&quot;m&quot;]</span>
+<span class="sd">        scale height (h0)</span>
+<span class="sd">    scale_density: u.Quantity[&quot;g cm-3&quot;]</span>
+<span class="sd">        scale density (rho0)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">scale_height</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span>
+    <span class="n">scale_density</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span> <span class="o">=</span> <span class="mf">0.00125</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ExponentialAtmosphereDensityProfile.__call__"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.ExponentialAtmosphereDensityProfile.html#ctapipe.atmosphere.ExponentialAtmosphereDensityProfile.__call__">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_density</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">height</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_height</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExponentialAtmosphereDensityProfile.integral"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.ExponentialAtmosphereDensityProfile.html#ctapipe.atmosphere.ExponentialAtmosphereDensityProfile.integral">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">integral</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">height</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_density</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_height</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">height</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_height</span><span class="p">)</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TableAtmosphereDensityProfile"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.TableAtmosphereDensityProfile.html#ctapipe.atmosphere.TableAtmosphereDensityProfile">[docs]</a><span class="k">class</span> <span class="nc">TableAtmosphereDensityProfile</span><span class="p">(</span><span class="n">AtmosphereDensityProfile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tabular profile from a table that has both the density and it&#39;s integral</span>
+<span class="sd">    pre-computed.  The table is interpolated to return the density and its integral.</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from astropy.table import Table</span>
+<span class="sd">        from astropy import units as u</span>
+
+<span class="sd">        from ctapipe.atmosphere import TableAtmosphereDensityProfile</span>
+
+<span class="sd">        table = Table(</span>
+<span class="sd">            dict(</span>
+<span class="sd">                height=[1,10,20] * u.km,</span>
+<span class="sd">                density=[0.00099,0.00042, 0.00009] * u.g / u.cm**3</span>
+<span class="sd">                column_density=[1044.0, 284.0, 57.0] * u.g / u.cm**2</span>
+<span class="sd">            )</span>
+<span class="sd">        )</span>
+
+<span class="sd">        profile = TableAtmosphereDensityProfile(table=table)</span>
+<span class="sd">        print(profile(10 * u.km))</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table: Table</span>
+<span class="sd">        Points that define the model</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ctapipe.io.eventsource.EventSource.atmosphere_density_profile:</span>
+<span class="sd">        load a TableAtmosphereDensityProfile from a supported EventSource</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table: Table</span>
+<span class="sd">            Table with columns `height`, `density`, and `column_density`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="s2">&quot;column_density&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing expected column: </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> in table&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span>
+            <span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;column_density&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># interpolation is done in log-y to minimize spline wobble</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_density_interp</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;km&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;g cm-3&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;cubic&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_col_density_interp</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;km&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;column_density&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;g cm-2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;cubic&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># ensure it can be read back</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;TAB_TYPE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ctapipe.atmosphere.TableAtmosphereDensityProfile&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="TableAtmosphereDensityProfile.__call__"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.TableAtmosphereDensityProfile.html#ctapipe.atmosphere.TableAtmosphereDensityProfile.__call__">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="mi">10</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">_density_interp</span><span class="p">(</span><span class="n">height</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)),</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">3</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableAtmosphereDensityProfile.integral"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.TableAtmosphereDensityProfile.html#ctapipe.atmosphere.TableAtmosphereDensityProfile.integral">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="mi">10</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">_col_density_interp</span><span class="p">(</span><span class="n">height</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)),</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(meta=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="si">}</span><span class="s2">, rows=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span></div>
+
+
+<span class="c1"># Here we define some utility functions needed to build the piece-wise 5-layer</span>
+<span class="c1"># model.</span>
+
+<span class="c1"># pylint: disable=invalid-name,unused-argument</span>
+<span class="k">def</span> <span class="nf">_exponential</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;exponential atmosphere&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">h</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_d_exponential</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;derivative of exponential atmosphere&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">b</span> <span class="o">/</span> <span class="n">c</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">h</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;linear atmosphere&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span> <span class="o">*</span> <span class="n">h</span> <span class="o">/</span> <span class="n">c</span>
+
+
+<span class="k">def</span> <span class="nf">_d_linear</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;derivative of linear atmosphere&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">b</span> <span class="o">/</span> <span class="n">c</span>
+
+
+<div class="viewcode-block" id="FiveLayerAtmosphereDensityProfile"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.html#ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile">[docs]</a><span class="k">class</span> <span class="nc">FiveLayerAtmosphereDensityProfile</span><span class="p">(</span><span class="n">AtmosphereDensityProfile</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    CORSIKA 5-layer atmosphere model</span>
+
+<span class="sd">    Layers 1-4  are modeled with:</span>
+
+<span class="sd">    .. math:: T(h) = a_i + b_i \exp{-h/c_i}</span>
+
+<span class="sd">    Layer 5 is modeled with:</span>
+
+<span class="sd">    ..math:: T(h) = a_5 - b_5 \frac{h}{c_5}</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [corsika-user] D. Heck and T. Pierog, &quot;Extensive Air Shower Simulation with CORSIKA:</span>
+<span class="sd">        A User’s Guide&quot;, 2021, Appendix F</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">table</span>
+
+        <span class="n">param_a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;g/cm2&quot;</span><span class="p">)</span>
+        <span class="n">param_b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;g/cm2&quot;</span><span class="p">)</span>
+        <span class="n">param_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;km&quot;</span><span class="p">)</span>
+
+        <span class="c1"># build list of column density functions and their derivatives:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_funcs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">partial</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">param_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b</span><span class="o">=</span><span class="n">param_b</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">param_c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">_exponential</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="p">[</span><span class="n">_linear</span><span class="p">])</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_d_funcs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">partial</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">param_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b</span><span class="o">=</span><span class="n">param_b</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">param_c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">_d_exponential</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="p">[</span><span class="n">_d_linear</span><span class="p">])</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="FiveLayerAtmosphereDensityProfile.from_array"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.html#ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.from_array">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_array</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;construct from a 5x5 array as provided by eventio&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;expected ndarray with shape (5,5)&quot;</span><span class="p">)</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="n">array</span><span class="p">,</span>
+            <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;1/c&quot;</span><span class="p">],</span>
+            <span class="n">units</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;cm&quot;</span><span class="p">,</span> <span class="s2">&quot;g/cm2&quot;</span><span class="p">,</span> <span class="s2">&quot;g/cm2&quot;</span><span class="p">,</span> <span class="s2">&quot;cm&quot;</span><span class="p">,</span> <span class="s2">&quot;cm-1&quot;</span><span class="p">],</span>
+            <span class="n">meta</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">TAB_VER</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">TAB_TYPE</span><span class="o">=</span><span class="s2">&quot;ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FiveLayerAtmosphereDensityProfile.__call__"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.html#ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.__call__">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+        <span class="n">which_func</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">condlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">which_func</span> <span class="o">==</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span>
+            <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">piecewise</span><span class="p">(</span>
+                <span class="n">height</span><span class="p">,</span>
+                <span class="n">condlist</span><span class="o">=</span><span class="n">condlist</span><span class="p">,</span>
+                <span class="n">funclist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_d_funcs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FiveLayerAtmosphereDensityProfile.integral"><a class="viewcode-back" href="../../api/ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.html#ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile.integral">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+        <span class="n">which_func</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">condlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">which_func</span> <span class="o">==</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">piecewise</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+                <span class="n">condlist</span><span class="o">=</span><span class="n">condlist</span><span class="p">,</span>
+                <span class="n">funclist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_funcs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(meta=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="si">}</span><span class="s2">, rows=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

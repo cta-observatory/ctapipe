@@ -1,0 +1,73 @@
+CameraGeometry
+==============
+
+.. currentmodule:: ctapipe.instrument.camera.geometry
+
+.. autoclass:: CameraGeometry
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraGeometry.CURRENT_TAB_VERSION
+      ~CameraGeometry.SUPPORTED_TAB_VERSIONS
+      ~CameraGeometry.max_neighbors
+      ~CameraGeometry.neighbor_matrix
+      ~CameraGeometry.neighbor_matrix_sparse
+      ~CameraGeometry.neighbors
+      ~CameraGeometry.pixel_moment_matrix
+      ~CameraGeometry.pixel_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CameraGeometry.calc_pixel_neighbors
+      ~CameraGeometry.cartesian_index_to_image_index
+      ~CameraGeometry.from_name
+      ~CameraGeometry.from_table
+      ~CameraGeometry.get_border_pixel_mask
+      ~CameraGeometry.guess_pixel_width
+      ~CameraGeometry.guess_radius
+      ~CameraGeometry.image_from_cartesian_representation
+      ~CameraGeometry.image_index_to_cartesian_index
+      ~CameraGeometry.image_to_cartesian_representation
+      ~CameraGeometry.info
+      ~CameraGeometry.make_rectangular
+      ~CameraGeometry.position_to_pix_index
+      ~CameraGeometry.rotate
+      ~CameraGeometry.simtel_shape_to_type
+      ~CameraGeometry.to_table
+      ~CameraGeometry.transform_to
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: CURRENT_TAB_VERSION
+   .. autoattribute:: SUPPORTED_TAB_VERSIONS
+   .. autoattribute:: max_neighbors
+   .. autoattribute:: neighbor_matrix
+   .. autoattribute:: neighbor_matrix_sparse
+   .. autoattribute:: neighbors
+   .. autoattribute:: pixel_moment_matrix
+   .. autoattribute:: pixel_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: calc_pixel_neighbors
+   .. automethod:: cartesian_index_to_image_index
+   .. automethod:: from_name
+   .. automethod:: from_table
+   .. automethod:: get_border_pixel_mask
+   .. automethod:: guess_pixel_width
+   .. automethod:: guess_radius
+   .. automethod:: image_from_cartesian_representation
+   .. automethod:: image_index_to_cartesian_index
+   .. automethod:: image_to_cartesian_representation
+   .. automethod:: info
+   .. automethod:: make_rectangular
+   .. automethod:: position_to_pix_index
+   .. automethod:: rotate
+   .. automethod:: simtel_shape_to_type
+   .. automethod:: to_table
+   .. automethod:: transform_to

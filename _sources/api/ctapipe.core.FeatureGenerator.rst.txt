@@ -1,0 +1,27 @@
+FeatureGenerator
+================
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: FeatureGenerator
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~FeatureGenerator.features
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~FeatureGenerator.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: features
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

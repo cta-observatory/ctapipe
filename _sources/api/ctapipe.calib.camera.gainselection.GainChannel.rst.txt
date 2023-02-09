@@ -1,0 +1,19 @@
+GainChannel
+===========
+
+.. currentmodule:: ctapipe.calib.camera.gainselection
+
+.. autoclass:: GainChannel
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~GainChannel.HIGH
+      ~GainChannel.LOW
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: HIGH
+   .. autoattribute:: LOW

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.coordinates.camera_frame &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../coordinates.html">ctapipe.coordinates</a></li>
+      <li class="breadcrumb-item active">ctapipe.coordinates.camera_frame</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.coordinates.camera_frame</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseCoordinateFrame</span><span class="p">,</span>
+    <span class="n">CoordinateAttribute</span><span class="p">,</span>
+    <span class="n">QuantityAttribute</span><span class="p">,</span>
+    <span class="n">Attribute</span><span class="p">,</span>
+    <span class="n">TimeAttribute</span><span class="p">,</span>
+    <span class="n">EarthLocationAttribute</span><span class="p">,</span>
+    <span class="n">FunctionTransform</span><span class="p">,</span>
+    <span class="n">frame_transform_graph</span><span class="p">,</span>
+    <span class="n">CartesianRepresentation</span><span class="p">,</span>
+    <span class="n">UnitSphericalRepresentation</span><span class="p">,</span>
+    <span class="n">AltAz</span><span class="p">,</span>
+    <span class="n">AffineTransform</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.telescope_frame</span> <span class="kn">import</span> <span class="n">TelescopeFrame</span>
+<span class="kn">from</span> <span class="nn">.representation</span> <span class="kn">import</span> <span class="n">PlanarRepresentation</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CameraFrame&quot;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">MirrorAttribute</span><span class="p">(</span><span class="n">Attribute</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A frame Attribute that can only store the integers 1 and 2&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">convert_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;make sure input is 1 or 2&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span><span class="p">,</span> <span class="kc">False</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only 1 or 2 mirrors supported&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Go from SimTel / HESS to MAGIC/FACT/Engineering frame and back</span>
+<span class="n">CAMERA_TO_ENGINEERING_1M_MATRIX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+<span class="n">ENGINEERING_1M_TO_CAMERA_MATRIX</span> <span class="o">=</span> <span class="n">CAMERA_TO_ENGINEERING_1M_MATRIX</span>
+<span class="n">CAMERA_TO_ENGINEERING_2M_MATRIX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+<span class="n">ENGINEERING_2M_TO_CAMERA_MATRIX</span> <span class="o">=</span> <span class="n">CAMERA_TO_ENGINEERING_2M_MATRIX</span><span class="o">.</span><span class="n">T</span>
+<span class="n">ZERO_OFFSET</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CameraFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.camera_frame.CameraFrame.html#ctapipe.coordinates.CameraFrame">[docs]</a><span class="k">class</span> <span class="nc">CameraFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Camera coordinate frame.</span>
+
+<span class="sd">    The camera frame is a 2d cartesian frame,</span>
+<span class="sd">    describing position of objects in the focal plane of the telescope.</span>
+
+<span class="sd">    The frame is defined as in H.E.S.S., starting at the horizon,</span>
+<span class="sd">    the telescope is pointed to magnetic north in azimuth and then up to zenith.</span>
+
+<span class="sd">    Now, x points north and y points west, so in this orientation, the</span>
+<span class="sd">    camera coordinates line up with the CORSIKA ground coordinate system.</span>
+
+<span class="sd">    MAGIC and FACT use a different camera coordinate system:</span>
+<span class="sd">    Standing at the dish, looking at the camera, x points right, y points up.</span>
+<span class="sd">    To transform MAGIC/FACT to ctapipe, do x&#39; = -y, y&#39; = -x.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    focal_length : u.Quantity[length]</span>
+<span class="sd">        Focal length of the telescope as a unit quantity (usually meters)</span>
+<span class="sd">    rotation : u.Quantity[angle]</span>
+<span class="sd">        Rotation angle of the camera (0 deg in most cases)</span>
+<span class="sd">    telescope_pointing : SkyCoord[AltAz]</span>
+<span class="sd">        Pointing direction of the telescope as SkyCoord in AltAz</span>
+<span class="sd">    obstime : Time</span>
+<span class="sd">        Observation time</span>
+<span class="sd">    location : EarthLocation</span>
+<span class="sd">        location of the telescope</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">PlanarRepresentation</span>
+
+    <span class="n">focal_length</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">rotation</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">telescope_pointing</span> <span class="o">=</span> <span class="n">CoordinateAttribute</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">AltAz</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">EarthLocationAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EngineeringCameraFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.EngineeringCameraFrame.html#ctapipe.coordinates.EngineeringCameraFrame">[docs]</a><span class="k">class</span> <span class="nc">EngineeringCameraFrame</span><span class="p">(</span><span class="n">CameraFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Engineering camera coordinate frame.</span>
+
+<span class="sd">    The camera frame is a 2d cartesian frame,</span>
+<span class="sd">    describing position of objects in the focal plane of the telescope.</span>
+
+<span class="sd">    The frame is defined as in MAGIC and FACT.</span>
+<span class="sd">    Standing in the dish, looking onto the camera, x points right and y points up.</span>
+
+<span class="sd">    HESS, ctapipe and sim_telarray use a different camera coordinate system:</span>
+<span class="sd">    To transform H.E.S.S./ctapipe -&gt; FACT/MAGIC, do x&#39; = -y, y&#39; = -x.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    focal_length : u.Quantity[length]</span>
+<span class="sd">        Focal length of the telescope as a unit quantity (usually meters)</span>
+<span class="sd">    rotation : u.Quantity[angle]</span>
+<span class="sd">        Rotation angle of the camera (0 deg in most cases)</span>
+<span class="sd">    telescope_pointing : SkyCoord[AltAz]</span>
+<span class="sd">        Pointing direction of the telescope as SkyCoord in AltAz</span>
+<span class="sd">    obstime : Time</span>
+<span class="sd">        Observation time</span>
+<span class="sd">    location : EarthLocation</span>
+<span class="sd">        location of the telescope</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_mirrors</span> <span class="o">=</span> <span class="n">MirrorAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">CameraFrame</span><span class="p">,</span> <span class="n">TelescopeFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">camera_to_telescope</span><span class="p">(</span><span class="n">camera_coord</span><span class="p">,</span> <span class="n">telescope_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformation between CameraFrame and TelescopeFrame.</span>
+<span class="sd">    Is called when a SkyCoord is transformed from CameraFrame into TelescopeFrame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_pos</span> <span class="o">=</span> <span class="n">camera_coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">x</span>
+    <span class="n">y_pos</span> <span class="o">=</span> <span class="n">camera_coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">y</span>
+
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">camera_coord</span><span class="o">.</span><span class="n">rotation</span>
+    <span class="k">if</span> <span class="n">rot</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># if no rotation applied save a few cycles</span>
+        <span class="n">x_rotated</span> <span class="o">=</span> <span class="n">x_pos</span>
+        <span class="n">y_rotated</span> <span class="o">=</span> <span class="n">y_pos</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cosrot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+        <span class="n">sinrot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+        <span class="n">x_rotated</span> <span class="o">=</span> <span class="n">x_pos</span> <span class="o">*</span> <span class="n">cosrot</span> <span class="o">-</span> <span class="n">y_pos</span> <span class="o">*</span> <span class="n">sinrot</span>
+        <span class="n">y_rotated</span> <span class="o">=</span> <span class="n">x_pos</span> <span class="o">*</span> <span class="n">sinrot</span> <span class="o">+</span> <span class="n">y_pos</span> <span class="o">*</span> <span class="n">cosrot</span>
+
+    <span class="n">focal_length</span> <span class="o">=</span> <span class="n">camera_coord</span><span class="o">.</span><span class="n">focal_length</span>
+    <span class="k">if</span> <span class="n">focal_length</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span> <span class="ow">and</span> <span class="n">focal_length</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Coordinate in CameraFrame is missing focal_length information&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># this assumes an equidistant mapping function of the telescope optics</span>
+    <span class="c1"># or a small angle approximation of most other mapping functions</span>
+    <span class="c1"># this could be replaced by actually defining the mapping function</span>
+    <span class="c1"># as an Attribute of `CameraFrame` that maps f(r, focal_length) -&gt; theta,</span>
+    <span class="c1"># where theta is the angle to the optical axis and r is the distance</span>
+    <span class="c1"># to the camera center in the focal plane</span>
+    <span class="n">fov_lat</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">x_rotated</span> <span class="o">/</span> <span class="n">focal_length</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="n">fov_lon</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">y_rotated</span> <span class="o">/</span> <span class="n">focal_length</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">UnitSphericalRepresentation</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="n">fov_lat</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="n">fov_lon</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">telescope_frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">representation</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">TelescopeFrame</span><span class="p">,</span> <span class="n">CameraFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">telescope_to_camera</span><span class="p">(</span><span class="n">telescope_coord</span><span class="p">,</span> <span class="n">camera_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformation between TelescopeFrame and CameraFrame</span>
+
+<span class="sd">    Is called when a SkyCoord is transformed from TelescopeFrame into CameraFrame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_pos</span> <span class="o">=</span> <span class="n">telescope_coord</span><span class="o">.</span><span class="n">fov_lat</span>
+    <span class="n">y_pos</span> <span class="o">=</span> <span class="n">telescope_coord</span><span class="o">.</span><span class="n">fov_lon</span>
+    <span class="c1"># reverse the rotation applied to get to this system</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="o">-</span><span class="n">camera_frame</span><span class="o">.</span><span class="n">rotation</span>
+
+    <span class="k">if</span> <span class="n">rot</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>  <span class="c1"># if no rotation applied save a few cycles</span>
+        <span class="n">x_rotated</span> <span class="o">=</span> <span class="n">x_pos</span>
+        <span class="n">y_rotated</span> <span class="o">=</span> <span class="n">y_pos</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># or else rotate all positions around the camera centre</span>
+        <span class="n">cosrot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+        <span class="n">sinrot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+        <span class="n">x_rotated</span> <span class="o">=</span> <span class="n">x_pos</span> <span class="o">*</span> <span class="n">cosrot</span> <span class="o">-</span> <span class="n">y_pos</span> <span class="o">*</span> <span class="n">sinrot</span>
+        <span class="n">y_rotated</span> <span class="o">=</span> <span class="n">x_pos</span> <span class="o">*</span> <span class="n">sinrot</span> <span class="o">+</span> <span class="n">y_pos</span> <span class="o">*</span> <span class="n">cosrot</span>
+
+    <span class="n">focal_length</span> <span class="o">=</span> <span class="n">camera_frame</span><span class="o">.</span><span class="n">focal_length</span>
+    <span class="k">if</span> <span class="n">focal_length</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span> <span class="ow">and</span> <span class="n">focal_length</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;CameraFrame is missing focal_length information&quot;</span><span class="p">)</span>
+
+    <span class="c1"># this assumes an equidistant mapping function of the telescope optics</span>
+    <span class="c1"># or a small angle approximation of most other mapping functions</span>
+    <span class="c1"># this could be replaced by actually defining the mapping function</span>
+    <span class="c1"># as an Attribute of `CameraFrame` that maps f(theta, focal_length) -&gt; r,</span>
+    <span class="c1"># where theta is the angle to the optical axis and r is the distance</span>
+    <span class="c1"># to the camera center in the focal plane</span>
+    <span class="n">x_rotated</span> <span class="o">=</span> <span class="n">x_rotated</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">focal_length</span>
+    <span class="n">y_rotated</span> <span class="o">=</span> <span class="n">y_rotated</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span> <span class="o">*</span> <span class="n">focal_length</span>
+
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">x_rotated</span><span class="p">,</span> <span class="n">y_rotated</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">camera_frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">representation</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">CameraFrame</span><span class="p">,</span> <span class="n">EngineeringCameraFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">camera_to_engineering</span><span class="p">(</span><span class="n">from_coord</span><span class="p">,</span> <span class="n">to_frame</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">to_frame</span><span class="o">.</span><span class="n">n_mirrors</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CAMERA_TO_ENGINEERING_1M_MATRIX</span><span class="p">,</span> <span class="n">ZERO_OFFSET</span>
+
+    <span class="k">return</span> <span class="n">CAMERA_TO_ENGINEERING_2M_MATRIX</span><span class="p">,</span> <span class="n">ZERO_OFFSET</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">EngineeringCameraFrame</span><span class="p">,</span> <span class="n">CameraFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">engineering_to_camera</span><span class="p">(</span><span class="n">from_coord</span><span class="p">,</span> <span class="n">to_frame</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">from_coord</span><span class="o">.</span><span class="n">n_mirrors</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ENGINEERING_1M_TO_CAMERA_MATRIX</span><span class="p">,</span> <span class="n">ZERO_OFFSET</span>
+    <span class="k">return</span> <span class="n">ENGINEERING_2M_TO_CAMERA_MATRIX</span><span class="p">,</span> <span class="n">ZERO_OFFSET</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

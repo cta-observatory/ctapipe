@@ -1,0 +1,21 @@
+ImageModel
+==========
+
+.. currentmodule:: ctapipe.image.toymodel
+
+.. autoclass:: ImageModel
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ImageModel.expected_signal
+      ~ImageModel.generate_image
+      ~ImageModel.pdf
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: expected_signal
+   .. automethod:: generate_image
+   .. automethod:: pdf

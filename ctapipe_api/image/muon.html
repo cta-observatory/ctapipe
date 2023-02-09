@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Muon image analysis &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="kundu_chaudhuri_circle_fit" href="../../api/ctapipe.image.muon.kundu_chaudhuri_circle_fit.html" />
+    <link rel="prev" title="TailcutsImageCleaner" href="../../api/ctapipe.image.cleaning.TailcutsImageCleaner.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="hillas.html">Hillas Parameterization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cleaning.html">Image Cleaning</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Muon image analysis</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.image.muon">ctapipe.image.muon Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.image.muon.processor">ctapipe.image.muon.processor Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.image.muon.intensity_fitter">ctapipe.image.muon.intensity_fitter Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.image.muon.ring_fitter">ctapipe.image.muon.ring_fitter Module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="toymodel.html">Toy model image generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pixel_likelihood.html">Pixel likelihood calculation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="extractor.html">Image Extraction (waveform cube to image)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reducers.html">Image volume reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modifications.html">Image Modifications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="invalid_pixels.html">Invalid Pixels Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#reference-api">Reference/API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+      <li class="breadcrumb-item active">Muon image analysis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/ctapipe_api/image/muon.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="muon-image-analysis">
+<span id="image-muon"></span><h1>Muon image analysis<a class="headerlink" href="#muon-image-analysis" title="Permalink to this headline">¶</a></h1>
+<p>Algorithms for detecting and characterizing muon images</p>
+<div class="section" id="module-ctapipe.image.muon">
+<span id="ctapipe-image-muon-package"></span><h2>ctapipe.image.muon Package<a class="headerlink" href="#module-ctapipe.image.muon" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.kundu_chaudhuri_circle_fit.html#ctapipe.image.muon.kundu_chaudhuri_circle_fit" title="ctapipe.image.muon.kundu_chaudhuri_circle_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kundu_chaudhuri_circle_fit</span></code></a>(x, y, weights)</p></td>
+<td><p>Fast and reliable analytical circle fitting method previously used in the H.E.S.S.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.mean_squared_error.html#ctapipe.image.muon.mean_squared_error" title="ctapipe.image.muon.mean_squared_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mean_squared_error</span></code></a>(pixel_x, pixel_y, …)</p></td>
+<td><p>Calculate the weighted mean squared error for a circle</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.intensity_ratio_inside_ring.html#ctapipe.image.muon.intensity_ratio_inside_ring" title="ctapipe.image.muon.intensity_ratio_inside_ring"><code class="xref py py-obj docutils literal notranslate"><span class="pre">intensity_ratio_inside_ring</span></code></a>(pixel_x, …)</p></td>
+<td><p>Calculate the ratio of the photons inside a given ring with coordinates (center_x, center_y), radius and width.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.ring_completeness.html#ctapipe.image.muon.ring_completeness" title="ctapipe.image.muon.ring_completeness"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ring_completeness</span></code></a>(pixel_x, pixel_y, weights, …)</p></td>
+<td><p>Estimate how complete a ring is.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.ring_containment.html#ctapipe.image.muon.ring_containment" title="ctapipe.image.muon.ring_containment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ring_containment</span></code></a>(radius, center_x, center_y, …)</p></td>
+<td><p>Estimate angular containment of a ring inside the camera (camera center is (0,0))</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.MuonIntensityFitter.html#ctapipe.image.muon.MuonIntensityFitter" title="ctapipe.image.muon.MuonIntensityFitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MuonIntensityFitter</span></code></a>(**kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.MuonRingFitter.html#ctapipe.image.muon.MuonRingFitter" title="ctapipe.image.muon.MuonRingFitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MuonRingFitter</span></code></a>(**kwargs)</p></td>
+<td><p>Different ring fit algorithms for muon rings</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.MuonProcessor.html#ctapipe.image.muon.MuonProcessor" title="ctapipe.image.muon.MuonProcessor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MuonProcessor</span></code></a>(**kwargs)</p></td>
+<td><p>Takes cleaned images and extracts muon rings.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h3>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h3>
+<div class="graphviz"><img src="../../_images/inheritance-2d1fc6f7c816e91a81be1c1ad550d755b42406e8.png" alt="Inheritance diagram of ctapipe.image.muon.intensity_fitter.MuonIntensityFitter, ctapipe.image.muon.ring_fitter.MuonRingFitter, ctapipe.image.muon.processor.MuonProcessor" usemap="#inheritance7f2f22ec32" class="inheritance graphviz" /></div>
+<map id="inheritance7f2f22ec32" name="inheritance7f2f22ec32">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="363,43,441,64"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="479,23,607,43"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.image.muon.ring_fitter.MuonRingFitter.html#ctapipe.image.muon.ring_fitter.MuonRingFitter" target="_top" title="Different ring fit algorithms for muon rings" alt="" coords="495,62,591,83"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.muon.intensity_fitter.MuonIntensityFitter.html#ctapipe.image.muon.intensity_fitter.MuonIntensityFitter" target="_top" title="MuonIntensityFitter" alt="" coords="645,4,764,24"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.image.muon.processor.MuonProcessor.html#ctapipe.image.muon.processor.MuonProcessor" target="_top" title="Takes cleaned images and extracts muon rings. Should be run after ImageProcessor." alt="" coords="656,43,753,64"/>
+</map></div>
+</div>
+<div class="section" id="module-ctapipe.image.muon.processor">
+<span id="ctapipe-image-muon-processor-module"></span><h2>ctapipe.image.muon.processor Module<a class="headerlink" href="#module-ctapipe.image.muon.processor" title="Permalink to this headline">¶</a></h2>
+<p>High level muon analysis  (MuonProcessor Component)</p>
+<div class="section" id="id1">
+<h3>Classes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.processor.MuonProcessor.html#ctapipe.image.muon.processor.MuonProcessor" title="ctapipe.image.muon.processor.MuonProcessor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MuonProcessor</span></code></a>(**kwargs)</p></td>
+<td><p>Takes cleaned images and extracts muon rings.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id2">
+<h3>Class Inheritance Diagram<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="graphviz"><img src="../../_images/inheritance-dd16cd8e5c0315065481bdffa26d47386ff215e6.png" alt="Inheritance diagram of ctapipe.image.muon.processor.MuonProcessor" usemap="#inheritance8634299759" class="inheritance graphviz" /></div>
+<map id="inheritance8634299759" name="inheritance8634299759">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="374,4,454,25"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="493,4,625,25"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.muon.processor.MuonProcessor.html#ctapipe.image.muon.processor.MuonProcessor" target="_top" title="Takes cleaned images and extracts muon rings. Should be run after ImageProcessor." alt="" coords="664,4,764,25"/>
+</map></div>
+</div>
+<div class="section" id="module-ctapipe.image.muon.intensity_fitter">
+<span id="ctapipe-image-muon-intensity-fitter-module"></span><h2>ctapipe.image.muon.intensity_fitter Module<a class="headerlink" href="#module-ctapipe.image.muon.intensity_fitter" title="Permalink to this headline">¶</a></h2>
+<p>Class for performing a HESS style 2D fit of muon images</p>
+<dl class="simple">
+<dt>To do:</dt><dd><ul class="simple">
+<li><p>Deal with astropy untis better, currently stripped and no checks made</p></li>
+<li><p>unit tests</p></li>
+<li><p>create container class for output</p></li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="id3">
+<h3>Classes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.intensity_fitter.MuonIntensityFitter.html#ctapipe.image.muon.intensity_fitter.MuonIntensityFitter" title="ctapipe.image.muon.intensity_fitter.MuonIntensityFitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MuonIntensityFitter</span></code></a>(**kwargs)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id4">
+<h3>Class Inheritance Diagram<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<div class="graphviz"><img src="../../_images/inheritance-1af2e2ed6977b2a99b2b0fd53b41c05d7b8173e0.png" alt="Inheritance diagram of ctapipe.image.muon.intensity_fitter.MuonIntensityFitter" usemap="#inheritanceff45d2bb27" class="inheritance graphviz" /></div>
+<map id="inheritanceff45d2bb27" name="inheritanceff45d2bb27">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="363,4,441,24"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="479,4,607,24"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.muon.intensity_fitter.MuonIntensityFitter.html#ctapipe.image.muon.intensity_fitter.MuonIntensityFitter" target="_top" title="MuonIntensityFitter" alt="" coords="645,4,764,24"/>
+</map></div>
+</div>
+<div class="section" id="module-ctapipe.image.muon.ring_fitter">
+<span id="ctapipe-image-muon-ring-fitter-module"></span><h2>ctapipe.image.muon.ring_fitter Module<a class="headerlink" href="#module-ctapipe.image.muon.ring_fitter" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h3>Classes<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.image.muon.ring_fitter.MuonRingFitter.html#ctapipe.image.muon.ring_fitter.MuonRingFitter" title="ctapipe.image.muon.ring_fitter.MuonRingFitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MuonRingFitter</span></code></a>(**kwargs)</p></td>
+<td><p>Different ring fit algorithms for muon rings</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id6">
+<h3>Class Inheritance Diagram<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<div class="graphviz"><img src="../../_images/inheritance-3a0d87f55e410be99a55db94534ada645465bec5.png" alt="Inheritance diagram of ctapipe.image.muon.ring_fitter.MuonRingFitter" usemap="#inheritancee47a9616bb" class="inheritance graphviz" /></div>
+<map id="inheritancee47a9616bb" name="inheritancee47a9616bb">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="457,5,555,31"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.muon.ring_fitter.MuonRingFitter.html#ctapipe.image.muon.ring_fitter.MuonRingFitter" target="_top" title="Different ring fit algorithms for muon rings" alt="" coords="603,5,724,31"/>
+</map></div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../api/ctapipe.image.cleaning.TailcutsImageCleaner.html" class="btn btn-neutral float-left" title="TailcutsImageCleaner" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../api/ctapipe.image.muon.kundu_chaudhuri_circle_fit.html" class="btn btn-neutral float-right" title="kundu_chaudhuri_circle_fit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

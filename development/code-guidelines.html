@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Guidelines &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Support Libraries" href="support-libraries.html" />
+    <link rel="prev" title="Style Guide" href="style-guide.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Development Guidelines</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="style-guide.html">Style Guide</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Code Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#references-for-good-coding-practices">References for good coding practices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checking-for-logistic-errors">Checking for Logistic Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#unit-tests">Unit-tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-structures">Data Structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logging-and-debugging">Logging and debugging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#function-or-method-input-output">Function or method Input/Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#unit-quantities">Unit Quantities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#writing-algorithms">Writing Algorithms</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="support-libraries.html">Support Libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pullrequests.html">Making and Accepting Pull Requests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="maintainer-info.html">Maintainer info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rootmigration.html">For ROOT users</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Development Guidelines</a></li>
+      <li class="breadcrumb-item active">Code Guidelines</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/development/code-guidelines.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="code-guidelines">
+<h1>Code Guidelines<a class="headerlink" href="#code-guidelines" title="Permalink to this headline">¶</a></h1>
+<p>Coding should follow the CTA coding guidelines from the <strong>CTA Code
+Standards</strong> document.</p>
+<p>Here, we list useful guidelines for the logical structure of code (see
+also the style-guide for code style).  This guide is subject to change
+as we further develop the framework, so it should be checked
+regularly.</p>
+<div class="section" id="references-for-good-coding-practices">
+<h2>References for good coding practices<a class="headerlink" href="#references-for-good-coding-practices" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.python-guide.org/en/latest/writing/style/">Good Python Style</a></p></li>
+<li><p><a class="reference external" href="https://swcarpentry.github.io/slideshows/best-practices/index.html">Best Practices in Scientific Computing (Presentation)</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/1210.0530">Best Practices for Scientific Computing (Paper)</a></p></li>
+</ul>
+</div>
+<div class="section" id="checking-for-logistic-errors">
+<h2>Checking for Logistic Errors<a class="headerlink" href="#checking-for-logistic-errors" title="Permalink to this headline">¶</a></h2>
+<p>Several static analysis packages exist to help look for common coding
+errors, and these should be used frequently.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>hacking<span class="w">  </span><span class="c1"># installs all checker tools</span>
+
+%<span class="w"> </span>pyflakes<span class="w"> </span>file.py<span class="w"> </span><span class="c1"># checks for code errors</span>
+%<span class="w"> </span>flake8<span class="w"> </span>file.py<span class="w">   </span><span class="c1"># checks style and code errors</span>
+%<span class="w"> </span>flake8<span class="w">           </span><span class="c1"># checks code in all subdirs</span>
+</pre></div>
+</div>
+<p>If you use <em>PyCharm</em> as an IDE, there is also a GUI function to find
+and review all common code errors and style issues.</p>
+</div>
+<div class="section" id="unit-tests">
+<h2>Unit-tests<a class="headerlink" href="#unit-tests" title="Permalink to this headline">¶</a></h2>
+<p>A <em>unit test</em> is a piece of code that tests a single functionality of
+a library (e.g. a function, method, or class).</p>
+<p>All code your write should have associated <em>unit tests</em> to ensure the
+code works, gives resonable results, handles error cases properly, and
+to keep bugs at a minimum</p>
+<p>Unit tests in <code class="docutils literal notranslate"><span class="pre">ctapipe</span></code> uses <a class="reference external" href="https://docs.pytest.org">pytest</a> .
+Each module should put tests in a <code class="docutils literal notranslate"><span class="pre">[module_name]/test</span></code> subdirectory,
+which can contain one or more files called <code class="docutils literal notranslate"><span class="pre">test_[X]</span></code> containing tests to run,
+which are then automatically discovered.</p>
+<p>To run the test suite, you can run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">test</span></code> from the top-level
+ctapipe directory (which is just an alias to <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pytest</span></code>).
+You can also run tests in subdirectories to limit which ones are run.</p>
+<p>Follow these basic guidelines:</p>
+<ol class="arabic simple">
+<li><p>There should be at least a unit test that <em>executes</em> all
+functions/classes/methods that you have written (minimally just
+runs them)</p></li>
+<li><p>You should write tests that give simple inputs and check that the
+expected output is returned</p></li>
+<li><p>Make sure to test edge and error cases for your functions
+(e.g. test what happens if an unexpected but still valid input is
+given)</p></li>
+<li><p>Any time you fix a bug, it is good practice to add a unit test to
+make sure that bug does not appear again in the future (this is
+called regression testing)</p></li>
+</ol>
+</div>
+<div class="section" id="data-structures">
+<h2>Data Structures<a class="headerlink" href="#data-structures" title="Permalink to this headline">¶</a></h2>
+<p>Python is very flexible with data structures: data can be in classes,
+dictionaries, lists, tuples, and numpy <code class="docutils literal notranslate"><span class="pre">NDArrays</span></code>.  Furthermore, the
+structure of a class or dict is flexible: members can be added or
+removed at runtime.  Therefore, we should be careful to follow some
+basic guidelines:</p>
+<ul class="simple">
+<li><p>basic array-like data should be in an <code class="docutils literal notranslate"><span class="pre">numpy.NDArray</span></code>, with a suitable
+<code class="docutils literal notranslate"><span class="pre">dtype</span></code> (fixed data type)</p></li>
+<li><p>for complex sets of arrays, each with a column name and unit, can be
+managed via an <code class="docutils literal notranslate"><span class="pre">astropy.table.Table</span></code> object (which also provides
+methods to read and write such a table to/from nearly any file
+format, including FITS and HDF5).
+Other packages like <code class="docutils literal notranslate"><span class="pre">pandas</span></code> or <code class="docutils literal notranslate"><span class="pre">dask</span></code> may be explored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ctapipe.core.Container</span></code> should be used for any
+high-level data structures that you want to be able to write to
+disk (they are not necessary for simple function return values)</p></li>
+</ul>
+</div>
+<div class="section" id="logging-and-debugging">
+<h2>Logging and debugging<a class="headerlink" href="#logging-and-debugging" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>do not use the <code class="docutils literal notranslate"><span class="pre">print()</span></code> function to output text. Instead use the
+common logging failities of <code class="docutils literal notranslate"><span class="pre">ctapipe</span></code>.  Log messages should be
+simple, and no not include the filename, function name, time, or any
+other metadata (which can be attached automatically by the logging
+system). See <a class="reference external" href="https://docs.python.org/3/howto/logging.html">https://docs.python.org/3/howto/logging.html</a> for more info</p></li>
+<li><p>Logging within a <code class="docutils literal notranslate"><span class="pre">Tool</span></code> or <code class="docutils literal notranslate"><span class="pre">Component</span></code> subclass: use the <code class="docutils literal notranslate"><span class="pre">self.log</span></code> logger
+instance</p></li>
+<li><p>logging in a library file that is not part of Tool or Component: define a
+logger at the top of the python file, and name it by using <code class="docutils literal notranslate"><span class="pre">__name__</span></code> as
+follows:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># at the top of your file:</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Python logging works as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;this might be a problem&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;basic status&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;debugging message&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;a serious problem&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;this should never happen!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>And which messages print out and in what logging format can be defined at
+run-time, along with filtering capabilities (e.g. only show log messages from
+a particular file or class).</p>
+<p>Some logging guidelines:</p>
+<ul class="simple">
+<li><p>you should <strong>not</strong> include the name of your function/class, line number, name
+of the file, or similar info in a log message. That information can be added
+automatically by the logger by changing the log format if needed (all log
+messages come with an attached <code class="docutils literal notranslate"><span class="pre">LogRecord</span></code> which contains all of the
+necessary metadata: name, level, pathname, filename, line number, message,
+arguments,exc_info (for exceptions), function name, stack info, process name, and
+optinal user-defined fields.</p></li>
+<li><p>the log message should be human-readable and explain to a user not fully
+familiar with the code what is happening.</p></li>
+<li><p>if the message refers to a value, you can insert it into the message using
+format <code class="docutils literal notranslate"><span class="pre">logger.debug(&quot;some</span> <span class="pre">message:</span> <span class="pre">{}&quot;.format(val)&quot;)</span></code> or the log syntax
+<code class="docutils literal notranslate"><span class="pre">logger.debug(&quot;some</span> <span class="pre">message:</span> <span class="pre">%d&quot;,</span> <span class="pre">val)</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="function-or-method-input-output">
+<h2>Function or method Input/Output<a class="headerlink" href="#function-or-method-input-output" title="Permalink to this headline">¶</a></h2>
+<p>Functions and methods should <em>not modify input parameters</em>. Therefore
+any data you pass in should be independent of what is output (do not
+e.g. fill in a large data structure with several algorithms). The
+reason for this is to allow for parallelization and flow-based
+chaining of algorithms, which is impossible if one algorithm modifies
+the input to another.</p>
+</div>
+<div class="section" id="unit-quantities">
+<h2>Unit Quantities<a class="headerlink" href="#unit-quantities" title="Permalink to this headline">¶</a></h2>
+<p>When approprate (e.g. in high-level algorithms APIs), use
+<code class="docutils literal notranslate"><span class="pre">astropy.units</span></code> for any quantity where the unit may be ambiguous or
+where units need to be transformed.  Internally in a function, this is not necessary since the coder can ensure unit consistency, but for public APIs (function inputs, etc), units are useful.  You can even enforce a function to have particular unit inputs:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.units.decorators</span> <span class="kn">import</span> <span class="n">quantity_input</span>
+
+<span class="nd">@quantity_input</span>
+<span class="k">def</span> <span class="nf">my_function_that_should_enforce_units</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="p">,</span> <span class="n">length</span><span class="p">:</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">width</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;is in meters&quot;</span><span class="p">)</span> <span class="c1"># no need for further conversion</span>
+</pre></div>
+</div>
+<p>With this decorator, the inputs will be automatically converted to the
+given units, or an exception will be thrown if they cannot. So one can
+call this like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># works:</span>
+<span class="n">my_function_that_should_enforce_units</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">12</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="p">,</span>
+                                                              <span class="n">length</span><span class="o">=</span><span class="mi">16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+                                      <span class="n">angle</span><span class="o">=</span><span class="mf">1.0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+<span class="c1"># throws exception</span>
+<span class="n">my_function_that_should_enforce_units</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>   <span class="c1"># no units, fails</span>
+                                                              <span class="n">length</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+                                      <span class="n">angle</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># throws exception</span>
+<span class="n">my_function_that_should_enforce_units</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">12</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="c1"># bad conversion, fails</span>
+                                                              <span class="n">length</span><span class="o">=</span><span class="mi">16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+                                      <span class="n">angle</span><span class="o">=</span><span class="mf">1.0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note however, that this introduces some overhead as the units are
+tested and converted for each function call. For functions that are
+called frequently, it’s best to enforce a unit earlier (e.g when the
+parameters are defined), and assume it.</p>
+</div>
+<div class="section" id="writing-algorithms">
+<h2>Writing Algorithms<a class="headerlink" href="#writing-algorithms" title="Permalink to this headline">¶</a></h2>
+<p>Note that if you write an algorithm, it may be used in many ways: in a
+command-line tool used in a batch-based system, in a server that
+processes events or data in real-time on-line, or in a variety of
+other data processing systems (map-reduce, Spark, dask,
+etc). Therefore the main request of <code class="docutils literal notranslate"><span class="pre">ctapipe</span></code> managers is that
+algorithms should be written as simply as possible without depending
+on any particular data flow mechanism. The following guidelines can
+help when writing algorithms:</p>
+<ul>
+<li><p>Keep the design of algorithm code as simple as possible. Inputs and
+outputs should be simple values or arrays, avoiding complex structures
+if possible.</p></li>
+<li><p>Separate algorithms cleanly from the framework: Do not try to
+implement any <em>framework</em> features in your algorithm:
+- do not parse command-line or other options
+- do not make a way to choose a method from input parameters
+- do not write data streams to disk yourself (use framework
+features, or just <code class="docutils literal notranslate"><span class="pre">print()</span></code> until they are available) data flow
+between algorithms, etc).
+- If a framework feature is missing, request it via the issue
+tracker.</p></li>
+<li><p>If the algorithm needs no <em>state</em> to be stored between calls, use a
+simple function with explicit parameters as keyword arguments.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">mangle_signal</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">center_point</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">setpoint</span><span class="o">=</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Mangles an image</span>
+
+<span class="sd">Parameters:</span>
+<span class="sd">-----------</span>
+<span class="sd">signal : np.ndarray</span>
+<span class="sd">    array of signal values for each point in space</span>
+<span class="sd">px,py  : np.ndarray</span>
+<span class="sd">    arrays of x and y valyes of each signal value</span>
+<span class="sd">centerpoint : (x,y)</span>
+<span class="sd">    center value in pixel coordinates</span>
+<span class="sd">setpoint : float quantity</span>
+<span class="sd">    a parameter in meters</span>
+<span class="sd">&quot;&quot;&quot;</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</li>
+<li><p>if the algorithm must maintain some state information between calls
+(loaded tables, etc) or needs some common initialization parameters,
+a class may be used to facilitate this. Again, use keyword arguments.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">SignalMangler</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">lookup_table_filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lookup_table_filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">px</span> <span class="o">=</span> <span class="n">px</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">py</span> <span class="o">=</span> <span class="n">py</span>
+
+    <span class="k">def</span> <span class="nf">mangle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+</li>
+<li><p>if there are multiple implemenations of the same generic algorithm,
+a <em>class hierarchy</em> should be use where the base class defines the
+common interface to all algorithm instances.</p></li>
+<li><p>Algorithms that need user-definable parameters (that end up in a
+config file or as command-line parameters), need to use
+<a class="reference internal" href="../api/ctapipe.core.Component.html#ctapipe.core.Component" title="ctapipe.core.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.Component</span></code></a> as a base class, and follow its guidelines
+(see related documentation)</p></li>
+<li><p>When writing example or integration test code for an algorithm,
+<strong>keep it simple</strong>: use a basic for loop to chain your algorithms
+together.
+An algorithm test (not unit test, but integration test) should look roughtly like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># these should become user-defined parameters:</span>
+<span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;events.tar.gz&quot;</span>
+<span class="n">tel_id</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="c1"># initialize any algorithms</span>
+
+<span class="n">source</span> <span class="o">=</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="n">geom</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+<span class="n">ImageMangler</span> <span class="o">=</span> <span class="n">mangler</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">geom</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="s2">&quot;transformtable.fits&quot;</span><span class="p">)</span>
+
+<span class="c1"># simple loop over events, calling each algorithm and directly</span>
+<span class="c1"># passing data</span>
+
+<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">image</span>
+    <span class="n">mangled_image</span> <span class="o">=</span> <span class="n">mangler</span><span class="o">.</span><span class="n">mangle</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+    <span class="n">image_parameters</span> <span class="o">=</span> <span class="n">parameterize_image</span><span class="p">(</span><span class="n">mangled_image</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>When your algorithm test code (as above) works well and you are
+happy with the results, you should convert your test code into a set of
+<a class="reference internal" href="../api/ctapipe.core.Component.html#ctapipe.core.Component" title="ctapipe.core.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.Component</span></code></a> or <a class="reference internal" href="../api/ctapipe.core.Tool.html#ctapipe.core.Tool" title="ctapipe.core.Tool"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.Tool</span></code></a>
+so that it is usable with the configuration system or becomes a
+command-line program released with ctapipe.</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="style-guide.html" class="btn btn-neutral float-left" title="Style Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="support-libraries.html" class="btn btn-neutral float-right" title="Support Libraries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

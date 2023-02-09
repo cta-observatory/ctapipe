@@ -1,0 +1,6 @@
+get_dataset_path
+================
+
+.. currentmodule:: ctapipe.utils.datasets
+
+.. autofunction:: get_dataset_path

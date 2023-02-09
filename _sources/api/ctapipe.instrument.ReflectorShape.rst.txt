@@ -1,0 +1,25 @@
+ReflectorShape
+==============
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: ReflectorShape
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ReflectorShape.DAVIES_COTTON
+      ~ReflectorShape.HYBRID
+      ~ReflectorShape.PARABOLIC
+      ~ReflectorShape.SCHWARZSCHILD_COUDER
+      ~ReflectorShape.UNKNOWN
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: DAVIES_COTTON
+   .. autoattribute:: HYBRID
+   .. autoattribute:: PARABOLIC
+   .. autoattribute:: SCHWARZSCHILD_COUDER
+   .. autoattribute:: UNKNOWN

@@ -1,0 +1,6 @@
+brightest_island
+================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: brightest_island

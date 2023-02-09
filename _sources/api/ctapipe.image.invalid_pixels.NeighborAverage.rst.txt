@@ -1,0 +1,17 @@
+NeighborAverage
+===============
+
+.. currentmodule:: ctapipe.image.invalid_pixels
+
+.. autoclass:: NeighborAverage
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~NeighborAverage.__call__
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prototype CTA Pipeline Framework (ctapipe) &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting Started For Users" href="getting_started_users/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Prototype CTA Pipeline Framework (<code class="docutils literal notranslate"><span class="pre">ctapipe</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="prototype-cta-pipeline-framework-ctapipe">
+<span id="ctapipe"></span><h1>Prototype CTA Pipeline Framework (<code class="docutils literal notranslate"><span class="pre">ctapipe</span></code>)<a class="headerlink" href="#prototype-cta-pipeline-framework-ctapipe" title="Permalink to this headline">¶</a></h1>
+<p><strong>version</strong>:  0.17.1.dev630+g3afb8e35.d20230209</p>
+<a class="reference internal image-reference" href="_images/ctapipe_logo.png"><img alt="_images/ctapipe_logo.png" class="align-center" src="_images/ctapipe_logo.png" style="width: 90%;" /></a>
+<div class="section" id="what-is-ctapipe">
+<h2>What is ctapipe?<a class="headerlink" href="#what-is-ctapipe" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ctapipe</span></code> is a framework for prototyping the low-level data processing algorithms for the Cherenkov Telescope Array.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This is not yet stable code, so expect large and rapid changes to
+structure and functionality as we explore various design choices before
+the 1.0 release.</p>
+</div>
+<ul class="simple">
+<li><p>Code, feature requests, bug reports, pull requests: <a class="reference external" href="https://github.com/cta-observatory/ctapipe">https://github.com/cta-observatory/ctapipe</a></p></li>
+<li><p>Docs: <a class="reference external" href="https://cta-observatory.github.io/ctapipe/">https://cta-observatory.github.io/ctapipe/</a></p></li>
+<li><p>License: BSD-3</p></li>
+<li><p>Python: &gt;=3.8</p></li>
+</ul>
+</div>
+<div class="section" id="general-documentation">
+<span id="ctapipe-docs"></span><h2>General documentation<a class="headerlink" href="#general-documentation" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Change Log</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="module-api-status-relative-to-next-release">
+<h2>Module API Status (relative to next release)<a class="headerlink" href="#module-api-status-relative-to-next-release" title="Permalink to this headline">¶</a></h2>
+<p>ctapipe is under activate developement and we will make breaking changes from release to release until
+we reach version 1.0.</p>
+</div>
+<div class="section" id="development-help">
+<h2>Development Help<a class="headerlink" href="#development-help" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Development workflow examples from AstroPy: <a class="reference external" href="https://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html">https://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html</a></p></li>
+<li><p>GIT tutorial: <a class="reference external" href="https://www.atlassian.com/git/tutorials/syncing/git-pull">https://www.atlassian.com/git/tutorials/syncing/git-pull</a></p></li>
+<li><p>Code distribution and Packaging <a class="reference external" href="https://packaging.python.org/en/latest/">https://packaging.python.org/en/latest/</a></p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started_users/index.html" class="btn btn-neutral float-right" title="Getting Started For Users" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

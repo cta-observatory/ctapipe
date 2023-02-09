@@ -1,0 +1,21 @@
+CameraDescription
+=================
+
+.. currentmodule:: ctapipe.instrument.camera
+
+.. autoclass:: CameraDescription
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraDescription.geometry
+      ~CameraDescription.name
+      ~CameraDescription.readout
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: geometry
+   .. autoattribute:: name
+   .. autoattribute:: readout

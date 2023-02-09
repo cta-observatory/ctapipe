@@ -1,0 +1,6 @@
+HillasParameterizationError
+===========================
+
+.. currentmodule:: ctapipe.image
+
+.. autoexception:: HillasParameterizationError

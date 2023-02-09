@@ -1,0 +1,21 @@
+CoreParametersContainer
+=======================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: CoreParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CoreParametersContainer.meta
+      ~CoreParametersContainer.prefix
+      ~CoreParametersContainer.psi
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: psi

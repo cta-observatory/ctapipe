@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.metadata &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.metadata</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.metadata</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Management of CTA Reference Metadata, as defined in the CTA Top-Level Data Model</span>
+<span class="sd">document [ctatopleveldatamodel]_ , version 1A. This information is required to be</span>
+<span class="sd">attached to the header of any</span>
+<span class="sd">files generated.</span>
+
+<span class="sd">The class Reference collects all required reference metadata, and can be turned into a</span>
+<span class="sd">flat dictionary.  The user should try to fill out all fields, or use a helper to fill</span>
+<span class="sd">them (as in `Activity.from_provenance()`)</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    ref = Reference(</span>
+<span class="sd">        contact=Contact(name=&quot;Some User&quot;, email=&quot;user@me.com&quot;),</span>
+<span class="sd">        product=Product(format=&#39;hdf5&#39;, ...),</span>
+<span class="sd">        process=Process(...),</span>
+<span class="sd">        activity=Activity(...),</span>
+<span class="sd">        instrument = Instrument(...)</span>
+<span class="sd">    )</span>
+
+<span class="sd">    some_astropy_table.meta = ref.to_dict()</span>
+<span class="sd">    some_astropy_table.write(&quot;output.ecsv&quot;)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">ExitStack</span>
+
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">tables</span> <span class="kn">import</span> <span class="n">NaturalNameWarning</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">HasTraits</span><span class="p">,</span> <span class="n">Instance</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Unicode</span><span class="p">,</span> <span class="n">UseEnum</span><span class="p">,</span> <span class="n">default</span>
+<span class="kn">from</span> <span class="nn">traitlets.config</span> <span class="kn">import</span> <span class="n">Configurable</span>
+
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">AstroTime</span>
+<span class="kn">from</span> <span class="nn">.datalevels</span> <span class="kn">import</span> <span class="n">DataLevel</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Reference&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Contact&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Product&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Activity&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Instrument&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;write_to_hdf5&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;read_metadata&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">CONVERSIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Time</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">utc</span><span class="o">.</span><span class="n">iso</span><span class="p">,</span>
+    <span class="nb">list</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">convert</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]),</span>
+    <span class="n">DataLevel</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert to representation suitable for header infos, such as hdf5 or fits&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">conv</span> <span class="o">:=</span> <span class="n">CONVERSIONS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">conv</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span> <span class="nf">_get_user_name</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;return the logged in user&#39;s name, as a fall-back if none is specified&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">pwd</span>
+
+        <span class="k">return</span> <span class="n">pwd</span><span class="o">.</span><span class="n">getpwuid</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getuid</span><span class="p">())</span><span class="o">.</span><span class="n">pw_gecos</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="c1"># the pwd module is not available on some non-unix systems (Windows), so</span>
+        <span class="c1"># here we just fall back to a default name</span>
+        <span class="k">return</span> <span class="s2">&quot;Unknown User&quot;</span>
+
+
+<div class="viewcode-block" id="Contact"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Contact.html#ctapipe.io.metadata.Contact">[docs]</a><span class="k">class</span> <span class="nc">Contact</span><span class="p">(</span><span class="n">Configurable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Contact information&quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">organization</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@default</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">default_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;if no name specified, use the system&#39;s user name&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_get_user_name</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, email=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span><span class="si">}</span><span class="s2">, organization=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">organization</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+<div class="viewcode-block" id="Product"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Product.html#ctapipe.io.metadata.Product">[docs]</a><span class="k">class</span> <span class="nc">Product</span><span class="p">(</span><span class="n">HasTraits</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Data product information&quot;&quot;&quot;</span>
+
+    <span class="n">description</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">creation_time</span> <span class="o">=</span> <span class="n">AstroTime</span><span class="p">()</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;leave unspecified to automatically generate a UUID&quot;</span><span class="p">)</span>
+    <span class="n">data_category</span> <span class="o">=</span> <span class="n">Enum</span><span class="p">([</span><span class="s2">&quot;Sim&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;Other&quot;</span><span class="p">],</span> <span class="s2">&quot;Other&quot;</span><span class="p">)</span>
+    <span class="n">data_levels</span> <span class="o">=</span> <span class="n">List</span><span class="p">(</span><span class="n">UseEnum</span><span class="p">(</span><span class="n">DataLevel</span><span class="p">))</span>
+    <span class="n">data_association</span> <span class="o">=</span> <span class="n">Enum</span><span class="p">([</span><span class="s2">&quot;Subarray&quot;</span><span class="p">,</span> <span class="s2">&quot;Telescope&quot;</span><span class="p">,</span> <span class="s2">&quot;Target&quot;</span><span class="p">,</span> <span class="s2">&quot;Other&quot;</span><span class="p">],</span> <span class="s2">&quot;Other&quot;</span><span class="p">)</span>
+    <span class="n">data_model_name</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">data_model_version</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">data_model_url</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="nb">format</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;data_levels&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">data_levels</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data_levels&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_levels</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">data_levels</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data_levels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data_levels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_levels</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@default</span><span class="p">(</span><span class="s2">&quot;creation_time&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">default_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return current time by default&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">iso</span>
+
+    <span class="nd">@default</span><span class="p">(</span><span class="s2">&quot;id_&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">default_product_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;default id is a UUID&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="Process"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Process.html#ctapipe.io.metadata.Process">[docs]</a><span class="k">class</span> <span class="nc">Process</span><span class="p">(</span><span class="n">HasTraits</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Process (top-level workflow) information&quot;&quot;&quot;</span>
+
+    <span class="n">type_</span> <span class="o">=</span> <span class="n">Enum</span><span class="p">([</span><span class="s2">&quot;Observation&quot;</span><span class="p">,</span> <span class="s2">&quot;Simulation&quot;</span><span class="p">,</span> <span class="s2">&quot;Other&quot;</span><span class="p">],</span> <span class="s2">&quot;Other&quot;</span><span class="p">)</span>
+    <span class="n">subtype</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Activity"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Activity.html#ctapipe.io.metadata.Activity">[docs]</a><span class="k">class</span> <span class="nc">Activity</span><span class="p">(</span><span class="n">HasTraits</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Activity (tool) information&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Activity.from_provenance"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Activity.html#ctapipe.io.metadata.Activity.from_provenance">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_provenance</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">activity</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;construct Activity metadata from existing ActivityProvenance object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Activity</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">activity</span><span class="p">[</span><span class="s2">&quot;activity_name&quot;</span><span class="p">],</span>
+            <span class="n">type_</span><span class="o">=</span><span class="s2">&quot;software&quot;</span><span class="p">,</span>
+            <span class="n">id_</span><span class="o">=</span><span class="n">activity</span><span class="p">[</span><span class="s2">&quot;activity_uuid&quot;</span><span class="p">],</span>
+            <span class="n">start_time</span><span class="o">=</span><span class="n">activity</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">][</span><span class="s2">&quot;time_utc&quot;</span><span class="p">],</span>
+            <span class="n">software_name</span><span class="o">=</span><span class="s2">&quot;ctapipe&quot;</span><span class="p">,</span>
+            <span class="n">software_version</span><span class="o">=</span><span class="n">activity</span><span class="p">[</span><span class="s2">&quot;system&quot;</span><span class="p">][</span><span class="s2">&quot;ctapipe_version&quot;</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">()</span>
+    <span class="n">type_</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;software&quot;</span><span class="p">)</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">()</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">AstroTime</span><span class="p">()</span>
+    <span class="n">software_name</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">software_version</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+
+    <span class="c1"># pylint: disable=no-self-use</span>
+    <span class="nd">@default</span><span class="p">(</span><span class="s2">&quot;start_time&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">default_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;default time is now&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">iso</span></div>
+
+
+<div class="viewcode-block" id="Instrument"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Instrument.html#ctapipe.io.metadata.Instrument">[docs]</a><span class="k">class</span> <span class="nc">Instrument</span><span class="p">(</span><span class="n">Configurable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Instrumental Context&quot;&quot;&quot;</span>
+
+    <span class="n">site</span> <span class="o">=</span> <span class="n">Enum</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;CTA-North&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CTA-South&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SDMC&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HQ&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;MAGIC&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HESS&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;VERITAS&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;FACT&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Whipple&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Other&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;Other&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which site of CTA (or external telescope) &quot;</span>
+        <span class="s2">&quot;this instrument is associated with&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">class_</span> <span class="o">=</span> <span class="n">Enum</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;Array&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Subarray&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Telescope&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Camera&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Optics&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Mirror&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Photo-sensor&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Module&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Part&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Other&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;Other&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">type_</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unspecified&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">subtype</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unspecified&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unspecified&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span><span class="s2">&quot;unspecified&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;site=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">site</span><span class="si">}</span><span class="s2">, class_=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">class_</span><span class="si">}</span><span class="s2">, type_=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">type_</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;, subtype=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subtype</span><span class="si">}</span><span class="s2">, version=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">, id_=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id_</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;)&quot;</span>
+        <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="n">hastraits_instance</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;helper to convert a HasTraits to a dict with keys</span>
+<span class="sd">    in the required CTA format (upper-case, space separated)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">ignore</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;parent&quot;</span><span class="p">,</span> <span class="s2">&quot;config&quot;</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">trait</span> <span class="ow">in</span> <span class="n">hastraits_instance</span><span class="o">.</span><span class="n">traits</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;  &quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">trait</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">hastraits_instance</span><span class="p">)</span>
+
+        <span class="c1"># apply type conversions</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">return</span> <span class="n">res</span>
+
+
+<div class="viewcode-block" id="Reference"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Reference.html#ctapipe.io.metadata.Reference">[docs]</a><span class="k">class</span> <span class="nc">Reference</span><span class="p">(</span><span class="n">HasTraits</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;All the reference Metadata required for a CTA output file, plus a way to turn</span>
+<span class="sd">    it into a dict() for easy addition to the header of a file&quot;&quot;&quot;</span>
+
+    <span class="n">contact</span> <span class="o">=</span> <span class="n">Instance</span><span class="p">(</span><span class="n">Contact</span><span class="p">)</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">Instance</span><span class="p">(</span><span class="n">Product</span><span class="p">)</span>
+    <span class="n">process</span> <span class="o">=</span> <span class="n">Instance</span><span class="p">(</span><span class="n">Process</span><span class="p">)</span>
+    <span class="n">activity</span> <span class="o">=</span> <span class="n">Instance</span><span class="p">(</span><span class="n">Activity</span><span class="p">)</span>
+    <span class="n">instrument</span> <span class="o">=</span> <span class="n">Instance</span><span class="p">(</span><span class="n">Instrument</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Reference.to_dict"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Reference.html#ctapipe.io.metadata.Reference.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fits</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        convert Reference metadata to a flat dict.</span>
+
+<span class="sd">        If ``fits=True``, this will include the ``HIERARCH`` keyword in front.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;CTA &quot;</span> <span class="k">if</span> <span class="n">fits</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">else</span> <span class="s2">&quot;HIERARCH CTA &quot;</span>
+
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">({</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;REFERENCE VERSION&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">})</span>
+        <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contact</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;CONTACT &quot;</span><span class="p">))</span>
+        <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">product</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;PRODUCT &quot;</span><span class="p">))</span>
+        <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;PROCESS &quot;</span><span class="p">))</span>
+        <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">activity</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;ACTIVITY &quot;</span><span class="p">))</span>
+        <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;INSTRUMENT &quot;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">meta</span></div>
+
+<div class="viewcode-block" id="Reference.from_dict"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.Reference.html#ctapipe.io.metadata.Reference.from_dict">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">hierarchical_key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="n">components</span> <span class="o">=</span> <span class="n">hierarchical_key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">components</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;CTA&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">components</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">group</span> <span class="o">=</span> <span class="n">components</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">components</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+            <span class="c1"># handle python builtins / keywords</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="p">}:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">group</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">contact</span><span class="o">=</span><span class="n">Contact</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;contact&quot;</span><span class="p">]),</span>
+            <span class="n">product</span><span class="o">=</span><span class="n">Product</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;product&quot;</span><span class="p">]),</span>
+            <span class="n">process</span><span class="o">=</span><span class="n">Process</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">]),</span>
+            <span class="n">activity</span><span class="o">=</span><span class="n">Activity</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;activity&quot;</span><span class="p">]),</span>
+            <span class="n">instrument</span><span class="o">=</span><span class="n">Instrument</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]),</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="write_to_hdf5"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.write_to_hdf5.html#ctapipe.io.metadata.write_to_hdf5">[docs]</a><span class="k">def</span> <span class="nf">write_to_hdf5</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">h5file</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write metadata fields to a PyTables HDF5 file handle.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    metadata: dict</span>
+<span class="sd">        flat dict as generated by `Reference.to_dict()`</span>
+<span class="sd">    h5file: string, Path, or `tables.file.File`</span>
+<span class="sd">        pytables filehandle</span>
+<span class="sd">    path: string</span>
+<span class="sd">        default: &#39;/&#39; is the path to ctapipe global metadata</span>
+<span class="sd">        the node must already exist in the 5hfile</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">NaturalNameWarning</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">h5file</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">_v_attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>  <span class="c1"># pylint: disable=protected-access</span></div>
+
+
+<div class="viewcode-block" id="read_metadata"><a class="viewcode-back" href="../../../api/ctapipe.io.metadata.read_metadata.html#ctapipe.io.metadata.read_metadata">[docs]</a><span class="k">def</span> <span class="nf">read_metadata</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read metadata from an hdf5 file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    h5filename: string, Path, or `tables.file.File`</span>
+<span class="sd">        hdf5 file</span>
+<span class="sd">    path: string</span>
+<span class="sd">        default: &#39;/&#39; is the path to ctapipe global metadata</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    metadata: dictionnary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+            <span class="n">h5file</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">h5file</span><span class="p">))</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="n">h5file</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">node</span><span class="o">.</span><span class="n">_v_attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">_v_attrs</span><span class="o">.</span><span class="n">_f_list</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Could not read metadata&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

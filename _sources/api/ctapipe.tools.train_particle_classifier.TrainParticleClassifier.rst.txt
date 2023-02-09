@@ -1,0 +1,51 @@
+TrainParticleClassifier
+=======================
+
+.. currentmodule:: ctapipe.tools.train_particle_classifier
+
+.. autoclass:: TrainParticleClassifier
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TrainParticleClassifier.aliases
+      ~TrainParticleClassifier.classes
+      ~TrainParticleClassifier.description
+      ~TrainParticleClassifier.examples
+      ~TrainParticleClassifier.input_url_background
+      ~TrainParticleClassifier.input_url_signal
+      ~TrainParticleClassifier.n_background
+      ~TrainParticleClassifier.n_signal
+      ~TrainParticleClassifier.name
+      ~TrainParticleClassifier.output_path
+      ~TrainParticleClassifier.random_seed
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TrainParticleClassifier.finish
+      ~TrainParticleClassifier.setup
+      ~TrainParticleClassifier.start
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: aliases
+   .. autoattribute:: classes
+   .. autoattribute:: description
+   .. autoattribute:: examples
+   .. autoattribute:: input_url_background
+   .. autoattribute:: input_url_signal
+   .. autoattribute:: n_background
+   .. autoattribute:: n_signal
+   .. autoattribute:: name
+   .. autoattribute:: output_path
+   .. autoattribute:: random_seed
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: finish
+   .. automethod:: setup
+   .. automethod:: start

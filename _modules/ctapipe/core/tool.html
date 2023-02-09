@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.core.tool &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.core.tool</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.core.tool</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Classes to handle configurable command-line user interfaces.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">logging.config</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">ExitStack</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">cleandoc</span>
+<span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">CalledProcessError</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">mkdtemp</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">docutils.core</span> <span class="kn">import</span> <span class="n">publish_parts</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">TraitError</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">tomli</span> <span class="k">as</span> <span class="nn">toml</span>
+
+    <span class="n">HAS_TOML</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">HAS_TOML</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">default</span>
+<span class="kn">from</span> <span class="nn">traitlets.config</span> <span class="kn">import</span> <span class="n">Application</span><span class="p">,</span> <span class="n">Config</span><span class="p">,</span> <span class="n">Configurable</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">version</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Provenance</span>
+<span class="kn">from</span> <span class="nn">.component</span> <span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span> <span class="nn">.logging</span> <span class="kn">import</span> <span class="n">ColoredFormatter</span><span class="p">,</span> <span class="n">create_logging_config</span>
+<span class="kn">from</span> <span class="nn">.traits</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">Path</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Tool&quot;</span><span class="p">,</span> <span class="s2">&quot;ToolConfigurationError&quot;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">CollectTraitWarningsHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">NullHandler</span><span class="p">):</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;.*Config option.*not recognized&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">levelno</span> <span class="o">==</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ToolConfigurationError"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.ToolConfigurationError.html#ctapipe.core.ToolConfigurationError">[docs]</a><span class="k">class</span> <span class="nc">ToolConfigurationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="c1"># Call the base class constructor with the parameters it needs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span></div>
+
+
+<div class="viewcode-block" id="Tool"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool">[docs]</a><span class="k">class</span> <span class="nc">Tool</span><span class="p">(</span><span class="n">Application</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A base class for all executable tools (applications) that handles</span>
+<span class="sd">    configuration loading/saving, logging, command-line processing,</span>
+<span class="sd">    and provenance meta-data handling. It is based on</span>
+<span class="sd">    `traitlets.config.Application`. Tools may contain configurable</span>
+<span class="sd">    `ctapipe.core.Component` classes that do work, and their</span>
+<span class="sd">    configuration parameters will propagate automatically to the</span>
+<span class="sd">    `Tool`.</span>
+
+<span class="sd">    Tool developers should create sub-classes, and a name,</span>
+<span class="sd">    description, usage examples should be added by defining the</span>
+<span class="sd">    ``name``, ``description`` and ``examples`` class attributes as</span>
+<span class="sd">    strings. The ``aliases`` attribute can be set to cause a lower-level</span>
+<span class="sd">    `~ctapipe.core.Component` parameter to become a high-level command-line</span>
+<span class="sd">    parameter (See example below). The `setup`, `start`, and</span>
+<span class="sd">    `finish` methods should be defined in the sub-class.</span>
+
+<span class="sd">    Additionally, any `ctapipe.core.Component` used within the `Tool`</span>
+<span class="sd">    should have their class in a list in the ``classes`` attribute,</span>
+<span class="sd">    which will automatically add their configuration parameters to the</span>
+<span class="sd">    tool.</span>
+
+<span class="sd">    Once a tool is constructed and the abstract methods are implemented,</span>
+<span class="sd">    the user can call the `run` method to setup and start it.</span>
+
+<span class="sd">    Tools have an `~contextlib.ExitStack` to guarantee cleanup tasks are</span>
+<span class="sd">    run when the tool terminates, also in case of errors. If a task needs</span>
+<span class="sd">    a cleanup, it must be a context manager and ``Tool.enter_context``</span>
+<span class="sd">    must be called on the object. This will guarantee that the ``__exit__``</span>
+<span class="sd">    method of the context manager is called after the tool has finished</span>
+<span class="sd">    executing. This happens after the ``finish`` method has run or</span>
+<span class="sd">    in case of exceptions.</span>
+
+
+<span class="sd">    .. code:: python</span>
+
+<span class="sd">        from ctapipe.core import Tool</span>
+<span class="sd">        from traitlets import (Integer, Float, Dict, Unicode)</span>
+
+<span class="sd">        class MyTool(Tool):</span>
+<span class="sd">            name = &quot;mytool&quot;</span>
+<span class="sd">            description = &quot;do some things and stuff&quot;</span>
+<span class="sd">            aliases = Dict({&#39;infile&#39;: &#39;AdvancedComponent.infile&#39;,</span>
+<span class="sd">                            &#39;iterations&#39;: &#39;MyTool.iterations&#39;})</span>
+
+<span class="sd">            # Which classes are registered for configuration</span>
+<span class="sd">            classes = [MyComponent, AdvancedComponent, SecondaryMyComponent]</span>
+
+<span class="sd">            # local configuration parameters</span>
+<span class="sd">            iterations = Integer(5,help=&quot;Number of times to run&quot;,</span>
+<span class="sd">                                 allow_none=False).tag(config=True)</span>
+
+<span class="sd">            def setup(self):</span>
+<span class="sd">                self.comp = MyComponent(self, parent=self)</span>
+<span class="sd">                self.comp2 = SecondaryMyComponent(self, parent=self)</span>
+
+<span class="sd">                # correct use of component that is a context manager</span>
+<span class="sd">                # using it like this makes sure __exit__ will be called</span>
+<span class="sd">                # at the end of Tool.run, even in case of exceptions</span>
+<span class="sd">                self.comp3 = self.enter_context(MyComponent(parent=self))</span>
+
+<span class="sd">                self.advanced = AdvancedComponent(parent=self)</span>
+
+<span class="sd">            def start(self):</span>
+<span class="sd">                self.log.info(&quot;Performing {} iterations...&quot;\</span>
+<span class="sd">                              .format(self.iterations))</span>
+<span class="sd">                for ii in range(self.iterations):</span>
+<span class="sd">                    self.log.info(&quot;ITERATION {}&quot;.format(ii))</span>
+<span class="sd">                    self.comp.do_thing()</span>
+<span class="sd">                    self.comp2.do_thing()</span>
+<span class="sd">                    sleep(0.5)</span>
+
+<span class="sd">            def finish(self):</span>
+<span class="sd">                self.log.warning(&quot;Shutting down.&quot;)</span>
+
+<span class="sd">        def main():</span>
+<span class="sd">            tool = MyTool()</span>
+<span class="sd">            tool.run()</span>
+
+<span class="sd">        if __name__ == &quot;main&quot;:</span>
+<span class="sd">           main()</span>
+
+
+<span class="sd">    If this ``main()`` function is registered in ``setup.py`` under</span>
+<span class="sd">    *entry_points*, it will become a command-line tool (see examples</span>
+<span class="sd">    in the ``ctapipe/tools`` subdirectory).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">config_files</span> <span class="o">=</span> <span class="n">List</span><span class="p">(</span>
+        <span class="n">trait</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span>
+            <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;List of configuration files with parameters to load &quot;</span>
+                <span class="s2">&quot;in addition to command-line parameters. &quot;</span>
+                <span class="s2">&quot;The order listed is the order of precendence (later config parameters &quot;</span>
+                <span class="s2">&quot;overwrite earlier ones), however parameters specified on the &quot;</span>
+                <span class="s2">&quot;command line always have the highest precendence. &quot;</span>
+                <span class="s2">&quot;Config files may be in JSON, YAML, TOML, or Python format&quot;</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">log_config</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="p">{})</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">log_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">exists</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Filename for the log&quot;</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">log_file_level</span> <span class="o">=</span> <span class="n">Enum</span><span class="p">(</span>
+        <span class="n">values</span><span class="o">=</span><span class="n">Application</span><span class="o">.</span><span class="n">log_level</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Logging Level for File Logging&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">quiet</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">overwrite</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">_log_formatter_cls</span> <span class="o">=</span> <span class="n">ColoredFormatter</span>
+
+    <span class="n">provenance_log</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@default</span><span class="p">(</span><span class="s2">&quot;provenance_log&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_default_provenance_log</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;.provenance.log&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># make sure there are some default aliases in all Tools:</span>
+        <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;config&quot;</span><span class="p">):</span> <span class="s2">&quot;Tool.config_files&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;log-level&quot;</span><span class="p">:</span> <span class="s2">&quot;Tool.log_level&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;log-file&quot;</span><span class="p">):</span> <span class="s2">&quot;Tool.log_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;log-file-level&quot;</span><span class="p">:</span> <span class="s2">&quot;Tool.log_file_level&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;provenance-log&quot;</span><span class="p">:</span> <span class="s2">&quot;Tool.provenance_log&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="c1"># makes sure user defined aliases override default aliases</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">aliases</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">aliases</span><span class="p">}</span>
+
+        <span class="n">flags</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;quiet&quot;</span><span class="p">):</span> <span class="p">({</span><span class="s2">&quot;Tool&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;quiet&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span> <span class="s2">&quot;Disable console logging.&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;verbose&quot;</span><span class="p">):</span> <span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;Tool&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;log_level&quot;</span><span class="p">:</span> <span class="s2">&quot;DEBUG&quot;</span><span class="p">}},</span>
+                <span class="s2">&quot;Set log level to DEBUG&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;overwrite&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;Tool&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;overwrite&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
+                <span class="s2">&quot;Overwrite existing output files without asking&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">flags</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_setup</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raise_config_file_errors</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># override traitlets.Application default</span>
+
+        <span class="c1"># tools defined in other modules should have those modules as base</span>
+        <span class="c1"># logging name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">module_name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trait_warning_handler</span> <span class="o">=</span> <span class="n">CollectTraitWarningsHandler</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_logging_config</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exit_stack</span> <span class="o">=</span> <span class="n">ExitStack</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Tool.enter_context"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.enter_context">[docs]</a>    <span class="k">def</span> <span class="nf">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_manager</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a new context manager to the `~contextlib.ExitStack` of this Tool</span>
+
+<span class="sd">        This method should be used with things that need a cleanup step,</span>
+<span class="sd">        also in case of exception. ``enter_context`` will call</span>
+<span class="sd">        ``context_manager.__enter__`` and return its result.</span>
+
+<span class="sd">        This will guarantee that ``context_manager.__exit__`` is called when</span>
+<span class="sd">        `~ctapipe.core.Tool.run` finishes, even when an error occurs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exit_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">context_manager</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.initialize"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;handle config and any other low-level setup&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parse_command_line</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_logging_config</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_files</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading config from &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_files</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">config_file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_files</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">load_config_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ToolConfigurationError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Couldn&#39;t read config file: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+
+        <span class="c1"># ensure command-line takes precedence over config file options:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cli_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_logging_config</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ctapipe version </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version_string</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.load_config_file"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.load_config_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_config_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load a configuration file in one of the supported formats, and merge it with</span>
+<span class="sd">        the current config if it exists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path: Union[str, pathlib.Path]</span>
+<span class="sd">            config file to load. [yaml, toml, json, py] formats are supported</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;.yml&quot;</span><span class="p">]:</span>
+            <span class="c1"># do our own YAML loading</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">infile</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.toml&quot;</span> <span class="ow">and</span> <span class="n">HAS_TOML</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">toml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># fall back to traitlets.config.Application&#39;s implementation</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_config_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;Tool Configuration&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.update_logging_config"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.update_logging_config">[docs]</a>    <span class="k">def</span> <span class="nf">update_logging_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the configuration of loggers.&quot;&quot;&quot;</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">create_logging_config</span><span class="p">(</span>
+            <span class="n">log_level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_level</span><span class="p">,</span>
+            <span class="n">log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file</span><span class="p">,</span>
+            <span class="n">log_file_level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file_level</span><span class="p">,</span>
+            <span class="n">log_config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_config</span><span class="p">,</span>
+            <span class="n">quiet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">quiet</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">module_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dictConfig</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+
+        <span class="c1"># re-add our custom handler every time the config is updated.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trait_warning_handler</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.add_component"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.add_component">[docs]</a>    <span class="k">def</span> <span class="nf">add_component</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component_instance</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        constructs and adds a component to the list of registered components,</span>
+<span class="sd">        so that later we can ask for the current configuration of all instances,</span>
+<span class="sd">        e.g. in`get_full_config()`.  All sub-components of a tool should be</span>
+<span class="sd">        constructed using this function, in order to ensure the configuration is</span>
+<span class="sd">        properly traced.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        component_instance: Component</span>
+<span class="sd">            constructed instance of a component</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Component:</span>
+<span class="sd">            the same component instance that was passed in, so that the call</span>
+<span class="sd">            can be chained.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        .. code-block:: python3</span>
+
+<span class="sd">            self.mycomp = self.add_component(MyComponent(parent=self))</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registered_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component_instance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">component_instance</span></div>
+
+<div class="viewcode-block" id="Tool.check_output"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.check_output">[docs]</a>    <span class="k">def</span> <span class="nf">check_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">output_paths</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test if output files exist and if they do, throw an error</span>
+<span class="sd">        unless ``self.overwrite`` is set to True.</span>
+<span class="sd">        This should be checked during tool setup to avoid having a tool only</span>
+<span class="sd">        realize the output can not be written after some long-running calculations</span>
+<span class="sd">        (e.g. training of ML-models).</span>
+<span class="sd">        Because we currently do not collect all created output files in the tool</span>
+<span class="sd">        (they can be attached to some component), the output files need</span>
+<span class="sd">        to be given and can not easily be derived from ``self``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_paths: Path</span>
+<span class="sd">            One or more output path to check.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">output_paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">output</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Overwriting </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ToolConfigurationError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Output path </span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2"> exists, but overwrite=False&quot;</span>
+                    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.setup"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.setup">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set up the tool.</span>
+
+<span class="sd">        This method runs after the configuration and command line options</span>
+<span class="sd">        have been parsed.</span>
+
+<span class="sd">        Here the tool should construct all ``Components``, open files, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Tool.start"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.start">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main function of the tool.</span>
+
+<span class="sd">        This is automatically called after `Tool.initialize` when `Tool.run` is called.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Tool.finish"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.finish">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finish up.</span>
+
+<span class="sd">        This is called automatically after `Tool.start` when `Tool.run` is called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Goodbye&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.run"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raises</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the tool.</span>
+
+<span class="sd">        This automatically calls `Tool.initialize`, `Tool.start` and `Tool.finish`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        argv: list(str)</span>
+<span class="sd">            command-line arguments, or None to get them</span>
+<span class="sd">            from sys.argv automatically</span>
+
+<span class="sd">        raises : bool</span>
+<span class="sd">            Whether to raise Exceptions (to test them) or not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># return codes are taken from:</span>
+        <span class="c1">#  https://tldp.org/LDP/abs/html/exitcodes.html</span>
+
+        <span class="n">exit_status</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exit_stack</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">start_activity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_setup</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CONFIG: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">())</span>
+
+                <span class="c1"># check for any traitlets warnings using our custom handler</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trait_warning_handler</span><span class="o">.</span><span class="n">errors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ToolConfigurationError</span><span class="p">(</span><span class="s2">&quot;Found config errors&quot;</span><span class="p">)</span>
+
+                <span class="c1"># remove handler to not impact performance with regex matching</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">removeHandler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trait_warning_handler</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Finished: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">finish_activity</span><span class="p">(</span><span class="n">activity_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">ToolConfigurationError</span><span class="p">,</span> <span class="n">TraitError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Use --help for more info&quot;</span><span class="p">)</span>
+                <span class="n">exit_status</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># wrong cmd line parameter</span>
+                <span class="k">if</span> <span class="n">raises</span><span class="p">:</span>
+                    <span class="k">raise</span>
+            <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WAS INTERRUPTED BY CTRL-C&quot;</span><span class="p">)</span>
+                <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">finish_activity</span><span class="p">(</span>
+                    <span class="n">activity_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;interrupted&quot;</span>
+                <span class="p">)</span>
+                <span class="n">exit_status</span> <span class="o">=</span> <span class="mi">130</span>  <span class="c1"># Script terminated by Control-C</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Caught unexpected exception: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">finish_activity</span><span class="p">(</span><span class="n">activity_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+                <span class="n">exit_status</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># any other error</span>
+                <span class="k">if</span> <span class="n">raises</span><span class="p">:</span>
+                    <span class="k">raise</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">{</span><span class="s2">&quot;-h&quot;</span><span class="p">,</span> <span class="s2">&quot;--help&quot;</span><span class="p">,</span> <span class="s2">&quot;--help-all&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">argv</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_provenance</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">exit_status</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Tool.write_provenance"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.write_provenance">[docs]</a>    <span class="k">def</span> <span class="nf">write_provenance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">activity</span> <span class="ow">in</span> <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">finished_activities</span><span class="p">:</span>
+            <span class="n">output_str</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">activity</span><span class="o">.</span><span class="n">output</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Output: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">output_str</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;PROVENANCE: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">as_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">provenance_log</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">provenance_log</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">provlog</span><span class="p">:</span>
+            <span class="n">provlog</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">as_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">version_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;a formatted version string with version, release, and git hash&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<div class="viewcode-block" id="Tool.get_current_config"><a class="viewcode-back" href="../../../api/ctapipe.core.tool.Tool.html#ctapipe.core.Tool.get_current_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return the current configuration as a dict (e.g. the values</span>
+<span class="sd">        of all traits, even if they were not set during configuration)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">traits</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
+                <span class="n">conf</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">conf</span></div>
+
+    <span class="k">def</span> <span class="nf">_repr_html_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;nice HTML rep, with blue for non-default values&quot;&quot;&quot;</span>
+        <span class="n">traits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">traits</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">docstring</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">publish_parts</span><span class="p">(</span>
+                <span class="n">cleandoc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">),</span> <span class="n">writer_name</span><span class="o">=</span><span class="s2">&quot;html&quot;</span>
+            <span class="p">)[</span><span class="s2">&quot;html_body&quot;</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="s2">&quot;Undocumented&quot;</span>
+        <span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;b&gt;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&lt;/b&gt;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;p&gt; </span><span class="si">{</span><span class="n">docstring</span><span class="si">}</span><span class="s2"> &lt;/p&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&lt;table&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;    &lt;colgroup&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;        &lt;col span=&#39;1&#39; style=&#39; &#39;&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;        &lt;col span=&#39;1&#39; style=&#39;width: 20em;&#39;&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;        &lt;col span=&#39;1&#39; &gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;    &lt;/colgroup&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;    &lt;tbody&gt;&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">htmlval</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;/&lt;wbr&gt;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;_&lt;wbr&gt;&quot;</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># allow breaking at boundary</span>
+
+            <span class="c1"># traits of the current component</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">traits</span><span class="p">:</span>
+                <span class="n">thehelp</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">traits</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">help</span><span class="si">}</span><span class="s2"> (default: </span><span class="si">{</span><span class="n">traits</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">default_value</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;tr&gt;&lt;th&gt;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&lt;/th&gt;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="n">traits</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">default_value</span><span class="p">:</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;&lt;td style=&#39;text-align: left;&#39;&gt;&lt;span style=&#39;color:blue; max-width:30em;&#39;&gt;</span><span class="si">{</span><span class="n">htmlval</span><span class="si">}</span><span class="s2">&lt;/span&gt;&lt;/td&gt;&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;td style=&#39;text-align: left;&#39;&gt;</span><span class="si">{</span><span class="n">htmlval</span><span class="si">}</span><span class="s2">&lt;/td&gt;&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;&lt;td style=&#39;text-align: left;&#39;&gt;&lt;i&gt;</span><span class="si">{</span><span class="n">thehelp</span><span class="si">}</span><span class="s2">&lt;/i&gt;&lt;/td&gt;&lt;/tr&gt;&quot;</span>
+                <span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    &lt;/tbody&gt;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&lt;/table&gt;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&lt;p&gt;&lt;b&gt;Components:&lt;/b&gt;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">]))</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&lt;/p&gt;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&lt;/div&gt;&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">export_tool_config_to_commented_yaml</span><span class="p">(</span><span class="n">tool_instance</span><span class="p">:</span> <span class="n">Tool</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Turn the config of a single Component into a commented YAML string.</span>
+
+<span class="sd">    This is a hacked version of</span>
+<span class="sd">    traitlets.config.Configurable._class_config_section() changed to</span>
+<span class="sd">    output a  YAML file with defaults *and* current values filled in.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tool_instance: Tool</span>
+<span class="sd">        a constructed Tool instance</span>
+<span class="sd">    classes: list, optional</span>
+<span class="sd">        The list of other classes in the config file.</span>
+<span class="sd">        Used to reduce redundant information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tool</span> <span class="o">=</span> <span class="n">tool_instance</span><span class="o">.</span><span class="vm">__class__</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">tool_instance</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">()[</span><span class="n">tool_instance</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">commented</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">indent_level</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">70</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return a commented, wrapped block.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span>
+            <span class="n">text</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+            <span class="n">initial_indent</span><span class="o">=</span><span class="s2">&quot;  &quot;</span> <span class="o">*</span> <span class="n">indent_level</span> <span class="o">+</span> <span class="s2">&quot;# &quot;</span><span class="p">,</span>
+            <span class="n">subsequent_indent</span><span class="o">=</span><span class="s2">&quot;  &quot;</span> <span class="o">*</span> <span class="n">indent_level</span> <span class="o">+</span> <span class="s2">&quot;# &quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># section header</span>
+    <span class="n">breaker</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">78</span>
+    <span class="n">parent_classes</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">tool</span><span class="o">.</span><span class="vm">__bases__</span> <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Configurable</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">section_header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;# </span><span class="si">{</span><span class="n">tool</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">parent_classes</span><span class="si">}</span><span class="s2">) configuration&quot;</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">breaker</span><span class="p">,</span> <span class="n">section_header</span><span class="p">]</span>
+    <span class="c1"># get the description trait</span>
+    <span class="n">desc</span> <span class="o">=</span> <span class="n">tool</span><span class="o">.</span><span class="n">class_traits</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">desc</span><span class="p">:</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="n">desc</span><span class="o">.</span><span class="n">default_value</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">desc</span><span class="p">:</span>
+        <span class="c1"># no description from trait, use __doc__</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="s2">&quot;__doc__&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">desc</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">commented</span><span class="p">(</span><span class="n">desc</span><span class="p">,</span> <span class="n">indent_level</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">breaker</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tool</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">trait</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tool</span><span class="o">.</span><span class="n">class_traits</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="n">default_repr</span> <span class="o">=</span> <span class="n">trait</span><span class="o">.</span><span class="n">default_value_repr</span><span class="p">()</span>
+        <span class="n">current_repr</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_repr</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">current_repr</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">current_repr</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+
+        <span class="k">if</span> <span class="n">classes</span><span class="p">:</span>
+            <span class="n">defining_class</span> <span class="o">=</span> <span class="n">tool</span><span class="o">.</span><span class="n">_defining_class</span><span class="p">(</span><span class="n">trait</span><span class="p">,</span> <span class="n">classes</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">defining_class</span> <span class="o">=</span> <span class="n">tool</span>
+        <span class="k">if</span> <span class="n">defining_class</span> <span class="ow">is</span> <span class="n">tool</span><span class="p">:</span>
+            <span class="c1"># cls owns the trait, show full help</span>
+            <span class="k">if</span> <span class="n">trait</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">commented</span><span class="p">(</span><span class="n">trait</span><span class="o">.</span><span class="n">help</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s2">&quot;Enum&quot;</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="n">trait</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
+                <span class="c1"># include Enum choices</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">commented</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Choices: </span><span class="si">{</span><span class="n">trait</span><span class="o">.</span><span class="n">info</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">commented</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Default: </span><span class="si">{</span><span class="n">default_repr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Trait appears multiple times and isn&#39;t defined here.</span>
+            <span class="c1"># Truncate help to first line + &quot;See also Original.trait&quot;</span>
+            <span class="k">if</span> <span class="n">trait</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">commented</span><span class="p">(</span><span class="n">trait</span><span class="o">.</span><span class="n">help</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    # See also: </span><span class="si">{</span><span class="n">defining_class</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">current_repr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="run_tool"><a class="viewcode-back" href="../../../api/ctapipe.core.run_tool.html#ctapipe.core.run_tool">[docs]</a><span class="k">def</span> <span class="nf">run_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="n">Tool</span><span class="p">,</span> <span class="n">argv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raises</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility run a certain tool in a python session without exiting.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    argv : List[str]</span>
+<span class="sd">        List of command line arguments for the tool.</span>
+<span class="sd">    cwd : str or pathlib.Path</span>
+<span class="sd">        Path to a temporary working directory. If none, a new (random)</span>
+<span class="sd">        temporary directeory gets created.</span>
+<span class="sd">    raises : bool</span>
+<span class="sd">        If true, raises Exceptions from running tools, to test them.</span>
+<span class="sd">        If false, tools can return a non-zero exit code.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    exit_code: int</span>
+<span class="sd">        The return code of the tool, 0 indicates success, everything else an error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">current_cwd</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span>
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span> <span class="k">if</span> <span class="n">cwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">mkdtemp</span><span class="p">()</span>
+    <span class="n">argv</span> <span class="o">=</span> <span class="n">argv</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># switch to cwd for running and back after</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span>
+        <span class="n">tool</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span> <span class="n">raises</span><span class="o">=</span><span class="n">raises</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">SystemExit</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">raises</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CalledProcessError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="p">[</span><span class="n">tool</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">current_cwd</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

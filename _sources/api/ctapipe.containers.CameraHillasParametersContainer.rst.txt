@@ -1,0 +1,37 @@
+CameraHillasParametersContainer
+===============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: CameraHillasParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraHillasParametersContainer.length
+      ~CameraHillasParametersContainer.length_uncertainty
+      ~CameraHillasParametersContainer.meta
+      ~CameraHillasParametersContainer.phi
+      ~CameraHillasParametersContainer.prefix
+      ~CameraHillasParametersContainer.psi
+      ~CameraHillasParametersContainer.r
+      ~CameraHillasParametersContainer.width
+      ~CameraHillasParametersContainer.width_uncertainty
+      ~CameraHillasParametersContainer.x
+      ~CameraHillasParametersContainer.y
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: length
+   .. autoattribute:: length_uncertainty
+   .. autoattribute:: meta
+   .. autoattribute:: phi
+   .. autoattribute:: prefix
+   .. autoattribute:: psi
+   .. autoattribute:: r
+   .. autoattribute:: width
+   .. autoattribute:: width_uncertainty
+   .. autoattribute:: x
+   .. autoattribute:: y

@@ -1,0 +1,37 @@
+HillasParametersContainer
+=========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: HillasParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~HillasParametersContainer.fov_lat
+      ~HillasParametersContainer.fov_lon
+      ~HillasParametersContainer.length
+      ~HillasParametersContainer.length_uncertainty
+      ~HillasParametersContainer.meta
+      ~HillasParametersContainer.phi
+      ~HillasParametersContainer.prefix
+      ~HillasParametersContainer.psi
+      ~HillasParametersContainer.r
+      ~HillasParametersContainer.width
+      ~HillasParametersContainer.width_uncertainty
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: fov_lat
+   .. autoattribute:: fov_lon
+   .. autoattribute:: length
+   .. autoattribute:: length_uncertainty
+   .. autoattribute:: meta
+   .. autoattribute:: phi
+   .. autoattribute:: prefix
+   .. autoattribute:: psi
+   .. autoattribute:: r
+   .. autoattribute:: width
+   .. autoattribute:: width_uncertainty

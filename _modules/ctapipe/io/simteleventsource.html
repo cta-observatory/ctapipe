@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.simteleventsource &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.simteleventsource</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.simteleventsource</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">nullcontext</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span><span class="p">,</span> <span class="n">unique</span>
+<span class="kn">from</span> <span class="nn">gzip</span> <span class="kn">import</span> <span class="n">GzipFile</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">BufferedReader</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span><span class="p">,</span> <span class="n">EarthLocation</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">eventio.file_types</span> <span class="kn">import</span> <span class="n">is_eventio</span>
+<span class="kn">from</span> <span class="nn">eventio.simtel.simtelfile</span> <span class="kn">import</span> <span class="n">SimTelFile</span>
+
+<span class="kn">from</span> <span class="nn">..atmosphere</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AtmosphereDensityProfile</span><span class="p">,</span>
+    <span class="n">FiveLayerAtmosphereDensityProfile</span><span class="p">,</span>
+    <span class="n">TableAtmosphereDensityProfile</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..calib.camera.gainselection</span> <span class="kn">import</span> <span class="n">GainSelector</span>
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArrayEventContainer</span><span class="p">,</span>
+    <span class="n">CoordinateFrameType</span><span class="p">,</span>
+    <span class="n">EventIndexContainer</span><span class="p">,</span>
+    <span class="n">EventType</span><span class="p">,</span>
+    <span class="n">ObservationBlockContainer</span><span class="p">,</span>
+    <span class="n">ObservationBlockState</span><span class="p">,</span>
+    <span class="n">ObservingMode</span><span class="p">,</span>
+    <span class="n">PixelStatusContainer</span><span class="p">,</span>
+    <span class="n">PointingContainer</span><span class="p">,</span>
+    <span class="n">PointingMode</span><span class="p">,</span>
+    <span class="n">R0CameraContainer</span><span class="p">,</span>
+    <span class="n">R1CameraContainer</span><span class="p">,</span>
+    <span class="n">SchedulingBlockContainer</span><span class="p">,</span>
+    <span class="n">SchedulingBlockType</span><span class="p">,</span>
+    <span class="n">SimulatedCameraContainer</span><span class="p">,</span>
+    <span class="n">SimulatedEventContainer</span><span class="p">,</span>
+    <span class="n">SimulatedShowerContainer</span><span class="p">,</span>
+    <span class="n">SimulationConfigContainer</span><span class="p">,</span>
+    <span class="n">TelescopeImpactParameterContainer</span><span class="p">,</span>
+    <span class="n">TelescopePointingContainer</span><span class="p">,</span>
+    <span class="n">TelescopeTriggerContainer</span><span class="p">,</span>
+    <span class="n">TriggerContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..coordinates</span> <span class="kn">import</span> <span class="n">CameraFrame</span><span class="p">,</span> <span class="n">shower_impact_distance</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Map</span>
+<span class="kn">from</span> <span class="nn">..core.provenance</span> <span class="kn">import</span> <span class="n">Provenance</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">ComponentName</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Undefined</span><span class="p">,</span> <span class="n">UseEnum</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CameraDescription</span><span class="p">,</span>
+    <span class="n">CameraGeometry</span><span class="p">,</span>
+    <span class="n">CameraReadout</span><span class="p">,</span>
+    <span class="n">FocalLengthKind</span><span class="p">,</span>
+    <span class="n">OpticsDescription</span><span class="p">,</span>
+    <span class="n">ReflectorShape</span><span class="p">,</span>
+    <span class="n">SubarrayDescription</span><span class="p">,</span>
+    <span class="n">TelescopeDescription</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..instrument.camera</span> <span class="kn">import</span> <span class="n">UnknownPixelShapeWarning</span>
+<span class="kn">from</span> <span class="nn">..instrument.guess</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">GuessingResult</span><span class="p">,</span>
+    <span class="n">guess_telescope</span><span class="p">,</span>
+    <span class="n">type_from_mirror_area</span><span class="p">,</span>
+    <span class="n">unknown_telescope</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.datalevels</span> <span class="kn">import</span> <span class="n">DataLevel</span>
+<span class="kn">from</span> <span class="nn">.eventsource</span> <span class="kn">import</span> <span class="n">EventSource</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;SimTelEventSource&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;read_atmosphere_profile_from_simtel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;AtmosphereProfileKind&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MirrorClass&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Mapping of SimTelArray Calibration trigger types to EventType:</span>
+<span class="c1"># from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.</span>
+<span class="n">SIMTEL_TO_CTA_EVENT_TYPE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="n">EventType</span><span class="o">.</span><span class="n">DARK_PEDESTAL</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="n">EventType</span><span class="o">.</span><span class="n">SKY_PEDESTAL</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="n">EventType</span><span class="o">.</span><span class="n">SINGLE_PE</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="n">EventType</span><span class="o">.</span><span class="n">FLATFIELD</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="n">EventType</span><span class="o">.</span><span class="n">OTHER_CALIBRATION</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_half_pi</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+<span class="n">_half_pi_maxval</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">*</span> <span class="n">_half_pi</span>
+
+
+<span class="k">def</span> <span class="nf">_clip_altitude_if_close</span><span class="p">(</span><span class="n">altitude</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Round absolute values slightly larger than pi/2 in float64 to pi/2</span>
+
+<span class="sd">    These can come from simtel_array because float32(pi/2) &gt; float64(pi/2)</span>
+<span class="sd">    and simtel using float32.</span>
+
+<span class="sd">    Astropy complains about these values, so we fix them here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">altitude</span> <span class="o">&gt;</span> <span class="n">_half_pi</span> <span class="ow">and</span> <span class="n">altitude</span> <span class="o">&lt;</span> <span class="n">_half_pi_maxval</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_half_pi</span>
+
+    <span class="k">if</span> <span class="n">altitude</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">_half_pi</span> <span class="ow">and</span> <span class="n">altitude</span> <span class="o">&gt;</span> <span class="o">-</span><span class="n">_half_pi_maxval</span><span class="p">:</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">_half_pi</span>
+
+    <span class="k">return</span> <span class="n">altitude</span>
+
+
+<div class="viewcode-block" id="MirrorClass"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.MirrorClass.html#ctapipe.io.MirrorClass">[docs]</a><span class="nd">@enum</span><span class="o">.</span><span class="n">unique</span>
+<span class="k">class</span> <span class="nc">MirrorClass</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enum for the sim_telarray MIRROR_CLASS values&quot;&quot;&quot;</span>
+
+    <span class="n">SINGLE_SEGMENTED_MIRROR</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">SINGLE_SOLID_PARABOLIC_MIRROR</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">DUAL_MIRROR</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+<span class="n">X_MAX_UNIT</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">NANOSECONDS_PER_DAY</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_simtel_time</span><span class="p">(</span><span class="n">simtel_time</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a unix time second / nanosecond tuple into astropy.time.Time&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Time</span><span class="p">(</span>
+        <span class="n">simtel_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">simtel_time</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e-9</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;unix&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s2">&quot;utc&quot;</span>  <span class="c1"># ns to s</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_location_from_meta</span><span class="p">(</span><span class="n">global_meta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract reference location of subarray from metadata&quot;&quot;&quot;</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">global_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;*LATITUDE&quot;</span><span class="p">)</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">global_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;*LONGITUDE&quot;</span><span class="p">)</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">global_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;ALTITUDE&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">lat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">lon</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">height</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">EarthLocation</span><span class="p">(</span>
+        <span class="n">lon</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="n">lat</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">height</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_camera</span><span class="p">(</span><span class="n">simtel_telescope</span><span class="p">,</span> <span class="n">telescope</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create CameraDescription from eventio data structures&quot;&quot;&quot;</span>
+    <span class="n">camera_settings</span> <span class="o">=</span> <span class="n">simtel_telescope</span><span class="p">[</span><span class="s2">&quot;camera_settings&quot;</span><span class="p">]</span>
+    <span class="n">pixel_settings</span> <span class="o">=</span> <span class="n">simtel_telescope</span><span class="p">[</span><span class="s2">&quot;pixel_settings&quot;</span><span class="p">]</span>
+    <span class="n">camera_organization</span> <span class="o">=</span> <span class="n">simtel_telescope</span><span class="p">[</span><span class="s2">&quot;camera_organization&quot;</span><span class="p">]</span>
+
+    <span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">camera_settings</span><span class="p">[</span><span class="s2">&quot;pixel_shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pix_type</span><span class="p">,</span> <span class="n">pix_rotation</span> <span class="o">=</span> <span class="n">CameraGeometry</span><span class="o">.</span><span class="n">simtel_shape_to_type</span><span class="p">(</span><span class="n">pixel_shape</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Unkown pixel_shape </span><span class="si">{</span><span class="n">pixel_shape</span><span class="si">}</span><span class="s2"> for camera_type </span><span class="si">{</span><span class="n">telescope</span><span class="o">.</span><span class="n">camera_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">UnknownPixelShapeWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pix_type</span> <span class="o">=</span> <span class="s2">&quot;hexagon&quot;</span>
+        <span class="n">pix_rotation</span> <span class="o">=</span> <span class="s2">&quot;0d&quot;</span>
+
+    <span class="n">geometry</span> <span class="o">=</span> <span class="n">CameraGeometry</span><span class="p">(</span>
+        <span class="n">telescope</span><span class="o">.</span><span class="n">camera_name</span><span class="p">,</span>
+        <span class="n">pix_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">camera_settings</span><span class="p">[</span><span class="s2">&quot;n_pixels&quot;</span><span class="p">]),</span>
+        <span class="n">pix_x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">camera_settings</span><span class="p">[</span><span class="s2">&quot;pixel_x&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+        <span class="n">pix_y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">camera_settings</span><span class="p">[</span><span class="s2">&quot;pixel_y&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+        <span class="n">pix_area</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">camera_settings</span><span class="p">[</span><span class="s2">&quot;pixel_area&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+        <span class="n">pix_type</span><span class="o">=</span><span class="n">pix_type</span><span class="p">,</span>
+        <span class="n">pix_rotation</span><span class="o">=</span><span class="n">pix_rotation</span><span class="p">,</span>
+        <span class="n">cam_rotation</span><span class="o">=-</span><span class="n">Angle</span><span class="p">(</span><span class="n">camera_settings</span><span class="p">[</span><span class="s2">&quot;cam_rot&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">apply_derotation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">readout</span> <span class="o">=</span> <span class="n">CameraReadout</span><span class="p">(</span>
+        <span class="n">telescope</span><span class="o">.</span><span class="n">camera_name</span><span class="p">,</span>
+        <span class="n">sampling_rate</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">pixel_settings</span><span class="p">[</span><span class="s2">&quot;time_slice&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">),</span>
+        <span class="n">reference_pulse_shape</span><span class="o">=</span><span class="n">pixel_settings</span><span class="p">[</span><span class="s2">&quot;ref_shape&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float64&quot;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">reference_pulse_sample_width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+            <span class="n">pixel_settings</span><span class="p">[</span><span class="s2">&quot;ref_step&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float64&quot;</span>
+        <span class="p">),</span>
+        <span class="n">n_channels</span><span class="o">=</span><span class="n">camera_organization</span><span class="p">[</span><span class="s2">&quot;n_gains&quot;</span><span class="p">],</span>
+        <span class="n">n_pixels</span><span class="o">=</span><span class="n">camera_organization</span><span class="p">[</span><span class="s2">&quot;n_pixels&quot;</span><span class="p">],</span>
+        <span class="n">n_samples</span><span class="o">=</span><span class="n">pixel_settings</span><span class="p">[</span><span class="s2">&quot;sum_bins&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">CameraDescription</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">telescope</span><span class="o">.</span><span class="n">camera_name</span><span class="p">,</span>
+        <span class="n">geometry</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span>
+        <span class="n">readout</span><span class="o">=</span><span class="n">readout</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_telescope_from_meta</span><span class="p">(</span><span class="n">telescope_meta</span><span class="p">,</span> <span class="n">mirror_area</span><span class="p">):</span>
+    <span class="n">optics_name</span> <span class="o">=</span> <span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;OPTICS_CONFIG_NAME&quot;</span><span class="p">)</span>
+    <span class="n">camera_name</span> <span class="o">=</span> <span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;CAMERA_CONFIG_NAME&quot;</span><span class="p">)</span>
+    <span class="n">mirror_class</span> <span class="o">=</span> <span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;MIRROR_CLASS&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">optics_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">camera_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">mirror_class</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">telescope_type</span> <span class="o">=</span> <span class="n">type_from_mirror_area</span><span class="p">(</span><span class="n">mirror_area</span><span class="p">)</span>
+
+    <span class="n">mirror_class</span> <span class="o">=</span> <span class="n">MirrorClass</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">mirror_class</span><span class="p">))</span>
+
+    <span class="n">reflector_shape</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">UNKNOWN</span>
+    <span class="k">if</span> <span class="n">mirror_class</span> <span class="ow">is</span> <span class="n">MirrorClass</span><span class="o">.</span><span class="n">DUAL_MIRROR</span><span class="p">:</span>
+        <span class="n">reflector_shape</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">SCHWARZSCHILD_COUDER</span>
+    <span class="k">elif</span> <span class="n">mirror_class</span> <span class="ow">is</span> <span class="n">MirrorClass</span><span class="o">.</span><span class="n">SINGLE_SEGMENTED_MIRROR</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;PARABOLIC_DISH&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">reflector_shape</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">PARABOLIC</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reflector_shape</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">DAVIES_COTTON</span>
+
+            <span class="n">shape_length</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;DISH_SHAPE_Length&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">focal_length</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;FOCAL_Length&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">shape_length</span> <span class="o">!=</span> <span class="n">focal_length</span><span class="p">:</span>
+                <span class="n">reflector_shape</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">HYBRID</span>
+
+    <span class="n">n_mirrors</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">mirror_class</span> <span class="ow">is</span> <span class="n">MirrorClass</span><span class="o">.</span><span class="n">DUAL_MIRROR</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">GuessingResult</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">telescope_type</span><span class="p">,</span>
+        <span class="n">reflector_shape</span><span class="o">=</span><span class="n">reflector_shape</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">optics_name</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>
+        <span class="n">camera_name</span><span class="o">=</span><span class="n">camera_name</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>
+        <span class="n">n_mirrors</span><span class="o">=</span><span class="n">n_mirrors</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">apply_simtel_r1_calibration</span><span class="p">(</span>
+    <span class="n">r0_waveforms</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">,</span> <span class="n">dc_to_pe</span><span class="p">,</span> <span class="n">gain_selector</span><span class="p">,</span> <span class="n">calib_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">calib_shift</span><span class="o">=</span><span class="mf">0.0</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform the R1 calibration for R0 simtel waveforms. This includes:</span>
+<span class="sd">        - Gain selection</span>
+<span class="sd">        - Pedestal subtraction</span>
+<span class="sd">        - Conversion of samples into units proportional to photoelectrons</span>
+<span class="sd">          (If the full signal in the waveform was integrated, then the resulting</span>
+<span class="sd">          value would be in photoelectrons.)</span>
+<span class="sd">          (Also applies flat-fielding)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    r0_waveforms : ndarray</span>
+<span class="sd">        Raw ADC waveforms from a simtel file. All gain channels available.</span>
+<span class="sd">        Shape: (n_channels, n_pixels, n_samples)</span>
+<span class="sd">    pedestal : ndarray</span>
+<span class="sd">        Pedestal stored in the simtel file for each gain channel</span>
+<span class="sd">        Shape: (n_channels, n_pixels)</span>
+<span class="sd">    dc_to_pe : ndarray</span>
+<span class="sd">        Conversion factor between R0 waveform samples and ~p.e., stored in the</span>
+<span class="sd">        simtel file for each gain channel</span>
+<span class="sd">        Shape: (n_channels, n_pixels)</span>
+<span class="sd">    gain_selector : ctapipe.calib.camera.gainselection.GainSelector</span>
+<span class="sd">    calib_scale : float</span>
+<span class="sd">        Extra global scale factor for calibration.</span>
+<span class="sd">        Conversion factor to transform the integrated charges</span>
+<span class="sd">        (in ADC counts) into number of photoelectrons on top of dc_to_pe.</span>
+<span class="sd">        Defaults to no scaling.</span>
+<span class="sd">    calib_shift: float</span>
+<span class="sd">        Shift the resulting R1 output in p.e. for simulating miscalibration.</span>
+<span class="sd">        Defaults to no shift.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    r1_waveforms : ndarray</span>
+<span class="sd">        Calibrated waveforms</span>
+<span class="sd">        Shape: (n_pixels, n_samples)</span>
+<span class="sd">    selected_gain_channel : ndarray</span>
+<span class="sd">        The gain channel selected for each pixel</span>
+<span class="sd">        Shape: (n_pixels)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_channels</span><span class="p">,</span> <span class="n">n_pixels</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">=</span> <span class="n">r0_waveforms</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">ped</span> <span class="o">=</span> <span class="n">pedestal</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">DC_to_PHE</span> <span class="o">=</span> <span class="n">dc_to_pe</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">gain</span> <span class="o">=</span> <span class="n">DC_to_PHE</span> <span class="o">*</span> <span class="n">calib_scale</span>
+    <span class="n">r1_waveforms</span> <span class="o">=</span> <span class="p">(</span><span class="n">r0_waveforms</span> <span class="o">-</span> <span class="n">ped</span><span class="p">)</span> <span class="o">*</span> <span class="n">gain</span> <span class="o">+</span> <span class="n">calib_shift</span>
+    <span class="k">if</span> <span class="n">n_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+        <span class="n">r1_waveforms</span> <span class="o">=</span> <span class="n">r1_waveforms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">gain_selector</span><span class="p">(</span><span class="n">r0_waveforms</span><span class="p">)</span>
+        <span class="n">r1_waveforms</span> <span class="o">=</span> <span class="n">r1_waveforms</span><span class="p">[</span><span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">r1_waveforms</span><span class="p">,</span> <span class="n">selected_gain_channel</span>
+
+
+<div class="viewcode-block" id="AtmosphereProfileKind"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.AtmosphereProfileKind.html#ctapipe.io.AtmosphereProfileKind">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">AtmosphereProfileKind</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    choice for which kind of atmosphere density profile to load if more than</span>
+<span class="sd">    one is present&quot;&quot;&quot;</span>
+
+    <span class="c1">#: Don&#39;t load a profile</span>
+    <span class="n">NONE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+
+    <span class="c1">#: Use a TableAtmosphereDensityProfile</span>
+    <span class="n">TABLE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+
+    <span class="c1">#: Use a FiveLayerAtmosphereDensityProfile</span>
+    <span class="n">FIVELAYER</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+
+    <span class="c1">#: Try TABLE first, and if it doesn&#39;t exist, use FIVELAYER</span>
+    <span class="n">AUTO</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="read_atmosphere_profile_from_simtel"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.read_atmosphere_profile_from_simtel.html#ctapipe.io.read_atmosphere_profile_from_simtel">[docs]</a><span class="k">def</span> <span class="nf">read_atmosphere_profile_from_simtel</span><span class="p">(</span>
+    <span class="n">simtelfile</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">SimTelFile</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="n">AtmosphereProfileKind</span><span class="o">.</span><span class="n">AUTO</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TableAtmosphereDensityProfile</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read an atmosphere profile from a SimTelArray file as an astropy Table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    simtelfile: str | SimTelFile</span>
+<span class="sd">        filename of a SimTelArray file containing an atmosphere profile</span>
+<span class="sd">    kind: AtmosphereProfileKind | str</span>
+<span class="sd">        which type of model to load. In AUTO mode, table is tried first,</span>
+<span class="sd">        and if it doesn&#39;t exist, fivelayer is used.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Optional[TableAtmosphereDensityProfile]:</span>
+<span class="sd">        Profile read from a table, with interpolation</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kind</span><span class="p">,</span> <span class="n">AtmosphereProfileKind</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;read_atmosphere_profile_from_simtel: kind should be a AtmosphereProfileKind&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">profiles</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">AtmosphereProfileKind</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">simtelfile</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+        <span class="n">context_manager</span> <span class="o">=</span> <span class="n">SimTelFile</span><span class="p">(</span><span class="n">simtelfile</span><span class="p">)</span>
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">simtelfile</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;ctapipe.atmosphere.AtmosphereDensityProfile&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">context_manager</span> <span class="o">=</span> <span class="n">nullcontext</span><span class="p">(</span><span class="n">simtelfile</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">context_manager</span> <span class="k">as</span> <span class="n">simtel</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">simtel</span><span class="p">,</span> <span class="s2">&quot;atmospheric_profiles&quot;</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">simtel</span><span class="o">.</span><span class="n">atmospheric_profiles</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">atmo</span> <span class="ow">in</span> <span class="n">simtel</span><span class="o">.</span><span class="n">atmospheric_profiles</span><span class="p">:</span>
+
+            <span class="n">metadata</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">observation_level</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;obslevel&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="p">,</span>
+                <span class="n">atmosphere_id</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+                <span class="n">atmosphere_name</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>
+                <span class="n">atmosphere_height</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;htoa&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;altitude_km&quot;</span> <span class="ow">in</span> <span class="n">atmo</span> <span class="ow">and</span> <span class="n">kind</span> <span class="ow">in</span> <span class="p">{</span>
+                <span class="n">AtmosphereProfileKind</span><span class="o">.</span><span class="n">TABLE</span><span class="p">,</span>
+                <span class="n">AtmosphereProfileKind</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+            <span class="p">}:</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+                    <span class="nb">dict</span><span class="p">(</span>
+                        <span class="n">height</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;altitude_km&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span>
+                        <span class="n">density</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;rho&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
+                        <span class="n">column_density</span><span class="o">=</span><span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">meta</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">profiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TableAtmosphereDensityProfile</span><span class="p">(</span><span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="n">kind</span> <span class="o">==</span> <span class="n">AtmosphereProfileKind</span><span class="o">.</span><span class="n">FIVELAYER</span>
+                <span class="ow">and</span> <span class="s2">&quot;five_layer_atmosphere&quot;</span> <span class="ow">in</span> <span class="n">atmo</span>
+            <span class="p">):</span>
+                <span class="n">profiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">FiveLayerAtmosphereDensityProfile</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+                        <span class="n">atmo</span><span class="p">[</span><span class="s2">&quot;five_layer_atmosphere&quot;</span><span class="p">],</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t  load requested profile &#39;</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">profiles</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">profiles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="SimTelEventSource"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.SimTelEventSource.html#ctapipe.io.SimTelEventSource">[docs]</a><span class="k">class</span> <span class="nc">SimTelEventSource</span><span class="p">(</span><span class="n">EventSource</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read events from a SimTelArray data file (in EventIO format).</span>
+
+<span class="sd">    ctapipe makes use of the sim_telarray metadata system to fill some</span>
+<span class="sd">    information not directly accessible from the data inside the files itself.</span>
+<span class="sd">    Make sure you set this parameters in the simulation configuration to fully</span>
+<span class="sd">    make use of ctapipe. In future, ctapipe might require these metadata parameters.</span>
+
+<span class="sd">    This includes:</span>
+
+<span class="sd">    * Reference Point of the telescope coordinates. Make sure to include the</span>
+<span class="sd">        user-defined parameters ``LONGITUDE`` and ``LATITUDE`` with the geodetic</span>
+<span class="sd">        coordinates of the array reference point. Also make sure the ``ALTITUDE``</span>
+<span class="sd">        config parameter is included in the global metadata.</span>
+
+<span class="sd">    * Names of the optical structures and the cameras are read from</span>
+<span class="sd">        ``OPTICS_CONFIG_NAME`` and ``CAMERA_CONFIG_NAME``, make sure to include</span>
+<span class="sd">        these in the telescope meta.</span>
+
+<span class="sd">    * The ``MIRROR_CLASS`` should also be included in the telescope meta</span>
+<span class="sd">        to correctly setup coordinate transforms.</span>
+
+<span class="sd">    If these parameters are not included in the input data, ctapipe will</span>
+<span class="sd">    fallback guesses these based on avaible data and the list of known telescopes</span>
+<span class="sd">    for `ctapipe.instrument.guess_telescope`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">skip_calibration_events</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Skip calibration events&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">back_seekable</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Require the event source to be backwards seekable.&quot;</span>
+            <span class="s2">&quot; This will reduce in slower read speed for gzipped files&quot;</span>
+            <span class="s2">&quot; and is not possible for zstd compressed files&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">focal_length_choice</span> <span class="o">=</span> <span class="n">UseEnum</span><span class="p">(</span>
+        <span class="n">FocalLengthKind</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EFFECTIVE</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;If both nominal and effective focal lengths are available in the&quot;</span>
+            <span class="s2">&quot; SimTelArray file, which one to use for the `~ctapipe.coordinates.CameraFrame`&quot;</span>
+            <span class="s2">&quot; attached to the `~ctapipe.instrument.CameraGeometry` instances in&quot;</span>
+            <span class="s2">&quot; the `~ctapipe.instrument.SubarrayDescription`, which will be used in&quot;</span>
+            <span class="s2">&quot; CameraFrame to TelescopeFrame coordinate transforms. &quot;</span>
+            <span class="s2">&quot; The &#39;nominal&#39; focal length is the one used during &quot;</span>
+            <span class="s2">&quot; the simulation, the &#39;effective&#39; focal length is computed using specialized &quot;</span>
+            <span class="s2">&quot; ray-tracing from a point light source&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">gain_selector_type</span> <span class="o">=</span> <span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">GainSelector</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;ThresholdGainSelector&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">calib_scale</span> <span class="o">=</span> <span class="n">Float</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Factor to transform ADC counts into number of photoelectrons.&quot;</span>
+            <span class="s2">&quot; Corrects the DC_to_PHE factor.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">calib_shift</span> <span class="o">=</span> <span class="n">Float</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Factor to shift the R1 photoelectron samples. &quot;</span>
+            <span class="s2">&quot;Can be used to simulate mis-calibration.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">atmosphere_profile_choice</span> <span class="o">=</span> <span class="n">UseEnum</span><span class="p">(</span>
+        <span class="n">AtmosphereProfileKind</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="n">AtmosphereProfileKind</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Which type of atmosphere density profile to load &quot;</span>
+            <span class="s2">&quot;from the file, in case more than one exists.  If set &quot;</span>
+            <span class="s2">&quot;to AUTO, TABLE will be attempted first and if missing, &quot;</span>
+            <span class="s2">&quot;FIVELAYER will be loaded.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_url</span><span class="o">=</span><span class="n">Undefined</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        EventSource for simtelarray files using the pyeventio library.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            Set to None if no configuration to pass.</span>
+<span class="sd">        tool : ctapipe.core.Tool</span>
+<span class="sd">            Tool executable that is calling this component.</span>
+<span class="sd">            Passes the correct logger to the component.</span>
+<span class="sd">            Set to None if no Tool to pass.</span>
+<span class="sd">        gain_selector : ctapipe.calib.camera.gainselection.GainSelector</span>
+<span class="sd">            The GainSelector to use. If None, then ThresholdGainSelector will be used.</span>
+<span class="sd">        kwargs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">input_url</span><span class="o">=</span><span class="n">input_url</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_</span> <span class="o">=</span> <span class="n">SimTelFile</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(),</span>
+            <span class="n">allowed_telescopes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">,</span>
+            <span class="n">skip_calibration</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_calibration_events</span><span class="p">,</span>
+            <span class="n">zcat</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">back_seekable</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">back_seekable</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stream</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;back seekable was required but not possible for inputfile&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_subarray_info</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">telescope_descriptions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span>
+        <span class="p">)</span>
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scheduling_blocks</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_observation_blocks</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fill_scheduling_and_observation_blocks</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_simulation_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain_selector</span> <span class="o">=</span> <span class="n">GainSelector</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gain_selector_type</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atmosphere_density_profile</span> <span class="o">=</span> <span class="n">read_atmosphere_profile_from_simtel</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">atmosphere_profile_choice</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using gain selector </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">gain_selector</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SimTelEventSource.close"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.SimTelEventSource.html#ctapipe.io.SimTelEventSource.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">datalevels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">DataLevel</span><span class="o">.</span><span class="n">R0</span><span class="p">,</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">R1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">simulation_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">SimulationConfigContainer</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_config</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atmosphere_density_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AtmosphereDensityProfile</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atmosphere_density_profile</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">observation_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ObservationBlockContainer</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observation_blocks</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scheduling_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">SchedulingBlockContainer</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scheduling_blocks</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">_filehandle</span><span class="p">,</span> <span class="p">(</span><span class="n">BufferedReader</span><span class="p">,</span> <span class="n">GzipFile</span><span class="p">))</span>
+
+<div class="viewcode-block" id="SimTelEventSource.prepare_subarray_info"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.SimTelEventSource.html#ctapipe.io.SimTelEventSource.prepare_subarray_info">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_subarray_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_descriptions</span><span class="p">,</span> <span class="n">header</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs a SubarrayDescription object from the</span>
+<span class="sd">        ``telescope_descriptions`` given by ``SimTelFile``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        telescope_descriptions: dict</span>
+<span class="sd">            telescope descriptions as given by ``SimTelFile.telescope_descriptions``</span>
+<span class="sd">        header: dict</span>
+<span class="sd">            header as returned by ``SimTelFile.header``</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SubarrayDescription :</span>
+<span class="sd">            instrumental information</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">tel_descriptions</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># tel_id : TelescopeDescription</span>
+        <span class="n">tel_positions</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># tel_id : TelescopeDescription</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescope_indices_original</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">telescope_description</span> <span class="ow">in</span> <span class="n">telescope_descriptions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">cam_settings</span> <span class="o">=</span> <span class="n">telescope_description</span><span class="p">[</span><span class="s2">&quot;camera_settings&quot;</span><span class="p">]</span>
+
+            <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">cam_settings</span><span class="p">[</span><span class="s2">&quot;n_pixels&quot;</span><span class="p">]</span>
+            <span class="n">mirror_area</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">cam_settings</span><span class="p">[</span><span class="s2">&quot;mirror_area&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="n">equivalent_focal_length</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">cam_settings</span><span class="p">[</span><span class="s2">&quot;focal_length&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+            <span class="n">effective_focal_length</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">cam_settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;effective_focal_length&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+            <span class="p">)</span>
+
+            <span class="n">telescope</span> <span class="o">=</span> <span class="n">_telescope_from_meta</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">telescope_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="p">{}),</span>
+                <span class="n">mirror_area</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">telescope</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">telescope</span> <span class="o">=</span> <span class="n">guess_telescope</span><span class="p">(</span>
+                        <span class="n">n_pixels</span><span class="p">,</span>
+                        <span class="n">equivalent_focal_length</span><span class="p">,</span>
+                        <span class="n">cam_settings</span><span class="p">[</span><span class="s2">&quot;n_mirrors&quot;</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">telescope</span> <span class="o">=</span> <span class="n">unknown_telescope</span><span class="p">(</span><span class="n">mirror_area</span><span class="p">,</span> <span class="n">n_pixels</span><span class="p">)</span>
+
+                <span class="c1"># TODO: switch to warning or even an exception once</span>
+                <span class="c1"># we start relying on this.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Could not determine telescope from sim_telarray metadata,&quot;</span>
+                    <span class="s2">&quot; guessing using builtin lookup-table: </span><span class="si">%d</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">tel_id</span><span class="p">,</span>
+                    <span class="n">telescope</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="n">optics</span> <span class="o">=</span> <span class="n">OpticsDescription</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">telescope</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">size_type</span><span class="o">=</span><span class="n">telescope</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                <span class="n">reflector_shape</span><span class="o">=</span><span class="n">telescope</span><span class="o">.</span><span class="n">reflector_shape</span><span class="p">,</span>
+                <span class="n">n_mirrors</span><span class="o">=</span><span class="n">telescope</span><span class="o">.</span><span class="n">n_mirrors</span><span class="p">,</span>
+                <span class="n">equivalent_focal_length</span><span class="o">=</span><span class="n">equivalent_focal_length</span><span class="p">,</span>
+                <span class="n">effective_focal_length</span><span class="o">=</span><span class="n">effective_focal_length</span><span class="p">,</span>
+                <span class="n">mirror_area</span><span class="o">=</span><span class="n">mirror_area</span><span class="p">,</span>
+                <span class="n">n_mirror_tiles</span><span class="o">=</span><span class="n">cam_settings</span><span class="p">[</span><span class="s2">&quot;n_mirrors&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">focal_length_choice</span> <span class="ow">is</span> <span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EFFECTIVE</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">effective_focal_length</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="s2">&quot;`SimTelEventSource.focal_length_choice` was set to &#39;EFFECTIVE&#39;&quot;</span>
+                        <span class="s2">&quot;, but the effective focal length was not present in the file.&quot;</span>
+                        <span class="s2">&quot; Set `focal_length_choice=&#39;EQUIVALENT&#39;` or make sure&quot;</span>
+                        <span class="s2">&quot; input files contain the effective focal length&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">focal_length</span> <span class="o">=</span> <span class="n">effective_focal_length</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">focal_length_choice</span> <span class="ow">is</span> <span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EQUIVALENT</span><span class="p">:</span>
+                <span class="n">focal_length</span> <span class="o">=</span> <span class="n">equivalent_focal_length</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Invalid focal length choice: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">focal_length_choice</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">camera</span> <span class="o">=</span> <span class="n">build_camera</span><span class="p">(</span>
+                <span class="n">telescope_description</span><span class="p">,</span>
+                <span class="n">telescope</span><span class="p">,</span>
+                <span class="n">frame</span><span class="o">=</span><span class="n">CameraFrame</span><span class="p">(</span><span class="n">focal_length</span><span class="o">=</span><span class="n">focal_length</span><span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="n">tel_descriptions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">TelescopeDescription</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">telescope</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">optics</span><span class="o">=</span><span class="n">optics</span><span class="p">,</span>
+                <span class="n">camera</span><span class="o">=</span><span class="n">camera</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">tel_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;tel_id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">tel_id</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telescope_indices_original</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_idx</span>
+            <span class="n">tel_positions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">&quot;tel_pos&quot;</span><span class="p">][</span><span class="n">tel_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">global_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;ARRAY_CONFIG_NAME&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;MonteCarloArray&quot;</span><span class="p">)</span>
+        <span class="n">subarray</span> <span class="o">=</span> <span class="n">SubarrayDescription</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span>
+            <span class="n">tel_positions</span><span class="o">=</span><span class="n">tel_positions</span><span class="p">,</span>
+            <span class="n">tel_descriptions</span><span class="o">=</span><span class="n">tel_descriptions</span><span class="p">,</span>
+            <span class="n">reference_location</span><span class="o">=</span><span class="n">_location_from_meta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">global_meta</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_telescopes_original</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">subarray</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+            <span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">select_subarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">subarray</span></div>
+
+<div class="viewcode-block" id="SimTelEventSource.is_compatible"><a class="viewcode-back" href="../../../api/ctapipe.io.simteleventsource.SimTelEventSource.html#ctapipe.io.SimTelEventSource.is_compatible">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_compatible</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">is_eventio</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_info</span>
+
+    <span class="k">def</span> <span class="nf">_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_pos</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">_next_header_pos</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Backseeking to start of file.&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_events</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">EOFError</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;EOFError reading from &quot;</span><span class="si">{input_url}</span><span class="s1">&quot;. Might be truncated&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">input_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_generate_events</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># for events without event_id, we use negative event_ids</span>
+        <span class="n">pseudo_event_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">counter</span><span class="p">,</span> <span class="n">array_event</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="p">):</span>
+
+            <span class="n">event_id</span> <span class="o">=</span> <span class="n">array_event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;event_id&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">event_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pseudo_event_id</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">event_id</span> <span class="o">=</span> <span class="n">pseudo_event_id</span>
+
+            <span class="n">obs_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;run&quot;</span><span class="p">]</span>
+
+            <span class="n">trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fill_trigger_info</span><span class="p">(</span><span class="n">array_event</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">trigger</span><span class="o">.</span><span class="n">event_type</span> <span class="o">==</span> <span class="n">EventType</span><span class="o">.</span><span class="n">SUBARRAY</span><span class="p">:</span>
+                <span class="n">shower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fill_simulated_event_information</span><span class="p">(</span><span class="n">array_event</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shower</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="n">ArrayEventContainer</span><span class="p">(</span>
+                <span class="n">simulation</span><span class="o">=</span><span class="n">SimulatedEventContainer</span><span class="p">(</span><span class="n">shower</span><span class="o">=</span><span class="n">shower</span><span class="p">),</span>
+                <span class="n">pointing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fill_array_pointing</span><span class="p">(),</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">EventIndexContainer</span><span class="p">(</span><span class="n">obs_id</span><span class="o">=</span><span class="n">obs_id</span><span class="p">,</span> <span class="n">event_id</span><span class="o">=</span><span class="n">event_id</span><span class="p">),</span>
+                <span class="n">count</span><span class="o">=</span><span class="n">counter</span><span class="p">,</span>
+                <span class="n">trigger</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;origin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hessio&quot;</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;input_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;max_events&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span>
+
+            <span class="n">telescope_events</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;telescope_events&quot;</span><span class="p">]</span>
+            <span class="n">tracking_positions</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;tracking_positions&quot;</span><span class="p">]</span>
+
+            <span class="n">photoelectron_sums</span> <span class="o">=</span> <span class="n">array_event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;photoelectron_sums&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">photoelectron_sums</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">true_image_sums</span> <span class="o">=</span> <span class="n">photoelectron_sums</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;n_pe&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_telescopes_original</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">true_image_sums</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_telescopes_original</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">shower</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># compute impact distances of the shower to the telescopes</span>
+                <span class="n">impact_distances</span> <span class="o">=</span> <span class="n">shower_impact_distance</span><span class="p">(</span>
+                    <span class="n">shower_geom</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">shower</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">impact_distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+
+            <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">telescope_event</span> <span class="ow">in</span> <span class="n">telescope_events</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">adc_samples</span> <span class="o">=</span> <span class="n">telescope_event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;adc_samples&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">adc_samples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">adc_samples</span> <span class="o">=</span> <span class="n">telescope_event</span><span class="p">[</span><span class="s2">&quot;adc_sums&quot;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+                <span class="n">n_gains</span><span class="p">,</span> <span class="n">n_pixels</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">=</span> <span class="n">adc_samples</span><span class="o">.</span><span class="n">shape</span>
+                <span class="n">true_image</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">array_event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;photoelectrons&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                    <span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tel_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">{})</span>
+                    <span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;photoelectrons&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">simulation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">shower</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">impact_container</span> <span class="o">=</span> <span class="n">TelescopeImpactParameterContainer</span><span class="p">(</span>
+                            <span class="n">distance</span><span class="o">=</span><span class="n">impact_distances</span><span class="p">[</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_index_array</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                            <span class="p">],</span>
+                            <span class="n">distance_uncert</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+                            <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;true_impact&quot;</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">impact_container</span> <span class="o">=</span> <span class="n">TelescopeImpactParameterContainer</span><span class="p">(</span>
+                            <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;true_impact&quot;</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+                    <span class="n">data</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">SimulatedCameraContainer</span><span class="p">(</span>
+                        <span class="n">true_image_sum</span><span class="o">=</span><span class="n">true_image_sums</span><span class="p">[</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">telescope_indices_original</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                        <span class="p">],</span>
+                        <span class="n">true_image</span><span class="o">=</span><span class="n">true_image</span><span class="p">,</span>
+                        <span class="n">impact</span><span class="o">=</span><span class="n">impact_container</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="n">data</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fill_event_pointing</span><span class="p">(</span>
+                    <span class="n">tracking_positions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="n">data</span><span class="o">.</span><span class="n">r0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">R0CameraContainer</span><span class="p">(</span><span class="n">waveform</span><span class="o">=</span><span class="n">adc_samples</span><span class="p">)</span>
+
+                <span class="n">cam_mon</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;camera_monitorings&quot;</span><span class="p">][</span><span class="n">tel_id</span><span class="p">]</span>
+                <span class="n">pedestal</span> <span class="o">=</span> <span class="n">cam_mon</span><span class="p">[</span><span class="s2">&quot;pedestal&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">cam_mon</span><span class="p">[</span><span class="s2">&quot;n_ped_slices&quot;</span><span class="p">]</span>
+                <span class="n">dc_to_pe</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;laser_calibrations&quot;</span><span class="p">][</span><span class="n">tel_id</span><span class="p">][</span><span class="s2">&quot;calib&quot;</span><span class="p">]</span>
+
+                <span class="c1"># fill dc_to_pe and pedestal_per_sample info into monitoring</span>
+                <span class="c1"># container</span>
+                <span class="n">mon</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mon</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                <span class="n">mon</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">dc_to_pe</span> <span class="o">=</span> <span class="n">dc_to_pe</span>
+                <span class="n">mon</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">pedestal_per_sample</span> <span class="o">=</span> <span class="n">pedestal</span>
+                <span class="n">mon</span><span class="o">.</span><span class="n">pixel_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pixels_status</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+
+                <span class="n">r1_waveform</span><span class="p">,</span> <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">apply_simtel_r1_calibration</span><span class="p">(</span>
+                    <span class="n">adc_samples</span><span class="p">,</span>
+                    <span class="n">pedestal</span><span class="p">,</span>
+                    <span class="n">dc_to_pe</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gain_selector</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">calib_scale</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">calib_shift</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">R1CameraContainer</span><span class="p">(</span>
+                    <span class="n">waveform</span><span class="o">=</span><span class="n">r1_waveform</span><span class="p">,</span>
+                    <span class="n">selected_gain_channel</span><span class="o">=</span><span class="n">selected_gain_channel</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="c1"># get time_shift from laser calibration</span>
+                <span class="n">time_calib</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;laser_calibrations&quot;</span><span class="p">][</span><span class="n">tel_id</span><span class="p">][</span><span class="s2">&quot;tm_calib&quot;</span><span class="p">]</span>
+                <span class="n">pix_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">)</span>
+
+                <span class="n">dl1_calib</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">dl1</span>
+                <span class="n">dl1_calib</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">=</span> <span class="n">time_calib</span><span class="p">[</span><span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">pix_index</span><span class="p">]</span>
+
+            <span class="k">yield</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_get_pixels_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+        <span class="n">tel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">telescope_descriptions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">tel</span><span class="p">[</span><span class="s2">&quot;camera_organization&quot;</span><span class="p">][</span><span class="s2">&quot;n_pixels&quot;</span><span class="p">]</span>
+        <span class="n">n_gains</span> <span class="o">=</span> <span class="n">tel</span><span class="p">[</span><span class="s2">&quot;camera_organization&quot;</span><span class="p">][</span><span class="s2">&quot;n_gains&quot;</span><span class="p">]</span>
+
+        <span class="n">disabled_ids</span> <span class="o">=</span> <span class="n">tel</span><span class="p">[</span><span class="s2">&quot;disabled_pixels&quot;</span><span class="p">][</span><span class="s2">&quot;HV_disabled&quot;</span><span class="p">]</span>
+        <span class="n">disabled_pixels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_gains</span><span class="p">,</span> <span class="n">n_pixels</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">disabled_pixels</span><span class="p">[:,</span> <span class="n">disabled_ids</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="n">PixelStatusContainer</span><span class="p">(</span>
+            <span class="n">hardware_failing_pixels</span><span class="o">=</span><span class="n">disabled_pixels</span><span class="p">,</span>
+            <span class="n">pedestal_failing_pixels</span><span class="o">=</span><span class="n">disabled_pixels</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="n">flatfield_failing_pixels</span><span class="o">=</span><span class="n">disabled_pixels</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_fill_event_pointing</span><span class="p">(</span><span class="n">tracking_position</span><span class="p">):</span>
+        <span class="n">azimuth_raw</span> <span class="o">=</span> <span class="n">tracking_position</span><span class="p">[</span><span class="s2">&quot;azimuth_raw&quot;</span><span class="p">]</span>
+        <span class="n">altitude_raw</span> <span class="o">=</span> <span class="n">tracking_position</span><span class="p">[</span><span class="s2">&quot;altitude_raw&quot;</span><span class="p">]</span>
+        <span class="n">azimuth_cor</span> <span class="o">=</span> <span class="n">tracking_position</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;azimuth_cor&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">altitude_cor</span> <span class="o">=</span> <span class="n">tracking_position</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;altitude_cor&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="c1"># take pointing corrected position if available</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">azimuth_cor</span><span class="p">):</span>
+            <span class="n">azimuth</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">azimuth_raw</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">azimuth</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">azimuth_cor</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># take pointing corrected position if available</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">altitude_cor</span><span class="p">):</span>
+            <span class="n">altitude</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">_clip_altitude_if_close</span><span class="p">(</span><span class="n">altitude_raw</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">altitude</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">_clip_altitude_if_close</span><span class="p">(</span><span class="n">altitude_cor</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">TelescopePointingContainer</span><span class="p">(</span><span class="n">azimuth</span><span class="o">=</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="o">=</span><span class="n">altitude</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fill_trigger_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array_event</span><span class="p">):</span>
+        <span class="n">trigger</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;trigger_information&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span>
+            <span class="n">event_type</span> <span class="o">=</span> <span class="n">EventType</span><span class="o">.</span><span class="n">SUBARRAY</span>
+
+        <span class="k">elif</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;calibration&quot;</span><span class="p">:</span>
+            <span class="c1"># if using eventio &gt;= 1.1.1, we can use the calibration_type</span>
+            <span class="n">event_type</span> <span class="o">=</span> <span class="n">SIMTEL_TO_CTA_EVENT_TYPE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">array_event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calibration_type&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">EventType</span><span class="o">.</span><span class="n">OTHER_CALIBRATION</span>
+            <span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">event_type</span> <span class="o">=</span> <span class="n">EventType</span><span class="o">.</span><span class="n">UNKNOWN</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+            <span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span>
+                <span class="n">trigger</span><span class="p">[</span><span class="s2">&quot;triggered_telescopes&quot;</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_ids</span><span class="p">,</span>
+                <span class="n">assume_unique</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="n">trigger</span><span class="p">[</span><span class="s2">&quot;triggered_telescopes&quot;</span><span class="p">]</span>
+
+        <span class="n">central_time</span> <span class="o">=</span> <span class="n">parse_simtel_time</span><span class="p">(</span><span class="n">trigger</span><span class="p">[</span><span class="s2">&quot;gps_time&quot;</span><span class="p">])</span>
+
+        <span class="n">tel</span> <span class="o">=</span> <span class="n">Map</span><span class="p">(</span><span class="n">TelescopeTriggerContainer</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">time</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">trigger</span><span class="p">[</span><span class="s2">&quot;triggered_telescopes&quot;</span><span class="p">],</span> <span class="n">trigger</span><span class="p">[</span><span class="s2">&quot;trigger_times&quot;</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span> <span class="ow">and</span> <span class="n">tel_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allowed_tels</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># telescope time is relative to central trigger in ns</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span>
+                <span class="n">central_time</span><span class="o">.</span><span class="n">jd1</span><span class="p">,</span>
+                <span class="n">central_time</span><span class="o">.</span><span class="n">jd2</span> <span class="o">+</span> <span class="n">time</span> <span class="o">/</span> <span class="n">NANOSECONDS_PER_DAY</span><span class="p">,</span>
+                <span class="n">scale</span><span class="o">=</span><span class="n">central_time</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span>
+                <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;jd&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># triggered pixel info</span>
+            <span class="n">n_trigger_pixels</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">trigger_pixels</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">tel_event</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;telescope_events&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tel_event</span><span class="p">:</span>
+                <span class="c1"># code 0 = trigger pixels</span>
+                <span class="n">pixel_list</span> <span class="o">=</span> <span class="n">tel_event</span><span class="p">[</span><span class="s2">&quot;pixel_lists&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pixel_list</span><span class="p">:</span>
+                    <span class="n">n_trigger_pixels</span> <span class="o">=</span> <span class="n">pixel_list</span><span class="p">[</span><span class="s2">&quot;pixels&quot;</span><span class="p">]</span>
+                    <span class="n">trigger_pixels</span> <span class="o">=</span> <span class="n">pixel_list</span><span class="p">[</span><span class="s2">&quot;pixel_list&quot;</span><span class="p">]</span>
+
+            <span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">TelescopeTriggerContainer</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
+                <span class="n">n_trigger_pixels</span><span class="o">=</span><span class="n">n_trigger_pixels</span><span class="p">,</span>
+                <span class="n">trigger_pixels</span><span class="o">=</span><span class="n">trigger_pixels</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">TriggerContainer</span><span class="p">(</span>
+            <span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">central_time</span><span class="p">,</span>
+            <span class="n">tels_with_trigger</span><span class="o">=</span><span class="n">tels_with_trigger</span><span class="p">,</span>
+            <span class="n">tel</span><span class="o">=</span><span class="n">tel</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fill_array_pointing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;tracking_mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">az</span><span class="p">,</span> <span class="n">alt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">PointingContainer</span><span class="p">(</span>
+                <span class="n">array_altitude</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">alt</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                <span class="n">array_azimuth</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">az</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">PointingContainer</span><span class="p">(</span>
+                <span class="n">array_ra</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+                <span class="n">array_dec</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_parse_simulation_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the simulation infos and return a dict with</span>
+<span class="sd">        observation ids mapped to SimulationConfigContainers.</span>
+<span class="sd">        As merged simtel files are not supported at this</span>
+<span class="sd">        point in time, this dictionary will always have</span>
+<span class="sd">        length 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="n">obs_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># With only one run, we can take the first entry:</span>
+        <span class="n">mc_run_head</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">mc_run_headers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">simulation_config</span> <span class="o">=</span> <span class="n">SimulationConfigContainer</span><span class="p">(</span>
+            <span class="n">corsika_version</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;shower_prog_vers&quot;</span><span class="p">],</span>
+            <span class="n">simtel_version</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;detector_prog_vers&quot;</span><span class="p">],</span>
+            <span class="n">energy_range_min</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;E_range&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+            <span class="n">energy_range_max</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;E_range&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+            <span class="n">prod_site_B_total</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;B_total&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">uT</span><span class="p">,</span>
+            <span class="n">prod_site_B_declination</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;B_declination&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">prod_site_B_inclination</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;B_inclination&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">prod_site_alt</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;obsheight&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">spectral_index</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;spectral_index&quot;</span><span class="p">],</span>
+            <span class="n">shower_prog_start</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;shower_prog_start&quot;</span><span class="p">],</span>
+            <span class="n">shower_prog_id</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;shower_prog_id&quot;</span><span class="p">],</span>
+            <span class="n">detector_prog_start</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;detector_prog_start&quot;</span><span class="p">],</span>
+            <span class="n">detector_prog_id</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;detector_prog_id&quot;</span><span class="p">],</span>
+            <span class="n">n_showers</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;n_showers&quot;</span><span class="p">],</span>
+            <span class="n">shower_reuse</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;n_use&quot;</span><span class="p">],</span>
+            <span class="n">max_alt</span><span class="o">=</span><span class="n">_clip_altitude_if_close</span><span class="p">(</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;alt_range&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+            <span class="n">min_alt</span><span class="o">=</span><span class="n">_clip_altitude_if_close</span><span class="p">(</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;alt_range&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+            <span class="n">max_az</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;az_range&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+            <span class="n">min_az</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;az_range&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+            <span class="n">diffuse</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;diffuse&quot;</span><span class="p">],</span>
+            <span class="n">max_viewcone_radius</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;viewcone&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+            <span class="n">min_viewcone_radius</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;viewcone&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+            <span class="n">max_scatter_range</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;core_range&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">min_scatter_range</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;core_range&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">core_pos_mode</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;core_pos_mode&quot;</span><span class="p">],</span>
+            <span class="n">injection_height</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;injection_height&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">atmosphere</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;atmosphere&quot;</span><span class="p">],</span>
+            <span class="n">corsika_iact_options</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_iact_options&quot;</span><span class="p">],</span>
+            <span class="n">corsika_low_E_model</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_low_E_model&quot;</span><span class="p">],</span>
+            <span class="n">corsika_high_E_model</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_high_E_model&quot;</span><span class="p">],</span>
+            <span class="n">corsika_bunchsize</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_bunchsize&quot;</span><span class="p">],</span>
+            <span class="n">corsika_wlen_min</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_wlen_min&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">,</span>
+            <span class="n">corsika_wlen_max</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_wlen_max&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">,</span>
+            <span class="n">corsika_low_E_detail</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_low_E_detail&quot;</span><span class="p">],</span>
+            <span class="n">corsika_high_E_detail</span><span class="o">=</span><span class="n">mc_run_head</span><span class="p">[</span><span class="s2">&quot;corsika_high_E_detail&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">obs_id</span><span class="p">:</span> <span class="n">simulation_config</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_fill_scheduling_and_observation_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;fill scheduling and observation blocks must be run after the</span>
+<span class="sd">        simulation config is filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">az</span><span class="p">,</span> <span class="n">alt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">]</span>
+        <span class="n">obs_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;run&quot;</span><span class="p">]</span>
+
+        <span class="n">sb_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">obs_id</span><span class="p">:</span> <span class="n">SchedulingBlockContainer</span><span class="p">(</span>
+                <span class="n">sb_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">obs_id</span><span class="p">),</span>  <span class="c1"># simulations have no SBs, use OB id</span>
+                <span class="n">sb_type</span><span class="o">=</span><span class="n">SchedulingBlockType</span><span class="o">.</span><span class="n">OBSERVATION</span><span class="p">,</span>
+                <span class="n">producer_id</span><span class="o">=</span><span class="s2">&quot;simulation&quot;</span><span class="p">,</span>
+                <span class="n">observing_mode</span><span class="o">=</span><span class="n">ObservingMode</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">pointing_mode</span><span class="o">=</span><span class="n">PointingMode</span><span class="o">.</span><span class="n">DRIFT</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="n">ob_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">obs_id</span><span class="p">:</span> <span class="n">ObservationBlockContainer</span><span class="p">(</span>
+                <span class="n">obs_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">obs_id</span><span class="p">),</span>
+                <span class="n">sb_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">obs_id</span><span class="p">),</span>  <span class="c1"># see comment above</span>
+                <span class="n">producer_id</span><span class="o">=</span><span class="s2">&quot;simulation&quot;</span><span class="p">,</span>
+                <span class="n">state</span><span class="o">=</span><span class="n">ObservationBlockState</span><span class="o">.</span><span class="n">COMPLETED_SUCCEDED</span><span class="p">,</span>
+                <span class="n">subarray_pointing_lat</span><span class="o">=</span><span class="n">alt</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+                <span class="n">subarray_pointing_lon</span><span class="o">=</span><span class="n">az</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+                <span class="n">subarray_pointing_frame</span><span class="o">=</span><span class="n">CoordinateFrameType</span><span class="o">.</span><span class="n">ALTAZ</span><span class="p">,</span>
+                <span class="n">actual_start_time</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;unix&quot;</span><span class="p">),</span>
+                <span class="n">scheduled_start_time</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;unix&quot;</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">sb_dict</span><span class="p">,</span> <span class="n">ob_dict</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_fill_simulated_event_information</span><span class="p">(</span><span class="n">array_event</span><span class="p">):</span>
+        <span class="n">mc_event</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;mc_event&quot;</span><span class="p">]</span>
+        <span class="n">mc_shower</span> <span class="o">=</span> <span class="n">array_event</span><span class="p">[</span><span class="s2">&quot;mc_shower&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mc_shower</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">alt</span> <span class="o">=</span> <span class="n">_clip_altitude_if_close</span><span class="p">(</span><span class="n">mc_shower</span><span class="p">[</span><span class="s2">&quot;altitude&quot;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">SimulatedShowerContainer</span><span class="p">(</span>
+            <span class="n">energy</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mc_shower</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">),</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">alt</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">az</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">mc_shower</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+            <span class="n">core_x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mc_event</span><span class="p">[</span><span class="s2">&quot;xcore&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">core_y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mc_event</span><span class="p">[</span><span class="s2">&quot;ycore&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">h_first_int</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mc_shower</span><span class="p">[</span><span class="s2">&quot;h_first_int&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">x_max</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mc_shower</span><span class="p">[</span><span class="s2">&quot;xmax&quot;</span><span class="p">],</span> <span class="n">X_MAX_UNIT</span><span class="p">),</span>
+            <span class="n">shower_primary_id</span><span class="o">=</span><span class="n">mc_shower</span><span class="p">[</span><span class="s2">&quot;primary_id&quot;</span><span class="p">],</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

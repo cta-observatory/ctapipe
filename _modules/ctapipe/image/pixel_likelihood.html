@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.pixel_likelihood &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.pixel_likelihood</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.pixel_likelihood</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Class for calculation of likelihood of a pixel expectation, given the pixel amplitude,</span>
+<span class="sd">the level of noise in the pixel and the photoelectron resolution.</span>
+<span class="sd">This calculation is taken from [denaurois2009]_.</span>
+
+<span class="sd">The likelihood is essentially a poissonian convolved with a gaussian, at low signal</span>
+<span class="sd">a full possonian approach must be adopted, which requires the sum of contibutions</span>
+<span class="sd">over a number of potential contributing photoelectrons (which is slow).</span>
+<span class="sd">At high signal this simplifies to a gaussian approximation.</span>
+
+<span class="sd">The full and gaussian approximations are implemented, in addition to a general purpose</span>
+<span class="sd">implementation, which tries to intellegently switch</span>
+<span class="sd">between the two. Speed tests are below:</span>
+
+<span class="sd">neg_log_likelihood_approx(image, prediction, spe, ped)</span>
+<span class="sd">29.8 µs per loop</span>
+
+<span class="sd">neg_log_likelihood_numeric(image, prediction, spe, ped)</span>
+<span class="sd">93.4 µs per loop</span>
+
+<span class="sd">neg_log_likelihood(image, prediction, spe, ped)</span>
+<span class="sd">59.9 µs per loop</span>
+
+<span class="sd">TODO:</span>
+<span class="sd">=====</span>
+<span class="sd">- Need to implement more tests, particularly checking for error states</span>
+<span class="sd">- Additional terms may be useful to add to the likelihood</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">quad</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">poisson</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;neg_log_likelihood_approx&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;neg_log_likelihood_numeric&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;neg_log_likelihood&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mean_poisson_likelihood_gaussian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mean_poisson_likelihood_full&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PixelLikelihoodError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;chi_squared&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">EPSILON</span> <span class="o">=</span> <span class="mf">5.0e-324</span>
+
+
+<div class="viewcode-block" id="PixelLikelihoodError"><a class="viewcode-back" href="../../../api/ctapipe.image.PixelLikelihoodError.html#ctapipe.image.PixelLikelihoodError">[docs]</a><span class="k">class</span> <span class="nc">PixelLikelihoodError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="neg_log_likelihood_approx"><a class="viewcode-back" href="../../../api/ctapipe.image.pixel_likelihood.neg_log_likelihood_approx.html#ctapipe.image.neg_log_likelihood_approx">[docs]</a><span class="k">def</span> <span class="nf">neg_log_likelihood_approx</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate negative log likelihood for telescope.</span>
+
+<span class="sd">    Gaussian approximation from [denaurois2009]_, p. 22 (equation between (24) and (25)).</span>
+
+<span class="sd">    Simplification:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        θ = σ_p^2 + μ · (1 + σ_γ^2)</span>
+
+<span class="sd">        → P = \\frac{1}{\\sqrt{2 π θ}} · \\exp\\left(- \\frac{(s - μ)^2}{2 θ}\\right)</span>
+
+<span class="sd">        \\ln{P} = \\ln{\\frac{1}{\\sqrt{2 π θ}}} - \\frac{(s - μ)^2}{2 θ}</span>
+
+<span class="sd">                = \\ln{1} - \\ln{\\sqrt{2 π θ}} - \\frac{(s - μ)^2}{2 θ}</span>
+
+<span class="sd">                = - \\frac{\\ln{2 π θ}}{2} - \\frac{(s - μ)^2}{2 θ}</span>
+
+<span class="sd">                = - \\frac{\\ln{2 π} + \\ln{θ}}{2} - \\frac{(s - μ)^2}{2 θ}</span>
+
+<span class="sd">        - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}</span>
+
+<span class="sd">    and since we can remove constants and factors in the minimization:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image: ndarray</span>
+<span class="sd">        Pixel amplitudes from image (:math:`s`).</span>
+<span class="sd">    prediction: ndarray</span>
+<span class="sd">        Predicted pixel amplitudes from model (:math:`μ`).</span>
+<span class="sd">    spe_width: ndarray</span>
+<span class="sd">        Width of single p.e. peak (:math:`σ_γ`).</span>
+<span class="sd">    pedestal: ndarray</span>
+<span class="sd">        Width of pedestal (:math:`σ_p`).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">pedestal</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">prediction</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">spe_width</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">neg_log_l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">theta</span> <span class="o">+</span> <span class="n">EPSILON</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">image</span> <span class="o">-</span> <span class="n">prediction</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">theta</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg_log_l</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="neg_log_likelihood_numeric"><a class="viewcode-back" href="../../../api/ctapipe.image.pixel_likelihood.neg_log_likelihood_numeric.html#ctapipe.image.neg_log_likelihood_numeric">[docs]</a><span class="k">def</span> <span class="nf">neg_log_likelihood_numeric</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate likelihood of prediction given the measured signal,</span>
+<span class="sd">    full numerical integration from [denaurois2009]_.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image: ndarray</span>
+<span class="sd">        Pixel amplitudes from image (:math:`s`).</span>
+<span class="sd">    prediction: ndarray</span>
+<span class="sd">        Predicted pixel amplitudes from model (:math:`μ`).</span>
+<span class="sd">    spe_width: ndarray</span>
+<span class="sd">        Width of single p.e. peak (:math:`σ_γ`).</span>
+<span class="sd">    pedestal: ndarray</span>
+<span class="sd">        Width of pedestal (:math:`σ_p`).</span>
+<span class="sd">    confidence: tuple(float, float), 0 &lt; x &lt; 1</span>
+<span class="sd">        Confidence interval of poisson integration.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
+
+    <span class="n">prediction</span> <span class="o">=</span> <span class="n">prediction</span> <span class="o">+</span> <span class="n">epsilon</span>
+
+    <span class="n">likelihood</span> <span class="o">=</span> <span class="n">epsilon</span>
+
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">*</span><span class="n">poisson</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">prediction</span><span class="p">))</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">confidence</span><span class="p">))</span>
+
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">ns</span><span class="p">[</span><span class="n">ns</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ns</span><span class="p">:</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">pedestal</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">spe_width</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">_l</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">prediction</span><span class="o">**</span><span class="n">n</span>
+            <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">prediction</span><span class="p">)</span>
+            <span class="o">/</span> <span class="n">theta</span>
+            <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">image</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">theta</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="n">likelihood</span> <span class="o">+=</span> <span class="n">_l</span>
+
+    <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">likelihood</span> <span class="o">+</span> <span class="n">EPSILON</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="neg_log_likelihood"><a class="viewcode-back" href="../../../api/ctapipe.image.pixel_likelihood.neg_log_likelihood.html#ctapipe.image.neg_log_likelihood">[docs]</a><span class="k">def</span> <span class="nf">neg_log_likelihood</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">,</span> <span class="n">prediction_safety</span><span class="o">=</span><span class="mf">20.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Safe implementation of the poissonian likelihood implementation,</span>
+<span class="sd">    adaptively switches between the full solution and the gaussian</span>
+<span class="sd">    approx depending on the prediction. Prediction safety parameter</span>
+<span class="sd">    determines cross over point between the two solutions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image: ndarray</span>
+<span class="sd">        Pixel amplitudes from image (:math:`s`).</span>
+<span class="sd">    prediction: ndarray</span>
+<span class="sd">        Predicted pixel amplitudes from model (:math:`μ`).</span>
+<span class="sd">    spe_width: ndarray</span>
+<span class="sd">        Width of single p.e. peak (:math:`σ_γ`).</span>
+<span class="sd">    pedestal: ndarray</span>
+<span class="sd">        Width of pedestal (:math:`σ_p`).</span>
+<span class="sd">    prediction_safety: float</span>
+<span class="sd">        Decision point to choose between poissonian likelihood</span>
+<span class="sd">        and gaussian approximation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">approx_mask</span> <span class="o">=</span> <span class="n">prediction</span> <span class="o">&gt;</span> <span class="n">prediction_safety</span>
+
+    <span class="n">neg_log_l</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">approx_mask</span><span class="p">):</span>
+        <span class="n">neg_log_l</span> <span class="o">+=</span> <span class="n">neg_log_likelihood_approx</span><span class="p">(</span>
+            <span class="n">image</span><span class="p">[</span><span class="n">approx_mask</span><span class="p">],</span> <span class="n">prediction</span><span class="p">[</span><span class="n">approx_mask</span><span class="p">],</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">approx_mask</span><span class="p">):</span>
+        <span class="n">neg_log_l</span> <span class="o">+=</span> <span class="n">neg_log_likelihood_numeric</span><span class="p">(</span>
+            <span class="n">image</span><span class="p">[</span><span class="o">~</span><span class="n">approx_mask</span><span class="p">],</span> <span class="n">prediction</span><span class="p">[</span><span class="o">~</span><span class="n">approx_mask</span><span class="p">],</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">neg_log_l</span></div>
+
+
+<div class="viewcode-block" id="mean_poisson_likelihood_gaussian"><a class="viewcode-back" href="../../../api/ctapipe.image.pixel_likelihood.mean_poisson_likelihood_gaussian.html#ctapipe.image.mean_poisson_likelihood_gaussian">[docs]</a><span class="k">def</span> <span class="nf">mean_poisson_likelihood_gaussian</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculation of the mean likelihood for a give expectation</span>
+<span class="sd">    value of pixel intensity in the gaussian approximation.</span>
+<span class="sd">    This is useful in the calculation of the goodness of fit.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    prediction: ndarray</span>
+<span class="sd">        Predicted pixel amplitudes from model</span>
+<span class="sd">    spe_width: ndarray</span>
+<span class="sd">        Width of single p.e. distribution</span>
+<span class="sd">    pedestal: ndarray</span>
+<span class="sd">        Width of pedestal</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">pedestal</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">prediction</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">spe_width</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">mean_log_likelihood</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">theta</span> <span class="o">+</span> <span class="n">EPSILON</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mean_log_likelihood</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_integral_poisson_likelihood_full</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">ped</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper function around likelihood calculation, used in numerical</span>
+<span class="sd">    integration.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+    <span class="n">prediction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
+    <span class="n">like</span> <span class="o">=</span> <span class="n">neg_log_likelihood</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">ped</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">like</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">like</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="mean_poisson_likelihood_full"><a class="viewcode-back" href="../../../api/ctapipe.image.pixel_likelihood.mean_poisson_likelihood_full.html#ctapipe.image.mean_poisson_likelihood_full">[docs]</a><span class="k">def</span> <span class="nf">mean_poisson_likelihood_full</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">ped</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculation of the mean  likelihood for a give expectation value</span>
+<span class="sd">    of pixel intensity using the full numerical integration.</span>
+<span class="sd">    This is useful in the calculation of the goodness of fit.</span>
+<span class="sd">    This numerical integration is very slow and really doesn&#39;t</span>
+<span class="sd">    make a large difference in the goodness of fit in most cases.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    prediction: ndarray</span>
+<span class="sd">        Predicted pixel amplitudes from model</span>
+<span class="sd">    spe_width: ndarray</span>
+<span class="sd">        Width of single p.e. distribution</span>
+<span class="sd">    pedestal: ndarray</span>
+<span class="sd">        Width of pedestal</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spe_width</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">spe_width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ped</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">ped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">ped</span><span class="p">)</span>
+
+    <span class="n">mean_like</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">width</span> <span class="o">=</span> <span class="n">ped</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">prediction</span> <span class="o">*</span> <span class="n">spe_width</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">pred</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">spe</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">ped</span><span class="p">):</span>
+        <span class="n">lower_integration_bound</span> <span class="o">=</span> <span class="n">pred</span> <span class="o">-</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">upper_integration_bound</span> <span class="o">=</span> <span class="n">pred</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">w</span>
+
+        <span class="n">integral</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">quad</span><span class="p">(</span>
+            <span class="n">_integral_poisson_likelihood_full</span><span class="p">,</span>
+            <span class="n">lower_integration_bound</span><span class="p">,</span>
+            <span class="n">upper_integration_bound</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">spe</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span>
+            <span class="n">epsrel</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">mean_like</span> <span class="o">+=</span> <span class="n">integral</span>
+
+    <span class="k">return</span> <span class="n">mean_like</span></div>
+
+
+<div class="viewcode-block" id="chi_squared"><a class="viewcode-back" href="../../../api/ctapipe.image.chi_squared.html#ctapipe.image.chi_squared">[docs]</a><span class="k">def</span> <span class="nf">chi_squared</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">,</span> <span class="n">error_factor</span><span class="o">=</span><span class="mf">2.9</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple chi-squared statistic from Le Bohec et al 2008</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image: ndarray</span>
+<span class="sd">        Pixel amplitudes from image (:math:`s`).</span>
+<span class="sd">    prediction: ndarray</span>
+<span class="sd">        Predicted pixel amplitudes from model (:math:`μ`).</span>
+<span class="sd">    pedestal: ndarray</span>
+<span class="sd">        Width of pedestal (:math:`σ_p`).</span>
+<span class="sd">    error_factor: float</span>
+<span class="sd">        Ad-hoc error factor</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">chi_square</span> <span class="o">=</span> <span class="p">(</span><span class="n">image</span> <span class="o">-</span> <span class="n">prediction</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">pedestal</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">image</span> <span class="o">-</span> <span class="n">prediction</span><span class="p">))</span>
+    <span class="n">chi_square</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">error_factor</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">chi_square</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

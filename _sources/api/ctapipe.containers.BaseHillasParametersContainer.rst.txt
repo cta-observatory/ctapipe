@@ -1,0 +1,25 @@
+BaseHillasParametersContainer
+=============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: BaseHillasParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~BaseHillasParametersContainer.intensity
+      ~BaseHillasParametersContainer.kurtosis
+      ~BaseHillasParametersContainer.meta
+      ~BaseHillasParametersContainer.prefix
+      ~BaseHillasParametersContainer.skewness
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: intensity
+   .. autoattribute:: kurtosis
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: skewness

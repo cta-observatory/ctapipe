@@ -1,0 +1,6 @@
+read_atmosphere_profile_from_simtel
+===================================
+
+.. currentmodule:: ctapipe.io.simteleventsource
+
+.. autofunction:: read_atmosphere_profile_from_simtel

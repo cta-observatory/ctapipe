@@ -1,0 +1,35 @@
+CameraFrame
+===========
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autoclass:: CameraFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraFrame.default_differential
+      ~CameraFrame.default_representation
+      ~CameraFrame.focal_length
+      ~CameraFrame.frame_attributes
+      ~CameraFrame.frame_specific_representation_info
+      ~CameraFrame.location
+      ~CameraFrame.name
+      ~CameraFrame.obstime
+      ~CameraFrame.rotation
+      ~CameraFrame.telescope_pointing
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: focal_length
+   .. autoattribute:: frame_attributes
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: location
+   .. autoattribute:: name
+   .. autoattribute:: obstime
+   .. autoattribute:: rotation
+   .. autoattribute:: telescope_pointing

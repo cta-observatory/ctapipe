@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.instrument.subarray &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.instrument.subarray</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.instrument.subarray</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Description of Arrays or Subarrays of telescopes</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">ExitStack</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.earth</span> <span class="kn">import</span> <span class="n">EarthLocation</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">join</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">lazyproperty</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">CTAPIPE_VERSION</span>
+<span class="kn">from</span> <span class="nn">..coordinates</span> <span class="kn">import</span> <span class="n">CameraFrame</span><span class="p">,</span> <span class="n">GroundFrame</span>
+<span class="kn">from</span> <span class="nn">.camera</span> <span class="kn">import</span> <span class="n">CameraDescription</span><span class="p">,</span> <span class="n">CameraGeometry</span><span class="p">,</span> <span class="n">CameraReadout</span>
+<span class="kn">from</span> <span class="nn">.optics</span> <span class="kn">import</span> <span class="n">FocalLengthKind</span><span class="p">,</span> <span class="n">OpticsDescription</span>
+<span class="kn">from</span> <span class="nn">.telescope</span> <span class="kn">import</span> <span class="n">TelescopeDescription</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SubarrayDescription&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="UnknownTelescopeID"><a class="viewcode-back" href="../../../api/ctapipe.instrument.UnknownTelescopeID.html#ctapipe.instrument.UnknownTelescopeID">[docs]</a><span class="k">class</span> <span class="nc">UnknownTelescopeID</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an unknown telescope id is encountered&quot;&quot;&quot;</span></div>
+
+
+<span class="k">def</span> <span class="nf">_group_consecutives</span><span class="p">(</span><span class="n">sequence</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Turn consequtive lists into ranges (used in SubarrayDescription.info())</span>
+
+<span class="sd">    from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sequence</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">sequence</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">i_x</span><span class="p">:</span> <span class="n">i_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">i_x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">g</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_range_extraction</span><span class="p">(</span><span class="n">sequence</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_group_consecutives</span><span class="p">(</span><span class="n">sequence</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="SubarrayDescription"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription">[docs]</a><span class="k">class</span> <span class="nc">SubarrayDescription</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes</span>
+<span class="sd">    along with their positions on the ground.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name: str</span>
+<span class="sd">       name of subarray</span>
+<span class="sd">    tel_coords: astropy.coordinates.SkyCoord</span>
+<span class="sd">       coordinates of all telescopes</span>
+<span class="sd">    tels:</span>
+<span class="sd">       dict of TelescopeDescription for each telescope in the subarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">CURRENT_TAB_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2.0&quot;</span>
+    <span class="n">COMPATIBLE_VERSIONS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;2.0&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">tel_positions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">tel_descriptions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">reference_location</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a new SubarrayDescription</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name of this subarray</span>
+<span class="sd">        tel_positions : Dict[int, np.ndarray]</span>
+<span class="sd">            dict of x,y,z telescope positions on the ground by tel_id. These are</span>
+<span class="sd">            converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`</span>
+<span class="sd">        tel_descriptions : Dict[TelescopeDescription]</span>
+<span class="sd">            dict of TelescopeDescriptions by tel_id</span>
+<span class="sd">        reference_location : `astropy.coordinates.EarthLocation`</span>
+<span class="sd">            EarthLocation of the array reference position, (0, 0, 0) of the</span>
+<span class="sd">            coordinate system used for `tel_positions`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="n">tel_positions</span> <span class="ow">or</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">TelescopeDescription</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_descriptions</span> <span class="ow">or</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span> <span class="o">=</span> <span class="n">reference_location</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Telescope ids in positions and descriptions do not match&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(name=&#39;</span><span class="si">{}</span><span class="s2">&#39;, n_tels=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_tels</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">TelescopeDescription</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dictionary mapping tel_ids to TelescopeDescriptions&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_tels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;number of telescopes in this subarray&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SubarrayDescription.info"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.info">[docs]</a>    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">printer</span><span class="o">=</span><span class="nb">print</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        print descriptive info about subarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Subarray : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Num Tels : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_tels</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Footprint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">footprint</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">printer</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># print the per-telescope-type informatino:</span>
+        <span class="n">n_tels</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">tel_ids</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">tel_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope_types</span><span class="p">:</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tel_ids_for_type</span><span class="p">(</span><span class="n">tel_type</span><span class="p">)</span>
+            <span class="n">tel_ids</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">tel_type</span><span class="p">)]</span> <span class="o">=</span> <span class="n">_range_extraction</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+            <span class="n">n_tels</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">tel_type</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+
+        <span class="n">out_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;Type&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">n_tels</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
+                <span class="s2">&quot;Count&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">n_tels</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                <span class="s2">&quot;Tel IDs&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">tel_ids</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">out_table</span><span class="p">[</span><span class="s2">&quot;Tel IDs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s2">&quot;&lt;s&quot;</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">out_table</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">):</span>
+            <span class="n">printer</span><span class="p">(</span><span class="n">line</span><span class="p">)</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">tel_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns telescope positions as astropy.coordinates.SkyCoord&quot;&quot;&quot;</span>
+
+        <span class="n">pos_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="n">pos_y</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="n">pos_z</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+
+        <span class="k">return</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">pos_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">pos_y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">pos_z</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">GroundFrame</span><span class="p">())</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">tel_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;telescope IDs as an array&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">tel_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns dict mapping tel_id to tel_index, useful for unpacking</span>
+<span class="sd">        lists based on tel_ids into fixed-length arrays&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">tel_id</span><span class="p">:</span> <span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">tel_index_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns an expanded array that maps tel_id to tel_index. I.e. for a given</span>
+<span class="sd">        telescope, this array maps the tel_id to a flat index starting at 0 for</span>
+<span class="sd">        the first telescope. ``tel_index = tel_id_to_index_array[tel_id]``</span>
+<span class="sd">        If the tel_ids are not contiguous, gaps will be filled in by -1.</span>
+<span class="sd">        For a more compact representation use the `tel_indices`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_ids</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># start with -1</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_indices</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">idx</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="n">idx</span>
+
+<div class="viewcode-block" id="SubarrayDescription.tel_ids_to_indices"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.tel_ids_to_indices">[docs]</a>    <span class="k">def</span> <span class="nf">tel_ids_to_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_ids</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;maps a telescope id (or array of them) to flat indices</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_ids : int or List[int]</span>
+<span class="sd">            array of tel IDs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array:</span>
+<span class="sd">            array of corresponding tel indices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tel_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_index_array</span><span class="p">[</span><span class="n">tel_ids</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.tel_ids_to_mask"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.tel_ids_to_mask">[docs]</a>    <span class="k">def</span> <span class="nf">tel_ids_to_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_ids</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert a list of telescope ids to a boolean mask</span>
+<span class="sd">        of length ``n_tels`` where the **index** of the telescope</span>
+<span class="sd">        is set to ``True`` for each tel_id in tel_ids</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_ids : int or List[int]</span>
+<span class="sd">            array of tel IDs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array[dtype=bool]:</span>
+<span class="sd">            Boolean array of length ``n_tels`` with indices of the</span>
+<span class="sd">            telescopes in ``tel_ids`` set to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_tels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_ids_to_indices</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">)</span>
+        <span class="n">mask</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.tel_mask_to_tel_ids"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.tel_mask_to_tel_ids">[docs]</a>    <span class="k">def</span> <span class="nf">tel_mask_to_tel_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a boolean mask of selected telescopes to a list of tel_ids.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_mask: array-like</span>
+<span class="sd">            Boolean array of length ``n_tels`` with indices of the</span>
+<span class="sd">            telescopes in ``tel_ids`` set to True.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array:</span>
+<span class="sd">            Array of selected tel_ids</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_ids</span><span class="p">[</span><span class="n">tel_mask</span><span class="p">]</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">footprint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;area of smallest circle containing array on ground&quot;&quot;&quot;</span>
+        <span class="n">pos_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">x</span>
+        <span class="n">pos_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">y</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pos_x</span><span class="p">,</span> <span class="n">pos_y</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;km^2&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SubarrayDescription.to_table"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.to_table">[docs]</a>    <span class="k">def</span> <span class="nf">to_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;subarray&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        export SubarrayDescription information as an `astropy.table.Table`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kind: str</span>
+<span class="sd">            which table to generate (subarray or optics)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;joined&quot;</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_table</span><span class="p">()</span>
+            <span class="n">optics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">)</span>
+            <span class="n">optics</span><span class="p">[</span><span class="s2">&quot;optics_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">optics</span><span class="p">))</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span>
+                <span class="n">table</span><span class="p">,</span>
+                <span class="n">optics</span><span class="p">,</span>
+                <span class="n">keys</span><span class="o">=</span><span class="s2">&quot;optics_index&quot;</span><span class="p">,</span>
+                <span class="c1"># conflicts for TAB_VER, TAB_TYPE, not needed here, ignore</span>
+                <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s2">&quot;silent&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">table</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="s2">&quot;optics_index&quot;</span><span class="p">,</span> <span class="s2">&quot;camera_index&quot;</span><span class="p">])</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_index</span><span class="p">(</span><span class="s2">&quot;tel_id&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">table</span>
+
+        <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;ORIGIN&quot;</span><span class="p">:</span> <span class="s2">&quot;ctapipe.instrument.SubarrayDescription&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SUBARRAY&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;SOFT_VER&quot;</span><span class="p">:</span> <span class="n">CTAPIPE_VERSION</span><span class="p">,</span>
+            <span class="s2">&quot;TAB_TYPE&quot;</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;subarray&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">itrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span><span class="o">.</span><span class="n">itrs</span>
+                <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;OBSGEO-X&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">itrs</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;OBSGEO-Y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">itrs</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;OBSGEO-Z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">itrs</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+            <span class="n">unique_optics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_types</span>
+
+            <span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">descs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="n">tel_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="n">tel_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">size_type</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="n">cam_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="n">optics_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="n">optics_index</span> <span class="o">=</span> <span class="p">[</span><span class="n">unique_optics</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">optics</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="n">camera_index</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">camera_types</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">camera</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="n">tel_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span>
+
+            <span class="n">tab</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+                <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">tel_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">short</span><span class="p">),</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">tel_names</span><span class="p">,</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="n">tel_types</span><span class="p">,</span>
+                    <span class="n">pos_x</span><span class="o">=</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+                    <span class="n">pos_y</span><span class="o">=</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                    <span class="n">pos_z</span><span class="o">=</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">z</span><span class="p">,</span>
+                    <span class="n">camera_name</span><span class="o">=</span><span class="n">cam_names</span><span class="p">,</span>
+                    <span class="n">optics_name</span><span class="o">=</span><span class="n">optics_names</span><span class="p">,</span>
+                    <span class="n">camera_index</span><span class="o">=</span><span class="n">camera_index</span><span class="p">,</span>
+                    <span class="n">optics_index</span><span class="o">=</span><span class="n">optics_index</span><span class="p">,</span>
+                    <span class="n">tel_description</span><span class="o">=</span><span class="n">descs</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CURRENT_TAB_VERSION</span>
+
+        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;optics&quot;</span><span class="p">:</span>
+            <span class="n">unique_optics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_types</span>
+
+            <span class="n">mirror_area</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">mirror_area</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">focal_length</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">equivalent_focal_length</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">effective_focal_length</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">effective_focal_length</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">tab</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;optics_name&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                    <span class="s2">&quot;size_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">size_type</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                    <span class="s2">&quot;reflector_shape&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">reflector_shape</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                    <span class="s2">&quot;mirror_area&quot;</span><span class="p">:</span> <span class="n">mirror_area</span><span class="p">,</span>
+                    <span class="s2">&quot;n_mirrors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">n_mirrors</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                    <span class="s2">&quot;n_mirror_tiles&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">n_mirror_tiles</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">unique_optics</span><span class="p">],</span>
+                    <span class="s2">&quot;equivalent_focal_length&quot;</span><span class="p">:</span> <span class="n">focal_length</span><span class="p">,</span>
+                    <span class="s2">&quot;effective_focal_length&quot;</span><span class="p">:</span> <span class="n">effective_focal_length</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OpticsDescription</span><span class="o">.</span><span class="n">CURRENT_TAB_VERSION</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table type &#39;</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">&#39; not known&quot;</span><span class="p">)</span>
+
+        <span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tab</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.select_subarray"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.select_subarray">[docs]</a>    <span class="k">def</span> <span class="nf">select_subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_ids</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return a new SubarrayDescription that is a sub-array of this one</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_ids: list(int)</span>
+<span class="sd">            list of telescope IDs to include in the new subarray</span>
+<span class="sd">        name: str</span>
+<span class="sd">            name of new sub-selection</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SubarrayDescription</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">unknown_tel_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unknown_tel_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">known</span> <span class="o">=</span> <span class="n">_range_extraction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">UnknownTelescopeID</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">unknown_tel_ids</span><span class="si">}</span><span class="s2">, known telescopes: </span><span class="si">{</span><span class="n">known</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">tel_positions</span> <span class="o">=</span> <span class="p">{</span><span class="n">tid</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="k">for</span> <span class="n">tid</span> <span class="ow">in</span> <span class="n">tel_ids</span><span class="p">}</span>
+        <span class="n">tel_descriptions</span> <span class="o">=</span> <span class="p">{</span><span class="n">tid</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="k">for</span> <span class="n">tid</span> <span class="ow">in</span> <span class="n">tel_ids</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">_range_extraction</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">)</span>
+
+        <span class="n">newsub</span> <span class="o">=</span> <span class="n">SubarrayDescription</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">tel_positions</span><span class="o">=</span><span class="n">tel_positions</span><span class="p">,</span> <span class="n">tel_descriptions</span><span class="o">=</span><span class="n">tel_descriptions</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">newsub</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.peek"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.peek">[docs]</a>    <span class="k">def</span> <span class="nf">peek</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Draw a quick matplotlib plot of the array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+        <span class="kn">from</span> <span class="nn">ctapipe.coordinates.ground_frames</span> <span class="kn">import</span> <span class="n">EastingNorthingFrame</span>
+        <span class="kn">from</span> <span class="nn">ctapipe.visualization</span> <span class="kn">import</span> <span class="n">ArrayDisplay</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="n">ad</span> <span class="o">=</span> <span class="n">ArrayDisplay</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">EastingNorthingFrame</span><span class="p">(),</span> <span class="n">tel_scale</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+        <span class="n">ad</span><span class="o">.</span><span class="n">add_labels</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">telescope_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">TelescopeDescription</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tuple of unique telescope types in the array</span>
+
+<span class="sd">        The entries are ordered by telescope name to be deterministic</span>
+<span class="sd">        but the order should not be relied on.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">unique_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unique_types</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">tel</span><span class="p">:</span> <span class="n">tel</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">camera_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">CameraDescription</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tuple of unique camera types in the array</span>
+
+<span class="sd">        The entries are ordered by camera name to be deterministic</span>
+<span class="sd">        but the order should not be relied on.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">unique_cameras</span> <span class="o">=</span> <span class="p">{</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unique_cameras</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">camera</span><span class="p">:</span> <span class="n">camera</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">optics_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">OpticsDescription</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tuple of unique optics types in the array</span>
+
+<span class="sd">        The entries are ordered by optics name to be deterministic</span>
+<span class="sd">        but the order should not be relied on.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">unique_optics</span> <span class="o">=</span> <span class="p">{</span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unique_optics</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">optics</span><span class="p">:</span> <span class="n">optics</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+<div class="viewcode-block" id="SubarrayDescription.get_tel_ids_for_type"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.get_tel_ids_for_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_tel_ids_for_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return list of tel_ids that have the given tel_type</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_type: str or TelescopeDescription</span>
+<span class="sd">           telescope type string (e.g. &#39;MST_MST_NectarCam&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tel_type</span><span class="p">,</span> <span class="n">TelescopeDescription</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tel_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope_types</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tel_type</span><span class="si">}</span><span class="s2"> not in subarray: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">telescope_types</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">tel_id</span> <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">descr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">descr</span> <span class="o">==</span> <span class="n">tel_type</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope_types</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">tel_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tel_type</span><span class="si">}</span><span class="s2"> not in subarray: </span><span class="si">{</span><span class="n">valid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">tel_id</span> <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">descr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">descr</span><span class="p">)</span> <span class="o">==</span> <span class="n">tel_type</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.get_tel_ids"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.get_tel_ids">[docs]</a>    <span class="k">def</span> <span class="nf">get_tel_ids</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">telescopes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">TelescopeDescription</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a list of telescope ids and telescope descriptions to</span>
+<span class="sd">        a list of unique telescope ids.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        telescopes: List[Union[int, str, TelescopeDescription]]</span>
+<span class="sd">            List of Telescope IDs and descriptions.</span>
+<span class="sd">            Supported inputs for telescope descriptions are instances of</span>
+<span class="sd">            `~ctapipe.instrument.TelescopeDescription` as well as their</span>
+<span class="sd">            string representation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tel_ids: List[int]</span>
+<span class="sd">            List of unique telescope ids matching ``telescopes``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># support single telescope element</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">telescopes</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">TelescopeDescription</span><span class="p">)):</span>
+            <span class="n">telescopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">telescopes</span><span class="p">,)</span>
+
+        <span class="k">for</span> <span class="n">telescope</span> <span class="ow">in</span> <span class="n">telescopes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">telescope</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">telescope</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Telescope with tel_id=</span><span class="si">{</span><span class="n">telescope</span><span class="si">}</span><span class="s2"> not in subarray.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">telescope</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tel_ids_for_type</span><span class="p">(</span><span class="n">telescope</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">reference_location</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">tels</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="SubarrayDescription.to_hdf"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.to_hdf">[docs]</a>    <span class="k">def</span> <span class="nf">to_hdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5file</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;write the SubarrayDescription</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        h5file : str, bytes, path or tables.File</span>
+<span class="sd">            Path or already opened tables.File with write permission</span>
+<span class="sd">        overwrite : False</span>
+<span class="sd">            If the output path already contains a subarray, by default</span>
+<span class="sd">            an error will be raised. Set ``overwrite=True`` to overwrite an</span>
+<span class="sd">            existing subarray. This does not affect other content of the file.</span>
+<span class="sd">            Use ``mode=&quot;w&quot;`` to completely overwrite the output path.</span>
+<span class="sd">        mode : str</span>
+<span class="sd">            If h5file is not an already opened file, the output file will</span>
+<span class="sd">            be opened with the given mode. Must be a mode that enables writing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># here to prevent circular import</span>
+        <span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="n">write_table</span>
+
+        <span class="k">with</span> <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+                <span class="n">h5file</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="s2">&quot;/configuration/instrument/subarray&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                    <span class="s2">&quot;File already contains a SubarrayDescription and overwrite=False&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">subarray_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">&quot;subarray&quot;</span><span class="p">)</span>
+            <span class="n">subarray_table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># change FITS convention to something better fitting HDF</span>
+                <span class="k">for</span> <span class="n">direction</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">):</span>
+                    <span class="n">fits_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;OBSGEO-</span><span class="si">{</span><span class="n">direction</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">hdf_key</span> <span class="o">=</span> <span class="s2">&quot;reference_itrs_&quot;</span> <span class="o">+</span> <span class="n">direction</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="n">subarray_table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">hdf_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">subarray_table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">fits_key</span><span class="p">)</span>
+
+            <span class="n">write_table</span><span class="p">(</span>
+                <span class="n">subarray_table</span><span class="p">,</span>
+                <span class="n">h5file</span><span class="p">,</span>
+                <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/configuration/instrument/subarray/layout&quot;</span><span class="p">,</span>
+                <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">write_table</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">),</span>
+                <span class="n">h5file</span><span class="p">,</span>
+                <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/configuration/instrument/telescope/optics&quot;</span><span class="p">,</span>
+                <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">camera</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">camera_types</span><span class="p">):</span>
+                <span class="n">write_table</span><span class="p">(</span>
+                    <span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">to_table</span><span class="p">(),</span>
+                    <span class="n">h5file</span><span class="p">,</span>
+                    <span class="n">path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;/configuration/instrument/telescope/camera/geometry_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">write_table</span><span class="p">(</span>
+                    <span class="n">camera</span><span class="o">.</span><span class="n">readout</span><span class="o">.</span><span class="n">to_table</span><span class="p">(),</span>
+                    <span class="n">h5file</span><span class="p">,</span>
+                    <span class="n">path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;/configuration/instrument/telescope/camera/readout_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
+                <span class="p">)</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.from_hdf"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.from_hdf">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_hdf</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">focal_length_choice</span><span class="o">=</span><span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EFFECTIVE</span><span class="p">):</span>
+        <span class="c1"># here to prevent circular import</span>
+        <span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="n">read_table</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">focal_length_choice</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">focal_length_choice</span> <span class="o">=</span> <span class="n">FocalLengthKind</span><span class="p">[</span><span class="n">focal_length_choice</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>
+
+        <span class="n">layout</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="s2">&quot;/configuration/instrument/subarray/layout&quot;</span><span class="p">,</span> <span class="n">table_cls</span><span class="o">=</span><span class="n">QTable</span>
+        <span class="p">)</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">COMPATIBLE_VERSIONS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported version of subarray table: </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">cameras</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># backwards compatibility for older tables, index is the name</span>
+        <span class="k">if</span> <span class="s2">&quot;camera_index&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">layout</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="n">layout</span><span class="p">[</span><span class="s2">&quot;camera_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">layout</span><span class="p">[</span><span class="s2">&quot;camera_type&quot;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">layout</span><span class="p">[</span><span class="s2">&quot;camera_index&quot;</span><span class="p">]):</span>
+            <span class="n">geometry</span> <span class="o">=</span> <span class="n">CameraGeometry</span><span class="o">.</span><span class="n">from_table</span><span class="p">(</span>
+                <span class="n">read_table</span><span class="p">(</span>
+                    <span class="n">path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;/configuration/instrument/telescope/camera/geometry_</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">readout</span> <span class="o">=</span> <span class="n">CameraReadout</span><span class="o">.</span><span class="n">from_table</span><span class="p">(</span>
+                <span class="n">read_table</span><span class="p">(</span>
+                    <span class="n">path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;/configuration/instrument/telescope/camera/readout_</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">cameras</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">CameraDescription</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">geometry</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">readout</span><span class="o">=</span><span class="n">readout</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="n">geometry</span>
+            <span class="p">)</span>
+
+        <span class="n">optics_table</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="s2">&quot;/configuration/instrument/telescope/optics&quot;</span><span class="p">,</span> <span class="n">table_cls</span><span class="o">=</span><span class="n">QTable</span>
+        <span class="p">)</span>
+
+        <span class="n">optics_version</span> <span class="o">=</span> <span class="n">optics_table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optics_version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OpticsDescription</span><span class="o">.</span><span class="n">COMPATIBLE_VERSIONS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported version of optics table: </span><span class="si">{</span><span class="n">optics_version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># for backwards compatibility</span>
+        <span class="c1"># if optics_index not in table, guess via telescope_description string</span>
+        <span class="c1"># might not result in correct array when there are duplicated telescope_description</span>
+        <span class="c1"># strings</span>
+        <span class="k">if</span> <span class="s2">&quot;optics_index&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">layout</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="n">descriptions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">optics_table</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">])</span>
+            <span class="n">layout</span><span class="p">[</span><span class="s2">&quot;optics_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">descriptions</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">layout</span><span class="p">[</span><span class="s2">&quot;tel_description&quot;</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">descriptions</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">descriptions</span><span class="p">)):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Array contains different telescopes with the same description string&quot;</span>
+                    <span class="s2">&quot; representation, optics descriptions will be incorrect for some of the telescopes.&quot;</span>
+                    <span class="s2">&quot; Reprocessing the data with ctapipe &gt;= 0.12 will fix this problem.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">optic_descriptions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">OpticsDescription</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;optics_name&quot;</span><span class="p">],</span>
+                <span class="n">size_type</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;size_type&quot;</span><span class="p">],</span>
+                <span class="n">reflector_shape</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;reflector_shape&quot;</span><span class="p">],</span>
+                <span class="n">n_mirrors</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;n_mirrors&quot;</span><span class="p">],</span>
+                <span class="n">equivalent_focal_length</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;equivalent_focal_length&quot;</span><span class="p">],</span>
+                <span class="n">effective_focal_length</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;effective_focal_length&quot;</span><span class="p">],</span>
+                <span class="n">mirror_area</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;mirror_area&quot;</span><span class="p">],</span>
+                <span class="n">n_mirror_tiles</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;n_mirror_tiles&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">optics_table</span>
+        <span class="p">]</span>
+
+        <span class="c1"># give correct frame for the camera to each telescope</span>
+        <span class="n">telescope_descriptions</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">layout</span><span class="p">:</span>
+            <span class="c1"># copy to support different telescopes with same camera geom</span>
+            <span class="n">camera</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">cameras</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;camera_index&quot;</span><span class="p">]])</span>
+            <span class="n">optics</span> <span class="o">=</span> <span class="n">optic_descriptions</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;optics_index&quot;</span><span class="p">]]</span>
+
+            <span class="k">if</span> <span class="n">focal_length_choice</span> <span class="ow">is</span> <span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EFFECTIVE</span><span class="p">:</span>
+                <span class="n">focal_length</span> <span class="o">=</span> <span class="n">optics</span><span class="o">.</span><span class="n">effective_focal_length</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">focal_length</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="s2">&quot;`focal_length_choice` was set to &#39;EFFECTIVE&#39;, but the&quot;</span>
+                        <span class="s2">&quot; effective focal length was not present in the file. &quot;</span>
+                        <span class="s2">&quot; Set `focal_length_choice=&#39;EQUIVALENT&#39;` or make sure&quot;</span>
+                        <span class="s2">&quot; input files contain the effective focal length&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">focal_length_choice</span> <span class="ow">is</span> <span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EQUIVALENT</span><span class="p">:</span>
+                <span class="n">focal_length</span> <span class="o">=</span> <span class="n">optics</span><span class="o">.</span><span class="n">equivalent_focal_length</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid focal length choice: </span><span class="si">{</span><span class="n">focal_length_choice</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">CameraFrame</span><span class="p">(</span><span class="n">focal_length</span><span class="o">=</span><span class="n">focal_length</span><span class="p">)</span>
+            <span class="n">telescope_descriptions</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;tel_id&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">TelescopeDescription</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">optics</span><span class="o">=</span><span class="n">optics</span><span class="p">,</span> <span class="n">camera</span><span class="o">=</span><span class="n">camera</span>
+            <span class="p">)</span>
+
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">layout</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;pos_</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">&quot;xyz&quot;</span><span class="p">])</span>
+
+        <span class="n">reference_location</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SUBARRAY&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;reference_itrs_x&quot;</span> <span class="ow">in</span> <span class="n">layout</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+            <span class="n">reference_location</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;reference_itrs_x&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;reference_itrs_y&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+                <span class="n">z</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;reference_itrs_z&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">tel_positions</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">tel_id</span><span class="p">:</span> <span class="n">pos</span> <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">layout</span><span class="p">[</span><span class="s2">&quot;tel_id&quot;</span><span class="p">],</span> <span class="n">positions</span><span class="p">)</span>
+            <span class="p">},</span>
+            <span class="n">tel_descriptions</span><span class="o">=</span><span class="n">telescope_descriptions</span><span class="p">,</span>
+            <span class="n">reference_location</span><span class="o">=</span><span class="n">reference_location</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="SubarrayDescription.read"><a class="viewcode-back" href="../../../api/ctapipe.instrument.subarray.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.read">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read subarray from path</span>
+
+<span class="sd">        This uses the `~ctapipe.io.EventSource` mechanism, so it should be</span>
+<span class="sd">        able to read a subarray from any file supported by ctapipe or an</span>
+<span class="sd">        installed io plugin.</span>
+
+<span class="sd">        kwargs are passed to the event source</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># here to prevent circular import</span>
+        <span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="n">EventSource</span>
+
+        <span class="k">with</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">subarray</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

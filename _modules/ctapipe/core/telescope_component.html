@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.core.telescope_component &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.core.telescope_component</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.core.telescope_component</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines classes to enable per-telescope configuration of trait values</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">UserList</span>
+<span class="kn">from</span> <span class="nn">fnmatch</span> <span class="kn">import</span> <span class="n">fnmatch</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">TraitError</span><span class="p">,</span> <span class="n">TraitType</span><span class="p">,</span> <span class="n">Undefined</span>
+
+<span class="kn">from</span> <span class="nn">.component</span> <span class="kn">import</span> <span class="n">Component</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;TelescopeComponent&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TelescopeParameter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TelescopeParameterLookup&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TelescopePatternList&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TelescopeComponent</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,</span>
+<span class="sd">    and which contains configurable `~ctapipe.core.telescope_component.TelescopeParameter`</span>
+<span class="sd">    fields that must be configured on construction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span>
+
+    <span class="nd">@subarray</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+        <span class="c1"># configure all of the TelescopeParameters</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">trait</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_traits</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trait</span><span class="p">,</span> <span class="n">TelescopeParameter</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># trait is the TelescopeParameter descriptor at the class,</span>
+            <span class="c1"># need to get the value at the instance, which will be a TelescopePatternList</span>
+            <span class="n">pattern_list</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pattern_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pattern_list</span><span class="o">.</span><span class="n">attach_subarray</span><span class="p">(</span><span class="n">subarray</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain an instance of a subclass via its name</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the subclass to obtain</span>
+<span class="sd">        subarray: ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">            The current subarray for this TelescopeComponent.</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            This argument is typically only specified when using this method</span>
+<span class="sd">            from within a Tool.</span>
+<span class="sd">        parent : ctapipe.core.Tool</span>
+<span class="sd">            Tool executable that is calling this component.</span>
+<span class="sd">            Passes the correct logger and configuration to the component.</span>
+<span class="sd">            This argument is typically only specified when using this method</span>
+<span class="sd">            from within a Tool (config need not be passed if parent is used).</span>
+<span class="sd">        kwargs</span>
+<span class="sd">            Are passed to the subclass</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Instance</span>
+<span class="sd">            Instance of subclass to this class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">requested_subclass</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">requested_subclass</span><span class="p">(</span>
+            <span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TelescopePatternList</span><span class="p">(</span><span class="n">UserList</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Representation for a list of telescope pattern tuples. This is a helper class</span>
+<span class="sd">    used  by the Trait TelescopeParameter as its value type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_to_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;access the value per telescope_id, e.g. ``param.tel[2]``&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;No TelescopeParameterLookup was registered. You must &quot;</span>
+                <span class="s2">&quot;call attach_subarray() first&quot;</span>
+            <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">single_to_pattern</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="c1"># make sure we only change things that are not already a</span>
+        <span class="c1"># pattern tuple</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span>
+            <span class="ow">or</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">}</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">value</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate and then append a new value&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_to_pattern</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">attach_subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a SubarrayDescription so that the user-specified values can be</span>
+<span class="sd">        looked up by tel_id. This must be done before using the ``.tel[x]`` property</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="o">.</span><span class="n">attach_subarray</span><span class="p">(</span><span class="n">subarray</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TelescopeParameterLookup</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_parameter_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Handles the lookup of corresponding configuration value from a list of</span>
+<span class="sd">        tuples for a tel_id.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        telescope_parameter_list : list</span>
+<span class="sd">            List of tuples in the form `[(command, argument, value), ...]`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_telescope_parameter_list</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">telescope_parameter_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_tel_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_global_value</span> <span class="o">=</span> <span class="n">Undefined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_type_strs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">telescope_parameter_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;*&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_global_value</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">attach_subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare the TelescopeParameter by informing it of the</span>
+<span class="sd">        subarray description</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        subarray: ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">            Description of the subarray</span>
+<span class="sd">            (includes mapping of tel_id to tel_type)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_tel_id</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_type</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_type_strs</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subarray</span><span class="o">.</span><span class="n">telescope_types</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">command</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_telescope_parameter_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span>
+                <span class="n">matched_tel_types</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span> <span class="k">if</span> <span class="n">fnmatch</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">arg</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;argument &#39;</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">&#39; matched: </span><span class="si">{</span><span class="n">matched_tel_types</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_tel_types</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;TelescopeParameter type argument &#39;</span><span class="si">%s</span><span class="s2">&#39; did not match &quot;</span>
+                        <span class="s2">&quot;any known telescope types&quot;</span><span class="p">,</span>
+                        <span class="n">arg</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">tel_type</span> <span class="ow">in</span> <span class="n">matched_tel_types</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_type</span><span class="p">[</span><span class="n">tel_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                    <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">subarray</span><span class="o">.</span><span class="n">get_tel_ids_for_type</span><span class="p">(</span><span class="n">tel_type</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_tel_id</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_tel_id</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">arg</span><span class="p">)]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized command: </span><span class="si">{</span><span class="n">command</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the resolved parameter for the given telescope id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_global_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">Undefined</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subarray_global_value</span>
+
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No subarray global value set for TelescopeParameter&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_tel_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;TelescopeParameterLookup: No subarray attached, call &quot;</span>
+                <span class="s2">&quot;`attach_subarray` first before trying to access a value by tel_id&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tel</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_tel_id</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;TelescopeParameterLookup: no &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;parameter value was set for telescope with tel_id=&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tel</span><span class="si">}</span><span class="s2">. Please set it explicitly, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;or by telescope type or &#39;*&#39;.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="kn">from</span> <span class="nn">ctapipe.instrument</span> <span class="kn">import</span> <span class="n">TelescopeDescription</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tel</span><span class="p">,</span> <span class="n">TelescopeDescription</span><span class="p">):</span>
+            <span class="n">tel</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tel</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">tel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type_strs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unknown telescope type </span><span class="si">{</span><span class="n">tel</span><span class="si">}</span><span class="s2">, known: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_type_strs</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_for_type</span><span class="p">[</span><span class="n">tel</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s2">&quot;TelescopeParameterLookup: no &quot;</span>
+                    <span class="s2">&quot;parameter value was set for telescope type&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot; &#39;</span><span class="si">{</span><span class="n">tel</span><span class="si">}</span><span class="s2">&#39;. Please set explicitly or using &#39;*&#39;.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported lookup type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TelescopeParameter</span><span class="p">(</span><span class="n">List</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allow a parameter value to be specified as a simple value (of type *dtype*),</span>
+<span class="sd">    or as a list of patterns that match different telescopes.</span>
+
+<span class="sd">    The patterns are given as a list of 3-tuples in the</span>
+<span class="sd">    form: ``[(command, argument, value), ...]``.</span>
+
+<span class="sd">    Command can be one of:</span>
+
+<span class="sd">    - ``&#39;type&#39;``: argument is then a telescope type  string (e.g.</span>
+<span class="sd">      ``(&#39;type&#39;, &#39;SST_ASTRI_CHEC&#39;, 4.0)`` to apply to all telescopes of that type,</span>
+<span class="sd">      or use a wildcard like &quot;LST*&quot;, or &quot;*&quot; to set a pure default value for all</span>
+<span class="sd">      telescopes.</span>
+<span class="sd">    - ``&#39;id&#39;``:  argument is a specific telescope ID ``[&#39;id&#39;, 89, 5.0]``)</span>
+
+<span class="sd">    These are evaluated in-order, so you can first set a default value, and then set</span>
+<span class="sd">    values for specific telescopes or types to override them.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    .. code-block: python</span>
+
+<span class="sd">        tel_param = [</span>
+<span class="sd">            (&#39;type&#39;, &#39;*&#39;, 5.0),                       # default for all</span>
+<span class="sd">            (&#39;type&#39;, &#39;LST_*&#39;, 5.2),</span>
+<span class="sd">            (&#39;type&#39;, &#39;MST_MST_NectarCam&#39;, 4.0),</span>
+<span class="sd">            (&#39;type&#39;, &#39;MST_MST_FlashCam&#39;, 4.5),</span>
+<span class="sd">            (&#39;id&#39;, 34, 4.0),                   # override telescope 34 specifically</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    .. code-block: python</span>
+
+<span class="sd">        tel_param = 4.0  # sets this value for all telescopes</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">klass</span> <span class="o">=</span> <span class="n">TelescopePatternList</span>
+    <span class="n">_valid_defaults</span> <span class="o">=</span> <span class="p">(</span><span class="nb">object</span><span class="p">,)</span>  <span class="c1"># allow everything, we validate the default ourselves</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trait</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="n">Undefined</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new TelescopeParameter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_help</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trait</span><span class="p">,</span> <span class="n">TraitType</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;trait must be a TraitType instance&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trait</span> <span class="o">=</span> <span class="n">trait</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allow_none</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;allow_none&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">default_value</span> <span class="o">!=</span> <span class="n">Undefined</span><span class="p">:</span>
+            <span class="n">default_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default_value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;help&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s2">&quot;A TelescopeParameter&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="n">default_value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_help</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_help</span><span class="si">}{</span><span class="n">sep</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_trait</span><span class="o">.</span><span class="n">help</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="nd">@help</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_help</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">from_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="c1"># for strings, parsing fails and traitlets returns None</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="p">[(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span> <span class="ow">and</span> <span class="n">s</span> <span class="o">!=</span> <span class="s2">&quot;None&quot;</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trait</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="n">s</span><span class="p">))]</span>
+        <span class="k">return</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="nf">_validate_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_none</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trait</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+
+        <span class="c1"># Support a single value for all (check and convert into a default value)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">UserList</span><span class="p">,</span> <span class="n">TelescopePatternList</span><span class="p">)):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_entry</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">))]</span>
+
+        <span class="c1"># Check each value of list</span>
+        <span class="n">normalized_value</span> <span class="o">=</span> <span class="n">TelescopePatternList</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+
+            <span class="c1"># now check for the standard 3-tuple of (command, argument, value)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span>
+                    <span class="s2">&quot;pattern should be a tuple of (command, argument, value)&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">command</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">pattern</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_entry</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="s2">&quot;command must be a string&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">command</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="s2">&quot;command must be one of: &#39;type&#39;, &#39;id&#39;&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="s2">&quot;&#39;type&#39; argument should be a string&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">arg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Argument of &#39;id&#39; should be an int (got &#39;</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">&#39;)&quot;</span><span class="p">)</span>
+
+            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_entry</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="n">normalized_value</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">command</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+
+        <span class="n">normalized_value</span><span class="o">.</span><span class="n">_lookup</span> <span class="o">=</span> <span class="n">TelescopeParameterLookup</span><span class="p">(</span><span class="n">normalized_value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">TelescopePatternList</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">_subarray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">normalized_value</span><span class="o">.</span><span class="n">attach_subarray</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">_subarray</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">normalized_value</span>
+
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># Support a single value for all (check and convert into a default value)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">UserList</span><span class="p">,</span> <span class="n">TelescopePatternList</span><span class="p">)):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_entry</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">))]</span>
+
+        <span class="c1"># Retain existing subarray description</span>
+        <span class="c1"># when setting new value for TelescopeParameter</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">old_value</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_trait_values</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">old_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_value</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">old_value</span><span class="p">,</span> <span class="s2">&quot;_subarray&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">_trait_values</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">attach_subarray</span><span class="p">(</span><span class="n">old_value</span><span class="o">.</span><span class="n">_subarray</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

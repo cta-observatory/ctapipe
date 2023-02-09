@@ -1,0 +1,7 @@
+BoolTelescopeParameter
+======================
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: BoolTelescopeParameter
+   :show-inheritance:

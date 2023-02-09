@@ -1,0 +1,31 @@
+TelescopePatternList
+====================
+
+.. currentmodule:: ctapipe.core.telescope_component
+
+.. autoclass:: TelescopePatternList
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TelescopePatternList.tel
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TelescopePatternList.append
+      ~TelescopePatternList.attach_subarray
+      ~TelescopePatternList.single_to_pattern
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: tel
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: append
+   .. automethod:: attach_subarray
+   .. automethod:: single_to_pattern

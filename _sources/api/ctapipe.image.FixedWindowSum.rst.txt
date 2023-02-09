@@ -1,0 +1,33 @@
+FixedWindowSum
+==============
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: FixedWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~FixedWindowSum.apply_integration_correction
+      ~FixedWindowSum.peak_index
+      ~FixedWindowSum.window_shift
+      ~FixedWindowSum.window_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~FixedWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: peak_index
+   .. autoattribute:: window_shift
+   .. autoattribute:: window_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

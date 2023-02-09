@@ -1,0 +1,21 @@
+Process
+=======
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autoclass:: Process
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Process.id_
+      ~Process.subtype
+      ~Process.type_
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: id_
+   .. autoattribute:: subtype
+   .. autoattribute:: type_

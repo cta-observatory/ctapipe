@@ -1,0 +1,6 @@
+get_default_url
+===============
+
+.. currentmodule:: ctapipe.utils.datasets
+
+.. autofunction:: get_default_url

@@ -1,0 +1,19 @@
+Path
+====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Path
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Path.info
+      ~Path.validate
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: info
+   .. automethod:: validate

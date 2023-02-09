@@ -1,0 +1,31 @@
+StatisticsContainer
+===================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: StatisticsContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~StatisticsContainer.kurtosis
+      ~StatisticsContainer.max
+      ~StatisticsContainer.mean
+      ~StatisticsContainer.meta
+      ~StatisticsContainer.min
+      ~StatisticsContainer.prefix
+      ~StatisticsContainer.skewness
+      ~StatisticsContainer.std
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: kurtosis
+   .. autoattribute:: max
+   .. autoattribute:: mean
+   .. autoattribute:: meta
+   .. autoattribute:: min
+   .. autoattribute:: prefix
+   .. autoattribute:: skewness
+   .. autoattribute:: std

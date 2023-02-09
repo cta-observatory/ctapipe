@@ -1,0 +1,31 @@
+TailCutsDataVolumeReducer
+=========================
+
+.. currentmodule:: ctapipe.image.reducer
+
+.. autoclass:: TailCutsDataVolumeReducer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TailCutsDataVolumeReducer.do_boundary_dilation
+      ~TailCutsDataVolumeReducer.image_extractor_type
+      ~TailCutsDataVolumeReducer.n_end_dilates
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TailCutsDataVolumeReducer.select_pixels
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: do_boundary_dilation
+   .. autoattribute:: image_extractor_type
+   .. autoattribute:: n_end_dilates
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: select_pixels

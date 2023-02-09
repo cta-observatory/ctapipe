@@ -1,0 +1,6 @@
+energy_prior
+============
+
+.. currentmodule:: ctapipe.reco.impact
+
+.. autofunction:: energy_prior

@@ -1,0 +1,6 @@
+ring_completeness
+=================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: ring_completeness

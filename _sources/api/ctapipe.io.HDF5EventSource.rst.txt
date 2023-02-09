@@ -1,0 +1,49 @@
+HDF5EventSource
+===============
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: HDF5EventSource
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~HDF5EventSource.atmosphere_density_profile
+      ~HDF5EventSource.datalevels
+      ~HDF5EventSource.focal_length_choice
+      ~HDF5EventSource.has_muon_parameters
+      ~HDF5EventSource.has_simulated_dl1
+      ~HDF5EventSource.is_simulation
+      ~HDF5EventSource.obs_ids
+      ~HDF5EventSource.observation_blocks
+      ~HDF5EventSource.scheduling_blocks
+      ~HDF5EventSource.simulation_config
+      ~HDF5EventSource.subarray
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~HDF5EventSource.close
+      ~HDF5EventSource.is_compatible
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: atmosphere_density_profile
+   .. autoattribute:: datalevels
+   .. autoattribute:: focal_length_choice
+   .. autoattribute:: has_muon_parameters
+   .. autoattribute:: has_simulated_dl1
+   .. autoattribute:: is_simulation
+   .. autoattribute:: obs_ids
+   .. autoattribute:: observation_blocks
+   .. autoattribute:: scheduling_blocks
+   .. autoattribute:: simulation_config
+   .. autoattribute:: subarray
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: close
+   .. automethod:: is_compatible

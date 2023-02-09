@@ -1,0 +1,35 @@
+WaveformCalibrationContainer
+============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: WaveformCalibrationContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~WaveformCalibrationContainer.dc_to_pe
+      ~WaveformCalibrationContainer.meta
+      ~WaveformCalibrationContainer.n_pe
+      ~WaveformCalibrationContainer.pedestal_per_sample
+      ~WaveformCalibrationContainer.prefix
+      ~WaveformCalibrationContainer.time
+      ~WaveformCalibrationContainer.time_correction
+      ~WaveformCalibrationContainer.time_max
+      ~WaveformCalibrationContainer.time_min
+      ~WaveformCalibrationContainer.unusable_pixels
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: dc_to_pe
+   .. autoattribute:: meta
+   .. autoattribute:: n_pe
+   .. autoattribute:: pedestal_per_sample
+   .. autoattribute:: prefix
+   .. autoattribute:: time
+   .. autoattribute:: time_correction
+   .. autoattribute:: time_max
+   .. autoattribute:: time_min
+   .. autoattribute:: unusable_pixels

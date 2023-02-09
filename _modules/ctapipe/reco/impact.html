@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.reco.impact &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.reco.impact</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.reco.impact</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.ma</span> <span class="k">as</span> <span class="nn">ma</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">AltAz</span>
+<span class="kn">from</span> <span class="nn">iminuit</span> <span class="kn">import</span> <span class="n">Minuit</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">least_squares</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">norm</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span> <span class="nn">ctapipe.coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NominalFrame</span><span class="p">,</span>
+    <span class="n">TiltedGroundFrame</span><span class="p">,</span>
+    <span class="n">GroundFrame</span><span class="p">,</span>
+    <span class="n">project_to_ground</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ctapipe.image</span> <span class="kn">import</span> <span class="n">neg_log_likelihood</span><span class="p">,</span> <span class="n">mean_poisson_likelihood_gaussian</span>
+<span class="kn">from</span> <span class="nn">ctapipe.instrument</span> <span class="kn">import</span> <span class="n">get_atmosphere_profile_functions</span>
+<span class="kn">from</span> <span class="nn">ctapipe.containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils.template_network_interpolator</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TemplateNetworkInterpolator</span><span class="p">,</span>
+    <span class="n">TimeGradientInterpolator</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ImPACTReconstructor&quot;</span><span class="p">,</span> <span class="s2">&quot;energy_prior&quot;</span><span class="p">,</span> <span class="s2">&quot;xmax_prior&quot;</span><span class="p">,</span> <span class="s2">&quot;guess_shower_depth&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="guess_shower_depth"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.guess_shower_depth.html#ctapipe.reco.guess_shower_depth">[docs]</a><span class="k">def</span> <span class="nf">guess_shower_depth</span><span class="p">(</span><span class="n">energy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple estimation of depth of shower max based on the expected gamma-ray elongation</span>
+<span class="sd">    rate.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    energy: float</span>
+<span class="sd">        Energy of the shower in TeV</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float: Expected depth of shower maximum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">x_max_exp</span> <span class="o">=</span> <span class="mi">300</span> <span class="o">+</span> <span class="mi">93</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">energy</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">x_max_exp</span></div>
+
+
+<div class="viewcode-block" id="energy_prior"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.energy_prior.html#ctapipe.reco.energy_prior">[docs]</a><span class="k">def</span> <span class="nf">energy_prior</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">index</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">energy</span><span class="o">**</span><span class="n">index</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="xmax_prior"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.xmax_prior.html#ctapipe.reco.xmax_prior">[docs]</a><span class="k">def</span> <span class="nf">xmax_prior</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    <span class="n">x_max_exp</span> <span class="o">=</span> <span class="n">guess_shower_depth</span><span class="p">(</span><span class="n">energy</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">xmax</span> <span class="o">-</span> <span class="n">x_max_exp</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">diff</span> <span class="o">/</span> <span class="n">width</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ImPACTReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor">[docs]</a><span class="k">class</span> <span class="nc">ImPACTReconstructor</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class is an implementation if the impact_reco Monte Carlo</span>
+<span class="sd">    Template based image fitting method from parsons14.  This method uses a</span>
+<span class="sd">    comparision of the predicted image from a library of image</span>
+<span class="sd">    templates to perform a maximum likelihood fit for the shower axis,</span>
+<span class="sd">    energy and height of maximum.</span>
+
+<span class="sd">    Because this application is computationally intensive the usual</span>
+<span class="sd">    advice to use astropy units for all quantities is ignored (as</span>
+<span class="sd">    these slow down some computations), instead units within the class</span>
+<span class="sd">    are fixed:</span>
+
+<span class="sd">    - Angular units in radians</span>
+<span class="sd">    - Distance units in metres</span>
+<span class="sd">    - Energy units in TeV</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [parsons14] Parsons &amp; Hinton, Astroparticle Physics 56 (2014), pp. 26-34</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># For likelihood calculation we need the with of the</span>
+    <span class="c1"># pedestal distribution for each pixel</span>
+    <span class="c1"># currently this is not availible from the calibration,</span>
+    <span class="c1"># so for now lets hard code it in a dict</span>
+    <span class="n">ped_table</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;LSTCam&quot;</span><span class="p">:</span> <span class="mf">2.8</span><span class="p">,</span>
+        <span class="s2">&quot;NectarCam&quot;</span><span class="p">:</span> <span class="mf">2.3</span><span class="p">,</span>
+        <span class="s2">&quot;FlashCam&quot;</span><span class="p">:</span> <span class="mf">2.3</span><span class="p">,</span>
+        <span class="s2">&quot;CHEC&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s2">&quot;DUMMY&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">spe</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># Also hard code single p.e. distribution width</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root_dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+        <span class="n">minimiser</span><span class="o">=</span><span class="s2">&quot;minuit&quot;</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">template_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">xmax_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">use_time_gradient</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new instance of ImPACTReconstructor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># First we create a dictionary of image template interpolators</span>
+        <span class="c1"># for each telescope type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root_dir</span> <span class="o">=</span> <span class="n">root_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">priors</span> <span class="o">=</span> <span class="n">prior</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimiser_name</span> <span class="o">=</span> <span class="n">minimiser</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_names</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;CHEC&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;GCT_05deg_ada.template.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;GCT_05deg_time.template.gz&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;LSTCam&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;LST_05deg.template.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;LST_05deg_time.template.gz&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;NectarCam&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;MST_05deg.template.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;MST_05deg_time.template.gz&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;FlashCam&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;MST_xm_full.fits&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="c1"># We also need a conversion function from height above ground to</span>
+        <span class="c1"># depth of maximum To do this we need the conversion table from CORSIKA</span>
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thickness_profile</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">altitude_profile</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">get_atmosphere_profile_functions</span><span class="p">(</span><span class="s2">&quot;paranal&quot;</span><span class="p">,</span> <span class="n">with_units</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Next we need the position, area and amplitude from each pixel in the event</span>
+        <span class="c1"># making this a class member makes passing them around much easier</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># We also need telescope positions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># And the peak of the images</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peak_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_amp</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hillas_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ped</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_prediction</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_return</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nominal_frame</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># For now these factors are required to fix problems in templates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_scale</span> <span class="o">=</span> <span class="n">template_scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xmax_offset</span> <span class="o">=</span> <span class="n">xmax_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_time_gradient</span> <span class="o">=</span> <span class="n">use_time_gradient</span>
+
+<div class="viewcode-block" id="ImPACTReconstructor.initialise_templates"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.initialise_templates">[docs]</a>    <span class="k">def</span> <span class="nf">initialise_templates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if templates for a given telescope type has been initialised</span>
+<span class="sd">        and if not do it and add to the dictionary</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_type: dictionary</span>
+<span class="sd">            Dictionary of telescope types in event</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        boolean: Confirm initialisation</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tel_type</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tel_type</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">tel_type</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;DUMMY&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">tel_type</span><span class="p">[</span><span class="n">t</span><span class="p">]]</span> <span class="o">=</span> <span class="n">TemplateNetworkInterpolator</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">root_dir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_names</span><span class="p">[</span><span class="n">tel_type</span><span class="p">[</span><span class="n">t</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_time_gradient</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time_prediction</span><span class="p">[</span><span class="n">tel_type</span><span class="p">[</span><span class="n">t</span><span class="p">]]</span> <span class="o">=</span> <span class="n">TimeGradientInterpolator</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">root_dir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_names</span><span class="p">[</span><span class="n">tel_type</span><span class="p">[</span><span class="n">t</span><span class="p">]][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.get_hillas_mean"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.get_hillas_mean">[docs]</a>    <span class="k">def</span> <span class="nf">get_hillas_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This is a simple function to find the peak position of each image</span>
+<span class="sd">        in an event which will be used later in the Xmax calculation. Peak is</span>
+<span class="sd">        found by taking the average position of the n hottest pixels in the</span>
+<span class="sd">        image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">peak_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_x</span><span class="p">)])</span>  <span class="c1"># Create blank arrays for peaks</span>
+        <span class="c1"># rather than a dict (faster)</span>
+        <span class="n">peak_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">peak_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">peak_amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">peak_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="c1"># Loop over all tels to take weighted average of pixel</span>
+        <span class="c1"># positions This loop could maybe be replaced by an array</span>
+        <span class="c1"># operation by a numpy wizard</span>
+        <span class="c1"># Maybe a vectorize?</span>
+        <span class="n">tel_num</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">hillas</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hillas_parameters</span><span class="p">:</span>
+            <span class="n">peak_x</span><span class="p">[</span><span class="n">tel_num</span><span class="p">]</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>  <span class="c1"># Fill up array</span>
+            <span class="n">peak_y</span><span class="p">[</span><span class="n">tel_num</span><span class="p">]</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">peak_amp</span><span class="p">[</span><span class="n">tel_num</span><span class="p">]</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">intensity</span>
+            <span class="n">tel_num</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">peak_x</span> <span class="o">=</span> <span class="n">peak_x</span>  <span class="c1"># * unit # Add to class member</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peak_y</span> <span class="o">=</span> <span class="n">peak_y</span>  <span class="c1"># * unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peak_amp</span> <span class="o">=</span> <span class="n">peak_amp</span></div>
+
+    <span class="c1"># This function would be useful elsewhere so probably be implemented in a</span>
+    <span class="c1"># more general form</span>
+<div class="viewcode-block" id="ImPACTReconstructor.get_shower_max"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.get_shower_max">[docs]</a>    <span class="k">def</span> <span class="nf">get_shower_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">core_x</span><span class="p">,</span> <span class="n">core_y</span><span class="p">,</span> <span class="n">zen</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function to calculate the depth of shower maximum geometrically</span>
+<span class="sd">        under the assumption that the shower maximum lies at the</span>
+<span class="sd">        brightest point of the camera image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_x: float</span>
+<span class="sd">            Event source position in nominal frame</span>
+<span class="sd">        source_y: float</span>
+<span class="sd">            Event source position in nominal frame</span>
+<span class="sd">        core_x: float</span>
+<span class="sd">            Event core position in telescope tilted frame</span>
+<span class="sd">        core_y: float</span>
+<span class="sd">            Event core position in telescope tilted frame</span>
+<span class="sd">        zen: float</span>
+<span class="sd">            Zenith angle of event</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float: Depth of maximum of air shower</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Calculate displacement of image centroid from source position (in</span>
+        <span class="c1"># rad)</span>
+        <span class="n">disp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">peak_x</span> <span class="o">-</span> <span class="n">source_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">peak_y</span> <span class="o">-</span> <span class="n">source_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># Calculate impact parameter of the shower</span>
+        <span class="n">impact</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span> <span class="o">-</span> <span class="n">core_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span> <span class="o">-</span> <span class="n">core_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="c1"># Distance above telescope is ratio of these two (small angle)</span>
+
+        <span class="n">height</span> <span class="o">=</span> <span class="n">impact</span> <span class="o">/</span> <span class="n">disp</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">peak_amp</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># weight average by sqrt amplitude</span>
+        <span class="c1"># sqrt may not be the best option...</span>
+
+        <span class="c1"># Take weighted mean of estimates</span>
+        <span class="n">mean_height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">height</span> <span class="o">*</span> <span class="n">weight</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+        <span class="c1"># This value is height above telescope in the tilted system,</span>
+        <span class="c1"># we should convert to height above ground</span>
+        <span class="n">mean_height</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">zen</span><span class="p">)</span>
+
+        <span class="c1"># Add on the height of the detector above sea level</span>
+        <span class="n">mean_height</span> <span class="o">+=</span> <span class="mi">2150</span>
+
+        <span class="k">if</span> <span class="n">mean_height</span> <span class="o">&gt;</span> <span class="mi">100000</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">mean_height</span><span class="p">):</span>
+            <span class="n">mean_height</span> <span class="o">=</span> <span class="mi">100000</span>
+
+        <span class="c1"># Lookup this height in the depth tables, the convert Hmax to Xmax</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thickness_profile</span><span class="p">(</span><span class="n">mean_height</span><span class="p">)</span>
+        <span class="c1"># Convert to slant depth</span>
+        <span class="n">x_max</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">zen</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_max</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmax_offset</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.rotate_translate"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.rotate_translate">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">rotate_translate</span><span class="p">(</span><span class="n">pixel_pos_x</span><span class="p">,</span> <span class="n">pixel_pos_y</span><span class="p">,</span> <span class="n">x_trans</span><span class="p">,</span> <span class="n">y_trans</span><span class="p">,</span> <span class="n">phi</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to perform rotation and translation of pixel lists</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pixel_pos_x: ndarray</span>
+<span class="sd">            Array of pixel x positions</span>
+<span class="sd">        pixel_pos_y: ndarray</span>
+<span class="sd">            Array of pixel x positions</span>
+<span class="sd">        x_trans: float</span>
+<span class="sd">            Translation of position in x coordinates</span>
+<span class="sd">        y_trans: float</span>
+<span class="sd">            Translation of position in y coordinates</span>
+<span class="sd">        phi: float</span>
+<span class="sd">            Rotation angle of pixels</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            ndarray,ndarray: Transformed pixel x and y coordinates</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">cosine_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
+        <span class="n">sin_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
+
+        <span class="n">pixel_pos_trans_x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_trans</span> <span class="o">-</span> <span class="n">pixel_pos_x</span><span class="p">)</span> <span class="o">*</span> <span class="n">cosine_angle</span> <span class="o">-</span> <span class="p">(</span>
+            <span class="n">y_trans</span> <span class="o">-</span> <span class="n">pixel_pos_y</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="n">sin_angle</span>
+
+        <span class="n">pixel_pos_trans_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">pixel_pos_x</span> <span class="o">-</span> <span class="n">x_trans</span><span class="p">)</span> <span class="o">*</span> <span class="n">sin_angle</span> <span class="o">+</span> <span class="p">(</span>
+            <span class="n">pixel_pos_y</span> <span class="o">-</span> <span class="n">y_trans</span>
+        <span class="p">)</span> <span class="o">*</span> <span class="n">cosine_angle</span>
+        <span class="k">return</span> <span class="n">pixel_pos_trans_x</span><span class="p">,</span> <span class="n">pixel_pos_trans_y</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.image_prediction"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.image_prediction">[docs]</a>    <span class="k">def</span> <span class="nf">image_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">,</span> <span class="n">energy</span><span class="p">,</span> <span class="n">impact</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates predicted image for the specified pixels, interpolated</span>
+<span class="sd">        from the template library.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_type: string</span>
+<span class="sd">            Telescope type specifier</span>
+<span class="sd">        energy: float</span>
+<span class="sd">            Event energy (TeV)</span>
+<span class="sd">        impact: float</span>
+<span class="sd">            Impact diance of shower (metres)</span>
+<span class="sd">        x_max: float</span>
+<span class="sd">            Depth of shower maximum (num bins from expectation)</span>
+<span class="sd">        pix_x: ndarray</span>
+<span class="sd">            X coordinate of pixels</span>
+<span class="sd">        pix_y: ndarray</span>
+<span class="sd">            Y coordinate of pixels</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray: predicted amplitude for all pixels</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="p">[</span><span class="n">tel_type</span><span class="p">](</span><span class="n">energy</span><span class="p">,</span> <span class="n">impact</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.predict_time"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.predict_time">[docs]</a>    <span class="k">def</span> <span class="nf">predict_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">,</span> <span class="n">energy</span><span class="p">,</span> <span class="n">impact</span><span class="p">,</span> <span class="n">x_max</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates predicted image for the specified pixels, interpolated</span>
+<span class="sd">        from the template library.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_type: string</span>
+<span class="sd">            Telescope type specifier</span>
+<span class="sd">        energy: float</span>
+<span class="sd">            Event energy (TeV)</span>
+<span class="sd">        impact: float</span>
+<span class="sd">            Impact diance of shower (metres)</span>
+<span class="sd">        x_max: float</span>
+<span class="sd">            Depth of shower maximum (num bins from expectation)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray: predicted amplitude for all pixels</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_prediction</span><span class="p">[</span><span class="n">tel_type</span><span class="p">](</span><span class="n">energy</span><span class="p">,</span> <span class="n">impact</span><span class="p">,</span> <span class="n">x_max</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.get_likelihood"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.get_likelihood">[docs]</a>    <span class="k">def</span> <span class="nf">get_likelihood</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source_x</span><span class="p">,</span>
+        <span class="n">source_y</span><span class="p">,</span>
+        <span class="n">core_x</span><span class="p">,</span>
+        <span class="n">core_y</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">,</span>
+        <span class="n">x_max_scale</span><span class="p">,</span>
+        <span class="n">goodness_of_fit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the likelihood that the image predicted at the given test</span>
+<span class="sd">        position matches the camera image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_x: float</span>
+<span class="sd">            Source position of shower in the nominal system (in deg)</span>
+<span class="sd">        source_y: float</span>
+<span class="sd">            Source position of shower in the nominal system (in deg)</span>
+<span class="sd">        core_x: float</span>
+<span class="sd">            Core position of shower in tilted telescope system (in m)</span>
+<span class="sd">        core_y: float</span>
+<span class="sd">            Core position of shower in tilted telescope system (in m)</span>
+<span class="sd">        energy: float</span>
+<span class="sd">            Shower energy (in TeV)</span>
+<span class="sd">        x_max_scale: float</span>
+<span class="sd">            Scaling factor applied to geometrically calculated Xmax</span>
+<span class="sd">        goodness_of_fit: boolean</span>
+<span class="sd">            Determines whether expected likelihood should be subtracted from result</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float: Likelihood the model represents the camera image at this position</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># First we add units back onto everything.  Currently not</span>
+        <span class="c1"># handled very well, maybe in future we could just put</span>
+        <span class="c1"># everything in the correct units when loading in the class</span>
+        <span class="c1"># and ignore them from then on</span>
+
+        <span class="n">zenith</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span><span class="o">.</span><span class="n">zen</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+        <span class="c1"># Geometrically calculate the depth of maximum given this test position</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_shower_max</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">core_x</span><span class="p">,</span> <span class="n">core_y</span><span class="p">,</span> <span class="n">zenith</span><span class="p">)</span>
+        <span class="n">x_max</span> <span class="o">*=</span> <span class="n">x_max_scale</span>
+
+        <span class="c1"># Calculate expected Xmax given this energy</span>
+        <span class="n">x_max_exp</span> <span class="o">=</span> <span class="n">guess_shower_depth</span><span class="p">(</span><span class="n">energy</span><span class="p">)</span>  <span class="c1"># / np.cos(20*u.deg)</span>
+
+        <span class="c1"># Convert to binning of Xmax</span>
+        <span class="n">x_max_bin</span> <span class="o">=</span> <span class="n">x_max</span> <span class="o">-</span> <span class="n">x_max_exp</span>
+
+        <span class="c1"># Check for range</span>
+        <span class="k">if</span> <span class="n">x_max_bin</span> <span class="o">&gt;</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="n">x_max_bin</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="k">if</span> <span class="n">x_max_bin</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">100</span><span class="p">:</span>
+            <span class="n">x_max_bin</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span>
+
+        <span class="c1"># Calculate impact distance for all telescopes</span>
+        <span class="n">impact</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span> <span class="o">-</span> <span class="n">core_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span> <span class="o">-</span> <span class="n">core_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="c1"># And the expected rotation angle</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span> <span class="o">-</span> <span class="n">core_x</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span> <span class="o">-</span> <span class="n">core_y</span><span class="p">))</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+
+        <span class="c1"># Rotate and translate all pixels such that they match the</span>
+        <span class="c1"># template orientation</span>
+        <span class="n">pix_y_rot</span><span class="p">,</span> <span class="n">pix_x_rot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate_translate</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_y</span><span class="p">,</span> <span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">phi</span>
+        <span class="p">)</span>
+
+        <span class="c1"># In the interpolator class we can gain speed advantages by using masked arrays</span>
+        <span class="c1"># so we need to make sure here everything is masked</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">prediction</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">getmask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+
+        <span class="n">time_gradients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Loop over all telescope types and get prediction</span>
+        <span class="k">for</span> <span class="n">tel_type</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
+            <span class="n">type_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span> <span class="o">==</span> <span class="n">tel_type</span>
+            <span class="n">prediction</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_prediction</span><span class="p">(</span>
+                <span class="n">tel_type</span><span class="p">,</span>
+                <span class="n">energy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">impact</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]),</span>
+                <span class="n">impact</span><span class="p">[</span><span class="n">type_mask</span><span class="p">],</span>
+                <span class="n">x_max_bin</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">impact</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]),</span>
+                <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">pix_x_rot</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">pix_y_rot</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]),</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_time_gradient</span><span class="p">:</span>
+                <span class="n">time_gradients</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_time</span><span class="p">(</span>
+                    <span class="n">tel_type</span><span class="p">,</span>
+                    <span class="n">energy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">impact</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]),</span>
+                    <span class="n">impact</span><span class="p">[</span><span class="n">type_mask</span><span class="p">],</span>
+                    <span class="n">x_max_bin</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">impact</span><span class="p">[</span><span class="n">type_mask</span><span class="p">]),</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_time_gradient</span><span class="p">:</span>
+            <span class="n">time_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">ma</span><span class="o">.</span><span class="n">getmask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">weight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span> <span class="o">*</span> <span class="n">time_mask</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()</span>
+
+            <span class="n">sx</span> <span class="o">=</span> <span class="n">pix_x_rot</span> <span class="o">*</span> <span class="n">weight</span>
+            <span class="n">sxx</span> <span class="o">=</span> <span class="n">pix_x_rot</span> <span class="o">*</span> <span class="n">pix_x_rot</span> <span class="o">*</span> <span class="n">weight</span>
+
+            <span class="n">sy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">*</span> <span class="n">weight</span>
+            <span class="n">sxy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">*</span> <span class="n">pix_x_rot</span> <span class="o">*</span> <span class="n">weight</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">weight</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sxx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">sx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">time_fit</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">weight</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sxy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">sx</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span> <span class="o">/</span> <span class="n">d</span>
+            <span class="n">time_fit</span> <span class="o">/=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="n">chi2</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="n">rv</span><span class="o">.</span><span class="n">pdf</span><span class="p">((</span><span class="n">time_fit</span> <span class="o">-</span> <span class="n">time_gradients</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">time_gradients</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Likelihood function will break if we find a NaN or a 0</span>
+        <span class="n">prediction</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">prediction</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1e-8</span>
+        <span class="n">prediction</span><span class="p">[</span><span class="n">prediction</span> <span class="o">&lt;</span> <span class="mf">1e-8</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-8</span>
+        <span class="n">prediction</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_scale</span>
+
+        <span class="c1"># Get likelihood that the prediction matched the camera image</span>
+        <span class="n">like</span> <span class="o">=</span> <span class="n">neg_log_likelihood</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ped</span><span class="p">)</span>
+        <span class="n">like</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">like</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1e9</span>
+        <span class="n">like</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">ma</span><span class="o">.</span><span class="n">getmask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">))</span>
+        <span class="n">like</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">(</span><span class="n">like</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">ma</span><span class="o">.</span><span class="n">getmask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">))</span>
+
+        <span class="n">array_like</span> <span class="o">=</span> <span class="n">like</span>
+        <span class="k">if</span> <span class="n">goodness_of_fit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="n">like</span> <span class="o">-</span> <span class="n">mean_poisson_likelihood_gaussian</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ped</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">prior_pen</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Add prior penalities if we have them</span>
+        <span class="n">array_like</span> <span class="o">+=</span> <span class="mf">1e-8</span>
+        <span class="k">if</span> <span class="s2">&quot;energy&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">priors</span><span class="p">:</span>
+            <span class="n">prior_pen</span> <span class="o">+=</span> <span class="n">energy_prior</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">index</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;xmax&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">priors</span><span class="p">:</span>
+            <span class="n">prior_pen</span> <span class="o">+=</span> <span class="n">xmax_prior</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">x_max</span><span class="p">)</span>
+
+        <span class="n">array_like</span> <span class="o">+=</span> <span class="n">prior_pen</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array_like</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_return</span><span class="p">:</span>
+            <span class="n">array_like</span> <span class="o">=</span> <span class="n">array_like</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">array_like</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">ma</span><span class="o">.</span><span class="n">getmask</span><span class="p">(</span><span class="n">array_like</span><span class="p">))]</span>
+
+        <span class="n">final_sum</span> <span class="o">=</span> <span class="n">array_like</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_time_gradient</span><span class="p">:</span>
+            <span class="n">final_sum</span> <span class="o">+=</span> <span class="n">chi2</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># * np.sum(ma.getmask(self.image))</span>
+
+        <span class="k">return</span> <span class="n">final_sum</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.get_likelihood_min"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.get_likelihood_min">[docs]</a>    <span class="k">def</span> <span class="nf">get_likelihood_min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrapper class around likelihood function for use with scipy</span>
+<span class="sd">        minimisers</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x: ndarray</span>
+<span class="sd">            Array of minimisation parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float: Likelihood value of test position</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">val</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.get_likelihood_nlopt"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.get_likelihood_nlopt">[docs]</a>    <span class="k">def</span> <span class="nf">get_likelihood_nlopt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrapper class around likelihood function for use with scipy</span>
+<span class="sd">        minimisers</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x: ndarray</span>
+<span class="sd">            Array of minimisation parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float: Likelihood value of test position</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">val</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.set_event_properties"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.set_event_properties">[docs]</a>    <span class="k">def</span> <span class="nf">set_event_properties</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">,</span>
+        <span class="n">time</span><span class="p">,</span>
+        <span class="n">pixel_x</span><span class="p">,</span>
+        <span class="n">pixel_y</span><span class="p">,</span>
+        <span class="n">type_tel</span><span class="p">,</span>
+        <span class="n">tel_x</span><span class="p">,</span>
+        <span class="n">tel_y</span><span class="p">,</span>
+        <span class="n">array_direction</span><span class="p">,</span>
+        <span class="n">hillas</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The setter class is used to set the event properties within this</span>
+<span class="sd">        class before minimisation can take place. This simply copies a</span>
+<span class="sd">        bunch of useful properties to class members, so that we can</span>
+<span class="sd">        use them later without passing all this information around.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        image: dict</span>
+<span class="sd">            Amplitude of pixels in camera images</span>
+<span class="sd">        time: dict</span>
+<span class="sd">            Time information per each pixel in camera images</span>
+<span class="sd">        pixel_x: dict</span>
+<span class="sd">            X position of pixels in nominal system</span>
+<span class="sd">        pixel_y: dict</span>
+<span class="sd">            Y position of pixels in nominal system</span>
+<span class="sd">        type_tel: dict</span>
+<span class="sd">            Type of telescope</span>
+<span class="sd">        tel_x: dict</span>
+<span class="sd">            X position of telescope in TiltedGroundFrame</span>
+<span class="sd">        tel_y: dict</span>
+<span class="sd">            Y position of telescope in TiltedGroundFrame</span>
+<span class="sd">        array_direction: SkyCoord[AltAz]</span>
+<span class="sd">            Array pointing direction in the AltAz Frame</span>
+<span class="sd">        hillas: dict</span>
+<span class="sd">            dictionary with telescope IDs as key and</span>
+<span class="sd">            HillasParametersContainer instances as values</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># First store these parameters in the class so we can use them</span>
+        <span class="c1"># in minimisation For most values this is simply copying</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_id</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="n">max_pix_x</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="n">pt</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hillas_parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="c1"># So here we must loop over the telescopes</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tel_x</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">))):</span>
+
+            <span class="n">px</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pixel_x</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">max_pix_x</span><span class="p">:</span>
+                <span class="n">max_pix_x</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">py</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pixel_y</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">pa</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+            <span class="n">pt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_x</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_y</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ped</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ped_table</span><span class="p">[</span><span class="n">type_tel</span><span class="p">[</span><span class="n">x</span><span class="p">]]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">type_tel</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tel_id</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hillas_parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hillas</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+
+        <span class="c1"># Most interesting stuff is now copied to the class, but to remove our requirement</span>
+        <span class="c1"># for loops we must copy the pixel positions to an array with the length of the</span>
+        <span class="c1"># largest image</span>
+
+        <span class="c1"># First allocate everything</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">),</span> <span class="n">max_pix_x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_y</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">ma</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ped</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">ma</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+            <span class="n">ma</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+            <span class="n">ma</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span><span class="p">)</span>
+
+        <span class="c1"># Copy everything into our masked arrays</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_x</span><span class="p">)):</span>
+            <span class="n">array_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_x</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">array_len</span><span class="p">]</span> <span class="o">=</span> <span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_y</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">array_len</span><span class="p">]</span> <span class="o">=</span> <span class="n">py</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">array_len</span><span class="p">]</span> <span class="o">=</span> <span class="n">pa</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">array_len</span><span class="p">]</span> <span class="o">=</span> <span class="n">pt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ped</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">array_len</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ped_table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_types</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+
+        <span class="c1"># Set the image mask</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">==</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_x</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_y</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span> <span class="o">=</span> <span class="n">array_direction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nominal_frame</span> <span class="o">=</span> <span class="n">NominalFrame</span><span class="p">(</span><span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span><span class="p">)</span>
+
+        <span class="c1"># Finally run some functions to get ready for the event</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_hillas_mean</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialise_templates</span><span class="p">(</span><span class="n">type_tel</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.reset_interpolator"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.reset_interpolator">[docs]</a>    <span class="k">def</span> <span class="nf">reset_interpolator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function is needed in order to reset some variables in the interpolator</span>
+<span class="sd">        at each new event. Without this reset, a new event starts with information</span>
+<span class="sd">        from the previous event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.predict"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shower_seed</span><span class="p">,</span> <span class="n">energy_seed</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict method for the ImPACT reconstructor.</span>
+<span class="sd">        Used to calculate the reconstructed ImPACT shower geometry and energy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        shower_seed: ReconstructedShowerContainer</span>
+<span class="sd">            Seed shower geometry to be used in the fit</span>
+<span class="sd">        energy_seed: ReconstructedEnergyContainer</span>
+<span class="sd">            Seed energy to be used in fit</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ReconstructedShowerContainer, ReconstructedEnergyContainer:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_interpolator</span><span class="p">()</span>
+
+        <span class="n">horizon_seed</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">az</span><span class="o">=</span><span class="n">shower_seed</span><span class="o">.</span><span class="n">az</span><span class="p">,</span> <span class="n">alt</span><span class="o">=</span><span class="n">shower_seed</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">AltAz</span><span class="p">())</span>
+        <span class="n">nominal_seed</span> <span class="o">=</span> <span class="n">horizon_seed</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nominal_frame</span><span class="p">)</span>
+
+        <span class="n">source_x</span> <span class="o">=</span> <span class="n">nominal_seed</span><span class="o">.</span><span class="n">fov_lon</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="n">source_y</span> <span class="o">=</span> <span class="n">nominal_seed</span><span class="o">.</span><span class="n">fov_lat</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="n">ground</span> <span class="o">=</span> <span class="n">GroundFrame</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">shower_seed</span><span class="o">.</span><span class="n">core_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">shower_seed</span><span class="o">.</span><span class="n">core_y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+        <span class="n">tilted</span> <span class="o">=</span> <span class="n">ground</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span>
+            <span class="n">TiltedGroundFrame</span><span class="p">(</span><span class="n">pointing_direction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">tilt_x</span> <span class="o">=</span> <span class="n">tilted</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">tilt_y</span> <span class="o">=</span> <span class="n">tilted</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">zenith</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span><span class="o">.</span><span class="n">zen</span>
+
+        <span class="n">seeds</span> <span class="o">=</span> <span class="n">spread_line_seed</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hillas_parameters</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_x</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tel_pos_y</span><span class="p">,</span>
+            <span class="n">source_x</span><span class="p">,</span>
+            <span class="n">source_y</span><span class="p">,</span>
+            <span class="n">tilt_x</span><span class="p">,</span>
+            <span class="n">tilt_y</span><span class="p">,</span>
+            <span class="n">energy_seed</span><span class="o">.</span><span class="n">energy</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="n">shift_frac</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Perform maximum likelihood fit</span>
+        <span class="n">fit_params</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">like</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimise</span><span class="p">(</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">seeds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">step</span><span class="o">=</span><span class="n">seeds</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">limits</span><span class="o">=</span><span class="n">seeds</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">minimiser_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minimiser_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Create a container class for reconstructed shower</span>
+
+        <span class="c1"># Convert the best fits direction and core to Horizon and ground systems and</span>
+        <span class="c1"># copy to the shower container</span>
+        <span class="n">nominal</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">fov_lon</span><span class="o">=</span><span class="n">fit_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+            <span class="n">fov_lat</span><span class="o">=</span><span class="n">fit_params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nominal_frame</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">horizon</span> <span class="o">=</span> <span class="n">nominal</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">AltAz</span><span class="p">())</span>
+
+        <span class="n">tilted</span> <span class="o">=</span> <span class="n">TiltedGroundFrame</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">fit_params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">fit_params</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">z</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">pointing_direction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">array_direction</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ground</span> <span class="o">=</span> <span class="n">project_to_ground</span><span class="p">(</span><span class="n">tilted</span><span class="p">)</span>
+
+        <span class="n">h_max</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">fit_params</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+            <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">zenith</span><span class="p">)</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_shower_max</span><span class="p">(</span>
+                <span class="n">fit_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">fit_params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">fit_params</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">fit_params</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">zenith</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">shower_result</span> <span class="o">=</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">horizon</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span>
+            <span class="n">az</span><span class="o">=</span><span class="n">horizon</span><span class="o">.</span><span class="n">az</span><span class="p">,</span>
+            <span class="n">core_x</span><span class="o">=</span><span class="n">ground</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">core_y</span><span class="o">=</span><span class="n">ground</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">alt_uncert</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">az_uncert</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">core_uncert</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="c1"># Copy reconstructed hmax</span>
+            <span class="n">h_max</span><span class="o">=</span><span class="n">h_max</span><span class="p">,</span>
+            <span class="n">h_max_uncert</span><span class="o">=</span><span class="n">errors</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="n">h_max</span><span class="p">,</span>
+            <span class="n">goodness_of_fit</span><span class="o">=</span><span class="n">like</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Create a container class for reconstructed energy</span>
+        <span class="n">energy_result</span> <span class="o">=</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">(</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="n">energy</span><span class="o">=</span><span class="n">fit_params</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+            <span class="n">energy_uncert</span><span class="o">=</span><span class="n">errors</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">shower_result</span><span class="p">,</span> <span class="n">energy_result</span></div>
+
+<div class="viewcode-block" id="ImPACTReconstructor.minimise"><a class="viewcode-back" href="../../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.minimise">[docs]</a>    <span class="k">def</span> <span class="nf">minimise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">limits</span><span class="p">,</span> <span class="n">minimiser_name</span><span class="o">=</span><span class="s2">&quot;minuit&quot;</span><span class="p">,</span> <span class="n">max_calls</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        params: ndarray</span>
+<span class="sd">            Seed parameters for fit</span>
+<span class="sd">        step: ndarray</span>
+<span class="sd">            Initial step size in the fit</span>
+<span class="sd">        limits: ndarray</span>
+<span class="sd">            Fit bounds</span>
+<span class="sd">        minimiser_name: str</span>
+<span class="sd">            Name of minimisation method</span>
+<span class="sd">        max_calls: int</span>
+<span class="sd">            Maximum number of calls to minimiser</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple: best fit parameters and errors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">limits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">limits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">minimiser_name</span> <span class="o">==</span> <span class="s2">&quot;minuit&quot;</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">Minuit</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood</span><span class="p">,</span>
+                <span class="n">print_level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">source_x</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">error_source_x</span><span class="o">=</span><span class="n">step</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">limit_source_x</span><span class="o">=</span><span class="n">limits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">fix_source_x</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">source_y</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">error_source_y</span><span class="o">=</span><span class="n">step</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">limit_source_y</span><span class="o">=</span><span class="n">limits</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">fix_source_y</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">core_x</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">error_core_x</span><span class="o">=</span><span class="n">step</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">limit_core_x</span><span class="o">=</span><span class="n">limits</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">fix_core_x</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">core_y</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">error_core_y</span><span class="o">=</span><span class="n">step</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">limit_core_y</span><span class="o">=</span><span class="n">limits</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">fix_core_y</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">energy</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">error_energy</span><span class="o">=</span><span class="n">step</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">limit_energy</span><span class="o">=</span><span class="n">limits</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">fix_energy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">x_max_scale</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                <span class="n">error_x_max_scale</span><span class="o">=</span><span class="n">step</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                <span class="n">limit_x_max_scale</span><span class="o">=</span><span class="n">limits</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                <span class="n">fix_x_max_scale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">goodness_of_fit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">fix_goodness_of_fit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">errordef</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">tol</span> <span class="o">*=</span> <span class="mi">1000</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">set_strategy</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">migrad</span><span class="p">()</span>
+            <span class="n">fit_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">errors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">errors</span>
+
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">fit_params</span><span class="p">[</span><span class="s2">&quot;source_x&quot;</span><span class="p">],</span>
+                    <span class="n">fit_params</span><span class="p">[</span><span class="s2">&quot;source_y&quot;</span><span class="p">],</span>
+                    <span class="n">fit_params</span><span class="p">[</span><span class="s2">&quot;core_x&quot;</span><span class="p">],</span>
+                    <span class="n">fit_params</span><span class="p">[</span><span class="s2">&quot;core_y&quot;</span><span class="p">],</span>
+                    <span class="n">fit_params</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">],</span>
+                    <span class="n">fit_params</span><span class="p">[</span><span class="s2">&quot;x_max_scale&quot;</span><span class="p">],</span>
+                <span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;source_x&quot;</span><span class="p">],</span>
+                    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;source_y&quot;</span><span class="p">],</span>
+                    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;core_x&quot;</span><span class="p">],</span>
+                    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;core_x&quot;</span><span class="p">],</span>
+                    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">],</span>
+                    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;x_max_scale&quot;</span><span class="p">],</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">fval</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s2">&quot;nlopt&quot;</span> <span class="ow">in</span> <span class="n">minimiser_name</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">nlopt</span>
+
+            <span class="n">opt</span> <span class="o">=</span> <span class="n">nlopt</span><span class="o">.</span><span class="n">opt</span><span class="p">(</span><span class="n">nlopt</span><span class="o">.</span><span class="n">LN_BOBYQA</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">set_min_objective</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood_nlopt</span><span class="p">)</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">set_initial_step</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+
+            <span class="n">opt</span><span class="o">.</span><span class="n">set_lower_bounds</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">limits</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">set_upper_bounds</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">limits</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">set_xtol_rel</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">max_calls</span><span class="p">:</span>
+                <span class="n">opt</span><span class="o">.</span><span class="n">set_maxeval</span><span class="p">(</span><span class="n">max_calls</span><span class="p">)</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood_min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">minimiser_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lm&quot;</span><span class="p">,</span> <span class="s2">&quot;trf&quot;</span><span class="p">,</span> <span class="s2">&quot;dogleg&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">array_return</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="nb">min</span> <span class="o">=</span> <span class="n">least_squares</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood_min</span><span class="p">,</span>
+                <span class="n">params</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="n">minimiser_name</span><span class="p">,</span>
+                <span class="n">x_scale</span><span class="o">=</span><span class="n">step</span><span class="p">,</span>
+                <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+                <span class="n">ftol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">min</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood_min</span><span class="p">(</span><span class="nb">min</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">min</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood_min</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">params</span><span class="p">),</span>
+                <span class="n">method</span><span class="o">=</span><span class="n">minimiser_name</span><span class="p">,</span>
+                <span class="n">bounds</span><span class="o">=</span><span class="n">limits</span><span class="p">,</span>
+                <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;disp&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+                <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">min</span><span class="o">.</span><span class="n">x</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_likelihood_min</span><span class="p">(</span><span class="nb">min</span><span class="o">.</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">spread_line_seed</span><span class="p">(</span>
+    <span class="n">hillas</span><span class="p">,</span>
+    <span class="n">tel_x</span><span class="p">,</span>
+    <span class="n">tel_y</span><span class="p">,</span>
+    <span class="n">source_x</span><span class="p">,</span>
+    <span class="n">source_y</span><span class="p">,</span>
+    <span class="n">tilt_x</span><span class="p">,</span>
+    <span class="n">tilt_y</span><span class="p">,</span>
+    <span class="n">energy</span><span class="p">,</span>
+    <span class="n">shift_frac</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    hillas: list</span>
+<span class="sd">        Hillas parameters in event</span>
+<span class="sd">    tel_x: list</span>
+<span class="sd">        telescope X positions in tilted system</span>
+<span class="sd">    tel_y: list</span>
+<span class="sd">        telescope Y positions in tilted system</span>
+<span class="sd">    source_x: float</span>
+<span class="sd">        Source X position in nominal system (radians)</span>
+<span class="sd">    source_y:float</span>
+<span class="sd">        Source Y position in nominal system (radians)</span>
+<span class="sd">    tilt_x: float</span>
+<span class="sd">        Core X position in tilited system (radians)</span>
+<span class="sd">    tilt_y: float</span>
+<span class="sd">        Core Y position in tilited system (radians)</span>
+<span class="sd">    energy: float</span>
+<span class="sd">        Energy in TeV</span>
+<span class="sd">    shift_frac: list</span>
+<span class="sd">        Fractional values to shist source and core positions</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of seed positions to try</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">centre_x</span><span class="p">,</span> <span class="n">centre_y</span><span class="p">,</span> <span class="n">amp</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">tel_hillas</span> <span class="ow">in</span> <span class="n">hillas</span><span class="p">:</span>
+        <span class="n">centre_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_hillas</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">centre_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_hillas</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">amp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_hillas</span><span class="o">.</span><span class="n">intensity</span><span class="p">)</span>
+
+    <span class="n">centre_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">centre_x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">amp</span><span class="p">)</span>
+    <span class="n">centre_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">centre_y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">amp</span><span class="p">)</span>
+    <span class="n">centre_tel_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">tel_x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">amp</span><span class="p">)</span>
+    <span class="n">centre_tel_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">tel_y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">amp</span><span class="p">)</span>
+
+    <span class="n">diff_x</span> <span class="o">=</span> <span class="n">source_x</span> <span class="o">-</span> <span class="n">centre_x</span>
+    <span class="n">diff_y</span> <span class="o">=</span> <span class="n">source_y</span> <span class="o">-</span> <span class="n">centre_y</span>
+    <span class="n">diff_tel_x</span> <span class="o">=</span> <span class="n">tilt_x</span> <span class="o">-</span> <span class="n">centre_tel_x</span>
+    <span class="n">diff_tel_y</span> <span class="o">=</span> <span class="n">tilt_y</span> <span class="o">-</span> <span class="n">centre_tel_y</span>
+
+    <span class="n">seed_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">shift_frac</span><span class="p">:</span>
+        <span class="n">seed_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">create_seed</span><span class="p">(</span>
+                <span class="n">centre_x</span> <span class="o">+</span> <span class="p">(</span><span class="n">diff_x</span> <span class="o">*</span> <span class="n">shift</span><span class="p">),</span>
+                <span class="n">centre_y</span> <span class="o">+</span> <span class="p">(</span><span class="n">diff_y</span> <span class="o">*</span> <span class="n">shift</span><span class="p">),</span>
+                <span class="n">centre_tel_x</span> <span class="o">+</span> <span class="p">(</span><span class="n">diff_tel_x</span> <span class="o">*</span> <span class="n">shift</span><span class="p">),</span>
+                <span class="n">centre_tel_y</span> <span class="o">+</span> <span class="p">(</span><span class="n">diff_tel_y</span> <span class="o">*</span> <span class="n">shift</span><span class="p">),</span>
+                <span class="n">energy</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">seed_list</span>
+
+
+<span class="k">def</span> <span class="nf">create_seed</span><span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">tilt_x</span><span class="p">,</span> <span class="n">tilt_y</span><span class="p">,</span> <span class="n">energy</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function for creating seed, step and limits for a given position</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source_x: float</span>
+<span class="sd">        Source X position in nominal system (radians)</span>
+<span class="sd">    source_y:float</span>
+<span class="sd">        Source Y position in nominal system (radians)</span>
+<span class="sd">    tilt_x: float</span>
+<span class="sd">        Core X position in tilited system (radians)</span>
+<span class="sd">    tilt_y: float</span>
+<span class="sd">        Core Y position in tilited system (radians)</span>
+<span class="sd">    energy: float</span>
+<span class="sd">        Energy in TeV</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of seed, steps size and fit limits</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lower_en_limit</span> <span class="o">=</span> <span class="n">energy</span> <span class="o">*</span> <span class="mf">0.5</span>
+    <span class="n">en_seed</span> <span class="o">=</span> <span class="n">energy</span>
+
+    <span class="c1"># If our energy estimate falls outside of the range of our templates set it to</span>
+    <span class="c1"># the edge</span>
+    <span class="k">if</span> <span class="n">lower_en_limit</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">:</span>
+        <span class="n">lower_en_limit</span> <span class="o">=</span> <span class="mf">0.01</span>
+        <span class="n">en_seed</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+    <span class="c1"># Take the seed from Hillas-based reconstruction</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_x</span><span class="p">,</span> <span class="n">source_y</span><span class="p">,</span> <span class="n">tilt_x</span><span class="p">,</span> <span class="n">tilt_y</span><span class="p">,</span> <span class="n">en_seed</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Take a reasonable first guess at step size</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.04</span> <span class="o">/</span> <span class="mf">57.3</span><span class="p">,</span> <span class="mf">0.04</span> <span class="o">/</span> <span class="mf">57.3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">en_seed</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">]</span>
+    <span class="c1"># And some sensible limits of the fit range</span>
+    <span class="n">limits</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">source_x</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">source_x</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">source_y</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">source_y</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">tilt_x</span> <span class="o">-</span> <span class="mi">100</span><span class="p">,</span> <span class="n">tilt_x</span> <span class="o">+</span> <span class="mi">100</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">tilt_y</span> <span class="o">-</span> <span class="mi">100</span><span class="p">,</span> <span class="n">tilt_y</span> <span class="o">+</span> <span class="mi">100</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">lower_en_limit</span><span class="p">,</span> <span class="n">en_seed</span> <span class="o">*</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">seed</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">limits</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+Int
+===
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Int
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Int.default_value
+      ~Int.info_text
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Int.from_string
+      ~Int.subclass_init
+      ~Int.validate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_value
+   .. autoattribute:: info_text
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_string
+   .. automethod:: subclass_init
+   .. automethod:: validate

@@ -1,0 +1,25 @@
+PixelStatusContainer
+====================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: PixelStatusContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~PixelStatusContainer.flatfield_failing_pixels
+      ~PixelStatusContainer.hardware_failing_pixels
+      ~PixelStatusContainer.meta
+      ~PixelStatusContainer.pedestal_failing_pixels
+      ~PixelStatusContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: flatfield_failing_pixels
+   .. autoattribute:: hardware_failing_pixels
+   .. autoattribute:: meta
+   .. autoattribute:: pedestal_failing_pixels
+   .. autoattribute:: prefix

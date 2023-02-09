@@ -1,0 +1,23 @@
+SizeType
+========
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: SizeType
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SizeType.LST
+      ~SizeType.MST
+      ~SizeType.SST
+      ~SizeType.UNKNOWN
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: LST
+   .. autoattribute:: MST
+   .. autoattribute:: SST
+   .. autoattribute:: UNKNOWN

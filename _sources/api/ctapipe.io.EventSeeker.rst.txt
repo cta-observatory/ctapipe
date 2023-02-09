@@ -1,0 +1,19 @@
+EventSeeker
+===========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: EventSeeker
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~EventSeeker.get_event_id
+      ~EventSeeker.get_event_index
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: get_event_id
+   .. automethod:: get_event_index

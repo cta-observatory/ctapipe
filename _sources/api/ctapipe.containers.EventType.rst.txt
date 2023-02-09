@@ -1,0 +1,37 @@
+EventType
+=========
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: EventType
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EventType.DAQ
+      ~EventType.DARK_PEDESTAL
+      ~EventType.ELECTRONIC_PEDESTAL
+      ~EventType.FLATFIELD
+      ~EventType.HARDWARE_STEREO
+      ~EventType.MUON
+      ~EventType.OTHER_CALIBRATION
+      ~EventType.SINGLE_PE
+      ~EventType.SKY_PEDESTAL
+      ~EventType.SUBARRAY
+      ~EventType.UNKNOWN
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: DAQ
+   .. autoattribute:: DARK_PEDESTAL
+   .. autoattribute:: ELECTRONIC_PEDESTAL
+   .. autoattribute:: FLATFIELD
+   .. autoattribute:: HARDWARE_STEREO
+   .. autoattribute:: MUON
+   .. autoattribute:: OTHER_CALIBRATION
+   .. autoattribute:: SINGLE_PE
+   .. autoattribute:: SKY_PEDESTAL
+   .. autoattribute:: SUBARRAY
+   .. autoattribute:: UNKNOWN

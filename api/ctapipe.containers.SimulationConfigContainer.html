@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimulationConfigContainer &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="TelEventIndexContainer" href="ctapipe.containers.TelEventIndexContainer.html" />
+    <link rel="prev" title="SimulatedShowerDistribution" href="ctapipe.containers.SimulatedShowerDistribution.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/containers/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/containers/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/containers/index.html#module-ctapipe.containers">ctapipe.containers Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+      <li class="breadcrumb-item active">SimulationConfigContainer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.containers.SimulationConfigContainer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="simulationconfigcontainer">
+<h1>SimulationConfigContainer<a class="headerlink" href="#simulationconfigcontainer" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.containers.SimulationConfigContainer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.containers.</span></code><code class="sig-name descname"><span class="pre">SimulationConfigContainer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">fields</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/containers.html#SimulationConfigContainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ctapipe.core.container.Container.html#ctapipe.core.container.Container" title="ctapipe.core.container.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.container.Container</span></code></a></p>
+<p>Configuration parameters of the simulation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>corsika_version</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>CORSIKA version * 1000</p>
+</dd>
+<dt><strong>simtel_version</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>sim_telarray version * 1000</p>
+</dd>
+<dt><strong>energy_range_min</strong><span class="classifier">Field(default=nan TeV, unit=TeV)</span></dt><dd><p>Lower limit of energy range of primary particle</p>
+</dd>
+<dt><strong>energy_range_max</strong><span class="classifier">Field(default=nan TeV, unit=TeV)</span></dt><dd><p>Upper limit of energy range of primary particle</p>
+</dd>
+<dt><strong>prod_site_B_total</strong><span class="classifier">Field(default=nan uT, unit=uT)</span></dt><dd><p>total geomagnetic field</p>
+</dd>
+<dt><strong>prod_site_B_declination</strong><span class="classifier">Field(default=nan rad, unit=rad)</span></dt><dd><p>magnetic declination</p>
+</dd>
+<dt><strong>prod_site_B_inclination</strong><span class="classifier">Field(default=nan rad, unit=rad)</span></dt><dd><p>magnetic inclination</p>
+</dd>
+<dt><strong>prod_site_alt</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>height of observation level</p>
+</dd>
+<dt><strong>spectral_index</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Power-law spectral index of spectrum</p>
+</dd>
+<dt><strong>shower_prog_start</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Time when shower simulation started, CORSIKA: only date</p>
+</dd>
+<dt><strong>shower_prog_id</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4</p>
+</dd>
+<dt><strong>detector_prog_start</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Time when detector simulation started</p>
+</dd>
+<dt><strong>detector_prog_id</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>simtelarray=1</p>
+</dd>
+<dt><strong>n_showers</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Number of showers simulated</p>
+</dd>
+<dt><strong>shower_reuse</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Numbers of uses of each shower</p>
+</dd>
+<dt><strong>max_alt</strong><span class="classifier">Field(default=nan rad, unit=rad)</span></dt><dd><p>Maximimum shower altitude</p>
+</dd>
+<dt><strong>min_alt</strong><span class="classifier">Field(default=nan rad, unit=rad)</span></dt><dd><p>Minimum shower altitude</p>
+</dd>
+<dt><strong>max_az</strong><span class="classifier">Field(default=nan rad, unit=rad)</span></dt><dd><p>Maximum shower azimuth</p>
+</dd>
+<dt><strong>min_az</strong><span class="classifier">Field(default=nan rad, unit=rad)</span></dt><dd><p>Minimum shower azimuth</p>
+</dd>
+<dt><strong>diffuse</strong><span class="classifier">Field(default=False)</span></dt><dd><p>Diffuse Mode On/Off</p>
+</dd>
+<dt><strong>max_viewcone_radius</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>Maximum viewcone radius</p>
+</dd>
+<dt><strong>min_viewcone_radius</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>Minimum viewcone radius</p>
+</dd>
+<dt><strong>max_scatter_range</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>Maximum scatter range</p>
+</dd>
+<dt><strong>min_scatter_range</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>Minimum scatter range</p>
+</dd>
+<dt><strong>core_pos_mode</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Core Position Mode (0=Circular, 1=Rectangular)</p>
+</dd>
+<dt><strong>injection_height</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>Height of particle injection</p>
+</dd>
+<dt><strong>atmosphere</strong><span class="classifier">Field(default=nan m)</span></dt><dd><p>Atmospheric model number</p>
+</dd>
+<dt><strong>corsika_iact_options</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>CORSIKA simulation options for IACTs</p>
+</dd>
+<dt><strong>corsika_low_E_model</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>CORSIKA low-energy simulation physics model</p>
+</dd>
+<dt><strong>corsika_high_E_model</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>CORSIKA physics model ID for high energies (1=VENUS, 2=SIBYLL, 3=QGSJET, 4=DPMJET, 5=NeXus, 6=EPOS)</p>
+</dd>
+<dt><strong>corsika_bunchsize</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>Number of Cherenkov photons per bunch</p>
+</dd>
+<dt><strong>corsika_wlen_min</strong><span class="classifier">Field(default=nan m, unit=nm)</span></dt><dd><p>Minimum wavelength of cherenkov light</p>
+</dd>
+<dt><strong>corsika_wlen_max</strong><span class="classifier">Field(default=nan m, unit=nm)</span></dt><dd><p>Maximum wavelength of cherenkov light</p>
+</dd>
+<dt><strong>corsika_low_E_detail</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>More details on low E interaction model (version etc.)</p>
+</dd>
+<dt><strong>corsika_high_E_detail</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>More details on high E interaction model (version etc.)</p>
+</dd>
+<dt><strong>meta</strong><span class="classifier">dict</span></dt><dd><p>dict of attached metadata</p>
+</dd>
+<dt><strong>prefix</strong><span class="classifier">str</span></dt><dd><p>Prefix attached to column names when saved to a table or file</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.atmosphere" title="ctapipe.containers.SimulationConfigContainer.atmosphere"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.core_pos_mode" title="ctapipe.containers.SimulationConfigContainer.core_pos_mode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_pos_mode</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_bunchsize" title="ctapipe.containers.SimulationConfigContainer.corsika_bunchsize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_bunchsize</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_high_E_detail" title="ctapipe.containers.SimulationConfigContainer.corsika_high_E_detail"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_high_E_detail</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_high_E_model" title="ctapipe.containers.SimulationConfigContainer.corsika_high_E_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_high_E_model</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_iact_options" title="ctapipe.containers.SimulationConfigContainer.corsika_iact_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_iact_options</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_low_E_detail" title="ctapipe.containers.SimulationConfigContainer.corsika_low_E_detail"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_low_E_detail</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_low_E_model" title="ctapipe.containers.SimulationConfigContainer.corsika_low_E_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_low_E_model</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_version" title="ctapipe.containers.SimulationConfigContainer.corsika_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_version</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_wlen_max" title="ctapipe.containers.SimulationConfigContainer.corsika_wlen_max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_wlen_max</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.corsika_wlen_min" title="ctapipe.containers.SimulationConfigContainer.corsika_wlen_min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corsika_wlen_min</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.detector_prog_id" title="ctapipe.containers.SimulationConfigContainer.detector_prog_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detector_prog_id</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.detector_prog_start" title="ctapipe.containers.SimulationConfigContainer.detector_prog_start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detector_prog_start</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.diffuse" title="ctapipe.containers.SimulationConfigContainer.diffuse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diffuse</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.energy_range_max" title="ctapipe.containers.SimulationConfigContainer.energy_range_max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_range_max</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.energy_range_min" title="ctapipe.containers.SimulationConfigContainer.energy_range_min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_range_min</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.injection_height" title="ctapipe.containers.SimulationConfigContainer.injection_height"><code class="xref py py-obj docutils literal notranslate"><span class="pre">injection_height</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.max_alt" title="ctapipe.containers.SimulationConfigContainer.max_alt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_alt</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.max_az" title="ctapipe.containers.SimulationConfigContainer.max_az"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_az</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.max_scatter_range" title="ctapipe.containers.SimulationConfigContainer.max_scatter_range"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_scatter_range</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.max_viewcone_radius" title="ctapipe.containers.SimulationConfigContainer.max_viewcone_radius"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_viewcone_radius</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.meta" title="ctapipe.containers.SimulationConfigContainer.meta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.min_alt" title="ctapipe.containers.SimulationConfigContainer.min_alt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">min_alt</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.min_az" title="ctapipe.containers.SimulationConfigContainer.min_az"><code class="xref py py-obj docutils literal notranslate"><span class="pre">min_az</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.min_scatter_range" title="ctapipe.containers.SimulationConfigContainer.min_scatter_range"><code class="xref py py-obj docutils literal notranslate"><span class="pre">min_scatter_range</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.min_viewcone_radius" title="ctapipe.containers.SimulationConfigContainer.min_viewcone_radius"><code class="xref py py-obj docutils literal notranslate"><span class="pre">min_viewcone_radius</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.n_showers" title="ctapipe.containers.SimulationConfigContainer.n_showers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_showers</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.prefix" title="ctapipe.containers.SimulationConfigContainer.prefix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.prod_site_B_declination" title="ctapipe.containers.SimulationConfigContainer.prod_site_B_declination"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod_site_B_declination</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.prod_site_B_inclination" title="ctapipe.containers.SimulationConfigContainer.prod_site_B_inclination"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod_site_B_inclination</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.prod_site_B_total" title="ctapipe.containers.SimulationConfigContainer.prod_site_B_total"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod_site_B_total</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.prod_site_alt" title="ctapipe.containers.SimulationConfigContainer.prod_site_alt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod_site_alt</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.shower_prog_id" title="ctapipe.containers.SimulationConfigContainer.shower_prog_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shower_prog_id</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.shower_prog_start" title="ctapipe.containers.SimulationConfigContainer.shower_prog_start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shower_prog_start</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.shower_reuse" title="ctapipe.containers.SimulationConfigContainer.shower_reuse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shower_reuse</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.simtel_version" title="ctapipe.containers.SimulationConfigContainer.simtel_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simtel_version</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.SimulationConfigContainer.spectral_index" title="ctapipe.containers.SimulationConfigContainer.spectral_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">spectral_index</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.atmosphere">
+<code class="sig-name descname"><span class="pre">atmosphere</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.atmosphere" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.core_pos_mode">
+<code class="sig-name descname"><span class="pre">core_pos_mode</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.core_pos_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_bunchsize">
+<code class="sig-name descname"><span class="pre">corsika_bunchsize</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_bunchsize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_high_E_detail">
+<code class="sig-name descname"><span class="pre">corsika_high_E_detail</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_high_E_detail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_high_E_model">
+<code class="sig-name descname"><span class="pre">corsika_high_E_model</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_high_E_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_iact_options">
+<code class="sig-name descname"><span class="pre">corsika_iact_options</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_iact_options" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_low_E_detail">
+<code class="sig-name descname"><span class="pre">corsika_low_E_detail</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_low_E_detail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_low_E_model">
+<code class="sig-name descname"><span class="pre">corsika_low_E_model</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_low_E_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_version">
+<code class="sig-name descname"><span class="pre">corsika_version</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_wlen_max">
+<code class="sig-name descname"><span class="pre">corsika_wlen_max</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_wlen_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.corsika_wlen_min">
+<code class="sig-name descname"><span class="pre">corsika_wlen_min</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.corsika_wlen_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.detector_prog_id">
+<code class="sig-name descname"><span class="pre">detector_prog_id</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.detector_prog_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.detector_prog_start">
+<code class="sig-name descname"><span class="pre">detector_prog_start</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.detector_prog_start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.diffuse">
+<code class="sig-name descname"><span class="pre">diffuse</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.diffuse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.energy_range_max">
+<code class="sig-name descname"><span class="pre">energy_range_max</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.energy_range_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.energy_range_min">
+<code class="sig-name descname"><span class="pre">energy_range_min</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.energy_range_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.injection_height">
+<code class="sig-name descname"><span class="pre">injection_height</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.injection_height" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.max_alt">
+<code class="sig-name descname"><span class="pre">max_alt</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.max_alt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.max_az">
+<code class="sig-name descname"><span class="pre">max_az</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.max_az" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.max_scatter_range">
+<code class="sig-name descname"><span class="pre">max_scatter_range</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.max_scatter_range" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.max_viewcone_radius">
+<code class="sig-name descname"><span class="pre">max_viewcone_radius</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.max_viewcone_radius" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.meta">
+<code class="sig-name descname"><span class="pre">meta</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.meta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.min_alt">
+<code class="sig-name descname"><span class="pre">min_alt</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.min_alt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.min_az">
+<code class="sig-name descname"><span class="pre">min_az</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.min_az" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.min_scatter_range">
+<code class="sig-name descname"><span class="pre">min_scatter_range</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.min_scatter_range" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.min_viewcone_radius">
+<code class="sig-name descname"><span class="pre">min_viewcone_radius</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.min_viewcone_radius" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.n_showers">
+<code class="sig-name descname"><span class="pre">n_showers</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.n_showers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.prefix">
+<code class="sig-name descname"><span class="pre">prefix</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.prefix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.prod_site_B_declination">
+<code class="sig-name descname"><span class="pre">prod_site_B_declination</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.prod_site_B_declination" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.prod_site_B_inclination">
+<code class="sig-name descname"><span class="pre">prod_site_B_inclination</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.prod_site_B_inclination" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.prod_site_B_total">
+<code class="sig-name descname"><span class="pre">prod_site_B_total</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.prod_site_B_total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.prod_site_alt">
+<code class="sig-name descname"><span class="pre">prod_site_alt</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.prod_site_alt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.shower_prog_id">
+<code class="sig-name descname"><span class="pre">shower_prog_id</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.shower_prog_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.shower_prog_start">
+<code class="sig-name descname"><span class="pre">shower_prog_start</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.shower_prog_start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.shower_reuse">
+<code class="sig-name descname"><span class="pre">shower_reuse</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.shower_reuse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.simtel_version">
+<code class="sig-name descname"><span class="pre">simtel_version</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.simtel_version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.SimulationConfigContainer.spectral_index">
+<code class="sig-name descname"><span class="pre">spectral_index</span></code><a class="headerlink" href="#ctapipe.containers.SimulationConfigContainer.spectral_index" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.containers.SimulatedShowerDistribution.html" class="btn btn-neutral float-left" title="SimulatedShowerDistribution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe.containers.TelEventIndexContainer.html" class="btn btn-neutral float-right" title="TelEventIndexContainer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

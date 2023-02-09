@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.tools.apply_models &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.tools.apply_models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.tools.apply_models</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tool to apply machine learning models in bulk (as opposed to event by event).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">vstack</span>
+<span class="kn">from</span> <span class="nn">tqdm.auto</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.core.tool</span> <span class="kn">import</span> <span class="n">Tool</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core.traits</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">classes_with_traits</span><span class="p">,</span> <span class="n">flag</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">HDF5Merger</span><span class="p">,</span> <span class="n">TableLoader</span><span class="p">,</span> <span class="n">write_table</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io.astropy_helpers</span> <span class="kn">import</span> <span class="n">read_table</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io.tableio</span> <span class="kn">import</span> <span class="n">TelListToMaskTransform</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io.tableloader</span> <span class="kn">import</span> <span class="n">_join_subarray_events</span>
+<span class="kn">from</span> <span class="nn">ctapipe.reco</span> <span class="kn">import</span> <span class="n">Reconstructor</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ApplyModels&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="ApplyModels"><a class="viewcode-back" href="../../../api/ctapipe.tools.apply_models.ApplyModels.html#ctapipe.tools.apply_models.ApplyModels">[docs]</a><span class="k">class</span> <span class="nc">ApplyModels</span><span class="p">(</span><span class="n">Tool</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply machine learning models to data.</span>
+
+<span class="sd">    This tool predicts all events at once. To apply models in the</span>
+<span class="sd">    regular event loop, set the appropriate options to ``ctapipe-process``.</span>
+
+<span class="sd">    Models need to be trained with</span>
+<span class="sd">    `~ctapipe.tools.train_energy_regressor.TrainEnergyRegressor`</span>
+<span class="sd">    and</span>
+<span class="sd">    `~ctapipe.tools.train_particle_classifier.TrainParticleClassifier`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ctapipe-apply-models&quot;</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="vm">__doc__</span>
+    <span class="n">examples</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    ctapipe-apply-models </span><span class="se">\\</span>
+<span class="s2">        --input gamma.dl2.h5 </span><span class="se">\\</span>
+<span class="s2">        --reconstructor energy_regressor.pkl </span><span class="se">\\</span>
+<span class="s2">        --reconstructor particle-classifier.pkl </span><span class="se">\\</span>
+<span class="s2">        --output gamma_applied.dl2.h5</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">input_url</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input dl1b/dl2 file&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output file&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">reconstructor_paths</span> <span class="o">=</span> <span class="n">List</span><span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Paths to trained reconstructors to be applied to the input data&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;How many subarray events to load at once for making predictions.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">progress_bar</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;show progress bar during processing&quot;</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">):</span> <span class="s2">&quot;ApplyModels.input_url&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;reconstructor&quot;</span><span class="p">):</span> <span class="s2">&quot;ApplyModels.reconstructor_paths&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">):</span> <span class="s2">&quot;ApplyModels.output_path&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;chunk-size&quot;</span><span class="p">:</span> <span class="s2">&quot;ApplyModels.chunk_size&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">flags</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;progress&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ProcessorTool.progress_bar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;show a progress bar during event processing&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;don&#39;t show a progress bar during event processing&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;dl1-parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HDF5Merger.dl1_parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Include dl1 parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Exclude dl1 parameters&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;dl1-images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HDF5Merger.dl1_images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Include dl1 images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Exclude dl1 images&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;true-parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HDF5Merger.true_parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Include true parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Exclude true parameters&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;true-images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HDF5Merger.true_images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Include true images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Exclude true images&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">TableLoader</span><span class="p">]</span> <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ApplyModels.setup"><a class="viewcode-back" href="../../../api/ctapipe.tools.apply_models.ApplyModels.html#ctapipe.tools.apply_models.ApplyModels.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize components from config</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Copying to output destination.&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">HDF5Merger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span> <span class="k">as</span> <span class="n">merger</span><span class="p">:</span>
+            <span class="n">merger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
+            <span class="n">TableLoader</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">load_dl1_parameters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">load_dl2</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">load_instrument</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">load_dl1_images</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">load_simulated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">load_observation_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reconstructors</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Reconstructor</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">subarray</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstructor_paths</span>
+        <span class="p">]</span></div>
+
+<div class="viewcode-block" id="ApplyModels.start"><a class="viewcode-back" href="../../../api/ctapipe.tools.apply_models.ApplyModels.html#ctapipe.tools.apply_models.ApplyModels.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply models to input tables&quot;&quot;&quot;</span>
+        <span class="n">chunk_iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">read_telescope_events_by_id_chunked</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span>
+        <span class="p">)</span>
+        <span class="n">bar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="n">chunk_iterator</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Applying reconstructors&quot;</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s2">&quot; Array Events&quot;</span><span class="p">,</span>
+            <span class="n">total</span><span class="o">=</span><span class="n">chunk_iterator</span><span class="o">.</span><span class="n">n_total</span><span class="p">,</span>
+            <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_bar</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">bar</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">chunk</span><span class="p">,</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">tel_tables</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chunk_iterator</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">reconstructor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reconstructors</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Applying </span><span class="si">%s</span><span class="s2"> to chunk </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">reconstructor</span><span class="p">,</span> <span class="n">chunk</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="n">reconstructor</span><span class="p">,</span> <span class="n">tel_tables</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+
+                <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stop</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reconstructor</span><span class="p">,</span> <span class="n">tel_tables</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">reconstructor</span><span class="o">.</span><span class="n">prefix</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tel_tables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">tel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">tel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reconstructor</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;No model in </span><span class="si">%s</span><span class="s2"> for telescope type </span><span class="si">%s</span><span class="s2">, skipping tel </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">reconstructor</span><span class="p">,</span>
+                    <span class="n">tel</span><span class="p">,</span>
+                    <span class="n">tel_id</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No events for telescope </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">predictions</span> <span class="o">=</span> <span class="n">reconstructor</span><span class="o">.</span><span class="n">predict_table</span><span class="p">(</span><span class="n">tel</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">prediction_table</span> <span class="ow">in</span> <span class="n">predictions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># copy/overwrite columns into full feature table</span>
+                <span class="n">new_columns</span> <span class="o">=</span> <span class="n">prediction_table</span><span class="o">.</span><span class="n">colnames</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">new_columns</span><span class="p">:</span>
+                    <span class="n">table</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">prediction_table</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+
+                <span class="n">output_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tel_id&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">new_columns</span>
+                <span class="n">write_table</span><span class="p">(</span>
+                    <span class="n">table</span><span class="p">[</span><span class="n">output_columns</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">&quot;/dl2/event/telescope/</span><span class="si">{</span><span class="n">prop</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tel_</span><span class="si">{</span><span class="n">tel_id</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">append</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_combine</span><span class="p">(</span><span class="n">reconstructor</span><span class="p">,</span> <span class="n">tel_tables</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_combine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reconstructor</span><span class="p">,</span> <span class="n">tel_tables</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
+        <span class="n">stereo_table</span> <span class="o">=</span> <span class="n">vstack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tel_tables</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+        <span class="n">combiner</span> <span class="o">=</span> <span class="n">reconstructor</span><span class="o">.</span><span class="n">stereo_combiner</span>
+        <span class="n">stereo_predictions</span> <span class="o">=</span> <span class="n">combiner</span><span class="o">.</span><span class="n">predict_table</span><span class="p">(</span><span class="n">stereo_table</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">stereo_table</span>
+
+        <span class="n">trafo</span> <span class="o">=</span> <span class="n">TelListToMaskTransform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">subarray</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;telescopes&quot;</span><span class="p">),</span>
+            <span class="n">stereo_predictions</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+        <span class="p">):</span>
+            <span class="n">stereo_predictions</span><span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">trafo</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">c</span><span class="p">])</span>
+            <span class="n">stereo_predictions</span><span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">description</span>
+
+        <span class="c1"># stacking the single telescope tables and joining</span>
+        <span class="c1"># potentially changes the order of the subarray events.</span>
+        <span class="c1"># to ensure events are stored in the correct order,</span>
+        <span class="c1"># we resort to trigger table order</span>
+        <span class="n">trigger</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="s2">&quot;/dl1/event/subarray/trigger&quot;</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span>
+        <span class="p">)[[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">]]</span>
+        <span class="n">trigger</span><span class="p">[</span><span class="s2">&quot;__sort_index__&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trigger</span><span class="p">))</span>
+
+        <span class="n">stereo_predictions</span> <span class="o">=</span> <span class="n">_join_subarray_events</span><span class="p">(</span><span class="n">trigger</span><span class="p">,</span> <span class="n">stereo_predictions</span><span class="p">)</span>
+        <span class="n">stereo_predictions</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;__sort_index__&quot;</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">stereo_predictions</span><span class="p">[</span><span class="s2">&quot;__sort_index__&quot;</span><span class="p">]</span>
+
+        <span class="n">write_table</span><span class="p">(</span>
+            <span class="n">stereo_predictions</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;/dl2/event/subarray/</span><span class="si">{</span><span class="n">combiner</span><span class="o">.</span><span class="n">property</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">combiner</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">append</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tel_table</span> <span class="ow">in</span> <span class="n">tel_tables</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">_add_stereo_prediction</span><span class="p">(</span><span class="n">tel_table</span><span class="p">,</span> <span class="n">stereo_predictions</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_add_stereo_prediction</span><span class="p">(</span><span class="n">tel_events</span><span class="p">,</span> <span class="n">array_events</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add columns from array_events table to tel_events table&quot;&quot;&quot;</span>
+    <span class="n">join_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;obs_id&quot;</span><span class="p">:</span> <span class="n">tel_events</span><span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;event_id&quot;</span><span class="p">:</span> <span class="n">tel_events</span><span class="p">[</span><span class="s2">&quot;event_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;__sort_index__&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_events</span><span class="p">)),</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">joined</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">join_table</span><span class="p">,</span> <span class="n">array_events</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">])</span>
+    <span class="k">del</span> <span class="n">join_table</span>
+    <span class="n">joined</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;__sort_index__&quot;</span><span class="p">)</span>
+    <span class="n">joined</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">,</span> <span class="s2">&quot;__sort_index__&quot;</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="n">joined</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+        <span class="n">tel_events</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">joined</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">ApplyModels</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

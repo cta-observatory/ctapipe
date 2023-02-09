@@ -1,0 +1,45 @@
+TrainEnergyRegressor
+====================
+
+.. currentmodule:: ctapipe.tools.train_energy_regressor
+
+.. autoclass:: TrainEnergyRegressor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TrainEnergyRegressor.aliases
+      ~TrainEnergyRegressor.classes
+      ~TrainEnergyRegressor.description
+      ~TrainEnergyRegressor.examples
+      ~TrainEnergyRegressor.n_events
+      ~TrainEnergyRegressor.name
+      ~TrainEnergyRegressor.output_path
+      ~TrainEnergyRegressor.random_seed
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TrainEnergyRegressor.finish
+      ~TrainEnergyRegressor.setup
+      ~TrainEnergyRegressor.start
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: aliases
+   .. autoattribute:: classes
+   .. autoattribute:: description
+   .. autoattribute:: examples
+   .. autoattribute:: n_events
+   .. autoattribute:: name
+   .. autoattribute:: output_path
+   .. autoattribute:: random_seed
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: finish
+   .. automethod:: setup
+   .. automethod:: start

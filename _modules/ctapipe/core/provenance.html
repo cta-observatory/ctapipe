@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.core.provenance &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.core.provenance</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.core.provenance</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provenance-related functionality</span>
+
+<span class="sd">TODO: have this register whenever ctapipe is loaded</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">UserList</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="kn">import</span> <span class="n">import_module</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">abspath</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">pkg_resources</span>
+<span class="kn">import</span> <span class="nn">psutil</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">get_distribution</span>
+
+<span class="kn">import</span> <span class="nn">ctapipe</span>
+
+<span class="kn">from</span> <span class="nn">.support</span> <span class="kn">import</span> <span class="n">Singleton</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Provenance&quot;</span><span class="p">]</span>
+
+<span class="n">_interesting_env_vars</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;CONDA_DEFAULT_ENV&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CONDA_PREFIX&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CONDA_PYTHON_EXE&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CONDA_EXE&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CONDA_PROMPT_MODIFIER&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CONDA_SHLVL&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PATH&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;LD_LIBRARY_PATH&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DYLD_LIBRARY_PATH&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;USER&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;HOME&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SHELL&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_module_version"><a class="viewcode-back" href="../../../api/ctapipe.core.get_module_version.html#ctapipe.core.get_module_version">[docs]</a><span class="k">def</span> <span class="nf">get_module_version</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">module</span><span class="o">.</span><span class="n">__version__</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_distribution</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">version</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;unknown&quot;</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;not installed&quot;</span></div>
+
+
+<div class="viewcode-block" id="Provenance"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance">[docs]</a><span class="k">class</span> <span class="nc">Provenance</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">Singleton</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manage the provenance info for a stack of *activities*</span>
+
+<span class="sd">    use `start_activity(name) &lt;start_activity&gt;`_ to start an activity. Any calls to</span>
+<span class="sd">    `add_input_file` or `add_output_file` will register files within</span>
+<span class="sd">    that activity. Finish the current activity with `finish_activity`.</span>
+
+<span class="sd">    Nested activities are allowed, and handled as a stack. The final output</span>
+<span class="sd">    is not hierarchical, but a flat list of activities (however hierarchical</span>
+<span class="sd">    activities could easily be implemented if necessary)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_activities</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># stack of active activities</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_finished_activities</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="Provenance.start_activity"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.start_activity">[docs]</a>    <span class="k">def</span> <span class="nf">start_activity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activity_name</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;push activity onto the stack&quot;&quot;&quot;</span>
+        <span class="n">activity</span> <span class="o">=</span> <span class="n">_ActivityProvenance</span><span class="p">(</span><span class="n">activity_name</span><span class="p">)</span>
+        <span class="n">activity</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_activities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">activity</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;started activity: </span><span class="si">{</span><span class="n">activity_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Provenance.add_input_file"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.add_input_file">[docs]</a>    <span class="k">def</span> <span class="nf">add_input_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;register an input to the current activity</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str</span>
+<span class="sd">            name or url of file</span>
+<span class="sd">        role: str</span>
+<span class="sd">            role this input file satisfies (optional)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_activity</span><span class="o">.</span><span class="n">register_input</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;added input entity &#39;</span><span class="si">{}</span><span class="s2">&#39; to activity: &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_activity</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Provenance.add_output_file"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.add_output_file">[docs]</a>    <span class="k">def</span> <span class="nf">add_output_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        register an output to the current activity</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str</span>
+<span class="sd">            name or url of file</span>
+<span class="sd">        role: str</span>
+<span class="sd">            role this output file satisfies (optional)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_activity</span><span class="o">.</span><span class="n">register_output</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;added output entity &#39;</span><span class="si">{}</span><span class="s2">&#39; to activity: &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_activity</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Provenance.add_config"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.add_config">[docs]</a>    <span class="k">def</span> <span class="nf">add_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        add configuration parameters to the current activity</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config: dict</span>
+<span class="sd">            configuration parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_activity</span><span class="o">.</span><span class="n">register_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Provenance.finish_activity"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.finish_activity">[docs]</a>    <span class="k">def</span> <span class="nf">finish_activity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;completed&quot;</span><span class="p">,</span> <span class="n">activity_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;end the current activity&quot;&quot;&quot;</span>
+        <span class="n">activity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activities</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">activity_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">activity_name</span> <span class="o">!=</span> <span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Tried to end activity &#39;</span><span class="si">{}</span><span class="s2">&#39;, but &#39;</span><span class="si">{}</span><span class="s2">&#39; is current &quot;</span>
+                <span class="s2">&quot;activity&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">activity_name</span><span class="p">,</span> <span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">activity</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_finished_activities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">activity</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;finished activity: </span><span class="si">{</span><span class="n">activity</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Provenance.activity"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.activity">[docs]</a>    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">activity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;context manager for activities&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_activity</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">yield</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish_activity</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_activity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_activities</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No activity has been started... starting a default one&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_activity</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activities</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># current activity as at the top of stack</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">finished_activities</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finished_activities</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">provenance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns provenence for full list of activities&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">provenance</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finished_activities</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Provenance.as_json"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.as_json">[docs]</a>    <span class="k">def</span> <span class="nf">as_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return all finished provenance as JSON.  Kwargs for `json.dumps`</span>
+<span class="sd">        may be included, e.g. ``indent=4``&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">set_default</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;handle sets (not part of JSON) by converting to list&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">set</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">UserList</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">provenance</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">set_default</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">active_activity_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activities</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">finished_activity_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finished_activities</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Provenance.clear"><a class="viewcode-back" href="../../../api/ctapipe.core.Provenance.html#ctapipe.core.Provenance.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;remove all tracked activities&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_activities</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_finished_activities</span> <span class="o">=</span> <span class="p">[]</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">_ActivityProvenance</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Low-level helper class to collect provenance information for a given</span>
+<span class="sd">    *activity*.  Users should use `Provenance` as a top-level API,</span>
+<span class="sd">    not this class directly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activity_name</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;activity_name&quot;</span><span class="p">:</span> <span class="n">activity_name</span><span class="p">,</span>
+            <span class="s2">&quot;activity_uuid&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+            <span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;stop&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">activity_name</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;begin recording provenance for this activity. Set&#39;s up the system</span>
+<span class="sd">        and startup provenance data. Generally should be called at start of a</span>
+<span class="sd">        program.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_sample_cpu_and_memory</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;system&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_get_system_provenance</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">register_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a URL of a file to the list of inputs (can be a filename or full</span>
+<span class="sd">        url, if no URL specifier is given, assume &#39;file://&#39;)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        url: str</span>
+<span class="sd">            filename or url of input file</span>
+<span class="sd">        role: str</span>
+<span class="sd">            role name that this input satisfies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">register_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a URL of a file to the list of outputs (can be a filename or full</span>
+<span class="sd">        url, if no URL specifier is given, assume &#39;file://&#39;)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        url: str</span>
+<span class="sd">            filename or url of output file</span>
+<span class="sd">        role: str</span>
+<span class="sd">            role name that this output satisfies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">register_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;add a dictionary of configuration parameters to this activity&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;config&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+
+    <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;completed&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;record final provenance information, normally called at shutdown.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_sample_cpu_and_memory</span><span class="p">())</span>
+
+        <span class="c1"># record the duration (wall-clock) for this activity</span>
+        <span class="n">t_start</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">][</span><span class="s2">&quot;time_utc&quot;</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;isot&quot;</span><span class="p">)</span>
+        <span class="n">t_stop</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">][</span><span class="s2">&quot;time_utc&quot;</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;isot&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;duration_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_stop</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;min&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sample_cpu_and_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Record a snapshot of current CPU and memory information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;samples&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_sample_cpu_and_memory</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">provenance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prov</span>
+
+
+<span class="k">def</span> <span class="nf">_get_python_packages</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">project_name</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">module_path</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">pkg_resources</span><span class="o">.</span><span class="n">working_set</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_get_system_provenance</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;return JSON string containing provenance for all things that are</span>
+<span class="sd">    fixed during the runtime&quot;&quot;&quot;</span>
+
+    <span class="n">bits</span><span class="p">,</span> <span class="n">linkage</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">architecture</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">ctapipe_version</span><span class="o">=</span><span class="n">ctapipe</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span>
+        <span class="n">ctapipe_resources_version</span><span class="o">=</span><span class="n">get_module_version</span><span class="p">(</span><span class="s2">&quot;ctapipe_resources&quot;</span><span class="p">),</span>
+        <span class="n">eventio_version</span><span class="o">=</span><span class="n">get_module_version</span><span class="p">(</span><span class="s2">&quot;eventio&quot;</span><span class="p">),</span>
+        <span class="n">ctapipe_svc_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;CTAPIPE_SVC_PATH&quot;</span><span class="p">),</span>
+        <span class="n">executable</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span>
+        <span class="n">platform</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">architecture_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">,</span>
+            <span class="n">architecture_linkage</span><span class="o">=</span><span class="n">linkage</span><span class="p">,</span>
+            <span class="n">machine</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">machine</span><span class="p">(),</span>
+            <span class="n">processor</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">processor</span><span class="p">(),</span>
+            <span class="n">node</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">(),</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">version</span><span class="p">(),</span>
+            <span class="n">system</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
+            <span class="n">release</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">(),</span>
+            <span class="n">libcver</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">libc_ver</span><span class="p">(),</span>
+            <span class="n">n_cpus</span><span class="o">=</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span>
+            <span class="n">boot_time</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">boot_time</span><span class="p">(),</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;unix&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isot</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">python</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">version_string</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">python_version_tuple</span><span class="p">(),</span>
+            <span class="n">compiler</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">python_compiler</span><span class="p">(),</span>
+            <span class="n">implementation</span><span class="o">=</span><span class="n">platform</span><span class="o">.</span><span class="n">python_implementation</span><span class="p">(),</span>
+            <span class="n">packages</span><span class="o">=</span><span class="n">_get_python_packages</span><span class="p">(),</span>
+        <span class="p">),</span>
+        <span class="n">environment</span><span class="o">=</span><span class="n">_get_env_vars</span><span class="p">(),</span>
+        <span class="n">arguments</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span>
+        <span class="n">start_time_utc</span><span class="o">=</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isot</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_env_vars</span><span class="p">():</span>
+    <span class="n">envvars</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">_interesting_env_vars</span><span class="p">:</span>
+        <span class="n">envvars</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">envvars</span>
+
+
+<span class="k">def</span> <span class="nf">_sample_cpu_and_memory</span><span class="p">():</span>
+    <span class="c1"># times = np.asarray(psutil.cpu_times(percpu=True))</span>
+    <span class="c1"># mem = psutil.virtual_memory()</span>
+
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">time_utc</span><span class="o">=</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">utc</span><span class="o">.</span><span class="n">isot</span><span class="p">,</span>
+        <span class="c1"># memory=dict(total=mem.total,</span>
+        <span class="c1">#             inactive=mem.inactive,</span>
+        <span class="c1">#             available=mem.available,</span>
+        <span class="c1">#             free=mem.free,</span>
+        <span class="c1">#             wired=mem.wired),</span>
+        <span class="c1"># cpu=dict(ncpu=psutil.cpu_count(),</span>
+        <span class="c1">#          user=list(times[:, 0]),</span>
+        <span class="c1">#          nice=list(times[:, 1]),</span>
+        <span class="c1">#          system=list(times[:, 2]),</span>
+        <span class="c1">#          idle=list(times[:, 3])),</span>
+    <span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

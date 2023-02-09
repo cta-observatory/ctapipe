@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Containers (containers) &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ArrayEventContainer" href="../../api/ctapipe.containers.ArrayEventContainer.html" />
+    <link rel="prev" title="GainSelector" href="../../api/ctapipe.calib.GainSelector.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.containers">ctapipe.containers Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Docs</a></li>
+      <li class="breadcrumb-item active">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/ctapipe_api/containers/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="containers-containers">
+<span id="containers"></span><h1>Containers (<a class="reference internal" href="#module-ctapipe.containers" title="ctapipe.containers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code></a>)<a class="headerlink" href="#containers-containers" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="#module-ctapipe.containers" title="ctapipe.containers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.containers</span></code></a> module contains the data model definition of all
+ctapipe <a class="reference internal" href="../../api/ctapipe.core.Container.html#ctapipe.core.Container" title="ctapipe.core.Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Container</span></code></a> classes, which provide the container definitions for all
+ctapipe data.</p>
+<p>The base Container for an event is in <a class="reference internal" href="../../api/ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer" title="ctapipe.containers.ArrayEventContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.containers.ArrayEventContainer</span></code></a>.</p>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-ctapipe.containers">
+<span id="ctapipe-containers-module"></span><h3>ctapipe.containers Module<a class="headerlink" href="#module-ctapipe.containers" title="Permalink to this headline">¶</a></h3>
+<p>Container structures for data that should be read or written to disk</p>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer" title="ctapipe.containers.ArrayEventContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArrayEventContainer</span></code></a>([prefix])</p></td>
+<td><p>Top-level container for all event information</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ConcentrationContainer.html#ctapipe.containers.ConcentrationContainer" title="ctapipe.containers.ConcentrationContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConcentrationContainer</span></code></a>([prefix])</p></td>
+<td><p>Concentrations are ratios between light amount in certain areas of the image and the full image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DL0CameraContainer.html#ctapipe.containers.DL0CameraContainer" title="ctapipe.containers.DL0CameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL0CameraContainer</span></code></a>([prefix])</p></td>
+<td><p>Storage of data volume reduced dl0 data from a single telescope</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DL0Container.html#ctapipe.containers.DL0Container" title="ctapipe.containers.DL0Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL0Container</span></code></a>([prefix])</p></td>
+<td><p>Storage of a data volume reduced Event</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DL1CameraCalibrationContainer.html#ctapipe.containers.DL1CameraCalibrationContainer" title="ctapipe.containers.DL1CameraCalibrationContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1CameraCalibrationContainer</span></code></a>([prefix])</p></td>
+<td><p>Storage of DL1 calibration parameters for the current event</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DL1CameraContainer.html#ctapipe.containers.DL1CameraContainer" title="ctapipe.containers.DL1CameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1CameraContainer</span></code></a>([prefix])</p></td>
+<td><p>Storage of output of camera calibration e.g the final calibrated image in intensity units and the pulse time.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DL1Container.html#ctapipe.containers.DL1Container" title="ctapipe.containers.DL1Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1Container</span></code></a>([prefix])</p></td>
+<td><p>DL1 Calibrated Camera Images and associated data</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DL2Container.html#ctapipe.containers.DL2Container" title="ctapipe.containers.DL2Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL2Container</span></code></a>([prefix])</p></td>
+<td><p>Reconstructed Shower information for a given reconstruction algorithm,</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.EventCalibrationContainer.html#ctapipe.containers.EventCalibrationContainer" title="ctapipe.containers.EventCalibrationContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventCalibrationContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for calibration coefficients for the current event</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.EventCameraCalibrationContainer.html#ctapipe.containers.EventCameraCalibrationContainer" title="ctapipe.containers.EventCameraCalibrationContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventCameraCalibrationContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for the calibration coefficients for the current event and camera</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a>([prefix])</p></td>
+<td><p>index columns to include in event lists, common to all data levels</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.EventType.html#ctapipe.containers.EventType" title="ctapipe.containers.EventType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventType</span></code></a>(value)</p></td>
+<td><p>Enum of EventTypes as defined in the CTA Data Model <a class="reference internal" href="../../bibliography.html#cta-r1event" id="id1"><span>[cta_r1event]</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.FlatFieldContainer.html#ctapipe.containers.FlatFieldContainer" title="ctapipe.containers.FlatFieldContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FlatFieldContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for flat-field parameters obtained from a set of [n_events] flat-field events</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.HillasParametersContainer.html#ctapipe.containers.HillasParametersContainer" title="ctapipe.containers.HillasParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HillasParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Hillas Parameters in a spherical system centered on the pointing position (TelescopeFrame).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.CoreParametersContainer.html#ctapipe.containers.CoreParametersContainer" title="ctapipe.containers.CoreParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoreParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Telescope-wise shower’s direction in the Tilted/Ground Frame</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ImageParametersContainer.html#ctapipe.containers.ImageParametersContainer" title="ctapipe.containers.ImageParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImageParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Collection of image parameters</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.LeakageContainer.html#ctapipe.containers.LeakageContainer" title="ctapipe.containers.LeakageContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LeakageContainer</span></code></a>([prefix])</p></td>
+<td><p>Fraction of signal in 1 or 2-pixel width border from the edge of the camera, measured in number of signal pixels or in intensity.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.MonitoringCameraContainer.html#ctapipe.containers.MonitoringCameraContainer" title="ctapipe.containers.MonitoringCameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MonitoringCameraContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for camera monitoring data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.MonitoringContainer.html#ctapipe.containers.MonitoringContainer" title="ctapipe.containers.MonitoringContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MonitoringContainer</span></code></a>([prefix])</p></td>
+<td><p>Root container for monitoring data (MON)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.MorphologyContainer.html#ctapipe.containers.MorphologyContainer" title="ctapipe.containers.MorphologyContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MorphologyContainer</span></code></a>([prefix])</p></td>
+<td><p>Parameters related to pixels surviving image cleaning</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.BaseHillasParametersContainer.html#ctapipe.containers.BaseHillasParametersContainer" title="ctapipe.containers.BaseHillasParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseHillasParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Base container for hillas parameters to allow the CameraHillasParametersContainer to be assigned to an ImageParametersContainer as well.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.CameraHillasParametersContainer.html#ctapipe.containers.CameraHillasParametersContainer" title="ctapipe.containers.CameraHillasParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CameraHillasParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Hillas Parameters in the camera frame.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.CameraTimingParametersContainer.html#ctapipe.containers.CameraTimingParametersContainer" title="ctapipe.containers.CameraTimingParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CameraTimingParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Slope and Intercept of a linear regression of the arrival times along the shower main axis in the camera frame.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ParticleClassificationContainer.html#ctapipe.containers.ParticleClassificationContainer" title="ctapipe.containers.ParticleClassificationContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParticleClassificationContainer</span></code></a>([prefix])</p></td>
+<td><p>Standard output of gamma/hadron classification algorithms</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.PedestalContainer.html#ctapipe.containers.PedestalContainer" title="ctapipe.containers.PedestalContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PedestalContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for pedestal parameters obtained from a set of [n_pedestal] pedestal events</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.PixelStatusContainer.html#ctapipe.containers.PixelStatusContainer" title="ctapipe.containers.PixelStatusContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PixelStatusContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for pixel status information It contains masks obtained by several data analysis steps At r0/r1 level only the hardware_mask is initialized</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.R0CameraContainer.html#ctapipe.containers.R0CameraContainer" title="ctapipe.containers.R0CameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">R0CameraContainer</span></code></a>([prefix])</p></td>
+<td><p>Storage of raw data from a single telescope</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.R0Container.html#ctapipe.containers.R0Container" title="ctapipe.containers.R0Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">R0Container</span></code></a>([prefix])</p></td>
+<td><p>Storage of a Merged Raw Data Event</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.R1CameraContainer.html#ctapipe.containers.R1CameraContainer" title="ctapipe.containers.R1CameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">R1CameraContainer</span></code></a>([prefix])</p></td>
+<td><p>Storage of r1 calibrated data from a single telescope</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.R1Container.html#ctapipe.containers.R1Container" title="ctapipe.containers.R1Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">R1Container</span></code></a>([prefix])</p></td>
+<td><p>Storage of a r1 calibrated Data Event</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ReconstructedContainer.html#ctapipe.containers.ReconstructedContainer" title="ctapipe.containers.ReconstructedContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReconstructedContainer</span></code></a>([prefix])</p></td>
+<td><p>Reconstructed shower info from multiple algorithms</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ReconstructedEnergyContainer.html#ctapipe.containers.ReconstructedEnergyContainer" title="ctapipe.containers.ReconstructedEnergyContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReconstructedEnergyContainer</span></code></a>([prefix])</p></td>
+<td><p>Standard output of algorithms estimating energy</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ReconstructedGeometryContainer.html#ctapipe.containers.ReconstructedGeometryContainer" title="ctapipe.containers.ReconstructedGeometryContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReconstructedGeometryContainer</span></code></a>([prefix])</p></td>
+<td><p>Standard output of algorithms reconstructing shower geometry</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.DispContainer.html#ctapipe.containers.DispContainer" title="ctapipe.containers.DispContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DispContainer</span></code></a>([prefix])</p></td>
+<td><p>Standard output of disp reconstruction algorithms for origin reconstruction</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.SimulatedCameraContainer.html#ctapipe.containers.SimulatedCameraContainer" title="ctapipe.containers.SimulatedCameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimulatedCameraContainer</span></code></a>([prefix])</p></td>
+<td><p>True images and parameters derived from them, analgous to the <a class="reference internal" href="../../api/ctapipe.containers.DL1CameraContainer.html#ctapipe.containers.DL1CameraContainer" title="ctapipe.containers.DL1CameraContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1CameraContainer</span></code></a> but for simulated data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.SimulatedShowerContainer.html#ctapipe.containers.SimulatedShowerContainer" title="ctapipe.containers.SimulatedShowerContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimulatedShowerContainer</span></code></a>([prefix])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.SimulatedShowerDistribution.html#ctapipe.containers.SimulatedShowerDistribution" title="ctapipe.containers.SimulatedShowerDistribution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimulatedShowerDistribution</span></code></a>([prefix])</p></td>
+<td><p>2D histogram of simulated number of showers simulated as function of energy and core distance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.SimulationConfigContainer.html#ctapipe.containers.SimulationConfigContainer" title="ctapipe.containers.SimulationConfigContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimulationConfigContainer</span></code></a>([prefix])</p></td>
+<td><p>Configuration parameters of the simulation</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.TelEventIndexContainer.html#ctapipe.containers.TelEventIndexContainer" title="ctapipe.containers.TelEventIndexContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelEventIndexContainer</span></code></a>([prefix])</p></td>
+<td><p>index columns to include in telescope-wise event lists, common to all data levels that have telescope-wise information</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.BaseTimingParametersContainer.html#ctapipe.containers.BaseTimingParametersContainer" title="ctapipe.containers.BaseTimingParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTimingParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Base container for timing parameters to allow the CameraTimingParametersContainer to be assigned to an ImageParametersContainer as well.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.TimingParametersContainer.html#ctapipe.containers.TimingParametersContainer" title="ctapipe.containers.TimingParametersContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimingParametersContainer</span></code></a>([prefix])</p></td>
+<td><p>Slope and Intercept of a linear regression of the arrival times along the shower main axis in a spherical system centered on the pointing position (TelescopeFrame)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.TriggerContainer.html#ctapipe.containers.TriggerContainer" title="ctapipe.containers.TriggerContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TriggerContainer</span></code></a>([prefix])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.WaveformCalibrationContainer.html#ctapipe.containers.WaveformCalibrationContainer" title="ctapipe.containers.WaveformCalibrationContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WaveformCalibrationContainer</span></code></a>([prefix])</p></td>
+<td><p>Container for the pixel calibration coefficients</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.StatisticsContainer.html#ctapipe.containers.StatisticsContainer" title="ctapipe.containers.StatisticsContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StatisticsContainer</span></code></a>([prefix])</p></td>
+<td><p>Store descriptive statistics</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.IntensityStatisticsContainer.html#ctapipe.containers.IntensityStatisticsContainer" title="ctapipe.containers.IntensityStatisticsContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntensityStatisticsContainer</span></code></a>([prefix])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.PeakTimeStatisticsContainer.html#ctapipe.containers.PeakTimeStatisticsContainer" title="ctapipe.containers.PeakTimeStatisticsContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PeakTimeStatisticsContainer</span></code></a>([prefix])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.SchedulingBlockContainer.html#ctapipe.containers.SchedulingBlockContainer" title="ctapipe.containers.SchedulingBlockContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SchedulingBlockContainer</span></code></a>([prefix])</p></td>
+<td><p>Stores information about the scheduling block. This is a simplified</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ObservationBlockContainer.html#ctapipe.containers.ObservationBlockContainer" title="ctapipe.containers.ObservationBlockContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ObservationBlockContainer</span></code></a>([prefix])</p></td>
+<td><p>Stores information about the observation</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ObservingMode.html#ctapipe.containers.ObservingMode" title="ctapipe.containers.ObservingMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ObservingMode</span></code></a>(value)</p></td>
+<td><p>How a scheduling block is observed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.containers.ObservationBlockState.html#ctapipe.containers.ObservationBlockState" title="ctapipe.containers.ObservationBlockState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ObservationBlockState</span></code></a>(value)</p></td>
+<td><p>Observation Block States.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h4>
+<div class="graphviz"><img src="../../_images/inheritance-c07a513c1db61d8bf08903c16be0a67f4fb80f90.png" alt="Inheritance diagram of ctapipe.containers.ArrayEventContainer, ctapipe.containers.ConcentrationContainer, ctapipe.containers.DL0CameraContainer, ctapipe.containers.DL0Container, ctapipe.containers.DL1CameraCalibrationContainer, ctapipe.containers.DL1CameraContainer, ctapipe.containers.DL1Container, ctapipe.containers.DL2Container, ctapipe.containers.EventCalibrationContainer, ctapipe.containers.EventCameraCalibrationContainer, ctapipe.containers.EventIndexContainer, ctapipe.containers.EventType, ctapipe.containers.FlatFieldContainer, ctapipe.containers.HillasParametersContainer, ctapipe.containers.CoreParametersContainer, ctapipe.containers.ImageParametersContainer, ctapipe.containers.LeakageContainer, ctapipe.containers.MonitoringCameraContainer, ctapipe.containers.MonitoringContainer, ctapipe.containers.MorphologyContainer, ctapipe.containers.BaseHillasParametersContainer, ctapipe.containers.CameraHillasParametersContainer, ctapipe.containers.CameraTimingParametersContainer, ctapipe.containers.ParticleClassificationContainer, ctapipe.containers.PedestalContainer, ctapipe.containers.PixelStatusContainer, ctapipe.containers.R0CameraContainer, ctapipe.containers.R0Container, ctapipe.containers.R1CameraContainer, ctapipe.containers.R1Container, ctapipe.containers.ReconstructedContainer, ctapipe.containers.ReconstructedEnergyContainer, ctapipe.containers.ReconstructedGeometryContainer, ctapipe.containers.DispContainer, ctapipe.containers.SimulatedCameraContainer, ctapipe.containers.SimulatedShowerContainer, ctapipe.containers.SimulatedShowerDistribution, ctapipe.containers.SimulationConfigContainer, ctapipe.containers.TelEventIndexContainer, ctapipe.containers.BaseTimingParametersContainer, ctapipe.containers.TimingParametersContainer, ctapipe.containers.TriggerContainer, ctapipe.containers.WaveformCalibrationContainer, ctapipe.containers.StatisticsContainer, ctapipe.containers.IntensityStatisticsContainer, ctapipe.containers.PeakTimeStatisticsContainer, ctapipe.containers.SchedulingBlockContainer, ctapipe.containers.ObservationBlockContainer, ctapipe.containers.ObservingMode, ctapipe.containers.ObservationBlockState" usemap="#inheritance2374f738af" class="inheritance graphviz" /></div>
+<map id="inheritance2374f738af" name="inheritance2374f738af">
+<area shape="rect" id="node1" href="../../api/ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer" target="_top" title="Top&#45;level container for all event information" alt="" coords="97,82,181,95"/>
+<area shape="rect" id="node2" href="../../api/ctapipe.core.container.Container.html#ctapipe.core.container.Container" target="_top" title="Generic class that can hold and accumulate data to be passed" alt="" coords="3,609,48,622"/>
+<area shape="rect" id="node3" href="../../api/ctapipe.containers.BaseHillasParametersContainer.html#ctapipe.containers.BaseHillasParametersContainer" target="_top" title="Base container for hillas parameters to" alt="" coords="78,108,200,122"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.containers.BaseTimingParametersContainer.html#ctapipe.containers.BaseTimingParametersContainer" target="_top" title="Base container for timing parameters to" alt="" coords="76,135,202,148"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.containers.ConcentrationContainer.html#ctapipe.containers.ConcentrationContainer" target="_top" title="Concentrations are ratios between light amount" alt="" coords="92,161,186,174"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.containers.CoreParametersContainer.html#ctapipe.containers.CoreParametersContainer" target="_top" title="Telescope&#45;wise shower&#39;s direction in the Tilted/Ground Frame" alt="" coords="89,187,190,201"/>
+<area shape="rect" id="node9" href="../../api/ctapipe.containers.DL0CameraContainer.html#ctapipe.containers.DL0CameraContainer" target="_top" title="Storage of data volume reduced dl0 data from a single telescope" alt="" coords="96,214,182,227"/>
+<area shape="rect" id="node10" href="../../api/ctapipe.containers.DL0Container.html#ctapipe.containers.DL0Container" target="_top" title="Storage of a data volume reduced Event" alt="" coords="110,240,169,253"/>
+<area shape="rect" id="node11" href="../../api/ctapipe.containers.DL1CameraCalibrationContainer.html#ctapipe.containers.DL1CameraCalibrationContainer" target="_top" title="Storage of DL1 calibration parameters for the current event" alt="" coords="77,266,201,280"/>
+<area shape="rect" id="node12" href="../../api/ctapipe.containers.DL1CameraContainer.html#ctapipe.containers.DL1CameraContainer" target="_top" title="Storage of output of camera calibration e.g the final calibrated" alt="" coords="96,293,182,306"/>
+<area shape="rect" id="node13" href="../../api/ctapipe.containers.DL1Container.html#ctapipe.containers.DL1Container" target="_top" title="DL1 Calibrated Camera Images and associated data" alt="" coords="110,319,169,332"/>
+<area shape="rect" id="node14" href="../../api/ctapipe.containers.DL2Container.html#ctapipe.containers.DL2Container" target="_top" title="Reconstructed Shower information for a given reconstruction algorithm," alt="" coords="110,345,169,359"/>
+<area shape="rect" id="node15" href="../../api/ctapipe.containers.DispContainer.html#ctapipe.containers.DispContainer" target="_top" title="Standard output of disp reconstruction algorithms for origin reconstruction" alt="" coords="109,372,170,385"/>
+<area shape="rect" id="node17" href="../../api/ctapipe.containers.EventCalibrationContainer.html#ctapipe.containers.EventCalibrationContainer" target="_top" title="Container for calibration coefficients for the current event" alt="" coords="88,398,191,412"/>
+<area shape="rect" id="node18" href="../../api/ctapipe.containers.EventCameraCalibrationContainer.html#ctapipe.containers.EventCameraCalibrationContainer" target="_top" title="Container for the calibration coefficients for the current event and camera" alt="" coords="74,424,204,438"/>
+<area shape="rect" id="node19" href="../../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" target="_top" title="index columns to include in event lists, common to all data levels" alt="" coords="97,451,182,464"/>
+<area shape="rect" id="node21" href="../../api/ctapipe.containers.FlatFieldContainer.html#ctapipe.containers.FlatFieldContainer" target="_top" title="Container for flat&#45;field parameters obtained from a set of" alt="" coords="101,477,177,491"/>
+<area shape="rect" id="node23" href="../../api/ctapipe.containers.ImageParametersContainer.html#ctapipe.containers.ImageParametersContainer" target="_top" title="Collection of image parameters" alt="" coords="86,503,193,517"/>
+<area shape="rect" id="node25" href="../../api/ctapipe.containers.StatisticsContainer.html#ctapipe.containers.StatisticsContainer" target="_top" title="Store descriptive statistics" alt="" coords="100,530,178,543"/>
+<area shape="rect" id="node26" href="../../api/ctapipe.containers.LeakageContainer.html#ctapipe.containers.LeakageContainer" target="_top" title="Fraction of signal in 1 or 2&#45;pixel width border from the edge of the" alt="" coords="102,556,176,570"/>
+<area shape="rect" id="node27" href="../../api/ctapipe.containers.MonitoringCameraContainer.html#ctapipe.containers.MonitoringCameraContainer" target="_top" title="Container for camera monitoring data" alt="" coords="84,582,194,596"/>
+<area shape="rect" id="node28" href="../../api/ctapipe.containers.MonitoringContainer.html#ctapipe.containers.MonitoringContainer" target="_top" title="Root container for monitoring data (MON)" alt="" coords="98,609,180,622"/>
+<area shape="rect" id="node29" href="../../api/ctapipe.containers.MorphologyContainer.html#ctapipe.containers.MorphologyContainer" target="_top" title="Parameters related to pixels surviving image cleaning" alt="" coords="96,635,183,649"/>
+<area shape="rect" id="node30" href="../../api/ctapipe.containers.ObservationBlockContainer.html#ctapipe.containers.ObservationBlockContainer" target="_top" title="Stores information about the observation" alt="" coords="86,661,193,675"/>
+<area shape="rect" id="node33" href="../../api/ctapipe.containers.ParticleClassificationContainer.html#ctapipe.containers.ParticleClassificationContainer" target="_top" title="Standard output of gamma/hadron classification algorithms" alt="" coords="80,688,198,701"/>
+<area shape="rect" id="node35" href="../../api/ctapipe.containers.PedestalContainer.html#ctapipe.containers.PedestalContainer" target="_top" title="Container for pedestal parameters obtained from a set of" alt="" coords="101,714,177,728"/>
+<area shape="rect" id="node36" href="../../api/ctapipe.containers.PixelStatusContainer.html#ctapipe.containers.PixelStatusContainer" target="_top" title="Container for pixel status information" alt="" coords="97,740,181,754"/>
+<area shape="rect" id="node37" href="../../api/ctapipe.containers.R0CameraContainer.html#ctapipe.containers.R0CameraContainer" target="_top" title="Storage of raw data from a single telescope" alt="" coords="98,767,180,780"/>
+<area shape="rect" id="node38" href="../../api/ctapipe.containers.R0Container.html#ctapipe.containers.R0Container" target="_top" title="Storage of a Merged Raw Data Event" alt="" coords="112,793,167,807"/>
+<area shape="rect" id="node39" href="../../api/ctapipe.containers.R1CameraContainer.html#ctapipe.containers.R1CameraContainer" target="_top" title="Storage of r1 calibrated data from a single telescope" alt="" coords="98,820,180,833"/>
+<area shape="rect" id="node40" href="../../api/ctapipe.containers.R1Container.html#ctapipe.containers.R1Container" target="_top" title="Storage of a r1 calibrated Data Event" alt="" coords="112,846,167,859"/>
+<area shape="rect" id="node41" href="../../api/ctapipe.containers.ReconstructedContainer.html#ctapipe.containers.ReconstructedContainer" target="_top" title="Reconstructed shower info from multiple algorithms" alt="" coords="91,872,187,886"/>
+<area shape="rect" id="node42" href="../../api/ctapipe.containers.ReconstructedEnergyContainer.html#ctapipe.containers.ReconstructedEnergyContainer" target="_top" title="Standard output of algorithms estimating energy" alt="" coords="80,899,199,912"/>
+<area shape="rect" id="node43" href="../../api/ctapipe.containers.ReconstructedGeometryContainer.html#ctapipe.containers.ReconstructedGeometryContainer" target="_top" title="Standard output of algorithms reconstructing shower geometry" alt="" coords="74,925,204,938"/>
+<area shape="rect" id="node44" href="../../api/ctapipe.containers.SchedulingBlockContainer.html#ctapipe.containers.SchedulingBlockContainer" target="_top" title="Stores information about the scheduling block. This is a simplified" alt="" coords="88,951,190,965"/>
+<area shape="rect" id="node45" href="../../api/ctapipe.containers.SimulatedCameraContainer.html#ctapipe.containers.SimulatedCameraContainer" target="_top" title="True images and parameters derived from them, analgous to the `DL1CameraContainer`" alt="" coords="85,978,193,991"/>
+<area shape="rect" id="node46" href="../../api/ctapipe.containers.SimulatedShowerContainer.html#ctapipe.containers.SimulatedShowerContainer" target="_top" title="Attributes" alt="" coords="86,1004,192,1017"/>
+<area shape="rect" id="node47" href="../../api/ctapipe.containers.SimulatedShowerDistribution.html#ctapipe.containers.SimulatedShowerDistribution" target="_top" title="2D histogram of simulated number of showers simulated as function of energy and" alt="" coords="83,1030,196,1044"/>
+<area shape="rect" id="node48" href="../../api/ctapipe.containers.SimulationConfigContainer.html#ctapipe.containers.SimulationConfigContainer" target="_top" title="Configuration parameters of the simulation" alt="" coords="87,1057,192,1070"/>
+<area shape="rect" id="node49" href="../../api/ctapipe.containers.TelEventIndexContainer.html#ctapipe.containers.TelEventIndexContainer" target="_top" title="index columns to include in telescope&#45;wise event lists, common to all data" alt="" coords="92,1083,186,1096"/>
+<area shape="rect" id="node51" href="../../api/ctapipe.containers.TriggerContainer.html#ctapipe.containers.TriggerContainer" target="_top" title="Attributes" alt="" coords="105,1109,174,1123"/>
+<area shape="rect" id="node52" href="../../api/ctapipe.containers.WaveformCalibrationContainer.html#ctapipe.containers.WaveformCalibrationContainer" target="_top" title="Container for the pixel calibration coefficients" alt="" coords="80,1136,199,1149"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.containers.CameraHillasParametersContainer.html#ctapipe.containers.CameraHillasParametersContainer" target="_top" title="Hillas Parameters in the camera frame. The cog position" alt="" coords="232,82,364,95"/>
+<area shape="rect" id="node22" href="../../api/ctapipe.containers.HillasParametersContainer.html#ctapipe.containers.HillasParametersContainer" target="_top" title="Hillas Parameters in a spherical system centered on the pointing position" alt="" coords="246,108,350,122"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.containers.CameraTimingParametersContainer.html#ctapipe.containers.CameraTimingParametersContainer" target="_top" title="Slope and Intercept of a linear regression of the arrival times" alt="" coords="230,135,366,148"/>
+<area shape="rect" id="node50" href="../../api/ctapipe.containers.TimingParametersContainer.html#ctapipe.containers.TimingParametersContainer" target="_top" title="Slope and Intercept of a linear regression of the arrival times" alt="" coords="244,161,352,174"/>
+<area shape="rect" id="node20" href="../../api/ctapipe.containers.EventType.html#ctapipe.containers.EventType" target="_top" title="Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_" alt="" coords="115,3,163,16"/>
+<area shape="rect" id="node31" href="../../api/ctapipe.containers.ObservationBlockState.html#ctapipe.containers.ObservationBlockState" target="_top" title="Observation Block States. Part of the Observation Configuration data" alt="" coords="94,29,185,43"/>
+<area shape="rect" id="node32" href="../../api/ctapipe.containers.ObservingMode.html#ctapipe.containers.ObservingMode" target="_top" title="How a scheduling block is observed. Part of the Observation Configuration" alt="" coords="106,56,172,69"/>
+<area shape="rect" id="node24" href="../../api/ctapipe.containers.IntensityStatisticsContainer.html#ctapipe.containers.IntensityStatisticsContainer" target="_top" title="Attributes" alt="" coords="244,516,352,530"/>
+<area shape="rect" id="node34" href="../../api/ctapipe.containers.PeakTimeStatisticsContainer.html#ctapipe.containers.PeakTimeStatisticsContainer" target="_top" title="Attributes" alt="" coords="242,543,354,556"/>
+</map></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../api/ctapipe.calib.GainSelector.html" class="btn btn-neutral float-left" title="GainSelector" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../api/ctapipe.containers.ArrayEventContainer.html" class="btn btn-neutral float-right" title="ArrayEventContainer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

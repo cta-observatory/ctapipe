@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.tools.train_particle_classifier &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.tools.train_particle_classifier</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.tools.train_particle_classifier</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tool for training the ParticleClassifier</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">vstack</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.core.tool</span> <span class="kn">import</span> <span class="n">Tool</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core.traits</span> <span class="kn">import</span> <span class="n">Int</span><span class="p">,</span> <span class="n">IntTelescopeParameter</span><span class="p">,</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">TableLoader</span>
+<span class="kn">from</span> <span class="nn">ctapipe.reco</span> <span class="kn">import</span> <span class="n">CrossValidator</span><span class="p">,</span> <span class="n">ParticleClassifier</span>
+<span class="kn">from</span> <span class="nn">ctapipe.reco.preprocessing</span> <span class="kn">import</span> <span class="n">check_valid_rows</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;TrainParticleClassifier&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="TrainParticleClassifier"><a class="viewcode-back" href="../../../api/ctapipe.tools.train_particle_classifier.TrainParticleClassifier.html#ctapipe.tools.train_particle_classifier.TrainParticleClassifier">[docs]</a><span class="k">class</span> <span class="nc">TrainParticleClassifier</span><span class="p">(</span><span class="n">Tool</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tool to train a `~ctapipe.reco.ParticleClassifier` on dl1b/dl2 data.</span>
+
+<span class="sd">    The tool first performs a cross validation to give an initial estimate</span>
+<span class="sd">    on the quality of the estimation and then finally trains one model</span>
+<span class="sd">    per telescope type on the full dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ctapipe-train-particle-classifier&quot;</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="vm">__doc__</span>
+
+    <span class="n">examples</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    ctapipe-train-particle-classifier </span><span class="se">\\</span>
+<span class="s2">        -c train_particle_classifier.yaml </span><span class="se">\\</span>
+<span class="s2">        --signal gamma.dl2.h5 </span><span class="se">\\</span>
+<span class="s2">        --background proton.dl2.h5 </span><span class="se">\\</span>
+<span class="s2">        -o particle_classifier.pkl</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">input_url_signal</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input dl1b/dl2 file for the signal class.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">input_url_background</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Input dl1b/dl2 file for the background class.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Output file for the trained reconstructor.&quot;</span>
+            <span class="s2">&quot; At the moment, pickle is the only supported format.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">n_signal</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Number of signal events to be used for training.&quot;</span>
+            <span class="s2">&quot; If not given, all available events will be used&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">n_background</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Number of background events to be used for training.&quot;</span>
+            <span class="s2">&quot; If not given, all available events will be used&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">random_seed</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Random number seed for sampling and the cross validation splitting&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;signal&quot;</span><span class="p">:</span> <span class="s2">&quot;TrainParticleClassifier.input_url_signal&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;background&quot;</span><span class="p">:</span> <span class="s2">&quot;TrainParticleClassifier.input_url_background&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n-signal&quot;</span><span class="p">:</span> <span class="s2">&quot;TrainParticleClassifier.n_signal&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;n-background&quot;</span><span class="p">:</span> <span class="s2">&quot;TrainParticleClassifier.n_background&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">):</span> <span class="s2">&quot;TrainParticleClassifier.output_path&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cv-output&quot;</span><span class="p">:</span> <span class="s2">&quot;CrossValidator.output_path&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">TableLoader</span><span class="p">,</span>
+        <span class="n">ParticleClassifier</span><span class="p">,</span>
+        <span class="n">CrossValidator</span><span class="p">,</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="TrainParticleClassifier.setup"><a class="viewcode-back" href="../../../api/ctapipe.tools.train_particle_classifier.TrainParticleClassifier.html#ctapipe.tools.train_particle_classifier.TrainParticleClassifier.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize components from config</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span> <span class="o">=</span> <span class="n">TableLoader</span><span class="p">(</span>
+            <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">input_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url_signal</span><span class="p">,</span>
+            <span class="n">load_dl1_images</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">load_dl1_parameters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">load_dl2</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">load_simulated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">load_instrument</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">background_loader</span> <span class="o">=</span> <span class="n">TableLoader</span><span class="p">(</span>
+            <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">input_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url_background</span><span class="p">,</span>
+            <span class="n">load_dl1_images</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">load_dl1_parameters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">load_dl2</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">load_simulated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">load_instrument</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">subarray</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_loader</span><span class="o">.</span><span class="n">subarray</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Signal and background subarrays do not match&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_signal</span><span class="o">.</span><span class="n">attach_subarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">subarray</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_background</span><span class="o">.</span><span class="n">attach_subarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">subarray</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">ParticleClassifier</span><span class="p">(</span>
+            <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">subarray</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span> <span class="o">=</span> <span class="n">CrossValidator</span><span class="p">(</span>
+            <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_component</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classifier</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span><span class="o">.</span><span class="n">output_path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TrainParticleClassifier.start"><a class="viewcode-back" href="../../../api/ctapipe.tools.train_particle_classifier.TrainParticleClassifier.html#ctapipe.tools.train_particle_classifier.TrainParticleClassifier.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train models per telescope type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># By construction both loaders have the same types defined</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Signal input-file: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">input_url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Background input-file: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_loader</span><span class="o">.</span><span class="n">input_url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Training models for </span><span class="si">%d</span><span class="s2"> types&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">tel_type</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading events for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_input_data</span><span class="p">(</span><span class="n">tel_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span><span class="p">(</span><span class="n">tel_type</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Performing final fit for </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">tel_type</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;done&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_read_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_type</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">n_events</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">read_telescope_events</span><span class="p">([</span><span class="n">telescope_type</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Events read from input: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">))</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Events after applying quality query: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">))</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="c1"># Add true energy for energy-dependent performance plots</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">features</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;true_energy&quot;</span><span class="p">]</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span>
+
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">check_valid_rows</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">valid</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Dropping non-predictable events.&quot;</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">n_events</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_events</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of events in table (</span><span class="si">%d</span><span class="s2">) is less than requested number of events </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span>
+                    <span class="n">n_events</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Sampling </span><span class="si">%d</span><span class="s2"> events&quot;</span><span class="p">,</span> <span class="n">n_events</span><span class="p">)</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span> <span class="n">n_events</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">idx</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="k">def</span> <span class="nf">_read_input_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_type</span><span class="p">):</span>
+        <span class="n">signal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_table</span><span class="p">(</span>
+            <span class="n">tel_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_signal</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_type</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">background</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_table</span><span class="p">(</span>
+            <span class="n">tel_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">background_loader</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_background</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_type</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">vstack</span><span class="p">([</span><span class="n">signal</span><span class="p">,</span> <span class="n">background</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Train on </span><span class="si">%s</span><span class="s2"> signal and </span><span class="si">%s</span><span class="s2"> background events&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">signal</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">background</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span>
+
+<div class="viewcode-block" id="TrainParticleClassifier.finish"><a class="viewcode-back" href="../../../api/ctapipe.tools.train_particle_classifier.TrainParticleClassifier.html#ctapipe.tools.train_particle_classifier.TrainParticleClassifier.finish">[docs]</a>    <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write-out trained models and cross-validation results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Writing output&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal_loader</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">background_loader</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span><span class="o">.</span><span class="n">output_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">overwrite</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">)</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">TrainParticleClassifier</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

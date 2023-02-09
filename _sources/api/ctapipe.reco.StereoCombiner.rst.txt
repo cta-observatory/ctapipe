@@ -1,0 +1,31 @@
+StereoCombiner
+==============
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: StereoCombiner
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~StereoCombiner.prefix
+      ~StereoCombiner.property
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~StereoCombiner.__call__
+      ~StereoCombiner.predict_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: prefix
+   .. autoattribute:: property
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: predict_table

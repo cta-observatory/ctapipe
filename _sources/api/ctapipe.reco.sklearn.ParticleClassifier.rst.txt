@@ -1,0 +1,33 @@
+ParticleClassifier
+==================
+
+.. currentmodule:: ctapipe.reco.sklearn
+
+.. autoclass:: ParticleClassifier
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ParticleClassifier.positive_class
+      ~ParticleClassifier.property
+      ~ParticleClassifier.target
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ParticleClassifier.__call__
+      ~ParticleClassifier.predict_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: positive_class
+   .. autoattribute:: property
+   .. autoattribute:: target
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: predict_table

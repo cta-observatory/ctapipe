@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.modifications &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.modifications</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.modifications</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span>
+
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">BoolTelescopeParameter</span><span class="p">,</span> <span class="n">FloatTelescopeParameter</span><span class="p">,</span> <span class="n">Int</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SubarrayDescription</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ImageModifier&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_add_noise</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">noise_level</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">correct_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new image with added poissonian noise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rng</span><span class="p">:</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">()</span>
+
+    <span class="n">noisy_image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">noise_level</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">noisy_image</span> <span class="o">+=</span> <span class="n">noise</span>
+
+    <span class="k">if</span> <span class="n">correct_bias</span><span class="p">:</span>
+        <span class="n">noisy_image</span> <span class="o">-=</span> <span class="n">noise_level</span>
+
+    <span class="k">return</span> <span class="n">noisy_image</span>
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_smear_psf_randomly</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">,</span> <span class="n">fraction</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">indptr</span><span class="p">,</span> <span class="n">smear_probabilities</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new image with values smeared across the</span>
+<span class="sd">    neighbor pixels specified by `indices` and `indptr`.</span>
+<span class="sd">    These are what defines the sparse neighbor matrix</span>
+<span class="sd">    and are available as attributes from the neighbor matrix.</span>
+<span class="sd">    The amount of charge that is distributed away from a given</span>
+<span class="sd">    pixel is drawn from a poissonian distribution.</span>
+<span class="sd">    The distribution of this charge among the neighboring</span>
+<span class="sd">    pixels follows a multinomial.</span>
+<span class="sd">    Pixels at the camera edge lose charge this way.</span>
+<span class="sd">    No geometry is available in this function due to the numba optimization,</span>
+<span class="sd">    so the indices, indptr and smear_probabilities have to match</span>
+<span class="sd">    to get sensible results.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    image: ndarray</span>
+<span class="sd">        1d array of the pixel charge values</span>
+<span class="sd">    fraction: float</span>
+<span class="sd">        fraction of charge that will be distributed among neighbors (modulo poissonian)</span>
+<span class="sd">    indices: ndarray[int]</span>
+<span class="sd">        CSR format index array of the neighbor matrix</span>
+<span class="sd">    indptr: ndarray[int]</span>
+<span class="sd">        CSR format index pointer array of the neighbor matrix</span>
+<span class="sd">    smear_probabilities: ndarray[float]</span>
+<span class="sd">        shape: (n_neighbors, )</span>
+<span class="sd">        A priori distribution of the charge amongst neighbors.</span>
+<span class="sd">        In most cases probably of the form np.full(n_neighbors, 1/n_neighbors)</span>
+<span class="sd">    seed: int</span>
+<span class="sd">        Random seed for the numpy rng.</span>
+<span class="sd">        Because this is numba optimized, a rng instance can not be used here</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    new_image: ndarray</span>
+<span class="sd">        1d array with smeared values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">image</span><span class="p">)):</span>
+
+        <span class="k">if</span> <span class="n">image</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">to_smear</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">image</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">*</span> <span class="n">fraction</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">to_smear</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># remove light from current pixel</span>
+        <span class="n">new_image</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">-=</span> <span class="n">to_smear</span>
+
+        <span class="c1"># add light to neighbor pixels</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">indptr</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="p">:</span> <span class="n">indptr</span><span class="p">[</span><span class="n">pixel</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">n_neighbors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span>
+
+        <span class="c1"># we always distribute the charge as if the maximum number</span>
+        <span class="c1"># of neighbors of a geoemtry is present, so that charge</span>
+        <span class="c1"># on the edges of the camera is lost</span>
+        <span class="n">neighbor_charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">to_smear</span><span class="p">,</span> <span class="n">smear_probabilities</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_neighbors</span><span class="p">):</span>
+            <span class="n">neighbor</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">new_image</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">neighbor_charges</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">new_image</span>
+
+
+<div class="viewcode-block" id="ImageModifier"><a class="viewcode-back" href="../../../api/ctapipe.image.ImageModifier.html#ctapipe.image.modifications.ImageModifier">[docs]</a><span class="k">class</span> <span class="nc">ImageModifier</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Component to tune simulated background to</span>
+<span class="sd">    overserved NSB values.</span>
+<span class="sd">    A differentiation between bright and dim pixels is taking place</span>
+<span class="sd">    because this happens at DL1a level and in general the integration window</span>
+<span class="sd">    would change for peak-searching extraction algorithms with different background levels</span>
+<span class="sd">    introducing a bias to the charge in dim pixels.</span>
+
+<span class="sd">    The performed steps include:</span>
+<span class="sd">    - Smearing of the image (simulating a worse PSF)</span>
+<span class="sd">    - Adding poissonian noise (different for bright and dim pixels)</span>
+<span class="sd">    - Adding a bias to dim pixel charges (see above)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">psf_smear_factor</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fraction of light to move to each neighbor&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">noise_transition_charge</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;separation between dim and bright pixels&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">noise_bias_dim_pixels</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;extra bias to add in dim pixels&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">noise_level_dim_pixels</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;expected extra noise in dim pixels&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">noise_level_bright_pixels</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;expected extra noise in bright pixels&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">noise_correct_bias</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If True subtract the expected noise from the image.&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rng_seed</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="mi">1337</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Seed for the random number generator&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">:</span> <span class="n">SubarrayDescription</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        subarray: SubarrayDescription</span>
+<span class="sd">            Description of the subarray. Provides information about the</span>
+<span class="sd">            camera which are useful in calibration. Also required for</span>
+<span class="sd">            configuring the TelescopeParameter traitlets.</span>
+<span class="sd">        config: traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            This is mutually exclusive with passing a ``parent``.</span>
+<span class="sd">        parent: ctapipe.core.Component or ctapipe.core.Tool</span>
+<span class="sd">            Parent of this component in the configuration hierarchy,</span>
+<span class="sd">            this is mutually exclusive with passing ``config``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rng_seed</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ImageModifier.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.ImageModifier.html#ctapipe.image.modifications.ImageModifier.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">psf_smear_factor</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">geom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">_smear_psf_randomly</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+                <span class="n">fraction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">psf_smear_factor</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+                <span class="n">indices</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+                <span class="n">indptr</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">indptr</span><span class="p">,</span>
+                <span class="n">smear_probabilities</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">max_neighbors</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">geom</span><span class="o">.</span><span class="n">max_neighbors</span><span class="p">),</span>
+                <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise_level_dim_pixels</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_level_bright_pixels</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="n">bright_pixels</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_transition_charge</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+            <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">bright_pixels</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">noise_level_bright_pixels</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">noise_level_dim_pixels</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">_add_noise</span><span class="p">(</span>
+                <span class="n">image</span><span class="p">,</span>
+                <span class="n">noise</span><span class="p">,</span>
+                <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+                <span class="n">correct_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_correct_bias</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="p">)</span>
+
+            <span class="n">image</span><span class="p">[</span><span class="o">~</span><span class="n">bright_pixels</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_bias_dim_pixels</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">image</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

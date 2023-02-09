@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EventSource &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="read_atmosphere_profile_from_simtel" href="ctapipe.io.simteleventsource.read_atmosphere_profile_from_simtel.html" />
+    <link rel="prev" title="Instrument" href="ctapipe.io.metadata.Instrument.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#reading-event-data">Reading Event Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#creating-a-new-eventsource-plugin">Creating a New EventSource Plugin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#container-classes">Container Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#serialization-of-containers">Serialization of Containers:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#writing-output-files">Writing Output Files:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#reading-output-tables">Reading Output Tables:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#standard-metadata-headers">Standard Metadata Headers</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/io/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io">ctapipe.io Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.tableio">ctapipe.io.tableio Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.tableloader">ctapipe.io.tableloader Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.hdf5tableio">ctapipe.io.hdf5tableio Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.metadata">ctapipe.io.metadata Module</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.eventsource">ctapipe.io.eventsource Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.simteleventsource">ctapipe.io.simteleventsource Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.hdf5eventsource">ctapipe.io.hdf5eventsource Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.eventseeker">ctapipe.io.eventseeker Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+      <li class="breadcrumb-item active">EventSource</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.io.eventsource.EventSource.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="eventsource">
+<h1>EventSource<a class="headerlink" href="#eventsource" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.io.eventsource.EventSource">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.io.eventsource.</span></code><code class="sig-name descname"><span class="pre">EventSource</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">traitlets.Undefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/eventsource.html#EventSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.eventsource.EventSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ctapipe.core.component.Component.html#ctapipe.core.component.Component" title="ctapipe.core.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.component.Component</span></code></a></p>
+<p>Parent class for EventSources.</p>
+<p>EventSources read input files and generate <a class="reference internal" href="ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer" title="ctapipe.containers.ArrayEventContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArrayEventContainer</span></code></a>
+instances when iterated over.</p>
+<p>A new EventSource should be created for each type of event file read
+into ctapipe, e.g. sim_telarray files are read by the <a class="reference internal" href="ctapipe.io.SimTelEventSource.html#ctapipe.io.SimTelEventSource" title="ctapipe.io.SimTelEventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimTelEventSource</span></code></a>.</p>
+<p>EventSource provides a common high-level interface for accessing event
+information from different data sources (simulation or different camera
+file formats). Creating an EventSource for a new
+file format or other event source ensures that data can be accessed in a common way,
+irregardless of the file format or data origin.</p>
+<p>EventSource itself is an abstract class, but will create an
+appropriate subclass if a compatible source is found for the given
+<code class="docutils literal notranslate"><span class="pre">input_url</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">EventSource</span><span class="p">(</span><span class="n">input_url</span><span class="o">=</span><span class="s2">&quot;dataset://gamma_prod5.simtel.zst&quot;</span><span class="p">)</span>
+<span class="go">&lt;ctapipe.io.simteleventsource.SimTelEventSource ...&gt;</span>
+</pre></div>
+</div>
+<p>An <code class="docutils literal notranslate"><span class="pre">EventSource</span></code> can also be created through the configuration system,
+by passing <code class="docutils literal notranslate"><span class="pre">config</span></code> or <code class="docutils literal notranslate"><span class="pre">parent</span></code> as appropriate.
+E.g. if using <code class="docutils literal notranslate"><span class="pre">EventSource</span></code> inside of a <code class="docutils literal notranslate"><span class="pre">Tool</span></code>, you would do:
+&gt;&gt;&gt; self.source = EventSource(parent=self) # doctest: +SKIP</p>
+<p>To loop through the events in a file:
+&gt;&gt;&gt; source = EventSource(input_url=”dataset://gamma_prod5.simtel.zst”, max_events=2)
+&gt;&gt;&gt; for event in source:
+…     print(event.count)
+0
+1</p>
+<p><strong>NOTE</strong>: Every time a new loop is started through the source,
+it tries to restart from the first event, which might not be supported
+by the event source.</p>
+<p>It is encouraged to use <code class="docutils literal notranslate"><span class="pre">EventSource</span></code> in a context manager to ensure
+the correct cleanups are performed when you are finished with the source:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">input_url</span><span class="o">=</span><span class="s2">&quot;dataset://gamma_prod5.simtel.zst&quot;</span><span class="p">,</span> <span class="n">max_events</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">as</span> <span class="n">source</span><span class="p">:</span>
+<span class="gp">... </span>   <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+<span class="gp">... </span>       <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
+<span class="go">0</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<p><strong>NOTE</strong>: EventSource implementations should not reuse the same ArrayEventContainer,
+as these are mutable and may lead to errors when analyzing multiple events.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>input_url</strong><span class="classifier">str</span></dt><dd><p>Path to the input event file.</p>
+</dd>
+<dt><strong>max_events</strong><span class="classifier">int</span></dt><dd><p>Maximum number of events to loop through in generator</p>
+</dd>
+<dt><strong>allowed_tels: Set or None</strong></dt><dd><p>Ids of the telescopes to be included in the data.
+If given, only this subset of telescopes will be present in the
+generated events. If None, all available telescopes are used.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.allowed_tels" title="ctapipe.io.eventsource.EventSource.allowed_tels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allowed_tels</span></code></a></p></td>
+<td><p>list of allowed tel_ids, others will be ignored.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.atmosphere_density_profile" title="ctapipe.io.eventsource.EventSource.atmosphere_density_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere_density_profile</span></code></a></p></td>
+<td><p>atmosphere density profile that can be integrated to convert between h_max and X_max.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.datalevels" title="ctapipe.io.eventsource.EventSource.datalevels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">datalevels</span></code></a></p></td>
+<td><p>The datalevels provided by this event source</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.input_url" title="ctapipe.io.eventsource.EventSource.input_url"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_url</span></code></a></p></td>
+<td><p>Path to the input file containing events.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.is_simulation" title="ctapipe.io.eventsource.EventSource.is_simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_simulation</span></code></a></p></td>
+<td><p>Whether the currently opened file is simulated</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.is_stream" title="ctapipe.io.eventsource.EventSource.is_stream"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_stream</span></code></a></p></td>
+<td><p>Bool indicating if input is a stream.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.max_events" title="ctapipe.io.eventsource.EventSource.max_events"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_events</span></code></a></p></td>
+<td><p>Maximum number of events that will be read from the file</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.obs_ids" title="ctapipe.io.eventsource.EventSource.obs_ids"><code class="xref py py-obj docutils literal notranslate"><span class="pre">obs_ids</span></code></a></p></td>
+<td><p>The observation ids of the runs located in the file Unmerged files should only contain a single obs id.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.observation_blocks" title="ctapipe.io.eventsource.EventSource.observation_blocks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">observation_blocks</span></code></a></p></td>
+<td><p>Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.plugin_entry_point" title="ctapipe.io.eventsource.EventSource.plugin_entry_point"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plugin_entry_point</span></code></a></p></td>
+<td><p>ctapipe_io entry points may provide EventSource implementations</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.scheduling_blocks" title="ctapipe.io.eventsource.EventSource.scheduling_blocks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scheduling_blocks</span></code></a></p></td>
+<td><p>Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.simulation_config" title="ctapipe.io.eventsource.EventSource.simulation_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simulation_config</span></code></a></p></td>
+<td><p>The simulation configurations of all observations provided by the EventSource, or None if the source does not provide simulated data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.subarray" title="ctapipe.io.eventsource.EventSource.subarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subarray</span></code></a></p></td>
+<td><p>Obtain the subarray from the EventSource</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.close" title="ctapipe.io.eventsource.EventSource.close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">close</span></code></a>()</p></td>
+<td><p>Close this event source.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.from_config" title="ctapipe.io.eventsource.EventSource.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>([config, parent])</p></td>
+<td><p>Find compatible EventSource for the EventSource.input_url traitlet specified via the config.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.from_url" title="ctapipe.io.eventsource.EventSource.from_url"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_url</span></code></a>(input_url, **kwargs)</p></td>
+<td><p>Find compatible EventSource for input_url via the <a class="reference internal" href="#ctapipe.io.eventsource.EventSource.is_compatible" title="ctapipe.io.eventsource.EventSource.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a> method of the EventSource</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.has_any_datalevel" title="ctapipe.io.eventsource.EventSource.has_any_datalevel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_any_datalevel</span></code></a>(datalevels)</p></td>
+<td><p>Check if any of <a class="reference internal" href="#ctapipe.io.eventsource.EventSource.datalevels" title="ctapipe.io.eventsource.EventSource.datalevels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">datalevels</span></code></a> is in self.datalevels</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.eventsource.EventSource.is_compatible" title="ctapipe.io.eventsource.EventSource.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>(file_path)</p></td>
+<td><p>Abstract method to be defined in child class.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.allowed_tels">
+<code class="sig-name descname"><span class="pre">allowed_tels</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.allowed_tels" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of allowed tel_ids, others will be ignored. If None, all telescopes in the input stream will be included</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.atmosphere_density_profile">
+<code class="sig-name descname"><span class="pre">atmosphere_density_profile</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.atmosphere_density_profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>atmosphere density profile that can be integrated to
+convert between h_max and X_max.  This should correspond
+either to what was used in a simualtion, or a measurment
+for use with observed data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>AtmosphereDensityProfile:</dt><dd><p>profile to be used</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.datalevels">
+<code class="sig-name descname"><span class="pre">datalevels</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.datalevels" title="Permalink to this definition">¶</a></dt>
+<dd><p>The datalevels provided by this event source</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>tuple[ctapipe.io.DataLevel]</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.input_url">
+<code class="sig-name descname"><span class="pre">input_url</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.input_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to the input file containing events.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.is_simulation">
+<code class="sig-name descname"><span class="pre">is_simulation</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.is_simulation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the currently opened file is simulated</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>bool</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.is_stream">
+<code class="sig-name descname"><span class="pre">is_stream</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.is_stream" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bool indicating if input is a stream. If it is then it is incompatible
+with <a class="reference internal" href="ctapipe.io.eventseeker.EventSeeker.html#ctapipe.io.eventseeker.EventSeeker" title="ctapipe.io.eventseeker.EventSeeker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.eventseeker.EventSeeker</span></code></a>.</p>
+<p>TODO: Define a method to detect if it is a stream</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>bool</dt><dd><p>If True, then input is a stream.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.max_events">
+<code class="sig-name descname"><span class="pre">max_events</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.max_events" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum number of events that will be read from the file</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.obs_ids">
+<code class="sig-name descname"><span class="pre">obs_ids</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.obs_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>The observation ids of the runs located in the file
+Unmerged files should only contain a single obs id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>list[int]</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.observation_blocks">
+<code class="sig-name descname"><span class="pre">observation_blocks</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.observation_blocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.plugin_entry_point">
+<code class="sig-name descname"><span class="pre">plugin_entry_point</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'ctapipe_io'</span></em><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.plugin_entry_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>ctapipe_io entry points may provide EventSource implementations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.scheduling_blocks">
+<code class="sig-name descname"><span class="pre">scheduling_blocks</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.scheduling_blocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.simulation_config">
+<code class="sig-name descname"><span class="pre">simulation_config</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.simulation_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>The simulation configurations of all observations provided by the
+EventSource, or None if the source does not provide simulated data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Dict[int,ctapipe.containers.SimulationConfigContainer] | None</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.eventsource.EventSource.subarray">
+<code class="sig-name descname"><span class="pre">subarray</span></code><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.subarray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the subarray from the EventSource</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>ctapipe.instrument.SubarrayDecription</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt id="ctapipe.io.eventsource.EventSource.close">
+<code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/eventsource.html#EventSource.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close this event source.</p>
+<p>No-op by default. Should be overriden by sources needing a cleanup-step</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.eventsource.EventSource.from_config">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_config</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/eventsource.html#EventSource.from_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find compatible EventSource for the EventSource.input_url traitlet
+specified via the config.</p>
+<p>This method is typically used in Tools, where the input_url is chosen via
+the command line using the traitlet configuration system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>config</strong><span class="classifier">traitlets.config.loader.Config</span></dt><dd><p>Configuration created in the Tool</p>
+</dd>
+<dt><strong>kwargs</strong></dt><dd><p>Named arguments for the EventSource</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>instance</dt><dd><p>Instance of a compatible EventSource subclass</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.eventsource.EventSource.from_url">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_url</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_url</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/eventsource.html#EventSource.from_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.from_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find compatible EventSource for input_url via the <a class="reference internal" href="#ctapipe.io.eventsource.EventSource.is_compatible" title="ctapipe.io.eventsource.EventSource.is_compatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_compatible</span></code></a>
+method of the EventSource</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>input_url</strong><span class="classifier">str</span></dt><dd><p>Filename or URL pointing to an event file</p>
+</dd>
+<dt><strong>kwargs</strong></dt><dd><p>Named arguments for the EventSource</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>instance</dt><dd><p>Instance of a compatible EventSource subclass</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.eventsource.EventSource.has_any_datalevel">
+<code class="sig-name descname"><span class="pre">has_any_datalevel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datalevels</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><span class="pre">bool</span></a><a class="reference internal" href="../_modules/ctapipe/io/eventsource.html#EventSource.has_any_datalevel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.has_any_datalevel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if any of <a class="reference internal" href="#ctapipe.io.eventsource.EventSource.datalevels" title="ctapipe.io.eventsource.EventSource.datalevels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">datalevels</span></code></a> is in self.datalevels</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>datalevels: Iterable</strong></dt><dd><p>Iterable of datalevels</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.eventsource.EventSource.is_compatible">
+<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">is_compatible</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/eventsource.html#EventSource.is_compatible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.eventsource.EventSource.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method to be defined in child class.</p>
+<p>Perform a set of checks to see if the input file is compatible
+with this file event_source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>file_path</strong><span class="classifier">str</span></dt><dd><p>File path to the event file.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>compatible</strong><span class="classifier">bool</span></dt><dd><p>True if file is compatible, False if it is incompatible</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.io.metadata.Instrument.html" class="btn btn-neutral float-left" title="Instrument" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe.io.simteleventsource.read_atmosphere_profile_from_simtel.html" class="btn btn-neutral float-right" title="read_atmosphere_profile_from_simtel" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

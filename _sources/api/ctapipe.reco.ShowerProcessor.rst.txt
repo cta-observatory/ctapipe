@@ -1,0 +1,27 @@
+ShowerProcessor
+===============
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: ShowerProcessor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ShowerProcessor.reconstructor_types
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ShowerProcessor.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: reconstructor_types
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

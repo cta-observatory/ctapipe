@@ -1,0 +1,6 @@
+MissingFrameAttributeWarning
+============================
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autoexception:: MissingFrameAttributeWarning

@@ -1,0 +1,33 @@
+TwoPassWindowSum
+================
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autoclass:: TwoPassWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TwoPassWindowSum.apply_integration_correction
+      ~TwoPassWindowSum.core_threshold
+      ~TwoPassWindowSum.disable_second_pass
+      ~TwoPassWindowSum.invalid_pixel_handler_type
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TwoPassWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: core_threshold
+   .. autoattribute:: disable_second_pass
+   .. autoattribute:: invalid_pixel_handler_type
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

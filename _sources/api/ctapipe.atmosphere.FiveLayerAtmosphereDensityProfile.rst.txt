@@ -1,0 +1,21 @@
+FiveLayerAtmosphereDensityProfile
+=================================
+
+.. currentmodule:: ctapipe.atmosphere
+
+.. autoclass:: FiveLayerAtmosphereDensityProfile
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~FiveLayerAtmosphereDensityProfile.__call__
+      ~FiveLayerAtmosphereDensityProfile.from_array
+      ~FiveLayerAtmosphereDensityProfile.integral
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: from_array
+   .. automethod:: integral

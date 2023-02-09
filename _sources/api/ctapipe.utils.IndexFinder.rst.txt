@@ -1,0 +1,17 @@
+IndexFinder
+===========
+
+.. currentmodule:: ctapipe.utils
+
+.. autoclass:: IndexFinder
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~IndexFinder.closest
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: closest

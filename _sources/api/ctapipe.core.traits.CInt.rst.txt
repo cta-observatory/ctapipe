@@ -1,0 +1,17 @@
+CInt
+====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: CInt
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CInt.validate
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: validate

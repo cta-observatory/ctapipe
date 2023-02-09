@@ -1,0 +1,27 @@
+CRegExp
+=======
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: CRegExp
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CRegExp.info_text
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CRegExp.validate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: info_text
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: validate

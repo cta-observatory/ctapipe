@@ -1,0 +1,6 @@
+apply_time_delta_cleaning
+=========================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: apply_time_delta_cleaning

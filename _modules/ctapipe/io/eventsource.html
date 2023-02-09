@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.eventsource &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.eventsource</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.eventsource</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Handles reading of different event/waveform containing files</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">traitlets.config.loader</span> <span class="kn">import</span> <span class="n">LazyConfigValue</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.atmosphere</span> <span class="kn">import</span> <span class="n">AtmosphereDensityProfile</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArrayEventContainer</span><span class="p">,</span>
+    <span class="n">ObservationBlockContainer</span><span class="p">,</span>
+    <span class="n">SchedulingBlockContainer</span><span class="p">,</span>
+    <span class="n">SimulationConfigContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">ToolConfigurationError</span>
+<span class="kn">from</span> <span class="nn">..core.component</span> <span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">find_config_in_hierarchy</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">CInt</span><span class="p">,</span> <span class="n">Int</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">TraitError</span><span class="p">,</span> <span class="n">Undefined</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SubarrayDescription</span>
+<span class="kn">from</span> <span class="nn">.datalevels</span> <span class="kn">import</span> <span class="n">DataLevel</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;EventSource&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="EventSource"><a class="viewcode-back" href="../../../api/ctapipe.io.EventSource.html#ctapipe.io.eventsource.EventSource">[docs]</a><span class="k">class</span> <span class="nc">EventSource</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent class for EventSources.</span>
+
+<span class="sd">    EventSources read input files and generate `~ctapipe.containers.ArrayEventContainer`</span>
+<span class="sd">    instances when iterated over.</span>
+
+<span class="sd">    A new EventSource should be created for each type of event file read</span>
+<span class="sd">    into ctapipe, e.g. sim_telarray files are read by the `~ctapipe.io.SimTelEventSource`.</span>
+
+<span class="sd">    EventSource provides a common high-level interface for accessing event</span>
+<span class="sd">    information from different data sources (simulation or different camera</span>
+<span class="sd">    file formats). Creating an EventSource for a new</span>
+<span class="sd">    file format or other event source ensures that data can be accessed in a common way,</span>
+<span class="sd">    irregardless of the file format or data origin.</span>
+
+<span class="sd">    EventSource itself is an abstract class, but will create an</span>
+<span class="sd">    appropriate subclass if a compatible source is found for the given</span>
+<span class="sd">    ``input_url``.</span>
+
+<span class="sd">    &gt;&gt;&gt; EventSource(input_url=&quot;dataset://gamma_prod5.simtel.zst&quot;)</span>
+<span class="sd">    &lt;ctapipe.io.simteleventsource.SimTelEventSource ...&gt;</span>
+
+<span class="sd">    An ``EventSource`` can also be created through the configuration system,</span>
+<span class="sd">    by passing ``config`` or ``parent`` as appropriate.</span>
+<span class="sd">    E.g. if using ``EventSource`` inside of a ``Tool``, you would do:</span>
+<span class="sd">    &gt;&gt;&gt; self.source = EventSource(parent=self) # doctest: +SKIP</span>
+
+<span class="sd">    To loop through the events in a file:</span>
+<span class="sd">    &gt;&gt;&gt; source = EventSource(input_url=&quot;dataset://gamma_prod5.simtel.zst&quot;, max_events=2)</span>
+<span class="sd">    &gt;&gt;&gt; for event in source:</span>
+<span class="sd">    ...     print(event.count)</span>
+<span class="sd">    0</span>
+<span class="sd">    1</span>
+
+<span class="sd">    **NOTE**: Every time a new loop is started through the source,</span>
+<span class="sd">    it tries to restart from the first event, which might not be supported</span>
+<span class="sd">    by the event source.</span>
+
+<span class="sd">    It is encouraged to use ``EventSource`` in a context manager to ensure</span>
+<span class="sd">    the correct cleanups are performed when you are finished with the source:</span>
+
+<span class="sd">    &gt;&gt;&gt; with EventSource(input_url=&quot;dataset://gamma_prod5.simtel.zst&quot;, max_events=2) as source:</span>
+<span class="sd">    ...    for event in source:</span>
+<span class="sd">    ...        print(event.count)</span>
+<span class="sd">    0</span>
+<span class="sd">    1</span>
+
+<span class="sd">    **NOTE**: EventSource implementations should not reuse the same ArrayEventContainer,</span>
+<span class="sd">    as these are mutable and may lead to errors when analyzing multiple events.</span>
+
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_url : str</span>
+<span class="sd">        Path to the input event file.</span>
+<span class="sd">    max_events : int</span>
+<span class="sd">        Maximum number of events to loop through in generator</span>
+<span class="sd">    allowed_tels: Set or None</span>
+<span class="sd">        Ids of the telescopes to be included in the data.</span>
+<span class="sd">        If given, only this subset of telescopes will be present in the</span>
+<span class="sd">        generated events. If None, all available telescopes are used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: ctapipe_io entry points may provide EventSource implementations</span>
+    <span class="n">plugin_entry_point</span> <span class="o">=</span> <span class="s2">&quot;ctapipe_io&quot;</span>
+
+    <span class="n">input_url</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the input file containing events.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">max_events</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum number of events that will be read from the file&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">allowed_tels</span> <span class="o">=</span> <span class="n">Set</span><span class="p">(</span>
+        <span class="n">trait</span><span class="o">=</span><span class="n">CInt</span><span class="p">(),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;list of allowed tel_ids, others will be ignored. &quot;</span>
+            <span class="s2">&quot;If None, all telescopes in the input stream &quot;</span>
+            <span class="s2">&quot;will be included&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">input_url</span><span class="o">=</span><span class="n">Undefined</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a compatible subclass for given input url, either</span>
+<span class="sd">        directly or via config / parent</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># needed to break recursion, as __new__ of subclass will also</span>
+        <span class="c1"># call this method</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">EventSource</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+
+        <span class="c1"># check we have at least one of these to be able to determine the subclass</span>
+        <span class="k">if</span> <span class="n">input_url</span> <span class="ow">in</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="n">Undefined</span><span class="p">}</span> <span class="ow">and</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;One of `input_url`, `config`, `parent` is required&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">input_url</span> <span class="ow">in</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="n">Undefined</span><span class="p">}:</span>
+            <span class="n">input_url</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_input_url_in_config</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+
+        <span class="n">subcls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_compatible_source</span><span class="p">(</span><span class="n">input_url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">subcls</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class to handle generic input files. Enables obtaining the &quot;source&quot;</span>
+<span class="sd">        generator, regardless of the type of file (either hessio or camera</span>
+<span class="sd">        file).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            Set to None if no configuration to pass.</span>
+<span class="sd">        tool : ctapipe.core.Tool</span>
+<span class="sd">            Tool executable that is calling this component.</span>
+<span class="sd">            Passes the correct logger to the component.</span>
+<span class="sd">            Set to None if no Tool to pass.</span>
+<span class="sd">        kwargs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># traitlets differentiates between not getting the kwarg</span>
+        <span class="c1"># and getting the kwarg with a None value.</span>
+        <span class="c1"># the latter overrides the value in the config with None, the former</span>
+        <span class="c1"># enables getting it from the config.</span>
+        <span class="k">if</span> <span class="n">input_url</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="n">Undefined</span><span class="p">}:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;input_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_url</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">is_simulation</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;INPUT PATH = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Max events being read = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_events</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">),</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;DL0/Event&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EventSource.is_compatible"><a class="viewcode-back" href="../../../api/ctapipe.io.EventSource.html#ctapipe.io.eventsource.EventSource.is_compatible">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">is_compatible</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract method to be defined in child class.</span>
+
+<span class="sd">        Perform a set of checks to see if the input file is compatible</span>
+<span class="sd">        with this file event_source.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file_path : str</span>
+<span class="sd">            File path to the event file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        compatible : bool</span>
+<span class="sd">            True if file is compatible, False if it is incompatible</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Bool indicating if input is a stream. If it is then it is incompatible</span>
+<span class="sd">        with `ctapipe.io.eventseeker.EventSeeker`.</span>
+
+<span class="sd">        TODO: Define a method to detect if it is a stream</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            If True, then input is a stream.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">subarray</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SubarrayDescription</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the subarray from the EventSource</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ctapipe.instrument.SubarrayDecription</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">simulation_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">SimulationConfigContainer</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The simulation configurations of all observations provided by the</span>
+<span class="sd">        EventSource, or None if the source does not provide simulated data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Dict[int,ctapipe.containers.SimulationConfigContainer] | None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">observation_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ObservationBlockContainer</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">scheduling_blocks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">SchedulingBlockContainer</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">is_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Whether the currently opened file is simulated</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">datalevels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DataLevel</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The datalevels provided by this event source</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[ctapipe.io.DataLevel]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EventSource.has_any_datalevel"><a class="viewcode-back" href="../../../api/ctapipe.io.EventSource.html#ctapipe.io.eventsource.EventSource.has_any_datalevel">[docs]</a>    <span class="k">def</span> <span class="nf">has_any_datalevel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datalevels</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if any of `datalevels` is in self.datalevels</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        datalevels: Iterable</span>
+<span class="sd">            Iterable of datalevels</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">dl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">datalevels</span> <span class="k">for</span> <span class="n">dl</span> <span class="ow">in</span> <span class="n">datalevels</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">obs_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The observation ids of the runs located in the file</span>
+<span class="sd">        Unmerged files should only contain a single obs id.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[int]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_blocks</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atmosphere_density_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AtmosphereDensityProfile</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;atmosphere density profile that can be integrated to</span>
+<span class="sd">        convert between h_max and X_max.  This should correspond</span>
+<span class="sd">        either to what was used in a simualtion, or a measurment</span>
+<span class="sd">        for use with observed data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        AtmosphereDensityProfile:</span>
+<span class="sd">           profile to be used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">ArrayEventContainer</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract method to be defined in child class.</span>
+
+<span class="sd">        Generator where the filling of the `ctapipe.containers` occurs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generator that iterates through `_generator`, but keeps track of</span>
+<span class="sd">        `self.max_events`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="n">event</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span> <span class="ow">and</span> <span class="n">event</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_events</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">break</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_find_compatible_source</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">input_url</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">input_url</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">input_url</span> <span class="ow">in</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="n">Undefined</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="n">ToolConfigurationError</span><span class="p">(</span><span class="s2">&quot;EventSource: No input_url was specified&quot;</span><span class="p">)</span>
+
+        <span class="c1"># validate input url with the traitel validate method</span>
+        <span class="c1"># to make sure it&#39;s compatible and to raise the correct error</span>
+        <span class="n">input_url</span> <span class="o">=</span> <span class="n">EventSource</span><span class="o">.</span><span class="n">input_url</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">input_url</span><span class="p">)</span>
+
+        <span class="n">available_classes</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subcls</span> <span class="ow">in</span> <span class="n">available_classes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">subcls</span><span class="o">.</span><span class="n">is_compatible</span><span class="p">(</span><span class="n">input_url</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">subcls</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.is_compatible raised exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># provide a more helpful error for non-existing input_url</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">input_url</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;input_url </span><span class="si">{</span><span class="n">input_url</span><span class="si">}</span><span class="s2"> is not an existing file &quot;</span>
+                <span class="s2">&quot; and no EventSource implementation claimed compatibility&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Cannot find compatible EventSource for </span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">url:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;in available EventSources:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_url</span><span class="p">,</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">available_classes</span><span class="p">])</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="EventSource.from_url"><a class="viewcode-back" href="../../../api/ctapipe.io.EventSource.html#ctapipe.io.eventsource.EventSource.from_url">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_url</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">input_url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find compatible EventSource for input_url via the `is_compatible`</span>
+<span class="sd">        method of the EventSource</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_url : str</span>
+<span class="sd">            Filename or URL pointing to an event file</span>
+<span class="sd">        kwargs</span>
+<span class="sd">            Named arguments for the EventSource</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        instance</span>
+<span class="sd">            Instance of a compatible EventSource subclass</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">subcls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_compatible_source</span><span class="p">(</span><span class="n">input_url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">subcls</span><span class="p">(</span><span class="n">input_url</span><span class="o">=</span><span class="n">input_url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_find_input_url_in_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;One of config or parent must be provided&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only one of config or parent must be provided&quot;</span><span class="p">)</span>
+
+        <span class="n">input_url</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># config was passed</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span> <span class="n">LazyConfigValue</span><span class="p">):</span>
+                <span class="n">input_url</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">input_url</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">EventSource</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span> <span class="n">LazyConfigValue</span><span class="p">):</span>
+                <span class="n">input_url</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">EventSource</span><span class="o">.</span><span class="n">input_url</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">input_url</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">input_url</span><span class="o">.</span><span class="n">default_value</span>
+
+        <span class="c1"># parent was passed</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># first look at appropriate position in the config hierarcy</span>
+            <span class="n">input_url</span> <span class="o">=</span> <span class="n">find_config_in_hierarchy</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="s2">&quot;EventSource&quot;</span><span class="p">,</span> <span class="s2">&quot;input_url&quot;</span><span class="p">)</span>
+
+            <span class="c1"># if not found, check top level</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_url</span><span class="p">,</span> <span class="n">LazyConfigValue</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">EventSource</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span> <span class="n">LazyConfigValue</span><span class="p">):</span>
+                    <span class="n">input_url</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">EventSource</span><span class="o">.</span><span class="n">input_url</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">input_url</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">input_url</span><span class="o">.</span><span class="n">default_value</span>
+
+        <span class="k">return</span> <span class="n">input_url</span>
+
+<div class="viewcode-block" id="EventSource.from_config"><a class="viewcode-back" href="../../../api/ctapipe.io.EventSource.html#ctapipe.io.eventsource.EventSource.from_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find compatible EventSource for the EventSource.input_url traitlet</span>
+<span class="sd">        specified via the config.</span>
+
+<span class="sd">        This method is typically used in Tools, where the input_url is chosen via</span>
+<span class="sd">        the command line using the traitlet configuration system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : traitlets.config.loader.Config</span>
+<span class="sd">            Configuration created in the Tool</span>
+<span class="sd">        kwargs</span>
+<span class="sd">            Named arguments for the EventSource</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        instance</span>
+<span class="sd">            Instance of a compatible EventSource subclass</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">input_url</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_input_url_in_config</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">input_url</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EventSource.close"><a class="viewcode-back" href="../../../api/ctapipe.io.EventSource.html#ctapipe.io.eventsource.EventSource.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close this event source.</span>
+
+<span class="sd">        No-op by default. Should be overriden by sources needing a cleanup-step</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

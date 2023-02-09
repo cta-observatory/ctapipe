@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Change Log &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="References" href="bibliography.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">References</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Change Log</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#ctapipe-0-17-1-dev630-g3afb8e35-2023-02-09">Ctapipe 0.17.1.dev630+g3afb8e35 (2023-02-09)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-changes">API Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-model-changes">Data Model Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#new-features">New Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#maintenance">Maintenance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#refactoring-and-optimization">Refactoring and Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#ctapipe-v0-18-0-2023-02-09">ctapipe v0.18.0 (2023-02-09)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">API Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">New Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Maintenance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Refactoring and Optimization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-7-0-0-17-0">v0.7.0 – 0.17.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-6-1">v0.6.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-6-0">v0.6.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-3-unreleased">v0.5.3 (unreleased)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-2-2017-07-31">v0.5.2 (2017-07-31)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-1-2016-07-20">v0.5.1 (2016-07-20)</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Change Log</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/changelog.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="change-log">
+<h1>Change Log<a class="headerlink" href="#change-log" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="ctapipe-0-17-1-dev630-g3afb8e35-2023-02-09">
+<h2>Ctapipe 0.17.1.dev630+g3afb8e35 (2023-02-09)<a class="headerlink" href="#ctapipe-0-17-1-dev630-g3afb8e35-2023-02-09" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="api-changes">
+<h3>API Changes<a class="headerlink" href="#api-changes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="bug-fixes">
+<h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="data-model-changes">
+<h3>Data Model Changes<a class="headerlink" href="#data-model-changes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="new-features">
+<h3>New Features<a class="headerlink" href="#new-features" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="maintenance">
+<h3>Maintenance<a class="headerlink" href="#maintenance" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="refactoring-and-optimization">
+<h3>Refactoring and Optimization<a class="headerlink" href="#refactoring-and-optimization" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="ctapipe-v0-18-0-2023-02-09">
+<h2>ctapipe v0.18.0 (2023-02-09)<a class="headerlink" href="#ctapipe-v0-18-0-2023-02-09" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>API Changes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>ctapipe now uses entry points for plugin discovery. <code class="docutils literal notranslate"><span class="pre">EventSource</span></code> implementations
+now need to advertise a <code class="docutils literal notranslate"><span class="pre">ctapipe_io</span></code> entry point, to be discovered by ctapipe.
+Additionally, ctapipe now includes preliminary support for discovering <code class="docutils literal notranslate"><span class="pre">Reconstructor</span></code>
+implementations via the <code class="docutils literal notranslate"><span class="pre">ctapipe_reco</span></code> entry_point. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2101">#2101</a>]</p></li>
+<li><p>Migrate muon analysis into the <code class="docutils literal notranslate"><span class="pre">ctapipe-process</span></code> tool:</p>
+<ol class="arabic simple">
+<li><p>The former <code class="docutils literal notranslate"><span class="pre">muon_reconstruction</span></code> tool is dropped and all functionalities are transferred
+into the <code class="docutils literal notranslate"><span class="pre">ctapipe-process</span></code> tool.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">process</span></code> tool now has a <code class="docutils literal notranslate"><span class="pre">write_muon_parameters</span></code> flag which defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code>.
+Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1 image
+parameters, so they are computed in case they are not available from the input even
+if the user did not explicitly ask for the computation of image parameters.</p></li>
+<li><p>Two instances of <code class="docutils literal notranslate"><span class="pre">QualityQuery</span></code>, <code class="docutils literal notranslate"><span class="pre">MuonProcessor.ImageParameterQuery</span></code> and <code class="docutils literal notranslate"><span class="pre">MuonProcessor.RingQuery</span></code>
+are added to the muon analysis to either preselect images according to image parameters and
+to select images according to the initial, geometrical ring fit for further processing.
+Deselected events or those where the muon analysis fails are being returned and written
+filled with invalid value markers instead of being ignored.
+Base configure options for the muon analysis were added to the <code class="docutils literal notranslate"><span class="pre">base_config.yaml</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">DataWriter</span></code> now writes the results of a muon analysis into <code class="docutils literal notranslate"><span class="pre">/dl1/event/telescope/muon/tel_id</span></code>,
+given <code class="docutils literal notranslate"><span class="pre">write_moun_parameters</span></code> is set to <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p></li>
+<li><p>Muon nodes were added to the <code class="docutils literal notranslate"><span class="pre">HDF5EventSource</span></code>, the <code class="docutils literal notranslate"><span class="pre">TableLoader</span></code> and the <code class="docutils literal notranslate"><span class="pre">ctapipe-merge</span></code> tool. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2168">#2168</a>]</p></li>
+</ol>
+</li>
+<li><p>Change default behaviour of <code class="docutils literal notranslate"><span class="pre">run_rool</span></code>:</p>
+<ol class="arabic simple">
+<li><p>The default value of <code class="docutils literal notranslate"><span class="pre">raises</span></code> is now <code class="docutils literal notranslate"><span class="pre">True</span></code>. That means, when using
+<code class="docutils literal notranslate"><span class="pre">run_tool</span></code>, the Exceptions raised by a Tool will be re-raised. The raised
+exceptions can be tested for their type and content.
+If the Tool must fail and only the non-zero error case is important to test,
+set <code class="docutils literal notranslate"><span class="pre">raises=False</span></code> (as it was before).</p></li>
+<li><p>If the <code class="docutils literal notranslate"><span class="pre">cwd</span></code> parameter is <code class="docutils literal notranslate"><span class="pre">None</span></code> (as per default), now a temporary directory
+is used instead of the directory, where <code class="docutils literal notranslate"><span class="pre">run_tool</span></code> is called (typically via
+pytest). This way, log-files and other output files don’t clutter your
+working space. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2175">#2175</a>]</p></li>
+</ol>
+</li>
+<li><p>Remove <code class="docutils literal notranslate"><span class="pre">-f</span></code> flag as alias for <code class="docutils literal notranslate"><span class="pre">--overwrite</span></code> and fail early if output exists, but overwrite is not set [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2213">#2213</a>]</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">_chunked</span></code> methods of the <code class="docutils literal notranslate"><span class="pre">TableLoader</span></code> now return
+an Iterator over namedtuples with start, stop, data. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2241">#2241</a>]</p></li>
+<li><p>Remove debug-logging and early-exits in <code class="docutils literal notranslate"><span class="pre">hdf5eventsource</span></code> so broken files raise errors. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2244">#2244</a>]</p></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>New Features<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Implement Components and Tools to perform training and application of
+machine learning models based on scikit-learn.</p>
+<p>Four new tools are implemented:
+- <code class="docutils literal notranslate"><span class="pre">ctapipe-train-energy-regressor</span></code>
+- <code class="docutils literal notranslate"><span class="pre">ctapipe-train-particle-classifier</span></code>
+- <code class="docutils literal notranslate"><span class="pre">ctapipe-train-disp-reconstructor</span></code>
+- <code class="docutils literal notranslate"><span class="pre">ctapipe-apply-models</span></code></p>
+<p>The first two tools are used to train energy regression and particle classification
+respectively. The third tool trains two models for geometrical reconstruction using the disp
+method and the fourth tool can apply those models in bulk to input files.
+<code class="docutils literal notranslate"><span class="pre">ctapipe-process</span></code> can now also apply these trained models directly in the event loop.</p>
+<p>The intended workflow is to process training files to a combined dl1 / dl2 level
+using <code class="docutils literal notranslate"><span class="pre">ctapipe-process</span></code>, merging those to large training files using <code class="docutils literal notranslate"><span class="pre">ctapipe-merge</span></code>
+and then train the models.
+[<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/1767">#1767</a>,
+<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2121">#2121</a>,
+<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2133">#2133</a>,
+<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2138">#2138</a>,
+<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2217">#2217</a>,
+<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2229">#2229</a>,
+<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2140">#2140</a>]</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Tool</span></code> now comes with an <code class="docutils literal notranslate"><span class="pre">ExitStack</span></code> that enables proper
+handling of context-manager members inside <code class="docutils literal notranslate"><span class="pre">Tool.run</span></code>.
+Things that require a cleanup step should be implemented
+as context managers and be added to the tool like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">foo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">Foo</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>This will ensure that <code class="docutils literal notranslate"><span class="pre">Foo.__exit__</span></code> is called when the
+<code class="docutils literal notranslate"><span class="pre">Tool</span></code> terminates, for whatever reason. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/1926">#1926</a>]</p>
+</li>
+<li><p>Implement atmospheric profiles for conversions from h_max to X_max.
+The new module <code class="docutils literal notranslate"><span class="pre">ctapipe.atmosphere</span></code> has classes for the most common cases
+of a simple <code class="docutils literal notranslate"><span class="pre">ExponentialAtmosphereDensityProfile</span></code>, a <code class="docutils literal notranslate"><span class="pre">TableAtmosphereDensityProfile</span></code>
+and CORSIKA’s <code class="docutils literal notranslate"><span class="pre">FiveLayerAtmosphereDensityProfile</span></code>. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2000">#2000</a>]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TableLoader</span></code> can now also load observation and scheduling block configuration. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2096">#2096</a>]</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">ctapipe-info</span></code> tool now supports printing information about
+the available <code class="docutils literal notranslate"><span class="pre">EventSource</span></code> and <code class="docutils literal notranslate"><span class="pre">Reconstructor</span></code> implementations
+as well as io and reco plugins. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2101">#2101</a>]</p></li>
+<li><p>Allow lookup of <code class="docutils literal notranslate"><span class="pre">TelescopeParameter</span></code> values by telescope type. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2120">#2120</a>]</p></li>
+<li><p>Implement a <code class="docutils literal notranslate"><span class="pre">SoftwareTrigger</span></code> component to handle the effect of
+selecting sub-arrays from larger arrays in the simulations.
+The component can remove events where the stereo trigger would not have
+decided to record an event and also remove single telescopes from events
+for cases like the CTA LSTs, that have their own hardware stereo trigger
+that requires at least two LSTs taking part in an event. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2136">#2136</a>]</p></li>
+<li><p>It’s now possible to transform between <code class="docutils literal notranslate"><span class="pre">GroundFrame</span></code> coordinates
+and <code class="docutils literal notranslate"><span class="pre">astropy.coordinates.EarthLocation</span></code>, enabling the conversion
+between relative array coordinates (used in the simulation) and
+absolute real-world coordinates. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2167">#2167</a>]</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">ctapipe-display-dl1</span></code> tool now has a <code class="docutils literal notranslate"><span class="pre">QualityQuery</span></code> instance which can be used
+to select which images should be displayed. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2172">#2172</a>]</p></li>
+<li><p>Add a new <code class="docutils literal notranslate"><span class="pre">ctapipe.io.HDF5Merger</span></code> component that can selectively merge
+HDF5 files produced with ctapipe. The new component is now used in the
+<code class="docutils literal notranslate"><span class="pre">ctapipe-merge</span></code> tool but can also be used on its own.
+This component is also used by <code class="docutils literal notranslate"><span class="pre">ctapipe-apply-models</span></code> to selectively copy
+data from the input file to the output file.
+Through using this new component, <code class="docutils literal notranslate"><span class="pre">ctapipe-merge</span></code> gained support for
+fine-grained control which information should be included in the output file
+and for appending to existing output files. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2179">#2179</a>]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CameraDisplay.overlay_coordinate</span></code> can now be used to
+plot coordinates into the camera display, e.g. to show
+the source position or the position of stars in the FoV. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2203">#2203</a>]</p></li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h3>Bug Fixes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Fix for Hillas lines in <code class="docutils literal notranslate"><span class="pre">ArrayDisplay</span></code> being wrong in the new <code class="docutils literal notranslate"><span class="pre">EastingNorthingFrame</span></code>. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2134">#2134</a>]</p></li>
+<li><p>Replace usage of <code class="docutils literal notranslate"><span class="pre">$HOME</span></code> with <code class="docutils literal notranslate"><span class="pre">Path.home()</span></code> for cross-platform compatibility. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2155">#2155</a>]</p></li>
+<li><p>Fix for <code class="docutils literal notranslate"><span class="pre">TableLoader</span></code> having the wrong data types for <code class="docutils literal notranslate"><span class="pre">obs_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">event_id</span></code> and <code class="docutils literal notranslate"><span class="pre">tel_id</span></code>. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2163">#2163</a>]</p></li>
+<li><p>Fix <code class="docutils literal notranslate"><span class="pre">Tool</span></code> printing a large traceback in case of certain configuration errors. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2171">#2171</a>]</p></li>
+<li><p>The string representation of <code class="docutils literal notranslate"><span class="pre">Field</span></code> now sets numpy print options
+to prevent large arrays in the docstrings of <code class="docutils literal notranslate"><span class="pre">Container</span></code> classes. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2173">#2173</a>]</p></li>
+<li><p>Fix missing comma in eventio version requirement in setup.cfg (#2185). [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2187">#2187</a>]</p></li>
+<li><p>Move reading of stereo data before skipping empty events in HDF5EventSource,
+this fixes a bug where the stereo data and simulation data get out of sync
+with the other event data when using <code class="docutils literal notranslate"><span class="pre">allowed_tels</span></code>. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2189">#2189</a>]</p></li>
+<li><p>Fix mixture of quantity and unit-less values passed to <code class="docutils literal notranslate"><span class="pre">np.histogram</span></code>
+in <code class="docutils literal notranslate"><span class="pre">ctapipe.image.muon.ring_completeness</span></code>, which raises an error with
+astropy 5.2.1. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2197">#2197</a>]</p></li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>Maintenance<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Use towncrier for the generation of change logs [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2144">#2144</a>]</p></li>
+<li><p>Replace usage of deprecated astropy matrix function. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2166">#2166</a>]</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">weakref.proxy(parent)</span></code> in <code class="docutils literal notranslate"><span class="pre">Component.__init__</span></code>.</p>
+<p>Due to the configuration systems, children need to reference their parent(s).
+When parents get out of scope, their children still hold the reference to them.
+That means that python cannot garbage-collect the parents (which are Tools, most of the time).</p>
+<p>This change uses weak-references (which do not increase the reference count),
+which means parent-Tools can get garbage collected by python.</p>
+<p>This decreases the memory consumption of the tests by roughly 50%. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2223">#2223</a>]</p>
+</li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h3>Refactoring and Optimization<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Speed-up table loader by using <code class="docutils literal notranslate"><span class="pre">hstack</span></code> instead of <code class="docutils literal notranslate"><span class="pre">join</span></code> where possible. [<a class="reference external" href="https://github.com/cta-observatory/ctapipe/pull/2126">#2126</a>]</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="v0-7-0-0-17-0">
+<h2>v0.7.0 – 0.17.0<a class="headerlink" href="#v0-7-0-0-17-0" title="Permalink to this headline">¶</a></h2>
+<p>For changelogs for these releases, please visit the <a class="reference external" href="https://github.com/cta-observatory/ctapipe/releases">github releases page</a></p>
+</div>
+<div class="section" id="v0-6-1">
+<h2>v0.6.1<a class="headerlink" href="#v0-6-1" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Fix broken build (#743) &#64;kosack</p></li>
+<li><p>Add example script for a simple event writer (#746) &#64;jjlk</p></li>
+<li><p>Fix camera axis alignment in HillasReconstructor (#741) &#64;mackaiver</p></li>
+<li><p>Lst reader (#749) &#64;FrancaCassol</p></li>
+<li><p>replace deprecated astropy broadcast (#754) &#64;mackaiver</p></li>
+<li><p>A few more example notebooks (#757) &#64;kosack</p></li>
+<li><p>Add MC xmax info (#759) &#64;mackaiver</p></li>
+<li><p>Use Astropy Coordinate Transofmations For Reconstruction (#758) &#64;mackaiver</p></li>
+<li><p>Trigger pixel reader (#745) &#64;thomasarmstrong</p></li>
+<li><p>Change requested in #742: init Hillas skewness and kurtosis to NaN (#744) &#64;STSpencer</p></li>
+<li><p>Fix call to np.linalg.leastsq (#760) &#64;kosack</p></li>
+<li><p>Fix/muon bugs (#762) &#64;kosack</p></li>
+<li><p>Implement hillas features usen eigh (#748) &#64;MaxNoe</p></li>
+<li><p>Use HillasParametersContainer only (#763) &#64;MaxNoe</p></li>
+<li><p>Regression features in <code class="docutils literal notranslate"><span class="pre">RegressorClassifierBase</span></code> (#764) &#64;vuillaut</p></li>
+<li><p>Adding an example notebook no how to convert hex geometry to square and back (#767) &#64;vuillaut</p></li>
+<li><p>Wrong angle in ArrayDisplay. changed phi to psi. (#771) &#64;thomasgas</p></li>
+<li><p>Unstructured interpolator (#770) &#64;ParsonsRD</p></li>
+<li><p>Lst reader (#776) &#64;FrancaCassol</p></li>
+<li><p>Fixing core reconstruction (#777) &#64;kpfrang</p></li>
+<li><p>Leakage (#783) &#64;MaxNoe</p></li>
+<li><p>Revert “Fixing core reconstruction” (#789) &#64;kosack</p></li>
+<li><p>Fixing the toy image generator (#790) &#64;MaxNoe</p></li>
+<li><p>Fix bad builds by changing channel name (missing pyqt package) (#793) &#64;kosack</p></li>
+<li><p>Implement concentration image features (#791) &#64;MaxNoe</p></li>
+<li><p>updated main documentation page (#792) &#64;kosack</p></li>
+<li><p>Impact intersection (#778) &#64;mackaiver</p></li>
+<li><p>add test for sliced geometries for hillas calculation (#781) &#64;mackaiver</p></li>
+<li><p>Simple HESS adaptations (#794) &#64;ParsonsRD</p></li>
+<li><p>added a config file for github release-drafter plugin (#795) &#64;kosack</p></li>
+<li><p>Array plotting (#784) &#64;thomasgas</p></li>
+<li><p>Minor changes: mostly deprecationwarning fixes (#787) &#64;mireianievas</p></li>
+<li><p>Codacy code style improvements (#796) &#64;dneise</p></li>
+<li><p>Add unit to h_max in HillasReconstructor (#797) &#64;jjlk</p></li>
+<li><p>speed up unit tests that use test_event fixture (#798) &#64;kosack</p></li>
+<li><p>Update Timing Parameters (#799) &#64;LukasNickel</p></li>
+</ul>
+</div>
+<div class="section" id="v0-6-0">
+<h2>v0.6.0<a class="headerlink" href="#v0-6-0" title="Permalink to this headline">¶</a></h2>
+<p>This is an interim release, after some major refactoring, and before we add
+the automatic gain selection and refactored container classes. It’s not
+intended yet for production.</p>
+<p>Some Major changes since last release:</p>
+<ul class="simple">
+<li><p>new <code class="docutils literal notranslate"><span class="pre">EventSource</span></code> class hierarchy for reading event data, which now supports simulation and testbench data from multiple camera prototypes (notably CHEC, SST-1M, NectarCam)</p></li>
+<li><p>new <code class="docutils literal notranslate"><span class="pre">EventSeeker</span></code> class for (inefficient) random event access.</p></li>
+<li><p>a much improved <code class="docutils literal notranslate"><span class="pre">Factory</span></code> class</p></li>
+<li><p>re-organized event data structure (still evolving) - all scripts not in ctapipe must be changed to work with the new data items that were re-named  (a migration guide will be given in the 0.7 release)</p></li>
+<li><p>better HDF5 table output, supporting merging multiple <code class="docutils literal notranslate"><span class="pre">Containers</span></code> into a single output table</p></li>
+<li><p>improvements to Muon analysis, and the muon example script</p></li>
+<li><p>improvements to the calibration classes</p></li>
+<li><p>big improvements to the Instrument classes</p></li>
+<li><p>lots of cleanups and bug fixes</p></li>
+<li><p>much more…</p></li>
+</ul>
+</div>
+<div class="section" id="v0-5-3-unreleased">
+<h2>v0.5.3 (unreleased)<a class="headerlink" href="#v0-5-3-unreleased" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Major speed improvements to calibration code, particuarly</dt><dd><p><code class="docutils literal notranslate"><span class="pre">NeighborPeakIntegrator</span></code> (Jason Watson, #490), which now uses some
+compiled c-code for speed.</p>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GeometryConverter</span></code> now works for all cameras (Tino Michael, #)</p></li>
+<li><p>Plotting improvements when overlays are used (Max Noe, #489)</p></li>
+<li><p>Fixes to coordinate <code class="docutils literal notranslate"><span class="pre">PlanarRepresentation</span></code> (Max Noe, #506)</p></li>
+<li><p>HDF5 output for charge resolution calculation (Jason Watons, #488)</p></li>
+<li><p>Stastical errors added to sensitivity calculation (Tino Michel, #508)</p></li>
+<li><p>Error estimator for direction and h_max fits in
+<code class="docutils literal notranslate"><span class="pre">HillasReconstructor</span></code> (Tino Michael, #509, #510)</p></li>
+</ul>
+</div>
+<div class="section" id="v0-5-2-2017-07-31">
+<h2>v0.5.2 (2017-07-31)<a class="headerlink" href="#v0-5-2-2017-07-31" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>improvements to <code class="docutils literal notranslate"><span class="pre">core.Container</span></code> (Max Noe)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TableWriter</span></code> correctly handles units and metadata</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ctapipe.instrument</span></code> now has much more rich functionality
+(SubarrayDescription, TelescopeDescription, OpticsDescription
+classes added)</p></li>
+<li><p>no more need to construct <code class="docutils literal notranslate"><span class="pre">CameraGeometry</span></code> manually, they are
+created in the <code class="docutils literal notranslate"><span class="pre">hessio_event_source</span></code>, all new code should use
+<code class="docutils literal notranslate"><span class="pre">event.inst.subarray</span></code>. The old inst.tel_pos, inst.optics_foclen,
+etc, will be phased out in the next point release (but still exist
+in this release) (K. Kosack)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ctapipe-dump-instrument</span></code> script added</p></li>
+<li><p>improvements to <code class="docutils literal notranslate"><span class="pre">Regressor</span></code> and Classifier code (Tino Michael)</p></li>
+<li><p>provenance system includes actor roles</p></li>
+<li><p>fixes to likelihood tests (Dan Parsons)</p></li>
+</ul>
+</div>
+<div class="section" id="v0-5-1-2016-07-20">
+<h2>v0.5.1 (2016-07-20)<a class="headerlink" href="#v0-5-1-2016-07-20" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>TQDM and iminuit are now accepted dependencies</p></li>
+<li><p>Implementation of ImPACT reconstruction and <code class="docutils literal notranslate"><span class="pre">TableInterpolator</span></code>
+class (Dan Parsons)</p></li>
+<li><p>improved handling of atmosphere profiles</p></li>
+<li><p>Implementation of Muon detection and reconstruction algorithms
+(Alison Mitchell)</p></li>
+<li><p>unified camera and telescope names</p></li>
+<li><p>better dataset handling (<code class="docutils literal notranslate"><span class="pre">ctapipe.utils.datasets</span></code>), and now
+automatically find datasets and tables in <code class="docutils literal notranslate"><span class="pre">ctapipe-extra</span></code> or in any
+directory listed in the user-defined <code class="docutils literal notranslate"><span class="pre">$CTAPIPE_SVC_PATH</span></code> path.</p></li>
+<li><p>TableWriter class (HDF5TableWriter) for writing out any
+<code class="docutils literal notranslate"><span class="pre">core.Container</span></code> to an HDF5 table via <code class="docutils literal notranslate"><span class="pre">pytables</span></code> (Karl Kosack)</p></li>
+<li><p>Improvements to <code class="docutils literal notranslate"><span class="pre">flow</span></code> framework (Jean Jacquemier)</p></li>
+<li><p>Travis CI now builds automatically for multiply python versions and
+uploads lates documentation</p></li>
+<li><p>use Lanscape.io for code quality</p></li>
+<li><p>code for calculating sensitivity curves using event-weighting method
+(Tino Michael)</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="bibliography.html" class="btn btn-neutral float-left" title="References" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

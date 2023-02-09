@@ -1,0 +1,6 @@
+timing_parameters
+=================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: timing_parameters

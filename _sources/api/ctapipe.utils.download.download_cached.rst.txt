@@ -1,0 +1,6 @@
+download_cached
+===============
+
+.. currentmodule:: ctapipe.utils.download
+
+.. autofunction:: download_cached

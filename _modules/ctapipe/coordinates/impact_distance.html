@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.coordinates.impact_distance &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../coordinates.html">ctapipe.coordinates</a></li>
+      <li class="breadcrumb-item active">ctapipe.coordinates.impact_distance</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.coordinates.impact_distance</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions to compute the impact distance from a simulated or reconstructed</span>
+<span class="sd">shower axis (Defined by the line from the impact point on the ground in the</span>
+<span class="sd">reconstructed sky direction) to each telescope&#39;s ground position.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span> <span class="n">SimulatedShowerContainer</span>
+<span class="kn">from</span> <span class="nn">.ground_frames</span> <span class="kn">import</span> <span class="n">GroundFrame</span><span class="p">,</span> <span class="n">TiltedGroundFrame</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">altaz_to_righthanded_cartesian</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;shower_impact_distance&quot;</span><span class="p">,</span> <span class="s2">&quot;impact_distance&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="impact_distance"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.impact_distance.html#ctapipe.coordinates.impact_distance">[docs]</a><span class="k">def</span> <span class="nf">impact_distance</span><span class="p">(</span><span class="n">point</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">test_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute impact distance from a line defined by a point and a direction vector</span>
+<span class="sd">    with an array of points</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    point: np.ndarray</span>
+<span class="sd">       point defining the line</span>
+<span class="sd">    direction: np.ndarray</span>
+<span class="sd">       direction vector</span>
+<span class="sd">    test_points: np.ndarray</span>
+<span class="sd">       array of test points</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">test_points</span> <span class="o">-</span> <span class="n">point</span><span class="p">,</span> <span class="n">direction</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="shower_impact_distance"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.shower_impact_distance.html#ctapipe.coordinates.shower_impact_distance">[docs]</a><span class="k">def</span> <span class="nf">shower_impact_distance</span><span class="p">(</span>
+    <span class="n">shower_geom</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ReconstructedGeometryContainer</span><span class="p">,</span> <span class="n">SimulatedShowerContainer</span><span class="p">],</span>
+    <span class="n">subarray</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;computes the impact distance of the shower axis to the telescope positions</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shower_geom : ReconstructedGeometryContainer</span>
+<span class="sd">        reconstructed shower geometry, must contain a core and alt/az position</span>
+<span class="sd">    subarray : SubarrayDescription</span>
+<span class="sd">        SubarrayDescription from which to extract the telescope positions</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Quantity[m] :</span>
+<span class="sd">       array of impact distances to each telescope (packed by tel index)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># core position in the ground frame</span>
+    <span class="n">core_position</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">shower_geom</span><span class="o">.</span><span class="n">core_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="n">shower_geom</span><span class="o">.</span><span class="n">core_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+            <span class="mi">0</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># sky direction of the shower (defines the shower axis)</span>
+    <span class="n">sky_direction</span> <span class="o">=</span> <span class="n">altaz_to_righthanded_cartesian</span><span class="p">(</span>
+        <span class="n">alt</span><span class="o">=</span><span class="n">shower_geom</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="n">shower_geom</span><span class="o">.</span><span class="n">az</span>
+    <span class="p">)</span>
+
+    <span class="c1"># telescope positions in the ground frame</span>
+    <span class="n">telescope_positions</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+        <span class="n">impact_distance</span><span class="p">(</span>
+            <span class="n">point</span><span class="o">=</span><span class="n">core_position</span><span class="p">,</span>
+            <span class="n">direction</span><span class="o">=</span><span class="n">sky_direction</span><span class="p">,</span>
+            <span class="n">test_points</span><span class="o">=</span><span class="n">telescope_positions</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">shower_impact_distance_with_frames</span><span class="p">(</span>
+    <span class="n">shower_geom</span><span class="p">:</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span> <span class="n">subarray</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;an alternate and slower implementation for cross-check testing purposes.</span>
+
+<span class="sd">    Here we make a TiltedFrame that is aligned with the shower axis and</span>
+<span class="sd">    transform both the telescopes and the impact point into that frame. Then the</span>
+<span class="sd">    cartesian distance in the X-Y plane should be the impact distance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tilted</span> <span class="o">=</span> <span class="n">TiltedGroundFrame</span><span class="p">(</span>
+        <span class="n">pointing_direction</span><span class="o">=</span><span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">shower_geom</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="n">shower_geom</span><span class="o">.</span><span class="n">az</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s2">&quot;altaz&quot;</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">core_pos_shower_tilted</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">shower_geom</span><span class="o">.</span><span class="n">core_x</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">shower_geom</span><span class="o">.</span><span class="n">core_y</span><span class="p">,</span>
+            <span class="n">z</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">GroundFrame</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">tilted</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+    <span class="p">)</span>
+
+    <span class="n">tel_pos_shower_tilted</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">tilted</span><span class="p">)</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="c1"># compute cartesian distance in the tilted frame (only x,y coordinates needed):</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">tel_pos_shower_tilted</span> <span class="o">-</span> <span class="n">core_pos_shower_tilted</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">delta</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">delta</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

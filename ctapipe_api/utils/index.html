@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Utilities (utils) &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="find_all_matching_datasets" href="../../api/ctapipe.utils.find_all_matching_datasets.html" />
+    <link rel="prev" title="ApplyModels" href="../../api/ctapipe.tools.apply_models.ApplyModels.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#access-to-service-data-files">Access to Service Data files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.utils">ctapipe.utils Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.utils.astro">ctapipe.utils.astro Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.utils.datasets">ctapipe.utils.datasets Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.utils.download">ctapipe.utils.download Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.utils.linalg">ctapipe.utils.linalg Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Docs</a></li>
+      <li class="breadcrumb-item active">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/ctapipe_api/utils/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="utilities-utils">
+<span id="utils"></span><h1>Utilities (<a class="reference internal" href="#module-ctapipe.utils" title="ctapipe.utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code></a>)<a class="headerlink" href="#utilities-utils" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="#module-ctapipe.utils" title="ctapipe.utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.utils</span></code></a> contains a variety of low-level functionality used by
+other modules that are not part of the <a class="reference internal" href="../core/index.html#module-ctapipe.core" title="ctapipe.core"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core</span></code></a> package.
+Classes in this package may eventually move to <a class="reference internal" href="../core/index.html#module-ctapipe.core" title="ctapipe.core"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core</span></code></a> if they
+have a stable enough API and are more widely used.</p>
+<p>It currently provides:</p>
+<ul class="simple">
+<li><p>ND Histogramming (see <a class="reference internal" href="../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram" title="ctapipe.utils.Histogram"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Histogram</span></code></a>)</p></li>
+<li><p>ND table interpolation (see <a class="reference internal" href="../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator" title="ctapipe.utils.TableInterpolator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableInterpolator</span></code></a>)</p></li>
+<li><p>access to service datasets</p></li>
+<li><p>linear algebra helpers</p></li>
+<li><p>dynamic class access</p></li>
+<li><p>json conversion</p></li>
+</ul>
+</div>
+<div class="section" id="access-to-service-data-files">
+<h2>Access to Service Data files<a class="headerlink" href="#access-to-service-data-files" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../../api/ctapipe.utils.get_dataset_path.html#ctapipe.utils.get_dataset_path" title="ctapipe.utils.get_dataset_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dataset_path()</span></code></a> function provides a common way to load CTA “SVC”
+data (e.g. required lookups, example data, etc). It returns the full
+directory path to the requested file. It currently works as follows:</p>
+<ol class="arabic simple">
+<li><p>it checks all directories in the CTA_SVC_PATH environment variable
+(which should be a colon-separated list of directories, like PATH)</p></li>
+<li><p>if it doesn’t find it there, it checks the ctapipe_resources module (which
+should be installed already in the package ctapipe-extra), which contains
+defaults.</p></li>
+</ol>
+<p>Tabular data can be accessed automatically using
+<a class="reference internal" href="../../api/ctapipe.utils.get_table_dataset.html#ctapipe.utils.get_table_dataset" title="ctapipe.utils.get_table_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_table_dataset(basename)</span></code></a>,
+where the <code class="docutils literal notranslate"><span class="pre">basename</span></code> is the filename without the extension.
+Several tabular formats will be searched and when the file is found it will be
+opened and read as an <code class="docutils literal notranslate"><span class="pre">astropy.table.Table</span></code> object.  For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.utils</span> <span class="kn">import</span> <span class="n">get_table_dataset</span>
+
+<span class="n">optics</span> <span class="o">=</span> <span class="n">get_table_dataset</span><span class="p">(</span><span class="s1">&#39;optics&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">optics</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-ctapipe.utils">
+<span id="ctapipe-utils-package"></span><h3>ctapipe.utils Package<a class="headerlink" href="#module-ctapipe.utils" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="functions">
+<h4>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.find_all_matching_datasets.html#ctapipe.utils.find_all_matching_datasets" title="ctapipe.utils.find_all_matching_datasets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_all_matching_datasets</span></code></a>(pattern[, …])</p></td>
+<td><p>Returns a list of resource names (or substrings) matching the given pattern, searching first in searchpath (a colon-separated list of directories) and then in the ctapipe_resources module)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.get_table_dataset.html#ctapipe.utils.get_table_dataset" title="ctapipe.utils.get_table_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_dataset</span></code></a>(table_name[, role])</p></td>
+<td><p>get a tabular dataset as an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table</span></code></a> object</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.get_dataset_path.html#ctapipe.utils.get_dataset_path" title="ctapipe.utils.get_dataset_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dataset_path</span></code></a>(filename[, url])</p></td>
+<td><p>Returns the full file path to an auxiliary dataset needed by ctapipe, given the dataset’s full name (filename with no directory).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.find_in_path.html#ctapipe.utils.find_in_path" title="ctapipe.utils.find_in_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_in_path</span></code></a>(filename, searchpath[, url])</p></td>
+<td><p>Search in searchpath for filename, returning full path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.resource_file.html#ctapipe.utils.resource_file" title="ctapipe.utils.resource_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource_file</span></code></a>(filename)</p></td>
+<td><p>Get the absoulte path of ctapipe resource files.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.get_bright_stars.html#ctapipe.utils.get_bright_stars" title="ctapipe.utils.get_bright_stars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bright_stars</span></code></a>([pointing, radius, …])</p></td>
+<td><p>Returns an astropy table containing star positions above a given magnitude within a given radius around a position in the sky, using the Yale bright star catalog which needs to be present in the ctapipe-extra package.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.Histogram.html#ctapipe.utils.Histogram" title="ctapipe.utils.Histogram"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Histogram</span></code></a>(nbins, ranges[, name, axis_names])</p></td>
+<td><p>An N-D histogram class with FITS image I/O.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator" title="ctapipe.utils.TableInterpolator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableInterpolator</span></code></a>(filename[, verbose])</p></td>
+<td><p>This is a simple class for loading lookup tables from a fits file and interpolating between them</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.UnstructuredInterpolator.html#ctapipe.utils.UnstructuredInterpolator" title="ctapipe.utils.UnstructuredInterpolator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnstructuredInterpolator</span></code></a>(interpolation_points)</p></td>
+<td><p>This class performs linear interpolation between an unstructured set of data points.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.IndexFinder.html#ctapipe.utils.IndexFinder" title="ctapipe.utils.IndexFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexFinder</span></code></a>(values)</p></td>
+<td><p>Helper class to find the index of the closest matching value in an array/list/…, used to locate the pointing of an event based on the trigger time.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.EventTypeFilter.html#ctapipe.utils.EventTypeFilter" title="ctapipe.utils.EventTypeFilter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventTypeFilter</span></code></a>(**kwargs)</p></td>
+<td><p>Check that an event has one of the allowed types</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.utils.astro">
+<span id="ctapipe-utils-astro-module"></span><h3>ctapipe.utils.astro Module<a class="headerlink" href="#module-ctapipe.utils.astro" title="Permalink to this headline">¶</a></h3>
+<p>This module is intended to contain astronomy-related helper tools which are
+not provided by external packages and/or to satisfy particular needs of
+usage within ctapipe.</p>
+<div class="section" id="id1">
+<h4>Functions<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.astro.get_bright_stars.html#ctapipe.utils.astro.get_bright_stars" title="ctapipe.utils.astro.get_bright_stars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bright_stars</span></code></a>([pointing, radius, …])</p></td>
+<td><p>Returns an astropy table containing star positions above a given magnitude within a given radius around a position in the sky, using the Yale bright star catalog which needs to be present in the ctapipe-extra package.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.utils.datasets">
+<span id="ctapipe-utils-datasets-module"></span><h3>ctapipe.utils.datasets Module<a class="headerlink" href="#module-ctapipe.utils.datasets" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id2">
+<h4>Functions<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.datasets.get_dataset_path.html#ctapipe.utils.datasets.get_dataset_path" title="ctapipe.utils.datasets.get_dataset_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_dataset_path</span></code></a>(filename[, url])</p></td>
+<td><p>Returns the full file path to an auxiliary dataset needed by ctapipe, given the dataset’s full name (filename with no directory).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.datasets.find_in_path.html#ctapipe.utils.datasets.find_in_path" title="ctapipe.utils.datasets.find_in_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_in_path</span></code></a>(filename, searchpath[, url])</p></td>
+<td><p>Search in searchpath for filename, returning full path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.datasets.find_all_matching_datasets.html#ctapipe.utils.datasets.find_all_matching_datasets" title="ctapipe.utils.datasets.find_all_matching_datasets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_all_matching_datasets</span></code></a>(pattern[, …])</p></td>
+<td><p>Returns a list of resource names (or substrings) matching the given pattern, searching first in searchpath (a colon-separated list of directories) and then in the ctapipe_resources module)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.datasets.get_default_url.html#ctapipe.utils.datasets.get_default_url" title="ctapipe.utils.datasets.get_default_url"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_default_url</span></code></a>()</p></td>
+<td><p>Get the default download url for datasets</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.utils.download">
+<span id="ctapipe-utils-download-module"></span><h3>ctapipe.utils.download Module<a class="headerlink" href="#module-ctapipe.utils.download" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id3">
+<h4>Functions<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.download.download_file.html#ctapipe.utils.download.download_file" title="ctapipe.utils.download.download_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_file</span></code></a>(url, path[, auth, chunk_size, …])</p></td>
+<td><p>Download a file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.download.download_cached.html#ctapipe.utils.download.download_cached" title="ctapipe.utils.download.download_cached"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_cached</span></code></a>(url[, cache_name, auth, …])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.download.download_file_cached.html#ctapipe.utils.download.download_file_cached" title="ctapipe.utils.download.download_file_cached"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_file_cached</span></code></a>(name[, cache_name, …])</p></td>
+<td><p>Downloads a file from a dataserver and caches the result locally in <code class="docutils literal notranslate"><span class="pre">$HOME/.cache/&lt;cache_name&gt;</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.utils.linalg">
+<span id="ctapipe-utils-linalg-module"></span><h3>ctapipe.utils.linalg Module<a class="headerlink" href="#module-ctapipe.utils.linalg" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id4">
+<h4>Functions<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.linalg.rotation_matrix_2d.html#ctapipe.utils.linalg.rotation_matrix_2d" title="ctapipe.utils.linalg.rotation_matrix_2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rotation_matrix_2d</span></code></a>(angle)</p></td>
+<td><p>construct a 2D rotation matrix as a numpy NDArray that rotates a vector clockwise.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.linalg.length.html#ctapipe.utils.linalg.length" title="ctapipe.utils.linalg.length"><code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code></a>(vec)</p></td>
+<td><p>returns the length/norm of a numpy array as the square root of the inner product with itself</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.utils.linalg.normalise.html#ctapipe.utils.linalg.normalise" title="ctapipe.utils.linalg.normalise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalise</span></code></a>(vec)</p></td>
+<td><p>Sets the length of the vector to 1</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.utils.linalg.angle.html#ctapipe.utils.linalg.angle" title="ctapipe.utils.linalg.angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">angle</span></code></a>(v1, v2)</p></td>
+<td><p>computes the angle between two vectors</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../api/ctapipe.tools.apply_models.ApplyModels.html" class="btn btn-neutral float-left" title="ApplyModels" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../api/ctapipe.utils.find_all_matching_datasets.html" class="btn btn-neutral float-right" title="find_all_matching_datasets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+ring_completeness
+=================
+
+.. currentmodule:: ctapipe.image.muon
+
+.. autofunction:: ring_completeness

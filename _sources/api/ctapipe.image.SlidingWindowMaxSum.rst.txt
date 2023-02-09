@@ -1,0 +1,29 @@
+SlidingWindowMaxSum
+===================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: SlidingWindowMaxSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SlidingWindowMaxSum.apply_integration_correction
+      ~SlidingWindowMaxSum.window_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SlidingWindowMaxSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: window_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

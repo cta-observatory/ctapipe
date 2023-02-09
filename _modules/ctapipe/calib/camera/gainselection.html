@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.calib.camera.gainselection &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.calib.camera.gainselection</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.calib.camera.gainselection</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Algorithms to select correct gain channel</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">IntEnum</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">traits</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;GainChannel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GainSelector&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ManualGainSelector&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ThresholdGainSelector&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="GainChannel"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.GainChannel.html#ctapipe.calib.GainChannel">[docs]</a><span class="k">class</span> <span class="nc">GainChannel</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Possible gain channels</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">HIGH</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">LOW</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="GainSelector"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.GainSelector.html#ctapipe.calib.GainSelector">[docs]</a><span class="k">class</span> <span class="nc">GainSelector</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for algorithms that decide on the gain channel to use</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GainSelector.__call__"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.GainSelector.html#ctapipe.calib.GainSelector.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reduce the waveform to a single gain channel</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        waveforms : ndarray</span>
+<span class="sd">            Waveforms stored in a numpy array of shape</span>
+<span class="sd">            (n_chan, n_pix, n_samples).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        selected_gain_channel : ndarray</span>
+<span class="sd">            Gain channel to use for each pixel</span>
+<span class="sd">            Shape: n_pix</span>
+<span class="sd">            Dtype: int8</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># Return None if already gain selected</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">n_channels</span><span class="p">,</span> <span class="n">n_pixels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">if</span> <span class="n">n_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># Must be first channel if only one channel</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_channel</span><span class="p">(</span><span class="n">waveforms</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot handle waveform array of shape: </span><span class="si">{</span><span class="n">waveforms</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GainSelector.select_channel"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.GainSelector.html#ctapipe.calib.GainSelector.select_channel">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">select_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract method to be defined by a GainSelector subclass.</span>
+
+<span class="sd">        Call the relevant functions to decide on the gain channel used for</span>
+<span class="sd">        each pixel.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        waveforms : ndarray</span>
+<span class="sd">            Waveforms stored in a numpy array of shape</span>
+<span class="sd">            (n_chan, n_pix, n_samples).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        selected_gain_channel : ndarray</span>
+<span class="sd">            Gain channel to use for each pixel</span>
+<span class="sd">            Shape: n_pix</span>
+<span class="sd">            Dtype: int8</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="ManualGainSelector"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.ManualGainSelector.html#ctapipe.calib.ManualGainSelector">[docs]</a><span class="k">class</span> <span class="nc">ManualGainSelector</span><span class="p">(</span><span class="n">GainSelector</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manually choose a gain channel.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">channel</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">CaselessStrEnum</span><span class="p">(</span>
+        <span class="p">[</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="s2">&quot;LOW&quot;</span><span class="p">],</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which gain channel to retain&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ManualGainSelector.select_channel"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.ManualGainSelector.html#ctapipe.calib.ManualGainSelector.select_channel">[docs]</a>    <span class="k">def</span> <span class="nf">select_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">GainChannel</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="ThresholdGainSelector"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.ThresholdGainSelector.html#ctapipe.calib.ThresholdGainSelector">[docs]</a><span class="k">class</span> <span class="nc">ThresholdGainSelector</span><span class="p">(</span><span class="n">GainSelector</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Select gain channel according to a maximum threshold value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Float</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Threshold value in waveform sample units. If a waveform &quot;</span>
+        <span class="s2">&quot;contains a sample above this threshold, use the low gain &quot;</span>
+        <span class="s2">&quot;channel for that pixel.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ThresholdGainSelector.select_channel"><a class="viewcode-back" href="../../../../api/ctapipe.calib.camera.gainselection.ThresholdGainSelector.html#ctapipe.calib.ThresholdGainSelector.select_channel">[docs]</a>    <span class="k">def</span> <span class="nf">select_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">waveforms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

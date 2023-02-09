@@ -1,0 +1,6 @@
+leakage_parameters
+==================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: leakage_parameters

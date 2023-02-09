@@ -1,0 +1,27 @@
+ManualGainSelector
+==================
+
+.. currentmodule:: ctapipe.calib.camera.gainselection
+
+.. autoclass:: ManualGainSelector
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ManualGainSelector.channel
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ManualGainSelector.select_channel
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: channel
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: select_channel

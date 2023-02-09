@@ -1,0 +1,51 @@
+Histogram
+=========
+
+.. currentmodule:: ctapipe.utils
+
+.. autoclass:: Histogram
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Histogram.bin_lower_edges
+      ~Histogram.bins
+      ~Histogram.hist
+      ~Histogram.ndims
+      ~Histogram.outliers
+      ~Histogram.ranges
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Histogram.bin_centers
+      ~Histogram.draw_1d
+      ~Histogram.draw_2d
+      ~Histogram.fill
+      ~Histogram.from_fits
+      ~Histogram.get_value
+      ~Histogram.resample_inplace
+      ~Histogram.to_fits
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: bin_lower_edges
+   .. autoattribute:: bins
+   .. autoattribute:: hist
+   .. autoattribute:: ndims
+   .. autoattribute:: outliers
+   .. autoattribute:: ranges
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: bin_centers
+   .. automethod:: draw_1d
+   .. automethod:: draw_2d
+   .. automethod:: fill
+   .. automethod:: from_fits
+   .. automethod:: get_value
+   .. automethod:: resample_inplace
+   .. automethod:: to_fits

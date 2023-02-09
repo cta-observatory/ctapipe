@@ -1,0 +1,6 @@
+guess_shower_depth
+==================
+
+.. currentmodule:: ctapipe.reco.impact
+
+.. autofunction:: guess_shower_depth

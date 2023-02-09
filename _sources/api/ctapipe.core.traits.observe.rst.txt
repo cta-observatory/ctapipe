@@ -1,0 +1,6 @@
+observe
+=======
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autofunction:: observe

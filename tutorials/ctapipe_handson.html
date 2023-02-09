@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started with ctapipe &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Analyzing Events Using ctapipe" href="ctapipe_overview.html" />
+    <link rel="prev" title="Tutorials" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Getting Started with ctapipe</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Part-1:-load-and-loop-over-data">Part 1: load and loop over data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Part-2:-Explore-the-instrument-description">Part 2: Explore the instrument description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Part-3:-Apply-some-calibration-and-trace-integration">Part 3: Apply some calibration and trace integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Part-4:-Let’s-put-it-all-together:">Part 4: Let’s put it all together:</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#We-can-now-load-in-the-file-we-created-and-plot-it">We can now load in the file we created and plot it</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_overview.html">Analyzing Events Using ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html">Coordinates usage in ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html">Exploring Raw Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibrated_data_exploration.html">Explore Calibrated Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theta_square.html">Make a theta-square plot</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Getting Started with ctapipe</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tutorials/ctapipe_handson.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars and line breaks on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+    white-space: pre;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.jp-RenderedHTMLCommon thead,
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+.jp-RenderedHTMLCommon th,
+div.rendered_html th {
+  font-weight: bold;
+}
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.jp-RenderedHTMLCommon tbody tr:hover,
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="Getting-Started-with-ctapipe">
+<h1>Getting Started with ctapipe<a class="headerlink" href="#Getting-Started-with-ctapipe" title="Permalink to this headline">¶</a></h1>
+<p>This hands-on was presented at the Paris CTA Consoritum meeting (K. Kosack)</p>
+<div class="section" id="Part-1:-load-and-loop-over-data">
+<h2>Part 1: load and loop over data<a class="headerlink" href="#Part-1:-load-and-loop-over-data" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">EventSource</span>
+<span class="kn">from</span> <span class="nn">ctapipe</span> <span class="kn">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="o">%</span><span class="k">matplotlib</span> inline
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_dataset_path</span><span class="p">(</span><span class="s2">&quot;gamma_prod5.simtel.zst&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">=</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">max_events</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">event_id</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">shower</span><span class="o">.</span><span class="n">energy</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0 4009 0.07287972420454025 TeV
+1 5101 1.7454713582992554 TeV
+2 5103 1.7454713582992554 TeV
+3 5104 1.7454713582992554 TeV
+4 5105 1.7454713582992554 TeV
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">event</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ctapipe.containers.ArrayEventContainer:
+                       index.*: event indexing information with default None
+                          r0.*: Raw Data with default None
+                          r1.*: R1 Calibrated Data with default None
+                         dl0.*: DL0 Data Volume Reduced Data with default None
+                         dl1.*: DL1 Calibrated image with default None
+                         dl2.*: DL2 reconstruction info with default None
+                  simulation.*: Simulated Event Information with default None
+                                with type &lt;class
+                                &#39;ctapipe.containers.SimulatedEventContainer&#39;&gt;
+                     trigger.*: central trigger information with default None
+                         count: number of events processed with default 0
+                    pointing.*: Array and telescope pointing positions with
+                                default None
+                 calibration.*: Container for calibration coefficients for the
+                                current event with default None
+                         mon.*: container for event-wise monitoring data (MON)
+                                with default None
+                        muon.*: Container for muon analysis results with default
+                                None
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">event</span><span class="o">.</span><span class="n">r1</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ctapipe.containers.R1Container:
+                        tel[*]: map of tel_id to R1CameraContainer with default
+                                None
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">max_events</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0 dict_keys([9, 14, 104])
+1 dict_keys([26, 27, 29, 47, 53, 59, 69, 73, 121, 122, 124, 148, 162, 166])
+2 dict_keys([82, 92, 175, 179])
+3 dict_keys([17, 26, 27, 29, 43, 47, 53, 57, 69, 112, 121, 122, 124, 125, 128, 140, 144, 148, 162, 166])
+4 dict_keys([3, 4, 8, 9, 14, 15, 23, 24, 25, 29, 32, 36, 42, 46, 52, 56, 103, 104, 109, 110, 118, 119, 120, 126, 127, 129, 130, 137, 139, 143, 161])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">event</span><span class="o">.</span><span class="n">r0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ctapipe.containers.R0CameraContainer:
+                      waveform: numpy array containing ADC samples(n_channels,
+                                n_pixels, n_samples) with default None
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">r0tel</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">r0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([[[432, 413, 395, ..., 382, 387, 382],
+        [419, 420, 428, ..., 392, 396, 405],
+        [381, 392, 413, ..., 375, 387, 387],
+        ...,
+        [391, 384, 385, ..., 379, 395, 404],
+        [370, 376, 388, ..., 391, 383, 383],
+        [393, 411, 413, ..., 406, 392, 396]],
+
+       [[413, 396, 398, ..., 397, 401, 395],
+        [392, 407, 403, ..., 403, 388, 399],
+        [405, 403, 393, ..., 393, 400, 409],
+        ...,
+        [399, 406, 407, ..., 391, 405, 397],
+        [401, 399, 396, ..., 395, 400, 388],
+        [399, 393, 403, ..., 395, 407, 401]]], dtype=uint16)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(2, 1855, 40)
+</pre></div></div>
+</div>
+<p>note that this is (<span class="math notranslate nohighlight">\(N_{channels}\)</span>, <span class="math notranslate nohighlight">\(N_{pixels}\)</span>, <span class="math notranslate nohighlight">\(N_{samples}\)</span>)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.QuadMesh at 0x7fab9ee62400&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_13_1.png" src="../_images/tutorials_ctapipe_handson_13_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">brightest_pixel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pixel </span><span class="si">{</span><span class="n">brightest_pixel</span><span class="si">}</span><span class="s2"> has sum </span><span class="si">{</span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1535</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+pixel 1831 has sum 15824
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">brightest_pixel</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;channel 0 (high-gain)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="n">brightest_pixel</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;channel 1 (low-gain)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7fab9eeab9d0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_15_1.png" src="../_images/tutorials_ctapipe_handson_15_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ipywidgets</span> <span class="kn">import</span> <span class="n">interact</span>
+
+<span class="nd">@interact</span>
+<span class="k">def</span> <span class="nf">view_waveform</span><span class="p">(</span><span class="n">chan</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">pix_id</span><span class="o">=</span><span class="n">brightest_pixel</span><span class="p">):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="n">chan</span><span class="p">,</span> <span class="n">pix_id</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"version_major": 2, "version_minor": 0, "model_id": "1049f131fef64b99adf4ee1681921b56"}</script></div>
+</div>
+<p>try making this compare 2 waveforms</p>
+</div>
+<div class="section" id="Part-2:-Explore-the-instrument-description">
+<h2>Part 2: Explore the instrument description<a class="headerlink" href="#Part-2:-Explore-the-instrument-description" title="Permalink to this headline">¶</a></h2>
+<p>This is all well and good, but we don’t really know what camera or telescope this is… how do we get instrumental description info?</p>
+<p>Currently this is returned <em>inside</em> the event (it will soon change to be separate in next version or so)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+SubarrayDescription(name=&#39;MonteCarloArray&#39;, n_tels=180)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">peek</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_21_0.png" src="../_images/tutorials_ctapipe_handson_21_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">to_table</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><i>Table length=180</i>
+<table id="table140375115780000" class="table-striped table-bordered table-condensed">
+<thead><tr><th>tel_id</th><th>name</th><th>type</th><th>pos_x</th><th>pos_y</th><th>pos_z</th><th>camera_name</th><th>optics_name</th><th>camera_index</th><th>optics_index</th><th>tel_description</th></tr></thead>
+<thead><tr><th></th><th></th><th></th><th>m</th><th>m</th><th>m</th><th></th><th></th><th></th><th></th><th></th></tr></thead>
+<thead><tr><th>int16</th><th>str5</th><th>str3</th><th>float32</th><th>float32</th><th>float32</th><th>str9</th><th>str5</th><th>int64</th><th>int64</th><th>str17</th></tr></thead>
+<tr><td>1</td><td>LST</td><td>LST</td><td>-20.643</td><td>-64.817</td><td>34.3</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>2</td><td>LST</td><td>LST</td><td>79.993996</td><td>-0.768</td><td>29.4</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>3</td><td>LST</td><td>LST</td><td>-19.396</td><td>65.2</td><td>31.0</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>4</td><td>LST</td><td>LST</td><td>-120.033</td><td>1.151</td><td>33.1</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>5</td><td>MST</td><td>MST</td><td>-0.017</td><td>-0.001</td><td>24.35</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>6</td><td>MST</td><td>MST</td><td>-1.468</td><td>-151.221</td><td>31.0</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>7</td><td>MST</td><td>MST</td><td>-3.1379998</td><td>-325.245</td><td>39.0</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>8</td><td>MST</td><td>MST</td><td>1.4339999</td><td>151.22</td><td>25.0</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>9</td><td>MST</td><td>MST</td><td>3.1039999</td><td>325.243</td><td>23.5</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+<tr><td>171</td><td>ASTRI</td><td>SST</td><td>260.0</td><td>920.0</td><td>45.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>172</td><td>ASTRI</td><td>SST</td><td>260.0</td><td>-920.0</td><td>65.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>173</td><td>ASTRI</td><td>SST</td><td>-500.0</td><td>815.0</td><td>15.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>174</td><td>ASTRI</td><td>SST</td><td>-500.0</td><td>-815.0</td><td>75.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>175</td><td>ASTRI</td><td>SST</td><td>500.0</td><td>815.0</td><td>45.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>176</td><td>ASTRI</td><td>SST</td><td>500.0</td><td>-815.0</td><td>53.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>177</td><td>ASTRI</td><td>SST</td><td>-810.0</td><td>655.0</td><td>12.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>178</td><td>ASTRI</td><td>SST</td><td>-810.0</td><td>-655.0</td><td>68.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>179</td><td>ASTRI</td><td>SST</td><td>810.0</td><td>655.0</td><td>20.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>180</td><td>ASTRI</td><td>SST</td><td>810.0</td><td>-655.0</td><td>41.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+</table></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+TelescopeDescription(type=&#39;LST&#39;, optics_name=&#39;LST&#39;, camera_name=&#39;LSTCam&#39;)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CameraDescription(name=LSTCam, geometry=LSTCam, readout=LSTCam)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">optics</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+OpticsDescription(name=LST, size_type=LST, reflector_shape=PARABOLIC, equivalent_focal_length=28.00 m, effective_focal_length=29.31 m, n_mirrors=1, mirror_area=386.73 m2)
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CameraDescription(name=LSTCam, geometry=LSTCam, readout=LSTCam)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+OpticsDescription(name=LST, size_type=LST, reflector_shape=PARABOLIC, equivalent_focal_length=28.00 m, effective_focal_length=29.31 m, n_mirrors=1, mirror_area=386.73 m2)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">pix_x</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$[0,~-0.037796701,~-0.047245475,~\dots,~0.67088033,~-0.45356484,~-0.50081024] \; \mathrm{m}$</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">to_table</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><i>Table length=1855</i>
+<table id="table140375100446368" class="table-striped table-bordered table-condensed">
+<thead><tr><th>pix_id</th><th>pix_x</th><th>pix_y</th><th>pix_area</th></tr></thead>
+<thead><tr><th></th><th>m</th><th>m</th><th>m2</th></tr></thead>
+<thead><tr><th>int64</th><th>float64</th><th>float64</th><th>float64</th></tr></thead>
+<tr><td>0</td><td>0.0</td><td>0.0</td><td>0.002079326892271638</td></tr>
+<tr><td>1</td><td>-0.03779670120038493</td><td>-0.03273242903676833</td><td>0.002079326892271638</td></tr>
+<tr><td>2</td><td>-0.047245474963293455</td><td>0.01636666208397624</td><td>0.002079326892271638</td></tr>
+<tr><td>3</td><td>-0.009448773762908525</td><td>0.04909909112074457</td><td>0.002079326892271638</td></tr>
+<tr><td>4</td><td>0.03779670120038493</td><td>0.03273242903676833</td><td>0.002079326892271638</td></tr>
+<tr><td>5</td><td>0.047245474963293455</td><td>-0.01636666208397624</td><td>0.002079326892271638</td></tr>
+<tr><td>6</td><td>0.009448773762908525</td><td>-0.04909909112074457</td><td>0.002079326892271638</td></tr>
+<tr><td>7</td><td>-0.07559330728842002</td><td>-0.06546483976983582</td><td>0.002079326892271638</td></tr>
+<tr><td>8</td><td>-0.08504208105132854</td><td>-0.016365748649091242</td><td>0.002079326892271638</td></tr>
+<tr><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+<tr><td>1845</td><td>-0.7086768843206072</td><td>0.9328863284767507</td><td>0.002079326892271638</td></tr>
+<tr><td>1846</td><td>-0.6708803327659517</td><td>0.9656188254531994</td><td>0.002079326892271638</td></tr>
+<tr><td>1847</td><td>0.45356483600883185</td><td>1.0801754621151207</td><td>0.002079326892271638</td></tr>
+<tr><td>1848</td><td>0.5008102444966699</td><td>1.0638087511987853</td><td>0.002079326892271638</td></tr>
+<tr><td>1849</td><td>1.1622417344092089</td><td>0.14728906047502402</td><td>0.002079326892271638</td></tr>
+<tr><td>1850</td><td>1.1716905074681288</td><td>0.09818997301244675</td><td>0.002079326892271638</td></tr>
+<tr><td>1851</td><td>0.7086768843206072</td><td>-0.9328863284767507</td><td>0.002079326892271638</td></tr>
+<tr><td>1852</td><td>0.6708803327659517</td><td>-0.9656188254531994</td><td>0.002079326892271638</td></tr>
+<tr><td>1853</td><td>-0.45356483600883185</td><td>-1.0801754621151207</td><td>0.002079326892271638</td></tr>
+<tr><td>1854</td><td>-0.5008102444966699</td><td>-1.0638087511987853</td><td>0.002079326892271638</td></tr>
+</table></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">mirror_area</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$386.73325 \; \mathrm{m^{2}}$</div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.visualization</span> <span class="kn">import</span> <span class="n">CameraDisplay</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_33_0.png" src="../_images/tutorials_ctapipe_handson_33_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">r0tel</span><span class="o">.</span><span class="n">waveform</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,</span><span class="mi">10</span><span class="p">]</span>  <span class="c1"># display channel 0, sample 0 (try others like 10)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_34_0.png" src="../_images/tutorials_ctapipe_handson_34_0.png" />
+</div>
+</div>
+<p>** aside: ** show demo using a CameraDisplay in interactive mode in ipython rather than notebook</p>
+</div>
+<div class="section" id="Part-3:-Apply-some-calibration-and-trace-integration">
+<h2>Part 3: Apply some calibration and trace integration<a class="headerlink" href="#Part-3:-Apply-some-calibration-and-trace-integration" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.calib</span> <span class="kn">import</span> <span class="n">CameraCalibrator</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">calib</span> <span class="o">=</span> <span class="n">CameraCalibrator</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">max_events</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+    <span class="n">calib</span><span class="p">(</span><span class="n">event</span><span class="p">)</span> <span class="c1"># fills in r1, dl0, and dl1</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dict_keys([9, 14, 104])
+dict_keys([26, 27, 29, 47, 53, 59, 69, 73, 121, 122, 124, 148, 162, 166])
+dict_keys([82, 92, 175, 179])
+dict_keys([17, 26, 27, 29, 43, 47, 53, 57, 69, 112, 121, 122, 124, 125, 128, 140, 144, 148, 162, 166])
+dict_keys([3, 4, 8, 9, 14, 15, 23, 24, 25, 29, 32, 36, 42, 46, 52, 56, 103, 104, 109, 110, 118, 119, 120, 126, 127, 129, 130, 137, 139, 143, 161])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ctapipe.containers.DL1CameraContainer:
+                         image: Numpy array of camera image, after waveform
+                                extraction.Shape: (n_pixel) with default None as
+                                a 1-D array with dtype float32
+                     peak_time: Numpy array containing position of the peak of
+                                the pulse as determined by the extractor. Shape:
+                                (n_pixel, ) with default None as a 1-D array
+                                with dtype float32
+                    image_mask: Boolean numpy array where True means the pixel
+                                has passed cleaning. Shape: (n_pixel, ) with
+                                default None as a 1-D array with dtype bool
+                      is_valid: True if image extraction succeeded, False if
+                                failed or in the case of TwoPass methods, that
+                                the first pass only was returned. with default
+                                False
+                    parameters: Image parameters with default None with type
+                                &lt;class
+                                &#39;ctapipe.containers.ImageParametersContainer&#39;&gt;
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dl1tel</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dl1tel</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span> <span class="c1"># note this will be gain-selected in next version, so will be just 1D array of 1855</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(1855,)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dl1tel</span><span class="o">.</span><span class="n">peak_time</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([27.381046, 17.746258, 18.80205 , ..., 11.64868 , 31.961287,
+       29.717525], dtype=float32)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">dl1tel</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;ctapipe.visualization.mpl_camera.CameraDisplay at 0x7fab9f1b6610&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_44_1.png" src="../_images/tutorials_ctapipe_handson_44_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">dl1tel</span><span class="o">.</span><span class="n">peak_time</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;ctapipe.visualization.mpl_camera.CameraDisplay at 0x7fab9fcf3b50&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_45_1.png" src="../_images/tutorials_ctapipe_handson_45_1.png" />
+</div>
+</div>
+<p>Now for Hillas Parameters</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.image</span> <span class="kn">import</span> <span class="n">hillas_parameters</span><span class="p">,</span> <span class="n">tailcuts_clean</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">dl1tel</span><span class="o">.</span><span class="n">image</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">tailcuts_clean</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">picture_thresh</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">boundary_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">mask</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([False, False, False, ..., False, False, False])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;ctapipe.visualization.mpl_camera.CameraDisplay at 0x7fab997fee20&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_49_1.png" src="../_images/tutorials_ctapipe_handson_49_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cleaned</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">cleaned</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">cleaned</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">coolwarm</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">add_colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-1.0, 0.0)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_51_1.png" src="../_images/tutorials_ctapipe_handson_51_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">cleaned</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;intensity&#39;: 32.78351974487305,
+ &#39;kurtosis&#39;: 1.2333006676347844,
+ &#39;length&#39;: &lt;Quantity 0.02219065 m&gt;,
+ &#39;length_uncertainty&#39;: &lt;Quantity 0.00093599 m&gt;,
+ &#39;phi&#39;: &lt;Angle -0.88747705 rad&gt;,
+ &#39;psi&#39;: &lt;Angle -1.56935711 rad&gt;,
+ &#39;r&#39;: &lt;Quantity 1.11337613 m&gt;,
+ &#39;skewness&#39;: -0.2716153815520628,
+ &#39;width&#39;: &lt;Quantity 0.01614423 m&gt;,
+ &#39;width_uncertainty&#39;: &lt;Quantity 0.00226475 m&gt;,
+ &#39;x&#39;: &lt;Quantity 0.70295289 m&gt;,
+ &#39;y&#39;: &lt;Quantity -0.86340237 m&gt;}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">cleaned</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">coolwarm</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">add_colorbar</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">overlay_moments</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_53_0.png" src="../_images/tutorials_ctapipe_handson_53_0.png" />
+</div>
+</div>
+</div>
+<div class="section" id="Part-4:-Let’s-put-it-all-together:">
+<h2>Part 4: Let’s put it all together:<a class="headerlink" href="#Part-4:-Let’s-put-it-all-together:" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>loop over events, selecting only telescopes of the same type (e.g. LST:LSTCam)</p></li>
+<li><p>for each event, apply calibration/trace integration</p></li>
+<li><p>calculate Hillas parameters</p></li>
+<li><p>write out all hillas paremeters to a file that can be loaded with Pandas</p></li>
+</ul>
+<p>first let’s select only those telescopes with LST:LSTCam</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(TelescopeDescription(type=&#39;SST&#39;, optics_name=&#39;ASTRI&#39;, camera_name=&#39;CHEC&#39;),
+ TelescopeDescription(type=&#39;LST&#39;, optics_name=&#39;LST&#39;, camera_name=&#39;LSTCam&#39;),
+ TelescopeDescription(type=&#39;MST&#39;, optics_name=&#39;MST&#39;, camera_name=&#39;NectarCam&#39;),
+ TelescopeDescription(type=&#39;MST&#39;, optics_name=&#39;MST&#39;, camera_name=&#39;FlashCam&#39;))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">get_tel_ids_for_type</span><span class="p">(</span><span class="s2">&quot;LST_LST_LSTCam&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(1, 2, 3, 4)
+</pre></div></div>
+</div>
+<p>Now let’s write out program</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_dataset_path</span><span class="p">(</span><span class="s2">&quot;gamma_prod5.simtel.zst&quot;</span><span class="p">)</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="c1"># remove the max_events limit to get more stats</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+    <span class="n">calib</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">tel_data</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">tel</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">tailcuts_clean</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">tel_data</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">tel_data</span><span class="o">.</span><span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">HDF5TableWriter</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">HDF5TableWriter</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;hillas.h5&#39;</span><span class="p">,</span> <span class="n">group_name</span><span class="o">=</span><span class="s1">&#39;dl1&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+
+    <span class="n">source</span> <span class="o">=</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">allowed_tels</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">],</span>  <span class="n">max_events</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+        <span class="n">calib</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">tel_data</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">tel</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">tailcuts_clean</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">tel_data</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">tel_data</span><span class="o">.</span><span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;hillas&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="We-can-now-load-in-the-file-we-created-and-plot-it">
+<h3>We can now load in the file we created and plot it<a class="headerlink" href="#We-can-now-load-in-the-file-we-created-and-plot-it" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>ls<span class="w"> </span>*.h5
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+hillas.h5
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="n">hillas</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="s2">&quot;hillas.h5&quot;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;/dl1/hillas&#39;</span><span class="p">)</span>
+<span class="n">hillas</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>intensity</th>
+      <th>skewness</th>
+      <th>kurtosis</th>
+      <th>x</th>
+      <th>y</th>
+      <th>r</th>
+      <th>phi</th>
+      <th>length</th>
+      <th>length_uncertainty</th>
+      <th>width</th>
+      <th>width_uncertainty</th>
+      <th>psi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>47.098688</td>
+      <td>-0.530399</td>
+      <td>1.881643</td>
+      <td>0.695206</td>
+      <td>-0.847657</td>
+      <td>1.096282</td>
+      <td>-50.643096</td>
+      <td>0.032743</td>
+      <td>0.002240</td>
+      <td>0.026627</td>
+      <td>0.002372</td>
+      <td>-51.309393</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>126.314263</td>
+      <td>0.020218</td>
+      <td>1.742869</td>
+      <td>0.464446</td>
+      <td>-0.999899</td>
+      <td>1.102500</td>
+      <td>-65.085472</td>
+      <td>0.055256</td>
+      <td>0.002119</td>
+      <td>0.025090</td>
+      <td>0.001144</td>
+      <td>-67.386572</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[55]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">_</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_ctapipe_handson_66_0.png" src="../_images/tutorials_ctapipe_handson_66_0.png" />
+</div>
+</div>
+<p>If you do this yourself, chose a larger file to loop over more events to get better statistics</p>
+<script type="application/vnd.jupyter.widget-state+json">
+{"state": {"779b0ee9770e43c7a80df9285f67030b": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "1049f131fef64b99adf4ee1681921b56": {"model_name": "VBoxModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": ["widget-interact"], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "VBoxModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "VBoxView", "box_style": "", "children": ["IPY_MODEL_4a9df5ce735a47cfa1fa670834513385", "IPY_MODEL_4aa0b38b7bde493e9022360cb755e577", "IPY_MODEL_0d0f3695315e4898911e8e2c81f90b99"], "layout": "IPY_MODEL_779b0ee9770e43c7a80df9285f67030b", "tabbable": null, "tooltip": null}}, "1a8e7d2eaa3844b4ab63926e70cd19c5": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "77b9070e551e44b7a0fc5d0e4bc11811": {"model_name": "SliderStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "SliderStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "description_width": "", "handle_color": null}}, "4a9df5ce735a47cfa1fa670834513385": {"model_name": "IntSliderModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "IntSliderModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "IntSliderView", "behavior": "drag-tap", "continuous_update": true, "description": "chan", "description_allow_html": false, "disabled": false, "layout": "IPY_MODEL_1a8e7d2eaa3844b4ab63926e70cd19c5", "max": 1, "min": 0, "orientation": "horizontal", "readout": true, "readout_format": "d", "step": 1, "style": "IPY_MODEL_77b9070e551e44b7a0fc5d0e4bc11811", "tabbable": null, "tooltip": null, "value": 0}}, "6ba4f5ea6cd4447e89c134e8fbf89c1a": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "dfd98eb52f3f4022a93563e9494fa41c": {"model_name": "SliderStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "SliderStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "description_width": "", "handle_color": null}}, "4aa0b38b7bde493e9022360cb755e577": {"model_name": "IntSliderModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "IntSliderModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "IntSliderView", "behavior": "drag-tap", "continuous_update": true, "description": "pix_id", "description_allow_html": false, "disabled": false, "layout": "IPY_MODEL_6ba4f5ea6cd4447e89c134e8fbf89c1a", "max": 5493, "min": -1831, "orientation": "horizontal", "readout": true, "readout_format": "d", "step": 1, "style": "IPY_MODEL_dfd98eb52f3f4022a93563e9494fa41c", "tabbable": null, "tooltip": null, "value": 1831}}, "3d391b51230447a186c0af1db992021d": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "0d0f3695315e4898911e8e2c81f90b99": {"model_name": "OutputModel", "model_module": "@jupyter-widgets/output", "model_module_version": "1.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/output", "_model_module_version": "1.0.0", "_model_name": "OutputModel", "_view_count": null, "_view_module": "@jupyter-widgets/output", "_view_module_version": "1.0.0", "_view_name": "OutputView", "layout": "IPY_MODEL_3d391b51230447a186c0af1db992021d", "msg_id": "", "outputs": [{"output_type": "display_data", "metadata": {}, "data": {"text/plain": "<Figure size 640x480 with 1 Axes>", "image/png": "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\n"}}], "tabbable": null, "tooltip": null}}}, "version_major": 2, "version_minor": 0}
+</script></div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe_overview.html" class="btn btn-neutral float-right" title="Analyzing Events Using ctapipe" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

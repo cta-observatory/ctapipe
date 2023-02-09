@@ -1,0 +1,53 @@
+FlatFieldContainer
+==================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: FlatFieldContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~FlatFieldContainer.charge_mean
+      ~FlatFieldContainer.charge_median
+      ~FlatFieldContainer.charge_median_outliers
+      ~FlatFieldContainer.charge_std
+      ~FlatFieldContainer.charge_std_outliers
+      ~FlatFieldContainer.meta
+      ~FlatFieldContainer.n_events
+      ~FlatFieldContainer.prefix
+      ~FlatFieldContainer.relative_gain_mean
+      ~FlatFieldContainer.relative_gain_median
+      ~FlatFieldContainer.relative_gain_std
+      ~FlatFieldContainer.relative_time_median
+      ~FlatFieldContainer.sample_time
+      ~FlatFieldContainer.sample_time_max
+      ~FlatFieldContainer.sample_time_min
+      ~FlatFieldContainer.time_mean
+      ~FlatFieldContainer.time_median
+      ~FlatFieldContainer.time_median_outliers
+      ~FlatFieldContainer.time_std
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: charge_mean
+   .. autoattribute:: charge_median
+   .. autoattribute:: charge_median_outliers
+   .. autoattribute:: charge_std
+   .. autoattribute:: charge_std_outliers
+   .. autoattribute:: meta
+   .. autoattribute:: n_events
+   .. autoattribute:: prefix
+   .. autoattribute:: relative_gain_mean
+   .. autoattribute:: relative_gain_median
+   .. autoattribute:: relative_gain_std
+   .. autoattribute:: relative_time_median
+   .. autoattribute:: sample_time
+   .. autoattribute:: sample_time_max
+   .. autoattribute:: sample_time_min
+   .. autoattribute:: time_mean
+   .. autoattribute:: time_median
+   .. autoattribute:: time_median_outliers
+   .. autoattribute:: time_std

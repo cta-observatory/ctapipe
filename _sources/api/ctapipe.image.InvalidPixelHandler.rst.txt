@@ -1,0 +1,17 @@
+InvalidPixelHandler
+===================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: InvalidPixelHandler
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~InvalidPixelHandler.__call__
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

@@ -1,0 +1,19 @@
+TableAtmosphereDensityProfile
+=============================
+
+.. currentmodule:: ctapipe.atmosphere
+
+.. autoclass:: TableAtmosphereDensityProfile
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TableAtmosphereDensityProfile.__call__
+      ~TableAtmosphereDensityProfile.integral
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: integral

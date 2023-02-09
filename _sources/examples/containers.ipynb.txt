@@ -1,0 +1,405 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Using Container classes\n",
+    "\n",
+    "`ctapipe.core.Container` is the base class for all event-wise data classes in ctapipe. It works like a object-relational mapper, in that it defines a set of `Fields` along with their metadata (description, unit, default), which can be later translated automatially into an output table using a `ctapipe.io.TableWriter`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.core import Container, Field, Map\n",
+    "import numpy as np\n",
+    "from astropy import units as u\n",
+    "from functools import partial"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let's define a few example containers with some dummy fields in them:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class SubContainer(Container):\n",
+    "    junk = Field(-1, \"Some junk\")\n",
+    "    value = Field(0.0, \"some value\", unit=u.deg)\n",
+    "\n",
+    "    \n",
+    "class TelContainer(Container):\n",
+    "    # defaults should match the other requirements, e.g. the defaults\n",
+    "    # should have the correct unit. It most often also makes sense to use\n",
+    "    # an invalid value marker like nan for floats or -1 for positive integers\n",
+    "    # as default\n",
+    "    tel_id = Field(-1, \"telescope ID number\")\n",
+    "    \n",
+    "        \n",
+    "    # For mutable structures like lists, arrays or containers, use a `default_factory` function or class\n",
+    "    # not an instance to assure each container gets a fresh instance and there is no hidden \n",
+    "    # shared state between containers.\n",
+    "    image = Field(default_factory=lambda: np.zeros(10), description=\"camera pixel data\")\n",
+    "\n",
+    "\n",
+    "class EventContainer(Container):\n",
+    "    event_id = Field(-1,\"event id number\")\n",
+    "\n",
+    "    tels_with_data = Field(default_factory=list, description=\"list of telescopes with data\")\n",
+    "    sub = Field(default_factory=SubContainer, description=\"stuff\")  # a sub-container in the hierarchy\n",
+    "\n",
+    "    # A Map is like a defaultdictionary with a specific container type as default.\n",
+    "    # This can be used to e.g. store a container per telescope\n",
+    "    # we use partial here to automatically get a function that creates a map with the correct container type\n",
+    "    # as default\n",
+    "    tel = Field(default_factory=partial(Map, TelContainer) , description=\"telescopes\")  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Basic features"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev = EventContainer()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Check that default values are automatically filled in"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(ev.event_id)\n",
+    "print(ev.sub)\n",
+    "print(ev.tel)\n",
+    "print(ev.tel.keys())\n",
+    "\n",
+    "# default dict access will create container:\n",
+    "print(ev.tel[1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "print the dict representation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(ev)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We also get docstrings \"for free\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "EventContainer?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "SubContainer?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "values can be set as normal for a class:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.event_id = 100\n",
+    "ev.event_id"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.as_dict()  # by default only shows the bare items, not sub-containers (See later)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.as_dict(recursive=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "and we can add a few of these to the parent container inside the tel dict:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.tel[10] = TelContainer()\n",
+    "ev.tel[5] = TelContainer()\n",
+    "ev.tel[42] = TelContainer()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# because we are using a default_factory to handle mutable defaults, the images are actually different:\n",
+    "ev.tel[42].image is ev.tel[32]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Be careful to use the `default_factory` mechanism for mutable fields, see this **negative** example:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class DangerousContainer(Container):\n",
+    "    image = Field(\n",
+    "        np.zeros(10),\n",
+    "        description=\"Attention!!!! Globally mutable shared state. Use default_factory instead\"\n",
+    "    )\n",
+    "    \n",
+    "    \n",
+    "c1 = DangerousContainer()\n",
+    "c2 = DangerousContainer()\n",
+    "\n",
+    "c1.image[5] = 9999\n",
+    "\n",
+    "print(c1.image)\n",
+    "print(c2.image)\n",
+    "print(c1.image is c2.image)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.tel"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Converion to dictionaries"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.as_dict()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.as_dict(recursive=True, flatten=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "for serialization to a table, we can even flatten the output into a single set of columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.as_dict(recursive=True, flatten=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Setting and clearing values"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.tel[5].image[:] = 9\n",
+    "print(ev)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ev.reset()\n",
+    "ev.as_dict(recursive=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## look at a pre-defined Container"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.containers import SimulatedShowerContainer"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "SimulatedShowerContainer?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "shower = SimulatedShowerContainer()\n",
+    "shower"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Container prefixes\n",
+    "\n",
+    "To store the same container in the same table in a file or give more information, containers support setting\n",
+    "a custom prefix:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "c1 = SubContainer(junk=5, value=3, prefix=\"foo\")\n",
+    "c2 = SubContainer(junk=10, value=9001, prefix=\"bar\")\n",
+    "\n",
+    "# create a common dict with data from both containers:\n",
+    "d = c1.as_dict(add_prefix=True)\n",
+    "d.update(c2.as_dict(add_prefix=True))\n",
+    "d"
+   ]
+  }
+ ],
+ "metadata": {
+  "anaconda-cloud": {},
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.13"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

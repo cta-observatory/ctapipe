@@ -1,0 +1,6 @@
+read_table
+==========
+
+.. currentmodule:: ctapipe.io
+
+.. autofunction:: read_table

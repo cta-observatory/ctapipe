@@ -1,0 +1,6 @@
+read_metadata
+=============
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autofunction:: read_metadata

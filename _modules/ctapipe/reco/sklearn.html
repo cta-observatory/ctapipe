@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.reco.sklearn &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.reco.sklearn</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.reco.sklearn</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Component Wrappers around sklearn models</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">joblib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">AltAz</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">vstack</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">lazyproperty</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span><span class="p">,</span> <span class="n">r2_score</span><span class="p">,</span> <span class="n">roc_auc_score</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">KFold</span><span class="p">,</span> <span class="n">StratifiedKFold</span>
+<span class="kn">from</span> <span class="nn">sklearn.utils</span> <span class="kn">import</span> <span class="n">all_estimators</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">TraitError</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArrayEventContainer</span><span class="p">,</span>
+    <span class="n">DispContainer</span><span class="p">,</span>
+    <span class="n">ParticleClassificationContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..coordinates</span> <span class="kn">import</span> <span class="n">TelescopeFrame</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">FeatureGenerator</span><span class="p">,</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">QualityQuery</span><span class="p">,</span> <span class="n">traits</span>
+<span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="n">write_table</span>
+<span class="kn">from</span> <span class="nn">.preprocessing</span> <span class="kn">import</span> <span class="n">collect_features</span><span class="p">,</span> <span class="n">table_to_X</span><span class="p">,</span> <span class="n">telescope_to_horizontal</span>
+<span class="kn">from</span> <span class="nn">.reconstructor</span> <span class="kn">import</span> <span class="n">ReconstructionProperty</span><span class="p">,</span> <span class="n">Reconstructor</span>
+<span class="kn">from</span> <span class="nn">.stereo_combination</span> <span class="kn">import</span> <span class="n">StereoCombiner</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">add_defaults_and_meta</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;SKLearnReconstructor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SKLearnRegressionReconstructor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SKLearnClassificationReconstructor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EnergyRegressor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ParticleClassifier&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DispReconstructor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CrossValidator&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">SUPPORTED_CLASSIFIERS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">all_estimators</span><span class="p">(</span><span class="s2">&quot;classifier&quot;</span><span class="p">))</span>
+<span class="n">SUPPORTED_REGRESSORS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">all_estimators</span><span class="p">(</span><span class="s2">&quot;regressor&quot;</span><span class="p">))</span>
+<span class="n">SUPPORTED_MODELS</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">SUPPORTED_CLASSIFIERS</span><span class="p">,</span> <span class="o">**</span><span class="n">SUPPORTED_REGRESSORS</span><span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">MLQualityQuery</span><span class="p">(</span><span class="n">QualityQuery</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Quality criteria for machine learning models with different defaults&quot;&quot;&quot;</span>
+
+    <span class="n">quality_criteria</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">List</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;&gt; 50 phe&quot;</span><span class="p">,</span> <span class="s2">&quot;hillas_intensity &gt; 50&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;Positive width&quot;</span><span class="p">,</span> <span class="s2">&quot;hillas_width &gt; 0&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;&gt; 3 pixels&quot;</span><span class="p">,</span> <span class="s2">&quot;morphology_n_pixels &gt; 3&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;valid stereo reco&quot;</span><span class="p">,</span> <span class="s2">&quot;HillasReconstructor_is_valid&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">QualityQuery</span><span class="o">.</span><span class="n">quality_criteria</span><span class="o">.</span><span class="n">help</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SKLearnReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnReconstructor.html#ctapipe.reco.sklearn.SKLearnReconstructor">[docs]</a><span class="k">class</span> <span class="nc">SKLearnReconstructor</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base Class for a Machine Learning Based Reconstructor.</span>
+
+<span class="sd">    Keeps a dictionary of sklearn models, the current tools are designed</span>
+<span class="sd">    to train one model per telescope type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: Name of the target column in training table</span>
+    <span class="n">target</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1">#: property predicted, overridden in baseclass</span>
+    <span class="nb">property</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Prefix for the output of this model. If None, ``model_cls`` is used.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">traits</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(),</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Features to use for this model&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Dict</span><span class="p">({},</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;kwargs for the sklearn model&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">model_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Enum</span><span class="p">(</span>
+        <span class="n">SUPPORTED_MODELS</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">stereo_combiner_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">StereoCombiner</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;StereoMeanCombiner&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which stereo combination method to use&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">load_path</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If given, load serialized model from this path&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># Run the Component __init__ first to handle the configuration</span>
+        <span class="c1"># and make `self.load_path` available</span>
+        <span class="n">Component</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span>
+                    <span class="s2">&quot;Must provide `model_cls` if not loading model from file&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">subarray</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;__init__() missing 1 required positional argument: &#39;subarray&#39;&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Default prefix is model_cls</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_cls</span>
+
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span> <span class="o">=</span> <span class="n">FeatureGenerator</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span> <span class="o">=</span> <span class="n">MLQualityQuery</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+            <span class="c1"># to verify settings</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new_model</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_models</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">models</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">models</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner</span> <span class="o">=</span> <span class="n">StereoCombiner</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner_cls</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+                <span class="nb">property</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">property</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loaded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">subarray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">loaded</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span> <span class="o">!=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Supplied subarray has different telescopes than subarray loaded from file&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loaded</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_cls</span>
+
+<div class="viewcode-block" id="SKLearnReconstructor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnReconstructor.html#ctapipe.reco.sklearn.SKLearnReconstructor.__call__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Event-wise prediction for the EventSource-Loop.</span>
+
+<span class="sd">        Fills the event.dl2.&lt;your-feature&gt;[name] container.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        event: ArrayEventContainer</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="SKLearnReconstructor.predict_table"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnReconstructor.html#ctapipe.reco.sklearn.SKLearnReconstructor.predict_table">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">predict_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict on a table of events</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : Hashable</span>
+<span class="sd">            Key of the model. Currently always a `~ctapipe.instrument.TelescopeDescription`</span>
+<span class="sd">            as we train models per telescope type.</span>
+<span class="sd">        table : `~astropy.table.Table`</span>
+<span class="sd">            Table of features</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        table : `~astropy.table.Table`</span>
+<span class="sd">            Table(s) with predictions, matches the corresponding</span>
+<span class="sd">            container definition(s)</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="SKLearnReconstructor.write"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnReconstructor.html#ctapipe.reco.sklearn.SKLearnReconstructor.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> exists and overwrite=False&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;ml-models&quot;</span><span class="p">)</span>
+            <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">instrument_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">QTable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="s2">&quot;joined&quot;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_new_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SUPPORTED_MODELS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">model_cls</span><span class="p">](</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">model_config</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_table_to_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract target values as numpy array from input table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># make sure we use the unit that was used during training</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">table</span><span class="p">[</span><span class="n">mask</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">][</span><span class="n">mask</span><span class="p">])</span>
+
+<div class="viewcode-block" id="SKLearnReconstructor.fit"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnReconstructor.html#ctapipe.reco.sklearn.SKLearnReconstructor.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create and fit a new model for ``key`` using the data in ``table``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_model</span><span class="p">()</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">table_to_X</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_to_y</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">valid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SKLearnRegressionReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnRegressionReconstructor.html#ctapipe.reco.sklearn.SKLearnRegressionReconstructor">[docs]</a><span class="k">class</span> <span class="nc">SKLearnRegressionReconstructor</span><span class="p">(</span><span class="n">SKLearnReconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for regression tasks</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Enum</span><span class="p">(</span>
+        <span class="n">SUPPORTED_REGRESSORS</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which scikit-learn regression model to use.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">log_target</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If True, the model is trained to predict the natural logarithm.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No model available for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; available models: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">table_to_X</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+        <span class="n">n_outputs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="s2">&quot;n_outputs_&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n_outputs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span> <span class="n">n_outputs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),)</span>
+
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid</span><span class="p">):</span>
+            <span class="n">valid_predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+                <span class="n">prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">valid_predictions</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_predictions</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">valid</span>
+
+    <span class="k">def</span> <span class="nf">_table_to_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_table_to_y</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;y contains negative values, cannot apply log&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="SKLearnClassificationReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.sklearn.SKLearnClassificationReconstructor.html#ctapipe.reco.sklearn.SKLearnClassificationReconstructor">[docs]</a><span class="k">class</span> <span class="nc">SKLearnClassificationReconstructor</span><span class="p">(</span><span class="n">SKLearnReconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for classification tasks</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Enum</span><span class="p">(</span>
+        <span class="n">SUPPORTED_CLASSIFIERS</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which scikit-learn classification model to use.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">invalid_class</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Integer</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The label to fill in case no prediction could be made&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">positive_class</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Integer</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;The label value of the positive class in case of binary classification.&quot;</span>
+            <span class="s2">&quot; ``prediction`` values close to 1.0 mean the event&quot;</span>
+            <span class="s2">&quot; belonged likely to this class.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No model available for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; available models: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">table_to_X</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+        <span class="n">n_outputs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="s2">&quot;n_outputs_&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n_outputs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span> <span class="n">n_outputs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),)</span>
+
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_class</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid</span><span class="p">):</span>
+            <span class="n">prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">valid</span>
+
+    <span class="k">def</span> <span class="nf">_predict_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No model available for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; available models: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">table_to_X</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+
+        <span class="n">n_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="s2">&quot;n_classes_&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">n_classes</span><span class="p">)</span> <span class="k">if</span> <span class="n">n_classes</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="p">(</span><span class="n">n_rows</span><span class="p">,)</span>
+
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid</span><span class="p">):</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">)[:]</span>
+
+            <span class="k">if</span> <span class="n">n_classes</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">prediction</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># only return one score for the positive class</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positive_index</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
+
+        <span class="k">return</span> <span class="n">scores</span><span class="p">,</span> <span class="n">valid</span>
+
+    <span class="k">def</span> <span class="nf">_get_positive_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">classes_</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">positive_class</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="EnergyRegressor"><a class="viewcode-back" href="../../../api/ctapipe.reco.EnergyRegressor.html#ctapipe.reco.sklearn.EnergyRegressor">[docs]</a><span class="k">class</span> <span class="nc">EnergyRegressor</span><span class="p">(</span><span class="n">SKLearnRegressionReconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use a scikit-learn regression model per telescope type to predict primary energy</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: Name of the target table column for training</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="s2">&quot;true_energy&quot;</span>
+    <span class="nb">property</span> <span class="o">=</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">ENERGY</span>
+
+<div class="viewcode-block" id="EnergyRegressor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.EnergyRegressor.html#ctapipe.reco.sklearn.EnergyRegressor.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply model for a single event and fill result into the event container</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">collect_features</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument_table</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+            <span class="c1"># get_table_mask returns a table with a single row</span>
+            <span class="n">passes_quality_checks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">passes_quality_checks</span><span class="p">:</span>
+                <span class="n">prediction</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+                    <span class="n">table</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">container</span> <span class="o">=</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">(</span>
+                    <span class="n">energy</span><span class="o">=</span><span class="n">prediction</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="n">valid</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">container</span> <span class="o">=</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">(</span>
+                    <span class="n">energy</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">),</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="n">container</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel&quot;</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">energy</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">container</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnergyRegressor.predict_table"><a class="viewcode-back" href="../../../api/ctapipe.reco.EnergyRegressor.html#ctapipe.reco.sklearn.EnergyRegressor.predict_table">[docs]</a>    <span class="k">def</span> <span class="nf">predict_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">ReconstructionProperty</span><span class="p">,</span> <span class="n">Table</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict on a table of events&quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">is_valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">energy</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">is_valid</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">[</span><span class="n">valid</span><span class="p">])</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_energy&quot;</span><span class="p">:</span> <span class="n">energy</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_is_valid&quot;</span><span class="p">:</span> <span class="n">is_valid</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">add_defaults_and_meta</span><span class="p">(</span>
+            <span class="n">result</span><span class="p">,</span>
+            <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="n">stereo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">ENERGY</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="ParticleClassifier"><a class="viewcode-back" href="../../../api/ctapipe.reco.ParticleClassifier.html#ctapipe.reco.sklearn.ParticleClassifier">[docs]</a><span class="k">class</span> <span class="nc">ParticleClassifier</span><span class="p">(</span><span class="n">SKLearnClassificationReconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predict dl2 particle classification</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: Name of the target table column for training</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="s2">&quot;true_shower_primary_id&quot;</span>
+
+    <span class="n">positive_class</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Integer</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Particle id (in simtel system) of the positive class. Default is 0 for gammas.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">property</span> <span class="o">=</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">PARTICLE_TYPE</span>
+
+<div class="viewcode-block" id="ParticleClassifier.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.ParticleClassifier.html#ctapipe.reco.sklearn.ParticleClassifier.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">collect_features</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument_table</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+            <span class="n">passes_quality_checks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">passes_quality_checks</span><span class="p">:</span>
+                <span class="n">prediction</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_score</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+                    <span class="n">table</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">container</span> <span class="o">=</span> <span class="n">ParticleClassificationContainer</span><span class="p">(</span>
+                    <span class="n">prediction</span><span class="o">=</span><span class="n">prediction</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="n">valid</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">container</span> <span class="o">=</span> <span class="n">ParticleClassificationContainer</span><span class="p">(</span>
+                    <span class="n">prediction</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+
+            <span class="n">container</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel&quot;</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">container</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParticleClassifier.predict_table"><a class="viewcode-back" href="../../../api/ctapipe.reco.ParticleClassifier.html#ctapipe.reco.sklearn.ParticleClassifier.predict_table">[docs]</a>    <span class="k">def</span> <span class="nf">predict_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">ReconstructionProperty</span><span class="p">,</span> <span class="n">Table</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict on a table of events&quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">is_valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">score</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">is_valid</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_score</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">[</span><span class="n">valid</span><span class="p">])</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_prediction&quot;</span><span class="p">:</span> <span class="n">score</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_is_valid&quot;</span><span class="p">:</span> <span class="n">is_valid</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">add_defaults_and_meta</span><span class="p">(</span>
+            <span class="n">result</span><span class="p">,</span> <span class="n">ParticleClassificationContainer</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">stereo</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">PARTICLE_TYPE</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="DispReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.sklearn.DispReconstructor">[docs]</a><span class="k">class</span> <span class="nc">DispReconstructor</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predict absolute value and sign for disp origin reconstruction for each telescope.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">target</span> <span class="o">=</span> <span class="s2">&quot;true_norm&quot;</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;disp&quot;</span><span class="p">,</span> <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">features</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">List</span><span class="p">(</span>
+        <span class="n">traits</span><span class="o">.</span><span class="n">Unicode</span><span class="p">(),</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Features to use for both models&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">log_target</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If True, the model is trained to predict the natural logarithm of the absolute value.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">norm_config</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Dict</span><span class="p">({},</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;kwargs for the sklearn regressor&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Enum</span><span class="p">(</span>
+        <span class="n">SUPPORTED_REGRESSORS</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which scikit-learn regression model to use.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">sign_config</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Dict</span><span class="p">({},</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;kwargs for the sklearn classifier&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="n">sign_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Enum</span><span class="p">(</span>
+        <span class="n">SUPPORTED_CLASSIFIERS</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which scikit-learn classification model to use.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">stereo_combiner_cls</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">StereoCombiner</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;StereoMeanCombiner&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which stereo combination method to use&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">load_path</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If given, load serialized model from this path&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># Run the Component __init__ first to handle the configuration</span>
+        <span class="c1"># and make `self.load_path` available</span>
+        <span class="n">Component</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_cls</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">sign_cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span>
+                    <span class="s2">&quot;Must provide `norm_cls` and `sign_cls` if not loading from file&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">subarray</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;__init__() missing 1 required positional argument: &#39;subarray&#39;&quot;</span>
+                <span class="p">)</span>
+
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span> <span class="o">=</span> <span class="n">MLQualityQuery</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span> <span class="o">=</span> <span class="n">FeatureGenerator</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+            <span class="c1"># to verify settings</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new_models</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_models</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">models</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">models</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner</span> <span class="o">=</span> <span class="n">StereoCombiner</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner_cls</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+                <span class="nb">property</span><span class="o">=</span><span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">GEOMETRY</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loaded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">subarray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">loaded</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span> <span class="o">!=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Supplied subarray has different telescopes than subarray loaded from file&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loaded</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+
+    <span class="k">def</span> <span class="nf">_new_models</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">norm_regressor</span> <span class="o">=</span> <span class="n">SUPPORTED_REGRESSORS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_cls</span><span class="p">](</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_config</span><span class="p">)</span>
+        <span class="n">sign_classifier</span> <span class="o">=</span> <span class="n">SUPPORTED_CLASSIFIERS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sign_cls</span><span class="p">](</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">sign_config</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">norm_regressor</span><span class="p">,</span> <span class="n">sign_classifier</span>
+
+    <span class="k">def</span> <span class="nf">_table_to_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract target values as numpy array from input table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># make sure we use the unit that was used during training</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">mask</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">][</span><span class="n">mask</span><span class="p">])</span>
+
+        <span class="n">abs_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span>
+        <span class="n">sign_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+            <span class="n">abs_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">abs_norm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">abs_norm</span><span class="p">,</span> <span class="n">sign_norm</span>
+
+<div class="viewcode-block" id="DispReconstructor.fit"><a class="viewcode-back" href="../../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.sklearn.DispReconstructor.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create and fit new models for ``key`` using the data in ``table``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_models</span><span class="p">()</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">table_to_X</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>
+        <span class="n">norm</span><span class="p">,</span> <span class="n">sign</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_to_y</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">valid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">sign</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DispReconstructor.write"><a class="viewcode-back" href="../../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.sklearn.DispReconstructor.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> exists and overwrite=False&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;ml-models&quot;</span><span class="p">)</span>
+            <span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DispReconstructor.read"><a class="viewcode-back" href="../../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.sklearn.DispReconstructor.read">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">instance</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> did not contain an instance of </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">instance</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;ml-models&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">instance</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">instrument_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="s2">&quot;joined&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No model available for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; available models: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">table_to_X</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid</span><span class="p">):</span>
+            <span class="n">valid_norms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+                <span class="n">prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">valid_norms</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_norms</span>
+
+            <span class="n">prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">valid</span>
+
+<div class="viewcode-block" id="DispReconstructor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.sklearn.DispReconstructor.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Event-wise prediction for the EventSource-Loop.</span>
+
+<span class="sd">        Fills the event.dl2.tel[tel_id].disp[prefix] container</span>
+<span class="sd">        and event.dl2.tel[tel_id].geometry[prefix] container.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        event: ArrayEventContainer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">collect_features</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument_table</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+            <span class="n">passes_quality_checks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">passes_quality_checks</span><span class="p">:</span>
+                <span class="n">disp</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span> <span class="n">table</span><span class="p">)</span>
+                <span class="n">disp_container</span> <span class="o">=</span> <span class="n">DispContainer</span><span class="p">(</span>
+                    <span class="n">norm</span><span class="o">=</span><span class="n">disp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="n">valid</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">valid</span><span class="p">:</span>
+                    <span class="n">hillas</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">hillas</span>
+                    <span class="n">psi</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">psi</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+                    <span class="n">fov_lon</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">fov_lon</span> <span class="o">+</span> <span class="n">disp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
+                    <span class="n">fov_lat</span> <span class="o">=</span> <span class="n">hillas</span><span class="o">.</span><span class="n">fov_lat</span> <span class="o">+</span> <span class="n">disp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
+                    <span class="n">altaz</span> <span class="o">=</span> <span class="n">TelescopeFrame</span><span class="p">(</span>
+                        <span class="n">fov_lon</span><span class="o">=</span><span class="n">fov_lon</span><span class="p">,</span>
+                        <span class="n">fov_lat</span><span class="o">=</span><span class="n">fov_lat</span><span class="p">,</span>
+                        <span class="n">telescope_pointing</span><span class="o">=</span><span class="n">AltAz</span><span class="p">(</span>
+                            <span class="n">alt</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">altitude</span><span class="p">,</span>
+                            <span class="n">az</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">azimuth</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">AltAz</span><span class="p">())</span>
+
+                    <span class="n">altaz_container</span> <span class="o">=</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+                        <span class="n">alt</span><span class="o">=</span><span class="n">altaz</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="n">altaz</span><span class="o">.</span><span class="n">az</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">altaz_container</span> <span class="o">=</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+                        <span class="n">alt</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                        <span class="n">az</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                        <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">disp_container</span> <span class="o">=</span> <span class="n">DispContainer</span><span class="p">(</span>
+                    <span class="n">norm</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">),</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">altaz_container</span> <span class="o">=</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+                    <span class="n">alt</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="n">az</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="n">disp_container</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_parameter&quot;</span>
+            <span class="n">altaz_container</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel&quot;</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">disp</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">disp_container</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">altaz_container</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stereo_combiner</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DispReconstructor.predict_table"><a class="viewcode-back" href="../../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.sklearn.DispReconstructor.predict_table">[docs]</a>    <span class="k">def</span> <span class="nf">predict_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">ReconstructionProperty</span><span class="p">,</span> <span class="n">Table</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict on a table of events</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table : `~astropy.table.Table`</span>
+<span class="sd">            Table of features</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        disp_table : `~astropy.table.Table`</span>
+<span class="sd">            Table with disp predictions, matches the corresponding</span>
+<span class="sd">            container definition</span>
+<span class="sd">        altaz_table : `~astropy.table.Table`</span>
+<span class="sd">            Table with resulting predictions of horizontal coordinates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_generator</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">disp</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">is_valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">get_table_mask</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">disp</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">is_valid</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">table</span><span class="p">[</span><span class="n">valid</span><span class="p">])</span>
+
+        <span class="n">disp_result</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_parameter_norm&quot;</span><span class="p">:</span> <span class="n">disp</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_parameter_is_valid&quot;</span><span class="p">:</span> <span class="n">is_valid</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">add_defaults_and_meta</span><span class="p">(</span>
+            <span class="n">disp_result</span><span class="p">,</span>
+            <span class="n">DispContainer</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_parameter&quot;</span><span class="p">,</span>
+            <span class="n">stereo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;hillas_psi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="n">fov_lon</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;hillas_fov_lon&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span> <span class="o">+</span> <span class="n">disp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
+        <span class="n">fov_lat</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;hillas_fov_lat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span> <span class="o">+</span> <span class="n">disp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
+
+        <span class="c1"># FIXME: Assume constant and parallel pointing for each run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Assuming constant and parallel pointing for each run&quot;</span><span class="p">)</span>
+        <span class="n">alt</span><span class="p">,</span> <span class="n">az</span> <span class="o">=</span> <span class="n">telescope_to_horizontal</span><span class="p">(</span>
+            <span class="n">lon</span><span class="o">=</span><span class="n">fov_lon</span><span class="p">,</span>
+            <span class="n">lat</span><span class="o">=</span><span class="n">fov_lat</span><span class="p">,</span>
+            <span class="n">pointing_alt</span><span class="o">=</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;subarray_pointing_lat&quot;</span><span class="p">],</span>
+            <span class="n">pointing_az</span><span class="o">=</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;subarray_pointing_lon&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">altaz_result</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_alt&quot;</span><span class="p">:</span> <span class="n">alt</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_az&quot;</span><span class="p">:</span> <span class="n">az</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel_is_valid&quot;</span><span class="p">:</span> <span class="n">is_valid</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">add_defaults_and_meta</span><span class="p">(</span>
+            <span class="n">altaz_result</span><span class="p">,</span>
+            <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="n">stereo</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">DISP</span><span class="p">:</span> <span class="n">disp_result</span><span class="p">,</span>
+            <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">GEOMETRY</span><span class="p">:</span> <span class="n">altaz_result</span><span class="p">,</span>
+        <span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="CrossValidator"><a class="viewcode-back" href="../../../api/ctapipe.reco.CrossValidator.html#ctapipe.reco.sklearn.CrossValidator">[docs]</a><span class="k">class</span> <span class="nc">CrossValidator</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class to train sklearn based reconstructors in a cross validation&quot;&quot;&quot;</span>
+
+    <span class="n">n_cross_validations</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">output_path</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Output path for the cross validation results.&quot;</span>
+            <span class="s2">&quot; This is a hdf5 file containing labels and predictions for&quot;</span>
+            <span class="s2">&quot; the events used in the cross validation which can be used to&quot;</span>
+            <span class="s2">&quot; create performance plots.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">rng_seed</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Int</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">1337</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Seed for the random number generator&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cv_predictions</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_component</span> <span class="o">=</span> <span class="n">model_component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rng_seed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_component</span><span class="p">,</span> <span class="n">SKLearnClassificationReconstructor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cross_validate_classification</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split_data</span> <span class="o">=</span> <span class="n">StratifiedKFold</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_component</span><span class="p">,</span> <span class="n">SKLearnRegressionReconstructor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cross_validate_regressor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split_data</span> <span class="o">=</span> <span class="n">KFold</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_component</span><span class="p">,</span> <span class="n">DispReconstructor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cross_validate_disp</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split_data</span> <span class="o">=</span> <span class="n">StratifiedKFold</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="s2">&quot;Unsupported Model of type </span><span class="si">%s</span><span class="s2"> supplied&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_component</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="CrossValidator.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.CrossValidator.html#ctapipe.reco.sklearn.CrossValidator.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_type</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cross_validations</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Too few events for </span><span class="si">{</span><span class="n">telescope_type</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Starting cross-validation with </span><span class="si">%d</span><span class="s2"> folds for type </span><span class="si">%s</span><span class="s2">.&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_cross_validations</span><span class="p">,</span>
+            <span class="n">telescope_type</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">kfold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_data</span><span class="p">(</span>
+            <span class="n">n_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cross_validations</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="c1"># sklearn does not support numpy&#39;s new random API yet</span>
+            <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_component</span><span class="p">,</span> <span class="n">DispReconstructor</span><span class="p">):</span>
+            <span class="n">cv_it</span> <span class="o">=</span> <span class="n">kfold</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">model_component</span><span class="o">.</span><span class="n">target</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cv_it</span> <span class="o">=</span> <span class="n">kfold</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">table</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">model_component</span><span class="o">.</span><span class="n">target</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">fold</span><span class="p">,</span> <span class="p">(</span><span class="n">train_indices</span><span class="p">,</span> <span class="n">test_indices</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">tqdm</span><span class="p">(</span>
+                <span class="n">cv_it</span><span class="p">,</span>
+                <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cross_validations</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Cross Validation for </span><span class="si">{</span><span class="n">telescope_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">):</span>
+            <span class="n">train</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">train_indices</span><span class="p">]</span>
+            <span class="n">test</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">test_indices</span><span class="p">]</span>
+
+            <span class="n">cv_prediction</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_validate</span><span class="p">(</span>
+                <span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">test</span>
+            <span class="p">)</span>
+            <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Table</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;cv_fold&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">truth</span><span class="p">),</span> <span class="n">fold</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span>
+                        <span class="s2">&quot;tel_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth</span><span class="p">),</span>
+                        <span class="s2">&quot;prediction&quot;</span><span class="p">:</span> <span class="n">cv_prediction</span><span class="p">,</span>
+                        <span class="s2">&quot;truth&quot;</span><span class="p">:</span> <span class="n">truth</span><span class="p">,</span>
+                        <span class="s2">&quot;true_energy&quot;</span><span class="p">:</span> <span class="n">test</span><span class="p">[</span><span class="s2">&quot;true_energy&quot;</span><span class="p">],</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">cv_values</span> <span class="ow">in</span> <span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">cv_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cv_values</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">printoptions</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Mean </span><span class="si">%s</span><span class="s2"> score from CV: </span><span class="si">%.4f</span><span class="s2"> ± </span><span class="si">%.4f</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">metric</span><span class="p">,</span>
+                    <span class="n">cv_values</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                    <span class="n">cv_values</span><span class="o">.</span><span class="n">std</span><span class="p">(),</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cv_predictions</span><span class="p">[</span><span class="n">telescope_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">vstack</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_cross_validate_regressor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">test</span><span class="p">):</span>
+        <span class="n">regressor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_component</span>
+        <span class="n">regressor</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">)</span>
+        <span class="n">prediction</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">regressor</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">,</span> <span class="n">test</span><span class="p">)</span>
+        <span class="n">truth</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="n">regressor</span><span class="o">.</span><span class="n">target</span><span class="p">]</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">prediction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;R^2&quot;</span><span class="p">:</span> <span class="n">r2</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_cross_validate_classification</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">test</span><span class="p">):</span>
+        <span class="n">classifier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_component</span>
+        <span class="n">classifier</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">)</span>
+        <span class="n">prediction</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">_predict_score</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">,</span> <span class="n">test</span><span class="p">)</span>
+        <span class="n">truth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">test</span><span class="p">[</span><span class="n">classifier</span><span class="o">.</span><span class="n">target</span><span class="p">]</span> <span class="o">==</span> <span class="n">classifier</span><span class="o">.</span><span class="n">positive_class</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">prediction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;ROC AUC&quot;</span><span class="p">:</span> <span class="n">roc_auc</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_cross_validate_disp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">test</span><span class="p">):</span>
+        <span class="n">models</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_component</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">,</span> <span class="n">train</span><span class="p">)</span>
+        <span class="n">prediction</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">_predict</span><span class="p">(</span><span class="n">telescope_type</span><span class="p">,</span> <span class="n">test</span><span class="p">)</span>
+        <span class="n">truth</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">target</span><span class="p">]</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">truth</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">prediction</span><span class="p">))</span>
+        <span class="n">accuracy</span> <span class="o">=</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">truth</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">prediction</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">truth</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;R^2&quot;</span><span class="p">:</span> <span class="n">r2</span><span class="p">,</span> <span class="s2">&quot;accuracy&quot;</span><span class="p">:</span> <span class="n">accuracy</span><span class="p">}</span>
+
+<div class="viewcode-block" id="CrossValidator.write"><a class="viewcode-back" href="../../../api/ctapipe.reco.CrossValidator.html#ctapipe.reco.sklearn.CrossValidator.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="si">}</span><span class="s2"> exists and overwrite=False&quot;</span><span class="p">)</span>
+
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_output_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;ml-cross-validation&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tel_type</span><span class="p">,</span> <span class="n">results</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cv_predictions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">write_table</span><span class="p">(</span>
+                <span class="n">results</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;/cv_predictions_</span><span class="si">{</span><span class="n">tel_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

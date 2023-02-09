@@ -1,0 +1,17 @@
+FullWaveformSum
+===============
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: FullWaveformSum
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~FullWaveformSum.__call__
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

@@ -1,0 +1,31 @@
+StereoMeanCombiner
+==================
+
+.. currentmodule:: ctapipe.reco.stereo_combination
+
+.. autoclass:: StereoMeanCombiner
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~StereoMeanCombiner.log_target
+      ~StereoMeanCombiner.weights
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~StereoMeanCombiner.__call__
+      ~StereoMeanCombiner.predict_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: log_target
+   .. autoattribute:: weights
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: predict_table

@@ -1,0 +1,25 @@
+AtmosphereDensityProfile
+========================
+
+.. currentmodule:: ctapipe.atmosphere
+
+.. autoclass:: AtmosphereDensityProfile
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~AtmosphereDensityProfile.__call__
+      ~AtmosphereDensityProfile.from_table
+      ~AtmosphereDensityProfile.integral
+      ~AtmosphereDensityProfile.line_of_sight_integral
+      ~AtmosphereDensityProfile.peek
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: from_table
+   .. automethod:: integral
+   .. automethod:: line_of_sight_integral
+   .. automethod:: peek

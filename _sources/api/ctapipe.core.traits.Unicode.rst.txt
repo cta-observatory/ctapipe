@@ -1,0 +1,33 @@
+Unicode
+=======
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Unicode
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Unicode.default_value
+      ~Unicode.info_text
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Unicode.from_string
+      ~Unicode.subclass_init
+      ~Unicode.validate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_value
+   .. autoattribute:: info_text
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_string
+   .. automethod:: subclass_init
+   .. automethod:: validate

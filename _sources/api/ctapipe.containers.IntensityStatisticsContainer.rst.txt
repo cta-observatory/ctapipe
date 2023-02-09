@@ -1,0 +1,19 @@
+IntensityStatisticsContainer
+============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: IntensityStatisticsContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~IntensityStatisticsContainer.meta
+      ~IntensityStatisticsContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix

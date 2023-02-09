@@ -1,0 +1,31 @@
+TelescopeParameter
+==================
+
+.. currentmodule:: ctapipe.core.telescope_component
+
+.. autoclass:: TelescopeParameter
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TelescopeParameter.help
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TelescopeParameter.from_string
+      ~TelescopeParameter.set
+      ~TelescopeParameter.validate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: help
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_string
+   .. automethod:: set
+   .. automethod:: validate

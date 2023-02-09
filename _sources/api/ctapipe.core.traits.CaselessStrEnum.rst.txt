@@ -1,0 +1,21 @@
+CaselessStrEnum
+===============
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: CaselessStrEnum
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CaselessStrEnum.info
+      ~CaselessStrEnum.info_rst
+      ~CaselessStrEnum.validate
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: info
+   .. automethod:: info_rst
+   .. automethod:: validate

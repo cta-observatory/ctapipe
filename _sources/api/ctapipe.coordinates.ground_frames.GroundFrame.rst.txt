@@ -1,0 +1,41 @@
+GroundFrame
+===========
+
+.. currentmodule:: ctapipe.coordinates.ground_frames
+
+.. autoclass:: GroundFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~GroundFrame.default_differential
+      ~GroundFrame.default_representation
+      ~GroundFrame.frame_attributes
+      ~GroundFrame.frame_specific_representation_info
+      ~GroundFrame.name
+      ~GroundFrame.observation_level
+      ~GroundFrame.reference_location
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~GroundFrame.from_earth_location
+      ~GroundFrame.to_earth_location
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: frame_attributes
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: name
+   .. autoattribute:: observation_level
+   .. autoattribute:: reference_location
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_earth_location
+   .. automethod:: to_earth_location

@@ -1,0 +1,6 @@
+largest_island
+==============
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: largest_island

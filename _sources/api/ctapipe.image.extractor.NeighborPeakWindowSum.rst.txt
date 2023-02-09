@@ -1,0 +1,33 @@
+NeighborPeakWindowSum
+=====================
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autoclass:: NeighborPeakWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~NeighborPeakWindowSum.apply_integration_correction
+      ~NeighborPeakWindowSum.local_weight
+      ~NeighborPeakWindowSum.window_shift
+      ~NeighborPeakWindowSum.window_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~NeighborPeakWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: local_weight
+   .. autoattribute:: window_shift
+   .. autoattribute:: window_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

@@ -1,0 +1,85 @@
+DataWriter
+==========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: DataWriter
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DataWriter.compression_level
+      ~DataWriter.compression_type
+      ~DataWriter.contact_info
+      ~DataWriter.context_metadata
+      ~DataWriter.datalevels
+      ~DataWriter.image_dtype
+      ~DataWriter.image_offset
+      ~DataWriter.image_scale
+      ~DataWriter.instrument_info
+      ~DataWriter.output_path
+      ~DataWriter.overwrite
+      ~DataWriter.peak_time_dtype
+      ~DataWriter.peak_time_offset
+      ~DataWriter.peak_time_scale
+      ~DataWriter.transform_image
+      ~DataWriter.transform_peak_time
+      ~DataWriter.transform_waveform
+      ~DataWriter.waveform_dtype
+      ~DataWriter.waveform_offset
+      ~DataWriter.waveform_scale
+      ~DataWriter.write_images
+      ~DataWriter.write_index_tables
+      ~DataWriter.write_muon_parameters
+      ~DataWriter.write_parameters
+      ~DataWriter.write_raw_waveforms
+      ~DataWriter.write_showers
+      ~DataWriter.write_waveforms
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~DataWriter.__call__
+      ~DataWriter.finish
+      ~DataWriter.table_name
+      ~DataWriter.write_simulation_histograms
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: compression_level
+   .. autoattribute:: compression_type
+   .. autoattribute:: contact_info
+   .. autoattribute:: context_metadata
+   .. autoattribute:: datalevels
+   .. autoattribute:: image_dtype
+   .. autoattribute:: image_offset
+   .. autoattribute:: image_scale
+   .. autoattribute:: instrument_info
+   .. autoattribute:: output_path
+   .. autoattribute:: overwrite
+   .. autoattribute:: peak_time_dtype
+   .. autoattribute:: peak_time_offset
+   .. autoattribute:: peak_time_scale
+   .. autoattribute:: transform_image
+   .. autoattribute:: transform_peak_time
+   .. autoattribute:: transform_waveform
+   .. autoattribute:: waveform_dtype
+   .. autoattribute:: waveform_offset
+   .. autoattribute:: waveform_scale
+   .. autoattribute:: write_images
+   .. autoattribute:: write_index_tables
+   .. autoattribute:: write_muon_parameters
+   .. autoattribute:: write_parameters
+   .. autoattribute:: write_raw_waveforms
+   .. autoattribute:: write_showers
+   .. autoattribute:: write_waveforms
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: finish
+   .. automethod:: table_name
+   .. automethod:: write_simulation_histograms

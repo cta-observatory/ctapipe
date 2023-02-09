@@ -1,0 +1,49 @@
+ApplyModels
+===========
+
+.. currentmodule:: ctapipe.tools.apply_models
+
+.. autoclass:: ApplyModels
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ApplyModels.aliases
+      ~ApplyModels.chunk_size
+      ~ApplyModels.classes
+      ~ApplyModels.description
+      ~ApplyModels.examples
+      ~ApplyModels.flags
+      ~ApplyModels.input_url
+      ~ApplyModels.name
+      ~ApplyModels.output_path
+      ~ApplyModels.progress_bar
+      ~ApplyModels.reconstructor_paths
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ApplyModels.setup
+      ~ApplyModels.start
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: aliases
+   .. autoattribute:: chunk_size
+   .. autoattribute:: classes
+   .. autoattribute:: description
+   .. autoattribute:: examples
+   .. autoattribute:: flags
+   .. autoattribute:: input_url
+   .. autoattribute:: name
+   .. autoattribute:: output_path
+   .. autoattribute:: progress_bar
+   .. autoattribute:: reconstructor_paths
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: setup
+   .. automethod:: start

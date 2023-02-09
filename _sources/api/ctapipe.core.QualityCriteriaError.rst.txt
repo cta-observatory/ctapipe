@@ -1,0 +1,6 @@
+QualityCriteriaError
+====================
+
+.. currentmodule:: ctapipe.core
+
+.. autoexception:: QualityCriteriaError

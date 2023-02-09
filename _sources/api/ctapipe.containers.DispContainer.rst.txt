@@ -1,0 +1,23 @@
+DispContainer
+=============
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: DispContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DispContainer.is_valid
+      ~DispContainer.meta
+      ~DispContainer.norm
+      ~DispContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: is_valid
+   .. autoattribute:: meta
+   .. autoattribute:: norm
+   .. autoattribute:: prefix

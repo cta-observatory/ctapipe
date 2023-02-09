@@ -1,0 +1,31 @@
+MuonProcessor
+=============
+
+.. currentmodule:: ctapipe.image.muon.processor
+
+.. autoclass:: MuonProcessor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MuonProcessor.completeness_threshold
+      ~MuonProcessor.pedestal
+      ~MuonProcessor.ratio_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~MuonProcessor.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: completeness_threshold
+   .. autoattribute:: pedestal
+   .. autoattribute:: ratio_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

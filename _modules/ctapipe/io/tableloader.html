@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.tableloader &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.tableloader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.tableloader</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Class and related functions to read DL1 (a,b) and/or DL2 (a) data</span>
+<span class="sd">from an HDF5 file produced with ctapipe-process.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">hstack</span><span class="p">,</span> <span class="n">vstack</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">lazyproperty</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.instrument.optics</span> <span class="kn">import</span> <span class="n">FocalLengthKind</span>
+
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">traits</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SubarrayDescription</span>
+<span class="kn">from</span> <span class="nn">.astropy_helpers</span> <span class="kn">import</span> <span class="n">join_allow_empty</span><span class="p">,</span> <span class="n">read_table</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TableLoader&quot;</span><span class="p">]</span>
+
+<span class="n">PARAMETERS_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/dl1/event/telescope/parameters&quot;</span>
+<span class="n">IMAGES_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/dl1/event/telescope/images&quot;</span>
+<span class="n">MUON_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/dl1/event/telescope/muon&quot;</span>
+<span class="n">TRIGGER_TABLE</span> <span class="o">=</span> <span class="s2">&quot;/dl1/event/subarray/trigger&quot;</span>
+<span class="n">SHOWER_TABLE</span> <span class="o">=</span> <span class="s2">&quot;/simulation/event/subarray/shower&quot;</span>
+<span class="n">TRUE_IMAGES_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/simulation/event/telescope/images&quot;</span>
+<span class="n">TRUE_PARAMETERS_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/simulation/event/telescope/parameters&quot;</span>
+<span class="n">TRUE_IMPACT_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/simulation/event/telescope/impact&quot;</span>
+<span class="n">SIMULATION_CONFIG_TABLE</span> <span class="o">=</span> <span class="s2">&quot;/configuration/simulation/run&quot;</span>
+<span class="n">SHOWER_DISTRIBUTION_TABLE</span> <span class="o">=</span> <span class="s2">&quot;/simulation/service/shower_distribution&quot;</span>
+<span class="n">OBSERVATION_TABLE</span> <span class="o">=</span> <span class="s2">&quot;/configuration/observation/observation_block&quot;</span>
+
+<span class="n">DL2_SUBARRAY_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/dl2/event/subarray&quot;</span>
+<span class="n">DL2_TELESCOPE_GROUP</span> <span class="o">=</span> <span class="s2">&quot;/dl2/event/telescope&quot;</span>
+
+<span class="n">SUBARRAY_EVENT_KEYS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">]</span>
+<span class="n">TELESCOPE_EVENT_KEYS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tel_id&quot;</span><span class="p">]</span>
+
+
+<span class="n">Chunk</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;Chunk&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;stop&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">])</span>
+
+
+<span class="k">class</span> <span class="nc">IndexNotMatching</span><span class="p">(</span><span class="ne">UserWarning</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Warning that is raised if the order of two tables is not matching as expected&quot;&quot;&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">ChunkIterator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An iterator that calls a function on advancemnt</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func : Callable</span>
+<span class="sd">        Signature must be ``function(*args, start=start, stop=stop, **kwargs)``</span>
+<span class="sd">        Where start and stop are the first and last (noninclusive) indicies of</span>
+<span class="sd">        a chunk.</span>
+<span class="sd">    n_total : int</span>
+<span class="sd">        Total number of elements</span>
+<span class="sd">    chunk_size : size of one chunk, last chunk will have size &lt;= chunk_size</span>
+
+<span class="sd">    *args and **kwargs will be passed to `func`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">func</span><span class="p">,</span>
+        <span class="n">n_total</span><span class="p">,</span>
+        <span class="n">chunk_size</span><span class="p">,</span>
+        <span class="n">args</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_total</span> <span class="o">=</span> <span class="n">n_total</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span> <span class="o">=</span> <span class="n">chunk_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_chunks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_total</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_chunks</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">chunk</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_chunks</span> <span class="o">-</span> <span class="n">chunk</span>
+
+        <span class="k">if</span> <span class="n">chunk</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_chunks</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Index </span><span class="si">{</span><span class="n">chunk</span><span class="si">}</span><span class="s2"> is out of bounds for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; of length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="n">chunk</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_total</span><span class="p">,</span> <span class="p">(</span><span class="n">chunk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Chunk</span><span class="p">(</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_empty_telescope_events_table</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new astropy table with correct column names and dtypes</span>
+<span class="sd">    for telescope event based data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="n">TELESCOPE_EVENT_KEYS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_join_subarray_events</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Outer join two tables on the telescope subarray keys&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">join_allow_empty</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">SUBARRAY_EVENT_KEYS</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_join_telescope_events</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Outer join two tables on the telescope event keys&quot;&quot;&quot;</span>
+    <span class="c1"># we start with an empty table, but after the first non-empty, we perform</span>
+    <span class="c1"># left joins</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">how</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">how</span> <span class="o">=</span> <span class="s2">&quot;left&quot;</span>
+    <span class="k">return</span> <span class="n">join_allow_empty</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">TELESCOPE_EVENT_KEYS</span><span class="p">,</span> <span class="n">how</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_table_same_index</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">index_keys</span><span class="p">,</span> <span class="n">fallback_join_type</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge two tables assuming their primary keys are identical&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table1</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table2</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Tables must have identical length&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">table1</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">table1</span><span class="p">[</span><span class="n">index_keys</span><span class="p">]</span> <span class="o">==</span> <span class="n">table2</span><span class="p">[</span><span class="n">index_keys</span><span class="p">]):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Table order does not match, falling back to join&quot;</span><span class="p">,</span> <span class="n">IndexNotMatching</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">join_allow_empty</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">index_keys</span><span class="p">,</span> <span class="n">fallback_join_type</span><span class="p">)</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">table2</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">index_keys</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">hstack</span><span class="p">((</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">[</span><span class="n">columns</span><span class="p">]),</span> <span class="n">join_type</span><span class="o">=</span><span class="s2">&quot;exact&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_subarray_tables</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_merge_table_same_index</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">SUBARRAY_EVENT_KEYS</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_telescope_tables</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_merge_table_same_index</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">TELESCOPE_EVENT_KEYS</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TableLoader"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader">[docs]</a><span class="k">class</span> <span class="nc">TableLoader</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load telescope-event or subarray-event data from ctapipe HDF5 files</span>
+
+<span class="sd">    This class provides high-level access to data stored in ctapipe HDF5 files,</span>
+<span class="sd">    such as created by the ctapipe-process tool (`~ctapipe.tools.process.ProcessorTool`).</span>
+
+<span class="sd">    The following `TableLoader` methods load data from all relevant tables,</span>
+<span class="sd">    depending on the options, and joins them into single tables:</span>
+
+<span class="sd">    * `TableLoader.read_subarray_events`</span>
+<span class="sd">    * `TableLoader.read_telescope_events`</span>
+<span class="sd">    * `TableLoader.read_telescope_events_by_type` retuns a dict with a table per</span>
+<span class="sd">      telescope type, which is needed for e.g. DL1 image data that might have</span>
+<span class="sd">      different shapes for each of the telescope types as tables do not support</span>
+<span class="sd">      variable length columns.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    subarray : `~ctapipe.instrument.SubarrayDescription`</span>
+<span class="sd">        The subarray as read from `input_url`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">input_url</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">load_dl1_images</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load extracted images&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">load_dl1_parameters</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span>
+        <span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load reconstructed image parameters&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">load_dl1_muons</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load muon ring parameters&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="n">load_dl2</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load available dl2 stereo parameters&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="n">load_simulated</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load simulated shower information&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">load_true_images</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load simulated shower images&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">load_true_parameters</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;load image parameters obtained from true images&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">load_instrument</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;join subarray instrument information to each event&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">load_observation_info</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;join observation information to each event&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">focal_length_choice</span> <span class="o">=</span> <span class="n">traits</span><span class="o">.</span><span class="n">UseEnum</span><span class="p">(</span>
+        <span class="n">FocalLengthKind</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="n">FocalLengthKind</span><span class="o">.</span><span class="n">EFFECTIVE</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;If both nominal and effective focal lengths are available, &quot;</span>
+            <span class="s2">&quot; which one to use for the `~ctapipe.coordinates.CameraFrame` attached&quot;</span>
+            <span class="s2">&quot; to the `~ctapipe.instrument.CameraGeometry` instances in the&quot;</span>
+            <span class="s2">&quot; `ctapipe.instrument.SubarrayDescription`, which will be used in&quot;</span>
+            <span class="s2">&quot; CameraFrame to TelescopeFrame coordinate transforms.&quot;</span>
+            <span class="s2">&quot; The &#39;nominal&#39; focal length is the one used during &quot;</span>
+            <span class="s2">&quot; the simulation, the &#39;effective&#39; focal length is computed using specialized &quot;</span>
+            <span class="s2">&quot; ray-tracing from a point light source&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">h5file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_close</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># enable using input_url as posarg</span>
+        <span class="k">if</span> <span class="n">input_url</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="kc">None</span><span class="p">,</span> <span class="n">traits</span><span class="o">.</span><span class="n">Undefined</span><span class="p">}:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;input_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_url</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">h5file</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need to specify either input_url or h5file&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">h5file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_should_close</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;h5file must be a tables.File&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_url</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">h5file</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span> <span class="o">=</span> <span class="n">h5file</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">SubarrayDescription</span><span class="o">.</span><span class="n">from_hdf</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span>
+            <span class="n">focal_length_choice</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">focal_length_choice</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_url</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;Event data&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">instrument_table</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_instrument</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">instrument_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="s2">&quot;joined&quot;</span><span class="p">)</span>
+
+        <span class="n">groups</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;load_dl1_parameters&quot;</span><span class="p">:</span> <span class="n">PARAMETERS_GROUP</span><span class="p">,</span>
+            <span class="s2">&quot;load_dl1_images&quot;</span><span class="p">:</span> <span class="n">IMAGES_GROUP</span><span class="p">,</span>
+            <span class="s2">&quot;load_true_parameters&quot;</span><span class="p">:</span> <span class="n">TRUE_PARAMETERS_GROUP</span><span class="p">,</span>
+            <span class="s2">&quot;load_true_images&quot;</span><span class="p">:</span> <span class="n">TRUE_IMAGES_GROUP</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span> <span class="ow">and</span> <span class="n">group</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Setting </span><span class="si">%s</span><span class="s2"> to False, input file does not contain such data&quot;</span><span class="p">,</span> <span class="n">attr</span>
+                <span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TableLoader.close"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close the underlying hdf5 file&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_close</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of subarray events in input file&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">TRIGGER_TABLE</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_read_telescope_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s2">/tel_</span><span class="si">{</span><span class="n">tel_id</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_empty_telescope_events_table</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="k">def</span> <span class="nf">_get_sort_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get plain index of increasing integers in the order in the file.</span>
+
+<span class="sd">        Astropy.table.join orders by the join keys, we want to keep</span>
+<span class="sd">        the original order. Adding an index before the first join and then</span>
+<span class="sd">        using that in the end to sort back to the original order solves this.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span>
+            <span class="n">TRIGGER_TABLE</span><span class="p">,</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
+        <span class="p">)[[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_index_if_needed</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_sort_to_original_order</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">include_tel_id</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">include_tel_id</span><span class="p">:</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">sort</span><span class="p">((</span><span class="s2">&quot;__index__&quot;</span><span class="p">,</span> <span class="s2">&quot;tel_id&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;__index__&quot;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">remove_column</span><span class="p">(</span><span class="s2">&quot;__index__&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_add_index_if_needed</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;__index__&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="n">table</span><span class="p">[</span><span class="s2">&quot;__index__&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">))</span>
+
+<div class="viewcode-block" id="TableLoader.read_simulation_configuration"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_simulation_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_simulation_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read the simulation configuration table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="n">SIMULATION_CONFIG_TABLE</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_shower_distribution"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_shower_distribution">[docs]</a>    <span class="k">def</span> <span class="nf">read_shower_distribution</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read the simulated shower distribution histograms</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="n">SHOWER_DISTRIBUTION_TABLE</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_observation_information"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_observation_information">[docs]</a>    <span class="k">def</span> <span class="nf">read_observation_information</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read the observation information</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="n">OBSERVATION_TABLE</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_join_observation_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="n">obs_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_observation_information</span><span class="p">()</span>
+        <span class="c1"># in v0.17, obs_id had inconsistent dtypes in different tables</span>
+        <span class="c1"># Joining then gets messed up then because a join between int32 and uint64</span>
+        <span class="c1"># casts the obs_id in the joint result to float.</span>
+        <span class="n">obs_table</span><span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obs_table</span><span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># to be able to sort to original table order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_index_if_needed</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="n">joint</span> <span class="o">=</span> <span class="n">join_allow_empty</span><span class="p">(</span>
+            <span class="n">table</span><span class="p">,</span>
+            <span class="n">obs_table</span><span class="p">,</span>
+            <span class="n">keys</span><span class="o">=</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span>
+            <span class="n">join_type</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># sort back to original order and remove index col</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sort_to_original_order</span><span class="p">(</span><span class="n">joint</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;__index__&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">joint</span>
+
+<div class="viewcode-block" id="TableLoader.read_subarray_events"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_subarray_events">[docs]</a>    <span class="k">def</span> <span class="nf">read_subarray_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keep_order</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read subarray-based event information.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        table: astropy.io.Table</span>
+<span class="sd">            Table with primary index columns &quot;obs_id&quot; and &quot;event_id&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="n">TRIGGER_TABLE</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">keep_order</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_index_if_needed</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_simulated</span> <span class="ow">and</span> <span class="n">SHOWER_TABLE</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">:</span>
+            <span class="n">showers</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span> <span class="n">SHOWER_TABLE</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_subarray_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">showers</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_dl2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">DL2_SUBARRAY_GROUP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">DL2_SUBARRAY_GROUP</span><span class="p">]</span><span class="o">.</span><span class="n">_v_children</span><span class="p">:</span>
+                    <span class="n">group_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">DL2_SUBARRAY_GROUP</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">group_path</span><span class="p">]</span>
+
+                    <span class="k">for</span> <span class="n">algorithm</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_children</span><span class="p">:</span>
+                        <span class="n">dl2</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">group_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">algorithm</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                            <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_subarray_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">dl2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_observation_info</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_join_observation_info</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">keep_order</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sort_to_original_order</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_subarray_events_chunked"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_subarray_events_chunked">[docs]</a>    <span class="k">def</span> <span class="nf">read_subarray_events_chunked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate over chunks of subarray events.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chunk_size: int</span>
+<span class="sd">            Number of subarray events to load per chunk</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ChunkIterator</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_subarray_events</span><span class="p">,</span>
+            <span class="n">n_total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_read_telescope_events_for_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read telescope-based event information for a single telescope.</span>
+
+<span class="sd">        This is the most low-level function doing the actual reading.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id: int</span>
+<span class="sd">            Telescope identification number.</span>
+<span class="sd">        start: int</span>
+<span class="sd">            First subarray event index to read</span>
+<span class="sd">        stop: int</span>
+<span class="sd">            Last subarray event index to read</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        table: astropy.io.Table</span>
+<span class="sd">            Table with primary index columns &quot;obs_id&quot;, &quot;event_id&quot; and &quot;tel_id&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tel_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Please, specify a telescope ID.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># trigger is stored in a single table for all telescopes, we need to</span>
+        <span class="c1"># calculate the range to read from the stereo trigger info</span>
+        <span class="n">trigger_start</span> <span class="o">=</span> <span class="n">trigger_stop</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">tel_start</span> <span class="o">=</span> <span class="n">tel_stop</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tel_start</span><span class="p">,</span> <span class="n">tel_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_tel_start_stop</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">trigger_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_total_telescope_events</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">trigger_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_total_telescope_events</span><span class="p">[</span><span class="n">stop</span><span class="p">]</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">,</span>
+            <span class="s2">&quot;/dl1/event/telescope/trigger&quot;</span><span class="p">,</span>
+            <span class="n">condition</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;tel_id == </span><span class="si">{</span><span class="n">tel_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">trigger_start</span><span class="p">,</span>
+            <span class="n">stop</span><span class="o">=</span><span class="n">trigger_stop</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_dl1_parameters</span><span class="p">:</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                <span class="n">PARAMETERS_GROUP</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_telescope_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_dl1_muons</span><span class="p">:</span>
+            <span class="n">muon_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                <span class="n">MUON_GROUP</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_telescope_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">muon_parameters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_dl1_images</span><span class="p">:</span>
+            <span class="n">images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                <span class="n">IMAGES_GROUP</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_telescope_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">images</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_dl2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">DL2_TELESCOPE_GROUP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">:</span>
+                <span class="n">dl2_tel_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">DL2_TELESCOPE_GROUP</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="n">dl2_tel_group</span><span class="o">.</span><span class="n">_v_children</span><span class="p">:</span>
+                    <span class="n">group_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">DL2_TELESCOPE_GROUP</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">group_path</span><span class="p">]</span>
+
+                    <span class="k">for</span> <span class="n">algorithm</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_children</span><span class="p">:</span>
+                        <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">group_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">algorithm</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="n">dl2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                            <span class="n">path</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dl2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="k">continue</span>
+
+                        <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_telescope_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">dl2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_true_images</span><span class="p">:</span>
+            <span class="n">true_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                <span class="n">TRUE_IMAGES_GROUP</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_merge_telescope_tables</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">true_images</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_true_parameters</span><span class="p">:</span>
+            <span class="n">true_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                <span class="n">TRUE_PARAMETERS_GROUP</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_join_telescope_events</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">true_parameters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_instrument</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">join_allow_empty</span><span class="p">(</span>
+                <span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument_table</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;tel_id&quot;</span><span class="p">],</span> <span class="n">join_type</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_simulated</span> <span class="ow">and</span> <span class="n">TRUE_IMPACT_GROUP</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+            <span class="n">impacts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_table</span><span class="p">(</span>
+                <span class="n">TRUE_IMPACT_GROUP</span><span class="p">,</span>
+                <span class="n">tel_id</span><span class="p">,</span>
+                <span class="n">start</span><span class="o">=</span><span class="n">tel_start</span><span class="p">,</span>
+                <span class="n">stop</span><span class="o">=</span><span class="n">tel_stop</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">_join_telescope_events</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">impacts</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="k">def</span> <span class="nf">_read_telescope_events_for_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_ids</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_events_for_id</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">tel_ids</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">vstack</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_join_subarray_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subarray_events</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">subarray_events</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">subarray_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_subarray_events</span><span class="p">(</span>
+                <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
+                <span class="n">keep_order</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">join_allow_empty</span><span class="p">(</span>
+            <span class="n">table</span><span class="p">,</span>
+            <span class="n">subarray_events</span><span class="p">,</span>
+            <span class="n">keys</span><span class="o">=</span><span class="n">SUBARRAY_EVENT_KEYS</span><span class="p">,</span>
+            <span class="n">join_type</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+            <span class="c1"># add suffix mono on duplicated columns, avoid underscore for stereo</span>
+            <span class="n">table_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;_mono&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+            <span class="n">uniq_col_name</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{col_name}{table_name}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="k">def</span> <span class="nf">_get_tel_start_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
+        <span class="n">tel_start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">tel_stop</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_ids_to_indices</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># find first/last row for each telescope</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tel_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_telescope_events</span><span class="p">[</span><span class="n">start</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">stop</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_telescope_events</span><span class="p">):</span>
+            <span class="n">tel_stop</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tel_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_telescope_events</span><span class="p">[</span><span class="n">stop</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">tel_start</span><span class="p">,</span> <span class="n">tel_stop</span>
+
+<div class="viewcode-block" id="TableLoader.read_telescope_events"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_telescope_events">[docs]</a>    <span class="k">def</span> <span class="nf">read_telescope_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telescopes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read telescope-based event information.</span>
+
+<span class="sd">        If the corresponding traitlets are True, also subarray event information</span>
+<span class="sd">        is joined onto the table.</span>
+
+<span class="sd">        The start, stop parameters enable to only load parts of the file,</span>
+<span class="sd">        note however, to maintain integrity of subarray events, these</span>
+<span class="sd">        refer to the subarray indices in the file. E.g. ``start=0``, ``stop=10``</span>
+<span class="sd">        would load the telescope events corresponding to the first 10 subarray</span>
+<span class="sd">        events in the input file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        telescopes: Optional[List[Union[int, str, TelescopeDescription]]]</span>
+<span class="sd">            A list containing any combination of telescope IDs and/or</span>
+<span class="sd">            telescope descriptions. If None, all available telescopes are read.</span>
+<span class="sd">        start: int</span>
+<span class="sd">            First *subarray* event to read</span>
+<span class="sd">        stop: int</span>
+<span class="sd">            Last *subarray* event (non-inclusive)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        events: astropy.io.Table</span>
+<span class="sd">            Table with primary index columns &quot;obs_id&quot;, &quot;event_id&quot; and &quot;tel_id&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">telescopes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tel_ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tel_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">get_tel_ids</span><span class="p">(</span><span class="n">telescopes</span><span class="p">)</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_events_for_ids</span><span class="p">(</span><span class="n">tel_ids</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_join_subarray_info</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+
+        <span class="c1"># sort back to order in the file</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">_join_subarray_events</span><span class="p">(</span>
+            <span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sort_index</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sort_to_original_order</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">include_tel_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">table</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_telescope_events_chunked"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_telescope_events_chunked">[docs]</a>    <span class="k">def</span> <span class="nf">read_telescope_events_chunked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate over chunks of telescope events.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chunk_size: int</span>
+<span class="sd">            Number of subarray events to load per chunk.</span>
+<span class="sd">            The telescope tables might be larger or smaller than chunk_size</span>
+<span class="sd">            depending on the selected telescopes.</span>
+
+<span class="sd">        **kwargs are passed to `read_telescope_events`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ChunkIterator</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_telescope_events</span><span class="p">,</span>
+            <span class="n">n_total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_n_telescope_events</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of telescope events in the file for each telescope previous</span>
+<span class="sd">        to the nth subarray event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># we need to load the trigger table until &quot;stop&quot; to</span>
+        <span class="c1"># know which telescopes participated in which events</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">root</span><span class="p">[</span><span class="n">TRIGGER_TABLE</span><span class="p">]</span>
+        <span class="n">n_events</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_telescopes</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">coldescrs</span><span class="p">[</span><span class="s2">&quot;tels_with_trigger&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_events</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_telescopes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="s2">&quot;tels_with_trigger&quot;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">tels_with_trigger</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="n">tels_with_trigger</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">tels_with_trigger</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">tels_with_trigger</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tels_with_trigger</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_n_total_telescope_events</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of telescope events in the file for each telescope previous</span>
+<span class="sd">        to the nth subarray event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_telescope_events</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TableLoader.read_telescope_events_by_type"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_telescope_events_by_type">[docs]</a>    <span class="k">def</span> <span class="nf">read_telescope_events_by_type</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">telescopes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Table</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read telescope-based event information.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        telescopes: List[Union[int, str, TelescopeDescription]]</span>
+<span class="sd">            Any list containing a combination of telescope IDs or telescope_descriptions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tables: dict(astropy.io.Table)</span>
+<span class="sd">            Dictionary of tables organized by telescope types</span>
+<span class="sd">            Table with primary index columns &quot;obs_id&quot;, &quot;event_id&quot; and &quot;tel_id&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">telescopes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tel_ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tel_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">get_tel_ids</span><span class="p">(</span><span class="n">telescopes</span><span class="p">)</span>
+
+        <span class="n">subarray_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_subarray_events</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">keep_order</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_index_if_needed</span><span class="p">(</span><span class="n">subarray_events</span><span class="p">)</span>
+
+        <span class="n">by_type</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">tel_ids</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">])</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_events_for_id</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">by_type</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="n">by_type</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">vstack</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">by_type</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">by_type</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">by_type</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_join_subarray_info</span><span class="p">(</span>
+                <span class="n">by_type</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">subarray_events</span><span class="o">=</span><span class="n">subarray_events</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sort_to_original_order</span><span class="p">(</span><span class="n">by_type</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">include_tel_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">by_type</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_telescope_events_by_type_chunked"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_telescope_events_by_type_chunked">[docs]</a>    <span class="k">def</span> <span class="nf">read_telescope_events_by_type_chunked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate over chunks of telescope events as dicts of telescope type to tables.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chunk_size: int</span>
+<span class="sd">            Number of subarray events to load per chunk.</span>
+<span class="sd">            The telescope tables might be larger or smaller than chunk_size</span>
+<span class="sd">            depending on the selected telescopes.</span>
+
+<span class="sd">        **kwargs are passed to `read_telescope_events`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ChunkIterator</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_telescope_events_by_type</span><span class="p">,</span>
+            <span class="n">n_total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_telescope_events_by_id"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_telescope_events_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">read_telescope_events_by_id</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">telescopes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Table</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read telescope-based event information.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        telescopes: List[Union[int, str, TelescopeDescription]]</span>
+<span class="sd">            Any list containing a combination of telescope IDs or telescope_descriptions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tables: dict(astropy.io.Table)</span>
+<span class="sd">            Dictionary of tables organized by telescope ids</span>
+<span class="sd">            Table with primary index columns &quot;obs_id&quot;, &quot;event_id&quot; and &quot;tel_id&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">telescopes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tel_ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tel_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">get_tel_ids</span><span class="p">(</span><span class="n">telescopes</span><span class="p">)</span>
+
+        <span class="n">subarray_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_subarray_events</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">keep_order</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_index_if_needed</span><span class="p">(</span><span class="n">subarray_events</span><span class="p">)</span>
+
+        <span class="n">by_id</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">tel_ids</span><span class="p">:</span>
+            <span class="c1"># no events for this telescope in range start/stop</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_telescope_events_for_id</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">by_id</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">by_id</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">by_id</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_join_subarray_info</span><span class="p">(</span>
+                <span class="n">by_id</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span> <span class="n">subarray_events</span><span class="o">=</span><span class="n">subarray_events</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sort_to_original_order</span><span class="p">(</span><span class="n">by_id</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span> <span class="n">include_tel_id</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">by_id</span></div>
+
+<div class="viewcode-block" id="TableLoader.read_telescope_events_by_id_chunked"><a class="viewcode-back" href="../../../api/ctapipe.io.tableloader.TableLoader.html#ctapipe.io.TableLoader.read_telescope_events_by_id_chunked">[docs]</a>    <span class="k">def</span> <span class="nf">read_telescope_events_by_id_chunked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate over chunks of telescope events and return a dict of one table per telescope id.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chunk_size: int</span>
+<span class="sd">            Number of subarray events to load per chunk.</span>
+<span class="sd">            The telescope tables might be larger or smaller than chunk_size</span>
+<span class="sd">            depending on the selected telescopes.</span>
+
+<span class="sd">        *args, **kwargs are passed to `read_telescope_events_by_id`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ChunkIterator</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_telescope_events_by_id</span><span class="p">,</span>
+            <span class="n">n_total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

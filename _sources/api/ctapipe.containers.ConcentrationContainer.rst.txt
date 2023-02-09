@@ -1,0 +1,25 @@
+ConcentrationContainer
+======================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ConcentrationContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ConcentrationContainer.cog
+      ~ConcentrationContainer.core
+      ~ConcentrationContainer.meta
+      ~ConcentrationContainer.pixel
+      ~ConcentrationContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: cog
+   .. autoattribute:: core
+   .. autoattribute:: meta
+   .. autoattribute:: pixel
+   .. autoattribute:: prefix

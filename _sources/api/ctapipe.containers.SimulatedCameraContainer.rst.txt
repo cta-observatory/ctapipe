@@ -1,0 +1,27 @@
+SimulatedCameraContainer
+========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: SimulatedCameraContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimulatedCameraContainer.impact
+      ~SimulatedCameraContainer.meta
+      ~SimulatedCameraContainer.prefix
+      ~SimulatedCameraContainer.true_image
+      ~SimulatedCameraContainer.true_image_sum
+      ~SimulatedCameraContainer.true_parameters
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: impact
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: true_image
+   .. autoattribute:: true_image_sum
+   .. autoattribute:: true_parameters

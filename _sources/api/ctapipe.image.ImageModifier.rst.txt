@@ -1,0 +1,39 @@
+ImageModifier
+=============
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: ImageModifier
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ImageModifier.noise_bias_dim_pixels
+      ~ImageModifier.noise_correct_bias
+      ~ImageModifier.noise_level_bright_pixels
+      ~ImageModifier.noise_level_dim_pixels
+      ~ImageModifier.noise_transition_charge
+      ~ImageModifier.psf_smear_factor
+      ~ImageModifier.rng_seed
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ImageModifier.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: noise_bias_dim_pixels
+   .. autoattribute:: noise_correct_bias
+   .. autoattribute:: noise_level_bright_pixels
+   .. autoattribute:: noise_level_dim_pixels
+   .. autoattribute:: noise_transition_charge
+   .. autoattribute:: psf_smear_factor
+   .. autoattribute:: rng_seed
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

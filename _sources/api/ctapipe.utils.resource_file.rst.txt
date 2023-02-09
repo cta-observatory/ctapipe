@@ -1,0 +1,6 @@
+resource_file
+=============
+
+.. currentmodule:: ctapipe.utils
+
+.. autofunction:: resource_file

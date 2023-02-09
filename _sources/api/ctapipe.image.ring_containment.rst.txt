@@ -1,0 +1,6 @@
+ring_containment
+================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: ring_containment

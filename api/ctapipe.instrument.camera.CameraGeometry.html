@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CameraGeometry &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PixelShape" href="ctapipe.instrument.camera.PixelShape.html" />
+    <link rel="prev" title="CameraDescription" href="ctapipe.instrument.camera.CameraDescription.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/instrument/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/instrument/index.html#hierarchy-of-instrumentdescription-classes">Hierarchy of InstrumentDescription Classes</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/instrument/subarray.html">Subarray Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/instrument/telescope.html">Telescope Description</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/instrument/camera.html">Camera Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/instrument/optics.html">Optics Description</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/instrument/index.html#other-instrumental-data">Other Instrumental Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/instrument/index.html#reference-api">Reference/API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/instrument/camera.html">Camera Description</a></li>
+      <li class="breadcrumb-item active">CameraGeometry</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.instrument.camera.CameraGeometry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="camerageometry">
+<h1>CameraGeometry<a class="headerlink" href="#camerageometry" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.instrument.camera.CameraGeometry">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.instrument.camera.</span></code><code class="sig-name descname"><span class="pre">CameraGeometry</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_rotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'0d'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_rotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'0d'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_derotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry" title="ctapipe.instrument.camera.CameraGeometry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CameraGeometry</span></code></a> is a class that stores information about a
+Cherenkov Camera that us useful for imaging algorithms and
+displays. It contains lists of pixel positions, areas, pixel
+shapes, as well as a neighbor (adjacency) list and matrix for each pixel.
+In general the neighbor_matrix attribute should be used in any algorithm
+needing pixel neighbors, since it is much faster. See for example
+<a class="reference internal" href="ctapipe.image.tailcuts_clean.html#ctapipe.image.tailcuts_clean" title="ctapipe.image.tailcuts_clean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.image.tailcuts_clean</span></code></a></p>
+<p>The class is intended to be generic, and work with any Cherenkov
+Camera geometry, including those that have square vs hexagonal
+pixels, gaps between pixels, etc.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>self</strong><span class="classifier">type</span></dt><dd><p>description</p>
+</dd>
+<dt><strong>name</strong><span class="classifier">str</span></dt><dd><p>Camera name (e.g. NectarCam, LSTCam, …)</p>
+</dd>
+<dt><strong>pix_id</strong><span class="classifier">array(int)</span></dt><dd><p>pixels id numbers</p>
+</dd>
+<dt><strong>pix_x</strong><span class="classifier">array with units</span></dt><dd><p>position of each pixel (x-coordinate)</p>
+</dd>
+<dt><strong>pix_y</strong><span class="classifier">array with units</span></dt><dd><p>position of each pixel (y-coordinate)</p>
+</dd>
+<dt><strong>pix_area</strong><span class="classifier">array(float)</span></dt><dd><p>surface area of each pixel, if None will be calculated</p>
+</dd>
+<dt><strong>neighbors</strong><span class="classifier">list(arrays)</span></dt><dd><p>adjacency list for each pixel</p>
+</dd>
+<dt><strong>pix_type</strong><span class="classifier">string</span></dt><dd><p>either ‘rectangular’ or ‘hexagonal’</p>
+</dd>
+<dt><strong>pix_rotation</strong><span class="classifier">value convertable to an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.Angle</span></code></a></span></dt><dd><p>rotation angle with unit (e.g. 12 * u.deg), or “12d”</p>
+</dd>
+<dt><strong>cam_rotation</strong><span class="classifier">overall camera rotation with units</span></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.CURRENT_TAB_VERSION" title="ctapipe.instrument.camera.CameraGeometry.CURRENT_TAB_VERSION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CURRENT_TAB_VERSION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.SUPPORTED_TAB_VERSIONS" title="ctapipe.instrument.camera.CameraGeometry.SUPPORTED_TAB_VERSIONS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SUPPORTED_TAB_VERSIONS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.max_neighbors" title="ctapipe.instrument.camera.CameraGeometry.max_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_neighbors</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.neighbor_matrix" title="ctapipe.instrument.camera.CameraGeometry.neighbor_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">neighbor_matrix</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.neighbor_matrix_sparse" title="ctapipe.instrument.camera.CameraGeometry.neighbor_matrix_sparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">neighbor_matrix_sparse</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.neighbors" title="ctapipe.instrument.camera.CameraGeometry.neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">neighbors</span></code></a></p></td>
+<td><p>A list of the neighbors pixel_ids for each pixel</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.pixel_moment_matrix" title="ctapipe.instrument.camera.CameraGeometry.pixel_moment_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pixel_moment_matrix</span></code></a></p></td>
+<td><p>Pre-calculated matrix needed for higher-order moment calculation, up to 4th order.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.pixel_width" title="ctapipe.instrument.camera.CameraGeometry.pixel_width"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pixel_width</span></code></a></p></td>
+<td><p>in-circle diameter for hexagons, edge width for square pixels, diameter for circles.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.calc_pixel_neighbors" title="ctapipe.instrument.camera.CameraGeometry.calc_pixel_neighbors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_pixel_neighbors</span></code></a>([diagonal])</p></td>
+<td><p>Calculate the neighbors of pixels using a kdtree for nearest neighbor lookup.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.cartesian_index_to_image_index" title="ctapipe.instrument.camera.CameraGeometry.cartesian_index_to_image_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cartesian_index_to_image_index</span></code></a>(row, col)</p></td>
+<td><p>Convert cartesian index (row, col) to pixel index in 1d representation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.from_name" title="ctapipe.instrument.camera.CameraGeometry.from_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_name</span></code></a>([name, version])</p></td>
+<td><p>Construct a CameraGeometry using the name of the camera and array.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.from_table" title="ctapipe.instrument.camera.CameraGeometry.from_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_table</span></code></a>(url_or_table, **kwargs)</p></td>
+<td><p>Load a CameraGeometry from an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table</span></code></a> instance or a file that is readable by <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table.read" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table.read</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.get_border_pixel_mask" title="ctapipe.instrument.camera.CameraGeometry.get_border_pixel_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_border_pixel_mask</span></code></a>([width])</p></td>
+<td><p>Get a mask for pixels at the border of the camera of arbitrary width</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.guess_pixel_width" title="ctapipe.instrument.camera.CameraGeometry.guess_pixel_width"><code class="xref py py-obj docutils literal notranslate"><span class="pre">guess_pixel_width</span></code></a>(pix_x, pix_y)</p></td>
+<td><p>Calculate pixel diameter by looking at the minimum distance between pixels</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.guess_radius" title="ctapipe.instrument.camera.CameraGeometry.guess_radius"><code class="xref py py-obj docutils literal notranslate"><span class="pre">guess_radius</span></code></a>()</p></td>
+<td><p>Guess the camera radius as mean distance of the border pixels from the center pixel</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.image_from_cartesian_representation" title="ctapipe.instrument.camera.CameraGeometry.image_from_cartesian_representation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_from_cartesian_representation</span></code></a>(image_2d)</p></td>
+<td><p>Create a 1D-array from a given 2D image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.image_index_to_cartesian_index" title="ctapipe.instrument.camera.CameraGeometry.image_index_to_cartesian_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_index_to_cartesian_index</span></code></a>(pixel_index)</p></td>
+<td><p>Convert pixel index in the 1d image representation to row and col</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.image_to_cartesian_representation" title="ctapipe.instrument.camera.CameraGeometry.image_to_cartesian_representation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_to_cartesian_representation</span></code></a>(image)</p></td>
+<td><p>Create a 2D-image from a given flat image or multiple flat images.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.info" title="ctapipe.instrument.camera.CameraGeometry.info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">info</span></code></a>([printer])</p></td>
+<td><p>print detailed info about this camera</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.make_rectangular" title="ctapipe.instrument.camera.CameraGeometry.make_rectangular"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_rectangular</span></code></a>([npix_x, npix_y, range_x, …])</p></td>
+<td><p>Generate a simple camera with 2D rectangular geometry.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.position_to_pix_index" title="ctapipe.instrument.camera.CameraGeometry.position_to_pix_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position_to_pix_index</span></code></a>(x, y)</p></td>
+<td><p>Return the index of a camera pixel which contains a given position (x,y) in the camera frame.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.rotate" title="ctapipe.instrument.camera.CameraGeometry.rotate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rotate</span></code></a>(angle)</p></td>
+<td><p>rotate the camera coordinates about the center of the camera by specified angle.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.simtel_shape_to_type" title="ctapipe.instrument.camera.CameraGeometry.simtel_shape_to_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simtel_shape_to_type</span></code></a>(pixel_shape)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.to_table" title="ctapipe.instrument.camera.CameraGeometry.to_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_table</span></code></a>()</p></td>
+<td><p>convert this to an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.transform_to" title="ctapipe.instrument.camera.CameraGeometry.transform_to"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_to</span></code></a>(frame)</p></td>
+<td><p>Transform the pixel coordinates stored in this geometry and the pixel and camera rotations to another camera coordinate frame.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.CURRENT_TAB_VERSION">
+<code class="sig-name descname"><span class="pre">CURRENT_TAB_VERSION</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'2.0'</span></em><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.CURRENT_TAB_VERSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.SUPPORTED_TAB_VERSIONS">
+<code class="sig-name descname"><span class="pre">SUPPORTED_TAB_VERSIONS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{'1',</span> <span class="pre">'1.0',</span> <span class="pre">'1.1',</span> <span class="pre">'2.0'}</span></em><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.SUPPORTED_TAB_VERSIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.max_neighbors">
+<code class="sig-name descname"><span class="pre">max_neighbors</span></code><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.max_neighbors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.neighbor_matrix">
+<code class="sig-name descname"><span class="pre">neighbor_matrix</span></code><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.neighbor_matrix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.neighbor_matrix_sparse">
+<code class="sig-name descname"><span class="pre">neighbor_matrix_sparse</span></code><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.neighbor_matrix_sparse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.neighbors">
+<code class="sig-name descname"><span class="pre">neighbors</span></code><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.neighbors" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of the neighbors pixel_ids for each pixel</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.pixel_moment_matrix">
+<code class="sig-name descname"><span class="pre">pixel_moment_matrix</span></code><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.pixel_moment_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pre-calculated matrix needed for higher-order moment calculation,
+up to 4th order.</p>
+<p>Note this is <em>not</em> recalculated if the CameraGeometry is modified.</p>
+<p>this matrix M can be multiplied by an image and normalized by the sum to
+get the moments:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">M</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">pixel_moment_matrix</span><span class="p">()</span>
+<span class="n">moms</span> <span class="o">=</span> <span class="p">(</span><span class="n">M</span> <span class="o">@</span> <span class="n">image</span><span class="p">)</span><span class="o">/</span><span class="n">image</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>array:</dt><dd><p>x, y, x**2, x*y, y^2, x^3, x^2*y,x*y^2, y^3, x^4, x^3*y, x^2*y2,
+x*y^3, y^4</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.instrument.camera.CameraGeometry.pixel_width">
+<code class="sig-name descname"><span class="pre">pixel_width</span></code><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.pixel_width" title="Permalink to this definition">¶</a></dt>
+<dd><p>in-circle diameter for hexagons, edge width for square pixels,
+diameter for circles.</p>
+<p>This is calculated from the pixel area.</p>
+</dd></dl>
+
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.calc_pixel_neighbors">
+<code class="sig-name descname"><span class="pre">calc_pixel_neighbors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diagonal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.calc_pixel_neighbors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.calc_pixel_neighbors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the neighbors of pixels using
+a kdtree for nearest neighbor lookup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>diagonal: bool</strong></dt><dd><p>If rectangular geometry, also add diagonal neighbors</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.cartesian_index_to_image_index">
+<code class="sig-name descname"><span class="pre">cartesian_index_to_image_index</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.cartesian_index_to_image_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.cartesian_index_to_image_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert cartesian index (row, col) to pixel index in 1d representation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.from_name">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NectarCam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.from_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.from_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a CameraGeometry using the name of the camera and array.</p>
+<p>This expects that there is a resource accessible via
+<a class="reference internal" href="ctapipe.utils.get_table_dataset.html#ctapipe.utils.get_table_dataset" title="ctapipe.utils.get_table_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_dataset</span></code></a> called <code class="docutils literal notranslate"><span class="pre">&quot;[array]-[camera].camgeom.fits.gz&quot;</span></code>
+or <code class="docutils literal notranslate"><span class="pre">&quot;[array]-[camera]-[version].camgeom.fits.gz&quot;</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name</strong><span class="classifier">str</span></dt><dd><p>Camera name (e.g. NectarCam, LSTCam, …)</p>
+</dd>
+<dt><strong>version</strong></dt><dd><p>camera version id</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>new CameraGeometry</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.from_table">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_table</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url_or_table</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.from_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.from_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a CameraGeometry from an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table</span></code></a> instance or a
+file that is readable by <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table.read" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table.read</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>url_or_table: string or astropy.table.Table</strong></dt><dd><p>either input filename/url or a Table instance</p>
+</dd>
+<dt><strong>kwargs: extra keyword arguments</strong></dt><dd><p>extra arguments passed to <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table.read" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table.read</span></code></a>, depending on
+file type (e.g. format, hdu, path)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.get_border_pixel_mask">
+<code class="sig-name descname"><span class="pre">get_border_pixel_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.get_border_pixel_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.get_border_pixel_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a mask for pixels at the border of the camera of arbitrary width</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>width: int</strong></dt><dd><p>The width of the border in pixels</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>mask: array</dt><dd><p>A boolean mask, True if pixel is in the border of the specified width</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.guess_pixel_width">
+<em class="property"><span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">guess_pixel_width</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pix_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.guess_pixel_width"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.guess_pixel_width" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate pixel diameter by looking at the minimum distance between pixels</p>
+<p>Note this will not work on cameras with varying pixel sizes or gaps</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>in-circle diameter for hexagons, edge width for square pixels</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.guess_radius">
+<code class="sig-name descname"><span class="pre">guess_radius</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.guess_radius"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.guess_radius" title="Permalink to this definition">¶</a></dt>
+<dd><p>Guess the camera radius as mean distance of the border pixels from
+the center pixel</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.image_from_cartesian_representation">
+<code class="sig-name descname"><span class="pre">image_from_cartesian_representation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_2d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.image_from_cartesian_representation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.image_from_cartesian_representation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a 1D-array from a given 2D image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_2d: np.ndarray</strong></dt><dd><p>2D image created by the <a class="reference internal" href="#ctapipe.instrument.camera.CameraGeometry.image_to_cartesian_representation" title="ctapipe.instrument.camera.CameraGeometry.image_to_cartesian_representation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_to_cartesian_representation</span></code></a> function
+of the same geometry.
+shape is expected to be:
+(n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>1d array</dt><dd><p>The image in the 1D format, which has shape (n_images, n_pixels).
+For single images the leading dimension is omitted.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.image_index_to_cartesian_index">
+<code class="sig-name descname"><span class="pre">image_index_to_cartesian_index</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixel_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.image_index_to_cartesian_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.image_index_to_cartesian_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert pixel index in the 1d image representation to row and col</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.image_to_cartesian_representation">
+<code class="sig-name descname"><span class="pre">image_to_cartesian_representation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.image_to_cartesian_representation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.image_to_cartesian_representation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a 2D-image from a given flat image or multiple flat images.
+In the case of hexagonal pixels, the resulting
+image is skewed to match a rectangular grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>One or multiple images of shape
+(n_images, n_pixels) or (n_pixels) for a single image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>image_2s: np.ndarray</dt><dd><p>The transformed image of shape (n_images, n_rows, n_cols).
+For a single image the leading dimension is omitted.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.info">
+<code class="sig-name descname"><span class="pre">info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">printer=&lt;built-in</span> <span class="pre">function</span> <span class="pre">print&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>print detailed info about this camera</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.make_rectangular">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">make_rectangular</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npix_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npix_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(-</span> <span class="pre">0.5,</span> <span class="pre">0.5)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(-</span> <span class="pre">0.5,</span> <span class="pre">0.5)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.make_rectangular"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.make_rectangular" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a simple camera with 2D rectangular geometry.</p>
+<p>Used for testing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>npix_x</strong><span class="classifier">int</span></dt><dd><p>number of pixels in X-dimension</p>
+</dd>
+<dt><strong>npix_y</strong><span class="classifier">int</span></dt><dd><p>number of pixels in Y-dimension</p>
+</dd>
+<dt><strong>range_x</strong><span class="classifier">(float,float)</span></dt><dd><p>min and max of x pixel coordinates in meters</p>
+</dd>
+<dt><strong>range_y</strong><span class="classifier">(float,float)</span></dt><dd><p>min and max of y pixel coordinates in meters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>CameraGeometry object</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.position_to_pix_index">
+<code class="sig-name descname"><span class="pre">position_to_pix_index</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.position_to_pix_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.position_to_pix_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the index of a camera pixel which contains a given position (x,y)
+in the camera frame. The (x,y) coordinates can be arrays (of equal length),
+for which the methods returns an array of pixel ids. A warning is raised if the
+position falls outside the camera.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame</strong></dt><dd></dd>
+<dt><strong>y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame</strong></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls</dt><dd><p>outside camera</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.rotate">
+<code class="sig-name descname"><span class="pre">rotate</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.rotate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.rotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>rotate the camera coordinates about the center of the camera by
+specified angle. Modifies the CameraGeometry in-place (so
+after this is called, the pix_x and pix_y arrays are
+rotated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>angle: value convertable to an `astropy.coordinates.Angle`</strong></dt><dd><p>rotation angle with unit (e.g. 12 * u.deg), or “12d”</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This is intended only to correct simulated data that are
+rotated by a fixed angle.  For the more general case of
+correction for camera pointing errors (rotations,
+translations, skews, etc), you should use a true coordinate
+transformation defined in <a class="reference internal" href="../ctapipe_api/coordinates/index.html#module-ctapipe.coordinates" title="ctapipe.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.coordinates</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.simtel_shape_to_type">
+<em class="property"><span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">simtel_shape_to_type</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixel_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.simtel_shape_to_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.simtel_shape_to_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.to_table">
+<code class="sig-name descname"><span class="pre">to_table</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.to_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.to_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert this to an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table" title="(in Astropy v5.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.instrument.camera.CameraGeometry.transform_to">
+<code class="sig-name descname"><span class="pre">transform_to</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="(in Astropy v5.3)"><span class="pre">astropy.coordinates.baseframe.BaseCoordinateFrame</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/instrument/camera/geometry.html#CameraGeometry.transform_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.instrument.camera.CameraGeometry.transform_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform the pixel coordinates stored in this geometry and the pixel
+and camera rotations to another camera coordinate frame.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">geom.frame</span></code> must contain all the necessary attributes needed
+to transform into the requested frame, i.e. if going from
+<a class="reference internal" href="ctapipe.coordinates.CameraFrame.html#ctapipe.coordinates.CameraFrame" title="ctapipe.coordinates.CameraFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CameraFrame</span></code></a> to <a class="reference internal" href="ctapipe.coordinates.TelescopeFrame.html#ctapipe.coordinates.TelescopeFrame" title="ctapipe.coordinates.TelescopeFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelescopeFrame</span></code></a>,
+it should contain the correct data in the <code class="docutils literal notranslate"><span class="pre">focal_length</span></code> attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>frame: ctapipe.coordinates.CameraFrame</strong></dt><dd><p>The coordinate frame to transform to.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>CameraGeometry:</dt><dd><p>new instance in the requested Frame</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.instrument.camera.CameraDescription.html" class="btn btn-neutral float-left" title="CameraDescription" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe.instrument.camera.PixelShape.html" class="btn btn-neutral float-right" title="PixelShape" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

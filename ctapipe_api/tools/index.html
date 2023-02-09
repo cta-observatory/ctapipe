@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command line tools (tools) &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ProcessorTool" href="../../api/ctapipe.tools.process.ProcessorTool.html" />
+    <link rel="prev" title="ImPACTReconstructor" href="../../api/ctapipe.reco.impact.ImPACTReconstructor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#common-tool-functionality">Common Tool Functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#developing-a-new-tool">Developing a new Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.tools">ctapipe.tools Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.tools.process">ctapipe.tools.process Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.tools.train_energy_regressor">ctapipe.tools.train_energy_regressor Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.tools.train_particle_classifier">ctapipe.tools.train_particle_classifier Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.tools.apply_models">ctapipe.tools.apply_models Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Docs</a></li>
+      <li class="breadcrumb-item active">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/ctapipe_api/tools/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="command-line-tools-tools">
+<span id="tools"></span><h1>Command line tools (<a class="reference internal" href="#module-ctapipe.tools" title="ctapipe.tools"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code></a>)<a class="headerlink" href="#command-line-tools-tools" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="#module-ctapipe.tools" title="ctapipe.tools"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.tools</span></code></a> contains the command line tools that use the ctapipe
+framework.  All commandline tools inherit from <a class="reference internal" href="../../api/ctapipe.core.Tool.html#ctapipe.core.Tool" title="ctapipe.core.Tool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Tool</span></code></a>
+which provides a common user-interface experience, complete with
+command-line and configuration file handling, logging, and provenance
+features.  See <a class="reference internal" href="../core/index.html#module-ctapipe.core" title="ctapipe.core"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core</span></code></a> documentation for examples.</p>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>You can find out what <em>ctapipe</em> tools are installed using the
+<code class="docutils literal notranslate"><span class="pre">ctapipe-info</span></code> command-line tool:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>ctapipe-info<span class="w"> </span>--tools<span class="w">        </span><span class="c1"># list all tools</span>
+ctapipe-info<span class="w"> </span>--version<span class="w">      </span><span class="c1"># show ctapipe version</span>
+ctapipe-info<span class="w"> </span>--dependencies<span class="w"> </span><span class="c1"># list dependencies</span>
+</pre></div>
+</div>
+<p>To find out more about a specific tool, use it’s <code class="docutils literal notranslate"><span class="pre">--help</span></code> command-line option</p>
+</div>
+<div class="section" id="common-tool-functionality">
+<h2>Common Tool Functionality<a class="headerlink" href="#common-tool-functionality" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>High-level command-line options can be seen with <code class="docutils literal notranslate"><span class="pre">--help</span></code></p></li>
+<li><p>Low-level (Component) options can be seen with <code class="docutils literal notranslate"><span class="pre">--help-all</span></code></p></li>
+<li><p>You can either specify options on the command-line, or in a <em>config
+file</em> (so far in JSON or python format, see the documentation for
+<a class="reference external" href="https://traitlets.readthedocs.io/en/stable/config.html">traitlets.config</a>).
+Specify this configuration file using the <code class="docutils literal notranslate"><span class="pre">--config=FILENAME</span></code> option.</p></li>
+<li><p>You can set the logging level of a tool using <code class="docutils literal notranslate"><span class="pre">--log_level</span></code> to a
+value or name in the list <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">10,</span> <span class="pre">20,</span> <span class="pre">30,</span> <span class="pre">40,</span> <span class="pre">50,</span> <span class="pre">'DEBUG',</span> <span class="pre">'INFO',</span>
+<span class="pre">'WARN',</span> <span class="pre">'ERROR',</span> <span class="pre">'CRITICAL']</span></code>.  By default, only warning messages are
+shown, but if you specify DEBUG you will get everything.</p></li>
+</ul>
+</div>
+<div class="section" id="developing-a-new-tool">
+<h2>Developing a new Tool<a class="headerlink" href="#developing-a-new-tool" title="Permalink to this headline">¶</a></h2>
+<p>To create a new command-line Tool, follow the following procedure:</p>
+<ol class="arabic simple">
+<li><p>make a subclass of <a class="reference internal" href="../../api/ctapipe.core.Tool.html#ctapipe.core.Tool" title="ctapipe.core.Tool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Tool</span></code></a></p></li>
+<li><p>define any user-configurable parameters of the tool</p></li>
+<li><p>register <em>all</em> configurable <a class="reference internal" href="../../api/ctapipe.core.Component.html#ctapipe.core.Component" title="ctapipe.core.Component"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Component</span></code></a> classes
+that you want to be configured via the Tool via its <code class="docutils literal notranslate"><span class="pre">classes</span></code> attribute</p></li>
+<li><p>use the <code class="docutils literal notranslate"><span class="pre">aliases</span></code> attribute to promote any parameters from one of
+the sub-Components to a high-level a command-line parameter (they
+can still be specified using the advanced command-line command
+syntax or via a config file if you do not do this, but if the
+parameter is commonly changed by the user, having it be high-level
+is more convenient</p></li>
+<li><p>overload the <code class="docutils literal notranslate"><span class="pre">setup(self)</span></code>, <code class="docutils literal notranslate"><span class="pre">start(self)</span></code>, and <code class="docutils literal notranslate"><span class="pre">finish(self)</span></code>
+methods to implement the functinatlity of the tool (these will be
+called in order when you call the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method.</p></li>
+<li><p>make sure you have a function called <code class="docutils literal notranslate"><span class="pre">main()</span></code> that creates and runs
+your tool in the source file.</p></li>
+<li><p>add the file and <code class="docutils literal notranslate"><span class="pre">main()</span></code> function you made in step 6 to the
+top-level <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> file under the section called
+<code class="docutils literal notranslate"><span class="pre">entry_points['console_scripts']</span></code>.  This will automatically create
+an executable called <code class="docutils literal notranslate"><span class="pre">ctapipe-*</span></code> where <code class="docutils literal notranslate"><span class="pre">*</span></code> is the name of the source
+file of your tool (e.g. <code class="docutils literal notranslate"><span class="pre">mytool.py</span></code> will become <code class="docutils literal notranslate"><span class="pre">ctapipe-mytool</span></code>.</p></li>
+<li><p>this new tool will be installed in the bin directory next time you
+run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">develop</span></code> at the top-level of ctapipe, or if you
+re-install the ctapipe package in non-developer mode.</p></li>
+</ol>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-ctapipe.tools">
+<span id="ctapipe-tools-package"></span><h3>ctapipe.tools Package<a class="headerlink" href="#module-ctapipe.tools" title="Permalink to this headline">¶</a></h3>
+<p>ctapipe command line tools.</p>
+</div>
+<div class="section" id="module-ctapipe.tools.process">
+<span id="ctapipe-tools-process-module"></span><h3>ctapipe.tools.process Module<a class="headerlink" href="#module-ctapipe.tools.process" title="Permalink to this headline">¶</a></h3>
+<p>Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.</p>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.tools.process.ProcessorTool.html#ctapipe.tools.process.ProcessorTool" title="ctapipe.tools.process.ProcessorTool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProcessorTool</span></code></a>(**kwargs)</p></td>
+<td><p>Process data from lower-data levels up to DL1 and DL2, including image extraction and optionally image parameterization as well as muon analysis and shower reconstruction.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.tools.train_energy_regressor">
+<span id="ctapipe-tools-train-energy-regressor-module"></span><h3>ctapipe.tools.train_energy_regressor Module<a class="headerlink" href="#module-ctapipe.tools.train_energy_regressor" title="Permalink to this headline">¶</a></h3>
+<p>Tool for training the EnergyRegressor</p>
+<div class="section" id="id1">
+<h4>Classes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.tools.train_energy_regressor.TrainEnergyRegressor.html#ctapipe.tools.train_energy_regressor.TrainEnergyRegressor" title="ctapipe.tools.train_energy_regressor.TrainEnergyRegressor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TrainEnergyRegressor</span></code></a>(**kwargs)</p></td>
+<td><p>Tool to train a <a class="reference internal" href="../../api/ctapipe.reco.EnergyRegressor.html#ctapipe.reco.EnergyRegressor" title="ctapipe.reco.EnergyRegressor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EnergyRegressor</span></code></a> on dl1b/dl2 data.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.tools.train_particle_classifier">
+<span id="ctapipe-tools-train-particle-classifier-module"></span><h3>ctapipe.tools.train_particle_classifier Module<a class="headerlink" href="#module-ctapipe.tools.train_particle_classifier" title="Permalink to this headline">¶</a></h3>
+<p>Tool for training the ParticleClassifier</p>
+<div class="section" id="id2">
+<h4>Classes<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.tools.train_particle_classifier.TrainParticleClassifier.html#ctapipe.tools.train_particle_classifier.TrainParticleClassifier" title="ctapipe.tools.train_particle_classifier.TrainParticleClassifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TrainParticleClassifier</span></code></a>(**kwargs)</p></td>
+<td><p>Tool to train a <a class="reference internal" href="../../api/ctapipe.reco.ParticleClassifier.html#ctapipe.reco.ParticleClassifier" title="ctapipe.reco.ParticleClassifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParticleClassifier</span></code></a> on dl1b/dl2 data.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.tools.apply_models">
+<span id="ctapipe-tools-apply-models-module"></span><h3>ctapipe.tools.apply_models Module<a class="headerlink" href="#module-ctapipe.tools.apply_models" title="Permalink to this headline">¶</a></h3>
+<p>Tool to apply machine learning models in bulk (as opposed to event by event).</p>
+<div class="section" id="id3">
+<h4>Classes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.tools.apply_models.ApplyModels.html#ctapipe.tools.apply_models.ApplyModels" title="ctapipe.tools.apply_models.ApplyModels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ApplyModels</span></code></a>(**kwargs)</p></td>
+<td><p>Apply machine learning models to data.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../api/ctapipe.reco.impact.ImPACTReconstructor.html" class="btn btn-neutral float-left" title="ImPACTReconstructor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../api/ctapipe.tools.process.ProcessorTool.html" class="btn btn-neutral float-right" title="ProcessorTool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

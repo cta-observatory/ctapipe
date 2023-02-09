@@ -1,0 +1,6 @@
+ring_containment
+================
+
+.. currentmodule:: ctapipe.image.muon
+
+.. autofunction:: ring_containment

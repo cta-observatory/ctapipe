@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DataWriter &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="TableReader" href="ctapipe.io.tableio.TableReader.html" />
+    <link rel="prev" title="DataLevel" href="ctapipe.io.DataLevel.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#reading-event-data">Reading Event Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#creating-a-new-eventsource-plugin">Creating a New EventSource Plugin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#container-classes">Container Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#serialization-of-containers">Serialization of Containers:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#writing-output-files">Writing Output Files:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#reading-output-tables">Reading Output Tables:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/io/index.html#standard-metadata-headers">Standard Metadata Headers</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/io/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io">ctapipe.io Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.tableio">ctapipe.io.tableio Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.tableloader">ctapipe.io.tableloader Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.hdf5tableio">ctapipe.io.hdf5tableio Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.metadata">ctapipe.io.metadata Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.eventsource">ctapipe.io.eventsource Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.simteleventsource">ctapipe.io.simteleventsource Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.hdf5eventsource">ctapipe.io.hdf5eventsource Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/io/index.html#module-ctapipe.io.eventseeker">ctapipe.io.eventseeker Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+      <li class="breadcrumb-item active">DataWriter</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.io.DataWriter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="datawriter">
+<h1>DataWriter<a class="headerlink" href="#datawriter" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.io.DataWriter">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.io.</span></code><code class="sig-name descname"><span class="pre">DataWriter</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/datawriter.html#DataWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.DataWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ctapipe.core.component.Component.html#ctapipe.core.component.Component" title="ctapipe.core.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.component.Component</span></code></a></p>
+<p>Serialize a sequence of events into a HDF5 file, in the correct format</p>
+<p class="rubric">Examples</p>
+<p>inside a Tool:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">DataWriter</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span> <span class="k">as</span> <span class="n">write_data</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+        <span class="n">calibrate</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="n">process_images</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="n">write_data</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.compression_level" title="ctapipe.io.DataWriter.compression_level"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compression_level</span></code></a></p></td>
+<td><p>compression level, 0=None, 9=maximum</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.compression_type" title="ctapipe.io.DataWriter.compression_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compression_type</span></code></a></p></td>
+<td><p>compressor algorithm to use.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.contact_info" title="ctapipe.io.DataWriter.contact_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">contact_info</span></code></a></p></td>
+<td><p>A trait whose value must be an instance of a specified class.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.context_metadata" title="ctapipe.io.DataWriter.context_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">context_metadata</span></code></a></p></td>
+<td><p>Additional metadata keywords and values that describe this data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.datalevels" title="ctapipe.io.DataWriter.datalevels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">datalevels</span></code></a></p></td>
+<td><p>returns a list of data levels requested</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.image_dtype" title="ctapipe.io.DataWriter.image_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_dtype</span></code></a></p></td>
+<td><p>A trait for unicode strings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.image_offset" title="ctapipe.io.DataWriter.image_offset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_offset</span></code></a></p></td>
+<td><p>An int trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.image_scale" title="ctapipe.io.DataWriter.image_scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_scale</span></code></a></p></td>
+<td><p>A float trait.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.instrument_info" title="ctapipe.io.DataWriter.instrument_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument_info</span></code></a></p></td>
+<td><p>A trait whose value must be an instance of a specified class.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.output_path" title="ctapipe.io.DataWriter.output_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">output_path</span></code></a></p></td>
+<td><p>output filename</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.overwrite" title="ctapipe.io.DataWriter.overwrite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overwrite</span></code></a></p></td>
+<td><p>overwrite output file if it exists</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.peak_time_dtype" title="ctapipe.io.DataWriter.peak_time_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">peak_time_dtype</span></code></a></p></td>
+<td><p>A trait for unicode strings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.peak_time_offset" title="ctapipe.io.DataWriter.peak_time_offset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">peak_time_offset</span></code></a></p></td>
+<td><p>An int trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.peak_time_scale" title="ctapipe.io.DataWriter.peak_time_scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">peak_time_scale</span></code></a></p></td>
+<td><p>A float trait.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.transform_image" title="ctapipe.io.DataWriter.transform_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_image</span></code></a></p></td>
+<td><p>A boolean (True, False) trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.transform_peak_time" title="ctapipe.io.DataWriter.transform_peak_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_peak_time</span></code></a></p></td>
+<td><p>A boolean (True, False) trait.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.transform_waveform" title="ctapipe.io.DataWriter.transform_waveform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_waveform</span></code></a></p></td>
+<td><p>A boolean (True, False) trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.waveform_dtype" title="ctapipe.io.DataWriter.waveform_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">waveform_dtype</span></code></a></p></td>
+<td><p>A trait for unicode strings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.waveform_offset" title="ctapipe.io.DataWriter.waveform_offset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">waveform_offset</span></code></a></p></td>
+<td><p>An int trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.waveform_scale" title="ctapipe.io.DataWriter.waveform_scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">waveform_scale</span></code></a></p></td>
+<td><p>A float trait.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_images" title="ctapipe.io.DataWriter.write_images"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_images</span></code></a></p></td>
+<td><p>Store DL1 Images if available</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_index_tables" title="ctapipe.io.DataWriter.write_index_tables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_index_tables</span></code></a></p></td>
+<td><p>Generate PyTables index datasets for all tables that contain an event_id or tel_id.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_muon_parameters" title="ctapipe.io.DataWriter.write_muon_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_muon_parameters</span></code></a></p></td>
+<td><p>Store muon parameters if available</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_parameters" title="ctapipe.io.DataWriter.write_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_parameters</span></code></a></p></td>
+<td><p>Store DL1 image parameters if available</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_raw_waveforms" title="ctapipe.io.DataWriter.write_raw_waveforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_raw_waveforms</span></code></a></p></td>
+<td><p>Store R0 waveforms if available</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_showers" title="ctapipe.io.DataWriter.write_showers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_showers</span></code></a></p></td>
+<td><p>Store DL2 stereo shower parameters if available</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_waveforms" title="ctapipe.io.DataWriter.write_waveforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_waveforms</span></code></a></p></td>
+<td><p>Store R1 waveforms if available</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.__call__" title="ctapipe.io.DataWriter.__call__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code></a>(event)</p></td>
+<td><p>Write a single event to the output file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.finish" title="ctapipe.io.DataWriter.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish</span></code></a>()</p></td>
+<td><p>called after all events are done</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.table_name" title="ctapipe.io.DataWriter.table_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">table_name</span></code></a>(tel_id)</p></td>
+<td><p>construct dataset table names depending on chosen split method</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.io.DataWriter.write_simulation_histograms" title="ctapipe.io.DataWriter.write_simulation_histograms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_simulation_histograms</span></code></a>(event_source)</p></td>
+<td><p>Write the distribution of thrown showers</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.compression_level">
+<code class="sig-name descname"><span class="pre">compression_level</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.compression_level" title="Permalink to this definition">¶</a></dt>
+<dd><p>compression level, 0=None, 9=maximum</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.compression_type">
+<code class="sig-name descname"><span class="pre">compression_type</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.compression_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>compressor algorithm to use.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.contact_info">
+<code class="sig-name descname"><span class="pre">contact_info</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.contact_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>A trait whose value must be an instance of a specified class.</p>
+<p>The value can also be an instance of a subclass of the specified class.</p>
+<p>Subclasses can declare default classes by overriding the klass attribute</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.context_metadata">
+<code class="sig-name descname"><span class="pre">context_metadata</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.context_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Additional metadata keywords and values that describe this data. This should be a dictionary where the keys will be appended to the CONTEXT section of the output file’s attributes. Keys can be hierarchical by using a space between each level, e.g. <code class="docutils literal notranslate"><span class="pre">SIMULATION</span> <span class="pre">PRODUCTION</span></code> would make a key PRODUCTION grouped under the key SIMULATION</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.datalevels">
+<code class="sig-name descname"><span class="pre">datalevels</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.datalevels" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a list of data levels requested</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.image_dtype">
+<code class="sig-name descname"><span class="pre">image_dtype</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.image_dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>A trait for unicode strings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.image_offset">
+<code class="sig-name descname"><span class="pre">image_offset</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.image_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>An int trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.image_scale">
+<code class="sig-name descname"><span class="pre">image_scale</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.image_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.instrument_info">
+<code class="sig-name descname"><span class="pre">instrument_info</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.instrument_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>A trait whose value must be an instance of a specified class.</p>
+<p>The value can also be an instance of a subclass of the specified class.</p>
+<p>Subclasses can declare default classes by overriding the klass attribute</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.output_path">
+<code class="sig-name descname"><span class="pre">output_path</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.output_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>output filename</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.overwrite">
+<code class="sig-name descname"><span class="pre">overwrite</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.overwrite" title="Permalink to this definition">¶</a></dt>
+<dd><p>overwrite output file if it exists</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.peak_time_dtype">
+<code class="sig-name descname"><span class="pre">peak_time_dtype</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.peak_time_dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>A trait for unicode strings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.peak_time_offset">
+<code class="sig-name descname"><span class="pre">peak_time_offset</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.peak_time_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>An int trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.peak_time_scale">
+<code class="sig-name descname"><span class="pre">peak_time_scale</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.peak_time_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.transform_image">
+<code class="sig-name descname"><span class="pre">transform_image</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.transform_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean (True, False) trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.transform_peak_time">
+<code class="sig-name descname"><span class="pre">transform_peak_time</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.transform_peak_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean (True, False) trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.transform_waveform">
+<code class="sig-name descname"><span class="pre">transform_waveform</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.transform_waveform" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean (True, False) trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.waveform_dtype">
+<code class="sig-name descname"><span class="pre">waveform_dtype</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.waveform_dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>A trait for unicode strings.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.waveform_offset">
+<code class="sig-name descname"><span class="pre">waveform_offset</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.waveform_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>An int trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.waveform_scale">
+<code class="sig-name descname"><span class="pre">waveform_scale</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.waveform_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>A float trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_images">
+<code class="sig-name descname"><span class="pre">write_images</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store DL1 Images if available</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_index_tables">
+<code class="sig-name descname"><span class="pre">write_index_tables</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_index_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate PyTables index datasets for all tables that contain an event_id or tel_id. These speed up in-kernel pytables operations,but add some overhead to the file. They can also be generated and attached after the file is written</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_muon_parameters">
+<code class="sig-name descname"><span class="pre">write_muon_parameters</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_muon_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store muon parameters if available</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_parameters">
+<code class="sig-name descname"><span class="pre">write_parameters</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store DL1 image parameters if available</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_raw_waveforms">
+<code class="sig-name descname"><span class="pre">write_raw_waveforms</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_raw_waveforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store R0 waveforms if available</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_showers">
+<code class="sig-name descname"><span class="pre">write_showers</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_showers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store DL2 stereo shower parameters if available</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.io.DataWriter.write_waveforms">
+<code class="sig-name descname"><span class="pre">write_waveforms</span></code><a class="headerlink" href="#ctapipe.io.DataWriter.write_waveforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store R1 waveforms if available</p>
+</dd></dl>
+
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt id="ctapipe.io.DataWriter.__call__">
+<code class="sig-name descname"><span class="pre">__call__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer" title="ctapipe.containers.ArrayEventContainer"><span class="pre">ctapipe.containers.ArrayEventContainer</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/datawriter.html#DataWriter.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.DataWriter.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a single event to the output file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.DataWriter.finish">
+<code class="sig-name descname"><span class="pre">finish</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/datawriter.html#DataWriter.finish"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.DataWriter.finish" title="Permalink to this definition">¶</a></dt>
+<dd><p>called after all events are done</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.DataWriter.table_name">
+<code class="sig-name descname"><span class="pre">table_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tel_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/datawriter.html#DataWriter.table_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.DataWriter.table_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>construct dataset table names depending on chosen split method</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.io.DataWriter.write_simulation_histograms">
+<code class="sig-name descname"><span class="pre">write_simulation_histograms</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/io/datawriter.html#DataWriter.write_simulation_histograms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.io.DataWriter.write_simulation_histograms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the distribution of thrown showers</p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>this only runs if this is a simulation file. The current
+implementation is a bit of a hack and implies we should improve
+SimTelEventSource to read this info.</p></li>
+<li><p>Currently the histograms are at the end of the simtel file, so if
+max_events is set to non-zero, the end of the file may not be read,
+and this no histograms will be found.</p></li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.io.DataLevel.html" class="btn btn-neutral float-left" title="DataLevel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe.io.tableio.TableReader.html" class="btn btn-neutral float-right" title="TableReader" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

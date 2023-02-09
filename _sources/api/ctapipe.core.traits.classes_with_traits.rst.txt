@@ -1,0 +1,6 @@
+classes_with_traits
+===================
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autofunction:: classes_with_traits

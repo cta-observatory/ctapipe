@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.coordinates.ground_frames &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../coordinates.html">ctapipe.coordinates</a></li>
+      <li class="breadcrumb-item active">ctapipe.coordinates.ground_frames</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.coordinates.ground_frames</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module defines the important coordinate systems to be used in</span>
+<span class="sd">reconstruction with the CTA pipeline and the transformations between</span>
+<span class="sd">this different systems. Frames and transformations are defined using</span>
+<span class="sd">the astropy.coordinates framework. This module defines transformations</span>
+<span class="sd">for ground based cartesian and planar systems.</span>
+
+<span class="sd">For examples on usage see examples/coordinate_transformations.py</span>
+
+<span class="sd">This code is based on the coordinate transformations performed in the</span>
+<span class="sd">read_hess code</span>
+
+<span class="sd">TODO:</span>
+
+<span class="sd">- Tests Tests Tests!</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ITRS</span><span class="p">,</span>
+    <span class="n">AffineTransform</span><span class="p">,</span>
+    <span class="n">AltAz</span><span class="p">,</span>
+    <span class="n">BaseCoordinateFrame</span><span class="p">,</span>
+    <span class="n">CartesianRepresentation</span><span class="p">,</span>
+    <span class="n">CoordinateAttribute</span><span class="p">,</span>
+    <span class="n">EarthLocationAttribute</span><span class="p">,</span>
+    <span class="n">FunctionTransform</span><span class="p">,</span>
+    <span class="n">RepresentationMapping</span><span class="p">,</span>
+    <span class="n">frame_transform_graph</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.units.quantity</span> <span class="kn">import</span> <span class="n">Quantity</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;GroundFrame&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TiltedGroundFrame&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;project_to_ground&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EastingNorthingFrame&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_altaz_to_earthlocation</span><span class="p">(</span><span class="n">altaz</span><span class="p">):</span>
+    <span class="n">local_itrs</span> <span class="o">=</span> <span class="n">altaz</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ITRS</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">altaz</span><span class="o">.</span><span class="n">location</span><span class="p">))</span>
+    <span class="n">itrs</span> <span class="o">=</span> <span class="n">ITRS</span><span class="p">(</span><span class="n">local_itrs</span><span class="o">.</span><span class="n">cartesian</span> <span class="o">+</span> <span class="n">altaz</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">()</span><span class="o">.</span><span class="n">cartesian</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">itrs</span><span class="o">.</span><span class="n">earth_location</span>
+
+
+<span class="k">def</span> <span class="nf">_earthlocation_to_altaz</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">reference_location</span><span class="p">):</span>
+    <span class="c1"># See</span>
+    <span class="c1"># https://docs.astropy.org/en/stable/coordinates/common_errors.html#altaz-calculations-for-earth-based-objects</span>
+    <span class="c1"># for why this is necessary and we cannot just do</span>
+    <span class="c1"># `get_itrs().transform_to(AltAz())`</span>
+    <span class="n">itrs_cart</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">()</span><span class="o">.</span><span class="n">cartesian</span>
+    <span class="n">itrs_ref_cart</span> <span class="o">=</span> <span class="n">reference_location</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">()</span><span class="o">.</span><span class="n">cartesian</span>
+    <span class="n">local_itrs</span> <span class="o">=</span> <span class="n">ITRS</span><span class="p">(</span><span class="n">itrs_cart</span> <span class="o">-</span> <span class="n">itrs_ref_cart</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">reference_location</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">local_itrs</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">AltAz</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">reference_location</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="GroundFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.GroundFrame.html#ctapipe.coordinates.GroundFrame">[docs]</a><span class="k">class</span> <span class="nc">GroundFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ground coordinate frame.  The ground coordinate frame is a simple</span>
+<span class="sd">    cartesian frame describing the 3 dimensional position of objects</span>
+<span class="sd">    compared to the array ground level in relation to the nomial</span>
+<span class="sd">    centre of the array.  Typically this frame will be used for</span>
+<span class="sd">    describing the position on telescopes and equipment.</span>
+<span class="sd">    In this frame x points north, y points west and z is meters above array center.</span>
+
+<span class="sd">    Frame attributes: None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span>
+    <span class="n">reference_location</span> <span class="o">=</span> <span class="n">EarthLocationAttribute</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GroundFrame.to_earth_location"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.GroundFrame.html#ctapipe.coordinates.GroundFrame.to_earth_location">[docs]</a>    <span class="k">def</span> <span class="nf">to_earth_location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert this GroundFrame coordinate into an `astropy.coordinates.EarthLocation`</span>
+
+<span class="sd">        This requires that the ``reference_location`` is set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># in astropy, x points north, y points east, so we need a minus for y.</span>
+        <span class="n">cart</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">altaz</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_altaz_to_earthlocation</span><span class="p">(</span><span class="n">altaz</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GroundFrame.from_earth_location"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.GroundFrame.html#ctapipe.coordinates.GroundFrame.from_earth_location">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_earth_location</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">reference_location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert `~astropy.coordinates.EarthLocation` into Groundframe.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        location : astropy.coordinates.EarthLocation</span>
+<span class="sd">            The location to convert</span>
+<span class="sd">        reference_location : astropy.coordinates.EarthLocation</span>
+<span class="sd">            Reference location for the GroundFrame</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ground_frame : GroundFrame</span>
+<span class="sd">            EarthLocation converted to GroundFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">altaz</span> <span class="o">=</span> <span class="n">_earthlocation_to_altaz</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">reference_location</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">altaz</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+        <span class="c1"># in astropy, x points north, y points east, so we need a minus for y.</span>
+        <span class="k">return</span> <span class="n">GroundFrame</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=-</span><span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">reference_location</span><span class="o">=</span><span class="n">reference_location</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">observation_level</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Height of the reference location&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span><span class="o">.</span><span class="n">height</span></div>
+
+
+<div class="viewcode-block" id="EastingNorthingFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.EastingNorthingFrame.html#ctapipe.coordinates.EastingNorthingFrame">[docs]</a><span class="k">class</span> <span class="nc">EastingNorthingFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;GroundFrame but in standard Easting/Northing coordinates instead of</span>
+<span class="sd">    SimTel/Corsika conventions</span>
+
+<span class="sd">    Frame attributes: None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span>
+    <span class="n">reference_location</span> <span class="o">=</span> <span class="n">EarthLocationAttribute</span><span class="p">()</span>
+
+    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">CartesianRepresentation</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;easting&quot;</span><span class="p">),</span>
+            <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;northing&quot;</span><span class="p">),</span>
+            <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="EastingNorthingFrame.to_earth_location"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.EastingNorthingFrame.html#ctapipe.coordinates.EastingNorthingFrame.to_earth_location">[docs]</a>    <span class="k">def</span> <span class="nf">to_earth_location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># in astropy, x points north, y points east</span>
+        <span class="n">cart</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">northing</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">easting</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+        <span class="n">altaz</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">cart</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_altaz_to_earthlocation</span><span class="p">(</span><span class="n">altaz</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EastingNorthingFrame.from_earth_location"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.EastingNorthingFrame.html#ctapipe.coordinates.EastingNorthingFrame.from_earth_location">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_earth_location</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">reference_location</span><span class="p">):</span>
+        <span class="n">altaz</span> <span class="o">=</span> <span class="n">_earthlocation_to_altaz</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">reference_location</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">altaz</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+        <span class="c1"># in astropy, x points north, y points east</span>
+        <span class="k">return</span> <span class="n">GroundFrame</span><span class="p">(</span>
+            <span class="n">northing</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">easting</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+            <span class="n">reference_location</span><span class="o">=</span><span class="n">reference_location</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">observation_level</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_location</span><span class="o">.</span><span class="n">height</span></div>
+
+
+<div class="viewcode-block" id="TiltedGroundFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.ground_frames.TiltedGroundFrame.html#ctapipe.coordinates.TiltedGroundFrame">[docs]</a><span class="k">class</span> <span class="nc">TiltedGroundFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tilted ground coordinate frame.  The tilted ground coordinate frame</span>
+<span class="sd">    is a cartesian system describing the 2 dimensional projected</span>
+<span class="sd">    positions of objects in a tilted plane described by</span>
+<span class="sd">    pointing_direction Typically this frame will be used for the</span>
+<span class="sd">    reconstruction of the shower core position</span>
+
+<span class="sd">    Frame attributes:</span>
+
+<span class="sd">    * ``pointing_direction``</span>
+<span class="sd">        Alt,Az direction of the tilted reference plane</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span>
+    <span class="c1"># Pointing direction of the tilted system (alt,az),</span>
+    <span class="c1"># could be the telescope pointing direction or the reconstructed shower</span>
+    <span class="c1"># direction</span>
+    <span class="n">pointing_direction</span> <span class="o">=</span> <span class="n">CoordinateAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">AltAz</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_shower_trans_matrix</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get Transformation matrix for conversion from the ground system to</span>
+<span class="sd">    the Tilted system and back again (This function is directly lifted</span>
+<span class="sd">    from read_hess, probably could be streamlined using python</span>
+<span class="sd">    functionality)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    azimuth: float or ndarray</span>
+<span class="sd">        Azimuth angle in radians of the tilted system used</span>
+<span class="sd">    altitude: float or ndarray</span>
+<span class="sd">        Altitude angle in radiuan of the tilted system used</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    trans: 3x3 ndarray transformation matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cos_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">altitude</span><span class="p">)</span>  <span class="c1"># this is the same as np.cos(zenith) but faster</span>
+    <span class="n">sin_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">altitude</span><span class="p">)</span>
+    <span class="n">cos_az</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
+    <span class="n">sin_az</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
+
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span><span class="n">cos_z</span> <span class="o">*</span> <span class="n">cos_az</span><span class="p">,</span> <span class="o">-</span><span class="n">cos_z</span> <span class="o">*</span> <span class="n">sin_az</span><span class="p">,</span> <span class="o">-</span><span class="n">sin_z</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">sin_az</span><span class="p">,</span> <span class="n">cos_az</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">sin_z</span><span class="p">)],</span>
+            <span class="p">[</span><span class="n">sin_z</span> <span class="o">*</span> <span class="n">cos_az</span><span class="p">,</span> <span class="o">-</span><span class="n">sin_z</span> <span class="o">*</span> <span class="n">sin_az</span><span class="p">,</span> <span class="n">cos_z</span><span class="p">],</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">inverse</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">trans</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">trans</span>
+
+
+<span class="k">def</span> <span class="nf">_get_xyz</span><span class="p">(</span><span class="n">coord</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Essentially the same as coord.cartesian.xyz, but much faster by</span>
+<span class="sd">    avoiding some astropy bottlenecks.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># this is a speed optimization. Much faster to use data if already a</span>
+    <span class="c1"># Cartesian object</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coord</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">CartesianRepresentation</span><span class="p">):</span>
+        <span class="n">cart</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cart</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">cartesian</span>
+
+    <span class="c1"># this is ~5x faster then cart.xyz</span>
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">([</span><span class="n">cart</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">cart</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">cart</span><span class="o">.</span><span class="n">z</span><span class="p">])</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">,</span> <span class="n">TiltedGroundFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">ground_to_tilted</span><span class="p">(</span><span class="n">ground_coord</span><span class="p">,</span> <span class="n">tilted_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformation from ground system to tilted ground system</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ground_coord: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        Coordinate in GroundFrame</span>
+<span class="sd">    tilted_frame: `ctapipe.coordinates.TiltedFrame`</span>
+<span class="sd">        Frame to transform to</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    SkyCoordinate transformed to `tilted_frame` coordinates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xyz_grd</span> <span class="o">=</span> <span class="n">_get_xyz</span><span class="p">(</span><span class="n">ground_coord</span><span class="p">)</span>
+
+    <span class="c1"># convert to rad first and substract. Faster than .zen</span>
+    <span class="n">altitude</span> <span class="o">=</span> <span class="n">tilted_frame</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">tilted_frame</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+    <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">_get_shower_trans_matrix</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="p">)</span>
+
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij...,j...-&gt;i...&quot;</span><span class="p">,</span> <span class="n">rotation_matrix</span><span class="p">,</span> <span class="n">xyz_grd</span><span class="p">)</span>
+
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="o">*</span><span class="n">vec</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tilted_frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">representation</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">TiltedGroundFrame</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">tilted_to_ground</span><span class="p">(</span><span class="n">tilted_coord</span><span class="p">,</span> <span class="n">ground_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformation from tilted ground system to  ground system</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tilted_coord: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        TiltedGroundFrame system</span>
+<span class="sd">    ground_frame: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        GroundFrame system</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    GroundFrame coordinates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xyz_tilt</span> <span class="o">=</span> <span class="n">_get_xyz</span><span class="p">(</span><span class="n">tilted_coord</span><span class="p">)</span>
+
+    <span class="n">altitude</span> <span class="o">=</span> <span class="n">tilted_coord</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">tilted_coord</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+    <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">_get_shower_trans_matrix</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij...,j...-&gt;i...&quot;</span><span class="p">,</span> <span class="n">rotation_matrix</span><span class="p">,</span> <span class="n">xyz_tilt</span><span class="p">)</span>
+
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="o">*</span><span class="n">vec</span><span class="p">)</span>
+
+    <span class="n">grd</span> <span class="o">=</span> <span class="n">ground_frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">representation</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">grd</span>
+
+
+<div class="viewcode-block" id="project_to_ground"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.project_to_ground.html#ctapipe.coordinates.project_to_ground">[docs]</a><span class="k">def</span> <span class="nf">project_to_ground</span><span class="p">(</span><span class="n">tilt_system</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Project position in the tilted system onto the ground. This is</span>
+<span class="sd">    needed as the standard transformation will return the 3d position</span>
+<span class="sd">    of the tilted frame. This projection may ultimately be the</span>
+<span class="sd">    standard use case so may be implemented in the tilted to ground</span>
+<span class="sd">    transformation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tilt_system: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        coorinate in the the tilted ground system</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Projection of tilted system onto the ground (GroundSystem)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ground_system</span> <span class="o">=</span> <span class="n">tilt_system</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GroundFrame</span><span class="p">)</span>
+
+    <span class="n">unit</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">unit</span>
+    <span class="n">x_initial</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">y_initial</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">z_initial</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">_get_shower_trans_matrix</span><span class="p">(</span>
+        <span class="n">tilt_system</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">tilt_system</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">x_projected</span> <span class="o">=</span> <span class="n">x_initial</span> <span class="o">-</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">z_initial</span> <span class="o">/</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">y_projected</span> <span class="o">=</span> <span class="n">y_initial</span> <span class="o">-</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">z_initial</span> <span class="o">/</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">GroundFrame</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">x_projected</span><span class="p">,</span> <span class="n">unit</span><span class="p">),</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">y_projected</span><span class="p">,</span> <span class="n">unit</span><span class="p">),</span>
+        <span class="n">z</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">ground_to_ground</span><span class="p">(</span><span class="n">ground_coords</span><span class="p">,</span> <span class="n">ground_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Null transform for going from ground to ground, since there are no</span>
+<span class="sd">    attributes of the GroundSystem&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ground_coords</span>
+
+
+<span class="c1"># Matrices for transforming between GroundFrame and EastingNorthingFrame</span>
+<span class="n">NO_OFFSET</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">Quantity</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">))</span>
+<span class="n">GROUND_TO_EASTNORTH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">,</span> <span class="n">EastingNorthingFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">ground_to_easting_northing</span><span class="p">(</span><span class="n">ground_coords</span><span class="p">,</span> <span class="n">eastnorth_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    convert GroundFrame points into eastings/northings for plotting purposes</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">GROUND_TO_EASTNORTH</span><span class="p">,</span> <span class="n">NO_OFFSET</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">EastingNorthingFrame</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">easting_northing_to_ground</span><span class="p">(</span><span class="n">eastnorth_coords</span><span class="p">,</span> <span class="n">ground_frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    convert  eastings/northings back to GroundFrame</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">GROUND_TO_EASTNORTH</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">NO_OFFSET</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

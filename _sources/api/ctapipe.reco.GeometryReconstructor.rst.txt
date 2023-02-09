@@ -1,0 +1,7 @@
+GeometryReconstructor
+=====================
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: GeometryReconstructor
+   :show-inheritance:

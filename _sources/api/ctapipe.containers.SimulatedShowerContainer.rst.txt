@@ -1,0 +1,35 @@
+SimulatedShowerContainer
+========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: SimulatedShowerContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimulatedShowerContainer.alt
+      ~SimulatedShowerContainer.az
+      ~SimulatedShowerContainer.core_x
+      ~SimulatedShowerContainer.core_y
+      ~SimulatedShowerContainer.energy
+      ~SimulatedShowerContainer.h_first_int
+      ~SimulatedShowerContainer.meta
+      ~SimulatedShowerContainer.prefix
+      ~SimulatedShowerContainer.shower_primary_id
+      ~SimulatedShowerContainer.x_max
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: alt
+   .. autoattribute:: az
+   .. autoattribute:: core_x
+   .. autoattribute:: core_y
+   .. autoattribute:: energy
+   .. autoattribute:: h_first_int
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: shower_primary_id
+   .. autoattribute:: x_max

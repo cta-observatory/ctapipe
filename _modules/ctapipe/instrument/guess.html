@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.instrument.guess &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.instrument.guess</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.instrument.guess</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Methods for guessing details about a telescope from some metadata, so that</span>
+<span class="sd">we can create TelescopeDescriptions from Monte-Carlo where some</span>
+<span class="sd">parameters like the names of the camera and optics structure are not</span>
+<span class="sd">stored in the file.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.optics</span> <span class="kn">import</span> <span class="n">ReflectorShape</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;GuessingKey&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GuessingResult&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;guess_telescope&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;unknown_telescope&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;type_from_mirror_area&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">GuessingKey</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;GuessingKey&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;n_pixels&quot;</span><span class="p">,</span> <span class="s2">&quot;focal_length&quot;</span><span class="p">,</span> <span class="s2">&quot;n_mirror_tiles&quot;</span><span class="p">],</span>
+    <span class="n">defaults</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,),</span>  <span class="c1"># Mirror Tiles are optional</span>
+<span class="p">)</span>
+
+<span class="n">GuessingResult</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;GuessingResult&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;camera_name&quot;</span><span class="p">,</span> <span class="s2">&quot;n_mirrors&quot;</span><span class="p">,</span> <span class="s2">&quot;reflector_shape&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_build_lookup_tree</span><span class="p">(</span><span class="n">telescopes</span><span class="p">):</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">telescopes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">n_pixels</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">:</span>
+            <span class="n">tree</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">focal_length</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">]:</span>
+            <span class="n">tree</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">][</span><span class="n">k</span><span class="o">.</span><span class="n">focal_length</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">][</span><span class="n">k</span><span class="o">.</span><span class="n">focal_length</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">n_mirror_tiles</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">n_mirror_tiles</span><span class="p">]</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GuessingKeys are not unique: </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">other</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">n_mirror_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">return</span> <span class="n">tree</span>
+
+
+<span class="c1"># focal length must have at most two digits after period</span>
+<span class="c1"># as we round the lookup to two digits</span>
+<span class="n">_sc</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">SCHWARZSCHILD_COUDER</span>
+<span class="n">_dc</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">DAVIES_COTTON</span>
+<span class="n">_h</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">HYBRID</span>
+<span class="n">_p</span> <span class="o">=</span> <span class="n">ReflectorShape</span><span class="o">.</span><span class="n">PARABOLIC</span>
+
+<span class="c1"># This is a list of tuples instead of a dict to be able to check for duplicates</span>
+<span class="n">TELESCOPE_NAMES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">2048</span><span class="p">,</span> <span class="mf">2.28</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;SST&quot;</span><span class="p">,</span> <span class="s2">&quot;GCT&quot;</span><span class="p">,</span> <span class="s2">&quot;CHEC&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">_sc</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">2368</span><span class="p">,</span> <span class="mf">2.15</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;SST&quot;</span><span class="p">,</span> <span class="s2">&quot;ASTRI&quot;</span><span class="p">,</span> <span class="s2">&quot;ASTRICam&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">_sc</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">2048</span><span class="p">,</span> <span class="mf">2.15</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;SST&quot;</span><span class="p">,</span> <span class="s2">&quot;ASTRI&quot;</span><span class="p">,</span> <span class="s2">&quot;CHEC&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">_sc</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1296</span><span class="p">,</span> <span class="mf">5.60</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;SST&quot;</span><span class="p">,</span> <span class="s2">&quot;1M&quot;</span><span class="p">,</span> <span class="s2">&quot;DigiCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_dc</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1764</span><span class="p">,</span> <span class="mf">16.0</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="s2">&quot;FlashCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_h</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1855</span><span class="p">,</span> <span class="mf">16.0</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="s2">&quot;NectarCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_h</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1855</span><span class="p">,</span> <span class="mf">28.0</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;LSTCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_p</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">11328</span><span class="p">,</span> <span class="mf">5.59</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="s2">&quot;SCT&quot;</span><span class="p">,</span> <span class="s2">&quot;SCTCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_sc</span><span class="p">)),</span>
+    <span class="c1"># Non-CTA Telescopes</span>
+    <span class="p">(</span>
+        <span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1039</span><span class="p">,</span> <span class="mf">16.97</span><span class="p">,</span> <span class="mi">964</span><span class="p">),</span>
+        <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGIC-1&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGICCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_p</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1039</span><span class="p">,</span> <span class="mf">16.97</span><span class="p">,</span> <span class="mi">247</span><span class="p">),</span>
+        <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGIC-2&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGICCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_p</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1039</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">,</span> <span class="mi">964</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGIC-1&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGICCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_p</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1039</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">,</span> <span class="mi">247</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGIC-2&quot;</span><span class="p">,</span> <span class="s2">&quot;MAGICCam&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_p</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">960</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="s2">&quot;HESS-I&quot;</span><span class="p">,</span> <span class="s2">&quot;HESS-I&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_dc</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">2048</span><span class="p">,</span> <span class="mf">36.0</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;LST&quot;</span><span class="p">,</span> <span class="s2">&quot;HESS-II&quot;</span><span class="p">,</span> <span class="s2">&quot;HESS-II&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_p</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">GuessingKey</span><span class="p">(</span><span class="mi">1440</span><span class="p">,</span> <span class="mf">4.89</span><span class="p">),</span> <span class="n">GuessingResult</span><span class="p">(</span><span class="s2">&quot;SST&quot;</span><span class="p">,</span> <span class="s2">&quot;FACT&quot;</span><span class="p">,</span> <span class="s2">&quot;FACT&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_h</span><span class="p">)),</span>
+<span class="p">]</span>
+<span class="n">LOOKUP_TREE</span> <span class="o">=</span> <span class="n">_build_lookup_tree</span><span class="p">(</span><span class="n">TELESCOPE_NAMES</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="guess_telescope"><a class="viewcode-back" href="../../../api/ctapipe.instrument.guess_telescope.html#ctapipe.instrument.guess_telescope">[docs]</a><span class="k">def</span> <span class="nf">guess_telescope</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">focal_length</span><span class="p">,</span> <span class="n">n_mirror_tiles</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From n_pixels of the camera and the focal_length,</span>
+<span class="sd">    guess which telescope we are dealing with.</span>
+<span class="sd">    This is mainly needed to add human readable names</span>
+<span class="sd">    to telescopes read from simtel array.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_pixels: int</span>
+<span class="sd">        number of pixels of the telescope&#39;s camera</span>
+<span class="sd">    focal_length: float or u.Quantity[length]</span>
+<span class="sd">        Focal length, either in m or as astropy quantity</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    result: GuessingResult</span>
+<span class="sd">        A namedtuple having type, telescope_name, camera_name and n_mirrors fields</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">focal_length</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">focal_length</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">LOOKUP_TREE</span><span class="p">[</span><span class="n">n_pixels</span><span class="p">][</span><span class="n">focal_length</span><span class="p">]</span>
+        <span class="c1"># first check with n_mirror_tiles</span>
+        <span class="n">tel</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">n_mirror_tiles</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tel</span>
+
+        <span class="c1"># fallback to &quot;not needed mirror tiles&quot;</span>
+        <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown telescope: n_pixel=</span><span class="si">{</span><span class="n">n_pixels</span><span class="si">}</span><span class="s2">, f=</span><span class="si">{</span><span class="n">focal_length</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">mirror_area</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">type_from_mirror_area</span><span class="p">(</span><span class="n">mirror_area</span><span class="p">):</span>
+    <span class="n">mirror_diameter</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mirror_area</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mirror_diameter</span> <span class="o">&lt;</span> <span class="mi">8</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;SST&quot;</span>
+
+    <span class="k">if</span> <span class="n">mirror_diameter</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;MST&quot;</span>
+
+    <span class="k">return</span> <span class="s2">&quot;LST&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">unknown_telescope</span><span class="p">(</span><span class="n">mirror_area</span><span class="p">,</span> <span class="n">n_pixels</span><span class="p">,</span> <span class="n">n_mirrors</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a GuessingResult for an unknown_telescope&quot;&quot;&quot;</span>
+    <span class="c1"># this allows passing a plain number in square meter and any quantity</span>
+    <span class="c1"># with an area unit</span>
+    <span class="n">mirror_area</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mirror_area</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">GuessingResult</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">type_from_mirror_area</span><span class="p">(</span><span class="n">mirror_area</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;UNKNOWN-</span><span class="si">{</span><span class="n">mirror_area</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">M2&quot;</span><span class="p">,</span>
+        <span class="n">camera_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;UNKNOWN-</span><span class="si">{</span><span class="n">n_pixels</span><span class="si">}</span><span class="s2">PX&quot;</span><span class="p">,</span>
+        <span class="n">n_mirrors</span><span class="o">=</span><span class="n">n_mirrors</span><span class="p">,</span>
+        <span class="n">reflector_shape</span><span class="o">=</span><span class="s2">&quot;UNKNOWN&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

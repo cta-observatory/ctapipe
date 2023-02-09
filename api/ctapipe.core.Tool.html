@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tool &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Field" href="ctapipe.core.Field.html" />
+    <link rel="prev" title="Container" href="ctapipe.core.Container.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/core/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/core/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/core/index.html#module-ctapipe.core">ctapipe.core Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/core/index.html#module-ctapipe.core.component">ctapipe.core.component Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/core/index.html#module-ctapipe.core.telescope_component">ctapipe.core.telescope_component Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/core/index.html#module-ctapipe.core.tool">ctapipe.core.tool Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/core/index.html#module-ctapipe.core.container">ctapipe.core.container Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+      <li class="breadcrumb-item active">Tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.core.Tool.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="tool">
+<h1>Tool<a class="headerlink" href="#tool" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.core.Tool">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.core.</span></code><code class="sig-name descname"><span class="pre">Tool</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://traitlets.readthedocs.io/en/stable/config-api.html#traitlets.config.Application" title="(in traitlets v5.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">traitlets.config.application.Application</span></code></a></p>
+<p>A base class for all executable tools (applications) that handles
+configuration loading/saving, logging, command-line processing,
+and provenance meta-data handling. It is based on
+<a class="reference external" href="https://traitlets.readthedocs.io/en/stable/config-api.html#traitlets.config.Application" title="(in traitlets v5.9)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">traitlets.config.Application</span></code></a>. Tools may contain configurable
+<a class="reference internal" href="ctapipe.core.Component.html#ctapipe.core.Component" title="ctapipe.core.Component"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Component</span></code></a> classes that do work, and their
+configuration parameters will propagate automatically to the
+<a class="reference internal" href="#ctapipe.core.Tool" title="ctapipe.core.Tool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool</span></code></a>.</p>
+<p>Tool developers should create sub-classes, and a name,
+description, usage examples should be added by defining the
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code> and <code class="docutils literal notranslate"><span class="pre">examples</span></code> class attributes as
+strings. The <code class="docutils literal notranslate"><span class="pre">aliases</span></code> attribute can be set to cause a lower-level
+<a class="reference internal" href="ctapipe.core.Component.html#ctapipe.core.Component" title="ctapipe.core.Component"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Component</span></code></a> parameter to become a high-level command-line
+parameter (See example below). The <a class="reference internal" href="#ctapipe.core.Tool.setup" title="ctapipe.core.Tool.setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code></a>, <a class="reference internal" href="#ctapipe.core.Tool.start" title="ctapipe.core.Tool.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>, and
+<a class="reference internal" href="#ctapipe.core.Tool.finish" title="ctapipe.core.Tool.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish</span></code></a> methods should be defined in the sub-class.</p>
+<p>Additionally, any <a class="reference internal" href="ctapipe.core.Component.html#ctapipe.core.Component" title="ctapipe.core.Component"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Component</span></code></a> used within the <a class="reference internal" href="#ctapipe.core.Tool" title="ctapipe.core.Tool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool</span></code></a>
+should have their class in a list in the <code class="docutils literal notranslate"><span class="pre">classes</span></code> attribute,
+which will automatically add their configuration parameters to the
+tool.</p>
+<p>Once a tool is constructed and the abstract methods are implemented,
+the user can call the <a class="reference internal" href="#ctapipe.core.Tool.run" title="ctapipe.core.Tool.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a> method to setup and start it.</p>
+<p>Tools have an <a class="reference external" href="https://docs.python.org/3.8/library/contextlib.html#contextlib.ExitStack" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExitStack</span></code></a> to guarantee cleanup tasks are
+run when the tool terminates, also in case of errors. If a task needs
+a cleanup, it must be a context manager and <code class="docutils literal notranslate"><span class="pre">Tool.enter_context</span></code>
+must be called on the object. This will guarantee that the <code class="docutils literal notranslate"><span class="pre">__exit__</span></code>
+method of the context manager is called after the tool has finished
+executing. This happens after the <code class="docutils literal notranslate"><span class="pre">finish</span></code> method has run or
+in case of exceptions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">Tool</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Unicode</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">MyTool</span><span class="p">(</span><span class="n">Tool</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;mytool&quot;</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;do some things and stuff&quot;</span>
+    <span class="n">aliases</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">({</span><span class="s1">&#39;infile&#39;</span><span class="p">:</span> <span class="s1">&#39;AdvancedComponent.infile&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;iterations&#39;</span><span class="p">:</span> <span class="s1">&#39;MyTool.iterations&#39;</span><span class="p">})</span>
+
+    <span class="c1"># Which classes are registered for configuration</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">MyComponent</span><span class="p">,</span> <span class="n">AdvancedComponent</span><span class="p">,</span> <span class="n">SecondaryMyComponent</span><span class="p">]</span>
+
+    <span class="c1"># local configuration parameters</span>
+    <span class="n">iterations</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of times to run&quot;</span><span class="p">,</span>
+                         <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comp</span> <span class="o">=</span> <span class="n">MyComponent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comp2</span> <span class="o">=</span> <span class="n">SecondaryMyComponent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># correct use of component that is a context manager</span>
+        <span class="c1"># using it like this makes sure __exit__ will be called</span>
+        <span class="c1"># at the end of Tool.run, even in case of exceptions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comp3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">MyComponent</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">advanced</span> <span class="o">=</span> <span class="n">AdvancedComponent</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Performing </span><span class="si">{}</span><span class="s2"> iterations...&quot;</span>                              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ITERATION </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comp</span><span class="o">.</span><span class="n">do_thing</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comp2</span><span class="o">.</span><span class="n">do_thing</span><span class="p">()</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Shutting down.&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">tool</span> <span class="o">=</span> <span class="n">MyTool</span><span class="p">()</span>
+    <span class="n">tool</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;main&quot;</span><span class="p">:</span>
+   <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If this <code class="docutils literal notranslate"><span class="pre">main()</span></code> function is registered in <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> under
+<em>entry_points</em>, it will become a command-line tool (see examples
+in the <code class="docutils literal notranslate"><span class="pre">ctapipe/tools</span></code> subdirectory).</p>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.config_files" title="ctapipe.core.Tool.config_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">config_files</span></code></a></p></td>
+<td><p>An instance of a Python list.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.log_config" title="ctapipe.core.Tool.log_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_config</span></code></a></p></td>
+<td><p>An instance of a Python dict.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.log_file" title="ctapipe.core.Tool.log_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_file</span></code></a></p></td>
+<td><p>Filename for the log</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.log_file_level" title="ctapipe.core.Tool.log_file_level"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_file_level</span></code></a></p></td>
+<td><p>Logging Level for File Logging</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.overwrite" title="ctapipe.core.Tool.overwrite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overwrite</span></code></a></p></td>
+<td><p>A boolean (True, False) trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.provenance_log" title="ctapipe.core.Tool.provenance_log"><code class="xref py py-obj docutils literal notranslate"><span class="pre">provenance_log</span></code></a></p></td>
+<td><p>A path Trait for input/output files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.quiet" title="ctapipe.core.Tool.quiet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quiet</span></code></a></p></td>
+<td><p>A boolean (True, False) trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.version_string" title="ctapipe.core.Tool.version_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">version_string</span></code></a></p></td>
+<td><p>a formatted version string with version, release, and git hash</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.add_component" title="ctapipe.core.Tool.add_component"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_component</span></code></a>(component_instance)</p></td>
+<td><p>constructs and adds a component to the list of registered components, so that later we can ask for the current configuration of all instances, e.g.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.check_output" title="ctapipe.core.Tool.check_output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_output</span></code></a>(*output_paths)</p></td>
+<td><p>Test if output files exist and if they do, throw an error unless <code class="docutils literal notranslate"><span class="pre">self.overwrite</span></code> is set to True.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.enter_context" title="ctapipe.core.Tool.enter_context"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enter_context</span></code></a>(context_manager)</p></td>
+<td><p>Add a new context manager to the <a class="reference external" href="https://docs.python.org/3.8/library/contextlib.html#contextlib.ExitStack" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExitStack</span></code></a> of this Tool</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.finish" title="ctapipe.core.Tool.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish</span></code></a>()</p></td>
+<td><p>Finish up.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.get_current_config" title="ctapipe.core.Tool.get_current_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_config</span></code></a>()</p></td>
+<td><p>return the current configuration as a dict (e.g.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.initialize" title="ctapipe.core.Tool.initialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize</span></code></a>([argv])</p></td>
+<td><p>handle config and any other low-level setup</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.load_config_file" title="ctapipe.core.Tool.load_config_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_config_file</span></code></a>(path)</p></td>
+<td><p>Load a configuration file in one of the supported formats, and merge it with the current config if it exists.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.run" title="ctapipe.core.Tool.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>([argv, raises])</p></td>
+<td><p>Run the tool.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.setup" title="ctapipe.core.Tool.setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code></a>()</p></td>
+<td><p>Set up the tool.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.start" title="ctapipe.core.Tool.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>()</p></td>
+<td><p>Main function of the tool.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.Tool.update_logging_config" title="ctapipe.core.Tool.update_logging_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_logging_config</span></code></a>()</p></td>
+<td><p>Update the configuration of loggers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.Tool.write_provenance" title="ctapipe.core.Tool.write_provenance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_provenance</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.config_files">
+<code class="sig-name descname"><span class="pre">config_files</span></code><a class="headerlink" href="#ctapipe.core.Tool.config_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>An instance of a Python list.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.log_config">
+<code class="sig-name descname"><span class="pre">log_config</span></code><a class="headerlink" href="#ctapipe.core.Tool.log_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>An instance of a Python dict.</p>
+<p>One or more traits can be passed to the constructor
+to validate the keys and/or values of the dict.
+If you need more detailed validation,
+you may use a custom validator method.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 5.0: </span>Added key_trait for validating dict keys.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 5.0: </span>Deprecated ambiguous <code class="docutils literal notranslate"><span class="pre">trait</span></code>, <code class="docutils literal notranslate"><span class="pre">traits</span></code> args in favor of <code class="docutils literal notranslate"><span class="pre">value_trait</span></code>, <code class="docutils literal notranslate"><span class="pre">per_key_traits</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.log_file">
+<code class="sig-name descname"><span class="pre">log_file</span></code><a class="headerlink" href="#ctapipe.core.Tool.log_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filename for the log</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.log_file_level">
+<code class="sig-name descname"><span class="pre">log_file_level</span></code><a class="headerlink" href="#ctapipe.core.Tool.log_file_level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logging Level for File Logging</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.overwrite">
+<code class="sig-name descname"><span class="pre">overwrite</span></code><a class="headerlink" href="#ctapipe.core.Tool.overwrite" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean (True, False) trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.provenance_log">
+<code class="sig-name descname"><span class="pre">provenance_log</span></code><a class="headerlink" href="#ctapipe.core.Tool.provenance_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>A path Trait for input/output files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>exists: boolean or None</strong></dt><dd><p>If True, path must exist, if False path must not exist</p>
+</dd>
+<dt><strong>directory_ok: boolean</strong></dt><dd><p>If False, path must not be a directory</p>
+</dd>
+<dt><strong>file_ok: boolean</strong></dt><dd><p>If False, path must not be a file</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.quiet">
+<code class="sig-name descname"><span class="pre">quiet</span></code><a class="headerlink" href="#ctapipe.core.Tool.quiet" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean (True, False) trait.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.core.Tool.version_string">
+<code class="sig-name descname"><span class="pre">version_string</span></code><a class="headerlink" href="#ctapipe.core.Tool.version_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>a formatted version string with version, release, and git hash</p>
+</dd></dl>
+
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt id="ctapipe.core.Tool.add_component">
+<code class="sig-name descname"><span class="pre">add_component</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component_instance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.add_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.add_component" title="Permalink to this definition">¶</a></dt>
+<dd><p>constructs and adds a component to the list of registered components,
+so that later we can ask for the current configuration of all instances,
+e.g. in`get_full_config()`.  All sub-components of a tool should be
+constructed using this function, in order to ensure the configuration is
+properly traced.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>component_instance: Component</strong></dt><dd><p>constructed instance of a component</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Component:</dt><dd><p>the same component instance that was passed in, so that the call
+can be chained.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">mycomp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">MyComponent</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.check_output">
+<code class="sig-name descname"><span class="pre">check_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">output_paths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.check_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.check_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if output files exist and if they do, throw an error
+unless <code class="docutils literal notranslate"><span class="pre">self.overwrite</span></code> is set to True.
+This should be checked during tool setup to avoid having a tool only
+realize the output can not be written after some long-running calculations
+(e.g. training of ML-models).
+Because we currently do not collect all created output files in the tool
+(they can be attached to some component), the output files need
+to be given and can not easily be derived from <code class="docutils literal notranslate"><span class="pre">self</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>output_paths: Path</strong></dt><dd><p>One or more output path to check.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.enter_context">
+<code class="sig-name descname"><span class="pre">enter_context</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context_manager</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.enter_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.enter_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new context manager to the <a class="reference external" href="https://docs.python.org/3.8/library/contextlib.html#contextlib.ExitStack" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExitStack</span></code></a> of this Tool</p>
+<p>This method should be used with things that need a cleanup step,
+also in case of exception. <code class="docutils literal notranslate"><span class="pre">enter_context</span></code> will call
+<code class="docutils literal notranslate"><span class="pre">context_manager.__enter__</span></code> and return its result.</p>
+<p>This will guarantee that <code class="docutils literal notranslate"><span class="pre">context_manager.__exit__</span></code> is called when
+<a class="reference internal" href="#ctapipe.core.Tool.run" title="ctapipe.core.Tool.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a> finishes, even when an error occurs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.finish">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">finish</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.finish"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.finish" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finish up.</p>
+<p>This is called automatically after <a class="reference internal" href="#ctapipe.core.Tool.start" title="ctapipe.core.Tool.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.start</span></code></a> when <a class="reference internal" href="#ctapipe.core.Tool.run" title="ctapipe.core.Tool.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.run</span></code></a> is called.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.get_current_config">
+<code class="sig-name descname"><span class="pre">get_current_config</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.get_current_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.get_current_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the current configuration as a dict (e.g. the values
+of all traits, even if they were not set during configuration)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.initialize">
+<code class="sig-name descname"><span class="pre">initialize</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle config and any other low-level setup</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.load_config_file">
+<code class="sig-name descname"><span class="pre">load_config_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3.8/library/pathlib.html#pathlib.Path" title="(in Python v3.8)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference external" href="https://docs.python.org/3.8/library/constants.html#None" title="(in Python v3.8)"><span class="pre">None</span></a><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.load_config_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.load_config_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a configuration file in one of the supported formats, and merge it with
+the current config if it exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>path: Union[str, pathlib.Path]</strong></dt><dd><p>config file to load. [yaml, toml, json, py] formats are supported</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raises</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the tool.</p>
+<p>This automatically calls <a class="reference internal" href="#ctapipe.core.Tool.initialize" title="ctapipe.core.Tool.initialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.initialize</span></code></a>, <a class="reference internal" href="#ctapipe.core.Tool.start" title="ctapipe.core.Tool.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.start</span></code></a> and <a class="reference internal" href="#ctapipe.core.Tool.finish" title="ctapipe.core.Tool.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.finish</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>argv: list(str)</strong></dt><dd><p>command-line arguments, or None to get them
+from sys.argv automatically</p>
+</dd>
+<dt><strong>raises</strong><span class="classifier">bool</span></dt><dd><p>Whether to raise Exceptions (to test them) or not.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.setup">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">setup</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up the tool.</p>
+<p>This method runs after the configuration and command line options
+have been parsed.</p>
+<p>Here the tool should construct all <code class="docutils literal notranslate"><span class="pre">Components</span></code>, open files, etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.start">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">start</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function of the tool.</p>
+<p>This is automatically called after <a class="reference internal" href="#ctapipe.core.Tool.initialize" title="ctapipe.core.Tool.initialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.initialize</span></code></a> when <a class="reference internal" href="#ctapipe.core.Tool.run" title="ctapipe.core.Tool.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tool.run</span></code></a> is called.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.update_logging_config">
+<code class="sig-name descname"><span class="pre">update_logging_config</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.update_logging_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.update_logging_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the configuration of loggers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.core.Tool.write_provenance">
+<code class="sig-name descname"><span class="pre">write_provenance</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/tool.html#Tool.write_provenance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.core.Tool.write_provenance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.core.Container.html" class="btn btn-neutral float-left" title="Container" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe.core.Field.html" class="btn btn-neutral float-right" title="Field" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

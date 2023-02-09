@@ -1,0 +1,17 @@
+NullDataVolumeReducer
+=====================
+
+.. currentmodule:: ctapipe.image.reducer
+
+.. autoclass:: NullDataVolumeReducer
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~NullDataVolumeReducer.select_pixels
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: select_pixels

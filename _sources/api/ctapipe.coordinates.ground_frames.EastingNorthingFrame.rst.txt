@@ -1,0 +1,41 @@
+EastingNorthingFrame
+====================
+
+.. currentmodule:: ctapipe.coordinates.ground_frames
+
+.. autoclass:: EastingNorthingFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EastingNorthingFrame.default_differential
+      ~EastingNorthingFrame.default_representation
+      ~EastingNorthingFrame.frame_attributes
+      ~EastingNorthingFrame.frame_specific_representation_info
+      ~EastingNorthingFrame.name
+      ~EastingNorthingFrame.observation_level
+      ~EastingNorthingFrame.reference_location
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~EastingNorthingFrame.from_earth_location
+      ~EastingNorthingFrame.to_earth_location
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: frame_attributes
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: name
+   .. autoattribute:: observation_level
+   .. autoattribute:: reference_location
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_earth_location
+   .. automethod:: to_earth_location

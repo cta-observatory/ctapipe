@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.reco.reconstructor &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.reco.reconstructor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.reco.reconstructor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">weakref</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">joblib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">SkyCoord</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.containers</span> <span class="kn">import</span> <span class="n">ArrayEventContainer</span><span class="p">,</span> <span class="n">TelescopeImpactParameterContainer</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">QualityQuery</span><span class="p">,</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core.traits</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">..coordinates</span> <span class="kn">import</span> <span class="n">shower_impact_distance</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Reconstructor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GeometryReconstructor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TooFewTelescopesException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;InvalidWidthException&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ReconstructionProperty&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="ReconstructionProperty"><a class="viewcode-back" href="../../../api/ctapipe.reco.ReconstructionProperty.html#ctapipe.reco.reconstructor.ReconstructionProperty">[docs]</a><span class="k">class</span> <span class="nc">ReconstructionProperty</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Primary particle properties estimated by a `Reconstructor`</span>
+
+<span class="sd">    The str values of this enum are used for data storage.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: Energy if the primary particle</span>
+    <span class="n">ENERGY</span> <span class="o">=</span> <span class="s2">&quot;energy&quot;</span>
+    <span class="c1">#: Geometric properties of the primary particle,</span>
+    <span class="c1">#: direction and impact point</span>
+    <span class="n">GEOMETRY</span> <span class="o">=</span> <span class="s2">&quot;geometry&quot;</span>
+    <span class="c1">#: Prediction score that a particle belongs to a certain class</span>
+    <span class="n">PARTICLE_TYPE</span> <span class="o">=</span> <span class="s2">&quot;classification&quot;</span>
+    <span class="c1">#: Disp, distance of the source position from the Hillas COG along the main axis</span>
+    <span class="n">DISP</span> <span class="o">=</span> <span class="s2">&quot;disp&quot;</span></div>
+
+
+<div class="viewcode-block" id="TooFewTelescopesException"><a class="viewcode-back" href="../../../api/ctapipe.reco.reconstructor.TooFewTelescopesException.html#ctapipe.reco.reconstructor.TooFewTelescopesException">[docs]</a><span class="k">class</span> <span class="nc">TooFewTelescopesException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Less valid telescope events than required in an array event.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="InvalidWidthException"><a class="viewcode-back" href="../../../api/ctapipe.reco.reconstructor.InvalidWidthException.html#ctapipe.reco.reconstructor.InvalidWidthException">[docs]</a><span class="k">class</span> <span class="nc">InvalidWidthException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hillas width is 0 or nan&quot;&quot;&quot;</span></div>
+
+
+<span class="k">class</span> <span class="nc">StereoQualityQuery</span><span class="p">(</span><span class="n">QualityQuery</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Quality criteria for dl1 parameters checked for telescope events to enter</span>
+<span class="sd">    into stereo reconstruction&quot;&quot;&quot;</span>
+
+    <span class="n">quality_criteria</span> <span class="o">=</span> <span class="n">List</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;&gt; 50 phe&quot;</span><span class="p">,</span> <span class="s2">&quot;parameters.hillas.intensity &gt; 50&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;Positive width&quot;</span><span class="p">,</span> <span class="s2">&quot;parameters.hillas.width.value &gt; 0&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;&gt; 3 pixels&quot;</span><span class="p">,</span> <span class="s2">&quot;parameters.morphology.n_pixels &gt; 3&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">QualityQuery</span><span class="o">.</span><span class="n">quality_criteria</span><span class="o">.</span><span class="n">help</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Reconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.reconstructor.Reconstructor">[docs]</a><span class="k">class</span> <span class="nc">Reconstructor</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is the base class from which all reconstruction</span>
+<span class="sd">    algorithms should inherit from</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: ctapipe_rco entry points may provide Reconstructor implementations</span>
+    <span class="n">plugin_entry_point</span> <span class="o">=</span> <span class="s2">&quot;ctapipe_reco&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span> <span class="o">=</span> <span class="n">StereoQualityQuery</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Reconstructor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.reconstructor.Reconstructor.__call__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform stereo reconstruction on event.</span>
+
+<span class="sd">        This method must fill the result of the reconstruction into the</span>
+<span class="sd">        dl2 structure of the event.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        event : `ctapipe.containers.ArrayEventContainer`</span>
+<span class="sd">            The event, needs to have dl1 parameters.</span>
+<span class="sd">            Will be filled with the corresponding dl2 containers,</span>
+<span class="sd">            reconstructed stereo geometry and telescope-wise impact position.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Reconstructor.read"><a class="viewcode-back" href="../../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.reconstructor.Reconstructor.read">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read a joblib-pickled reconstructor from ``path``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or pathlib.Path</span>
+<span class="sd">            Path to a Reconstructor instance pickled using joblib</span>
+<span class="sd">        parent : None or Component or Tool</span>
+<span class="sd">            Attach a new parent to the loaded class, this will properly</span>
+<span class="sd">        subarray : SubarrayDescription</span>
+<span class="sd">            Attach a new subarray to the loaded reconstructor</span>
+<span class="sd">            A warning will be raised if the telescope types of the</span>
+<span class="sd">            subarray stored in the pickled class do not match with the</span>
+<span class="sd">            provided subarray.</span>
+
+<span class="sd">        **kwargs are set on the loaded instance</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Reconstructor instance loaded from file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">instance</span> <span class="o">=</span> <span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> did not contain an instance of </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">instance</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># first deal with kwargs that would need &quot;special&quot; treatmet, parent and subarray</span>
+        <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">instance</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">proxy</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+            <span class="n">instance</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">getChild</span><span class="p">(</span><span class="n">instance</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">subarray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span> <span class="o">!=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span><span class="p">:</span>
+                <span class="n">instance</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Supplied subarray has different telescopes than subarray loaded from file&quot;</span>
+                <span class="p">)</span>
+            <span class="n">instance</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;reconstructor&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">instance</span></div></div>
+
+
+<div class="viewcode-block" id="GeometryReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.GeometryReconstructor.html#ctapipe.reco.reconstructor.GeometryReconstructor">[docs]</a><span class="k">class</span> <span class="nc">GeometryReconstructor</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for algorithms predicting only the shower geometry</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_create_hillas_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">hillas_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">tel_id</span><span class="p">:</span> <span class="n">dl1</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">hillas</span>
+            <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">dl1</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">quality_query</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">dl1</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TooFewTelescopesException</span><span class="p">()</span>
+
+        <span class="c1"># check for np.nan or 0 width&#39;s as these screw up weights</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()]):</span>
+            <span class="k">raise</span> <span class="n">InvalidWidthException</span><span class="p">(</span>
+                <span class="s2">&quot;A HillasContainer contains an ellipse of width=np.nan&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()]):</span>
+            <span class="k">raise</span> <span class="n">InvalidWidthException</span><span class="p">(</span>
+                <span class="s2">&quot;A HillasContainer contains an ellipse of width=0&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hillas_dict</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_telescope_pointings</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">tel_id</span><span class="p">:</span> <span class="n">SkyCoord</span><span class="p">(</span>
+                <span class="n">alt</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">altitude</span><span class="p">,</span>
+                <span class="n">az</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">pointing</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">azimuth</span><span class="p">,</span>
+                <span class="n">frame</span><span class="o">=</span><span class="n">AltAz</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_store_impact_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute and store the impact parameter for each reconstruction.&quot;&quot;&quot;</span>
+        <span class="n">geometry</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">geometry</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+            <span class="n">impact_distances</span> <span class="o">=</span> <span class="n">shower_impact_distance</span><span class="p">(</span>
+                <span class="n">shower_geom</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span>
+                <span class="n">subarray</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_tels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">)</span>
+            <span class="n">impact_distances</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_tels</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+        <span class="n">default_prefix</span> <span class="o">=</span> <span class="n">TelescopeImpactParameterContainer</span><span class="o">.</span><span class="n">default_prefix</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">_tel_</span><span class="si">{</span><span class="n">default_prefix</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">tels_with_trigger</span><span class="p">:</span>
+            <span class="n">tel_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_indices</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">impact</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">TelescopeImpactParameterContainer</span><span class="p">(</span>
+                <span class="n">distance</span><span class="o">=</span><span class="n">impact_distances</span><span class="p">[</span><span class="n">tel_index</span><span class="p">],</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

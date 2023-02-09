@@ -1,0 +1,41 @@
+HillasIntersection
+==================
+
+.. currentmodule:: ctapipe.reco.hillas_intersection
+
+.. autoclass:: HillasIntersection
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~HillasIntersection.atmosphere_profile_name
+      ~HillasIntersection.weighting
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~HillasIntersection.__call__
+      ~HillasIntersection.intersect_lines
+      ~HillasIntersection.reconstruct_nominal
+      ~HillasIntersection.reconstruct_tilted
+      ~HillasIntersection.reconstruct_xmax
+      ~HillasIntersection.weight_konrad
+      ~HillasIntersection.weight_sin
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: atmosphere_profile_name
+   .. autoattribute:: weighting
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: intersect_lines
+   .. automethod:: reconstruct_nominal
+   .. automethod:: reconstruct_tilted
+   .. automethod:: reconstruct_xmax
+   .. automethod:: weight_konrad
+   .. automethod:: weight_sin

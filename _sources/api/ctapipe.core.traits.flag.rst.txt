@@ -1,0 +1,6 @@
+flag
+====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autofunction:: flag

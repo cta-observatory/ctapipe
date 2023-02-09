@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReconstructedGeometryContainer &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DispContainer" href="ctapipe.containers.DispContainer.html" />
+    <link rel="prev" title="ReconstructedEnergyContainer" href="ctapipe.containers.ReconstructedEnergyContainer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/containers/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/containers/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/containers/index.html#module-ctapipe.containers">ctapipe.containers Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+      <li class="breadcrumb-item active">ReconstructedGeometryContainer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.containers.ReconstructedGeometryContainer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="reconstructedgeometrycontainer">
+<h1>ReconstructedGeometryContainer<a class="headerlink" href="#reconstructedgeometrycontainer" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.containers.</span></code><code class="sig-name descname"><span class="pre">ReconstructedGeometryContainer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">fields</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/containers.html#ReconstructedGeometryContainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ctapipe.core.container.Container.html#ctapipe.core.container.Container" title="ctapipe.core.container.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.container.Container</span></code></a></p>
+<p>Standard output of algorithms reconstructing shower geometry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>alt</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>reconstructed altitude</p>
+</dd>
+<dt><strong>alt_uncert</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>reconstructed altitude uncertainty</p>
+</dd>
+<dt><strong>az</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>reconstructed azimuth</p>
+</dd>
+<dt><strong>az_uncert</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>reconstructed azimuth uncertainty</p>
+</dd>
+<dt><strong>ang_distance_uncert</strong><span class="classifier">Field(default=nan deg, unit=deg)</span></dt><dd><p>uncertainty radius of reconstructed altitude-azimuth position</p>
+</dd>
+<dt><strong>core_x</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed x coordinate of the core position</p>
+</dd>
+<dt><strong>core_y</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed y coordinate of the core position</p>
+</dd>
+<dt><strong>core_uncert_x</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed core position uncertainty along ground frame X axis</p>
+</dd>
+<dt><strong>core_uncert_y</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed core position uncertainty along ground frame Y axis</p>
+</dd>
+<dt><strong>core_tilted_x</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed x coordinate of the core position</p>
+</dd>
+<dt><strong>core_tilted_y</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed y coordinate of the core position</p>
+</dd>
+<dt><strong>core_tilted_uncert_x</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed core position uncertainty along tilted frame X axis</p>
+</dd>
+<dt><strong>core_tilted_uncert_y</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed core position uncertainty along tilted frame Y axis</p>
+</dd>
+<dt><strong>h_max</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>reconstructed height of the shower maximum</p>
+</dd>
+<dt><strong>h_max_uncert</strong><span class="classifier">Field(default=nan m, unit=m)</span></dt><dd><p>uncertainty of h_max</p>
+</dd>
+<dt><strong>is_valid</strong><span class="classifier">Field(default=False)</span></dt><dd><p>direction validity flag. True if the shower directionwas properly reconstructed by the algorithm</p>
+</dd>
+<dt><strong>average_intensity</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>average intensity of the intensities used for reconstruction</p>
+</dd>
+<dt><strong>goodness_of_fit</strong><span class="classifier">Field(default=nan)</span></dt><dd><p>measure of algorithm success (if fit)</p>
+</dd>
+<dt><strong>telescopes</strong><span class="classifier">Field(default=None)</span></dt><dd><p>Telescopes used if stereo, or None if Mono</p>
+</dd>
+<dt><strong>meta</strong><span class="classifier">dict</span></dt><dd><p>dict of attached metadata</p>
+</dd>
+<dt><strong>prefix</strong><span class="classifier">str</span></dt><dd><p>Prefix attached to column names when saved to a table or file</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.alt" title="ctapipe.containers.ReconstructedGeometryContainer.alt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alt</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.alt_uncert" title="ctapipe.containers.ReconstructedGeometryContainer.alt_uncert"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alt_uncert</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.ang_distance_uncert" title="ctapipe.containers.ReconstructedGeometryContainer.ang_distance_uncert"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ang_distance_uncert</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.average_intensity" title="ctapipe.containers.ReconstructedGeometryContainer.average_intensity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">average_intensity</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.az" title="ctapipe.containers.ReconstructedGeometryContainer.az"><code class="xref py py-obj docutils literal notranslate"><span class="pre">az</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.az_uncert" title="ctapipe.containers.ReconstructedGeometryContainer.az_uncert"><code class="xref py py-obj docutils literal notranslate"><span class="pre">az_uncert</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_x" title="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_x"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_tilted_uncert_x</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_y" title="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_y"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_tilted_uncert_y</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_x" title="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_x"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_tilted_x</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_y" title="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_y"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_tilted_y</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_uncert_x" title="ctapipe.containers.ReconstructedGeometryContainer.core_uncert_x"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_uncert_x</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_uncert_y" title="ctapipe.containers.ReconstructedGeometryContainer.core_uncert_y"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_uncert_y</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_x" title="ctapipe.containers.ReconstructedGeometryContainer.core_x"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_x</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.core_y" title="ctapipe.containers.ReconstructedGeometryContainer.core_y"><code class="xref py py-obj docutils literal notranslate"><span class="pre">core_y</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.goodness_of_fit" title="ctapipe.containers.ReconstructedGeometryContainer.goodness_of_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">goodness_of_fit</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.h_max" title="ctapipe.containers.ReconstructedGeometryContainer.h_max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">h_max</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.h_max_uncert" title="ctapipe.containers.ReconstructedGeometryContainer.h_max_uncert"><code class="xref py py-obj docutils literal notranslate"><span class="pre">h_max_uncert</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.is_valid" title="ctapipe.containers.ReconstructedGeometryContainer.is_valid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_valid</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.meta" title="ctapipe.containers.ReconstructedGeometryContainer.meta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.prefix" title="ctapipe.containers.ReconstructedGeometryContainer.prefix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.containers.ReconstructedGeometryContainer.telescopes" title="ctapipe.containers.ReconstructedGeometryContainer.telescopes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">telescopes</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.alt">
+<code class="sig-name descname"><span class="pre">alt</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.alt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.alt_uncert">
+<code class="sig-name descname"><span class="pre">alt_uncert</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.alt_uncert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.ang_distance_uncert">
+<code class="sig-name descname"><span class="pre">ang_distance_uncert</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.ang_distance_uncert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.average_intensity">
+<code class="sig-name descname"><span class="pre">average_intensity</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.average_intensity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.az">
+<code class="sig-name descname"><span class="pre">az</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.az" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.az_uncert">
+<code class="sig-name descname"><span class="pre">az_uncert</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.az_uncert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_x">
+<code class="sig-name descname"><span class="pre">core_tilted_uncert_x</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_y">
+<code class="sig-name descname"><span class="pre">core_tilted_uncert_y</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_uncert_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_x">
+<code class="sig-name descname"><span class="pre">core_tilted_x</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_tilted_y">
+<code class="sig-name descname"><span class="pre">core_tilted_y</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_tilted_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_uncert_x">
+<code class="sig-name descname"><span class="pre">core_uncert_x</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_uncert_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_uncert_y">
+<code class="sig-name descname"><span class="pre">core_uncert_y</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_uncert_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_x">
+<code class="sig-name descname"><span class="pre">core_x</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.core_y">
+<code class="sig-name descname"><span class="pre">core_y</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.core_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.goodness_of_fit">
+<code class="sig-name descname"><span class="pre">goodness_of_fit</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.goodness_of_fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.h_max">
+<code class="sig-name descname"><span class="pre">h_max</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.h_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.h_max_uncert">
+<code class="sig-name descname"><span class="pre">h_max_uncert</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.h_max_uncert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.is_valid">
+<code class="sig-name descname"><span class="pre">is_valid</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.is_valid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.meta">
+<code class="sig-name descname"><span class="pre">meta</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.meta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.prefix">
+<code class="sig-name descname"><span class="pre">prefix</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.prefix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.containers.ReconstructedGeometryContainer.telescopes">
+<code class="sig-name descname"><span class="pre">telescopes</span></code><a class="headerlink" href="#ctapipe.containers.ReconstructedGeometryContainer.telescopes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.containers.ReconstructedEnergyContainer.html" class="btn btn-neutral float-left" title="ReconstructedEnergyContainer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe.containers.DispContainer.html" class="btn btn-neutral float-right" title="DispContainer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

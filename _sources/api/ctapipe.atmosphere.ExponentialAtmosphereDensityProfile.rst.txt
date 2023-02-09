@@ -1,0 +1,31 @@
+ExponentialAtmosphereDensityProfile
+===================================
+
+.. currentmodule:: ctapipe.atmosphere
+
+.. autoclass:: ExponentialAtmosphereDensityProfile
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ExponentialAtmosphereDensityProfile.scale_density
+      ~ExponentialAtmosphereDensityProfile.scale_height
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ExponentialAtmosphereDensityProfile.__call__
+      ~ExponentialAtmosphereDensityProfile.integral
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: scale_density
+   .. autoattribute:: scale_height
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: integral

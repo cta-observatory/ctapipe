@@ -1,0 +1,23 @@
+DL2Container
+============
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: DL2Container
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DL2Container.meta
+      ~DL2Container.prefix
+      ~DL2Container.stereo
+      ~DL2Container.tel
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: stereo
+   .. autoattribute:: tel

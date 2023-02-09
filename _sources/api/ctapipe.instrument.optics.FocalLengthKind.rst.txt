@@ -1,0 +1,19 @@
+FocalLengthKind
+===============
+
+.. currentmodule:: ctapipe.instrument.optics
+
+.. autoclass:: FocalLengthKind
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~FocalLengthKind.EFFECTIVE
+      ~FocalLengthKind.EQUIVALENT
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: EFFECTIVE
+   .. autoattribute:: EQUIVALENT

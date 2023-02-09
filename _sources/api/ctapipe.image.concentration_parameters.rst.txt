@@ -1,0 +1,6 @@
+concentration_parameters
+========================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: concentration_parameters

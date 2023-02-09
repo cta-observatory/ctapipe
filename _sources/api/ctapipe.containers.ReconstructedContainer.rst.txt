@@ -1,0 +1,25 @@
+ReconstructedContainer
+======================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ReconstructedContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ReconstructedContainer.classification
+      ~ReconstructedContainer.energy
+      ~ReconstructedContainer.geometry
+      ~ReconstructedContainer.meta
+      ~ReconstructedContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: classification
+   .. autoattribute:: energy
+   .. autoattribute:: geometry
+   .. autoattribute:: meta
+   .. autoattribute:: prefix

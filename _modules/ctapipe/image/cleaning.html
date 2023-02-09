@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.cleaning &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.cleaning</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.cleaning</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Image Cleaning Algorithms (identification of noisy pixels)</span>
+
+
+<span class="sd">All algorithms return a boolean mask that is True for pixels surviving</span>
+<span class="sd">the cleaning.</span>
+
+<span class="sd">To get a zero-suppressed image and pixel</span>
+<span class="sd">list, use ``image[mask], geom.pix_id[mask]``, or to keep the same</span>
+<span class="sd">image size and just set unclean pixels to 0 or similar, use</span>
+<span class="sd">``image[~mask] = 0``</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;tailcuts_clean&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dilate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mars_cleaning_1st_pass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fact_image_cleaning&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;apply_time_delta_cleaning&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;apply_time_average_cleaning&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;time_constrained_clean&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ImageCleaner&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TailcutsImageCleaner&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BoolTelescopeParameter</span><span class="p">,</span>
+    <span class="n">FloatTelescopeParameter</span><span class="p">,</span>
+    <span class="n">IntTelescopeParameter</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.morphology</span> <span class="kn">import</span> <span class="n">brightest_island</span><span class="p">,</span> <span class="n">number_of_islands</span>
+
+
+<div class="viewcode-block" id="tailcuts_clean"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.tailcuts_clean.html#ctapipe.image.tailcuts_clean">[docs]</a><span class="k">def</span> <span class="nf">tailcuts_clean</span><span class="p">(</span>
+    <span class="n">geom</span><span class="p">,</span>
+    <span class="n">image</span><span class="p">,</span>
+    <span class="n">picture_thresh</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+    <span class="n">boundary_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">keep_isolated_pixels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clean an image by selection pixels that pass a two-threshold</span>
+<span class="sd">    tail-cuts procedure.  The picture and boundary thresholds are</span>
+<span class="sd">    defined with respect to the pedestal dispersion. All pixels that</span>
+<span class="sd">    have a signal higher than the picture threshold will be retained,</span>
+<span class="sd">    along with all those above the boundary threshold that are</span>
+<span class="sd">    neighbors of a picture pixel.</span>
+
+<span class="sd">    To include extra neighbor rows of pixels beyond what are accepted, use the</span>
+<span class="sd">    `ctapipe.image.dilate` function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    image: array</span>
+<span class="sd">        pixel values</span>
+<span class="sd">    picture_thresh: float or array</span>
+<span class="sd">        threshold above which all pixels are retained</span>
+<span class="sd">    boundary_thresh: float or array</span>
+<span class="sd">        threshold above which pixels are retained if they have a neighbor</span>
+<span class="sd">        already above the picture_thresh</span>
+<span class="sd">    keep_isolated_pixels: bool</span>
+<span class="sd">        If True, pixels above the picture threshold will be included always,</span>
+<span class="sd">        if not they are only included if a neighbor is in the picture or</span>
+<span class="sd">        boundary</span>
+<span class="sd">    min_number_picture_neighbors: int</span>
+<span class="sd">        A picture pixel survives cleaning only if it has at least this number</span>
+<span class="sd">        of picture neighbors. This has no effect in case keep_isolated_pixels is True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A boolean mask of *clean* pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pixels_above_picture</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">picture_thresh</span>
+
+    <span class="k">if</span> <span class="n">keep_isolated_pixels</span> <span class="ow">or</span> <span class="n">min_number_picture_neighbors</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">pixels_in_picture</span> <span class="o">=</span> <span class="n">pixels_above_picture</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Require at least min_number_picture_neighbors. Otherwise, the pixel</span>
+        <span class="c1">#  is not selected</span>
+        <span class="n">number_of_neighbors_above_picture</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+            <span class="n">pixels_above_picture</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">pixels_in_picture</span> <span class="o">=</span> <span class="n">pixels_above_picture</span> <span class="o">&amp;</span> <span class="p">(</span>
+            <span class="n">number_of_neighbors_above_picture</span> <span class="o">&gt;=</span> <span class="n">min_number_picture_neighbors</span>
+        <span class="p">)</span>
+
+    <span class="c1"># by broadcasting together pixels_in_picture (1d) with the neighbor</span>
+    <span class="c1"># matrix (2d), we find all pixels that are above the boundary threshold</span>
+    <span class="c1"># AND have any neighbor that is in the picture</span>
+    <span class="n">pixels_above_boundary</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">boundary_thresh</span>
+    <span class="n">pixels_with_picture_neighbors</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pixels_in_picture</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">keep_isolated_pixels</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">pixels_above_boundary</span> <span class="o">&amp;</span> <span class="n">pixels_with_picture_neighbors</span>
+        <span class="p">)</span> <span class="o">|</span> <span class="n">pixels_in_picture</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pixels_with_boundary_neighbors</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+            <span class="n">pixels_above_boundary</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pixels_above_boundary</span> <span class="o">&amp;</span> <span class="n">pixels_with_picture_neighbors</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span>
+            <span class="n">pixels_in_picture</span> <span class="o">&amp;</span> <span class="n">pixels_with_boundary_neighbors</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="mars_cleaning_1st_pass"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.mars_cleaning_1st_pass.html#ctapipe.image.mars_cleaning_1st_pass">[docs]</a><span class="k">def</span> <span class="nf">mars_cleaning_1st_pass</span><span class="p">(</span>
+    <span class="n">geom</span><span class="p">,</span>
+    <span class="n">image</span><span class="p">,</span>
+    <span class="n">picture_thresh</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+    <span class="n">boundary_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">keep_isolated_pixels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clean an image by selection pixels that pass a three-threshold tail-cuts</span>
+<span class="sd">    procedure.</span>
+<span class="sd">    All thresholds are defined with respect to the pedestal</span>
+<span class="sd">    dispersion. All pixels that have a signal higher than the core (picture)</span>
+<span class="sd">    threshold will be retained, along with all those above the boundary</span>
+<span class="sd">    threshold that are neighbors of a core pixel AND all those above</span>
+<span class="sd">    the boundary threshold that are neighbors of a neighbor of a core pixel.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    image: array</span>
+<span class="sd">        pixel values</span>
+<span class="sd">    picture_thresh: float</span>
+<span class="sd">        threshold above which all pixels are retained</span>
+<span class="sd">    boundary_thresh: float</span>
+<span class="sd">        threshold above which pixels are retained if</span>
+<span class="sd">        they have a neighbor already above the picture_thresh; it is then</span>
+<span class="sd">        reapplied iteratively to the neighbor of the neighbor</span>
+<span class="sd">    keep_isolated_pixels: bool</span>
+<span class="sd">        If True, pixels above the picture threshold will be included always,</span>
+<span class="sd">        if not they are only included if a neighbor is in the picture or</span>
+<span class="sd">        boundary</span>
+<span class="sd">    min_number_picture_neighbors: int</span>
+<span class="sd">        A picture pixel survives cleaning only if it has at least this number</span>
+<span class="sd">        of picture neighbors. This has no effect in case keep_isolated_pixels is True</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A boolean mask of *clean* pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pixels_from_tailcuts_clean</span> <span class="o">=</span> <span class="n">tailcuts_clean</span><span class="p">(</span>
+        <span class="n">geom</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">,</span>
+        <span class="n">picture_thresh</span><span class="p">,</span>
+        <span class="n">boundary_thresh</span><span class="p">,</span>
+        <span class="n">keep_isolated_pixels</span><span class="p">,</span>
+        <span class="n">min_number_picture_neighbors</span><span class="p">,</span>
+    <span class="p">)</span>  <span class="c1"># this selects any core pixel and any of its first neighbors</span>
+
+    <span class="c1"># At this point we don&#39;t know yet which ones should be kept.</span>
+    <span class="c1"># In principle, the pixel thresholds should be hierarchical from core to</span>
+    <span class="c1"># boundaries (this should be true for every type of particle triggering</span>
+    <span class="c1"># the image), so we can just check which pixels have more than</span>
+    <span class="c1"># boundary_thresh photo-electrons in the same image, but starting from</span>
+    <span class="c1"># the mask we got from &#39;tailcuts_clean&#39;.</span>
+
+    <span class="n">pixels_above_2nd_boundary</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">boundary_thresh</span>
+
+    <span class="c1"># and now it&#39;s the same as the last part of &#39;tailcuts_clean&#39;, but without</span>
+    <span class="c1"># the core pixels, i.e. we start from the neighbors of the core pixels.</span>
+    <span class="n">pixels_with_previous_neighbors</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">pixels_from_tailcuts_clean</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">keep_isolated_pixels</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">pixels_above_2nd_boundary</span> <span class="o">&amp;</span> <span class="n">pixels_with_previous_neighbors</span>
+        <span class="p">)</span> <span class="o">|</span> <span class="n">pixels_from_tailcuts_clean</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pixels_with_2ndboundary_neighbors</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+            <span class="n">pixels_above_2nd_boundary</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pixels_above_2nd_boundary</span> <span class="o">&amp;</span> <span class="n">pixels_with_previous_neighbors</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span>
+            <span class="n">pixels_from_tailcuts_clean</span> <span class="o">&amp;</span> <span class="n">pixels_with_2ndboundary_neighbors</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dilate"><a class="viewcode-back" href="../../../api/ctapipe.image.dilate.html#ctapipe.image.dilate">[docs]</a><span class="k">def</span> <span class="nf">dilate</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add one row of neighbors to the True values of a pixel mask and return</span>
+<span class="sd">    the new mask.</span>
+<span class="sd">    This can be used to include extra rows of pixels in a mask that was</span>
+<span class="sd">    pre-computed, e.g. via `tailcuts_clean`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `~ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    mask: ndarray</span>
+<span class="sd">        input mask (array of booleans) to be dilated</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">mask</span> <span class="o">|</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="apply_time_delta_cleaning"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.apply_time_delta_cleaning.html#ctapipe.image.apply_time_delta_cleaning">[docs]</a><span class="k">def</span> <span class="nf">apply_time_delta_cleaning</span><span class="p">(</span>
+    <span class="n">geom</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">arrival_times</span><span class="p">,</span> <span class="n">min_number_neighbors</span><span class="p">,</span> <span class="n">time_limit</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify all pixels from selection that have less than N</span>
+<span class="sd">    neighbors that arrived within a given timeframe.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    mask: array, boolean</span>
+<span class="sd">        boolean mask of *clean* pixels before time_delta_cleaning</span>
+<span class="sd">    arrival_times: array</span>
+<span class="sd">        pixel timing information</span>
+<span class="sd">    min_number_neighbors: int</span>
+<span class="sd">        Threshold to determine if a pixel survives cleaning steps.</span>
+<span class="sd">        These steps include checks of neighbor arrival time and value</span>
+<span class="sd">    time_limit: int or float</span>
+<span class="sd">        arrival time limit for neighboring pixels</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    A boolean mask of *clean* pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">time_diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">arrival_times</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">arrival_times</span><span class="p">)</span>
+    <span class="c1"># neighboring pixels arriving in the time limit and previously selected</span>
+    <span class="n">valid_neighbors</span> <span class="o">=</span> <span class="p">(</span><span class="n">time_diffs</span> <span class="o">&lt;</span> <span class="n">time_limit</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">mask</span>
+    <span class="n">enough_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">valid_neighbors</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_number_neighbors</span>
+    <span class="n">pixels_to_keep</span><span class="p">[</span><span class="n">pixels_to_keep</span><span class="p">]</span> <span class="o">&amp;=</span> <span class="n">enough_neighbors</span>
+    <span class="k">return</span> <span class="n">pixels_to_keep</span></div>
+
+
+<div class="viewcode-block" id="apply_time_average_cleaning"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.apply_time_average_cleaning.html#ctapipe.image.apply_time_average_cleaning">[docs]</a><span class="k">def</span> <span class="nf">apply_time_average_cleaning</span><span class="p">(</span>
+    <span class="n">geom</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">arrival_times</span><span class="p">,</span> <span class="n">picture_thresh</span><span class="p">,</span> <span class="n">time_limit</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract all pixels that arrived within a given timeframe</span>
+<span class="sd">    with respect to the time average of the pixels on the main island.</span>
+
+<span class="sd">    In order to avoid removing signal pixels of large impact-parameter events,</span>
+<span class="sd">    the time limit for bright pixels is doubled.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    mask: array, boolean</span>
+<span class="sd">        boolean mask of *clean* pixels before time_delta_cleaning</span>
+<span class="sd">    image: array</span>
+<span class="sd">        pixel values</span>
+<span class="sd">    arrival_times: array</span>
+<span class="sd">        pixel timing information</span>
+<span class="sd">    picture_thresh: float</span>
+<span class="sd">        threshold above which time limit is extended twice its value</span>
+<span class="sd">    time_limit: int or float</span>
+<span class="sd">        arrival time limit w.r.t. the average time of the core pixels</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    A boolean mask of *clean* pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="c1"># use main island (maximum charge) for time average calculation</span>
+        <span class="n">n_islands</span><span class="p">,</span> <span class="n">island_labels</span> <span class="o">=</span> <span class="n">number_of_islands</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">mask_main</span> <span class="o">=</span> <span class="n">brightest_island</span><span class="p">(</span><span class="n">n_islands</span><span class="p">,</span> <span class="n">island_labels</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+        <span class="n">time_ave</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">arrival_times</span><span class="p">[</span><span class="n">mask_main</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">image</span><span class="p">[</span><span class="n">mask_main</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">time_diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">arrival_times</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">time_ave</span><span class="p">)</span>
+        <span class="n">time_limit_pixwise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">image</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">picture_thresh</span><span class="p">),</span> <span class="n">time_limit</span><span class="p">,</span> <span class="n">time_limit</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="p">)[</span><span class="n">mask</span><span class="p">]</span>
+
+        <span class="n">mask</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&amp;=</span> <span class="n">time_diffs</span> <span class="o">&lt;</span> <span class="n">time_limit_pixwise</span>
+
+    <span class="k">return</span> <span class="n">mask</span></div>
+
+
+<div class="viewcode-block" id="fact_image_cleaning"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.fact_image_cleaning.html#ctapipe.image.fact_image_cleaning">[docs]</a><span class="k">def</span> <span class="nf">fact_image_cleaning</span><span class="p">(</span>
+    <span class="n">geom</span><span class="p">,</span>
+    <span class="n">image</span><span class="p">,</span>
+    <span class="n">arrival_times</span><span class="p">,</span>
+    <span class="n">picture_threshold</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">boundary_threshold</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">min_number_neighbors</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">time_limit</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clean an image by selection pixels that pass the fact cleaning procedure.</span>
+
+<span class="sd">    Cleaning contains the following steps:</span>
+<span class="sd">    1: Find pixels containing more photons than a threshold t1</span>
+<span class="sd">    2: Remove pixels with less than N neighbors</span>
+<span class="sd">    3: Add neighbors of the remaining pixels that are above a lower threshold t2</span>
+<span class="sd">    4: Remove pixels with less than N neighbors arriving within a given timeframe</span>
+<span class="sd">    5: Remove pixels with less than N neighbors</span>
+<span class="sd">    6: Remove pixels with less than N neighbors arriving within a given timeframe</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    image: array</span>
+<span class="sd">        pixel values</span>
+<span class="sd">    arrival_times: array</span>
+<span class="sd">        pixel timing information</span>
+<span class="sd">    picture_threshold: float or array</span>
+<span class="sd">        threshold above which all pixels are retained</span>
+<span class="sd">    boundary_threshold: float or array</span>
+<span class="sd">        threshold above which pixels are retained if they have a neighbor</span>
+<span class="sd">        already above the picture_thresh</span>
+<span class="sd">    min_number_neighbors: int</span>
+<span class="sd">        Threshold to determine if a pixel survives cleaning steps.</span>
+<span class="sd">        These steps include checks of neighbor arrival time and value</span>
+<span class="sd">    time_limit: int or float</span>
+<span class="sd">        arrival time limit for neighboring pixels</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A boolean mask of *clean* pixels.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    See  [temme2016]_ and for implementation [factcleaning]_</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Step 1</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">picture_threshold</span>
+
+    <span class="c1"># Step 2</span>
+    <span class="n">number_of_neighbors_above_picture</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pixels_to_keep</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">pixels_to_keep</span> <span class="o">&amp;</span> <span class="p">(</span>
+        <span class="n">number_of_neighbors_above_picture</span> <span class="o">&gt;=</span> <span class="n">min_number_neighbors</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 3</span>
+    <span class="n">pixels_above_boundary</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">boundary_threshold</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">dilate</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">pixels_to_keep</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pixels_above_boundary</span>
+
+    <span class="c1"># nothing else to do if min_number_neighbors &lt;= 0</span>
+    <span class="k">if</span> <span class="n">min_number_neighbors</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pixels_to_keep</span>
+
+    <span class="c1"># Step 4</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">apply_time_delta_cleaning</span><span class="p">(</span>
+        <span class="n">geom</span><span class="p">,</span> <span class="n">pixels_to_keep</span><span class="p">,</span> <span class="n">arrival_times</span><span class="p">,</span> <span class="n">min_number_neighbors</span><span class="p">,</span> <span class="n">time_limit</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 5</span>
+    <span class="n">number_of_neighbors</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pixels_to_keep</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">pixels_to_keep</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">number_of_neighbors</span> <span class="o">&gt;=</span> <span class="n">min_number_neighbors</span><span class="p">)</span>
+
+    <span class="c1"># Step 6</span>
+    <span class="n">pixels_to_keep</span> <span class="o">=</span> <span class="n">apply_time_delta_cleaning</span><span class="p">(</span>
+        <span class="n">geom</span><span class="p">,</span> <span class="n">pixels_to_keep</span><span class="p">,</span> <span class="n">arrival_times</span><span class="p">,</span> <span class="n">min_number_neighbors</span><span class="p">,</span> <span class="n">time_limit</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">pixels_to_keep</span></div>
+
+
+<div class="viewcode-block" id="time_constrained_clean"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.time_constrained_clean.html#ctapipe.image.time_constrained_clean">[docs]</a><span class="k">def</span> <span class="nf">time_constrained_clean</span><span class="p">(</span>
+    <span class="n">geom</span><span class="p">,</span>
+    <span class="n">image</span><span class="p">,</span>
+    <span class="n">arrival_times</span><span class="p">,</span>
+    <span class="n">picture_thresh</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+    <span class="n">boundary_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">time_limit_core</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
+    <span class="n">time_limit_boundary</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    time constrained cleaning by MAGIC</span>
+
+<span class="sd">    Cleaning contains the following steps:</span>
+<span class="sd">    - Find core pixels (containing more photons than a picture threshold)</span>
+<span class="sd">    - Remove pixels with less than N neighbors</span>
+<span class="sd">    - Keep core pixels whose arrival times are within a time limit of the average time</span>
+<span class="sd">    - Find boundary pixels (containing more photons than a boundary threshold)</span>
+<span class="sd">    - Remove pixels with less than N neighbors arriving within a given timeframe</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">        Camera geometry information</span>
+<span class="sd">    image: array</span>
+<span class="sd">        pixel values</span>
+<span class="sd">    arrival_times: array</span>
+<span class="sd">        pixel timing information</span>
+<span class="sd">    picture_threshold: float or array</span>
+<span class="sd">        threshold above which all pixels are retained</span>
+<span class="sd">    boundary_threshold: float or array</span>
+<span class="sd">        threshold above which pixels are retained if they have a neighbor</span>
+<span class="sd">        already above the picture_thresh</span>
+<span class="sd">    time_limit_core: int or float</span>
+<span class="sd">        arrival time limit of core pixels w.r.t the average time</span>
+<span class="sd">    time_limit_boundary: int or float</span>
+<span class="sd">        arrival time limit of boundary pixels w.r.t neighboring core pixels</span>
+<span class="sd">    min_number_neighbors: int</span>
+<span class="sd">        Threshold to determine if a pixel survives cleaning steps.</span>
+<span class="sd">        These steps include checks of neighbor arrival time and value</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A boolean mask of *clean* pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># find core pixels that pass a picture threshold</span>
+    <span class="n">pixels_above_picture</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">picture_thresh</span>
+
+    <span class="c1"># require at least min_number_picture_neighbors</span>
+    <span class="n">number_of_neighbors_above_picture</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">pixels_above_picture</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">pixels_in_picture</span> <span class="o">=</span> <span class="n">pixels_above_picture</span> <span class="o">&amp;</span> <span class="p">(</span>
+        <span class="n">number_of_neighbors_above_picture</span> <span class="o">&gt;=</span> <span class="n">min_number_picture_neighbors</span>
+    <span class="p">)</span>
+
+    <span class="c1"># keep core pixels whose arrival times are within a certain time limit of the average</span>
+    <span class="n">mask_core</span> <span class="o">=</span> <span class="n">apply_time_average_cleaning</span><span class="p">(</span>
+        <span class="n">geom</span><span class="p">,</span> <span class="n">pixels_in_picture</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">arrival_times</span><span class="p">,</span> <span class="n">picture_thresh</span><span class="p">,</span> <span class="n">time_limit_core</span>
+    <span class="p">)</span>
+
+    <span class="c1"># find boundary pixels that pass a boundary threshold</span>
+    <span class="n">pixels_above_boundary</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">boundary_thresh</span>
+    <span class="n">pixels_with_picture_neighbors</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mask_core</span><span class="p">)</span>
+    <span class="n">mask_boundary</span> <span class="o">=</span> <span class="p">(</span><span class="n">pixels_above_boundary</span> <span class="o">&amp;</span> <span class="n">pixels_with_picture_neighbors</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span>
+        <span class="n">mask_core</span>
+    <span class="p">)</span>
+
+    <span class="c1"># keep boundary pixels whose arrival times are within a certain time limit of the neighboring core pixels</span>
+    <span class="n">mask_boundary</span> <span class="o">=</span> <span class="n">mask_boundary</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">time_diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">arrival_times</span><span class="p">[</span><span class="n">mask_boundary</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">arrival_times</span><span class="p">)</span>
+    <span class="n">valid_neighbors</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">time_diffs</span> <span class="o">&lt;</span> <span class="n">time_limit_boundary</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="n">geom</span><span class="o">.</span><span class="n">neighbor_matrix</span><span class="p">[</span><span class="n">mask_boundary</span><span class="p">]</span>
+        <span class="o">&amp;</span> <span class="n">mask_core</span>
+    <span class="p">)</span>
+    <span class="n">enough_neighbors</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">valid_neighbors</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_number_picture_neighbors</span>
+    <span class="p">)</span>
+    <span class="n">mask_boundary</span><span class="p">[</span><span class="n">mask_boundary</span><span class="p">]</span> <span class="o">&amp;=</span> <span class="n">enough_neighbors</span>
+
+    <span class="k">return</span> <span class="n">mask_core</span> <span class="o">|</span> <span class="n">mask_boundary</span></div>
+
+
+<div class="viewcode-block" id="ImageCleaner"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.ImageCleaner.html#ctapipe.image.ImageCleaner">[docs]</a><span class="k">class</span> <span class="nc">ImageCleaner</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract class for all configurable Image Cleaning algorithms.   Use</span>
+<span class="sd">    ``ImageCleaner.from_name()`` to construct an instance of a particular algorithm</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ImageCleaner.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.ImageCleaner.html#ctapipe.image.ImageCleaner.__call__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">arrival_times</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Identify pixels with signal, and reject those with pure noise.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id: int</span>
+<span class="sd">            which telescope id in the subarray is being used (determines</span>
+<span class="sd">            which cut is used)</span>
+<span class="sd">        image : np.ndarray</span>
+<span class="sd">            image pixel data corresponding to the camera geometry</span>
+<span class="sd">        arrival_times: np.ndarray</span>
+<span class="sd">            image of arrival time (not used in this method)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.ndarray</span>
+<span class="sd">            boolean mask of pixels passing cleaning</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="TailcutsImageCleaner"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.TailcutsImageCleaner.html#ctapipe.image.TailcutsImageCleaner">[docs]</a><span class="k">class</span> <span class="nc">TailcutsImageCleaner</span><span class="p">(</span><span class="n">ImageCleaner</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clean images using the standard picture/boundary technique. See</span>
+<span class="sd">    `ctapipe.image.tailcuts_clean`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">picture_threshold_pe</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;top-level threshold in photoelectrons&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">boundary_threshold_pe</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;second-level threshold in photoelectrons&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">min_picture_neighbors</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum number of neighbors above threshold to consider&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">keep_isolated_pixels</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If False, pixels with less neighbors than ``min_picture_neighbors`` are&quot;</span>
+        <span class="s2">&quot;removed.&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TailcutsImageCleaner.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.cleaning.TailcutsImageCleaner.html#ctapipe.image.TailcutsImageCleaner.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">arrival_times</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">tailcuts_clean</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span>
+            <span class="n">image</span><span class="p">,</span>
+            <span class="n">picture_thresh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">picture_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">boundary_thresh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boundary_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_picture_neighbors</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">keep_isolated_pixels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">keep_isolated_pixels</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">MARSImageCleaner</span><span class="p">(</span><span class="n">TailcutsImageCleaner</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    1st-pass MARS-like Image cleaner (See `ctapipe.image.mars_cleaning_1st_pass`)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">arrival_times</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply MARS-style image cleaning. See `ImageCleaner.__call__()`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">mars_cleaning_1st_pass</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span>
+            <span class="n">image</span><span class="p">,</span>
+            <span class="n">picture_thresh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">picture_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">boundary_thresh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boundary_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_picture_neighbors</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">keep_isolated_pixels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">FACTImageCleaner</span><span class="p">(</span><span class="n">TailcutsImageCleaner</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clean images using the FACT technique. See `ctapipe.image.fact_image_cleaning`</span>
+<span class="sd">    for algorithm details</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">time_limit_ns</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;arrival time limit for neighboring &quot;</span> <span class="s2">&quot;pixels, in ns&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">arrival_times</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply FACT-style image cleaning. see ImageCleaner.__call__()&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">fact_image_cleaning</span><span class="p">(</span>
+            <span class="n">geom</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span>
+            <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+            <span class="n">arrival_times</span><span class="o">=</span><span class="n">arrival_times</span><span class="p">,</span>
+            <span class="n">picture_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">picture_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">boundary_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boundary_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">min_number_neighbors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_picture_neighbors</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">time_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_limit_ns</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TimeConstrainedImageCleaner</span><span class="p">(</span><span class="n">TailcutsImageCleaner</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MAGIC-like Image cleaner with timing information (See `ctapipe.image.time_constrained_clean`)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">time_limit_core_ns</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;arrival time limit for neighboring &quot;</span> <span class="s2">&quot;core pixels, in ns&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">time_limit_boundary_ns</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;arrival time limit for neighboring &quot;</span> <span class="s2">&quot;boundary pixels, in ns&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">arrival_times</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">time_constrained_clean</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span>
+            <span class="n">image</span><span class="p">,</span>
+            <span class="n">arrival_times</span><span class="o">=</span><span class="n">arrival_times</span><span class="p">,</span>
+            <span class="n">picture_thresh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">picture_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">boundary_thresh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boundary_threshold_pe</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_picture_neighbors</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">time_limit_core</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_limit_core_ns</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">time_limit_boundary</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_limit_boundary_ns</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+intensity_ratio_inside_ring
+===========================
+
+.. currentmodule:: ctapipe.image.muon
+
+.. autofunction:: intensity_ratio_inside_ring

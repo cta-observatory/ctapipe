@@ -1,0 +1,57 @@
+ReconstructedGeometryContainer
+==============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ReconstructedGeometryContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ReconstructedGeometryContainer.alt
+      ~ReconstructedGeometryContainer.alt_uncert
+      ~ReconstructedGeometryContainer.ang_distance_uncert
+      ~ReconstructedGeometryContainer.average_intensity
+      ~ReconstructedGeometryContainer.az
+      ~ReconstructedGeometryContainer.az_uncert
+      ~ReconstructedGeometryContainer.core_tilted_uncert_x
+      ~ReconstructedGeometryContainer.core_tilted_uncert_y
+      ~ReconstructedGeometryContainer.core_tilted_x
+      ~ReconstructedGeometryContainer.core_tilted_y
+      ~ReconstructedGeometryContainer.core_uncert_x
+      ~ReconstructedGeometryContainer.core_uncert_y
+      ~ReconstructedGeometryContainer.core_x
+      ~ReconstructedGeometryContainer.core_y
+      ~ReconstructedGeometryContainer.goodness_of_fit
+      ~ReconstructedGeometryContainer.h_max
+      ~ReconstructedGeometryContainer.h_max_uncert
+      ~ReconstructedGeometryContainer.is_valid
+      ~ReconstructedGeometryContainer.meta
+      ~ReconstructedGeometryContainer.prefix
+      ~ReconstructedGeometryContainer.telescopes
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: alt
+   .. autoattribute:: alt_uncert
+   .. autoattribute:: ang_distance_uncert
+   .. autoattribute:: average_intensity
+   .. autoattribute:: az
+   .. autoattribute:: az_uncert
+   .. autoattribute:: core_tilted_uncert_x
+   .. autoattribute:: core_tilted_uncert_y
+   .. autoattribute:: core_tilted_x
+   .. autoattribute:: core_tilted_y
+   .. autoattribute:: core_uncert_x
+   .. autoattribute:: core_uncert_y
+   .. autoattribute:: core_x
+   .. autoattribute:: core_y
+   .. autoattribute:: goodness_of_fit
+   .. autoattribute:: h_max
+   .. autoattribute:: h_max_uncert
+   .. autoattribute:: is_valid
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: telescopes

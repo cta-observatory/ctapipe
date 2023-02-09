@@ -1,0 +1,6 @@
+UnknownTelescopeID
+==================
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoexception:: UnknownTelescopeID

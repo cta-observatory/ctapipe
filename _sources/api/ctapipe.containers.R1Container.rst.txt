@@ -1,0 +1,21 @@
+R1Container
+===========
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: R1Container
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~R1Container.meta
+      ~R1Container.prefix
+      ~R1Container.tel
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: tel

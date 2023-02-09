@@ -1,0 +1,19 @@
+GainSelector
+============
+
+.. currentmodule:: ctapipe.calib.camera
+
+.. autoclass:: GainSelector
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~GainSelector.__call__
+      ~GainSelector.select_channel
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: select_channel

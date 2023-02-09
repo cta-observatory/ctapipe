@@ -1,0 +1,6 @@
+get_hdf5_datalevels
+===================
+
+.. currentmodule:: ctapipe.io
+
+.. autofunction:: get_hdf5_datalevels

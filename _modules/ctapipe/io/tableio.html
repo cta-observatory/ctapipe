@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.tableio &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.tableio</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.tableio</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Base functionality for reading and writing tabular data</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SubarrayDescription</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TableReader&quot;</span><span class="p">,</span> <span class="s2">&quot;TableWriter&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="TableWriter"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter">[docs]</a><span class="k">class</span> <span class="nc">TableWriter</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for writing tabular data stored in `~ctapipe.core.Container`</span>
+
+<span class="sd">    A single write will add a new row to the output table,</span>
+<span class="sd">    where each `~ctapipe.core.Field` becomes a column.</span>
+<span class="sd">    Subclasses of this implement specific output types.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    ctapipe.io.HDF5TableWriter: Implementation of this base class for writing HDF5 files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">add_prefix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform_regexps</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>  <span class="c1"># user requested, may be regexps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>  <span class="c1"># fully expanded explicit names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exclusions</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># columns to exclude</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_prefix</span> <span class="o">=</span> <span class="n">add_prefix</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TableWriter.exclude"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter.exclude">[docs]</a>    <span class="k">def</span> <span class="nf">exclude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_regexp</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exclude any columns (Fields) matching the pattern from being written. The</span>
+<span class="sd">        patterns are matched with re.fullmatch.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_regexp: str</span>
+<span class="sd">            regexp matching to match table name to apply exclusion</span>
+<span class="sd">        pattern: str</span>
+<span class="sd">            regular expression string to match column name in the table</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table_regexp</span> <span class="o">=</span> <span class="n">table_regexp</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exclusions</span><span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">table_regexp</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_is_column_excluded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">table_regexp</span><span class="p">,</span> <span class="n">col_regexp_list</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exclusions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">table_regexp</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">table_name</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">col_regexp</span> <span class="ow">in</span> <span class="n">col_regexp_list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">col_regexp</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">col_name</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="TableWriter.add_column_transform"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter.add_column_transform">[docs]</a>    <span class="k">def</span> <span class="nf">add_column_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a transformation function for a column. This function will be called on</span>
+<span class="sd">        the value in the container before it is written to the output file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            identifier of table being written</span>
+<span class="sd">        col_name: str</span>
+<span class="sd">            name of column in the table (or item in the Container).</span>
+<span class="sd">        transform: ColumnTransform</span>
+<span class="sd">            function that tranforms input into output</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># allow leading slash</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)][</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Added transform: </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2"> -&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableWriter.add_column_transform_regexp"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter.add_column_transform_regexp">[docs]</a>    <span class="k">def</span> <span class="nf">add_column_transform_regexp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_regexp</span><span class="p">,</span> <span class="n">col_regexp</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a transformation function for a set of columns and tables that match the</span>
+<span class="sd">        given regular expressions. Each requested transform pattern will be</span>
+<span class="sd">        turned into an explicit column transform when the table schema is built.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: regexp</span>
+<span class="sd">            pattern matching the table name (via re.matchall)</span>
+<span class="sd">        col_name: regexp</span>
+<span class="sd">            pattern matching the column name if the table name also matches</span>
+<span class="sd">            (via re.matchall)</span>
+<span class="sd">        transform: ColumnTransform</span>
+<span class="sd">            function that tranformns input value into output value</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># allow leading slash</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform_regexps</span><span class="p">[</span><span class="n">table_regexp</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)][</span><span class="n">col_regexp</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Requested transform for pattern: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">table_regexp</span><span class="p">,</span>
+            <span class="n">col_regexp</span><span class="p">,</span>
+            <span class="n">transform</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_realize_regexp_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Loops though all requested transform regexps, checks if they apply the the</span>
+<span class="sd">        given table, if so, checks each Field in the given Container, and if</span>
+<span class="sd">        that matches, calls `self.add_column_transform(table, fieldname)` to</span>
+<span class="sd">        create an explicit (non-regexp) transform. This is done for speed</span>
+<span class="sd">        reasons: if we called the regexp for each table and each column, it adds</span>
+<span class="sd">        a significant overhead.</span>
+
+<span class="sd">        This should be called when building the table schema.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            table name</span>
+<span class="sd">        containers: List[Container]</span>
+<span class="sd">            List of containers to check</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">table_regexp</span><span class="p">,</span> <span class="n">column_regexp_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_regexps</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">table_regexp</span><span class="p">,</span> <span class="n">table_name</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Table &#39;</span><span class="si">%s</span><span class="s2">&#39; matched pattern &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">table_regexp</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">column_regexp</span><span class="p">,</span> <span class="n">transform</span> <span class="ow">in</span> <span class="n">column_regexp_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="n">add_prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">add_prefix</span><span class="p">):</span>
+
+                        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">column_regexp</span><span class="p">,</span> <span class="n">col_name</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                                <span class="s2">&quot;Column &#39;</span><span class="si">%s</span><span class="s2">&#39; matched pattern &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span>
+                                <span class="n">col_name</span><span class="p">,</span>
+                                <span class="n">column_regexp</span><span class="p">,</span>
+                            <span class="p">)</span>
+
+                            <span class="bp">self</span><span class="o">.</span><span class="n">add_column_transform</span><span class="p">(</span>
+                                <span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+                                <span class="n">col_name</span><span class="o">=</span><span class="n">col_name</span><span class="p">,</span>
+                                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                            <span class="p">)</span>
+
+<div class="viewcode-block" id="TableWriter.write"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter.write">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the contents of the given container or containers to a table.</span>
+<span class="sd">        The first call to write  will create a schema and initialize the table</span>
+<span class="sd">        within the file.</span>
+<span class="sd">        The shape of data within the container must not change between calls,</span>
+<span class="sd">        since variable-length arrays are not supported.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            name of table to write to</span>
+<span class="sd">        containers: ctapipe.core.Container or iterable thereof</span>
+<span class="sd">            container instance(s) to write</span>
+<span class="sd">        **kwargs:</span>
+<span class="sd">            may be passed to a lower level implementation to set options</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="TableWriter.open"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter.open">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        open an output file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str</span>
+<span class="sd">            output file name</span>
+<span class="sd">        kwargs:</span>
+<span class="sd">            any extra args to pass to the subclass open method</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="TableWriter.close"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.TableWriter.close">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close open writer&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="nf">_apply_col_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        apply value transform function if it exists for this column</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="p">]:</span>
+            <span class="n">tr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="p">][</span><span class="n">col_name</span><span class="p">]</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">tr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="TableReader"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.TableReader">[docs]</a><span class="k">class</span> <span class="nc">TableReader</span><span class="p">(</span><span class="n">Component</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for row-wise table readers. Generally methods that read a</span>
+<span class="sd">    full table at once are preferred to this method, since they are faster,</span>
+<span class="sd">    but this can be used to re-play a table row by row into a</span>
+<span class="sd">    `ctapipe.core.Container` class (the opposite of TableWriter)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TableReader.add_column_transform"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.TableReader.add_column_transform">[docs]</a>    <span class="k">def</span> <span class="nf">add_column_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a transformation function for a column. This function will be</span>
+<span class="sd">        called on the value in the container before it is written to the</span>
+<span class="sd">        output file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            identifier of table being written</span>
+<span class="sd">        col_name: str</span>
+<span class="sd">            name of column in the table (or item in the Container)</span>
+<span class="sd">        transform: callable</span>
+<span class="sd">            function that take a value and returns a new one</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="p">][</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Added transform: </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2"> -&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_apply_col_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        apply value transform function if it exists for this column</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="p">]:</span>
+            <span class="n">tr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="p">][</span><span class="n">col_name</span><span class="p">]</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">tr</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="TableReader.read"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.TableReader.read">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a generator that reads the next row from the table into the</span>
+<span class="sd">        given container.  The generator returns the same container. Note that</span>
+<span class="sd">        no containers are copied, the data are overwritten inside.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            name of table to read from</span>
+<span class="sd">        containers: ctapipe.core.Container or iterable thereof</span>
+<span class="sd">            Container instance(s) to fill</span>
+<span class="sd">        prefixes: bool, str or iterable of str</span>
+<span class="sd">            prefixes used during writing of the table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="TableReader.open"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.TableReader.open">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="TableReader.close"><a class="viewcode-back" href="../../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.TableReader.close">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">ColumnTransform</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Transformation to be applied before serialization / after deserialization.</span>
+
+<span class="sd">    The ``TableWriter`` will call the transform on the data to be stored and</span>
+<span class="sd">    ``TableReader`` will call `.inverse`` to reverse the transformation</span>
+<span class="sd">    when a transformation is detected in the file through metadata.</span>
+
+<span class="sd">    Transformations implement ``get_meta`` to provide the necessary metadata</span>
+<span class="sd">    for inverting the transformation on reading.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Invert the transformation applied in ``__call__``&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Metadata to be stored in the header information of the table</span>
+
+<span class="sd">        Needs to fully describe the transformation so upon reading, the</span>
+<span class="sd">        transformation can be inverted based on this metadata.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+
+<span class="k">class</span> <span class="nc">TimeColumnTransform</span><span class="p">(</span><span class="n">ColumnTransform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Column transformation that converts astropy time objects to MJD TAI&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="nb">format</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Time</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert an astropy time object to an mjd value in tai scale</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Time</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TIME_FORMAT&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TIME_SCALE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span>
+        <span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">QuantityColumnTransform</span><span class="p">(</span><span class="n">ColumnTransform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Column Transform that transforms quantities to their values in the given unit&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM&quot;</span><span class="p">:</span> <span class="s2">&quot;quantity&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_UNIT&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s2">&quot;vounit&quot;</span><span class="p">),</span>
+        <span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">FixedPointColumnTransform</span><span class="p">(</span><span class="n">ColumnTransform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply a scale, offset and dtype conversion.</span>
+
+<span class="sd">    Can be used to store values as fixed point by using an integer dtype</span>
+<span class="sd">    and a scale that is a power of 10.</span>
+
+<span class="sd">    The transforms reserves 3 integers to represent -inf, nan and inf.</span>
+<span class="sd">    Underflowing values are converted to -inf and overflowing to inf.</span>
+
+<span class="sd">    For unsigned target dtype:</span>
+<span class="sd">    -inf: maxval - 2</span>
+<span class="sd">    nan: maxval - 1</span>
+<span class="sd">    inf: maxval</span>
+
+<span class="sd">    For signed target dtype:</span>
+<span class="sd">    -inf: minval</span>
+<span class="sd">    nan: minval + 1</span>
+<span class="sd">    inf: maxval</span>
+
+<span class="sd">    When reading, these special values must not be interpreted as valid integer</span>
+<span class="sd">    values but be transformed back into -inf, nan, inf respectively.</span>
+
+<span class="sd">    This is a lossy transformation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">source_dtype</span><span class="p">,</span> <span class="n">target_dtype</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">source_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">target_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsigned</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;u&quot;</span>
+
+        <span class="n">iinfo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dtype</span><span class="p">)</span>
+
+        <span class="c1"># use three highest values for nan markers for unsigned case</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsigned</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">neginf</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="mi">2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nan</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">posinf</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span>
+
+            <span class="c1"># this leaves this inclusive range for the valid values</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minval</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxval</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="mi">3</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">neginf</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">min</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nan</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">min</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">posinf</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span>
+
+            <span class="c1"># this leaves this inclusive range for the valid values</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minval</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">min</span> <span class="o">+</span> <span class="mi">2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxval</span> <span class="o">=</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">is_scalar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">scaled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+
+        <span class="c1"># convert under/overflow values to -inf/inf</span>
+        <span class="n">scaled</span><span class="p">[</span><span class="n">scaled</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxval</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">scaled</span><span class="p">[</span><span class="n">scaled</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">minval</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="n">nans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">scaled</span><span class="p">)</span>
+        <span class="n">pos_inf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isposinf</span><span class="p">(</span><span class="n">scaled</span><span class="p">)</span>
+        <span class="n">neg_inf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isneginf</span><span class="p">(</span><span class="n">scaled</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">scaled</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dtype</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">neg_inf</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neginf</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">pos_inf</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">posinf</span>
+
+        <span class="k">if</span> <span class="n">is_scalar</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">is_scalar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_dtype</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="n">nans</span> <span class="o">=</span> <span class="n">value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">pos_inf</span> <span class="o">=</span> <span class="n">value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">posinf</span>
+        <span class="n">neg_inf</span> <span class="o">=</span> <span class="n">value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">neginf</span>
+
+        <span class="n">result</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">neg_inf</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">pos_inf</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="k">if</span> <span class="n">is_scalar</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM&quot;</span><span class="p">:</span> <span class="s2">&quot;fixed_point&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM_SCALE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM_DTYPE&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_dtype</span><span class="p">),</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM_OFFSET&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_NAN_VALUE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_POSINF_VALUE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">posinf</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_NEGINF_VALUE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">neginf</span><span class="p">,</span>
+        <span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">EnumColumnTransform</span><span class="p">(</span><span class="n">ColumnTransform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Store the value of an enum&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enum</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enum</span> <span class="o">=</span> <span class="n">enum</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enum</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM&quot;</span><span class="p">:</span> <span class="s2">&quot;enum&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_ENUM&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enum</span><span class="p">,</span>
+        <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">encode_utf8_max_len</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">max_length</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a string to utf-8 with max length in bytes</span>
+
+<span class="sd">    This will not create invalid utf-8 data and thus the resulting</span>
+<span class="sd">    bytes object might be shorter than ``max_length`` if max_length</span>
+<span class="sd">    falls into a multi-byte codepoint.</span>
+
+<span class="sd">    This might still create nonsensical output for cases like combining</span>
+<span class="sd">    diacritics and emoji, but</span>
+<span class="sd">    a) it will always successfully decode as utf-8</span>
+<span class="sd">    b) we can probably live with not supporting all emojis</span>
+<span class="sd">    when truncating strings in hdf5 data of ctapipe</span>
+
+<span class="sd">    See https://stackoverflow.com/a/56724327/3838691</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">utf8</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">utf8</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_length</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">utf8</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">utf8</span><span class="p">[</span><span class="n">max_length</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mb">0b1100_0000</span><span class="p">)</span> <span class="o">==</span> <span class="mb">0b1000_0000</span><span class="p">:</span>
+        <span class="n">max_length</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">utf8</span><span class="p">[:</span><span class="n">max_length</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">StringTransform</span><span class="p">(</span><span class="n">ColumnTransform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Encode strings as utf-8 bytes using a max_length</span>
+
+<span class="sd">    Byte values are truncated after ``max_length``, this might result</span>
+<span class="sd">    in invalid utf-8!. Trailing utf-8 bytes are ignored when inversing the</span>
+<span class="sd">    transform.</span>
+
+<span class="sd">    Should not be used anymore when tables starts supporting</span>
+<span class="sd">    variable length strings in tables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_length</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;S</span><span class="si">{</span><span class="n">max_length</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">encode_utf8_max_len</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">encode_utf8_max_len</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+        <span class="c1"># astropy table columns somehow try to handle byte columns as strings</span>
+        <span class="c1"># when iterating, this does not work here, convert to np.array</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_MAXLEN&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span>
+        <span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">TelListToMaskTransform</span><span class="p">(</span><span class="n">ColumnTransform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;convert variable-length list of tel_ids to a fixed-length mask&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">:</span> <span class="n">SubarrayDescription</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_ids_to_mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inverse</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_mask_to_tel_ids</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2">_TRANSFORM&quot;</span><span class="p">:</span> <span class="s2">&quot;tel_list_to_mask&quot;</span><span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

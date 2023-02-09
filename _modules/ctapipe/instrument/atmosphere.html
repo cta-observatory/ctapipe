@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.instrument.atmosphere &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.instrument.atmosphere</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.instrument.atmosphere</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions to retrieve and interpolate atmosphere profiles.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">interp1d</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">get_table_dataset</span>
+<span class="kn">from</span> <span class="nn">..utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecated</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;get_atmosphere_profile_table&quot;</span><span class="p">,</span> <span class="s2">&quot;get_atmosphere_profile_functions&quot;</span><span class="p">]</span>
+
+
+<span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">since</span><span class="o">=</span><span class="s2">&quot;v0.16.0&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;use ctapipe.atmosphere profiles from EventSource instead&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_atmosphere_profile_table</span><span class="p">(</span><span class="n">atmosphere_name</span><span class="o">=</span><span class="s2">&quot;paranal&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get an atmosphere profile table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    atmosphere_name: str</span>
+<span class="sd">        identifier of atmosphere profile</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    astropy.table.Table  containing atmosphere profile with at least columns</span>
+<span class="sd">    &#39;altitude&#39; (m), and &#39;thickness&#39; (g cm-2) as well as others.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">table_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">atmosphere_name</span><span class="si">}</span><span class="s2">.atmprof&quot;</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">get_table_dataset</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;dl0.arr.svc.atmosphere&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">table</span>
+
+
+<div class="viewcode-block" id="get_atmosphere_profile_functions"><a class="viewcode-back" href="../../../api/ctapipe.instrument.get_atmosphere_profile_functions.html#ctapipe.instrument.get_atmosphere_profile_functions">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">since</span><span class="o">=</span><span class="s2">&quot;v0.16.0&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;use ctapipe.atmosphere profiles from EventSource instead&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_atmosphere_profile_functions</span><span class="p">(</span><span class="n">atmosphere_name</span><span class="o">=</span><span class="s2">&quot;paranal&quot;</span><span class="p">,</span> <span class="n">with_units</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gives atmospheric profile as a continuous function thickness(</span>
+<span class="sd">    altitude), and it&#39;s inverse altitude(thickness)  in m and g/cm^2</span>
+<span class="sd">    respectively.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    atmosphere_name: str</span>
+<span class="sd">        identifier of atmosphere profile</span>
+<span class="sd">    with_units: bool</span>
+<span class="sd">       if true, return functions that accept and return unit quantities.</span>
+<span class="sd">       Otherwise assume units are &#39;m&#39; and &#39;g cm-2&#39;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    functions: thickness(alt), alt(thickness)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tab</span> <span class="o">=</span> <span class="n">get_atmosphere_profile_table</span><span class="p">(</span><span class="n">atmosphere_name</span><span class="p">)</span>
+    <span class="n">alt</span> <span class="o">=</span> <span class="n">tab</span><span class="p">[</span><span class="s2">&quot;altitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)</span>
+    <span class="n">thick</span> <span class="o">=</span> <span class="p">(</span><span class="n">tab</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;g cm-2&quot;</span><span class="p">)</span>
+
+    <span class="n">alt_to_thickness</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">alt</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thick</span><span class="p">))</span>
+    <span class="n">thickness_to_alt</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thick</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">alt</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">with_units</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">thickness</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">alt_to_thickness</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)),</span> <span class="s2">&quot;g cm-2&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">altitude</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">thickness_to_alt</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;g cm-2&quot;</span><span class="p">)),</span> <span class="s2">&quot;m&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">thickness</span><span class="p">,</span> <span class="n">altitude</span>
+
+    <span class="k">return</span> <span class="n">alt_to_thickness</span><span class="p">,</span> <span class="n">thickness_to_alt</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

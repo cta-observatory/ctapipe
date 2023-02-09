@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.hdf5tableio &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.hdf5tableio</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.hdf5tableio</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Implementations of TableWriter and -Reader for HDF5 files&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">PurePath</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+
+<span class="kn">import</span> <span class="nn">ctapipe</span>
+
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Container</span><span class="p">,</span> <span class="n">Map</span>
+<span class="kn">from</span> <span class="nn">.tableio</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EnumColumnTransform</span><span class="p">,</span>
+    <span class="n">FixedPointColumnTransform</span><span class="p">,</span>
+    <span class="n">QuantityColumnTransform</span><span class="p">,</span>
+    <span class="n">StringTransform</span><span class="p">,</span>
+    <span class="n">TableReader</span><span class="p">,</span>
+    <span class="n">TableWriter</span><span class="p">,</span>
+    <span class="n">TimeColumnTransform</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HDF5TableWriter&quot;</span><span class="p">,</span> <span class="s2">&quot;HDF5TableReader&quot;</span><span class="p">]</span>
+
+<span class="n">PYTABLES_TYPE_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">,</span>
+    <span class="s2">&quot;float64&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">,</span>
+    <span class="s2">&quot;float32&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">,</span>
+    <span class="s2">&quot;float16&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float16Col</span><span class="p">,</span>
+    <span class="s2">&quot;int8&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int8Col</span><span class="p">,</span>
+    <span class="s2">&quot;int16&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int16Col</span><span class="p">,</span>
+    <span class="s2">&quot;int32&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">,</span>
+    <span class="s2">&quot;int64&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int64Col</span><span class="p">,</span>
+    <span class="s2">&quot;int&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">Int64Col</span><span class="p">,</span>
+    <span class="s2">&quot;uint8&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">UInt8Col</span><span class="p">,</span>
+    <span class="s2">&quot;uint16&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">UInt16Col</span><span class="p">,</span>
+    <span class="s2">&quot;uint32&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">UInt32Col</span><span class="p">,</span>
+    <span class="s2">&quot;uint64&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">UInt64Col</span><span class="p">,</span>
+    <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">BoolCol</span><span class="p">,</span>  <span class="c1"># python bool</span>
+    <span class="s2">&quot;bool_&quot;</span><span class="p">:</span> <span class="n">tables</span><span class="o">.</span><span class="n">BoolCol</span><span class="p">,</span>  <span class="c1"># np.bool_</span>
+<span class="p">}</span>
+
+
+<span class="n">DEFAULT_FILTERS</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Filters</span><span class="p">(</span>
+    <span class="n">complevel</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>  <span class="c1"># compression medium, tradeoff between speed and compression</span>
+    <span class="n">complib</span><span class="o">=</span><span class="s2">&quot;blosc:zstd&quot;</span><span class="p">,</span>  <span class="c1"># use modern zstd algorithm</span>
+    <span class="n">fletcher32</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># add checksums to data chunks</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_hdf5_attr</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">attrs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">default</span>
+
+
+<span class="k">def</span> <span class="nf">get_column_attrs</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read custom ctapipe column metadata from hdf5 table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table : `tables.Table`</span>
+<span class="sd">        The table for which to parse the column metadata attributes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">attrs</span>
+
+    <span class="n">column_attrs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">coldescrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">desc</span><span class="o">.</span><span class="n">_v_pos</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">_&quot;</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;POS&quot;</span><span class="p">:</span> <span class="n">pos</span><span class="p">,</span>
+            <span class="s2">&quot;DTYPE&quot;</span><span class="p">:</span> <span class="n">desc</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">full_key</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">attrs</span><span class="o">.</span><span class="n">_v_attrnamesuser</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">[</span><span class="n">full_key</span><span class="p">]</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">full_key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="p">:]</span>
+
+            <span class="c1"># convert numpy scalars to plain python objects</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="n">current</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="n">current</span><span class="p">[</span><span class="s2">&quot;PREFIX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">column_attrs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">current</span>
+    <span class="k">return</span> <span class="n">column_attrs</span>
+
+
+<span class="k">def</span> <span class="nf">get_node_meta</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the metadata attached to a table object</span>
+
+<span class="sd">    This does not include ctapipe-attached column descriptions and transform</span>
+<span class="sd">    metadata, only any additional attributes defined.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    node : `tables.Node`</span>
+<span class="sd">        The node for which to parse the metadata attributes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ignore_column_descriptions</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;CTAFIELD_&quot;</span><span class="p">)</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">_v_attrs</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="n">ignore_column_descriptions</span><span class="p">,</span> <span class="n">attrs</span><span class="o">.</span><span class="n">_v_attrnamesuser</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="c1"># convert numpy scalars to plain python objects</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">meta</span>
+
+
+<span class="k">def</span> <span class="nf">get_column_transforms</span><span class="p">(</span><span class="n">column_attrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    create any transforms needed to &quot;undo&quot; ones in the writer</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    column_attrs : dict</span>
+<span class="sd">        Column attrs, as returned by `get_column_attrs`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">transforms</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">colname</span><span class="p">,</span> <span class="n">col_attrs</span> <span class="ow">in</span> <span class="n">column_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">unit</span> <span class="o">:=</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;UNIT&quot;</span><span class="p">):</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">QuantityColumnTransform</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">transforms</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+
+        <span class="k">elif</span> <span class="n">enum</span> <span class="o">:=</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ENUM&quot;</span><span class="p">):</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">EnumColumnTransform</span><span class="p">(</span><span class="n">enum</span><span class="p">)</span>
+            <span class="n">transforms</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+
+        <span class="k">elif</span> <span class="n">scale</span> <span class="o">:=</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TIME_SCALE&quot;</span><span class="p">):</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">time_format</span> <span class="o">=</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TIME_FORMAT&quot;</span><span class="p">,</span> <span class="s2">&quot;mjd&quot;</span><span class="p">)</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">TimeColumnTransform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">time_format</span><span class="p">)</span>
+            <span class="n">transforms</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+
+        <span class="k">elif</span> <span class="n">scale</span> <span class="o">:=</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TRANSFORM_SCALE&quot;</span><span class="p">):</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">FixedPointColumnTransform</span><span class="p">(</span>
+                <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+                <span class="n">offset</span><span class="o">=</span><span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TRANSFORM_OFFSET&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">source_dtype</span><span class="o">=</span><span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TRANSFORM_DTYPE&quot;</span><span class="p">,</span> <span class="s2">&quot;float32&quot;</span><span class="p">),</span>
+                <span class="n">target_dtype</span><span class="o">=</span><span class="n">col_attrs</span><span class="p">[</span><span class="s2">&quot;DTYPE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">base</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">transforms</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+
+        <span class="k">elif</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TRANSFORM&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;string&quot;</span><span class="p">:</span>
+            <span class="n">maxlen</span> <span class="o">=</span> <span class="n">col_attrs</span><span class="p">[</span><span class="s2">&quot;MAXLEN&quot;</span><span class="p">]</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">StringTransform</span><span class="p">(</span><span class="n">maxlen</span><span class="p">)</span>
+            <span class="n">transforms</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span>
+
+    <span class="k">return</span> <span class="n">transforms</span>
+
+
+<div class="viewcode-block" id="HDF5TableWriter"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter">[docs]</a><span class="k">class</span> <span class="nc">HDF5TableWriter</span><span class="p">(</span><span class="n">TableWriter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A very basic table writer that can take a container (or more than one)</span>
+<span class="sd">    and write it to an HDF5 file. It does _not_ recursively write the</span>
+<span class="sd">    container. This is intended as a building block to create a more complex</span>
+<span class="sd">    I/O system.</span>
+
+<span class="sd">    It works by creating a HDF5 Table description from the `~ctapipe.core.Field`</span>
+<span class="sd">    definitions inside a container, where each item becomes a column in the table.</span>
+<span class="sd">    The first time `HDF5TableWriter.write()` is called, the container(s) are</span>
+<span class="sd">    registered and the table created in the output file.</span>
+
+<span class="sd">    Each item in the container can also have an optional transform function</span>
+<span class="sd">    that is called before writing to transform the value.  For example,</span>
+<span class="sd">    unit quantities always have their units removed, or converted to a</span>
+<span class="sd">    common unit if specified in the `~ctapipe.core.Field`.</span>
+
+<span class="sd">    Any metadata in the `~ctapipe.core.Container` (stored in ``Container.meta``) will be</span>
+<span class="sd">    written to the table&#39;s header on the first call to write()</span>
+
+<span class="sd">    Multiple tables may be written at once in a single file, as long as you</span>
+<span class="sd">    change the table_name attribute to `write()` to specify which one to write</span>
+<span class="sd">    to.  Likewise multiple Containers can be merged into a single output</span>
+<span class="sd">    table by passing a list of containers to `write()`.</span>
+
+<span class="sd">    To append to existing files, pass the ``mode=&#39;a&#39;``  option to the</span>
+<span class="sd">    constructor.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename: str</span>
+<span class="sd">        name of hdf5 output file</span>
+<span class="sd">    group_name: str</span>
+<span class="sd">        name of group into which to put all of the tables generated by this</span>
+<span class="sd">        Writer (it will be placed under &quot;/&quot; in the file)</span>
+<span class="sd">    add_prefix: bool</span>
+<span class="sd">        if True, add the container prefix before each column name</span>
+<span class="sd">    mode : str (&#39;w&#39;, &#39;a&#39;)</span>
+<span class="sd">        &#39;w&#39; if you want to overwrite the file</span>
+<span class="sd">        &#39;a&#39; if you want to append data to the file</span>
+<span class="sd">    root_uep : str</span>
+<span class="sd">        root location of the ``group_name``</span>
+<span class="sd">    filters: pytables.Filters</span>
+<span class="sd">        A set of filters (compression settings) to be used for</span>
+<span class="sd">        all datasets created by this writer.</span>
+<span class="sd">    kwargs:</span>
+<span class="sd">        any other arguments that will be passed through to ``pytables.open_file``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename</span><span class="p">,</span>
+        <span class="n">group_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">add_prefix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span>
+        <span class="n">root_uep</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="p">,</span>
+        <span class="n">filters</span><span class="o">=</span><span class="n">DEFAULT_FILTERS</span><span class="p">,</span>
+        <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">add_prefix</span><span class="o">=</span><span class="n">add_prefix</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schemas</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The mode &#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39; is not supported for writing&quot;</span><span class="p">)</span>
+
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">root_uep</span><span class="o">=</span><span class="n">root_uep</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_group</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">group_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="n">filters</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;h5file: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HDF5TableWriter.open"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter.open">[docs]</a>    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;kwargs for tables.open_file: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDF5TableWriter.close"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_add_column_to_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">meta</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">typename</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">pos</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Container</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Ignoring sub-container: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Map</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Ignoring map-field: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_column_excluded</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;excluded column: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Found duplicated column </span><span class="si">%s</span><span class="s2">, skipping&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># apply any user-defined transforms first</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_col_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># now set up automatic transforms to make values that cannot be</span>
+        <span class="c1"># written in their default form into a form that is serializable</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+            <span class="n">tr</span> <span class="o">=</span> <span class="n">EnumColumnTransform</span><span class="p">(</span><span class="n">enum</span><span class="o">=</span><span class="n">value</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">tr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">unit</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">unit</span>
+            <span class="n">tr</span> <span class="o">=</span> <span class="n">QuantityColumnTransform</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">tr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">typename</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">coltype</span> <span class="o">=</span> <span class="n">PYTABLES_TYPE_MAP</span><span class="p">[</span><span class="n">typename</span><span class="p">]</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">coltype</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Time</span><span class="p">):</span>
+            <span class="c1"># TODO: really should use MET, but need a func for that</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
+            <span class="n">tr</span> <span class="o">=</span> <span class="n">TimeColumnTransform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="s2">&quot;tai&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mjd&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">PYTABLES_TYPE_MAP</span><span class="p">:</span>
+            <span class="n">typename</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="n">coltype</span> <span class="o">=</span> <span class="n">PYTABLES_TYPE_MAP</span><span class="p">[</span><span class="n">typename</span><span class="p">]</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">coltype</span><span class="p">(</span><span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">max_length</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+            <span class="n">tr</span> <span class="o">=</span> <span class="n">StringTransform</span><span class="p">(</span><span class="n">max_length</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> not writable&quot;</span><span class="p">)</span>
+
+        <span class="c1"># add meta fields of transform</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transforms</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="s2">&quot;get_meta&quot;</span><span class="p">):</span>
+                <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">get_meta</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span>
+
+        <span class="c1"># add original field name name, without prefix</span>
+        <span class="n">meta</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">_NAME&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="c1"># add desription to metadata</span>
+        <span class="n">meta</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">_DESC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">description</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;added col: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> type: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">typename</span><span class="si">}</span><span class="s2"> shape: </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;with transform: </span><span class="si">{</span><span class="n">transform</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_create_hdf5_table_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a pytables description class for the given containers</span>
+<span class="sd">        and registers it in the Writer</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            name of table</span>
+<span class="sd">        container: ctapipe.core.Container</span>
+<span class="sd">            instance of an initalized container</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dictionary of extra metadata to add to the table&#39;s header</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">class</span> <span class="nc">Schema</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">IsDescription</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># any extra meta-data generated here (like units, etc)</span>
+
+        <span class="c1"># set up any column tranforms that were requested as regexps (i.e.</span>
+        <span class="c1"># convert them to explicit transform in the _transforms dict if they</span>
+        <span class="c1"># match)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_realize_regexp_transforms</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">)</span>
+
+        <span class="c1"># create pytables schema description for the given container</span>
+        <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">:</span>
+
+            <span class="n">container</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>  <span class="c1"># ensure the data are complete</span>
+
+            <span class="n">it</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">container</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="n">add_prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">add_prefix</span><span class="p">),</span> <span class="n">container</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">col_name</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_add_column_to_schema</span><span class="p">(</span>
+                        <span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+                        <span class="n">schema</span><span class="o">=</span><span class="n">Schema</span><span class="p">,</span>
+                        <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span>
+                        <span class="n">field</span><span class="o">=</span><span class="n">field</span><span class="p">,</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">col_name</span><span class="p">,</span>
+                        <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Column </span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; with value </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2"> of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; of container </span><span class="si">{</span><span class="n">container</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> in&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> not writable, skipping&quot;</span>
+                    <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schemas</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Schema</span>
+        <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;CTAPIPE_VERSION&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctapipe</span><span class="o">.</span><span class="n">__version__</span>
+        <span class="k">return</span> <span class="n">meta</span>
+
+    <span class="k">def</span> <span class="nf">_setup_new_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;set up the table. This is called the first time `write()`</span>
+<span class="sd">        is called on a new table&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initializing table &#39;</span><span class="si">%s</span><span class="s2">&#39; in group &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group</span><span class="p">)</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_hdf5_table_schema</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">table_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Table name must not start with &#39;/&#39;&quot;</span><span class="p">)</span>
+
+        <span class="n">table_path</span> <span class="o">=</span> <span class="n">PurePath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_group</span><span class="p">)</span> <span class="o">/</span> <span class="n">PurePath</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span>
+        <span class="n">table_group</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">table_path</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+        <span class="n">table_basename</span> <span class="o">=</span> <span class="n">table_path</span><span class="o">.</span><span class="n">stem</span>
+        <span class="n">table_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">:</span>
+            <span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">container</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span>  <span class="c1"># copy metadata from container</span>
+
+        <span class="k">if</span> <span class="n">table_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">table_group</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">table_basename</span><span class="p">,</span>
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Storage of </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_schemas</span><span class="p">[</span><span class="n">table_name</span><span class="p">],</span>
+                <span class="n">createparents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">filters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CREATED TABLE: </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">meta</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5file</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span>
+
+    <span class="k">def</span> <span class="nf">_append_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        append a row to an already initialized table. This is called</span>
+<span class="sd">        automatically by `write()`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">row</span>
+
+        <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">:</span>
+            <span class="n">selected_fields</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">kv</span><span class="p">:</span> <span class="n">kv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">,</span>
+                <span class="n">container</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="n">add_prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">add_prefix</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">colname</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">selected_fields</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_col_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">colname</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                    <span class="n">row</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Error writing col </span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2"> of &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;container </span><span class="si">{</span><span class="n">container</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span>
+        <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">()</span>
+
+<div class="viewcode-block" id="HDF5TableWriter.write"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the contents of the given container or containers to a table.</span>
+<span class="sd">        The first call to write  will create a schema and initialize the table</span>
+<span class="sd">        within the file.</span>
+<span class="sd">        The shape of data within the container must not change between</span>
+<span class="sd">        calls, since variable-length arrays are not supported.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            name of table to write to</span>
+<span class="sd">        containers: `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`</span>
+<span class="sd">            container to write</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">containers</span><span class="p">,</span> <span class="n">Container</span><span class="p">):</span>
+            <span class="n">containers</span> <span class="o">=</span> <span class="p">(</span><span class="n">containers</span><span class="p">,)</span>
+
+        <span class="k">if</span> <span class="n">table_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schemas</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_setup_new_table</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_append_row</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="HDF5TableReader"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader">[docs]</a><span class="k">class</span> <span class="nc">HDF5TableReader</span><span class="p">(</span><span class="n">TableReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reader that reads a single row of an HDF5 table at once into a Container.</span>
+<span class="sd">    Simply construct a `HDF5TableReader` with an input HDF5 file,</span>
+<span class="sd">    and call the `read(path, container) &lt;read&gt;`_ method to get a generator that fills</span>
+<span class="sd">    the given container with a new row of the table on each access.</span>
+
+<span class="sd">    Columns in the table are automatically mapped to container fields by</span>
+<span class="sd">    name, and if a field is missing in either, it is skipped during read,</span>
+<span class="sd">    but a warning is emitted.</span>
+
+<span class="sd">    Columns that were written by HDF5TableWriter and which had unit</span>
+<span class="sd">    transforms applied, will have the units re-applied when reading (the</span>
+<span class="sd">    unit used is stored in the header attributes).</span>
+
+<span class="sd">    Note that this is only useful if you want to read all information *one</span>
+<span class="sd">    event at a time* into a container, which is not very I/O efficient. For</span>
+<span class="sd">    some other use cases, it may be much more efficient to access the</span>
+<span class="sd">    table data directly, for example to read an entire column or table at</span>
+<span class="sd">    once (which means not using the Container data structure).</span>
+
+<span class="sd">    Todo:</span>
+<span class="sd">    - add ability to synchronize reading of multiple tables on a key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str, pathlib.PurePath or tables.File instance</span>
+<span class="sd">            name of hdf5 file or file handle</span>
+<span class="sd">        kwargs:</span>
+<span class="sd">            any other arguments that will be passed through to</span>
+<span class="sd">            `pytables.file.open_file`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_col_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prefixes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_missing_fields</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">PurePath</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_h5file</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;filename needs to be either a string, pathlib.PurePath &quot;</span>
+                <span class="s2">&quot;or tables.File&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="HDF5TableReader.open"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader.open">[docs]</a>    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h5file</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDF5TableReader.close"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h5file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_setup_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">,</span> <span class="n">ignore_columns</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h5file</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span>
+        <span class="n">column_attrs</span> <span class="o">=</span> <span class="n">get_column_attrs</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_map_table_to_containers</span><span class="p">(</span>
+            <span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+            <span class="n">column_attrs</span><span class="o">=</span><span class="n">column_attrs</span><span class="p">,</span>
+            <span class="n">containers</span><span class="o">=</span><span class="n">containers</span><span class="p">,</span>
+            <span class="n">prefixes</span><span class="o">=</span><span class="n">prefixes</span><span class="p">,</span>
+            <span class="n">ignore_columns</span><span class="o">=</span><span class="n">ignore_columns</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># setup transforms</span>
+        <span class="n">transforms</span> <span class="o">=</span> <span class="n">get_column_transforms</span><span class="p">(</span><span class="n">column_attrs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">transform</span> <span class="ow">in</span> <span class="n">transforms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column_transform</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+
+        <span class="c1"># store the meta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_node_meta</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="k">def</span> <span class="nf">_map_table_to_containers</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">table_name</span><span class="p">,</span>
+        <span class="n">column_attrs</span><span class="p">,</span>
+        <span class="n">containers</span><span class="p">,</span>
+        <span class="n">prefixes</span><span class="p">,</span>
+        <span class="n">ignore_columns</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;identifies which columns in the table to read into the containers,</span>
+<span class="sd">        by comparing their names including an optional prefix.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_missing_fields</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_col_mapping</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prefixes</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">inverse_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">colname</span><span class="p">,</span> <span class="n">col_attrs</span> <span class="ow">in</span> <span class="n">column_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">col_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">inverse_mapping</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">colname</span>
+
+        <span class="n">cols_to_read</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">containers</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">):</span>
+            <span class="n">col_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="n">inverse_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="n">field_name</span> <span class="k">if</span> <span class="n">prefix</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="k">if</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">ignore_columns</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">elif</span> <span class="n">col_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_attrs</span><span class="p">:</span>
+                    <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> is missing column </span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2"> for field </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; of container </span><span class="si">{</span><span class="n">container</span><span class="si">}</span><span class="s2">. It will be skipped.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">cols_to_read</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                            <span class="s2">&quot;Mapping of column names to container fields is not unique&quot;</span>
+                            <span class="s2">&quot;, prefixes are required.&quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot; Duplicated column: </span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">prefix</span> <span class="o">=</span> <span class="n">column_attrs</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PREFIX&quot;</span><span class="p">)</span>
+
+                    <span class="n">col_mapping</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_name</span>
+                    <span class="n">cols_to_read</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_prefixes</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_missing_fields</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_col_mapping</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_mapping</span><span class="p">)</span>
+
+        <span class="c1"># check if the table has additional columns not present in any container</span>
+        <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="n">column_attrs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">colname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols_to_read</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> contains column </span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;that does not map to any of the specified containers&quot;</span>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="HDF5TableReader.read"><a class="viewcode-back" href="../../../api/ctapipe.io.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">containers</span><span class="p">,</span> <span class="n">prefixes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a generator that reads the next row from the table into the</span>
+<span class="sd">        given container. The generator returns the same container. Note that</span>
+<span class="sd">        no containers are copied, the data are overwritten inside.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name: str</span>
+<span class="sd">            name of table to read from</span>
+<span class="sd">        containers : Iterable[ctapipe.core.Container]</span>
+<span class="sd">            Container classes to fill</span>
+<span class="sd">        prefix: bool, str or list</span>
+<span class="sd">            Prefix that was added while writing the file.</span>
+<span class="sd">            If None, the prefix in the file are used. This only works</span>
+<span class="sd">            when the mapping from column name without prefix to container</span>
+<span class="sd">            is unique.</span>
+<span class="sd">            If True, the ``default_prefix`` attribute of the containers is used</span>
+<span class="sd">            If False, no prefix is used.</span>
+<span class="sd">            If a string is provided, it is used as prefix for all containers.</span>
+<span class="sd">            If a list is provided, the length needs to match th number</span>
+<span class="sd">            of containers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ignore_columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ignore_columns</span><span class="p">)</span> <span class="k">if</span> <span class="n">ignore_columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="n">return_iterable</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">containers</span><span class="p">,</span> <span class="n">Container</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected container *classes*, not *instances*&quot;</span><span class="p">)</span>
+
+        <span class="c1"># check for a single container</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">containers</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+            <span class="n">containers</span> <span class="o">=</span> <span class="p">(</span><span class="n">containers</span><span class="p">,)</span>
+            <span class="n">return_iterable</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">Container</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected container *classes*, not *instances*&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">prefixes</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">prefixes</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="n">container</span><span class="o">.</span><span class="n">default_prefix</span> <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prefixes</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="n">prefixes</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">containers</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">prefixes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">containers</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prefixes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">containers</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Length of provided prefixes does not match containers&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">table_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span><span class="p">:</span>
+            <span class="n">tab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_table</span><span class="p">(</span>
+                <span class="n">table_name</span><span class="p">,</span>
+                <span class="n">containers</span><span class="o">=</span><span class="n">containers</span><span class="p">,</span>
+                <span class="n">prefixes</span><span class="o">=</span><span class="n">prefixes</span><span class="p">,</span>
+                <span class="n">ignore_columns</span><span class="o">=</span><span class="n">ignore_columns</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+
+        <span class="n">prefixes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefixes</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_missing_fields</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+        <span class="n">mappings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_col_mapping</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">row_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tab</span><span class="p">)):</span>
+            <span class="c1"># looping over table yields Row instances.</span>
+            <span class="c1"># __getitem__ just gives plain numpy data</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">tab</span><span class="p">[</span><span class="n">row_index</span><span class="p">]</span>
+
+            <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">missing_fields</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">containers</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">,</span> <span class="n">mappings</span><span class="p">,</span> <span class="n">missing</span>
+            <span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">field_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_col_transform</span><span class="p">(</span>
+                        <span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+
+                <span class="c1"># set missing fields to None</span>
+                <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">missing_fields</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="n">container</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">)</span>
+                <span class="n">container</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">return_iterable</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">ret</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

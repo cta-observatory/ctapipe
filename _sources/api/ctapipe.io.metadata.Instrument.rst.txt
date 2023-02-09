@@ -1,0 +1,27 @@
+Instrument
+==========
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autoclass:: Instrument
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Instrument.class_
+      ~Instrument.id_
+      ~Instrument.site
+      ~Instrument.subtype
+      ~Instrument.type_
+      ~Instrument.version
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: class_
+   .. autoattribute:: id_
+   .. autoattribute:: site
+   .. autoattribute:: subtype
+   .. autoattribute:: type_
+   .. autoattribute:: version

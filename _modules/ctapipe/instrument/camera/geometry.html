@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.instrument.camera.geometry &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.instrument.camera.geometry</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.instrument.camera.geometry</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities for reading or working with Camera geometry files</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">unique</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span><span class="p">,</span> <span class="n">BaseCoordinateFrame</span><span class="p">,</span> <span class="n">SkyCoord</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">lazyproperty</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">csr_matrix</span><span class="p">,</span> <span class="n">lil_matrix</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">cKDTree</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.coordinates</span> <span class="kn">import</span> <span class="n">CameraFrame</span><span class="p">,</span> <span class="n">get_representation_component_names</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils</span> <span class="kn">import</span> <span class="n">get_table_dataset</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils.linalg</span> <span class="kn">import</span> <span class="n">rotation_matrix_2d</span>
+
+<span class="kn">from</span> <span class="nn">.image_conversion</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_orthogonal_grid_edges</span><span class="p">,</span>
+    <span class="n">get_orthogonal_grid_indices</span><span class="p">,</span>
+    <span class="n">unskew_hex_pixel_grid</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CameraGeometry&quot;</span><span class="p">,</span> <span class="s2">&quot;UnknownPixelShapeWarning&quot;</span><span class="p">,</span> <span class="s2">&quot;PixelShape&quot;</span><span class="p">]</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_distance</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PixelShape"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.PixelShape.html#ctapipe.instrument.PixelShape">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">PixelShape</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Supported Pixel Shapes Enum&quot;&quot;&quot;</span>
+
+    <span class="n">CIRCLE</span> <span class="o">=</span> <span class="s2">&quot;circle&quot;</span>
+    <span class="n">SQUARE</span> <span class="o">=</span> <span class="s2">&quot;square&quot;</span>
+    <span class="n">HEXAGON</span> <span class="o">=</span> <span class="s2">&quot;hexagon&quot;</span>
+
+<div class="viewcode-block" id="PixelShape.from_string"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.PixelShape.html#ctapipe.instrument.PixelShape.from_string">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a string represenation to the enum value</span>
+
+<span class="sd">        This function supports abbreviations and for backwards compatibility</span>
+<span class="sd">        &quot;rect&quot; as alias for &quot;square&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;hex&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">HEXAGON</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;rect&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;square&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SQUARE</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;circ&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CIRCLE</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown pixel shape </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+<span class="c1">#: mapper from simtel pixel shape integers to our shape and rotation angle</span>
+<span class="n">SIMTEL_PIXEL_SHAPES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">CIRCLE</span><span class="p">,</span> <span class="n">Angle</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)),</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">HEXAGON</span><span class="p">,</span> <span class="n">Angle</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)),</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">SQUARE</span><span class="p">,</span> <span class="n">Angle</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)),</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="p">(</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">HEXAGON</span><span class="p">,</span> <span class="n">Angle</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)),</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="CameraGeometry"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry">[docs]</a><span class="k">class</span> <span class="nc">CameraGeometry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;`CameraGeometry` is a class that stores information about a</span>
+<span class="sd">    Cherenkov Camera that us useful for imaging algorithms and</span>
+<span class="sd">    displays. It contains lists of pixel positions, areas, pixel</span>
+<span class="sd">    shapes, as well as a neighbor (adjacency) list and matrix for each pixel.</span>
+<span class="sd">    In general the neighbor_matrix attribute should be used in any algorithm</span>
+<span class="sd">    needing pixel neighbors, since it is much faster. See for example</span>
+<span class="sd">    `ctapipe.image.tailcuts_clean`</span>
+
+<span class="sd">    The class is intended to be generic, and work with any Cherenkov</span>
+<span class="sd">    Camera geometry, including those that have square vs hexagonal</span>
+<span class="sd">    pixels, gaps between pixels, etc.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    self : type</span>
+<span class="sd">        description</span>
+<span class="sd">    name : str</span>
+<span class="sd">         Camera name (e.g. NectarCam, LSTCam, ...)</span>
+<span class="sd">    pix_id : array(int)</span>
+<span class="sd">        pixels id numbers</span>
+<span class="sd">    pix_x : array with units</span>
+<span class="sd">        position of each pixel (x-coordinate)</span>
+<span class="sd">    pix_y : array with units</span>
+<span class="sd">        position of each pixel (y-coordinate)</span>
+<span class="sd">    pix_area : array(float)</span>
+<span class="sd">        surface area of each pixel, if None will be calculated</span>
+<span class="sd">    neighbors : list(arrays)</span>
+<span class="sd">        adjacency list for each pixel</span>
+<span class="sd">    pix_type : string</span>
+<span class="sd">        either &#39;rectangular&#39; or &#39;hexagonal&#39;</span>
+<span class="sd">    pix_rotation : value convertable to an `astropy.coordinates.Angle`</span>
+<span class="sd">        rotation angle with unit (e.g. 12 * u.deg), or &quot;12d&quot;</span>
+<span class="sd">    cam_rotation : overall camera rotation with units</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">CURRENT_TAB_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2.0&quot;</span>
+    <span class="n">SUPPORTED_TAB_VERSIONS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;1.1&quot;</span><span class="p">,</span> <span class="s2">&quot;2.0&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">pix_id</span><span class="p">,</span>
+        <span class="n">pix_x</span><span class="p">,</span>
+        <span class="n">pix_y</span><span class="p">,</span>
+        <span class="n">pix_area</span><span class="p">,</span>
+        <span class="n">pix_type</span><span class="p">,</span>
+        <span class="n">pix_rotation</span><span class="o">=</span><span class="s2">&quot;0d&quot;</span><span class="p">,</span>
+        <span class="n">cam_rotation</span><span class="o">=</span><span class="s2">&quot;0d&quot;</span><span class="p">,</span>
+        <span class="n">neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">apply_derotation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">pix_x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">pix_y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Pixel coordinates must be 1 dimensional, got </span><span class="si">{</span><span class="n">pix_x</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">pix_x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pix_y</span><span class="p">),</span> <span class="s2">&quot;pix_x and pix_y must have same length&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pix_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">pix_type</span> <span class="o">=</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="n">pix_type</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pix_type</span><span class="p">,</span> <span class="n">PixelShape</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;pix_type most be a PixelShape or the name of a PixelShape, got </span><span class="si">{</span><span class="n">pix_type</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pix_x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_id</span> <span class="o">=</span> <span class="n">pix_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span> <span class="o">=</span> <span class="n">pix_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span> <span class="o">=</span> <span class="n">pix_y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span> <span class="o">=</span> <span class="n">pix_area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">=</span> <span class="n">pix_type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pix_rotation</span><span class="p">,</span> <span class="n">Angle</span><span class="p">):</span>
+            <span class="n">pix_rotation</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">pix_rotation</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cam_rotation</span><span class="p">,</span> <span class="n">Angle</span><span class="p">):</span>
+            <span class="n">cam_rotation</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">cam_rotation</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span> <span class="o">=</span> <span class="n">pix_rotation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span> <span class="o">=</span> <span class="n">cam_rotation</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="o">=</span> <span class="n">neighbors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+
+        <span class="k">if</span> <span class="n">neighbors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">lil</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">pix_id</span><span class="p">,</span> <span class="n">neighbors</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neighbors</span><span class="p">):</span>
+                    <span class="n">lil</span><span class="p">[</span><span class="n">pix_id</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="o">=</span> <span class="n">lil</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">apply_derotation</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="p">)</span>
+
+            <span class="c1"># cache border pixel mask per instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_border_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">CameraGeometry</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">pix_type</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">u</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">pix_rotation</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">u</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">pix_x</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">pix_y</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="CameraGeometry.guess_radius"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.guess_radius">[docs]</a>    <span class="k">def</span> <span class="nf">guess_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Guess the camera radius as mean distance of the border pixels from</span>
+<span class="sd">        the center pixel</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">border</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_border_pixel_mask</span><span class="p">()</span>
+        <span class="n">cx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">cy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">[</span><span class="n">border</span><span class="p">]</span> <span class="o">-</span> <span class="n">cx</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">[</span><span class="n">border</span><span class="p">]</span> <span class="o">-</span> <span class="n">cy</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.transform_to"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.transform_to">[docs]</a>    <span class="k">def</span> <span class="nf">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform the pixel coordinates stored in this geometry and the pixel</span>
+<span class="sd">        and camera rotations to another camera coordinate frame.</span>
+
+<span class="sd">        Note that ``geom.frame`` must contain all the necessary attributes needed</span>
+<span class="sd">        to transform into the requested frame, i.e. if going from</span>
+<span class="sd">        `~ctapipe.coordinates.CameraFrame` to `~ctapipe.coordinates.TelescopeFrame`,</span>
+<span class="sd">        it should contain the correct data in the ``focal_length`` attribute.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        frame: ctapipe.coordinates.CameraFrame</span>
+<span class="sd">            The coordinate frame to transform to.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        CameraGeometry:</span>
+<span class="sd">            new instance in the requested Frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">CameraFrame</span><span class="p">()</span>
+
+        <span class="c1"># we have to derotate, transformations only provide sensible</span>
+        <span class="c1"># results after derotation from the camera coordinate system with</span>
+        <span class="c1"># custom angle into a not-rotate frame</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">cam</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">cam</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cam</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="n">coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">cam</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">trans</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+
+        <span class="c1"># also transform the origin and unit vectors,</span>
+        <span class="c1"># needed to account for translation, rotation / mirroring, scale</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">cam</span><span class="o">.</span><span class="n">pixel_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">frame</span>
+        <span class="p">)</span>
+        <span class="n">points_trans</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+
+        <span class="n">x_name</span><span class="p">,</span> <span class="n">y_name</span> <span class="o">=</span> <span class="n">get_representation_component_names</span><span class="p">(</span><span class="n">cam</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">points_x</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">x_name</span><span class="p">)</span>
+        <span class="n">points_y</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">y_name</span><span class="p">)</span>
+
+        <span class="n">trans_x_name</span><span class="p">,</span> <span class="n">trans_y_name</span> <span class="o">=</span> <span class="n">get_representation_component_names</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">points_trans_x</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">points_trans</span><span class="p">,</span> <span class="n">trans_x_name</span><span class="p">)</span>
+        <span class="n">points_trans_y</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">points_trans</span><span class="p">,</span> <span class="n">trans_y_name</span><span class="p">)</span>
+
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">points_trans_x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">value</span><span class="p">])</span>
+        <span class="n">is_mirrored</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+        <span class="n">rot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span>
+            <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_mirrored</span><span class="p">:</span>
+            <span class="n">cam_rotation</span> <span class="o">=</span> <span class="o">-</span><span class="n">cam</span><span class="o">.</span><span class="n">cam_rotation</span>
+            <span class="n">pix_rotation</span> <span class="o">=</span> <span class="n">rot</span> <span class="o">-</span> <span class="n">cam</span><span class="o">.</span><span class="n">pix_rotation</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cam_rotation</span> <span class="o">=</span> <span class="n">cam</span><span class="o">.</span><span class="n">cam_rotation</span>
+            <span class="n">pix_rotation</span> <span class="o">=</span> <span class="n">cam</span><span class="o">.</span><span class="n">pix_rotation</span> <span class="o">-</span> <span class="n">rot</span>
+
+        <span class="n">distance_before</span> <span class="o">=</span> <span class="n">_distance</span><span class="p">(</span>
+            <span class="n">points_x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">points_y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">points_x</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">points_y</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">distance_after</span> <span class="o">=</span> <span class="n">_distance</span><span class="p">(</span>
+            <span class="n">points_trans_x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">points_trans_x</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">points_trans_y</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">distance_after</span> <span class="o">/</span> <span class="n">distance_before</span>
+
+        <span class="n">trans_x</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trans</span><span class="p">,</span> <span class="n">trans_x_name</span><span class="p">)</span>
+        <span class="n">trans_y</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trans</span><span class="p">,</span> <span class="n">trans_y_name</span><span class="p">)</span>
+        <span class="n">pix_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_area</span> <span class="o">*</span> <span class="n">scale</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">trans_x</span><span class="o">.</span><span class="n">unit</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CameraGeometry</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">pix_id</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_id</span><span class="p">,</span>
+            <span class="n">pix_x</span><span class="o">=</span><span class="n">trans_x</span><span class="p">,</span>
+            <span class="n">pix_y</span><span class="o">=</span><span class="n">trans_y</span><span class="p">,</span>
+            <span class="n">pix_area</span><span class="o">=</span><span class="n">pix_area</span><span class="p">,</span>
+            <span class="n">pix_type</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_type</span><span class="p">,</span>
+            <span class="n">pix_rotation</span><span class="o">=</span><span class="n">pix_rotation</span><span class="p">,</span>
+            <span class="n">cam_rotation</span><span class="o">=</span><span class="n">cam_rotation</span><span class="p">,</span>
+            <span class="n">neighbors</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">_neighbors</span><span class="p">,</span>
+            <span class="n">apply_derotation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="p">,</span>
+                <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slice_</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">CameraGeometry</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot; sliced&quot;</span><span class="p">]),</span>
+            <span class="n">pix_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_id</span><span class="p">[</span><span class="n">slice_</span><span class="p">],</span>
+            <span class="n">pix_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">[</span><span class="n">slice_</span><span class="p">],</span>
+            <span class="n">pix_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">[</span><span class="n">slice_</span><span class="p">],</span>
+            <span class="n">pix_area</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">[</span><span class="n">slice_</span><span class="p">],</span>
+            <span class="n">pix_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="p">,</span>
+            <span class="n">pix_rotation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span><span class="p">,</span>
+            <span class="n">cam_rotation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="p">,</span>
+            <span class="n">neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">apply_derotation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">pixel_width</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        in-circle diameter for hexagons, edge width for square pixels,</span>
+<span class="sd">        diameter for circles.</span>
+
+<span class="sd">        This is calculated from the pixel area.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">==</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">HEXAGON</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">==</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">SQUARE</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">==</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">CIRCLE</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cannot calculate pixel width for type </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">width</span>
+
+<div class="viewcode-block" id="CameraGeometry.guess_pixel_width"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.guess_pixel_width">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">guess_pixel_width</span><span class="p">(</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate pixel diameter by looking at the minimum distance between pixels</span>
+
+<span class="sd">        Note this will not work on cameras with varying pixel sizes or gaps</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            in-circle diameter for hexagons, edge width for square pixels</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">pix_x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">pix_x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">pix_y</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">pix_y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_pixel_circumradius</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;pixel circumference radius/radii based on pixel area and layout&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">==</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">HEXAGON</span><span class="p">:</span>
+            <span class="n">circum_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_width</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">==</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">SQUARE</span><span class="p">:</span>
+            <span class="n">circum_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="o">==</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">CIRCLE</span><span class="p">:</span>
+            <span class="n">circum_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_width</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot calculate pixel circumradius for type </span><span class="si">{self.pix_type!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">circum_rad</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_kdtree</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pre-calculated kdtree of all pixel centers inside camera</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        kdtree</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pixel_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="o">.</span><span class="n">value</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">pixel_centers</span><span class="p">)</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_all_pixel_areas_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pre-calculated kdtree of all pixel centers inside camera</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        True if all pixels are of equal size, False otherwise</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CameraGeometry.image_index_to_cartesian_index"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.image_index_to_cartesian_index">[docs]</a>    <span class="k">def</span> <span class="nf">image_index_to_cartesian_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel_index</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert pixel index in the 1d image representation to row and col</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_positions_2d</span>
+        <span class="k">return</span> <span class="n">rows</span><span class="p">[</span><span class="n">pixel_index</span><span class="p">],</span> <span class="n">cols</span><span class="p">[</span><span class="n">pixel_index</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.cartesian_index_to_image_index"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.cartesian_index_to_image_index">[docs]</a>    <span class="k">def</span> <span class="nf">cartesian_index_to_image_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert cartesian index (row, col) to pixel index in 1d representation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_indices_cartesian</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_pixel_indices_cartesian</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">)</span>
+        <span class="n">img2d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_to_cartesian_representation</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">invalid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">min</span>
+        <span class="n">img2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">img2d</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">invalid</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img2d</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">_pixel_positions_2d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pixel positions on the orthogonal grid of the 2d image.</span>
+<span class="sd">        In order for hexagonal pixels to behave as if they were</span>
+<span class="sd">        square, the grid has to be distorted.</span>
+<span class="sd">        Namely, slanting and stretching of the 1d pixel positions</span>
+<span class="sd">        to align them nicely.</span>
+<span class="sd">        Beware, that this means the pixel geometries on this</span>
+<span class="sd">        grid to not match the one in the geometry.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        (rows, columns) of each pixel if transformed onto an orthogonal grid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="ow">in</span> <span class="p">{</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">HEXAGON</span><span class="p">,</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">CIRCLE</span><span class="p">}:</span>
+            <span class="c1"># cam rotation should be 0 unless the derotation is turned off in the init</span>
+            <span class="n">rot_x</span><span class="p">,</span> <span class="n">rot_y</span> <span class="o">=</span> <span class="n">unskew_hex_pixel_grid</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span>
+                <span class="n">cam_angle</span><span class="o">=</span><span class="mi">30</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_orthogonal_grid_edges</span><span class="p">(</span>
+                <span class="n">rot_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">rot_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">square_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">rot_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">rot_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)],</span> <span class="n">bins</span><span class="o">=</span><span class="p">(</span><span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">)</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="n">hex_to_rect_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">rot_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">rot_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)],</span>
+                <span class="n">bins</span><span class="o">=</span><span class="p">(</span><span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">),</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">)),</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">hex_to_rect_map</span><span class="p">[</span><span class="o">~</span><span class="n">square_mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">rows_2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">hex_to_rect_map</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">rows_2d</span><span class="o">.</span><span class="n">T</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">hex_to_rect_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">rows_1d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">rows_1d</span><span class="p">[</span><span class="n">hex_to_rect_map</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">square_mask</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">(</span><span class="n">rows_2d</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">square_mask</span><span class="p">]</span>
+            <span class="n">cols_2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">hex_to_rect_map</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">cols_2d</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">hex_to_rect_map</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">cols_1d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">cols_1d</span><span class="p">[</span><span class="n">hex_to_rect_map</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">square_mask</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">(</span><span class="n">cols_2d</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">square_mask</span><span class="p">]</span>
+            <span class="n">pixel_row</span> <span class="o">=</span> <span class="n">rows_1d</span>
+            <span class="n">pixel_column</span> <span class="o">=</span> <span class="n">cols_1d</span>
+
+            <span class="c1"># flip image so that imshow looks like original camera display</span>
+            <span class="n">pixel_row</span> <span class="o">=</span> <span class="n">pixel_row</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">pixel_row</span>
+            <span class="n">pixel_column</span> <span class="o">=</span> <span class="n">pixel_column</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">pixel_column</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="ow">is</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">SQUARE</span><span class="p">:</span>
+            <span class="n">pixel_row</span> <span class="o">=</span> <span class="n">get_orthogonal_grid_indices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">))</span>
+            <span class="n">pixel_column</span> <span class="o">=</span> <span class="n">get_orthogonal_grid_indices</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># flip image so that imshow looks like original camera display</span>
+            <span class="n">pixel_row</span> <span class="o">=</span> <span class="n">pixel_row</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">pixel_row</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported pixel shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pixel_row</span><span class="p">,</span> <span class="n">pixel_column</span>
+
+<div class="viewcode-block" id="CameraGeometry.image_to_cartesian_representation"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.image_to_cartesian_representation">[docs]</a>    <span class="k">def</span> <span class="nf">image_to_cartesian_representation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a 2D-image from a given flat image or multiple flat images.</span>
+<span class="sd">        In the case of hexagonal pixels, the resulting</span>
+<span class="sd">        image is skewed to match a rectangular grid.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        image: np.ndarray</span>
+<span class="sd">            One or multiple images of shape</span>
+<span class="sd">            (n_images, n_pixels) or (n_pixels) for a single image.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        image_2s: np.ndarray</span>
+<span class="sd">            The transformed image of shape (n_images, n_rows, n_cols).</span>
+<span class="sd">            For a single image the leading dimension is omitted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_positions_2d</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>  <span class="c1"># this allows for multiple images at once</span>
+
+        <span class="n">image_2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rows</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cols</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">image_2d</span><span class="p">[:,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">image_2d</span><span class="p">)</span>  <span class="c1"># removes the extra dimension for single images</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.image_from_cartesian_representation"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.image_from_cartesian_representation">[docs]</a>    <span class="k">def</span> <span class="nf">image_from_cartesian_representation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_2d</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a 1D-array from a given 2D image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        image_2d: np.ndarray</span>
+<span class="sd">            2D image created by the `image_to_cartesian_representation` function</span>
+<span class="sd">            of the same geometry.</span>
+<span class="sd">            shape is expected to be:</span>
+<span class="sd">            (n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        1d array</span>
+<span class="sd">            The image in the 1D format, which has shape (n_images, n_pixels).</span>
+<span class="sd">            For single images the leading dimension is omitted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_positions_2d</span>
+        <span class="c1"># np.atleast3d would introduce the extra dimension at the end, which leads</span>
+        <span class="c1"># to a different shape compared to a multi image array</span>
+        <span class="k">if</span> <span class="n">image_2d</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">image_2d</span> <span class="o">=</span> <span class="n">image_2d</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="n">image_flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">image_2d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rows</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">image_2d</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">image_flat</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">image_2d</span><span class="p">[:,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span>
+        <span class="n">image_1d</span> <span class="o">=</span> <span class="n">image_flat</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">image_1d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.from_name"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.from_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;NectarCam&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a CameraGeometry using the name of the camera and array.</span>
+
+<span class="sd">        This expects that there is a resource accessible via</span>
+<span class="sd">        `~ctapipe.utils.get_table_dataset` called ``&quot;[array]-[camera].camgeom.fits.gz&quot;``</span>
+<span class="sd">        or ``&quot;[array]-[camera]-[version].camgeom.fits.gz&quot;``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Camera name (e.g. NectarCam, LSTCam, ...)</span>
+<span class="sd">        version :</span>
+<span class="sd">            camera version id</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        new CameraGeometry</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">verstr</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">verstr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;-</span><span class="si">{</span><span class="n">version</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">tabname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{name}{verstr}</span><span class="s2">.camgeom&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">verstr</span><span class="o">=</span><span class="n">verstr</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">get_table_dataset</span><span class="p">(</span><span class="n">tabname</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;dl0.tel.svc.camera&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">CameraGeometry</span><span class="o">.</span><span class="n">from_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.to_table"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.to_table">[docs]</a>    <span class="k">def</span> <span class="nf">to_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;convert this to an `astropy.table.Table`&quot;&quot;&quot;</span>
+        <span class="c1"># currently the neighbor list is not supported, since</span>
+        <span class="c1"># var-length arrays are not supported by astropy.table.Table</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">],</span>
+            <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pix_id&quot;</span><span class="p">,</span> <span class="s2">&quot;pix_x&quot;</span><span class="p">,</span> <span class="s2">&quot;pix_y&quot;</span><span class="p">,</span> <span class="s2">&quot;pix_area&quot;</span><span class="p">],</span>
+            <span class="n">meta</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">PIX_TYPE</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                <span class="n">TAB_TYPE</span><span class="o">=</span><span class="s2">&quot;ctapipe.instrument.CameraGeometry&quot;</span><span class="p">,</span>
+                <span class="n">TAB_VER</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">CURRENT_TAB_VERSION</span><span class="p">,</span>
+                <span class="n">CAM_ID</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">PIX_ROT</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                <span class="n">CAM_ROT</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># clear `info` member from quantities set by table creation</span>
+        <span class="c1"># which impacts indexing performance because it is deepcopied</span>
+        <span class="c1"># in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s2">&quot;info&quot;</span> <span class="ow">in</span> <span class="n">q</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">q</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">t</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.from_table"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.from_table">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_table</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">url_or_table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load a CameraGeometry from an `astropy.table.Table` instance or a</span>
+<span class="sd">        file that is readable by `astropy.table.Table.read`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        url_or_table: string or astropy.table.Table</span>
+<span class="sd">            either input filename/url or a Table instance</span>
+<span class="sd">        kwargs: extra keyword arguments</span>
+<span class="sd">            extra arguments passed to `astropy.table.Table.read`, depending on</span>
+<span class="sd">            file type (e.g. format, hdu, path)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">tab</span> <span class="o">=</span> <span class="n">url_or_table</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">url_or_table</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+            <span class="n">tab</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">url_or_table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SUPPORTED_TAB_VERSIONS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported camera geometry table version: </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CAM_ID&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">),</span>
+            <span class="n">pix_id</span><span class="o">=</span><span class="n">tab</span><span class="p">[</span><span class="s2">&quot;pix_id&quot;</span><span class="p">],</span>
+            <span class="n">pix_x</span><span class="o">=</span><span class="n">tab</span><span class="p">[</span><span class="s2">&quot;pix_x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">,</span>
+            <span class="n">pix_y</span><span class="o">=</span><span class="n">tab</span><span class="p">[</span><span class="s2">&quot;pix_y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">,</span>
+            <span class="n">pix_area</span><span class="o">=</span><span class="n">tab</span><span class="p">[</span><span class="s2">&quot;pix_area&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">,</span>
+            <span class="n">pix_type</span><span class="o">=</span><span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;PIX_TYPE&quot;</span><span class="p">],</span>
+            <span class="n">pix_rotation</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;PIX_ROT&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">),</span>
+            <span class="n">cam_rotation</span><span class="o">=</span><span class="n">Angle</span><span class="p">(</span><span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;CAM_ROT&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;CameraGeometry(name=&#39;</span><span class="si">{name}</span><span class="s2">&#39;, pix_type=</span><span class="si">{pix_type}</span><span class="s2">, &quot;</span>
+            <span class="s2">&quot;npix=</span><span class="si">{npix}</span><span class="s2">, cam_rot=</span><span class="si">{camrot:.3f}</span><span class="s2">, pix_rot=</span><span class="si">{pixrot:.3f}</span><span class="s2">, frame=</span><span class="si">{frame}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">pix_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="p">,</span>
+            <span class="n">npix</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_id</span><span class="p">),</span>
+            <span class="n">pixrot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span><span class="p">,</span>
+            <span class="n">camrot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A list of the neighbors pixel_ids for each pixel&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_matrix</span><span class="p">]</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">neighbor_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">A</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">max_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">neighbor_matrix_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neighbors</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_pixel_neighbors</span><span class="p">(</span><span class="n">diagonal</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CameraGeometry.calc_pixel_neighbors"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.calc_pixel_neighbors">[docs]</a>    <span class="k">def</span> <span class="nf">calc_pixel_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diagonal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the neighbors of pixels using</span>
+<span class="sd">        a kdtree for nearest neighbor lookup.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        diagonal: bool</span>
+<span class="sd">            If rectangular geometry, also add diagonal neighbors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># assume circle pixels are also on a hex grid</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">HEXAGON</span><span class="p">,</span> <span class="n">PixelShape</span><span class="o">.</span><span class="n">CIRCLE</span><span class="p">):</span>
+            <span class="n">max_neighbors</span> <span class="o">=</span> <span class="mi">6</span>
+            <span class="c1"># on a hexgrid, the closest pixel in the second circle is</span>
+            <span class="c1"># the diameter of the hexagon plus the inradius away</span>
+            <span class="c1"># in units of the diameter, this is 1 + np.sqrt(3) / 4 = 1.433</span>
+            <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.4</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># use L2 norm for hex</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># if diagonal should count as neighbor, we</span>
+            <span class="c1"># need to find at most 8 neighbors with a max L2 distance</span>
+            <span class="c1"># &lt; than 2 * the pixel size, else 4 neigbors with max L1 distance</span>
+            <span class="c1"># &lt; 2 pixel size. We take a conservative 1.5 here,</span>
+            <span class="c1"># because that worked on the PROD4 CHEC camera that has</span>
+            <span class="c1"># irregular pixel positions.</span>
+            <span class="k">if</span> <span class="n">diagonal</span><span class="p">:</span>
+                <span class="n">max_neighbors</span> <span class="o">=</span> <span class="mi">8</span>
+                <span class="n">norm</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.95</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">max_neighbors</span> <span class="o">=</span> <span class="mi">4</span>
+                <span class="n">radius</span> <span class="o">=</span> <span class="mf">1.5</span>
+                <span class="n">norm</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">distances</span><span class="p">,</span> <span class="n">neighbor_candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kdtree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kdtree</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">max_neighbors</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">norm</span>
+        <span class="p">)</span>
+
+        <span class="c1"># remove self reference</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">distances</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+        <span class="n">neighbor_candidates</span> <span class="o">=</span> <span class="n">neighbor_candidates</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+
+        <span class="n">min_distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">inside_max_distance</span> <span class="o">=</span> <span class="n">distances</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">radius</span> <span class="o">*</span> <span class="n">min_distance</span><span class="p">)</span>
+        <span class="n">pixels</span><span class="p">,</span> <span class="n">neigbor_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">inside_max_distance</span><span class="p">)</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="n">neighbor_candidates</span><span class="p">[</span><span class="n">pixels</span><span class="p">,</span> <span class="n">neigbor_index</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="n">neighbor_matrix</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">pixels</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">)))</span>
+
+        <span class="c1"># filter annoying deprecation warning from within scipy</span>
+        <span class="c1"># scipy still uses np.matrix in scipy.sparse, but we do not</span>
+        <span class="c1"># explicitly use any feature of np.matrix, so we can ignore this here</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">PendingDeprecationWarning</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">neighbor_matrix</span><span class="o">.</span><span class="n">T</span> <span class="o">!=</span> <span class="n">neighbor_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Neighbor matrix is not symmetric. Is camera geometry irregular?&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">neighbor_matrix</span></div>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">pixel_moment_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pre-calculated matrix needed for higher-order moment calculation,</span>
+<span class="sd">        up to 4th order.</span>
+
+<span class="sd">        Note this is *not* recalculated if the CameraGeometry is modified.</span>
+
+<span class="sd">        this matrix M can be multiplied by an image and normalized by the sum to</span>
+<span class="sd">        get the moments:</span>
+
+<span class="sd">        .. code-block:: python3</span>
+
+<span class="sd">            M = geom.pixel_moment_matrix()</span>
+<span class="sd">            moms = (M @ image)/image.sum()</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array:</span>
+<span class="sd">            x, y, x**2, x*y, y^2, x^3, x^2*y,x*y^2, y^3, x^4, x^3*y, x^2*y2,</span>
+<span class="sd">            x*y^3, y^4</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">row_stack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span>
+                <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">**</span><span class="mi">4</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">**</span><span class="mi">4</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="CameraGeometry.rotate"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.rotate">[docs]</a>    <span class="k">def</span> <span class="nf">rotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;rotate the camera coordinates about the center of the camera by</span>
+<span class="sd">        specified angle. Modifies the CameraGeometry in-place (so</span>
+<span class="sd">        after this is called, the pix_x and pix_y arrays are</span>
+<span class="sd">        rotated.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        This is intended only to correct simulated data that are</span>
+<span class="sd">        rotated by a fixed angle.  For the more general case of</span>
+<span class="sd">        correction for camera pointing errors (rotations,</span>
+<span class="sd">        translations, skews, etc), you should use a true coordinate</span>
+<span class="sd">        transformation defined in `ctapipe.coordinates`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        angle: value convertable to an `astropy.coordinates.Angle`</span>
+<span class="sd">            rotation angle with unit (e.g. 12 * u.deg), or &quot;12d&quot;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+        <span class="n">rotmat</span> <span class="o">=</span> <span class="n">rotation_matrix_2d</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+        <span class="n">rotated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rotmat</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="o">.</span><span class="n">value</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span> <span class="o">=</span> <span class="n">rotated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span> <span class="o">=</span> <span class="n">rotated</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span>
+
+        <span class="c1"># do not use -=, copy is intentional here</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span> <span class="o">-</span> <span class="n">angle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.info"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.info">[docs]</a>    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">printer</span><span class="o">=</span><span class="nb">print</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;print detailed info about this camera&quot;&quot;&quot;</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;CameraGeometry: &quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+        <span class="n">printer</span><span class="p">(</span><span class="s2">&quot;   - num-pixels: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_id</span><span class="p">)))</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   - pixel-type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">printer</span><span class="p">(</span><span class="s2">&quot;   - sensitive-area: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_area</span><span class="o">.</span><span class="n">sum</span><span class="p">()))</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   - pix-rotation: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pix_rotation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">printer</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   - cam-rotation: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_rotation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.make_rectangular"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.make_rectangular">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">make_rectangular</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">npix_x</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">npix_y</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">range_x</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">range_y</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a simple camera with 2D rectangular geometry.</span>
+
+<span class="sd">        Used for testing.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        npix_x : int</span>
+<span class="sd">            number of pixels in X-dimension</span>
+<span class="sd">        npix_y : int</span>
+<span class="sd">            number of pixels in Y-dimension</span>
+<span class="sd">        range_x : (float,float)</span>
+<span class="sd">            min and max of x pixel coordinates in meters</span>
+<span class="sd">        range_y : (float,float)</span>
+<span class="sd">            min and max of y pixel coordinates in meters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        CameraGeometry object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">range_x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">range_x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">npix_x</span><span class="p">)</span>
+        <span class="n">by</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">range_y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">range_y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">npix_y</span><span class="p">)</span>
+        <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">bx</span><span class="p">,</span> <span class="n">by</span><span class="p">)</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">xx</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">yy</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">npix_x</span> <span class="o">*</span> <span class="n">npix_y</span><span class="p">)</span>
+        <span class="n">rr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;RectangularCamera&quot;</span><span class="p">,</span>
+            <span class="n">pix_id</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="n">pix_x</span><span class="o">=</span><span class="n">xx</span><span class="p">,</span>
+            <span class="n">pix_y</span><span class="o">=</span><span class="n">yy</span><span class="p">,</span>
+            <span class="n">pix_area</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">rr</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">pix_type</span><span class="o">=</span><span class="n">PixelShape</span><span class="o">.</span><span class="n">SQUARE</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.get_border_pixel_mask"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.get_border_pixel_mask">[docs]</a>    <span class="k">def</span> <span class="nf">get_border_pixel_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a mask for pixels at the border of the camera of arbitrary width</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        width: int</span>
+<span class="sd">            The width of the border in pixels</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mask: array</span>
+<span class="sd">            A boolean mask, True if pixel is in the border of the specified width</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">width</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_border_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_border_cache</span><span class="p">[</span><span class="n">width</span><span class="p">]</span>
+
+        <span class="c1"># filter annoying deprecation warning from within scipy</span>
+        <span class="c1"># scipy still uses np.matrix in scipy.sparse, but we do not</span>
+        <span class="c1"># explicitly use any feature of np.matrix, so we can ignore this here</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">PendingDeprecationWarning</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">width</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">n_neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">A1</span>
+                <span class="n">max_neighbors</span> <span class="o">=</span> <span class="n">n_neighbors</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">n_neighbors</span> <span class="o">&lt;</span> <span class="n">max_neighbors</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_matrix</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_border_pixel_mask</span><span class="p">(</span><span class="n">width</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_border_cache</span><span class="p">[</span><span class="n">width</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.position_to_pix_index"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.position_to_pix_index">[docs]</a>    <span class="k">def</span> <span class="nf">position_to_pix_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the index of a camera pixel which contains a given position (x,y)</span>
+<span class="sd">        in the camera frame. The (x,y) coordinates can be arrays (of equal length),</span>
+<span class="sd">        for which the methods returns an array of pixel ids. A warning is raised if the</span>
+<span class="sd">        position falls outside the camera.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame</span>
+<span class="sd">        y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls</span>
+<span class="sd">                    outside camera</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_pixel_areas_equal</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot; Method not implemented for cameras with varying pixel sizes&quot;</span>
+            <span class="p">)</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unit</span>
+        <span class="n">points_searched</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">)])</span>
+        <span class="n">circum_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_circumradius</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+        <span class="n">kdtree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kdtree</span>
+        <span class="n">dist</span><span class="p">,</span> <span class="n">pix_indices</span> <span class="o">=</span> <span class="n">kdtree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">points_searched</span><span class="p">,</span> <span class="n">distance_upper_bound</span><span class="o">=</span><span class="n">circum_rad</span>
+        <span class="p">)</span>
+        <span class="k">del</span> <span class="n">dist</span>
+        <span class="n">pix_indices</span> <span class="o">=</span> <span class="n">pix_indices</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="c1"># 1. Mark all points outside pixel circumeference as lying outside camera</span>
+        <span class="n">pix_indices</span><span class="p">[</span><span class="n">pix_indices</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_pixels</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># 2. Accurate check for the remaing cases (within circumference, but still outside</span>
+        <span class="c1"># camera). It is first checked if any border pixel numbers are returned.</span>
+        <span class="c1"># If not, everything is fine. If yes, the distance of the given position to the</span>
+        <span class="c1"># the given position to the closest pixel center is translated to the distance to</span>
+        <span class="c1"># the center of a non-border pixel&#39;, pos -&gt; pos&#39;, and it is checked whether pos&#39;</span>
+        <span class="c1"># still lies within pixel&#39;. If not, pos lies outside the camera. This approach</span>
+        <span class="c1"># does not need to know the particular pixel shape, but as the kdtree itself,</span>
+        <span class="c1"># presumes all camera pixels being of equal size.</span>
+        <span class="n">border_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_border_pixel_mask</span><span class="p">()</span>
+        <span class="c1"># get all pixels at camera border:</span>
+        <span class="n">borderpix_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">border_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">borderpix_indices_in_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span><span class="n">borderpix_indices</span><span class="p">,</span> <span class="n">pix_indices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">borderpix_indices_in_list</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="c1"># Get some pixel not at the border:</span>
+            <span class="n">insidepix_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">border_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># Check in detail whether location is in border pixel or outside camera:</span>
+            <span class="k">for</span> <span class="n">borderpix_index</span> <span class="ow">in</span> <span class="n">borderpix_indices_in_list</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pix_indices</span> <span class="o">==</span> <span class="n">borderpix_index</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="c1"># compare with inside pixel:</span>
+                <span class="n">xprime</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">points_searched</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">index</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                    <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">[</span><span class="n">borderpix_index</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_x</span><span class="p">[</span><span class="n">insidepix_index</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">yprime</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">points_searched</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">index</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">[</span><span class="n">borderpix_index</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pix_y</span><span class="p">[</span><span class="n">insidepix_index</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">dist_check</span><span class="p">,</span> <span class="n">index_check</span> <span class="o">=</span> <span class="n">kdtree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">xprime</span><span class="p">,</span> <span class="n">yprime</span><span class="p">],</span> <span class="n">distance_upper_bound</span><span class="o">=</span><span class="n">circum_rad</span>
+                <span class="p">)</span>
+                <span class="k">del</span> <span class="n">dist_check</span>
+                <span class="k">if</span> <span class="n">index_check</span> <span class="o">!=</span> <span class="n">insidepix_index</span><span class="p">:</span>
+                    <span class="n">pix_indices</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># print warning:</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pix_indices</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot; Coordinate (</span><span class="si">{}</span><span class="s2"> m, </span><span class="si">{}</span><span class="s2"> m) lies outside camera&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">points_searched</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">index</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">points_searched</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">index</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pix_indices</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pix_indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">pix_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CameraGeometry.simtel_shape_to_type"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.CameraGeometry.html#ctapipe.instrument.CameraGeometry.simtel_shape_to_type">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">simtel_shape_to_type</span><span class="p">(</span><span class="n">pixel_shape</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">shape</span><span class="p">,</span> <span class="n">rotation</span> <span class="o">=</span> <span class="n">SIMTEL_PIXEL_SHAPES</span><span class="p">[</span><span class="n">pixel_shape</span><span class="p">]</span>
+            <span class="c1"># make sure we don&#39;t introduce a mutable global state</span>
+            <span class="k">return</span> <span class="n">shape</span><span class="p">,</span> <span class="n">rotation</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown pixel_shape </span><span class="si">{</span><span class="n">pixel_shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span></div></div>
+
+
+<div class="viewcode-block" id="UnknownPixelShapeWarning"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.camera.geometry.UnknownPixelShapeWarning.html#ctapipe.instrument.UnknownPixelShapeWarning">[docs]</a><span class="k">class</span> <span class="nc">UnknownPixelShapeWarning</span><span class="p">(</span><span class="ne">UserWarning</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

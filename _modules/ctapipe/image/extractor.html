@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.extractor &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.extractor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.extractor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Charge extraction algorithms to reduce the image to one value per pixel</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ImageExtractor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;FullWaveformSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;FixedWindowSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;GlobalPeakWindowSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;LocalPeakWindowSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SlidingWindowMaxSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;NeighborPeakWindowSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BaselineSubtractedNeighborPeakWindowSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TwoPassWindowSum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;extract_around_peak&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;extract_sliding_window&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;neighbor_average_maximum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;subtract_baseline&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;integration_correction&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">float32</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">guvectorize</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">njit</span><span class="p">,</span> <span class="n">prange</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">convolve1d</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">Int</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.containers</span> <span class="kn">import</span> <span class="n">DL1CameraContainer</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core.traits</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BoolTelescopeParameter</span><span class="p">,</span>
+    <span class="n">ComponentName</span><span class="p">,</span>
+    <span class="n">FloatTelescopeParameter</span><span class="p">,</span>
+    <span class="n">IntTelescopeParameter</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.cleaning</span> <span class="kn">import</span> <span class="n">tailcuts_clean</span>
+<span class="kn">from</span> <span class="nn">.hillas</span> <span class="kn">import</span> <span class="n">camera_to_shower_coordinates</span><span class="p">,</span> <span class="n">hillas_parameters</span>
+<span class="kn">from</span> <span class="nn">.invalid_pixels</span> <span class="kn">import</span> <span class="n">InvalidPixelHandler</span>
+<span class="kn">from</span> <span class="nn">.morphology</span> <span class="kn">import</span> <span class="n">brightest_island</span><span class="p">,</span> <span class="n">number_of_islands</span>
+<span class="kn">from</span> <span class="nn">.timing</span> <span class="kn">import</span> <span class="n">timing_parameters</span>
+
+
+<span class="nd">@guvectorize</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="n">float64</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">float32</span><span class="p">[:],</span> <span class="n">float32</span><span class="p">[:]),</span>
+        <span class="p">(</span><span class="n">float32</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">float32</span><span class="p">[:],</span> <span class="n">float32</span><span class="p">[:]),</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;(s),(),(),(),()-&gt;(),()&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">extract_around_peak</span><span class="p">(</span>
+    <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">sampling_rate_ghz</span><span class="p">,</span> <span class="n">sum_</span><span class="p">,</span> <span class="n">peak_time</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function performs the following operations:</span>
+
+<span class="sd">    - Sum the samples from the waveform using the window defined by a</span>
+<span class="sd">    peak position, window width, and window shift.</span>
+<span class="sd">    - Obtain the pulse time within a window defined by a peak finding</span>
+<span class="sd">    algorithm, using the weighted average of the samples.</span>
+
+<span class="sd">    This function is a numpy universal function which defines the operation</span>
+<span class="sd">    applied on the waveform for every channel and pixel. Therefore in the</span>
+<span class="sd">    code body of this function:</span>
+<span class="sd">        - waveforms is a 1D array of size n_samples.</span>
+<span class="sd">        - peak_index, width and shift are integers, corresponding to the</span>
+<span class="sd">            correct value for the current pixel</span>
+
+<span class="sd">    The ret argument is required by numpy to create the numpy array which is</span>
+<span class="sd">    returned. It can be ignored when calling this function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    peak_index : ndarray or int</span>
+<span class="sd">        Peak index for each pixel.</span>
+<span class="sd">    width : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    shift : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    sampling_rate_ghz : float</span>
+<span class="sd">        Sampling rate of the camera, in units of GHz</span>
+<span class="sd">        Astropy units should have to_value(&#39;GHz&#39;) applied before being passed</span>
+<span class="sd">    sum_ : ndarray</span>
+<span class="sd">        Return argument for ufunc (ignore)</span>
+<span class="sd">        Returns the sum of the waveform samples</span>
+<span class="sd">    peak_time : ndarray</span>
+<span class="sd">        Return argument for ufunc (ignore)</span>
+<span class="sd">        Returns the peak_time in units &quot;ns&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    charge : ndarray</span>
+<span class="sd">        Extracted charge.</span>
+<span class="sd">        Shape: (n_pix)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">peak_index</span> <span class="o">-</span> <span class="n">shift</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">width</span>
+
+    <span class="c1"># reduce to valid range</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+
+    <span class="n">i_sum</span> <span class="o">=</span> <span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">time_num</span> <span class="o">=</span> <span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">time_den</span> <span class="o">=</span> <span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">isample</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="n">i_sum</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">time_num</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span> <span class="o">*</span> <span class="n">isample</span>
+            <span class="n">time_den</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span>
+
+    <span class="n">peak_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_num</span> <span class="o">/</span> <span class="n">time_den</span> <span class="k">if</span> <span class="n">time_den</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">peak_index</span>
+    <span class="c1"># Convert to units of ns</span>
+    <span class="n">peak_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/=</span> <span class="n">sampling_rate_ghz</span>
+    <span class="n">sum_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_sum</span>
+
+
+<span class="nd">@guvectorize</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="n">float64</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">float32</span><span class="p">[:],</span> <span class="n">float32</span><span class="p">[:]),</span>
+        <span class="p">(</span><span class="n">float32</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">float32</span><span class="p">[:],</span> <span class="n">float32</span><span class="p">[:]),</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;(s),(),()-&gt;(),()&quot;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">extract_sliding_window</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">sampling_rate_ghz</span><span class="p">,</span> <span class="n">sum_</span><span class="p">,</span> <span class="n">peak_time</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function performs the following operations:</span>
+
+<span class="sd">    - Find the largest sum of width consecutive slices</span>
+<span class="sd">    - Obtain the pulse time within a window defined by a peak finding</span>
+<span class="sd">    algorithm, using the weighted average of the samples.</span>
+
+<span class="sd">    This function is a numpy universal function which defines the operation</span>
+<span class="sd">    applied on the waveform for every channel and pixel. Therefore in the</span>
+<span class="sd">    code body of this function:</span>
+<span class="sd">        - waveforms is a 1D array of size n_samples.</span>
+<span class="sd">        - width is integer</span>
+
+<span class="sd">    The ret argument is required by numpy to create the numpy array which is</span>
+<span class="sd">    returned. It can be ignored when calling this function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    width : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    sampling_rate_ghz : float</span>
+<span class="sd">        Sampling rate of the camera, in units of GHz</span>
+<span class="sd">        Astropy units should have to_value(&#39;GHz&#39;) applied before being passed</span>
+<span class="sd">    sum_ : ndarray</span>
+<span class="sd">        Return argument for ufunc (ignore)</span>
+<span class="sd">        Returns the sum of the waveform samples</span>
+<span class="sd">    peak_time : ndarray</span>
+<span class="sd">        Return argument for ufunc (ignore)</span>
+<span class="sd">        Returns the peak_time in units &quot;ns&quot;</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    charge : ndarray</span>
+<span class="sd">        Extracted charge.</span>
+<span class="sd">        Shape: (n_pix)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># first find the cumulative waveform</span>
+    <span class="n">cwf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">waveforms</span><span class="p">)</span>
+    <span class="c1"># add zero at the begining so it is easier to substract the two arrays later</span>
+    <span class="n">cwf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">cwf</span><span class="p">))</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">cwf</span><span class="p">[</span><span class="n">width</span><span class="p">:]</span> <span class="o">-</span> <span class="n">cwf</span><span class="p">[:</span><span class="o">-</span><span class="n">width</span><span class="p">]</span>
+    <span class="n">maxpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">sums</span><span class="p">)</span>  <span class="c1"># start of the window with largest sum</span>
+    <span class="n">sum_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sums</span><span class="p">[</span><span class="n">maxpos</span><span class="p">]</span>
+
+    <span class="n">time_num</span> <span class="o">=</span> <span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">time_den</span> <span class="o">=</span> <span class="n">float64</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="c1"># now compute the timing as the average of non negative slices</span>
+    <span class="k">for</span> <span class="n">isample</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">maxpos</span><span class="p">,</span> <span class="n">maxpos</span> <span class="o">+</span> <span class="n">width</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">time_num</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span> <span class="o">*</span> <span class="n">isample</span>
+            <span class="n">time_den</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span>
+
+    <span class="n">peak_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_num</span> <span class="o">/</span> <span class="n">time_den</span> <span class="k">if</span> <span class="n">time_den</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">maxpos</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">width</span>
+    <span class="c1"># Convert to units of ns</span>
+    <span class="n">peak_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/=</span> <span class="n">sampling_rate_ghz</span>
+
+
+<div class="viewcode-block" id="neighbor_average_maximum"><a class="viewcode-back" href="../../../api/ctapipe.image.neighbor_average_maximum.html#ctapipe.image.neighbor_average_maximum">[docs]</a><span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">neighbor_average_maximum</span><span class="p">(</span>
+    <span class="n">waveforms</span><span class="p">,</span> <span class="n">neighbors_indices</span><span class="p">,</span> <span class="n">neighbors_indptr</span><span class="p">,</span> <span class="n">local_weight</span><span class="p">,</span> <span class="n">broken_pixels</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtain the average waveform built from the neighbors of each pixel</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    neighbors_indices : ndarray</span>
+<span class="sd">        indices of a scipy csr sparse matrix of neighbors, i.e.</span>
+<span class="sd">        ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices``.</span>
+<span class="sd">    neighbors_indptr : ndarray</span>
+<span class="sd">        indptr of a scipy csr sparse matrix of neighbors, i.e.</span>
+<span class="sd">        ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr``.</span>
+<span class="sd">    local_weight : int</span>
+<span class="sd">        Weight of the local pixel (0: peak from neighbors only,</span>
+<span class="sd">        1: local pixel counts as much as any neighbor)</span>
+<span class="sd">    broken_pixels : ndarray</span>
+<span class="sd">        Mask of broken pixels. Broken pixels are ignored in the sum over the</span>
+<span class="sd">        neighbors.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    average_wf : ndarray</span>
+<span class="sd">        Average of neighbor waveforms for each pixel.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">indptr</span> <span class="o">=</span> <span class="n">neighbors_indptr</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">neighbors_indices</span>
+
+    <span class="c1"># initialize to waveforms weighted with local_weight</span>
+    <span class="c1"># so the value of the pixel itself is already taken into account</span>
+    <span class="n">peak_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">):</span>
+        <span class="n">average</span> <span class="o">=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">*</span> <span class="n">local_weight</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">indptr</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="p">:</span> <span class="n">indptr</span><span class="p">[</span><span class="n">pixel</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+
+        <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">broken_pixels</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]:</span>
+                <span class="k">continue</span>
+
+            <span class="n">average</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+
+        <span class="n">peak_pos</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">average</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">peak_pos</span></div>
+
+
+<div class="viewcode-block" id="subtract_baseline"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.subtract_baseline.html#ctapipe.image.subtract_baseline">[docs]</a><span class="k">def</span> <span class="nf">subtract_baseline</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">baseline_start</span><span class="p">,</span> <span class="n">baseline_end</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Subtracts the waveform baseline, estimated as the mean waveform value</span>
+<span class="sd">    in the interval [baseline_start:baseline_end]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    baseline_start : int</span>
+<span class="sd">        Sample where the baseline window starts</span>
+<span class="sd">    baseline_end : int</span>
+<span class="sd">        Sample where the baseline window ends</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    baseline_corrected : ndarray</span>
+<span class="sd">        Waveform with the baseline subtracted</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseline_corrected</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">waveforms</span>
+        <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">waveforms</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">baseline_start</span><span class="p">:</span><span class="n">baseline_end</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">baseline_corrected</span></div>
+
+
+<div class="viewcode-block" id="integration_correction"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.integration_correction.html#ctapipe.image.integration_correction">[docs]</a><span class="k">def</span> <span class="nf">integration_correction</span><span class="p">(</span>
+    <span class="n">reference_pulse_shape</span><span class="p">,</span>
+    <span class="n">reference_pulse_sample_width_ns</span><span class="p">,</span>
+    <span class="n">sample_width_ns</span><span class="p">,</span>
+    <span class="n">window_width</span><span class="p">,</span>
+    <span class="n">window_shift</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtain the correction for the integration window specified.</span>
+
+<span class="sd">    For any integration window applied to a noise-less unit pulse, the</span>
+<span class="sd">    correction (returned by this function) multiplied by the integration</span>
+<span class="sd">    result should equal 1.</span>
+
+<span class="sd">    This correction therefore corrects for the Cherenkov signal that may be</span>
+<span class="sd">    outside the integration window, and removes any dependence of the resulting</span>
+<span class="sd">    image on the window_width and window_shift parameters. However, the width</span>
+<span class="sd">    and shift of the window should still be optimised for the pulse finding and</span>
+<span class="sd">    to minimise the noise included in the integration.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    reference_pulse_shape : ndarray</span>
+<span class="sd">        Numpy array containing the pulse shape for each gain channel</span>
+<span class="sd">    reference_pulse_sample_width_ns : float</span>
+<span class="sd">        The width of the reference pulse sample time bin in ns</span>
+<span class="sd">    sample_width_ns : float</span>
+<span class="sd">        The width of the waveform sample time bin in ns</span>
+<span class="sd">    window_width : int</span>
+<span class="sd">        Width of the integration window (in units of n_samples)</span>
+<span class="sd">    window_shift : int</span>
+<span class="sd">        Shift to before the peak for the start of the integration window</span>
+<span class="sd">        (in units of n_samples)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    correction : ndarray</span>
+<span class="sd">        Value of the integration correction for each gain channel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_channels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">reference_pulse_shape</span><span class="p">)</span>
+    <span class="n">correction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_channels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ichannel</span><span class="p">,</span> <span class="n">pulse_shape</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">reference_pulse_shape</span><span class="p">):</span>
+        <span class="n">pulse_max_sample</span> <span class="o">=</span> <span class="n">pulse_shape</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">reference_pulse_sample_width_ns</span>
+        <span class="n">pulse_shape_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pulse_max_sample</span><span class="p">,</span> <span class="n">reference_pulse_sample_width_ns</span><span class="p">)</span>
+        <span class="n">sampled_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pulse_max_sample</span><span class="p">,</span> <span class="n">sample_width_ns</span><span class="p">)</span>
+
+        <span class="n">sampled_pulse</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
+            <span class="n">pulse_shape_x</span><span class="p">,</span> <span class="n">sampled_edges</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">pulse_shape</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="n">sampled_pulse</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">sampled_pulse</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span> <span class="o">-</span> <span class="n">window_shift</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">start</span> <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">window_width</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">end</span> <span class="k">if</span> <span class="n">end</span> <span class="o">&lt;</span> <span class="n">n_samples</span> <span class="k">else</span> <span class="n">n_samples</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">integration</span> <span class="o">=</span> <span class="n">sampled_pulse</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">*</span> <span class="n">sample_width_ns</span>
+        <span class="n">correction</span><span class="p">[</span><span class="n">ichannel</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">integration</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">correction</span></div>
+
+
+<div class="viewcode-block" id="ImageExtractor"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.ImageExtractor">[docs]</a><span class="k">class</span> <span class="nc">ImageExtractor</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base component to handle the extraction of charge and pulse time</span>
+<span class="sd">        from an image cube (waveforms), taking into account the sampling rate</span>
+<span class="sd">        of the waveform.</span>
+
+<span class="sd">        Assuming a waveform with sample units X and containing a noise-less unit</span>
+<span class="sd">        pulse, the aim of the ImageExtractor is to return 1 X*ns.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        subarray: ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">            Description of the subarray. Provides information about the</span>
+<span class="sd">            camera which are useful in charge extraction, such as reference</span>
+<span class="sd">            pulse shape, sampling rate, neighboring pixels. Also required for</span>
+<span class="sd">            configuring the TelescopeParameter traitlets.</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            Set to None if no configuration to pass.</span>
+<span class="sd">        tool : ctapipe.core.Tool or None</span>
+<span class="sd">            Tool executable that is calling this component.</span>
+<span class="sd">            Passes the correct logger to the component.</span>
+<span class="sd">            Set to None if no Tool to pass.</span>
+<span class="sd">        kwargs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">tel_id</span><span class="p">:</span> <span class="n">telescope</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;GHz&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">telescope</span> <span class="ow">in</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="ImageExtractor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.ImageExtractor.__call__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the relevant functions to fully extract the charge and time</span>
+<span class="sd">        for the particular extractor.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        waveforms : ndarray</span>
+<span class="sd">            Waveforms stored in a numpy array of shape</span>
+<span class="sd">            (n_pix, n_samples).</span>
+<span class="sd">        tel_id : int</span>
+<span class="sd">            The telescope id. Used to obtain to correct traitlet configuration</span>
+<span class="sd">            and instrument properties</span>
+<span class="sd">        selected_gain_channel : ndarray</span>
+<span class="sd">            The channel selected in the gain selection, per pixel. Required in</span>
+<span class="sd">            some cases to calculate the correct correction for the charge</span>
+<span class="sd">            extraction.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DL1CameraContainer:</span>
+<span class="sd">            extracted images and validity flags</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="FullWaveformSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FullWaveformSum.html#ctapipe.image.FullWaveformSum">[docs]</a><span class="k">class</span> <span class="nc">FullWaveformSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor that sums the entire waveform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FullWaveformSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FullWaveformSum.html#ctapipe.image.FullWaveformSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FixedWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FixedWindowSum.html#ctapipe.image.FixedWindowSum">[docs]</a><span class="k">class</span> <span class="nc">FixedWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor that sums within a fixed window defined by the user.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">peak_index</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Manually select index where the peak is located&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the width of the integration window&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the shift of the integration window from the peak_index &quot;</span>
+        <span class="s2">&quot;(peak_index - shift)&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_integration_correction</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply the integration window correction&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_calculate_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the correction for the extracted change such that the value</span>
+<span class="sd">        returned would equal 1 for a noise-less unit pulse.</span>
+
+<span class="sd">        This method is decorated with @lru_cache to ensure it is only</span>
+<span class="sd">        calculated once per telescope.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">        The correction to apply to an extracted charge using this ImageExtractor</span>
+<span class="sd">        Has size n_channels, as a different correction value might be required</span>
+<span class="sd">        for different gain channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+        <span class="k">return</span> <span class="n">integration_correction</span><span class="p">(</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FixedWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FixedWindowSum.html#ctapipe.image.FixedWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">peak_index</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="n">charge</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span><span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GlobalPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.GlobalPeakWindowSum.html#ctapipe.image.GlobalPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">GlobalPeakWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor which sums in a window about the</span>
+<span class="sd">    peak from the global average waveform.</span>
+
+<span class="sd">    To reduce the influence of noise pixels, the average can be calculated</span>
+<span class="sd">    only on the ``pixel_fraction`` brightest pixels.</span>
+<span class="sd">    The &quot;brightest&quot; pixels are determined by sorting the waveforms by their</span>
+<span class="sd">    maximum value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the width of the integration window&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the shift of the integration window from the peak_index &quot;</span>
+        <span class="s2">&quot;(peak_index - shift)&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_integration_correction</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply the integration window correction&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">pixel_fraction</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Fraction of pixels to use for finding the integration window.&quot;</span>
+            <span class="s2">&quot; By default, the full camera is used.&quot;</span>
+            <span class="s2">&quot; If fraction is smaller 1, only the brightest pixels will be averaged&quot;</span>
+            <span class="s2">&quot; to find the peak position&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_calculate_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the correction for the extracted change such that the value</span>
+<span class="sd">        returned would equal 1 for a noise-less unit pulse.</span>
+
+<span class="sd">        This method is decorated with @lru_cache to ensure it is only</span>
+<span class="sd">        calculated once per telescope.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">        The correction to apply to an extracted charge using this ImageExtractor</span>
+<span class="sd">        Has size n_channels, as a different correction value might be required</span>
+<span class="sd">        for different gain channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+        <span class="k">return</span> <span class="n">integration_correction</span><span class="p">(</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="GlobalPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.GlobalPeakWindowSum.html#ctapipe.image.GlobalPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_fraction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="c1"># average over pixels then argmax over samples</span>
+            <span class="n">peak_index</span> <span class="o">=</span> <span class="n">waveforms</span><span class="p">[</span><span class="o">~</span><span class="n">broken_pixels</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_pixels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_fraction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">*</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">brightest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">waveforms</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))[</span><span class="o">~</span><span class="n">broken_pixels</span><span class="p">][</span>
+                <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="n">n_pixels</span><span class="p">:</span>
+            <span class="p">]</span>
+
+            <span class="c1"># average over brightest pixels then argmax over samples</span>
+            <span class="n">peak_index</span> <span class="o">=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">brightest</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+
+        <span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="n">peak_index</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="n">charge</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span><span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LocalPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.LocalPeakWindowSum.html#ctapipe.image.LocalPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">LocalPeakWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor which sums in a window about the</span>
+<span class="sd">    peak in each pixel&#39;s waveform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the width of the integration window&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the shift of the integration window&quot;</span>
+        <span class="s2">&quot;from the peak_index (peak_index - shift)&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_integration_correction</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply the integration window correction&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_calculate_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the correction for the extracted change such that the value</span>
+<span class="sd">        returned would equal 1 for a noise-less unit pulse.</span>
+
+<span class="sd">        This method is decorated with @lru_cache to ensure it is only</span>
+<span class="sd">        calculated once per telescope.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">        The correction to apply to an extracted charge using this ImageExtractor</span>
+<span class="sd">        Has size n_channels, as a different correction value might be required</span>
+<span class="sd">        for different gain channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+        <span class="k">return</span> <span class="n">integration_correction</span><span class="p">(</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="LocalPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.LocalPeakWindowSum.html#ctapipe.image.LocalPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">peak_index</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="n">peak_index</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="n">charge</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span><span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SlidingWindowMaxSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.SlidingWindowMaxSum.html#ctapipe.image.SlidingWindowMaxSum">[docs]</a><span class="k">class</span> <span class="nc">SlidingWindowMaxSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sliding window extractor that maximizes the signal in window_width consecutive slices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the width of the integration window&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_integration_correction</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply the integration window correction&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_calculate_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the correction for the extracted charge such that the value</span>
+<span class="sd">        returned would equal 1 for a noise-less unit pulse.</span>
+
+<span class="sd">        This method is decorated with @lru_cache to ensure it is only</span>
+<span class="sd">        calculated once per telescope.</span>
+
+<span class="sd">        The same procedure as for the actual SlidingWindowMaxSum extractor is used, but</span>
+<span class="sd">        on the reference pulse_shape (that is also more finely binned)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">        The correction to apply to an extracted charge using this ImageExtractor</span>
+<span class="sd">        Has size n_channels, as a different correction value might be required</span>
+<span class="sd">        for different gain channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+
+        <span class="c1"># compute the number of slices to integrate in the pulse template</span>
+        <span class="n">width_shape</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="nb">round</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                    <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span>
+                    <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">value</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">n_channels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">)</span>
+        <span class="n">correction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_channels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ichannel</span><span class="p">,</span> <span class="n">pulse_shape</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">):</span>
+
+            <span class="c1"># apply the same method as sliding window to find the highest sum</span>
+            <span class="n">cwf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">pulse_shape</span><span class="p">)</span>
+            <span class="c1"># add zero at the begining so it is easier to substract the two arrays later</span>
+            <span class="n">cwf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">cwf</span><span class="p">))</span>
+            <span class="n">sums</span> <span class="o">=</span> <span class="n">cwf</span><span class="p">[</span><span class="n">width_shape</span><span class="p">:]</span> <span class="o">-</span> <span class="n">cwf</span><span class="p">[:</span><span class="o">-</span><span class="n">width_shape</span><span class="p">]</span>
+            <span class="n">maxsum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">sums</span><span class="p">)</span>
+            <span class="n">correction</span><span class="p">[</span><span class="n">ichannel</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pulse_shape</span><span class="p">)</span> <span class="o">/</span> <span class="n">maxsum</span>
+
+        <span class="k">return</span> <span class="n">correction</span>
+
+<div class="viewcode-block" id="SlidingWindowMaxSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.SlidingWindowMaxSum.html#ctapipe.image.SlidingWindowMaxSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span> <span class="o">=</span> <span class="n">extract_sliding_window</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="n">charge</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span><span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NeighborPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.NeighborPeakWindowSum.html#ctapipe.image.NeighborPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">NeighborPeakWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor which sums in a window about the</span>
+<span class="sd">    peak defined by the wavefroms in neighboring pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the width of the integration window&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Define the shift of the integration window &quot;</span>
+        <span class="s2">&quot;from the peak_index (peak_index - shift)&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">local_weight</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of the local pixel (0: peak from neighbors only, &quot;</span>
+        <span class="s2">&quot;1: local pixel counts as much as any neighbor)&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_integration_correction</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply the integration window correction&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_calculate_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the correction for the extracted change such that the value</span>
+<span class="sd">        returned would equal 1 for a noise-less unit pulse.</span>
+
+<span class="sd">        This method is decorated with @lru_cache to ensure it is only</span>
+<span class="sd">        calculated once per telescope.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">        The correction to apply to an extracted charge using this ImageExtractor</span>
+<span class="sd">        Has size n_channels, as a different correction value might be required</span>
+<span class="sd">        for different gain channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+        <span class="k">return</span> <span class="n">integration_correction</span><span class="p">(</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="NeighborPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.NeighborPeakWindowSum.html#ctapipe.image.NeighborPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">neighbor_matrix_sparse</span>
+        <span class="n">peak_index</span> <span class="o">=</span> <span class="n">neighbor_average_maximum</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="n">neighbors_indices</span><span class="o">=</span><span class="n">neighbors</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+            <span class="n">neighbors_indptr</span><span class="o">=</span><span class="n">neighbors</span><span class="o">.</span><span class="n">indptr</span><span class="p">,</span>
+            <span class="n">local_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_weight</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">broken_pixels</span><span class="o">=</span><span class="n">broken_pixels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="n">peak_index</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="n">charge</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span><span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">charge</span><span class="p">,</span> <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BaselineSubtractedNeighborPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.BaselineSubtractedNeighborPeakWindowSum.html#ctapipe.image.BaselineSubtractedNeighborPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">BaselineSubtractedNeighborPeakWindowSum</span><span class="p">(</span><span class="n">NeighborPeakWindowSum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor that first subtracts the baseline before summing in a</span>
+<span class="sd">    window about the peak defined by the wavefroms in neighboring pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">baseline_start</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Start sample for baseline estimation&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">baseline_end</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;End sample for baseline estimation&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaselineSubtractedNeighborPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.BaselineSubtractedNeighborPeakWindowSum.html#ctapipe.image.BaselineSubtractedNeighborPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">baseline_corrected</span> <span class="o">=</span> <span class="n">subtract_baseline</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">baseline_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">baseline_end</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span>
+            <span class="n">baseline_corrected</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TwoPassWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.TwoPassWindowSum.html#ctapipe.image.TwoPassWindowSum">[docs]</a><span class="k">class</span> <span class="nc">TwoPassWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extractor based on [1]_ which integrates the waveform a second time using</span>
+<span class="sd">    a time-gradient linear fit. This is in particular the version implemented</span>
+<span class="sd">    in the CTA-MARS analysis pipeline [2]_.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    #. slide a 3-samples window through the waveform, finding max counts sum;</span>
+<span class="sd">       the range of the sliding is the one allowing extension from 3 to 5;</span>
+<span class="sd">       add 1 sample on each side and integrate charge in the 5-sample window;</span>
+<span class="sd">       time is obtained as a charge-weighted average of the sample numbers;</span>
+<span class="sd">       No information from neighboouring pixels is used.</span>
+<span class="sd">    #. Preliminary image cleaning via simple tailcut with minimum number</span>
+<span class="sd">       of core neighbours set at 1,</span>
+<span class="sd">    #. Only the brightest cluster of pixels is kept.</span>
+<span class="sd">    #. Parametrize following Hillas approach only if the resulting image has 3</span>
+<span class="sd">       or more pixels.</span>
+<span class="sd">    #. Do a linear fit of pulse time vs. distance along major image axis</span>
+<span class="sd">       (CTA-MARS uses ROOT &quot;robust&quot; fit option,</span>
+<span class="sd">       aka Least Trimmed Squares, to get rid of far outliers - this should</span>
+<span class="sd">       be implemented in &#39;timing_parameters&#39;, e.g scipy.stats.siegelslopes).</span>
+<span class="sd">    #. For all pixels except the core ones in the main island, integrate</span>
+<span class="sd">       the waveform once more, in a fixed window of 5 samples set at the time</span>
+<span class="sd">       &quot;predicted&quot; by the linear time fit.</span>
+<span class="sd">       If the predicted time for a pixel leads to a window outside the readout</span>
+<span class="sd">       window, then integrate the last (or first) 5 samples.</span>
+<span class="sd">    #. The result is an image with main-island core pixels calibrated with a</span>
+<span class="sd">       1st pass and non-core pixels re-calibrated with a 2nd pass.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] J. Holder et al., Astroparticle Physics, 25, 6, 391 (2006)</span>
+<span class="sd">    .. [2] https://forge.in2p3.fr/projects/step-by-step-reference-mars-analysis/wiki</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get thresholds for core-pixels depending on telescope type.</span>
+    <span class="c1"># WARNING: default values are not yet optimized</span>
+    <span class="n">core_threshold</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;LST*&quot;</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;MST*&quot;</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;SST*&quot;</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Picture threshold for internal tail-cuts pass&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">disable_second_pass</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;only run the first pass of the extractor, for debugging purposes&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_integration_correction</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply the integration window correction&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">invalid_pixel_handler_type</span> <span class="o">=</span> <span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">InvalidPixelHandler</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;NeighborAverage&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of the InvalidPixelHandler to apply in the first pass.&quot;</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span> <span class="o">=</span> <span class="n">InvalidPixelHandler</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler_type</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">4096</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_calculate_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain the correction for the integration window specified for each</span>
+<span class="sd">        pixel.</span>
+
+<span class="sd">        The TwoPassWindowSum image extractor applies potentially different</span>
+<span class="sd">        parameters for the integration window to each pixel, depending on the</span>
+<span class="sd">        position of the peak. It has been decided to apply gain selection</span>
+<span class="sd">        directly here. For basic definitions look at the documentation of</span>
+<span class="sd">        `integration_correction`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+<span class="sd">            Index of the telescope in use.</span>
+<span class="sd">        width : int</span>
+<span class="sd">            Width of the integration window in samples</span>
+<span class="sd">        shift : int</span>
+<span class="sd">            Window shift to the left of the pulse peak in samples</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">            Value of the pixel-wise gain-selected integration correction.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">readout</span>
+        <span class="c1"># Calculate correction of first pixel for both channels</span>
+        <span class="k">return</span> <span class="n">integration_correction</span><span class="p">(</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;ns&quot;</span><span class="p">),</span>
+            <span class="n">width</span><span class="p">,</span>
+            <span class="n">shift</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_apply_first_pass</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute step 1.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        waveforms : array of size (N_pixels, N_samples)</span>
+<span class="sd">            DL0-level waveforms of one event.</span>
+<span class="sd">        tel_id : int</span>
+<span class="sd">            Index of the telescope.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        charge : array_like</span>
+<span class="sd">            Integrated charge per pixel.</span>
+<span class="sd">            Shape: (n_pix)</span>
+<span class="sd">        pulse_time : array_like</span>
+<span class="sd">            Samples in which the waveform peak has been recognized.</span>
+<span class="sd">            Shape: (n_pix)</span>
+<span class="sd">        correction : ndarray</span>
+<span class="sd">            pixel-wise integration correction</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># STEP 1</span>
+
+        <span class="c1"># Starting from DL0, the channel is already selected (if more than one)</span>
+        <span class="c1"># event.dl0.tel[tel_id].waveform object has shape (N_pixels, N_samples)</span>
+
+        <span class="c1"># For each pixel, we slide a 3-samples window through the</span>
+        <span class="c1"># waveform summing each time the ADC counts contained within it.</span>
+
+        <span class="n">peak_search_window_width</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">sums</span> <span class="o">=</span> <span class="n">convolve1d</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">peak_search_window_width</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># &#39;sums&#39; has now still shape of (N_pixels, N_samples)</span>
+        <span class="c1"># each element is the center-sample of each 3-samples sliding window</span>
+
+        <span class="c1"># For each pixel, we check where the peak search window encountered</span>
+        <span class="c1"># the maximum number of ADC counts.</span>
+        <span class="c1"># We want to stop before the edge of the readout window in order to</span>
+        <span class="c1"># later extend the search window to a 1+3+1 integration window.</span>
+        <span class="c1"># Since in &#39;sums&#39; the peak index corresponds to the center of the</span>
+        <span class="c1"># search window, we shift it on the right by 2 samples so to get the</span>
+        <span class="c1"># correspondent sample index in each waveform.</span>
+        <span class="n">peak_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">sums</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="c1"># Now peak_index has the shape of (N_pixels).</span>
+
+        <span class="c1"># The final 5-samples window will be 1+3+1, centered on the 3-samples</span>
+        <span class="c1"># window in which the highest amount of ADC counts has been found</span>
+        <span class="n">window_width</span> <span class="o">=</span> <span class="n">peak_search_window_width</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="n">window_shift</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="c1"># this function is applied to all pixels together</span>
+        <span class="n">charge_1stpass</span><span class="p">,</span> <span class="n">pulse_time_1stpass</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="n">peak_index</span><span class="p">,</span>
+            <span class="n">window_width</span><span class="p">,</span>
+            <span class="n">window_shift</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get integration correction factors</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="n">correction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">window_width</span><span class="p">,</span> <span class="n">window_shift</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">correction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">charge_1stpass</span><span class="p">,</span> <span class="n">pulse_time_1stpass</span><span class="p">,</span> <span class="n">correction</span>
+
+    <span class="k">def</span> <span class="nf">_apply_second_pass</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">waveforms</span><span class="p">,</span>
+        <span class="n">tel_id</span><span class="p">,</span>
+        <span class="n">selected_gain_channel</span><span class="p">,</span>
+        <span class="n">charge_1stpass_uncorrected</span><span class="p">,</span>
+        <span class="n">pulse_time_1stpass</span><span class="p">,</span>
+        <span class="n">correction</span><span class="p">,</span>
+        <span class="n">broken_pixels</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Follow steps from 2 to 7.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        waveforms : array of shape (N_pixels, N_samples)</span>
+<span class="sd">            DL0-level waveforms of one event.</span>
+<span class="sd">        tel_id : int</span>
+<span class="sd">            Index of the telescope.</span>
+<span class="sd">        selected_gain_channel: array of shape (N_channels, N_pixels)</span>
+<span class="sd">            Array containing the index of the selected gain channel for each</span>
+<span class="sd">            pixel (0 for low gain, 1 for high gain).</span>
+<span class="sd">        charge_1stpass_uncorrected : array of shape N_pixels</span>
+<span class="sd">            Pixel charges reconstructed with the 1st pass, but not corrected.</span>
+<span class="sd">        pulse_time_1stpass : array of shape N_pixels</span>
+<span class="sd">            Pixel-wise pulse times reconstructed with the 1st pass.</span>
+<span class="sd">        correction: array of shape N_pixels</span>
+<span class="sd">            Charge correction from 1st pass.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        charge : array_like</span>
+<span class="sd">            Integrated charge per pixel.</span>
+<span class="sd">            Note that in the case of a very bright full-camera image this can</span>
+<span class="sd">            coincide the 1st pass information.</span>
+<span class="sd">            Also in the case of very dim images the 1st pass will be recycled,</span>
+<span class="sd">            but in this case the resulting image should be discarded</span>
+<span class="sd">            from further analysis.</span>
+<span class="sd">            Shape: (n_pix)</span>
+<span class="sd">        pulse_time : array_like</span>
+<span class="sd">            Samples in which the waveform peak has been recognized.</span>
+<span class="sd">            Same specifications as above.</span>
+<span class="sd">            Shape: (n_pix)</span>
+<span class="sd">        is_valid: bool</span>
+<span class="sd">            True=second-pass succeeded, False=second-pass failed, first pass used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># STEP 2</span>
+        <span class="c1"># Apply correction to 1st pass charges</span>
+        <span class="n">charge_1stpass</span> <span class="o">=</span> <span class="n">charge_1stpass_uncorrected</span> <span class="o">*</span> <span class="n">correction</span><span class="p">[</span><span class="n">selected_gain_channel</span><span class="p">]</span>
+
+        <span class="n">camera_geometry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">charge_1stpass</span><span class="p">,</span> <span class="n">pulse_time_1stpass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalid_pixel_handler</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="p">,</span>
+                <span class="n">charge_1stpass</span><span class="p">,</span>
+                <span class="n">pulse_time_1stpass</span><span class="p">,</span>
+                <span class="n">broken_pixels</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Set thresholds for core-pixels depending on telescope</span>
+        <span class="n">core_th</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">core_threshold</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="c1"># Boundary thresholds will be half of core thresholds.</span>
+
+        <span class="c1"># Preliminary image cleaning with simple two-level tail-cut</span>
+        <span class="n">mask_clean</span> <span class="o">=</span> <span class="n">tailcuts_clean</span><span class="p">(</span>
+            <span class="n">camera_geometry</span><span class="p">,</span>
+            <span class="n">charge_1stpass</span><span class="p">,</span>
+            <span class="n">picture_thresh</span><span class="o">=</span><span class="n">core_th</span><span class="p">,</span>
+            <span class="n">boundary_thresh</span><span class="o">=</span><span class="n">core_th</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">keep_isolated_pixels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># STEP 3</span>
+
+        <span class="c1"># find all islands using this cleaning</span>
+        <span class="n">n_islands</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">number_of_islands</span><span class="p">(</span><span class="n">camera_geometry</span><span class="p">,</span> <span class="n">mask_clean</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n_islands</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># ...find the brightest one</span>
+            <span class="n">mask_brightest_island</span> <span class="o">=</span> <span class="n">brightest_island</span><span class="p">(</span><span class="n">n_islands</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">charge_1stpass</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask_brightest_island</span> <span class="o">=</span> <span class="n">mask_clean</span>
+
+        <span class="c1"># for all pixels except the core ones in the main island of the</span>
+        <span class="c1"># preliminary image, the waveform will be integrated once more (2nd pass)</span>
+
+        <span class="n">mask_2nd_pass</span> <span class="o">=</span> <span class="o">~</span><span class="n">mask_brightest_island</span> <span class="o">|</span> <span class="p">(</span>
+            <span class="n">mask_brightest_island</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">charge_1stpass</span> <span class="o">&lt;</span> <span class="n">core_th</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># STEP 4</span>
+
+        <span class="c1"># if the resulting image has less then 3 pixels</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">mask_brightest_island</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># we return the 1st pass information</span>
+            <span class="k">return</span> <span class="n">charge_1stpass</span><span class="p">,</span> <span class="n">pulse_time_1stpass</span><span class="p">,</span> <span class="kc">False</span>
+
+        <span class="c1"># otherwise we proceed by parametrizing the image</span>
+        <span class="n">camera_geometry_brightest</span> <span class="o">=</span> <span class="n">camera_geometry</span><span class="p">[</span><span class="n">mask_brightest_island</span><span class="p">]</span>
+        <span class="n">charge_brightest</span> <span class="o">=</span> <span class="n">charge_1stpass</span><span class="p">[</span><span class="n">mask_brightest_island</span><span class="p">]</span>
+        <span class="n">hillas</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">camera_geometry_brightest</span><span class="p">,</span> <span class="n">charge_brightest</span><span class="p">)</span>
+
+        <span class="c1"># STEP 5</span>
+
+        <span class="c1"># linear fit of pulse time vs. distance along major image axis</span>
+        <span class="c1"># using only the main island surviving the preliminary</span>
+        <span class="c1"># image cleaning</span>
+        <span class="n">timing</span> <span class="o">=</span> <span class="n">timing_parameters</span><span class="p">(</span>
+            <span class="n">geom</span><span class="o">=</span><span class="n">camera_geometry_brightest</span><span class="p">,</span>
+            <span class="n">image</span><span class="o">=</span><span class="n">charge_brightest</span><span class="p">,</span>
+            <span class="n">peak_time</span><span class="o">=</span><span class="n">pulse_time_1stpass</span><span class="p">[</span><span class="n">mask_brightest_island</span><span class="p">],</span>
+            <span class="n">hillas_parameters</span><span class="o">=</span><span class="n">hillas</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># If the fit returns nan</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">timing</span><span class="o">.</span><span class="n">slope</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">charge_1stpass</span><span class="p">,</span> <span class="n">pulse_time_1stpass</span><span class="p">,</span> <span class="kc">False</span>
+
+        <span class="c1"># get projected distances along main image axis</span>
+        <span class="n">longitude</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">camera_to_shower_coordinates</span><span class="p">(</span>
+            <span class="n">camera_geometry</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">camera_geometry</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="n">hillas</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">hillas</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">hillas</span><span class="o">.</span><span class="n">psi</span>
+        <span class="p">)</span>
+
+        <span class="c1"># get the predicted times as a linear relation</span>
+        <span class="n">predicted_pulse_times</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">timing</span><span class="o">.</span><span class="n">slope</span> <span class="o">*</span> <span class="n">longitude</span><span class="p">[</span><span class="n">mask_2nd_pass</span><span class="p">]</span> <span class="o">+</span> <span class="n">timing</span><span class="o">.</span><span class="n">intercept</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Convert time in ns to sample index using the sampling rate from</span>
+        <span class="c1"># the readout.</span>
+        <span class="c1"># Approximate the value obtained to nearest integer, then cast to</span>
+        <span class="c1"># int64 otherwise &#39;extract_around_peak&#39; complains.</span>
+
+        <span class="n">predicted_peaks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span>
+            <span class="n">predicted_pulse_times</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+        <span class="c1"># Due to the fit these peak indexes can lead to an integration window</span>
+        <span class="c1"># outside the readout window, so in the next step we check for this.</span>
+
+        <span class="c1"># STEP 6</span>
+
+        <span class="c1"># select all pixels except the core ones in the main island</span>
+        <span class="n">waveforms_to_repass</span> <span class="o">=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">mask_2nd_pass</span><span class="p">]</span>
+
+        <span class="c1"># Build &#39;width&#39; and &#39;shift&#39; arrays that adapt on the position of the</span>
+        <span class="c1"># window along each waveform</span>
+
+        <span class="c1"># As before we will integrate the charge in a 5-sample window centered</span>
+        <span class="c1"># on the peak</span>
+        <span class="n">window_width_default</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">window_shift_default</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="c1"># first we find where the integration window edges WOULD BE</span>
+        <span class="n">integration_windows_start</span> <span class="o">=</span> <span class="n">predicted_peaks</span> <span class="o">-</span> <span class="n">window_shift_default</span>
+        <span class="n">integration_windows_end</span> <span class="o">=</span> <span class="n">integration_windows_start</span> <span class="o">+</span> <span class="n">window_width_default</span>
+
+        <span class="c1"># then we define 2 possible edge cases</span>
+        <span class="c1"># the predicted integration window falls before the readout window</span>
+        <span class="n">integration_before_readout</span> <span class="o">=</span> <span class="n">integration_windows_start</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="c1"># or after</span>
+        <span class="n">integration_after_readout</span> <span class="o">=</span> <span class="n">integration_windows_end</span> <span class="o">&gt;</span> <span class="p">(</span>
+            <span class="n">waveforms_to_repass</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="c1"># If the resulting 5-samples window falls before the readout</span>
+        <span class="c1"># window we take the first 5 samples</span>
+        <span class="n">window_width_before</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">window_shift_before</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># If the resulting 5-samples window falls after the readout</span>
+        <span class="c1"># window we take the last 5 samples</span>
+        <span class="n">window_width_after</span> <span class="o">=</span> <span class="mi">6</span>
+        <span class="n">window_shift_after</span> <span class="o">=</span> <span class="mi">4</span>
+
+        <span class="c1"># put all values of widths and shifts for 2nd pass pixels together</span>
+        <span class="n">window_widths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">waveforms_to_repass</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">window_width_default</span><span class="p">)</span>
+        <span class="n">window_widths</span><span class="p">[</span><span class="n">integration_before_readout</span><span class="p">]</span> <span class="o">=</span> <span class="n">window_width_before</span>
+        <span class="n">window_widths</span><span class="p">[</span><span class="n">integration_after_readout</span><span class="p">]</span> <span class="o">=</span> <span class="n">window_width_after</span>
+        <span class="n">window_shifts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">waveforms_to_repass</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">window_shift_default</span><span class="p">)</span>
+        <span class="n">window_shifts</span><span class="p">[</span><span class="n">integration_before_readout</span><span class="p">]</span> <span class="o">=</span> <span class="n">window_shift_before</span>
+        <span class="n">window_shifts</span><span class="p">[</span><span class="n">integration_after_readout</span><span class="p">]</span> <span class="o">=</span> <span class="n">window_shift_after</span>
+
+        <span class="c1"># Now we have to (re)define the pathological predicted times for which</span>
+        <span class="c1"># - either the peak itself falls outside of the readout window</span>
+        <span class="c1"># - or is within the first or last 2 samples (so that at least 1 sample</span>
+        <span class="c1"># of the integration window is outside of the readout window)</span>
+        <span class="c1"># We place them at the first or last sample, so the special window</span>
+        <span class="c1"># widhts and shifts that we defined earlier put the integration window</span>
+        <span class="c1"># for these 2 cases either in the first 5 samples or the last</span>
+
+        <span class="c1"># set sample to 0 (beginning of the waveform)</span>
+        <span class="c1"># if predicted time falls before</span>
+        <span class="c1"># but also if it&#39;s so near the edge that the integration window falls</span>
+        <span class="c1"># outside</span>
+        <span class="n">predicted_peaks</span><span class="p">[</span><span class="n">predicted_peaks</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># set sample to max-1 (first sample has index 0)</span>
+        <span class="c1"># if predicted time falls after</span>
+        <span class="n">predicted_peaks</span><span class="p">[</span><span class="n">predicted_peaks</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">waveforms_to_repass</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">waveforms_to_repass</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="c1"># re-calibrate 2nd pass pixels using the fixed 5-samples window</span>
+        <span class="n">reintegrated_charge</span><span class="p">,</span> <span class="n">reestimated_pulse_times</span> <span class="o">=</span> <span class="n">extract_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms_to_repass</span><span class="p">,</span>
+            <span class="n">predicted_peaks</span><span class="p">,</span>
+            <span class="n">window_widths</span><span class="p">,</span>
+            <span class="n">window_shifts</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate_ghz</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_integration_correction</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+            <span class="c1"># Modify integration correction factors only for non-core pixels</span>
+            <span class="c1"># now we compute 3 corrections for the default, before, and after cases:</span>
+            <span class="n">correction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="p">,</span> <span class="n">window_width_default</span><span class="p">,</span> <span class="n">window_shift_default</span>
+            <span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">][</span><span class="n">mask_2nd_pass</span><span class="p">]</span>
+
+            <span class="n">correction_before</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="p">,</span> <span class="n">window_width_before</span><span class="p">,</span> <span class="n">window_shift_before</span>
+            <span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">][</span><span class="n">mask_2nd_pass</span><span class="p">]</span>
+
+            <span class="n">correction_after</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_correction</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="p">,</span> <span class="n">window_width_after</span><span class="p">,</span> <span class="n">window_shift_after</span>
+            <span class="p">)[</span><span class="n">selected_gain_channel</span><span class="p">][</span><span class="n">mask_2nd_pass</span><span class="p">]</span>
+
+            <span class="n">correction</span><span class="p">[</span><span class="n">integration_before_readout</span><span class="p">]</span> <span class="o">=</span> <span class="n">correction_before</span><span class="p">[</span>
+                <span class="n">integration_before_readout</span>
+            <span class="p">]</span>
+            <span class="n">correction</span><span class="p">[</span><span class="n">integration_after_readout</span><span class="p">]</span> <span class="o">=</span> <span class="n">correction_after</span><span class="p">[</span>
+                <span class="n">integration_after_readout</span>
+            <span class="p">]</span>
+
+            <span class="n">reintegrated_charge</span> <span class="o">*=</span> <span class="n">correction</span>
+
+        <span class="c1"># STEP 7</span>
+
+        <span class="c1"># Combine in the final output with,</span>
+        <span class="c1"># - core pixels from the main cluster</span>
+        <span class="c1"># - rest of the pixels which have been passed a second time</span>
+
+        <span class="c1"># Start from a copy of the 1st pass charge</span>
+        <span class="n">charge_2ndpass</span> <span class="o">=</span> <span class="n">charge_1stpass</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1"># Overwrite the charges of pixels marked for second pass</span>
+        <span class="c1"># leaving untouched the core pixels of the main island</span>
+        <span class="c1"># from the preliminary (cleaned) image</span>
+        <span class="n">charge_2ndpass</span><span class="p">[</span><span class="n">mask_2nd_pass</span><span class="p">]</span> <span class="o">=</span> <span class="n">reintegrated_charge</span>
+
+        <span class="c1"># Same approach for the pulse times</span>
+        <span class="n">pulse_time_2ndpass</span> <span class="o">=</span> <span class="n">pulse_time_1stpass</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">pulse_time_2ndpass</span><span class="p">[</span><span class="n">mask_2nd_pass</span><span class="p">]</span> <span class="o">=</span> <span class="n">reestimated_pulse_times</span>
+
+        <span class="k">return</span> <span class="n">charge_2ndpass</span><span class="p">,</span> <span class="n">pulse_time_2ndpass</span><span class="p">,</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="TwoPassWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.TwoPassWindowSum.html#ctapipe.image.TwoPassWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">selected_gain_channel</span><span class="p">,</span> <span class="n">broken_pixels</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DL1CameraContainer</span><span class="p">:</span>
+        <span class="n">charge1</span><span class="p">,</span> <span class="n">pulse_time1</span><span class="p">,</span> <span class="n">correction1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_first_pass</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">)</span>
+
+        <span class="c1"># FIXME: properly make sure that output is 32Bit instead of downcasting here</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_second_pass</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="p">(</span><span class="n">charge1</span> <span class="o">*</span> <span class="n">correction1</span><span class="p">[</span><span class="n">selected_gain_channel</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">),</span>
+                <span class="n">peak_time</span><span class="o">=</span><span class="n">pulse_time1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">),</span>
+                <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">charge2</span><span class="p">,</span> <span class="n">pulse_time2</span><span class="p">,</span> <span class="n">is_valid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_second_pass</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span>
+            <span class="n">tel_id</span><span class="p">,</span>
+            <span class="n">selected_gain_channel</span><span class="p">,</span>
+            <span class="n">charge1</span><span class="p">,</span>
+            <span class="n">pulse_time1</span><span class="p">,</span>
+            <span class="n">correction1</span><span class="p">,</span>
+            <span class="n">broken_pixels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># FIXME: properly make sure that output is 32Bit instead of downcasting here</span>
+        <span class="k">return</span> <span class="n">DL1CameraContainer</span><span class="p">(</span>
+            <span class="n">image</span><span class="o">=</span><span class="n">charge2</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">),</span>
+            <span class="n">peak_time</span><span class="o">=</span><span class="n">pulse_time2</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">),</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="n">is_valid</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

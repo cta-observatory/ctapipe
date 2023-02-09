@@ -1,0 +1,29 @@
+BaselineSubtractedNeighborPeakWindowSum
+=======================================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: BaselineSubtractedNeighborPeakWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~BaselineSubtractedNeighborPeakWindowSum.baseline_end
+      ~BaselineSubtractedNeighborPeakWindowSum.baseline_start
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~BaselineSubtractedNeighborPeakWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: baseline_end
+   .. autoattribute:: baseline_start
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

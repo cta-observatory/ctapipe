@@ -1,0 +1,33 @@
+CrossValidator
+==============
+
+.. currentmodule:: ctapipe.reco.sklearn
+
+.. autoclass:: CrossValidator
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CrossValidator.n_cross_validations
+      ~CrossValidator.output_path
+      ~CrossValidator.rng_seed
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CrossValidator.__call__
+      ~CrossValidator.write
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: n_cross_validations
+   .. autoattribute:: output_path
+   .. autoattribute:: rng_seed
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: write

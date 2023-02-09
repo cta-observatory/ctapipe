@@ -1,0 +1,33 @@
+GlobalPeakWindowSum
+===================
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autoclass:: GlobalPeakWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~GlobalPeakWindowSum.apply_integration_correction
+      ~GlobalPeakWindowSum.pixel_fraction
+      ~GlobalPeakWindowSum.window_shift
+      ~GlobalPeakWindowSum.window_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~GlobalPeakWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: pixel_fraction
+   .. autoattribute:: window_shift
+   .. autoattribute:: window_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

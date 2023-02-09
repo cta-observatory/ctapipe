@@ -1,0 +1,19 @@
+PeakTimeStatisticsContainer
+===========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: PeakTimeStatisticsContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~PeakTimeStatisticsContainer.meta
+      ~PeakTimeStatisticsContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix

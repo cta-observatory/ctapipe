@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImPACTReconstructor &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Command line tools (tools)" href="../ctapipe_api/tools/index.html" />
+    <link rel="prev" title="guess_shower_depth" href="ctapipe.reco.impact.guess_shower_depth.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/reco/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/reco/index.html#currently-implemented-algorithms">Currently Implemented Algorithms</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/reco/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/reco/index.html#module-ctapipe.reco">ctapipe.reco Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/reco/index.html#module-ctapipe.reco.reconstructor">ctapipe.reco.reconstructor Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/reco/index.html#module-ctapipe.reco.hillas_intersection">ctapipe.reco.hillas_intersection Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ctapipe_api/reco/index.html#module-ctapipe.reco.hillas_reconstructor">ctapipe.reco.hillas_reconstructor Module</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/reco/index.html#module-ctapipe.reco.impact">ctapipe.reco.impact Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+      <li class="breadcrumb-item active">ImPACTReconstructor</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ctapipe.reco.impact.ImPACTReconstructor.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="impactreconstructor">
+<h1>ImPACTReconstructor<a class="headerlink" href="#impactreconstructor" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">ctapipe.reco.impact.</span></code><code class="sig-name descname"><span class="pre">ImPACTReconstructor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ctapipe.core.component.Component.html#ctapipe.core.component.Component" title="ctapipe.core.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.core.component.Component</span></code></a></p>
+<p>This class is an implementation if the impact_reco Monte Carlo
+Template based image fitting method from parsons14.  This method uses a
+comparision of the predicted image from a library of image
+templates to perform a maximum likelihood fit for the shower axis,
+energy and height of maximum.</p>
+<p>Because this application is computationally intensive the usual
+advice to use astropy units for all quantities is ignored (as
+these slow down some computations), instead units within the class
+are fixed:</p>
+<ul class="simple">
+<li><p>Angular units in radians</p></li>
+<li><p>Distance units in metres</p></li>
+<li><p>Energy units in TeV</p></li>
+</ul>
+<p class="rubric">References</p>
+<dl class="citation">
+<dt class="label" id="ra6e33b26b16f-parsons14"><span class="brackets">parsons14</span></dt>
+<dd><p>Parsons &amp; Hinton, Astroparticle Physics 56 (2014), pp. 26-34</p>
+</dd>
+</dl>
+<p class="rubric">Attributes Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.ped_table" title="ctapipe.reco.impact.ImPACTReconstructor.ped_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ped_table</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.spe" title="ctapipe.reco.impact.ImPACTReconstructor.spe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">spe</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.get_hillas_mean" title="ctapipe.reco.impact.ImPACTReconstructor.get_hillas_mean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_hillas_mean</span></code></a>()</p></td>
+<td><p>This is a simple function to find the peak position of each image in an event which will be used later in the Xmax calculation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.get_likelihood" title="ctapipe.reco.impact.ImPACTReconstructor.get_likelihood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_likelihood</span></code></a>(source_x, source_y, core_x, …)</p></td>
+<td><p>Get the likelihood that the image predicted at the given test position matches the camera image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_min" title="ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_likelihood_min</span></code></a>(x)</p></td>
+<td><p>Wrapper class around likelihood function for use with scipy minimisers</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_nlopt" title="ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_nlopt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_likelihood_nlopt</span></code></a>(x, grad)</p></td>
+<td><p>Wrapper class around likelihood function for use with scipy minimisers</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.get_shower_max" title="ctapipe.reco.impact.ImPACTReconstructor.get_shower_max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_shower_max</span></code></a>(source_x, source_y, core_x, …)</p></td>
+<td><p>Function to calculate the depth of shower maximum geometrically under the assumption that the shower maximum lies at the brightest point of the camera image.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.image_prediction" title="ctapipe.reco.impact.ImPACTReconstructor.image_prediction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">image_prediction</span></code></a>(tel_type, energy, impact, …)</p></td>
+<td><p>Creates predicted image for the specified pixels, interpolated from the template library.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.initialise_templates" title="ctapipe.reco.impact.ImPACTReconstructor.initialise_templates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialise_templates</span></code></a>(tel_type)</p></td>
+<td><p>Check if templates for a given telescope type has been initialised and if not do it and add to the dictionary</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.minimise" title="ctapipe.reco.impact.ImPACTReconstructor.minimise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">minimise</span></code></a>(params, step, limits[, …])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.predict" title="ctapipe.reco.impact.ImPACTReconstructor.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(shower_seed, energy_seed)</p></td>
+<td><p>Predict method for the ImPACT reconstructor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.predict_time" title="ctapipe.reco.impact.ImPACTReconstructor.predict_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_time</span></code></a>(tel_type, energy, impact, x_max)</p></td>
+<td><p>Creates predicted image for the specified pixels, interpolated from the template library.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.reset_interpolator" title="ctapipe.reco.impact.ImPACTReconstructor.reset_interpolator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_interpolator</span></code></a>()</p></td>
+<td><p>This function is needed in order to reset some variables in the interpolator at each new event.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.rotate_translate" title="ctapipe.reco.impact.ImPACTReconstructor.rotate_translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rotate_translate</span></code></a>(pixel_pos_x, pixel_pos_y, …)</p></td>
+<td><p>Function to perform rotation and translation of pixel lists</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.reco.impact.ImPACTReconstructor.set_event_properties" title="ctapipe.reco.impact.ImPACTReconstructor.set_event_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_event_properties</span></code></a>(image, time, pixel_x, …)</p></td>
+<td><p>The setter class is used to set the event properties within this class before minimisation can take place.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes Documentation</p>
+<dl class="py attribute">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.ped_table">
+<code class="sig-name descname"><span class="pre">ped_table</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{'CHEC':</span> <span class="pre">0.5,</span> <span class="pre">'DUMMY':</span> <span class="pre">0,</span> <span class="pre">'FlashCam':</span> <span class="pre">2.3,</span> <span class="pre">'LSTCam':</span> <span class="pre">2.8,</span> <span class="pre">'NectarCam':</span> <span class="pre">2.3}</span></em><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.ped_table" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.spe">
+<code class="sig-name descname"><span class="pre">spe</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0.5</span></em><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.spe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.get_hillas_mean">
+<code class="sig-name descname"><span class="pre">get_hillas_mean</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.get_hillas_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.get_hillas_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a simple function to find the peak position of each image
+in an event which will be used later in the Xmax calculation. Peak is
+found by taking the average position of the n hottest pixels in the
+image.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.get_likelihood">
+<code class="sig-name descname"><span class="pre">get_likelihood</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">core_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">core_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_max_scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goodness_of_fit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.get_likelihood"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.get_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the likelihood that the image predicted at the given test
+position matches the camera image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>source_x: float</strong></dt><dd><p>Source position of shower in the nominal system (in deg)</p>
+</dd>
+<dt><strong>source_y: float</strong></dt><dd><p>Source position of shower in the nominal system (in deg)</p>
+</dd>
+<dt><strong>core_x: float</strong></dt><dd><p>Core position of shower in tilted telescope system (in m)</p>
+</dd>
+<dt><strong>core_y: float</strong></dt><dd><p>Core position of shower in tilted telescope system (in m)</p>
+</dd>
+<dt><strong>energy: float</strong></dt><dd><p>Shower energy (in TeV)</p>
+</dd>
+<dt><strong>x_max_scale: float</strong></dt><dd><p>Scaling factor applied to geometrically calculated Xmax</p>
+</dd>
+<dt><strong>goodness_of_fit: boolean</strong></dt><dd><p>Determines whether expected likelihood should be subtracted from result</p>
+</dd>
+<dt><strong>Returns</strong></dt><dd></dd>
+<dt><strong>——-</strong></dt><dd></dd>
+<dt><strong>float: Likelihood the model represents the camera image at this position</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_min">
+<code class="sig-name descname"><span class="pre">get_likelihood_min</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.get_likelihood_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper class around likelihood function for use with scipy
+minimisers</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>x: ndarray</strong></dt><dd><p>Array of minimisation parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>float: Likelihood value of test position</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_nlopt">
+<code class="sig-name descname"><span class="pre">get_likelihood_nlopt</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.get_likelihood_nlopt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.get_likelihood_nlopt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper class around likelihood function for use with scipy
+minimisers</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>x: ndarray</strong></dt><dd><p>Array of minimisation parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>float: Likelihood value of test position</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.get_shower_max">
+<code class="sig-name descname"><span class="pre">get_shower_max</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">core_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">core_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zen</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.get_shower_max"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.get_shower_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the depth of shower maximum geometrically
+under the assumption that the shower maximum lies at the
+brightest point of the camera image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>source_x: float</strong></dt><dd><p>Event source position in nominal frame</p>
+</dd>
+<dt><strong>source_y: float</strong></dt><dd><p>Event source position in nominal frame</p>
+</dd>
+<dt><strong>core_x: float</strong></dt><dd><p>Event core position in telescope tilted frame</p>
+</dd>
+<dt><strong>core_y: float</strong></dt><dd><p>Event core position in telescope tilted frame</p>
+</dd>
+<dt><strong>zen: float</strong></dt><dd><p>Zenith angle of event</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>float: Depth of maximum of air shower</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.image_prediction">
+<code class="sig-name descname"><span class="pre">image_prediction</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tel_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">impact</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pix_y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.image_prediction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.image_prediction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates predicted image for the specified pixels, interpolated
+from the template library.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tel_type: string</strong></dt><dd><p>Telescope type specifier</p>
+</dd>
+<dt><strong>energy: float</strong></dt><dd><p>Event energy (TeV)</p>
+</dd>
+<dt><strong>impact: float</strong></dt><dd><p>Impact diance of shower (metres)</p>
+</dd>
+<dt><strong>x_max: float</strong></dt><dd><p>Depth of shower maximum (num bins from expectation)</p>
+</dd>
+<dt><strong>pix_x: ndarray</strong></dt><dd><p>X coordinate of pixels</p>
+</dd>
+<dt><strong>pix_y: ndarray</strong></dt><dd><p>Y coordinate of pixels</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray: predicted amplitude for all pixels</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.initialise_templates">
+<code class="sig-name descname"><span class="pre">initialise_templates</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tel_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.initialise_templates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.initialise_templates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if templates for a given telescope type has been initialised
+and if not do it and add to the dictionary</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tel_type: dictionary</strong></dt><dd><p>Dictionary of telescope types in event</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>boolean: Confirm initialisation</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.minimise">
+<code class="sig-name descname"><span class="pre">minimise</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimiser_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'minuit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_calls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.minimise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.minimise" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>params: ndarray</strong></dt><dd><p>Seed parameters for fit</p>
+</dd>
+<dt><strong>step: ndarray</strong></dt><dd><p>Initial step size in the fit</p>
+</dd>
+<dt><strong>limits: ndarray</strong></dt><dd><p>Fit bounds</p>
+</dd>
+<dt><strong>minimiser_name: str</strong></dt><dd><p>Name of minimisation method</p>
+</dd>
+<dt><strong>max_calls: int</strong></dt><dd><p>Maximum number of calls to minimiser</p>
+</dd>
+<dt><strong>Returns</strong></dt><dd></dd>
+<dt><strong>——-</strong></dt><dd></dd>
+<dt><strong>tuple: best fit parameters and errors</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.predict">
+<code class="sig-name descname"><span class="pre">predict</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shower_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict method for the ImPACT reconstructor.
+Used to calculate the reconstructed ImPACT shower geometry and energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shower_seed: ReconstructedShowerContainer</strong></dt><dd><p>Seed shower geometry to be used in the fit</p>
+</dd>
+<dt><strong>energy_seed: ReconstructedEnergyContainer</strong></dt><dd><p>Seed energy to be used in fit</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>ReconstructedShowerContainer, ReconstructedEnergyContainer:</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.predict_time">
+<code class="sig-name descname"><span class="pre">predict_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tel_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">impact</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.predict_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.predict_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates predicted image for the specified pixels, interpolated
+from the template library.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tel_type: string</strong></dt><dd><p>Telescope type specifier</p>
+</dd>
+<dt><strong>energy: float</strong></dt><dd><p>Event energy (TeV)</p>
+</dd>
+<dt><strong>impact: float</strong></dt><dd><p>Impact diance of shower (metres)</p>
+</dd>
+<dt><strong>x_max: float</strong></dt><dd><p>Depth of shower maximum (num bins from expectation)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray: predicted amplitude for all pixels</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.reset_interpolator">
+<code class="sig-name descname"><span class="pre">reset_interpolator</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.reset_interpolator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.reset_interpolator" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is needed in order to reset some variables in the interpolator
+at each new event. Without this reset, a new event starts with information
+from the previous event.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.rotate_translate">
+<em class="property"><span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">rotate_translate</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixel_pos_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_pos_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_trans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_trans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.rotate_translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.rotate_translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to perform rotation and translation of pixel lists</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pixel_pos_x: ndarray</strong></dt><dd><p>Array of pixel x positions</p>
+</dd>
+<dt><strong>pixel_pos_y: ndarray</strong></dt><dd><p>Array of pixel x positions</p>
+</dd>
+<dt><strong>x_trans: float</strong></dt><dd><p>Translation of position in x coordinates</p>
+</dd>
+<dt><strong>y_trans: float</strong></dt><dd><p>Translation of position in y coordinates</p>
+</dd>
+<dt><strong>phi: float</strong></dt><dd><p>Rotation angle of pixels</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray,ndarray: Transformed pixel x and y coordinates</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ctapipe.reco.impact.ImPACTReconstructor.set_event_properties">
+<code class="sig-name descname"><span class="pre">set_event_properties</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_tel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tel_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tel_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array_direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hillas</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/impact.html#ImPACTReconstructor.set_event_properties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ctapipe.reco.impact.ImPACTReconstructor.set_event_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter class is used to set the event properties within this
+class before minimisation can take place. This simply copies a
+bunch of useful properties to class members, so that we can
+use them later without passing all this information around.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: dict</strong></dt><dd><p>Amplitude of pixels in camera images</p>
+</dd>
+<dt><strong>time: dict</strong></dt><dd><p>Time information per each pixel in camera images</p>
+</dd>
+<dt><strong>pixel_x: dict</strong></dt><dd><p>X position of pixels in nominal system</p>
+</dd>
+<dt><strong>pixel_y: dict</strong></dt><dd><p>Y position of pixels in nominal system</p>
+</dd>
+<dt><strong>type_tel: dict</strong></dt><dd><p>Type of telescope</p>
+</dd>
+<dt><strong>tel_x: dict</strong></dt><dd><p>X position of telescope in TiltedGroundFrame</p>
+</dd>
+<dt><strong>tel_y: dict</strong></dt><dd><p>Y position of telescope in TiltedGroundFrame</p>
+</dd>
+<dt><strong>array_direction: SkyCoord[AltAz]</strong></dt><dd><p>Array pointing direction in the AltAz Frame</p>
+</dd>
+<dt><strong>hillas: dict</strong></dt><dd><p>dictionary with telescope IDs as key and
+HillasParametersContainer instances as values</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>None</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ctapipe.reco.impact.guess_shower_depth.html" class="btn btn-neutral float-left" title="guess_shower_depth" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../ctapipe_api/tools/index.html" class="btn btn-neutral float-right" title="Command line tools (tools)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

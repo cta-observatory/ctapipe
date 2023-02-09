@@ -1,0 +1,23 @@
+AtmosphereProfileKind
+=====================
+
+.. currentmodule:: ctapipe.io.simteleventsource
+
+.. autoclass:: AtmosphereProfileKind
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~AtmosphereProfileKind.AUTO
+      ~AtmosphereProfileKind.FIVELAYER
+      ~AtmosphereProfileKind.NONE
+      ~AtmosphereProfileKind.TABLE
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: AUTO
+   .. autoattribute:: FIVELAYER
+   .. autoattribute:: NONE
+   .. autoattribute:: TABLE

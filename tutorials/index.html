@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorials &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Getting Started with ctapipe" href="ctapipe_handson.html" />
+    <link rel="prev" title="For ROOT users" href="../development/rootmigration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_handson.html">Getting Started with ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_overview.html">Analyzing Events Using ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html">Coordinates usage in ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html">Exploring Raw Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibrated_data_exploration.html">Explore Calibrated Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theta_square.html">Make a theta-square plot</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Tutorials</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tutorials/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="tutorials">
+<span id="id1"></span><h1>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ctapipe_handson.html">Getting Started with ctapipe</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_handson.html#Part-1:-load-and-loop-over-data">Part 1: load and loop over data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_handson.html#Part-2:-Explore-the-instrument-description">Part 2: Explore the instrument description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_handson.html#Part-3:-Apply-some-calibration-and-trace-integration">Part 3: Apply some calibration and trace integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_handson.html#Part-4:-Let’s-put-it-all-together:">Part 4: Let’s put it all together:</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_handson.html#We-can-now-load-in-the-file-we-created-and-plot-it">We can now load in the file we created and plot it</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ctapipe_overview.html">Analyzing Events Using ctapipe</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_overview.html#General-Information">General Information</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Design">Design</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Developement">Developement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#What’s-there?">What’s there?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#What’s-still-missing?">What’s still missing?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#What-can-you-do?">What can you do?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_overview.html#A-simple-hillas-analysis">A simple hillas analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Reading-in-simtel-files">Reading in simtel files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Data-calibration">Data calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Event-displays">Event displays</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Image-Cleaning">Image Cleaning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Image-Parameters">Image Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Putting-it-all-together-/-Stereo-reconstruction">Putting it all together / Stereo reconstruction</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_overview.html#ArrayDisplay">ArrayDisplay</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Reading-the-LST-dl1-data">Reading the LST dl1 data</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_overview.html#Isn’t-python-slow?">Isn’t python slow?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Why-use-python-then?">Why use python then?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ctapipe_overview.html#Example:-Number-of-Islands">Example: Number of Islands</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="coordinates_example.html">Coordinates usage in ctapipe</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#Open-test-dataset">Open test dataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coordinates_example.html#Choose-event-with-LST">Choose event with LST</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#AltAz">AltAz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#CameraFrame">CameraFrame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#TelescopeFrame">TelescopeFrame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#NominalFrame">NominalFrame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#GroundFrame">GroundFrame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html#TiltedGroundFrame">TiltedGroundFrame</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="raw_data_exploration.html">Exploring Raw Data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html#Explore-the-contents-of-an-event">Explore the contents of an event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html#Look-for-signal-pixels-in-a-camera">Look for signal pixels in a camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html#Look-at-the-time-trace-from-a-Camera-Pixel">Look at the time trace from a Camera Pixel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html#Do-a-very-simplisitic-trace-analysis">Do a very simplisitic trace analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html#Camera-Displays">Camera Displays</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html#some-signal-processing…">some signal processing…</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="calibrated_data_exploration.html">Explore Calibrated Data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="calibrated_data_exploration.html#Perform-basic-calibration:">Perform basic calibration:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibrated_data_exploration.html#Some-image-processing:">Some image processing:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibrated_data_exploration.html#More-complex-image-processing:">More complex image processing:</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="calibrated_data_exploration.html#first,-look-at-a-summed-image-from-multiple-telescopes">first, look at a summed image from multiple telescopes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="theta_square.html">Make a theta-square plot</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="theta_square.html#Plot-the-results">Plot the results</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../development/rootmigration.html" class="btn btn-neutral float-left" title="For ROOT users" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ctapipe_handson.html" class="btn btn-neutral float-right" title="Getting Started with ctapipe" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

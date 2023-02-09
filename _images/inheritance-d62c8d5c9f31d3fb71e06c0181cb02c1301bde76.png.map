@@ -1,0 +1,7 @@
+<map id="inheritancedf6513efa4" name="inheritancedf6513efa4">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="306,4,371,21"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="403,4,511,21"/>
+<area shape="rect" id="node4" title="The base class for all classes that have descriptors." alt="" coords="4,4,85,21"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.invalid_pixels.InvalidPixelHandler.html#ctapipe.image.invalid_pixels.InvalidPixelHandler" target="_top" title="An abtract base class for algorithms treating invalid pixel data in images" alt="" coords="543,4,642,21"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.image.invalid_pixels.NeighborAverage.html#ctapipe.image.invalid_pixels.NeighborAverage" target="_top" title="NeighborAverage" alt="" coords="674,4,764,21"/>
+</map>

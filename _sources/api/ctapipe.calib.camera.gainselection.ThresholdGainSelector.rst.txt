@@ -1,0 +1,27 @@
+ThresholdGainSelector
+=====================
+
+.. currentmodule:: ctapipe.calib.camera.gainselection
+
+.. autoclass:: ThresholdGainSelector
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ThresholdGainSelector.threshold
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ThresholdGainSelector.select_channel
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: threshold
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: select_channel

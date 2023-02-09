@@ -1,0 +1,55 @@
+ProcessorTool
+=============
+
+.. currentmodule:: ctapipe.tools.process
+
+.. autoclass:: ProcessorTool
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ProcessorTool.aliases
+      ~ProcessorTool.classes
+      ~ProcessorTool.description
+      ~ProcessorTool.examples
+      ~ProcessorTool.flags
+      ~ProcessorTool.force_recompute_dl1
+      ~ProcessorTool.force_recompute_dl2
+      ~ProcessorTool.name
+      ~ProcessorTool.progress_bar
+      ~ProcessorTool.should_calibrate
+      ~ProcessorTool.should_compute_dl1
+      ~ProcessorTool.should_compute_dl2
+      ~ProcessorTool.should_compute_muon_parameters
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ProcessorTool.finish
+      ~ProcessorTool.setup
+      ~ProcessorTool.start
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: aliases
+   .. autoattribute:: classes
+   .. autoattribute:: description
+   .. autoattribute:: examples
+   .. autoattribute:: flags
+   .. autoattribute:: force_recompute_dl1
+   .. autoattribute:: force_recompute_dl2
+   .. autoattribute:: name
+   .. autoattribute:: progress_bar
+   .. autoattribute:: should_calibrate
+   .. autoattribute:: should_compute_dl1
+   .. autoattribute:: should_compute_dl2
+   .. autoattribute:: should_compute_muon_parameters
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: finish
+   .. automethod:: setup
+   .. automethod:: start

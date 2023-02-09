@@ -1,0 +1,6 @@
+obtain_time_image
+=================
+
+.. currentmodule:: ctapipe.image.toymodel
+
+.. autofunction:: obtain_time_image

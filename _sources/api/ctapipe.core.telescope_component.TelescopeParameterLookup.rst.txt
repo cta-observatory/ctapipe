@@ -1,0 +1,17 @@
+TelescopeParameterLookup
+========================
+
+.. currentmodule:: ctapipe.core.telescope_component
+
+.. autoclass:: TelescopeParameterLookup
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TelescopeParameterLookup.attach_subarray
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: attach_subarray

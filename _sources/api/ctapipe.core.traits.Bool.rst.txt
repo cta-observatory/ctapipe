@@ -1,0 +1,35 @@
+Bool
+====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Bool
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Bool.default_value
+      ~Bool.info_text
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Bool.argcompleter
+      ~Bool.from_string
+      ~Bool.subclass_init
+      ~Bool.validate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_value
+   .. autoattribute:: info_text
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: argcompleter
+   .. automethod:: from_string
+   .. automethod:: subclass_init
+   .. automethod:: validate

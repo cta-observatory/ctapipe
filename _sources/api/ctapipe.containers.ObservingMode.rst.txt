@@ -1,0 +1,25 @@
+ObservingMode
+=============
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ObservingMode
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ObservingMode.CUSTOM
+      ~ObservingMode.GRID
+      ~ObservingMode.ON_OFF
+      ~ObservingMode.UNKNOWN
+      ~ObservingMode.WOBBLE
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: CUSTOM
+   .. autoattribute:: GRID
+   .. autoattribute:: ON_OFF
+   .. autoattribute:: UNKNOWN
+   .. autoattribute:: WOBBLE

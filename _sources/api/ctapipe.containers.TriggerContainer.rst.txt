@@ -1,0 +1,27 @@
+TriggerContainer
+================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: TriggerContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TriggerContainer.event_type
+      ~TriggerContainer.meta
+      ~TriggerContainer.prefix
+      ~TriggerContainer.tel
+      ~TriggerContainer.tels_with_trigger
+      ~TriggerContainer.time
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: event_type
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: tel
+   .. autoattribute:: tels_with_trigger
+   .. autoattribute:: time

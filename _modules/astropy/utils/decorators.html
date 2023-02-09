@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>astropy.utils.decorators &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">astropy.utils.decorators</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for astropy.utils.decorators</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;Sundry function and class decorators.&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">types</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+
+<span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AstropyDeprecationWarning</span><span class="p">,</span>
+    <span class="n">AstropyPendingDeprecationWarning</span><span class="p">,</span>
+    <span class="n">AstropyUserWarning</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;classproperty&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;deprecated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;deprecated_attribute&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;deprecated_renamed_argument&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;format_doc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;lazyproperty&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sharedmethod&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">_NotFound</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">deprecated</span><span class="p">(</span>
+    <span class="n">since</span><span class="p">,</span>
+    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">pending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">obj_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">warning_type</span><span class="o">=</span><span class="n">AstropyDeprecationWarning</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Used to mark a function or class as deprecated.</span>
+
+<span class="sd">    To mark an attribute as deprecated, use `deprecated_attribute`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    since : str</span>
+<span class="sd">        The release at which this API became deprecated.  This is</span>
+<span class="sd">        required.</span>
+
+<span class="sd">    message : str, optional</span>
+<span class="sd">        Override the default deprecation message.  The format</span>
+<span class="sd">        specifier ``func`` may be used for the name of the function,</span>
+<span class="sd">        and ``alternative`` may be used in the deprecation message</span>
+<span class="sd">        to insert the name of an alternative to the deprecated</span>
+<span class="sd">        function. ``obj_type`` may be used to insert a friendly name</span>
+<span class="sd">        for the type of object being deprecated.</span>
+
+<span class="sd">    name : str, optional</span>
+<span class="sd">        The name of the deprecated function or class; if not provided</span>
+<span class="sd">        the name is automatically determined from the passed in</span>
+<span class="sd">        function or class, though this is useful in the case of</span>
+<span class="sd">        renamed functions, where the new function is just assigned to</span>
+<span class="sd">        the name of the deprecated function.  For example::</span>
+
+<span class="sd">            def new_function():</span>
+<span class="sd">                ...</span>
+<span class="sd">            oldFunction = new_function</span>
+
+<span class="sd">    alternative : str, optional</span>
+<span class="sd">        An alternative function or class name that the user may use in</span>
+<span class="sd">        place of the deprecated object.  The deprecation warning will</span>
+<span class="sd">        tell the user about this alternative if provided.</span>
+
+<span class="sd">    pending : bool, optional</span>
+<span class="sd">        If True, uses a AstropyPendingDeprecationWarning instead of a</span>
+<span class="sd">        ``warning_type``.</span>
+
+<span class="sd">    obj_type : str, optional</span>
+<span class="sd">        The type of this object, if the automatically determined one</span>
+<span class="sd">        needs to be overridden.</span>
+
+<span class="sd">    warning_type : Warning</span>
+<span class="sd">        Warning to be issued.</span>
+<span class="sd">        Default is `~astropy.utils.exceptions.AstropyDeprecationWarning`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">method_types</span> <span class="o">=</span> <span class="p">(</span><span class="nb">classmethod</span><span class="p">,</span> <span class="nb">staticmethod</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">MethodType</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">deprecate_doc</span><span class="p">(</span><span class="n">old_doc</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a given docstring with a deprecation message prepended</span>
+<span class="sd">        to it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">old_doc</span><span class="p">:</span>
+            <span class="n">old_doc</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">old_doc</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="n">old_doc</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">new_doc</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">.. deprecated:: </span><span class="si">{</span><span class="n">since</span><span class="si">}</span><span class="se">\n</span><span class="s2">    </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">old_doc</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">old_doc</span><span class="p">:</span>
+            <span class="c1"># This is to prevent a spurious &#39;unexpected unindent&#39; warning from</span>
+            <span class="c1"># docutils when the original docstring was blank.</span>
+            <span class="n">new_doc</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">&quot;\ &quot;</span>
+        <span class="k">return</span> <span class="n">new_doc</span>
+
+    <span class="k">def</span> <span class="nf">get_function</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given a function or classmethod (or other function wrapper type), get</span>
+<span class="sd">        the function object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">method_types</span><span class="p">):</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__func__</span>
+        <span class="k">return</span> <span class="n">func</span>
+
+    <span class="k">def</span> <span class="nf">deprecate_function</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">warning_type</span><span class="o">=</span><span class="n">warning_type</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a wrapped function that displays ``warning_type``</span>
+<span class="sd">        when it is called.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">method_types</span><span class="p">):</span>
+            <span class="n">func_wrapper</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">func_wrapper</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span>  <span class="c1"># noqa: E731</span>
+
+        <span class="n">func</span> <span class="o">=</span> <span class="n">get_function</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">deprecated_func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">pending</span><span class="p">:</span>
+                <span class="n">category</span> <span class="o">=</span> <span class="n">AstropyPendingDeprecationWarning</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">category</span> <span class="o">=</span> <span class="n">warning_type</span>
+
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># If this is an extension function, we can&#39;t call</span>
+        <span class="c1"># functools.wraps on it, but we normally don&#39;t care.</span>
+        <span class="c1"># This crazy way to get the type of a wrapper descriptor is</span>
+        <span class="c1"># straight out of the Python 3.3 inspect module docs.</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;__add__&quot;</span><span class="p">]):</span>  <span class="c1"># noqa: E721</span>
+            <span class="n">deprecated_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)(</span><span class="n">deprecated_func</span><span class="p">)</span>
+
+        <span class="n">deprecated_func</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">deprecate_doc</span><span class="p">(</span><span class="n">deprecated_func</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">func_wrapper</span><span class="p">(</span><span class="n">deprecated_func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">deprecate_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">warning_type</span><span class="o">=</span><span class="n">warning_type</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the docstring and wrap the ``__init__`` in-place (or ``__new__``</span>
+<span class="sd">        if the class or any of the bases overrides ``__new__``) so it will give</span>
+<span class="sd">        a deprecation warning when an instance is created.</span>
+
+<span class="sd">        This won&#39;t work for extension classes because these can&#39;t be modified</span>
+<span class="sd">        in-place and the alternatives don&#39;t work in the general case:</span>
+
+<span class="sd">        - Using a new class that looks and behaves like the original doesn&#39;t</span>
+<span class="sd">          work because the __new__ method of extension types usually makes sure</span>
+<span class="sd">          that it&#39;s the same class or a subclass.</span>
+<span class="sd">        - Subclassing the class and return the subclass can lead to problems</span>
+<span class="sd">          with pickle and will look weird in the Sphinx docs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">deprecate_doc</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span> <span class="ow">is</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">deprecate_function</span><span class="p">(</span>
+                <span class="n">get_function</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">),</span> <span class="n">message</span><span class="p">,</span> <span class="n">warning_type</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span> <span class="o">=</span> <span class="n">deprecate_function</span><span class="p">(</span>
+                <span class="n">get_function</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">),</span> <span class="n">message</span><span class="p">,</span> <span class="n">warning_type</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="k">def</span> <span class="nf">deprecate</span><span class="p">(</span>
+        <span class="n">obj</span><span class="p">,</span>
+        <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+        <span class="n">pending</span><span class="o">=</span><span class="n">pending</span><span class="p">,</span>
+        <span class="n">warning_type</span><span class="o">=</span><span class="n">warning_type</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+                <span class="n">obj_type_name</span> <span class="o">=</span> <span class="s2">&quot;class&quot;</span>
+            <span class="k">elif</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                <span class="n">obj_type_name</span> <span class="o">=</span> <span class="s2">&quot;function&quot;</span>
+            <span class="k">elif</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">method_types</span><span class="p">):</span>
+                <span class="n">obj_type_name</span> <span class="o">=</span> <span class="s2">&quot;method&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">obj_type_name</span> <span class="o">=</span> <span class="s2">&quot;object&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obj_type_name</span> <span class="o">=</span> <span class="n">obj_type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">get_function</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+
+        <span class="n">altmessage</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">message</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">deprecate</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">pending</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;The </span><span class="si">{func}</span><span class="s2"> </span><span class="si">{obj_type}</span><span class="s2"> will be deprecated in a future version.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;The </span><span class="si">{func}</span><span class="s2"> </span><span class="si">{obj_type}</span><span class="s2"> is deprecated and may &quot;</span>
+                    <span class="s2">&quot;be removed in a future version.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">alternative</span><span class="p">:</span>
+                <span class="n">altmessage</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">        Use </span><span class="si">{</span><span class="n">alternative</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+
+        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="o">**</span><span class="p">{</span>
+                    <span class="s2">&quot;func&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;alternative&quot;</span><span class="p">:</span> <span class="n">alternative</span><span class="p">,</span>
+                    <span class="s2">&quot;obj_type&quot;</span><span class="p">:</span> <span class="n">obj_type_name</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="n">altmessage</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">deprecate_class</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">warning_type</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">deprecate_function</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">warning_type</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">deprecate</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">deprecate</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">deprecate</span>
+
+
+<span class="k">def</span> <span class="nf">deprecated_attribute</span><span class="p">(</span>
+    <span class="n">name</span><span class="p">,</span>
+    <span class="n">since</span><span class="p">,</span>
+    <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">pending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">warning_type</span><span class="o">=</span><span class="n">AstropyDeprecationWarning</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Used to mark a public attribute as deprecated.  This creates a</span>
+<span class="sd">    property that will warn when the given attribute name is accessed.</span>
+<span class="sd">    To prevent the warning (i.e. for internal code), use the private</span>
+<span class="sd">    name for the attribute by prepending an underscore</span>
+<span class="sd">    (i.e. ``self._name``), or set an alternative explicitly.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the deprecated attribute.</span>
+
+<span class="sd">    since : str</span>
+<span class="sd">        The release at which this API became deprecated.  This is</span>
+<span class="sd">        required.</span>
+
+<span class="sd">    message : str, optional</span>
+<span class="sd">        Override the default deprecation message.  The format</span>
+<span class="sd">        specifier ``name`` may be used for the name of the attribute,</span>
+<span class="sd">        and ``alternative`` may be used in the deprecation message</span>
+<span class="sd">        to insert the name of an alternative to the deprecated</span>
+<span class="sd">        function.</span>
+
+<span class="sd">    alternative : str, optional</span>
+<span class="sd">        An alternative attribute that the user may use in place of the</span>
+<span class="sd">        deprecated attribute.  The deprecation warning will tell the</span>
+<span class="sd">        user about this alternative if provided.</span>
+
+<span class="sd">    pending : bool, optional</span>
+<span class="sd">        If True, uses a AstropyPendingDeprecationWarning instead of</span>
+<span class="sd">        ``warning_type``.</span>
+
+<span class="sd">    warning_type : Warning</span>
+<span class="sd">        Warning to be issued.</span>
+<span class="sd">        Default is `~astropy.utils.exceptions.AstropyDeprecationWarning`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        class MyClass:</span>
+<span class="sd">            # Mark the old_name as deprecated</span>
+<span class="sd">            old_name = deprecated_attribute(&quot;old_name&quot;, &quot;0.1&quot;)</span>
+
+<span class="sd">            def method(self):</span>
+<span class="sd">                self._old_name = 42</span>
+
+<span class="sd">        class MyClass2:</span>
+<span class="sd">            old_name = deprecated_attribute(</span>
+<span class="sd">                &quot;old_name&quot;, &quot;1.2&quot;, alternative=&quot;new_name&quot;</span>
+<span class="sd">            )</span>
+
+<span class="sd">            def method(self):</span>
+<span class="sd">                self.new_name = 24</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">private_name</span> <span class="o">=</span> <span class="n">alternative</span> <span class="ow">or</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">name</span>
+
+    <span class="n">specific_deprecated</span> <span class="o">=</span> <span class="n">deprecated</span><span class="p">(</span>
+        <span class="n">since</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">obj_type</span><span class="o">=</span><span class="s2">&quot;attribute&quot;</span><span class="p">,</span>
+        <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+        <span class="n">pending</span><span class="o">=</span><span class="n">pending</span><span class="p">,</span>
+        <span class="n">warning_type</span><span class="o">=</span><span class="n">warning_type</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="nd">@specific_deprecated</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">private_name</span><span class="p">)</span>
+
+    <span class="nd">@specific_deprecated</span>
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">private_name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="nd">@specific_deprecated</span>
+    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">private_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">property</span><span class="p">(</span><span class="n">get</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="n">delete</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">deprecated_renamed_argument</span><span class="p">(</span>
+    <span class="n">old_name</span><span class="p">,</span>
+    <span class="n">new_name</span><span class="p">,</span>
+    <span class="n">since</span><span class="p">,</span>
+    <span class="n">arg_in_kwargs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">relax</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">pending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">warning_type</span><span class="o">=</span><span class="n">AstropyDeprecationWarning</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deprecate a _renamed_ or _removed_ function argument.</span>
+
+<span class="sd">    The decorator assumes that the argument with the ``old_name`` was removed</span>
+<span class="sd">    from the function signature and the ``new_name`` replaced it at the</span>
+<span class="sd">    **same position** in the signature.  If the ``old_name`` argument is</span>
+<span class="sd">    given when calling the decorated function the decorator will catch it and</span>
+<span class="sd">    issue a deprecation warning and pass it on as ``new_name`` argument.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    old_name : str or sequence of str</span>
+<span class="sd">        The old name of the argument.</span>
+
+<span class="sd">    new_name : str or sequence of str or None</span>
+<span class="sd">        The new name of the argument. Set this to `None` to remove the</span>
+<span class="sd">        argument ``old_name`` instead of renaming it.</span>
+
+<span class="sd">    since : str or number or sequence of str or number</span>
+<span class="sd">        The release at which the old argument became deprecated.</span>
+
+<span class="sd">    arg_in_kwargs : bool or sequence of bool, optional</span>
+<span class="sd">        If the argument is not a named argument (for example it</span>
+<span class="sd">        was meant to be consumed by ``**kwargs``) set this to</span>
+<span class="sd">        ``True``.  Otherwise the decorator will throw an Exception</span>
+<span class="sd">        if the ``new_name`` cannot be found in the signature of</span>
+<span class="sd">        the decorated function.</span>
+<span class="sd">        Default is ``False``.</span>
+
+<span class="sd">    relax : bool or sequence of bool, optional</span>
+<span class="sd">        If ``False`` a ``TypeError`` is raised if both ``new_name`` and</span>
+<span class="sd">        ``old_name`` are given.  If ``True`` the value for ``new_name`` is used</span>
+<span class="sd">        and a Warning is issued.</span>
+<span class="sd">        Default is ``False``.</span>
+
+<span class="sd">    pending : bool or sequence of bool, optional</span>
+<span class="sd">        If ``True`` this will hide the deprecation warning and ignore the</span>
+<span class="sd">        corresponding ``relax`` parameter value.</span>
+<span class="sd">        Default is ``False``.</span>
+
+<span class="sd">    warning_type : Warning</span>
+<span class="sd">        Warning to be issued.</span>
+<span class="sd">        Default is `~astropy.utils.exceptions.AstropyDeprecationWarning`.</span>
+
+<span class="sd">    alternative : str, optional</span>
+<span class="sd">        An alternative function or class name that the user may use in</span>
+<span class="sd">        place of the deprecated object if ``new_name`` is None. The deprecation</span>
+<span class="sd">        warning will tell the user about this alternative if provided.</span>
+
+<span class="sd">    message : str, optional</span>
+<span class="sd">        A custom warning message. If provided then ``since`` and</span>
+<span class="sd">        ``alternative`` options will have no effect.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If the new argument name cannot be found in the function</span>
+<span class="sd">        signature and arg_in_kwargs was False or if it is used to</span>
+<span class="sd">        deprecate the name of the ``*args``-, ``**kwargs``-like arguments.</span>
+<span class="sd">        At runtime such an Error is raised if both the new_name</span>
+<span class="sd">        and old_name were specified when calling the function and</span>
+<span class="sd">        &quot;relax=False&quot;.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The decorator should be applied to a function where the **name**</span>
+<span class="sd">    of an argument was changed but it applies the same logic.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        If ``old_name`` is a list or tuple the ``new_name`` and ``since`` must</span>
+<span class="sd">        also be a list or tuple with the same number of entries. ``relax`` and</span>
+<span class="sd">        ``arg_in_kwarg`` can be a single bool (applied to all) or also a</span>
+<span class="sd">        list/tuple with the same number of entries like ``new_name``, etc.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The deprecation warnings are not shown in the following examples.</span>
+
+<span class="sd">    To deprecate a positional or keyword argument::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.utils.decorators import deprecated_renamed_argument</span>
+<span class="sd">        &gt;&gt;&gt; @deprecated_renamed_argument(&#39;sig&#39;, &#39;sigma&#39;, &#39;1.0&#39;)</span>
+<span class="sd">        ... def test(sigma):</span>
+<span class="sd">        ...     return sigma</span>
+
+<span class="sd">        &gt;&gt;&gt; test(2)</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; test(sigma=2)</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; test(sig=2)  # doctest: +SKIP</span>
+<span class="sd">        2</span>
+
+<span class="sd">    To deprecate an argument caught inside the ``**kwargs`` the</span>
+<span class="sd">    ``arg_in_kwargs`` has to be set::</span>
+
+<span class="sd">        &gt;&gt;&gt; @deprecated_renamed_argument(&#39;sig&#39;, &#39;sigma&#39;, &#39;1.0&#39;,</span>
+<span class="sd">        ...                             arg_in_kwargs=True)</span>
+<span class="sd">        ... def test(**kwargs):</span>
+<span class="sd">        ...     return kwargs[&#39;sigma&#39;]</span>
+
+<span class="sd">        &gt;&gt;&gt; test(sigma=2)</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; test(sig=2)  # doctest: +SKIP</span>
+<span class="sd">        2</span>
+
+<span class="sd">    By default providing the new and old keyword will lead to an Exception. If</span>
+<span class="sd">    a Warning is desired set the ``relax`` argument::</span>
+
+<span class="sd">        &gt;&gt;&gt; @deprecated_renamed_argument(&#39;sig&#39;, &#39;sigma&#39;, &#39;1.0&#39;, relax=True)</span>
+<span class="sd">        ... def test(sigma):</span>
+<span class="sd">        ...     return sigma</span>
+
+<span class="sd">        &gt;&gt;&gt; test(sig=2)  # doctest: +SKIP</span>
+<span class="sd">        2</span>
+
+<span class="sd">    It is also possible to replace multiple arguments. The ``old_name``,</span>
+<span class="sd">    ``new_name`` and ``since`` have to be `tuple` or `list` and contain the</span>
+<span class="sd">    same number of entries::</span>
+
+<span class="sd">        &gt;&gt;&gt; @deprecated_renamed_argument([&#39;a&#39;, &#39;b&#39;], [&#39;alpha&#39;, &#39;beta&#39;],</span>
+<span class="sd">        ...                              [&#39;1.0&#39;, 1.2])</span>
+<span class="sd">        ... def test(alpha, beta):</span>
+<span class="sd">        ...     return alpha, beta</span>
+
+<span class="sd">        &gt;&gt;&gt; test(a=2, b=3)  # doctest: +SKIP</span>
+<span class="sd">        (2, 3)</span>
+
+<span class="sd">    In this case ``arg_in_kwargs`` and ``relax`` can be a single value (which</span>
+<span class="sd">    is applied to all renamed arguments) or must also be a `tuple` or `list`</span>
+<span class="sd">    with values for each of the arguments.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cls_iter</span> <span class="o">=</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_name</span><span class="p">,</span> <span class="n">cls_iter</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_name</span><span class="p">)</span>
+        <span class="c1"># Assume that new_name and since are correct (tuple/list with the</span>
+        <span class="c1"># appropriate length) in the spirit of the &quot;consenting adults&quot;. But the</span>
+        <span class="c1"># optional parameters may not be set, so if these are not iterables</span>
+        <span class="c1"># wrap them.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg_in_kwargs</span><span class="p">,</span> <span class="n">cls_iter</span><span class="p">):</span>
+            <span class="n">arg_in_kwargs</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg_in_kwargs</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relax</span><span class="p">,</span> <span class="n">cls_iter</span><span class="p">):</span>
+            <span class="n">relax</span> <span class="o">=</span> <span class="p">[</span><span class="n">relax</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pending</span><span class="p">,</span> <span class="n">cls_iter</span><span class="p">):</span>
+            <span class="n">pending</span> <span class="o">=</span> <span class="p">[</span><span class="n">pending</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">cls_iter</span><span class="p">):</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="p">[</span><span class="n">message</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># To allow a uniform approach later on, wrap all arguments in lists.</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">old_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">old_name</span><span class="p">]</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">new_name</span><span class="p">]</span>
+        <span class="n">since</span> <span class="o">=</span> <span class="p">[</span><span class="n">since</span><span class="p">]</span>
+        <span class="n">arg_in_kwargs</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg_in_kwargs</span><span class="p">]</span>
+        <span class="n">relax</span> <span class="o">=</span> <span class="p">[</span><span class="n">relax</span><span class="p">]</span>
+        <span class="n">pending</span> <span class="o">=</span> <span class="p">[</span><span class="n">pending</span><span class="p">]</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">[</span><span class="n">message</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">function</span><span class="p">):</span>
+        <span class="c1"># The named arguments of the function.</span>
+        <span class="n">arguments</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">arguments</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">position</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="c1"># Determine the position of the argument.</span>
+            <span class="k">if</span> <span class="n">arg_in_kwargs</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">param</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">[</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                <span class="k">elif</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">arguments</span><span class="p">:</span>
+                    <span class="n">param</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">[</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                <span class="c1"># In case the argument is not found in the list of arguments</span>
+                <span class="c1"># the only remaining possibility is that it should be caught</span>
+                <span class="c1"># by some kind of **kwargs argument.</span>
+                <span class="c1"># This case has to be explicitly specified, otherwise throw</span>
+                <span class="c1"># an exception!</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; was not specified in the function &#39;</span>
+                        <span class="s2">&quot;signature. If it was meant to be part of &quot;</span>
+                        <span class="s1">&#39;&quot;**kwargs&quot; then set &quot;arg_in_kwargs&quot; to &quot;True&quot;&#39;</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># There are several possibilities now:</span>
+
+                <span class="c1"># 1.) Positional or keyword argument:</span>
+                <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+                <span class="c1"># 2.) Keyword only argument:</span>
+                <span class="k">elif</span> <span class="n">param</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">:</span>
+                    <span class="c1"># These cannot be specified by position.</span>
+                    <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="c1"># 3.) positional-only argument, varargs, varkwargs or some</span>
+                <span class="c1">#     unknown type:</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;cannot replace argument &quot;</span><span class="si">{</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+                        <span class="sa">f</span><span class="s2">&quot;of kind </span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">kind</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; was deprecated in &#39;</span>
+                    <span class="sa">f</span><span class="s2">&quot;version </span><span class="si">{</span><span class="n">since</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> and will be removed &quot;</span>
+                    <span class="s2">&quot;in a future version. &quot;</span>
+                <span class="p">)</span>
+                <span class="c1"># The only way to have oldkeyword inside the function is</span>
+                <span class="c1"># that it is passed as kwarg because the oldkeyword</span>
+                <span class="c1"># parameter was renamed to newkeyword.</span>
+                <span class="k">if</span> <span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="c1"># Display the deprecation warning only when it&#39;s not</span>
+                    <span class="c1"># pending.</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">pending</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">message</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                            <span class="k">if</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;Use argument &quot;</span><span class="si">{</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; instead.&#39;</span>
+                            <span class="k">elif</span> <span class="n">alternative</span><span class="p">:</span>
+                                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">        Use </span><span class="si">{</span><span class="n">alternative</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+                        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">warning_type</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+                    <span class="c1"># Check if the newkeyword was given as well.</span>
+                    <span class="n">newarg_in_args</span> <span class="o">=</span> <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">newarg_in_kwargs</span> <span class="o">=</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">kwargs</span>
+
+                    <span class="k">if</span> <span class="n">newarg_in_args</span> <span class="ow">or</span> <span class="n">newarg_in_kwargs</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">pending</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                            <span class="c1"># If both are given print a Warning if relax is</span>
+                            <span class="c1"># True or raise an Exception is relax is False.</span>
+                            <span class="k">if</span> <span class="n">relax</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                                    <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; and &quot;</span><span class="si">{</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+                                    <span class="s2">&quot;keywords were set. &quot;</span>
+                                    <span class="sa">f</span><span class="s1">&#39;Using the value of &quot;</span><span class="si">{</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;.&#39;</span><span class="p">,</span>
+                                    <span class="n">AstropyUserWarning</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                                    <span class="sa">f</span><span class="s1">&#39;cannot specify both &quot;</span><span class="si">{</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; and &#39;</span>
+                                    <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;.&#39;</span>
+                                <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Pass the value of the old argument with the</span>
+                        <span class="c1"># name of the new argument to the function</span>
+                        <span class="k">if</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">value</span>
+                        <span class="c1"># If old argument has no replacement, cast it back.</span>
+                        <span class="c1"># https://github.com/astropy/astropy/issues/9914</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="n">old_name</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">value</span>
+
+                <span class="c1"># Deprecated keyword without replacement is given as</span>
+                <span class="c1"># positional argument.</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="n">pending</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="ow">and</span> <span class="ow">not</span> <span class="n">new_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="ow">and</span> <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="p">):</span>
+                    <span class="k">if</span> <span class="n">alternative</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">message</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">        Use </span><span class="si">{</span><span class="n">alternative</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">warning_type</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">return</span> <span class="n">decorator</span>
+
+
+<span class="c1"># TODO: This can still be made to work for setters by implementing an</span>
+<span class="c1"># accompanying metaclass that supports it; we just don&#39;t need that right this</span>
+<span class="c1"># second</span>
+<span class="k">class</span> <span class="nc">classproperty</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Similar to `property`, but allows class-level properties.  That is,</span>
+<span class="sd">    a property whose getter is like a `classmethod`.</span>
+
+<span class="sd">    The wrapped method may explicitly use the `classmethod` decorator (which</span>
+<span class="sd">    must become before this decorator), or the `classmethod` may be omitted</span>
+<span class="sd">    (it is implicit through use of this decorator).</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        classproperty only works for *read-only* properties.  It does not</span>
+<span class="sd">        currently allow writeable/deletable properties, due to subtleties of how</span>
+<span class="sd">        Python descriptors work.  In order to implement such properties on a class</span>
+<span class="sd">        a metaclass for that class must be implemented.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fget : callable</span>
+<span class="sd">        The function that computes the value of this property (in particular,</span>
+<span class="sd">        the function when this is used as a decorator) a la `property`.</span>
+
+<span class="sd">    doc : str, optional</span>
+<span class="sd">        The docstring for the property--by default inherited from the getter</span>
+<span class="sd">        function.</span>
+
+<span class="sd">    lazy : bool, optional</span>
+<span class="sd">        If True, caches the value returned by the first call to the getter</span>
+<span class="sd">        function, so that it is only called once (used for lazy evaluation</span>
+<span class="sd">        of an attribute).  This is analogous to `lazyproperty`.  The ``lazy``</span>
+<span class="sd">        argument can also be used when `classproperty` is used as a decorator</span>
+<span class="sd">        (see the third example below).  When used in the decorator syntax this</span>
+<span class="sd">        *must* be passed in as a keyword argument.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        &gt;&gt;&gt; class Foo:</span>
+<span class="sd">        ...     _bar_internal = 1</span>
+<span class="sd">        ...     @classproperty</span>
+<span class="sd">        ...     def bar(cls):</span>
+<span class="sd">        ...         return cls._bar_internal + 1</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; Foo.bar</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; foo_instance = Foo()</span>
+<span class="sd">        &gt;&gt;&gt; foo_instance.bar</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; foo_instance._bar_internal = 2</span>
+<span class="sd">        &gt;&gt;&gt; foo_instance.bar  # Ignores instance attributes</span>
+<span class="sd">        2</span>
+
+<span class="sd">    As previously noted, a `classproperty` is limited to implementing</span>
+<span class="sd">    read-only attributes::</span>
+
+<span class="sd">        &gt;&gt;&gt; class Foo:</span>
+<span class="sd">        ...     _bar_internal = 1</span>
+<span class="sd">        ...     @classproperty</span>
+<span class="sd">        ...     def bar(cls):</span>
+<span class="sd">        ...         return cls._bar_internal</span>
+<span class="sd">        ...     @bar.setter</span>
+<span class="sd">        ...     def bar(cls, value):</span>
+<span class="sd">        ...         cls._bar_internal = value</span>
+<span class="sd">        ...</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">        NotImplementedError: classproperty can only be read-only; use a</span>
+<span class="sd">        metaclass to implement modifiable class-level properties</span>
+
+<span class="sd">    When the ``lazy`` option is used, the getter is only called once::</span>
+
+<span class="sd">        &gt;&gt;&gt; class Foo:</span>
+<span class="sd">        ...     @classproperty(lazy=True)</span>
+<span class="sd">        ...     def bar(cls):</span>
+<span class="sd">        ...         print(&quot;Performing complicated calculation&quot;)</span>
+<span class="sd">        ...         return 1</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; Foo.bar</span>
+<span class="sd">        Performing complicated calculation</span>
+<span class="sd">        1</span>
+<span class="sd">        &gt;&gt;&gt; Foo.bar</span>
+<span class="sd">        1</span>
+
+<span class="sd">    If a subclass inherits a lazy `classproperty` the property is still</span>
+<span class="sd">    re-evaluated for the subclass::</span>
+
+<span class="sd">        &gt;&gt;&gt; class FooSub(Foo):</span>
+<span class="sd">        ...     pass</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; FooSub.bar</span>
+<span class="sd">        Performing complicated calculation</span>
+<span class="sd">        1</span>
+<span class="sd">        &gt;&gt;&gt; FooSub.bar</span>
+<span class="sd">        1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fget</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fget</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Being used as a decorator--return a wrapper that implements</span>
+            <span class="c1"># decorator syntax</span>
+            <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="n">lazy</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">wrapper</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span> <span class="o">=</span> <span class="n">lazy</span>
+        <span class="k">if</span> <span class="n">lazy</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>  <span class="c1"># Protects _cache</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">fget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_fget</span><span class="p">(</span><span class="n">fget</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fget</span><span class="o">=</span><span class="n">fget</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">)</span>
+
+        <span class="c1"># There is a buglet in Python where self.__doc__ doesn&#39;t</span>
+        <span class="c1"># get set properly on instances of property subclasses if</span>
+        <span class="c1"># the doc argument was used rather than taking the docstring</span>
+        <span class="c1"># from fget</span>
+        <span class="c1"># Related Python issue: https://bugs.python.org/issue24766</span>
+        <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">objtype</span><span class="p">,</span> <span class="n">_NotFound</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="n">_NotFound</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                    <span class="c1"># Check if another thread initialised before we locked.</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">objtype</span><span class="p">,</span> <span class="n">_NotFound</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="n">_NotFound</span><span class="p">:</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fget</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">(</span><span class="n">objtype</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">objtype</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The base property.__get__ will just return self here;</span>
+            <span class="c1"># instead we pass objtype through to the original wrapped</span>
+            <span class="c1"># function (which takes the class as its sole argument)</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fget</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">(</span><span class="n">objtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wrap_fget</span><span class="p">(</span><span class="n">fget</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fset</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;classproperty can only be read-only; use a metaclass to &quot;</span>
+            <span class="s2">&quot;implement modifiable class-level properties&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">deleter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fdel</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;classproperty can only be read-only; use a metaclass to &quot;</span>
+            <span class="s2">&quot;implement modifiable class-level properties&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_wrap_fget</span><span class="p">(</span><span class="n">orig_fget</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">orig_fget</span><span class="p">,</span> <span class="nb">classmethod</span><span class="p">):</span>
+            <span class="n">orig_fget</span> <span class="o">=</span> <span class="n">orig_fget</span><span class="o">.</span><span class="vm">__func__</span>
+
+        <span class="c1"># Using stock functools.wraps instead of the fancier version</span>
+        <span class="c1"># found later in this module, which is overkill for this purpose</span>
+
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">orig_fget</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">fget</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">orig_fget</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fget</span>
+
+
+<span class="c1"># Adapted from the recipe at</span>
+<span class="c1"># http://code.activestate.com/recipes/363602-lazy-property-evaluation</span>
+<span class="k">class</span> <span class="nc">lazyproperty</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Works similarly to property(), but computes the value only once.</span>
+
+<span class="sd">    This essentially memorizes the value of the property by storing the result</span>
+<span class="sd">    of its computation in the ``__dict__`` of the object instance.  This is</span>
+<span class="sd">    useful for computing the value of some property that should otherwise be</span>
+<span class="sd">    invariant.  For example::</span>
+
+<span class="sd">        &gt;&gt;&gt; class LazyTest:</span>
+<span class="sd">        ...     @lazyproperty</span>
+<span class="sd">        ...     def complicated_property(self):</span>
+<span class="sd">        ...         print(&#39;Computing the value for complicated_property...&#39;)</span>
+<span class="sd">        ...         return 42</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; lt = LazyTest()</span>
+<span class="sd">        &gt;&gt;&gt; lt.complicated_property</span>
+<span class="sd">        Computing the value for complicated_property...</span>
+<span class="sd">        42</span>
+<span class="sd">        &gt;&gt;&gt; lt.complicated_property</span>
+<span class="sd">        42</span>
+
+<span class="sd">    As the example shows, the second time ``complicated_property`` is accessed,</span>
+<span class="sd">    the ``print`` statement is not executed.  Only the return value from the</span>
+<span class="sd">    first access off ``complicated_property`` is returned.</span>
+
+<span class="sd">    By default, a setter and deleter are used which simply overwrite and</span>
+<span class="sd">    delete, respectively, the value stored in ``__dict__``. Any user-specified</span>
+<span class="sd">    setter or deleter is executed before executing these default actions.</span>
+<span class="sd">    The one exception is that the default setter is not run if the user setter</span>
+<span class="sd">    already sets the new value in ``__dict__`` and returns that value and the</span>
+<span class="sd">    returned value is not ``None``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fget</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">obj_dict</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">obj_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="n">_NotFound</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="n">_NotFound</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                    <span class="c1"># Check if another thread beat us to it.</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">obj_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="n">_NotFound</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="n">_NotFound</span><span class="p">:</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fget</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                        <span class="n">obj_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="k">return</span> <span class="n">val</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span>
+            <span class="k">raise</span>
+
+    <span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="n">obj_dict</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fset</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">obj_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">)</span> <span class="ow">is</span> <span class="n">ret</span><span class="p">:</span>
+                <span class="c1"># By returning the value set the setter signals that it</span>
+                <span class="c1"># took over setting the value in obj.__dict__; this</span>
+                <span class="c1"># mechanism allows it to override the input value</span>
+                <span class="k">return</span>
+        <span class="n">obj_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="fm">__delete__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fdel</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fdel</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># Delete if present</span>
+
+
+<span class="k">class</span> <span class="nc">sharedmethod</span><span class="p">(</span><span class="nb">classmethod</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a method decorator that allows both an instancemethod and a</span>
+<span class="sd">    `classmethod` to share the same name.</span>
+
+<span class="sd">    When using `sharedmethod` on a method defined in a class&#39;s body, it</span>
+<span class="sd">    may be called on an instance, or on a class.  In the former case it</span>
+<span class="sd">    behaves like a normal instance method (a reference to the instance is</span>
+<span class="sd">    automatically passed as the first ``self`` argument of the method)::</span>
+
+<span class="sd">        &gt;&gt;&gt; class Example:</span>
+<span class="sd">        ...     @sharedmethod</span>
+<span class="sd">        ...     def identify(self, *args):</span>
+<span class="sd">        ...         print(&#39;self was&#39;, self)</span>
+<span class="sd">        ...         print(&#39;additional args were&#39;, args)</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; ex = Example()</span>
+<span class="sd">        &gt;&gt;&gt; ex.identify(1, 2)</span>
+<span class="sd">        self was &lt;astropy.utils.decorators.Example object at 0x...&gt;</span>
+<span class="sd">        additional args were (1, 2)</span>
+
+<span class="sd">    In the latter case, when the `sharedmethod` is called directly from a</span>
+<span class="sd">    class, it behaves like a `classmethod`::</span>
+
+<span class="sd">        &gt;&gt;&gt; Example.identify(3, 4)</span>
+<span class="sd">        self was &lt;class &#39;astropy.utils.decorators.Example&#39;&gt;</span>
+<span class="sd">        additional args were (3, 4)</span>
+
+<span class="sd">    This also supports a more advanced usage, where the `classmethod`</span>
+<span class="sd">    implementation can be written separately.  If the class&#39;s *metaclass*</span>
+<span class="sd">    has a method of the same name as the `sharedmethod`, the version on</span>
+<span class="sd">    the metaclass is delegated to::</span>
+
+<span class="sd">        &gt;&gt;&gt; class ExampleMeta(type):</span>
+<span class="sd">        ...     def identify(self):</span>
+<span class="sd">        ...         print(&#39;this implements the {0}.identify &#39;</span>
+<span class="sd">        ...               &#39;classmethod&#39;.format(self.__name__))</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; class Example(metaclass=ExampleMeta):</span>
+<span class="sd">        ...     @sharedmethod</span>
+<span class="sd">        ...     def identify(self):</span>
+<span class="sd">        ...         print(&#39;this implements the instancemethod&#39;)</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; Example().identify()</span>
+<span class="sd">        this implements the instancemethod</span>
+<span class="sd">        &gt;&gt;&gt; Example.identify()</span>
+<span class="sd">        this implements the Example.identify classmethod</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mcls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">objtype</span><span class="p">)</span>
+            <span class="n">clsmeth</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__func__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">clsmeth</span><span class="p">):</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="n">clsmeth</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__func__</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_method</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">objtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_method</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__func__</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_make_method</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">types</span><span class="o">.</span><span class="n">MethodType</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">instance</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">format_doc</span><span class="p">(</span><span class="n">docstring</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Replaces the docstring of the decorated object and then formats it.</span>
+
+<span class="sd">    The formatting works like :meth:`str.format` and if the decorated object</span>
+<span class="sd">    already has a docstring this docstring can be included in the new</span>
+<span class="sd">    documentation if you use the ``{__doc__}`` placeholder.</span>
+<span class="sd">    Its primary use is for reusing a *long* docstring in multiple functions</span>
+<span class="sd">    when it is the same or only slightly different between them.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    docstring : str or object or None</span>
+<span class="sd">        The docstring that will replace the docstring of the decorated</span>
+<span class="sd">        object. If it is an object like a function or class it will</span>
+<span class="sd">        take the docstring of this object. If it is a string it will use the</span>
+<span class="sd">        string itself. One special case is if the string is ``None`` then</span>
+<span class="sd">        it will use the decorated functions docstring and formats it.</span>
+
+<span class="sd">    args :</span>
+<span class="sd">        passed to :meth:`str.format`.</span>
+
+<span class="sd">    kwargs :</span>
+<span class="sd">        passed to :meth:`str.format`. If the function has a (not empty)</span>
+<span class="sd">        docstring the original docstring is added to the kwargs with the</span>
+<span class="sd">        keyword ``&#39;__doc__&#39;``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the ``docstring`` (or interpreted docstring if it was ``None``</span>
+<span class="sd">        or not a string) is empty.</span>
+
+<span class="sd">    IndexError, KeyError</span>
+<span class="sd">        If a placeholder in the (interpreted) ``docstring`` was not filled. see</span>
+<span class="sd">        :meth:`str.format` for more information.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Using this decorator allows, for example Sphinx, to parse the</span>
+<span class="sd">    correct docstring.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Replacing the current docstring is very easy::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.utils.decorators import format_doc</span>
+<span class="sd">        &gt;&gt;&gt; @format_doc(&#39;&#39;&#39;Perform num1 + num2&#39;&#39;&#39;)</span>
+<span class="sd">        ... def add(num1, num2):</span>
+<span class="sd">        ...     return num1+num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; help(add) # doctest: +SKIP</span>
+<span class="sd">        Help on function add in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        add(num1, num2)</span>
+<span class="sd">            Perform num1 + num2</span>
+
+<span class="sd">    sometimes instead of replacing you only want to add to it::</span>
+
+<span class="sd">        &gt;&gt;&gt; doc = &#39;&#39;&#39;</span>
+<span class="sd">        ...       {__doc__}</span>
+<span class="sd">        ...       Parameters</span>
+<span class="sd">        ...       ----------</span>
+<span class="sd">        ...       num1, num2 : Numbers</span>
+<span class="sd">        ...       Returns</span>
+<span class="sd">        ...       -------</span>
+<span class="sd">        ...       result: Number</span>
+<span class="sd">        ...       &#39;&#39;&#39;</span>
+<span class="sd">        &gt;&gt;&gt; @format_doc(doc)</span>
+<span class="sd">        ... def add(num1, num2):</span>
+<span class="sd">        ...     &#39;&#39;&#39;Perform addition.&#39;&#39;&#39;</span>
+<span class="sd">        ...     return num1+num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; help(add) # doctest: +SKIP</span>
+<span class="sd">        Help on function add in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        add(num1, num2)</span>
+<span class="sd">            Perform addition.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            num1, num2 : Numbers</span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            result : Number</span>
+
+<span class="sd">    in case one might want to format it further::</span>
+
+<span class="sd">        &gt;&gt;&gt; doc = &#39;&#39;&#39;</span>
+<span class="sd">        ...       Perform {0}.</span>
+<span class="sd">        ...       Parameters</span>
+<span class="sd">        ...       ----------</span>
+<span class="sd">        ...       num1, num2 : Numbers</span>
+<span class="sd">        ...       Returns</span>
+<span class="sd">        ...       -------</span>
+<span class="sd">        ...       result: Number</span>
+<span class="sd">        ...           result of num1 {op} num2</span>
+<span class="sd">        ...       {__doc__}</span>
+<span class="sd">        ...       &#39;&#39;&#39;</span>
+<span class="sd">        &gt;&gt;&gt; @format_doc(doc, &#39;addition&#39;, op=&#39;+&#39;)</span>
+<span class="sd">        ... def add(num1, num2):</span>
+<span class="sd">        ...     return num1+num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; @format_doc(doc, &#39;subtraction&#39;, op=&#39;-&#39;)</span>
+<span class="sd">        ... def subtract(num1, num2):</span>
+<span class="sd">        ...     &#39;&#39;&#39;Notes: This one has additional notes.&#39;&#39;&#39;</span>
+<span class="sd">        ...     return num1-num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; help(add) # doctest: +SKIP</span>
+<span class="sd">        Help on function add in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        add(num1, num2)</span>
+<span class="sd">            Perform addition.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            num1, num2 : Numbers</span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            result : Number</span>
+<span class="sd">                result of num1 + num2</span>
+<span class="sd">        &gt;&gt;&gt; help(subtract) # doctest: +SKIP</span>
+<span class="sd">        Help on function subtract in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        subtract(num1, num2)</span>
+<span class="sd">            Perform subtraction.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            num1, num2 : Numbers</span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            result : Number</span>
+<span class="sd">                result of num1 - num2</span>
+<span class="sd">            Notes : This one has additional notes.</span>
+
+<span class="sd">    These methods can be combined; even taking the docstring from another</span>
+<span class="sd">    object is possible as docstring attribute. You just have to specify the</span>
+<span class="sd">    object::</span>
+
+<span class="sd">        &gt;&gt;&gt; @format_doc(add)</span>
+<span class="sd">        ... def another_add(num1, num2):</span>
+<span class="sd">        ...     return num1 + num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; help(another_add) # doctest: +SKIP</span>
+<span class="sd">        Help on function another_add in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        another_add(num1, num2)</span>
+<span class="sd">            Perform addition.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            num1, num2 : Numbers</span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            result : Number</span>
+<span class="sd">                result of num1 + num2</span>
+
+<span class="sd">    But be aware that this decorator *only* formats the given docstring not</span>
+<span class="sd">    the strings passed as ``args`` or ``kwargs`` (not even the original</span>
+<span class="sd">    docstring)::</span>
+
+<span class="sd">        &gt;&gt;&gt; @format_doc(doc, &#39;addition&#39;, op=&#39;+&#39;)</span>
+<span class="sd">        ... def yet_another_add(num1, num2):</span>
+<span class="sd">        ...    &#39;&#39;&#39;This one is good for {0}.&#39;&#39;&#39;</span>
+<span class="sd">        ...    return num1 + num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; help(yet_another_add) # doctest: +SKIP</span>
+<span class="sd">        Help on function yet_another_add in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        yet_another_add(num1, num2)</span>
+<span class="sd">            Perform addition.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            num1, num2 : Numbers</span>
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            result : Number</span>
+<span class="sd">                result of num1 + num2</span>
+<span class="sd">            This one is good for {0}.</span>
+
+<span class="sd">    To work around it you could specify the docstring to be ``None``::</span>
+
+<span class="sd">        &gt;&gt;&gt; @format_doc(None, &#39;addition&#39;)</span>
+<span class="sd">        ... def last_add_i_swear(num1, num2):</span>
+<span class="sd">        ...    &#39;&#39;&#39;This one is good for {0}.&#39;&#39;&#39;</span>
+<span class="sd">        ...    return num1 + num2</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; help(last_add_i_swear) # doctest: +SKIP</span>
+<span class="sd">        Help on function last_add_i_swear in module __main__:</span>
+<span class="sd">        &lt;BLANKLINE&gt;</span>
+<span class="sd">        last_add_i_swear(num1, num2)</span>
+<span class="sd">            This one is good for addition.</span>
+
+<span class="sd">    Using it with ``None`` as docstring allows to use the decorator twice</span>
+<span class="sd">    on an object to first parse the new docstring and then to parse the</span>
+<span class="sd">    original docstring or the ``args`` and ``kwargs``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">set_docstring</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">docstring</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># None means: use the objects __doc__</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__doc__</span>
+            <span class="c1"># Delete documentation in this case so we don&#39;t end up with</span>
+            <span class="c1"># awkwardly self-inserted docs.</span>
+            <span class="n">obj</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">docstring</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># String: use the string that was given</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="n">docstring</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Something else: Use the __doc__ of this</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="n">docstring</span><span class="o">.</span><span class="vm">__doc__</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">doc</span><span class="p">:</span>
+            <span class="c1"># In case the docstring is empty it&#39;s probably not what was wanted.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;docstring must be a string or containing a &quot;</span>
+                <span class="s2">&quot;docstring that is not empty.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># If the original has a not-empty docstring append it to the format</span>
+        <span class="c1"># kwargs.</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;__doc__&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">obj</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">return</span> <span class="n">set_docstring</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

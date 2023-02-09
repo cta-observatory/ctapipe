@@ -1,0 +1,23 @@
+BaseTimingParametersContainer
+=============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: BaseTimingParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~BaseTimingParametersContainer.deviation
+      ~BaseTimingParametersContainer.intercept
+      ~BaseTimingParametersContainer.meta
+      ~BaseTimingParametersContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: deviation
+   .. autoattribute:: intercept
+   .. autoattribute:: meta
+   .. autoattribute:: prefix

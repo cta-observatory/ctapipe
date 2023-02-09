@@ -1,0 +1,8 @@
+<map id="inheritance7f2f22ec32" name="inheritance7f2f22ec32">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="363,43,441,64"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="479,23,607,43"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.image.muon.ring_fitter.MuonRingFitter.html#ctapipe.image.muon.ring_fitter.MuonRingFitter" target="_top" title="Different ring fit algorithms for muon rings" alt="" coords="495,62,591,83"/>
+<area shape="rect" id="node4" title="The base class for all classes that have descriptors." alt="" coords="4,43,101,64"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.muon.intensity_fitter.MuonIntensityFitter.html#ctapipe.image.muon.intensity_fitter.MuonIntensityFitter" target="_top" title="MuonIntensityFitter" alt="" coords="645,4,764,24"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.image.muon.processor.MuonProcessor.html#ctapipe.image.muon.processor.MuonProcessor" target="_top" title="Takes cleaned images and extracts muon rings. Should be run after ImageProcessor." alt="" coords="656,43,753,64"/>
+</map>

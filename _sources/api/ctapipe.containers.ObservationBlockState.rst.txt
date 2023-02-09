@@ -1,0 +1,27 @@
+ObservationBlockState
+=====================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ObservationBlockState
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ObservationBlockState.ARCHIVED
+      ~ObservationBlockState.COMPLETED_CANCELED
+      ~ObservationBlockState.COMPLETED_SUCCEDED
+      ~ObservationBlockState.COMPLETED_TRUNCATED
+      ~ObservationBlockState.FAILED
+      ~ObservationBlockState.UNKNOWN
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: ARCHIVED
+   .. autoattribute:: COMPLETED_CANCELED
+   .. autoattribute:: COMPLETED_SUCCEDED
+   .. autoattribute:: COMPLETED_TRUNCATED
+   .. autoattribute:: FAILED
+   .. autoattribute:: UNKNOWN

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.tools.process &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.tools.process</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.tools.process</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># pylint: disable=W0201</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">tqdm.auto</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">..calib</span> <span class="kn">import</span> <span class="n">CameraCalibrator</span><span class="p">,</span> <span class="n">GainSelector</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">QualityQuery</span><span class="p">,</span> <span class="n">Tool</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">classes_with_traits</span><span class="p">,</span> <span class="n">flag</span>
+<span class="kn">from</span> <span class="nn">..image</span> <span class="kn">import</span> <span class="n">ImageCleaner</span><span class="p">,</span> <span class="n">ImageModifier</span><span class="p">,</span> <span class="n">ImageProcessor</span>
+<span class="kn">from</span> <span class="nn">..image.extractor</span> <span class="kn">import</span> <span class="n">ImageExtractor</span>
+<span class="kn">from</span> <span class="nn">..image.muon</span> <span class="kn">import</span> <span class="n">MuonProcessor</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SoftwareTrigger</span>
+<span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DataLevel</span><span class="p">,</span>
+    <span class="n">DataWriter</span><span class="p">,</span>
+    <span class="n">EventSource</span><span class="p">,</span>
+    <span class="n">SimTelEventSource</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">,</span>
+    <span class="n">write_table</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..io.datawriter</span> <span class="kn">import</span> <span class="n">DATA_MODEL_VERSION</span>
+<span class="kn">from</span> <span class="nn">..reco</span> <span class="kn">import</span> <span class="n">Reconstructor</span><span class="p">,</span> <span class="n">ShowerProcessor</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">EventTypeFilter</span>
+
+<span class="n">COMPATIBLE_DATALEVELS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">DataLevel</span><span class="o">.</span><span class="n">R1</span><span class="p">,</span>
+    <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL0</span><span class="p">,</span>
+    <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_IMAGES</span><span class="p">,</span>
+    <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_PARAMETERS</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ProcessorTool&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="ProcessorTool"><a class="viewcode-back" href="../../../api/ctapipe.tools.process.ProcessorTool.html#ctapipe.tools.process.ProcessorTool">[docs]</a><span class="k">class</span> <span class="nc">ProcessorTool</span><span class="p">(</span><span class="n">Tool</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process data from lower-data levels up to DL1 and DL2, including image</span>
+<span class="sd">    extraction and optionally image parameterization as well as muon analysis</span>
+<span class="sd">    and shower reconstruction.</span>
+
+<span class="sd">    Note that the muon analysis and shower reconstruction both depend on</span>
+<span class="sd">    parametrized images and therefore compute image parameters even if</span>
+<span class="sd">    DataWriter.write_parameters=False in case these are not already present</span>
+<span class="sd">    in the input file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ctapipe-process&quot;</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="vm">__doc__</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; This currently uses data model version </span><span class="si">{</span><span class="n">DATA_MODEL_VERSION</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+    <span class="n">examples</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    To process data with all default values:</span>
+<span class="s2">    &gt; ctapipe-process --input events.simtel.gz --output events.dl1.h5 --progress</span>
+
+<span class="s2">    Or use an external configuration file, where you can specify all options:</span>
+<span class="s2">    &gt; ctapipe-process --config stage1_config.json --progress</span>
+
+<span class="s2">    The config file should be in JSON or python format (see traitlets docs). For an</span>
+<span class="s2">    example, see ctapipe/examples/stage1_config.json in the main code repo.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">progress_bar</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;show progress bar during processing&quot;</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">force_recompute_dl1</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enforce dl1 recomputation even if already present in the input file&quot;</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">force_recompute_dl2</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enforce dl2 recomputation even if already present in the input file&quot;</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">):</span> <span class="s2">&quot;EventSource.input_url&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">):</span> <span class="s2">&quot;DataWriter.output_path&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="s2">&quot;allowed-tels&quot;</span><span class="p">):</span> <span class="s2">&quot;EventSource.allowed_tels&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;max-events&quot;</span><span class="p">):</span> <span class="s2">&quot;EventSource.max_events&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;reconstructor&quot;</span><span class="p">:</span> <span class="s2">&quot;ShowerProcessor.reconstructor_types&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;image-cleaner-type&quot;</span><span class="p">:</span> <span class="s2">&quot;ImageProcessor.image_cleaner_type&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">flags</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;overwrite&quot;</span><span class="p">:</span> <span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;DataWriter&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;overwrite&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
+            <span class="s2">&quot;Overwrite output file if it exists&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;progress&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ProcessorTool.progress_bar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;show a progress bar during event processing&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;don&#39;t show a progress bar during event processing&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;recompute-dl1&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ProcessorTool.force_recompute_dl1&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Enforce DL1 recomputation even if already present in the input file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Only compute DL1 if there are no DL1b parameters in the file&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;recompute-dl2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ProcessorTool.force_recompute_dl2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Enforce DL2 recomputation even if already present in the input file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Only compute DL2 if there is no shower reconstruction in the file&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;write-images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DataWriter.write_images&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;store DL1/Event/Telescope images in output&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;don&#39;t store DL1/Event/Telescope images in output&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;write-parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DataWriter.write_parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;store DL1/Event/Telescope parameters in output&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;don&#39;t store DL1/Event/Telescope parameters in output&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;write-showers&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DataWriter.write_showers&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;store DL2/Event parameters in output&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;don&#39;t DL2/Event parameters in output&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;write-index-tables&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DataWriter.write_index_tables&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;generate PyTables index tables for the parameter and image datasets&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">flag</span><span class="p">(</span>
+            <span class="s2">&quot;write-muon-parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DataWriter.write_muon_parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;store DL1/Event/Telescope muon parameters in output&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;don&#39;t store DL1/Event/Telescope muon parameters in output&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;camera-frame&quot;</span><span class="p">:</span> <span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;ImageProcessor&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;use_telescope_frame&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}},</span>
+            <span class="s2">&quot;Use camera frame for image parameters instead of telescope frame&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">classes</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">CameraCalibrator</span><span class="p">,</span>
+            <span class="n">DataWriter</span><span class="p">,</span>
+            <span class="n">ImageProcessor</span><span class="p">,</span>
+            <span class="n">MuonProcessor</span><span class="p">,</span>
+            <span class="n">ShowerProcessor</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">.</span><span class="n">Instrument</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">.</span><span class="n">Contact</span><span class="p">,</span>
+            <span class="n">SoftwareTrigger</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">EventSource</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">ImageCleaner</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">GainSelector</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">QualityQuery</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">ImageModifier</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">EventTypeFilter</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">classes_with_traits</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">)</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="ProcessorTool.setup"><a class="viewcode-back" href="../../../api/ctapipe.tools.process.ProcessorTool.html#ctapipe.tools.process.ProcessorTool.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># setup components:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">EventSource</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">has_any_datalevel</span><span class="p">(</span><span class="n">COMPATIBLE_DATALEVELS</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">  needs the EventSource to provide at least one of these datalevels: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;, </span><span class="si">%s</span><span class="s2"> provides only </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">COMPATIBLE_DATALEVELS</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">datalevels</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">subarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">subarray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">software_trigger</span> <span class="o">=</span> <span class="n">SoftwareTrigger</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibrate</span> <span class="o">=</span> <span class="n">CameraCalibrator</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_images</span> <span class="o">=</span> <span class="n">ImageProcessor</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_shower</span> <span class="o">=</span> <span class="n">ShowerProcessor</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
+            <span class="n">DataWriter</span><span class="p">(</span><span class="n">event_source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_muons</span> <span class="o">=</span> <span class="n">MuonProcessor</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_type_filter</span> <span class="o">=</span> <span class="n">EventTypeFilter</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># warn if max_events prevents writing the histograms</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="p">,</span> <span class="n">SimTelEventSource</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">max_events</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">max_events</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;No Simulated shower distributions will be written because &quot;</span>
+                <span class="s2">&quot;EventSource.max_events is set to a non-zero number (and therefore &quot;</span>
+                <span class="s2">&quot;shower distributions read from the input Simulation file are invalid).&quot;</span>
+            <span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">should_compute_dl2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns true if we should compute DL2 info&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_recompute_dl2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">write_showers</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">should_compute_dl1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns true if we should compute DL1 info&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_recompute_dl1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_PARAMETERS</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">datalevels</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">write_parameters</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl2</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_muon_parameters</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">should_calibrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns true if data should be calibrated&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_recompute_dl1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">write_images</span>
+            <span class="ow">and</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_IMAGES</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">datalevels</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">DataLevel</span><span class="o">.</span><span class="n">DL1_IMAGES</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">datalevels</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">should_compute_muon_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;returns true if we should compute muon parameters info&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">write_muon_parameters</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_write_processing_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;write out the event selection stats, etc.&quot;&quot;&quot;</span>
+        <span class="c1"># NOTE: don&#39;t remove this, not part of DataWriter</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl1</span><span class="p">:</span>
+            <span class="n">image_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_images</span><span class="o">.</span><span class="n">check_image</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="n">functions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">write_table</span><span class="p">(</span>
+                <span class="n">image_stats</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span>
+                <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/dl1/service/image_statistics&quot;</span><span class="p">,</span>
+                <span class="n">append</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl2</span><span class="p">:</span>
+            <span class="n">reconstructors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_shower</span><span class="o">.</span><span class="n">reconstructors</span>
+            <span class="n">reconstructor_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_shower</span><span class="o">.</span><span class="n">reconstructor_types</span>
+            <span class="k">for</span> <span class="n">reconstructor_name</span><span class="p">,</span> <span class="n">reconstructor</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">reconstructor_names</span><span class="p">,</span> <span class="n">reconstructors</span>
+            <span class="p">):</span>
+                <span class="n">write_table</span><span class="p">(</span>
+                    <span class="n">reconstructor</span><span class="o">.</span><span class="n">quality_query</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="n">functions</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">&quot;/dl2/service/tel_event_statistics/</span><span class="si">{</span><span class="n">reconstructor_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">append</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="ProcessorTool.start"><a class="viewcode-back" href="../../../api/ctapipe.tools.process.ProcessorTool.html#ctapipe.tools.process.ProcessorTool.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process events</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;(re)compute DL1: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;(re)compute DL2: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;compute muon parameters: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_muon_parameters</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">printer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="o">.</span><span class="n">max_events</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;ev&quot;</span><span class="p">,</span>
+            <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_bar</span><span class="p">,</span>
+        <span class="p">):</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Processessing event_id=</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">event_id</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_type_filter</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">software_trigger</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Skipping event </span><span class="si">%i</span><span class="s2"> due to software trigger&quot;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">event_id</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_calibrate</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process_images</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_muon_parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process_muons</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_compute_dl2</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process_shower</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ProcessorTool.finish"><a class="viewcode-back" href="../../../api/ctapipe.tools.process.ProcessorTool.html#ctapipe.tools.process.ProcessorTool.finish">[docs]</a>    <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Last steps after processing events.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">write_simulation_histograms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_source</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_processing_statistics</span><span class="p">()</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;run the tool&quot;&quot;&quot;</span>
+    <span class="n">tool</span> <span class="o">=</span> <span class="n">ProcessorTool</span><span class="p">()</span>
+    <span class="n">tool</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

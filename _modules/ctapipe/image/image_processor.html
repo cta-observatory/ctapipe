@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.image_processor &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.image_processor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.image_processor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">High level image processing  (ImageProcessor Component)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.coordinates</span> <span class="kn">import</span> <span class="n">TelescopeFrame</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArrayEventContainer</span><span class="p">,</span>
+    <span class="n">CameraHillasParametersContainer</span><span class="p">,</span>
+    <span class="n">CameraTimingParametersContainer</span><span class="p">,</span>
+    <span class="n">ImageParametersContainer</span><span class="p">,</span>
+    <span class="n">IntensityStatisticsContainer</span><span class="p">,</span>
+    <span class="n">PeakTimeStatisticsContainer</span><span class="p">,</span>
+    <span class="n">TimingParametersContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">QualityQuery</span><span class="p">,</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">..core.traits</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">BoolTelescopeParameter</span><span class="p">,</span> <span class="n">ComponentName</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">..instrument</span> <span class="kn">import</span> <span class="n">SubarrayDescription</span>
+<span class="kn">from</span> <span class="nn">.cleaning</span> <span class="kn">import</span> <span class="n">ImageCleaner</span>
+<span class="kn">from</span> <span class="nn">.concentration</span> <span class="kn">import</span> <span class="n">concentration_parameters</span>
+<span class="kn">from</span> <span class="nn">.hillas</span> <span class="kn">import</span> <span class="n">hillas_parameters</span>
+<span class="kn">from</span> <span class="nn">.leakage</span> <span class="kn">import</span> <span class="n">leakage_parameters</span>
+<span class="kn">from</span> <span class="nn">.modifications</span> <span class="kn">import</span> <span class="n">ImageModifier</span>
+<span class="kn">from</span> <span class="nn">.morphology</span> <span class="kn">import</span> <span class="n">morphology_parameters</span>
+<span class="kn">from</span> <span class="nn">.statistics</span> <span class="kn">import</span> <span class="n">descriptive_statistics</span>
+<span class="kn">from</span> <span class="nn">.timing</span> <span class="kn">import</span> <span class="n">timing_parameters</span>
+
+<span class="c1"># avoid use of base containers for unparameterized images</span>
+<span class="n">DEFAULT_IMAGE_PARAMETERS</span> <span class="o">=</span> <span class="n">ImageParametersContainer</span><span class="p">()</span>
+<span class="n">DEFAULT_TRUE_IMAGE_PARAMETERS</span> <span class="o">=</span> <span class="n">ImageParametersContainer</span><span class="p">()</span>
+<span class="n">DEFAULT_TRUE_IMAGE_PARAMETERS</span><span class="o">.</span><span class="n">intensity_statistics</span> <span class="o">=</span> <span class="n">IntensityStatisticsContainer</span><span class="p">(</span>
+    <span class="nb">max</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="nb">min</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">mean</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+    <span class="n">std</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+    <span class="n">skewness</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+    <span class="n">kurtosis</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">DEFAULT_TIMING_PARAMETERS</span> <span class="o">=</span> <span class="n">TimingParametersContainer</span><span class="p">()</span>
+<span class="n">DEFAULT_TIMING_PARAMETERS_CAMFRAME</span> <span class="o">=</span> <span class="n">CameraTimingParametersContainer</span><span class="p">()</span>
+<span class="n">DEFAULT_PEAKTIME_STATISTICS</span> <span class="o">=</span> <span class="n">PeakTimeStatisticsContainer</span><span class="p">()</span>
+
+
+<span class="n">DEFAULT_IMAGE_PARAMETERS_CAMFRAME</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">DEFAULT_IMAGE_PARAMETERS</span><span class="p">)</span>
+<span class="n">DEFAULT_IMAGE_PARAMETERS_CAMFRAME</span><span class="o">.</span><span class="n">hillas</span> <span class="o">=</span> <span class="n">CameraHillasParametersContainer</span><span class="p">()</span>
+<span class="n">DEFAULT_IMAGE_PARAMETERS_CAMFRAME</span><span class="o">.</span><span class="n">timing</span> <span class="o">=</span> <span class="n">CameraTimingParametersContainer</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">ImageQualityQuery</span><span class="p">(</span><span class="n">QualityQuery</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;for configuring image-wise data checks&quot;&quot;&quot;</span>
+
+    <span class="n">quality_criteria</span> <span class="o">=</span> <span class="n">List</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;size_greater_0&quot;</span><span class="p">,</span> <span class="s2">&quot;image.sum() &gt; 0&quot;</span><span class="p">)],</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">QualityQuery</span><span class="o">.</span><span class="n">quality_criteria</span><span class="o">.</span><span class="n">help</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ImageProcessor"><a class="viewcode-back" href="../../../api/ctapipe.image.ImageProcessor.html#ctapipe.image.ImageProcessor">[docs]</a><span class="k">class</span> <span class="nc">ImageProcessor</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes DL1/Image data and cleans and parametrizes the images into DL1/parameters.</span>
+<span class="sd">    Should be run after CameraCalibrator to produce all DL1 information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">image_cleaner_type</span> <span class="o">=</span> <span class="n">ComponentName</span><span class="p">(</span>
+        <span class="n">ImageCleaner</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;TailcutsImageCleaner&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">use_telescope_frame</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to calculate parameters in the telescope or camera frame&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">apply_image_modifier</span> <span class="o">=</span> <span class="n">BoolTelescopeParameter</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If true, apply ImageModifier to dl1 images&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">subarray</span><span class="p">:</span> <span class="n">SubarrayDescription</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        subarray: SubarrayDescription</span>
+<span class="sd">            Description of the subarray. Provides information about the</span>
+<span class="sd">            camera which are useful in calibration. Also required for</span>
+<span class="sd">            configuring the TelescopeParameter traitlets.</span>
+<span class="sd">        config: traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            This is mutually exclusive with passing a ``parent``.</span>
+<span class="sd">        parent: ctapipe.core.Component or ctapipe.core.Tool</span>
+<span class="sd">            Parent of this component in the configuration hierarchy,</span>
+<span class="sd">            this is mutually exclusive with passing ``config``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean</span> <span class="o">=</span> <span class="n">ImageCleaner</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image_cleaner_type</span><span class="p">,</span> <span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modify</span> <span class="o">=</span> <span class="n">ImageModifier</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">subarray</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_image</span> <span class="o">=</span> <span class="n">ImageQualityQuery</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_image_container</span> <span class="o">=</span> <span class="n">DEFAULT_IMAGE_PARAMETERS_CAMFRAME</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_telescope_frame</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">default_image_container</span> <span class="o">=</span> <span class="n">DEFAULT_IMAGE_PARAMETERS</span>
+            <span class="n">telescope_frame</span> <span class="o">=</span> <span class="n">TelescopeFrame</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">telescope_frame_geometries</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">tel_id</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span>
+                    <span class="n">telescope_frame</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span>
+            <span class="p">}</span>
+
+<div class="viewcode-block" id="ImageProcessor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.ImageProcessor.html#ctapipe.image.ImageProcessor.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_telescope_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_parameterize_image</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tel_id</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">,</span>
+        <span class="n">signal_pixels</span><span class="p">,</span>
+        <span class="n">peak_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_IMAGE_PARAMETERS</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageParametersContainer</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply image cleaning and calculate image features</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tel_id : int</span>
+<span class="sd">            which telescope is being cleaned</span>
+<span class="sd">        image : np.ndarray</span>
+<span class="sd">            image to process</span>
+<span class="sd">        signal_pixels : np.ndarray[bool]</span>
+<span class="sd">            image mask</span>
+<span class="sd">        peak_time : np.ndarray</span>
+<span class="sd">            peak time image</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        parameters : ImageParametersContainer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image_selected</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">signal_pixels</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_telescope_frame</span><span class="p">:</span>
+            <span class="c1"># Use the transformed geometries</span>
+            <span class="n">geometry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescope_frame_geometries</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">geometry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+
+        <span class="c1"># check if image can be parameterized:</span>
+        <span class="n">image_criteria</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image_selected</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;image_criteria: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check_image</span><span class="o">.</span><span class="n">criteria_names</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">image_criteria</span><span class="p">)),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># parameterize the event if all criteria pass:</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">image_criteria</span><span class="p">):</span>
+            <span class="n">geom_selected</span> <span class="o">=</span> <span class="n">geometry</span><span class="p">[</span><span class="n">signal_pixels</span><span class="p">]</span>
+
+            <span class="n">hillas</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">geom</span><span class="o">=</span><span class="n">geom_selected</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image_selected</span><span class="p">)</span>
+            <span class="n">leakage</span> <span class="o">=</span> <span class="n">leakage_parameters</span><span class="p">(</span>
+                <span class="n">geom</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">cleaning_mask</span><span class="o">=</span><span class="n">signal_pixels</span>
+            <span class="p">)</span>
+            <span class="n">concentration</span> <span class="o">=</span> <span class="n">concentration_parameters</span><span class="p">(</span>
+                <span class="n">geom</span><span class="o">=</span><span class="n">geom_selected</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image_selected</span><span class="p">,</span> <span class="n">hillas_parameters</span><span class="o">=</span><span class="n">hillas</span>
+            <span class="p">)</span>
+            <span class="n">morphology</span> <span class="o">=</span> <span class="n">morphology_parameters</span><span class="p">(</span><span class="n">geom</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image_mask</span><span class="o">=</span><span class="n">signal_pixels</span><span class="p">)</span>
+            <span class="n">intensity_statistics</span> <span class="o">=</span> <span class="n">descriptive_statistics</span><span class="p">(</span>
+                <span class="n">image_selected</span><span class="p">,</span> <span class="n">container_class</span><span class="o">=</span><span class="n">IntensityStatisticsContainer</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">peak_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">timing</span> <span class="o">=</span> <span class="n">timing_parameters</span><span class="p">(</span>
+                    <span class="n">geom</span><span class="o">=</span><span class="n">geom_selected</span><span class="p">,</span>
+                    <span class="n">image</span><span class="o">=</span><span class="n">image_selected</span><span class="p">,</span>
+                    <span class="n">peak_time</span><span class="o">=</span><span class="n">peak_time</span><span class="p">[</span><span class="n">signal_pixels</span><span class="p">],</span>
+                    <span class="n">hillas_parameters</span><span class="o">=</span><span class="n">hillas</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">peak_time_statistics</span> <span class="o">=</span> <span class="n">descriptive_statistics</span><span class="p">(</span>
+                    <span class="n">peak_time</span><span class="p">[</span><span class="n">signal_pixels</span><span class="p">],</span>
+                    <span class="n">container_class</span><span class="o">=</span><span class="n">PeakTimeStatisticsContainer</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_telescope_frame</span><span class="p">:</span>
+                    <span class="n">timing</span> <span class="o">=</span> <span class="n">DEFAULT_TIMING_PARAMETERS</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">timing</span> <span class="o">=</span> <span class="n">DEFAULT_TIMING_PARAMETERS_CAMFRAME</span>
+
+                <span class="n">peak_time_statistics</span> <span class="o">=</span> <span class="n">DEFAULT_PEAKTIME_STATISTICS</span>
+
+            <span class="k">return</span> <span class="n">ImageParametersContainer</span><span class="p">(</span>
+                <span class="n">hillas</span><span class="o">=</span><span class="n">hillas</span><span class="p">,</span>
+                <span class="n">timing</span><span class="o">=</span><span class="n">timing</span><span class="p">,</span>
+                <span class="n">leakage</span><span class="o">=</span><span class="n">leakage</span><span class="p">,</span>
+                <span class="n">morphology</span><span class="o">=</span><span class="n">morphology</span><span class="p">,</span>
+                <span class="n">concentration</span><span class="o">=</span><span class="n">concentration</span><span class="p">,</span>
+                <span class="n">intensity_statistics</span><span class="o">=</span><span class="n">intensity_statistics</span><span class="p">,</span>
+                <span class="n">peak_time_statistics</span><span class="o">=</span><span class="n">peak_time_statistics</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># return the default container (containing nan values) for no</span>
+        <span class="c1"># parameterization</span>
+        <span class="k">return</span> <span class="n">default</span>
+
+    <span class="k">def</span> <span class="nf">_process_telescope_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loop over telescopes and process the calibrated images into parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">dl1_camera</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_image_modifier</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]:</span>
+                <span class="n">dl1_camera</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modify</span><span class="p">(</span><span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">dl1_camera</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+
+            <span class="n">dl1_camera</span><span class="o">.</span><span class="n">image_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">,</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">dl1_camera</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                <span class="n">arrival_times</span><span class="o">=</span><span class="n">dl1_camera</span><span class="o">.</span><span class="n">peak_time</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">dl1_camera</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameterize_image</span><span class="p">(</span>
+                <span class="n">tel_id</span><span class="o">=</span><span class="n">tel_id</span><span class="p">,</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">dl1_camera</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                <span class="n">signal_pixels</span><span class="o">=</span><span class="n">dl1_camera</span><span class="o">.</span><span class="n">image_mask</span><span class="p">,</span>
+                <span class="n">peak_time</span><span class="o">=</span><span class="n">dl1_camera</span><span class="o">.</span><span class="n">peak_time</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_image_container</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;params: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">dl1_camera</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">simulation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span>
+                <span class="ow">and</span> <span class="n">event</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">true_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">):</span>
+                <span class="n">sim_camera</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+                <span class="n">sim_camera</span><span class="o">.</span><span class="n">true_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameterize_image</span><span class="p">(</span>
+                    <span class="n">tel_id</span><span class="p">,</span>
+                    <span class="n">image</span><span class="o">=</span><span class="n">sim_camera</span><span class="o">.</span><span class="n">true_image</span><span class="p">,</span>
+                    <span class="n">signal_pixels</span><span class="o">=</span><span class="n">sim_camera</span><span class="o">.</span><span class="n">true_image</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">peak_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># true image from simulation has no peak time</span>
+                    <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_TRUE_IMAGE_PARAMETERS</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="n">sim_camera</span><span class="o">.</span><span class="n">true_parameters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">container</span><span class="o">.</span><span class="n">prefix</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;true_&quot;</span><span class="p">):</span>
+                        <span class="n">container</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;true_</span><span class="si">{</span><span class="n">container</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;sim params: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">event</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">true_parameters</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(</span>
+                        <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="p">),</span>
+                <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

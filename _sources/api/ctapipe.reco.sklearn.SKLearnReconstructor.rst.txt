@@ -1,0 +1,49 @@
+SKLearnReconstructor
+====================
+
+.. currentmodule:: ctapipe.reco.sklearn
+
+.. autoclass:: SKLearnReconstructor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SKLearnReconstructor.features
+      ~SKLearnReconstructor.instrument_table
+      ~SKLearnReconstructor.load_path
+      ~SKLearnReconstructor.model_cls
+      ~SKLearnReconstructor.model_config
+      ~SKLearnReconstructor.prefix
+      ~SKLearnReconstructor.property
+      ~SKLearnReconstructor.stereo_combiner_cls
+      ~SKLearnReconstructor.target
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SKLearnReconstructor.__call__
+      ~SKLearnReconstructor.fit
+      ~SKLearnReconstructor.predict_table
+      ~SKLearnReconstructor.write
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: features
+   .. autoattribute:: instrument_table
+   .. autoattribute:: load_path
+   .. autoattribute:: model_cls
+   .. autoattribute:: model_config
+   .. autoattribute:: prefix
+   .. autoattribute:: property
+   .. autoattribute:: stereo_combiner_cls
+   .. autoattribute:: target
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: fit
+   .. automethod:: predict_table
+   .. automethod:: write

@@ -1,0 +1,6 @@
+shower_impact_distance
+======================
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autofunction:: shower_impact_distance

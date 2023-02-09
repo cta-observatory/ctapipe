@@ -1,0 +1,6 @@
+find_all_matching_datasets
+==========================
+
+.. currentmodule:: ctapipe.utils
+
+.. autofunction:: find_all_matching_datasets

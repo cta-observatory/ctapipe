@@ -1,0 +1,21 @@
+CameraTimingParametersContainer
+===============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: CameraTimingParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraTimingParametersContainer.meta
+      ~CameraTimingParametersContainer.prefix
+      ~CameraTimingParametersContainer.slope
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: slope

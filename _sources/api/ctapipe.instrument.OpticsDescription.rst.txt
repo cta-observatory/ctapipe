@@ -1,0 +1,31 @@
+OpticsDescription
+=================
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: OpticsDescription
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~OpticsDescription.effective_focal_length
+      ~OpticsDescription.equivalent_focal_length
+      ~OpticsDescription.mirror_area
+      ~OpticsDescription.n_mirror_tiles
+      ~OpticsDescription.n_mirrors
+      ~OpticsDescription.name
+      ~OpticsDescription.reflector_shape
+      ~OpticsDescription.size_type
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: effective_focal_length
+   .. autoattribute:: equivalent_focal_length
+   .. autoattribute:: mirror_area
+   .. autoattribute:: n_mirror_tiles
+   .. autoattribute:: n_mirrors
+   .. autoattribute:: name
+   .. autoattribute:: reflector_shape
+   .. autoattribute:: size_type

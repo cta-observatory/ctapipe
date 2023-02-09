@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.visualization.mpl_array &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.visualization.mpl_array</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.visualization.mpl_array</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">cycle</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span><span class="p">,</span> <span class="n">SkyCoord</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.collections</span> <span class="kn">import</span> <span class="n">PatchCollection</span>
+<span class="kn">from</span> <span class="nn">matplotlib.lines</span> <span class="kn">import</span> <span class="n">Line2D</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">Circle</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.coordinates</span> <span class="kn">import</span> <span class="n">GroundFrame</span>
+<span class="kn">from</span> <span class="nn">ctapipe.visualization.mpl_camera</span> <span class="kn">import</span> <span class="n">polar_to_cart</span>
+
+
+<div class="viewcode-block" id="ArrayDisplay"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay">[docs]</a><span class="k">class</span> <span class="nc">ArrayDisplay</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Display a top-town view of a telescope array.</span>
+
+<span class="sd">    This can be used in two ways: by default, you get a display of all</span>
+<span class="sd">    telescopes in the subarray, colored by telescope type, however you can</span>
+<span class="sd">    also color the telescopes by a value (like trigger pattern, or some other</span>
+<span class="sd">    scalar per-telescope parameter). To set the color value, simply set the</span>
+<span class="sd">    ``value`` attribute, and the fill color will be updated with the value. You</span>
+<span class="sd">    might want to set the border color to zero to avoid confusion between the</span>
+<span class="sd">    telescope type color and the value color (</span>
+<span class="sd">    ``array_disp.telescope.set_linewidth(0)``)</span>
+
+<span class="sd">    To display a vector field over the telescope positions, e.g. for</span>
+<span class="sd">    reconstruction, call `set_vector_uv()` to set cartesian vectors,</span>
+<span class="sd">    or `set_vector_rho_phi()` to set polar coordinate vectors.</span>
+<span class="sd">    These both take an array of length N_tels, or a single value.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    subarray: ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">        the array layout to display</span>
+<span class="sd">    axes: matplotlib.axes.Axes</span>
+<span class="sd">        matplotlib axes to plot on, or None to use current one</span>
+<span class="sd">    title: str</span>
+<span class="sd">        title of array plot</span>
+<span class="sd">    tel_scale: float</span>
+<span class="sd">        scaling between telescope mirror radius in m to displayed size</span>
+<span class="sd">    autoupdate: bool</span>
+<span class="sd">        redraw when the input changes</span>
+<span class="sd">    radius: Union[float, list, None]</span>
+<span class="sd">        set telescope radius to value, list/array of values. If None, radius</span>
+<span class="sd">        is taken from the telescope&#39;s mirror size.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">subarray</span><span class="p">,</span>
+        <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">autoupdate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">tel_scale</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">frame</span><span class="o">=</span><span class="n">GroundFrame</span><span class="p">(),</span>
+    <span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span> <span class="o">=</span> <span class="n">subarray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span> <span class="ow">or</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+        <span class="c1"># get the telescope positions. If a new frame is set, this will</span>
+        <span class="c1"># transform to the new frame.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span><span class="o">.</span><span class="n">cartesian</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+
+        <span class="c1"># set up colors per telescope type</span>
+        <span class="n">tel_types</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tels</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">radius</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># set radius to the mirror radius (so big tels appear big)</span>
+            <span class="n">radius</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">mirror_area</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;m2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">tel_scale</span>
+                <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">radii</span> <span class="o">=</span> <span class="n">radius</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tel_types</span><span class="p">))</span> <span class="o">*</span> <span class="n">radius</span>
+
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="c1"># get default matplotlib color cycle (depends on the current style)</span>
+        <span class="n">color_cycle</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;axes.prop_cycle&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">by_key</span><span class="p">()[</span><span class="s2">&quot;color&quot;</span><span class="p">])</span>
+
+        <span class="c1"># map a color to each telescope type:</span>
+        <span class="n">tel_type_to_color</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">tel_type</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">tel_types</span><span class="p">)):</span>
+            <span class="n">tel_type_to_color</span><span class="p">[</span><span class="n">tel_type</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">color_cycle</span><span class="p">)</span>
+
+        <span class="n">tel_color</span> <span class="o">=</span> <span class="p">[</span><span class="n">tel_type_to_color</span><span class="p">[</span><span class="n">ttype</span><span class="p">]</span> <span class="k">for</span> <span class="n">ttype</span> <span class="ow">in</span> <span class="n">tel_types</span><span class="p">]</span>
+
+        <span class="n">patches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)),</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)),</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">radius</span><span class="p">),</span>
+            <span class="n">tel_color</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">patches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Circle</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">radius</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">))</span>
+
+        <span class="c1"># build the legend:</span>
+        <span class="n">legend_elements</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ttype</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">tel_types</span><span class="p">)):</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="n">tel_type_to_color</span><span class="p">[</span><span class="n">ttype</span><span class="p">]</span>
+            <span class="n">legend_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Line2D</span><span class="p">(</span>
+                    <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">ttype</span><span class="p">,</span>
+                    <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+                    <span class="n">linewidth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">legend_elements</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_radial_grid</span><span class="p">()</span>
+
+        <span class="c1"># create the plot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tel_colors</span> <span class="o">=</span> <span class="n">tel_color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoupdate</span> <span class="o">=</span> <span class="n">autoupdate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescopes</span> <span class="o">=</span> <span class="n">PatchCollection</span><span class="p">(</span><span class="n">patches</span><span class="p">,</span> <span class="n">match_original</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescopes</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">telescopes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">xunit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s2">&quot;latex&quot;</span><span class="p">)</span>
+        <span class="n">yunit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s2">&quot;latex&quot;</span><span class="p">)</span>
+        <span class="n">xname</span><span class="p">,</span> <span class="n">yname</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">get_representation_component_names</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">xname</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">xunit</span><span class="si">}</span><span class="s2">] $</span><span class="se">\\</span><span class="s2">rightarrow$&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">yname</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">yunit</span><span class="si">}</span><span class="s2">] $</span><span class="se">\\</span><span class="s2">rightarrow$&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_quiver</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">autoscale_view</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;An array containing a value per telescope&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">telescopes</span><span class="o">.</span><span class="n">get_array</span><span class="p">()</span>
+
+    <span class="nd">@values</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;set the telescope colors to display&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">telescopes</span><span class="o">.</span><span class="n">set_array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ArrayDisplay.add_radial_grid"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.add_radial_grid">[docs]</a>    <span class="k">def</span> <span class="nf">add_radial_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spacing</span><span class="o">=</span><span class="mi">100</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;add some dotted rings for distance estimation. The number of rings</span>
+<span class="sd">        is estimated automatically from the spacing and the array footprint.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        spacing: Quantity</span>
+<span class="sd">            spacing between rings</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">n_circles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">footprint</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">circle_radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_circles</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">spacing</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+        <span class="n">circle_patches</span> <span class="o">=</span> <span class="n">PatchCollection</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">Circle</span><span class="p">(</span>
+                    <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                    <span class="n">radius</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+                    <span class="n">fill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">fc</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                    <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                    <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">circle_radii</span>
+            <span class="p">],</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#eeeeee&quot;</span><span class="p">,</span>
+            <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;dotted&quot;</span><span class="p">,</span>
+            <span class="n">fc</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="n">lw</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="n">circle_patches</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayDisplay.set_vector_uv"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.set_vector_uv">[docs]</a>    <span class="k">def</span> <span class="nf">set_vector_uv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uu</span><span class="p">,</span> <span class="n">vv</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;sets the vector field U,V and color for all telescopes</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uu: array[n_tels]</span>
+<span class="sd">            x-component of direction vector</span>
+<span class="sd">        vv: array[n_tels]</span>
+<span class="sd">            y-component of direction vector</span>
+<span class="sd">        c: color or list of colors</span>
+<span class="sd">            vector color for each telescope (or one for all)</span>
+<span class="sd">        kwargs:</span>
+<span class="sd">            extra args passed to plt.quiver(), ignored on subsequent updates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span>
+        <span class="n">uu</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">uu</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)</span>
+        <span class="n">vv</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># matplotlib since 3.2 does not allow scalars anymore</span>
+        <span class="c1"># if quiver was already created with a certain number of arrows</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">uu</span><span class="p">):</span>
+            <span class="n">uu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">uu</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">vv</span><span class="p">):</span>
+            <span class="n">vv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">vv</span><span class="p">)</span>
+
+        <span class="c1"># passing in None for C does not work, we need to provide</span>
+        <span class="c1"># a variadic number of arguments</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">coords</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">),</span> <span class="n">coords</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">),</span> <span class="n">uu</span><span class="p">,</span> <span class="n">vv</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># use colors by telescope type if the user did not provide any</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_colors</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># same as above, enable use of scalar to set all values at once</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quiver</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quiver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">quiver</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">scale_units</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">,</span> <span class="n">angles</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_quiver</span><span class="o">.</span><span class="n">set_UVC</span><span class="p">(</span><span class="n">uu</span><span class="p">,</span> <span class="n">vv</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayDisplay.set_vector_rho_phi"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.set_vector_rho_phi">[docs]</a>    <span class="k">def</span> <span class="nf">set_vector_rho_phi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;sets the vector field using R, Phi for each telescope</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        rho: float or array[float]</span>
+<span class="sd">            vector magnitude for each telescope</span>
+<span class="sd">        phi: array[Angle]</span>
+<span class="sd">            vector angle for each telescope</span>
+<span class="sd">        c: color or list of colors</span>
+<span class="sd">            vector color for each telescope (or one for all)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">.</span><span class="n">rad</span>
+        <span class="n">uu</span><span class="p">,</span> <span class="n">vv</span> <span class="o">=</span> <span class="n">polar_to_cart</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">phi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_vector_uv</span><span class="p">(</span><span class="n">uu</span><span class="p">,</span> <span class="n">vv</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayDisplay.set_vector_hillas"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.set_vector_hillas">[docs]</a>    <span class="k">def</span> <span class="nf">set_vector_hillas</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">core_dict</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">time_gradient</span><span class="p">,</span> <span class="n">angle_offset</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to set the vector angle and length from a set of Hillas parameters.</span>
+
+<span class="sd">        In order to proper use the arrow on the ground, also a dictionary with the time</span>
+<span class="sd">        gradients for the different telescopes is needed. If the gradient is 0 the arrow</span>
+<span class="sd">        is not plotted on the ground, whereas if the value of the gradient is negative,</span>
+<span class="sd">        the arrow is rotated by 180 degrees (Angle(angle_offset) not added).</span>
+
+<span class="sd">        This plotting behaviour has been tested with the timing_parameters function</span>
+<span class="sd">        in ctapipe/image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hillas_dict: Dict[int, HillasParametersContainer]</span>
+<span class="sd">            mapping of tel_id to Hillas parameters</span>
+<span class="sd">        core_dict : Dict[int, CoreParameters]</span>
+<span class="sd">            mapping of tel_id to CoreParametersContainer</span>
+<span class="sd">        length: Float</span>
+<span class="sd">            length of the arrow (in meters)</span>
+<span class="sd">        time_gradient: Dict[int, value of time gradient (no units)]</span>
+<span class="sd">            dictionary for value of the time gradient for each telescope</span>
+<span class="sd">        angle_offset: Float</span>
+<span class="sd">            This should be the ``event.pointing.array_azimuth`` parameter</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># rot_angle_ellipse is psi parameter in HillasParametersContainer</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">n_tels</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+        <span class="n">rot_angle_ellipse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">n_tels</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_indices</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+            <span class="n">rho</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">core_dict</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">time_gradient</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.01</span><span class="p">:</span>
+                <span class="n">angle_offset</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">angle_offset</span><span class="p">)</span>
+                <span class="n">rot_angle_ellipse</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">psi</span> <span class="o">+</span> <span class="n">angle_offset</span> <span class="o">+</span> <span class="mi">180</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+            <span class="k">elif</span> <span class="n">time_gradient</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">:</span>
+                <span class="n">rot_angle_ellipse</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">psi</span> <span class="o">+</span> <span class="n">angle_offset</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rho</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_vector_rho_phi</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="n">rho</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="n">rot_angle_ellipse</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayDisplay.set_line_hillas"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.set_line_hillas">[docs]</a>    <span class="k">def</span> <span class="nf">set_line_hillas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">core_dict</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the telescope-wise direction of the shower as a segment.</span>
+
+<span class="sd">        Each segment will be centered with a point on the telescope position</span>
+<span class="sd">        and will be 2*range long.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hillas_dict: Dict[int, HillasParametersContainer]</span>
+<span class="sd">            mapping of tel_id to Hillas parameters</span>
+<span class="sd">        core_dict : Dict[int, CoreParameters]</span>
+<span class="sd">            mapping of tel_id to CoreParametersContainer</span>
+<span class="sd">        range: float</span>
+<span class="sd">            half of the length of the segments to be plotted (in meters)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># transform to GroundFrame</span>
+        <span class="n">positions_in_frame</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">positions_in_frame</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GroundFrame</span><span class="p">())</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_colors</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="nb">range</span><span class="p">,</span> <span class="nb">range</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_indices</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+            <span class="n">x_0</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+            <span class="n">y_0</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">core_dict</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="n">r</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y_0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="n">r</span>
+
+            <span class="c1"># transform back to desired frame</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">GroundFrame</span><span class="p">())</span>
+                <span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">cartesian</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">line</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+                <span class="n">positions_in_frame</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+                <span class="n">positions_in_frame</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayDisplay.add_labels"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.add_labels">[docs]</a>    <span class="k">def</span> <span class="nf">add_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">px</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tel_coords</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s2">&quot;m&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tel</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tels</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">radii</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">tel</span><span class="p">)</span>
+            <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="n">y</span> <span class="o">-</span> <span class="n">r</span> <span class="o">*</span> <span class="mf">1.8</span><span class="p">,</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+                <span class="n">clip_on</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+                <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lab</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ArrayDisplay.remove_labels"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.remove_labels">[docs]</a>    <span class="k">def</span> <span class="nf">remove_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">lab</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">:</span>
+            <span class="n">lab</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;signal a redraw if necessary&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">autoupdate</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ArrayDisplay.background_contour"><a class="viewcode-back" href="../../../api/ctapipe.visualization.ArrayDisplay.html#ctapipe.visualization.ArrayDisplay.background_contour">[docs]</a>    <span class="k">def</span> <span class="nf">background_contour</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Draw image contours in background of the display, useful when likelihood fitting</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x: ndarray</span>
+<span class="sd">            array of image X coordinates</span>
+<span class="sd">        y: ndarray</span>
+<span class="sd">            array of image Y coordinates</span>
+<span class="sd">        background: ndarray</span>
+<span class="sd">            Array of image to use in background</span>
+<span class="sd">        kwargs: key=value</span>
+<span class="sd">            any style keywords to pass to matplotlib</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># use zorder to ensure the contours appear under the telescopes.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

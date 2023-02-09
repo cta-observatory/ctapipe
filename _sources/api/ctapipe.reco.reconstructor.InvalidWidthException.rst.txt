@@ -1,0 +1,6 @@
+InvalidWidthException
+=====================
+
+.. currentmodule:: ctapipe.reco.reconstructor
+
+.. autoexception:: InvalidWidthException

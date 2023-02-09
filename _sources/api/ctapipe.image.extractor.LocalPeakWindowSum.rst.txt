@@ -1,0 +1,31 @@
+LocalPeakWindowSum
+==================
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autoclass:: LocalPeakWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~LocalPeakWindowSum.apply_integration_correction
+      ~LocalPeakWindowSum.window_shift
+      ~LocalPeakWindowSum.window_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~LocalPeakWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: window_shift
+   .. autoattribute:: window_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

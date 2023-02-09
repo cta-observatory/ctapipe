@@ -1,0 +1,27 @@
+Enum
+====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Enum
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Enum.argcompleter
+      ~Enum.from_string
+      ~Enum.info
+      ~Enum.info_rst
+      ~Enum.subclass_init
+      ~Enum.validate
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: argcompleter
+   .. automethod:: from_string
+   .. automethod:: info
+   .. automethod:: info_rst
+   .. automethod:: subclass_init
+   .. automethod:: validate

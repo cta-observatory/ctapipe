@@ -1,0 +1,6 @@
+fact_image_cleaning
+===================
+
+.. currentmodule:: ctapipe.image.cleaning
+
+.. autofunction:: fact_image_cleaning

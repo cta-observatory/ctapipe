@@ -1,0 +1,6 @@
+<map id="inheritanceff45d2bb27" name="inheritanceff45d2bb27">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="363,4,441,24"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="479,4,607,24"/>
+<area shape="rect" id="node4" title="The base class for all classes that have descriptors." alt="" coords="4,4,101,24"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.image.muon.intensity_fitter.MuonIntensityFitter.html#ctapipe.image.muon.intensity_fitter.MuonIntensityFitter" target="_top" title="MuonIntensityFitter" alt="" coords="645,4,764,24"/>
+</map>

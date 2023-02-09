@@ -1,0 +1,23 @@
+ReconstructionProperty
+======================
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: ReconstructionProperty
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ReconstructionProperty.DISP
+      ~ReconstructionProperty.ENERGY
+      ~ReconstructionProperty.GEOMETRY
+      ~ReconstructionProperty.PARTICLE_TYPE
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: DISP
+   .. autoattribute:: ENERGY
+   .. autoattribute:: GEOMETRY
+   .. autoattribute:: PARTICLE_TYPE

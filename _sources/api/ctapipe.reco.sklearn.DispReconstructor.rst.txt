@@ -1,0 +1,55 @@
+DispReconstructor
+=================
+
+.. currentmodule:: ctapipe.reco.sklearn
+
+.. autoclass:: DispReconstructor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DispReconstructor.features
+      ~DispReconstructor.instrument_table
+      ~DispReconstructor.load_path
+      ~DispReconstructor.log_target
+      ~DispReconstructor.norm_cls
+      ~DispReconstructor.norm_config
+      ~DispReconstructor.prefix
+      ~DispReconstructor.sign_cls
+      ~DispReconstructor.sign_config
+      ~DispReconstructor.stereo_combiner_cls
+      ~DispReconstructor.target
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~DispReconstructor.__call__
+      ~DispReconstructor.fit
+      ~DispReconstructor.predict_table
+      ~DispReconstructor.read
+      ~DispReconstructor.write
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: features
+   .. autoattribute:: instrument_table
+   .. autoattribute:: load_path
+   .. autoattribute:: log_target
+   .. autoattribute:: norm_cls
+   .. autoattribute:: norm_config
+   .. autoattribute:: prefix
+   .. autoattribute:: sign_cls
+   .. autoattribute:: sign_config
+   .. autoattribute:: stereo_combiner_cls
+   .. autoattribute:: target
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: fit
+   .. automethod:: predict_table
+   .. automethod:: read
+   .. automethod:: write

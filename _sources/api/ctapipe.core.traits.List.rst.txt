@@ -1,0 +1,21 @@
+List
+====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: List
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~List.length_error
+      ~List.set
+      ~List.validate_elements
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: length_error
+   .. automethod:: set
+   .. automethod:: validate_elements

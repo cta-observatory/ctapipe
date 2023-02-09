@@ -1,0 +1,29 @@
+MorphologyContainer
+===================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: MorphologyContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MorphologyContainer.meta
+      ~MorphologyContainer.n_islands
+      ~MorphologyContainer.n_large_islands
+      ~MorphologyContainer.n_medium_islands
+      ~MorphologyContainer.n_pixels
+      ~MorphologyContainer.n_small_islands
+      ~MorphologyContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: n_islands
+   .. autoattribute:: n_large_islands
+   .. autoattribute:: n_medium_islands
+   .. autoattribute:: n_pixels
+   .. autoattribute:: n_small_islands
+   .. autoattribute:: prefix

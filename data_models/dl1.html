@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTAPipe Data Model &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Docs" href="../ctapipe_api/index.html" />
+    <link rel="prev" title="Data Models" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Data Models</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CTAPipe Data Model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dl1-data-model">DL1 Data Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dl2-data-model">DL2 Data Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#simulation-data-model">Simulation Data Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-data-model">Configuration Data Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core-provenance">Core Provenance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Data Models</a></li>
+      <li class="breadcrumb-item active">CTAPipe Data Model</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/data_models/dl1.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="ctapipe-data-model">
+<span id="datamodel"></span><h1>CTAPipe Data Model<a class="headerlink" href="#ctapipe-data-model" title="Permalink to this headline">¶</a></h1>
+<p>The DL1 files are HDF5 format files, with the following data set hierarchy.
+The tables should be written with <a class="reference external" href="https://www.pytables.org">pytables</a> (not <code class="docutils literal notranslate"><span class="pre">h5py</span></code>),
+ideally with the <a class="reference internal" href="../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.HDF5TableWriter" title="ctapipe.io.HDF5TableWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">HDF5TableWriter</span></code></a>, which ensures the unit
+and other descriptive metadata are attached to the output.
+Containers marked with a <code class="docutils literal notranslate"><span class="pre">+</span></code> should be written without their prefix (all others should use column prefixes).</p>
+<p>The following describes the contents of data level 1 (DL1) output files
+generated by ctapipe (e.g. the <code class="docutils literal notranslate"><span class="pre">ctapipe-process</span></code> tool which uses the
+<a class="reference internal" href="../api/ctapipe.io.DataWriter.html#ctapipe.io.DataWriter" title="ctapipe.io.DataWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataWriter</span></code></a> component to generate output data).</p>
+<div class="section" id="dl1-data-model">
+<h2>DL1 Data Model<a class="headerlink" href="#dl1-data-model" title="Permalink to this headline">¶</a></h2>
+<p>This describes data that change per-event.
+The following datasets will be written to the group <code class="docutils literal notranslate"><span class="pre">/dl1/event/</span></code> in the  output file:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Group/Dataset</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">subarray</span></code></p></td>
+<td><p>event-wise data pertaining to a subarray</p></td>
+<td><p>(group)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">subarray/trigger</span></code></p></td>
+<td><p>subarray trigger information</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a> +, <a class="reference internal" href="../api/ctapipe.containers.TriggerContainer.html#ctapipe.containers.TriggerContainer" title="ctapipe.containers.TriggerContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TriggerContainer</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">telescope/</span></code></p></td>
+<td><p>Per-telescope Per-event information</p></td>
+<td><p>(group)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">telescope/parameters/tel_{TEL_ID:03d}</span></code></p></td>
+<td><p>tables of image parameters (one per telescope)</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.TelEventIndexContainer.html#ctapipe.containers.TelEventIndexContainer" title="ctapipe.containers.TelEventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TelEventIndexContainer</span></code></a> +, <a class="reference internal" href="../api/ctapipe.containers.ImageParametersContainer.html#ctapipe.containers.ImageParametersContainer" title="ctapipe.containers.ImageParametersContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ImageParametersContainer</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">telescope/images/tel_{TEL_ID:03d}</span></code></p></td>
+<td><p>tables of telescope images (one per telescope)</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.TelEventIndexContainer.html#ctapipe.containers.TelEventIndexContainer" title="ctapipe.containers.TelEventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TelEventIndexContainer</span></code></a> +, <a class="reference internal" href="../api/ctapipe.containers.DL1CameraContainer.html#ctapipe.containers.DL1CameraContainer" title="ctapipe.containers.DL1CameraContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DL1CameraContainer</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="dl2-data-model">
+<h2>DL2 Data Model<a class="headerlink" href="#dl2-data-model" title="Permalink to this headline">¶</a></h2>
+<p>This describes data that change per-event. The following datasets will be
+written to the group <code class="docutils literal notranslate"><span class="pre">/dl2/event/stereo/&lt;algorithm&gt;/</span></code> and or
+<code class="docutils literal notranslate"><span class="pre">/dl2/event/mono/&lt;algorithm&gt;/</span></code>, one for each reconstruction algorithm in the
+output file, where <code class="docutils literal notranslate"><span class="pre">&lt;algorithm&gt;</span></code> is the identifier of the algorithm (e.g.
+“Hillas”):</p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 50%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Group/Dataset</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>/geometry</p></td>
+<td><p>shower geometry reconstruction</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a>, <a class="reference internal" href="../api/ctapipe.containers.ReconstructedGeometryContainer.html#ctapipe.containers.ReconstructedGeometryContainer" title="ctapipe.containers.ReconstructedGeometryContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReconstructedGeometryContainer</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>/energy</p></td>
+<td><p>shower energy reconstruction</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a>, <a class="reference internal" href="../api/ctapipe.containers.ReconstructedEnergyContainer.html#ctapipe.containers.ReconstructedEnergyContainer" title="ctapipe.containers.ReconstructedEnergyContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReconstructedEnergyContainer</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p>/classification</p></td>
+<td><p>shower classification parameters</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a>, <a class="reference internal" href="../api/ctapipe.containers.ParticleClassificationContainer.html#ctapipe.containers.ParticleClassificationContainer" title="ctapipe.containers.ParticleClassificationContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParticleClassificationContainer</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="simulation-data-model">
+<h2>Simulation Data Model<a class="headerlink" href="#simulation-data-model" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">/simulation/event/subarray/shower</span></code></p></li>
+<li><p>true shower parameters from Monte-Carlo simulation</p></li>
+<li><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a> +, <a class="reference internal" href="../api/ctapipe.containers.SimulatedShowerContainer.html#ctapipe.containers.SimulatedShowerContainer" title="ctapipe.containers.SimulatedShowerContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulatedShowerContainer</span></code></a></p></li>
+</ul>
+</li>
+<li><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">/simulation/event/telescope/images/tel_{TEL_ID:03d}</span></code></p></li>
+<li><p>simulated camera images</p></li>
+<li><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a> +, <a class="reference internal" href="../api/ctapipe.containers.SimulatedCameraContainer.html#ctapipe.containers.SimulatedCameraContainer" title="ctapipe.containers.SimulatedCameraContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulatedCameraContainer</span></code></a></p></li>
+</ul>
+</li>
+<li><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">/simulation/event/telescope/parameters/tel_{TEL_ID:03d}</span></code></p></li>
+<li><p>Parameters derived form the simulated camera images</p></li>
+<li><p><a class="reference internal" href="../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer" title="ctapipe.containers.EventIndexContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventIndexContainer</span></code></a> +, <a class="reference internal" href="../api/ctapipe.containers.ImageParametersContainer.html#ctapipe.containers.ImageParametersContainer" title="ctapipe.containers.ImageParametersContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ImageParametersContainer</span></code></a></p></li>
+</ul>
+</li>
+<li><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">/simulation/service/shower_distribution</span></code></p></li>
+<li><p>simulated shower distribution histograms</p></li>
+<li><p><a class="reference internal" href="../api/ctapipe.containers.SimulatedShowerDistribution.html#ctapipe.containers.SimulatedShowerDistribution" title="ctapipe.containers.SimulatedShowerDistribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulatedShowerDistribution</span></code></a></p></li>
+</ul>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="configuration-data-model">
+<h2>Configuration Data Model<a class="headerlink" href="#configuration-data-model" title="Permalink to this headline">¶</a></h2>
+<p>The output file should also contain serializations of the instrument, observation (if
+applicable), simulation (if applicable) configuration information, written to the
+<code class="docutils literal notranslate"><span class="pre">/configuration</span></code> group:</p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 50%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Group/Dataset</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/instrument</span></code></p></td>
+<td><p>Serialized <a class="reference internal" href="../api/ctapipe.instrument.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription" title="ctapipe.instrument.SubarrayDescription"><code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.instrument.SubarrayDescription</span></code></a>, using <a class="reference internal" href="../api/ctapipe.instrument.SubarrayDescription.html#ctapipe.instrument.SubarrayDescription.to_hdf" title="ctapipe.instrument.SubarrayDescription.to_hdf"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ctapipe.instrument.SubarrayDescription.to_hdf()</span></code></a></p></td>
+<td><p>(group)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/instrument/subarray/layout</span></code></p></td>
+<td><p>Subarray layout info</p></td>
+<td><p>result of <code class="docutils literal notranslate"><span class="pre">SubarrayDescription.to_table()</span></code> output as HDF5 using <code class="docutils literal notranslate"><span class="pre">astropy.table</span></code> functionality</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/instrument/telescope/optics</span></code></p></td>
+<td><p>telescope optics information</p></td>
+<td><p>result of <code class="docutils literal notranslate"><span class="pre">SubarrayDescription.to_table(kind='optics')</span></code> output as HDF5 using
+<code class="docutils literal notranslate"><span class="pre">astropy.table</span></code> functionality</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/instrument/telescope/camera/{CAMERA_ID}</span></code></p></td>
+<td><p>camera geometry information</p></td>
+<td><p>result of <code class="docutils literal notranslate"><span class="pre">CameraGeometry.to_table()</span></code> output as HDF5 using <code class="docutils literal notranslate"><span class="pre">astropy.table</span></code>
+functionality</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/simulation</span></code></p></td>
+<td><p>Monte-Carlo simulation configuration information</p></td>
+<td><p>(group)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/simulation/run</span></code></p></td>
+<td><p>Monte-Carlo simulation run information</p></td>
+<td><p><a class="reference internal" href="../api/ctapipe.containers.SimulationConfigContainer.html#ctapipe.containers.SimulationConfigContainer" title="ctapipe.containers.SimulationConfigContainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationConfigContainer</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="core-provenance">
+<h2>Core Provenance<a class="headerlink" href="#core-provenance" title="Permalink to this headline">¶</a></h2>
+<p>The root group of the file shall contain all of the “CTA Core Provenance Metadata”
+headers as user attributes, with the hierarchy flattened and separated by spaces
+(e.g.  <code class="docutils literal notranslate"><span class="pre">&quot;CTA</span> <span class="pre">ACTIVITY</span> <span class="pre">NAME&quot;</span> <span class="pre">=</span> <span class="pre">&quot;ctapipe-process&quot;</span></code>).</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Data Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../ctapipe_api/index.html" class="btn btn-neutral float-right" title="API Docs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+WaveformModel
+=============
+
+.. currentmodule:: ctapipe.image.toymodel
+
+.. autoclass:: WaveformModel
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~WaveformModel.from_camera_readout
+      ~WaveformModel.get_waveform
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_camera_readout
+   .. automethod:: get_waveform

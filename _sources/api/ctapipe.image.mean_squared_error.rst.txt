@@ -1,0 +1,6 @@
+mean_squared_error
+==================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: mean_squared_error

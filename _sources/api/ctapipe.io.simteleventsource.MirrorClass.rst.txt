@@ -1,0 +1,21 @@
+MirrorClass
+===========
+
+.. currentmodule:: ctapipe.io.simteleventsource
+
+.. autoclass:: MirrorClass
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MirrorClass.DUAL_MIRROR
+      ~MirrorClass.SINGLE_SEGMENTED_MIRROR
+      ~MirrorClass.SINGLE_SOLID_PARABOLIC_MIRROR
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: DUAL_MIRROR
+   .. autoattribute:: SINGLE_SEGMENTED_MIRROR
+   .. autoattribute:: SINGLE_SOLID_PARABOLIC_MIRROR

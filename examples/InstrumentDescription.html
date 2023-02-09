@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Working with Instrumental Descriptions &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Example of a Camera Display" href="camera_display.html" />
+    <link rel="prev" title="Convert camera images to pixels on a s square grid" href="convert_images_to_2d.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dilate_image.html">Basic Image Cleaning and Dilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nd_interpolation.html">Use N-dimensional Histogram functionality and Interpolation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="convert_images_to_2d.html">Convert camera images to pixels on a s square grid</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Working with Instrumental Descriptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-SubarrayDescription:">the SubarrayDescription:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Explore-some-of-the-details-of-the-telescopes">Explore some of the details of the telescopes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Plot-the-subarray">Plot the subarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Get-info-about-the-subarray-in-general">Get info about the subarray in general</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Telescope-IDs-vs-Indices">Telescope IDs vs Indices</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="camera_display.html">Example of a Camera Display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">Using Container classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tools.html">Creating command-line Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="provenance.html">Using the ctapipe Provenance service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="table_writer_reader.html">Writing Containers to a tabular format</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Working with Instrumental Descriptions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/InstrumentDescription.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars and line breaks on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+    white-space: pre;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.jp-RenderedHTMLCommon thead,
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+.jp-RenderedHTMLCommon th,
+div.rendered_html th {
+  font-weight: bold;
+}
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.jp-RenderedHTMLCommon tbody tr:hover,
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="Working-with-Instrumental-Descriptions">
+<h1>Working with Instrumental Descriptions<a class="headerlink" href="#Working-with-Instrumental-Descriptions" title="Permalink to this headline">¶</a></h1>
+<p>the instrumental description is loaded by the event source, and consists of a hierarchy of classes in the ctapipe.instrument module, the base of which is the <code class="docutils literal notranslate"><span class="pre">SubarrayDescription</span></code></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.utils.datasets</span> <span class="kn">import</span> <span class="n">get_dataset_path</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">EventSource</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">filename</span> <span class="o">=</span> <span class="n">get_dataset_path</span><span class="p">(</span><span class="s2">&quot;gamma_prod5.simtel.zst&quot;</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">max_events</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">source</span><span class="p">:</span>
+    <span class="n">subarray</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="the-SubarrayDescription:">
+<h2>the SubarrayDescription:<a class="headerlink" href="#the-SubarrayDescription:" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Subarray : MonteCarloArray
+Num Tels : 180
+Footprint: 4.92 km2
+
+       Type       Count     Tel IDs
+----------------- ----- ---------------
+   SST_ASTRI_CHEC   120 30-99,131-180
+   LST_LST_LSTCam     4 1-4
+ MST_MST_FlashCam    28 5-29,125-127
+MST_MST_NectarCam    28 100-124,128-130
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">to_table</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><i>Table length=180</i>
+<table id="table140685979775184" class="table-striped table-bordered table-condensed">
+<thead><tr><th>tel_id</th><th>name</th><th>type</th><th>pos_x</th><th>pos_y</th><th>pos_z</th><th>camera_name</th><th>optics_name</th><th>camera_index</th><th>optics_index</th><th>tel_description</th></tr></thead>
+<thead><tr><th></th><th></th><th></th><th>m</th><th>m</th><th>m</th><th></th><th></th><th></th><th></th><th></th></tr></thead>
+<thead><tr><th>int16</th><th>str5</th><th>str3</th><th>float32</th><th>float32</th><th>float32</th><th>str9</th><th>str5</th><th>int64</th><th>int64</th><th>str17</th></tr></thead>
+<tr><td>1</td><td>LST</td><td>LST</td><td>-20.643</td><td>-64.817</td><td>34.3</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>2</td><td>LST</td><td>LST</td><td>79.993996</td><td>-0.768</td><td>29.4</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>3</td><td>LST</td><td>LST</td><td>-19.396</td><td>65.2</td><td>31.0</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>4</td><td>LST</td><td>LST</td><td>-120.033</td><td>1.151</td><td>33.1</td><td>LSTCam</td><td>LST</td><td>2</td><td>1</td><td>LST_LST_LSTCam</td></tr>
+<tr><td>5</td><td>MST</td><td>MST</td><td>-0.017</td><td>-0.001</td><td>24.35</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>6</td><td>MST</td><td>MST</td><td>-1.468</td><td>-151.221</td><td>31.0</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>7</td><td>MST</td><td>MST</td><td>-3.1379998</td><td>-325.245</td><td>39.0</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>8</td><td>MST</td><td>MST</td><td>1.4339999</td><td>151.22</td><td>25.0</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>9</td><td>MST</td><td>MST</td><td>3.1039999</td><td>325.243</td><td>23.5</td><td>FlashCam</td><td>MST</td><td>1</td><td>2</td><td>MST_MST_FlashCam</td></tr>
+<tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+<tr><td>171</td><td>ASTRI</td><td>SST</td><td>260.0</td><td>920.0</td><td>45.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>172</td><td>ASTRI</td><td>SST</td><td>260.0</td><td>-920.0</td><td>65.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>173</td><td>ASTRI</td><td>SST</td><td>-500.0</td><td>815.0</td><td>15.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>174</td><td>ASTRI</td><td>SST</td><td>-500.0</td><td>-815.0</td><td>75.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>175</td><td>ASTRI</td><td>SST</td><td>500.0</td><td>815.0</td><td>45.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>176</td><td>ASTRI</td><td>SST</td><td>500.0</td><td>-815.0</td><td>53.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>177</td><td>ASTRI</td><td>SST</td><td>-810.0</td><td>655.0</td><td>12.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>178</td><td>ASTRI</td><td>SST</td><td>-810.0</td><td>-655.0</td><td>68.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>179</td><td>ASTRI</td><td>SST</td><td>810.0</td><td>655.0</td><td>20.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+<tr><td>180</td><td>ASTRI</td><td>SST</td><td>810.0</td><td>-655.0</td><td>41.0</td><td>CHEC</td><td>ASTRI</td><td>0</td><td>0</td><td>SST_ASTRI_CHEC</td></tr>
+</table></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<p>You can also get a table of just the <code class="docutils literal notranslate"><span class="pre">OpticsDescriptions</span></code> (<code class="docutils literal notranslate"><span class="pre">CameraGeometry</span></code> is more complex and can’t be stored on a single table row, so each one can be converted to a table separately)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">to_table</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><i>Table length=3</i>
+<table id="table140685979902016" class="table-striped table-bordered table-condensed">
+<thead><tr><th>optics_name</th><th>size_type</th><th>reflector_shape</th><th>mirror_area</th><th>n_mirrors</th><th>n_mirror_tiles</th><th>equivalent_focal_length</th><th>effective_focal_length</th></tr></thead>
+<thead><tr><th></th><th></th><th></th><th>m2</th><th></th><th></th><th>m</th><th>m</th></tr></thead>
+<thead><tr><th>str5</th><th>str3</th><th>str20</th><th>float64</th><th>int64</th><th>int64</th><th>float64</th><th>float64</th></tr></thead>
+<tr><td>ASTRI</td><td>SST</td><td>SCHWARZSCHILD_COUDER</td><td>14.126235008239746</td><td>2</td><td>2</td><td>2.1500000953674316</td><td>2.1519100666046143</td></tr>
+<tr><td>LST</td><td>LST</td><td>PARABOLIC</td><td>386.7332458496094</td><td>1</td><td>198</td><td>28.0</td><td>29.30565071105957</td></tr>
+<tr><td>MST</td><td>MST</td><td>HYBRID</td><td>106.2413558959961</td><td>1</td><td>86</td><td>16.0</td><td>16.445049285888672</td></tr>
+</table></div></div>
+</div>
+<p>Make a sub-array with only SC-type telescopes:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sc_tels</span> <span class="o">=</span> <span class="p">[</span><span class="n">tel_id</span> <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">tel</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">n_mirrors</span> <span class="o">==</span> <span class="mi">2</span><span class="p">]</span>
+<span class="n">newsub</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">select_subarray</span><span class="p">(</span><span class="n">sc_tels</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;SCTels&quot;</span><span class="p">)</span>
+<span class="n">newsub</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Subarray : SCTels
+Num Tels : 120
+Footprint: 4.92 km2
+
+     Type      Count    Tel IDs
+-------------- ----- -------------
+SST_ASTRI_CHEC   120 30-99,131-180
+</pre></div></div>
+</div>
+<p>can also do this by using <code class="docutils literal notranslate"><span class="pre">Table.group_by</span></code></p>
+</div>
+<div class="section" id="Explore-some-of-the-details-of-the-telescopes">
+<h2>Explore some of the details of the telescopes<a class="headerlink" href="#Explore-some-of-the-details-of-the-telescopes" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">tel</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+TelescopeDescription(type=&#39;LST&#39;, optics_name=&#39;LST&#39;, camera_name=&#39;LSTCam&#39;)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">mirror_area</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$386.73325 \; \mathrm{m^{2}}$</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">n_mirror_tiles</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+198
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">equivalent_focal_length</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$28 \; \mathrm{m}$</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CameraDescription(name=LSTCam, geometry=LSTCam, readout=LSTCam)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">pix_x</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$[0,~-0.037796701,~-0.047245475,~\dots,~0.67088033,~-0.45356484,~-0.50081024] \; \mathrm{m}$</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="kn">from</span> <span class="nn">ctapipe.visualization</span> <span class="kn">import</span> <span class="n">CameraDisplay</span>
+
+<span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;ctapipe.visualization.mpl_camera.CameraDisplay at 0x7ff401db6df0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_InstrumentDescription_18_1.png" src="../_images/examples_InstrumentDescription_18_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CameraDisplay</span><span class="p">(</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="mi">98</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;ctapipe.visualization.mpl_camera.CameraDisplay at 0x7ff3ff9d0970&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_InstrumentDescription_19_1.png" src="../_images/examples_InstrumentDescription_19_1.png" />
+</div>
+</div>
+</div>
+<div class="section" id="Plot-the-subarray">
+<h2>Plot the subarray<a class="headerlink" href="#Plot-the-subarray" title="Permalink to this headline">¶</a></h2>
+<p>We’ll make a subarray by telescope type and plot each separately, so they appear in different colors. We also calculate the radius using the mirror area (and exagerate it a bit).</p>
+<p>This is just for debugging and info, for any “real” use, a <code class="docutils literal notranslate"><span class="pre">visualization.ArrayDisplay</span></code> should be used</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">peek</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_InstrumentDescription_21_0.png" src="../_images/examples_InstrumentDescription_21_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">footprint</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$4.9234632 \; \mathrm{km^{2}}$</div></div>
+</div>
+</div>
+<div class="section" id="Get-info-about-the-subarray-in-general">
+<h2>Get info about the subarray in general<a class="headerlink" href="#Get-info-about-the-subarray-in-general" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(TelescopeDescription(type=&#39;SST&#39;, optics_name=&#39;ASTRI&#39;, camera_name=&#39;CHEC&#39;),
+ TelescopeDescription(type=&#39;LST&#39;, optics_name=&#39;LST&#39;, camera_name=&#39;LSTCam&#39;),
+ TelescopeDescription(type=&#39;MST&#39;, optics_name=&#39;MST&#39;, camera_name=&#39;FlashCam&#39;),
+ TelescopeDescription(type=&#39;MST&#39;, optics_name=&#39;MST&#39;, camera_name=&#39;NectarCam&#39;))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">camera_types</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(CameraDescription(name=CHEC, geometry=CHEC, readout=CHEC),
+ CameraDescription(name=FlashCam, geometry=FlashCam, readout=FlashCam),
+ CameraDescription(name=LSTCam, geometry=LSTCam, readout=LSTCam),
+ CameraDescription(name=NectarCam, geometry=NectarCam, readout=NectarCam))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">optics_types</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(OpticsDescription(name=ASTRI, size_type=SST, reflector_shape=SCHWARZSCHILD_COUDER, equivalent_focal_length=2.15 m, effective_focal_length=2.15 m, n_mirrors=2, mirror_area=14.13 m2),
+ OpticsDescription(name=LST, size_type=LST, reflector_shape=PARABOLIC, equivalent_focal_length=28.00 m, effective_focal_length=29.31 m, n_mirrors=1, mirror_area=386.73 m2),
+ OpticsDescription(name=MST, size_type=MST, reflector_shape=HYBRID, equivalent_focal_length=16.00 m, effective_focal_length=16.45 m, n_mirrors=1, mirror_area=106.24 m2))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="kn">from</span> <span class="nn">ctapipe.coordinates</span> <span class="kn">import</span> <span class="n">GroundFrame</span>
+
+<span class="n">center</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;10.0 m&quot;</span><span class="p">,</span> <span class="s2">&quot;2.0 m&quot;</span><span class="p">,</span> <span class="s2">&quot;0.0 m&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s2">&quot;groundframe&quot;</span><span class="p">)</span>
+<span class="n">coords</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_coords</span>  <span class="c1"># a flat list of coordinates by tel_index</span>
+<span class="n">coords</span><span class="o">.</span><span class="n">separation</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+[$115^\circ37{}^\prime48.53728809{}^{\prime\prime}$
+ $23^\circ16{}^\prime48.71368376{}^{\prime\prime}$
+ $94^\circ46{}^\prime57.06512996{}^{\prime\prime}$
+ $160^\circ38{}^\prime17.99179741{}^{\prime\prime}$
+ $90^\circ02{}^\prime22.86896225{}^{\prime\prime}$
+ $101^\circ37{}^\prime15.59471603{}^{\prime\prime}$
+ $101^\circ46{}^\prime37.67470941{}^{\prime\prime}$
+ $78^\circ18{}^\prime27.84261148{}^{\prime\prime}$
+ $78^\circ10{}^\prime28.36657617{}^{\prime\prime}$
+ $45^\circ27{}^\prime35.97543537{}^{\prime\prime}$
+ $16^\circ59{}^\prime24.86749269{}^{\prime\prime}$
+ $39^\circ58{}^\prime36.5305221{}^{\prime\prime}$
+ $69^\circ06{}^\prime00.41200774{}^{\prime\prime}$
+ $110^\circ55{}^\prime43.84261342{}^{\prime\prime}$
+ $139^\circ53{}^\prime52.10746639{}^{\prime\prime}$
+ $161^\circ53{}^\prime57.44575812{}^{\prime\prime}$
+ $134^\circ14{}^\prime04.61794311{}^{\prime\prime}$
+ $45^\circ19{}^\prime31.8677554{}^{\prime\prime}$
+ $15^\circ41{}^\prime09.62278432{}^{\prime\prime}$
+ $12^\circ23{}^\prime30.02446134{}^{\prime\prime}$
+ $39^\circ16{}^\prime01.93418447{}^{\prime\prime}$
+ $69^\circ02{}^\prime23.91555142{}^{\prime\prime}$
+ $111^\circ01{}^\prime02.98397763{}^{\prime\prime}$
+ $140^\circ35{}^\prime18.81775813{}^{\prime\prime}$
+ $166^\circ57{}^\prime33.12823197{}^{\prime\prime}$
+ $163^\circ35{}^\prime33.54325283{}^{\prime\prime}$
+ $134^\circ29{}^\prime00.15614806{}^{\prime\prime}$
+ $11^\circ55{}^\prime58.302677{}^{\prime\prime}$
+ $167^\circ37{}^\prime52.38371474{}^{\prime\prime}$
+ $26^\circ01{}^\prime54.63781737{}^{\prime\prime}$
+ $49^\circ42{}^\prime53.3573094{}^{\prime\prime}$
+ $130^\circ15{}^\prime08.98906098{}^{\prime\prime}$
+ $153^\circ27{}^\prime53.98923833{}^{\prime\prime}$
+ $56^\circ58{}^\prime06.54760364{}^{\prime\prime}$
+ $80^\circ40{}^\prime58.98009562{}^{\prime\prime}$
+ $99^\circ20{}^\prime36.68467668{}^{\prime\prime}$
+ $122^\circ54{}^\prime22.08156543{}^{\prime\prime}$
+ $78^\circ08{}^\prime42.65380699{}^{\prime\prime}$
+ $101^\circ49{}^\prime26.16909516{}^{\prime\prime}$
+ $34^\circ01{}^\prime48.4871336{}^{\prime\prime}$
+ $57^\circ46{}^\prime41.25947597{}^{\prime\prime}$
+ $122^\circ15{}^\prime35.5320416{}^{\prime\prime}$
+ $145^\circ39{}^\prime14.42191405{}^{\prime\prime}$
+ $1^\circ14{}^\prime54.5162229{}^{\prime\prime}$
+ $24^\circ26{}^\prime06.70955766{}^{\prime\prime}$
+ $155^\circ24{}^\prime16.53048746{}^{\prime\prime}$
+ $176^\circ30{}^\prime58.85678108{}^{\prime\prime}$
+ $78^\circ08{}^\prime35.43447641{}^{\prime\prime}$
+ $101^\circ49{}^\prime13.04461153{}^{\prime\prime}$
+ $15^\circ25{}^\prime15.9893754{}^{\prime\prime}$
+ $39^\circ07{}^\prime10.57205245{}^{\prime\prime}$
+ $140^\circ50{}^\prime37.19773001{}^{\prime\prime}$
+ $164^\circ04{}^\prime49.92718766{}^{\prime\prime}$
+ $45^\circ17{}^\prime39.84001018{}^{\prime\prime}$
+ $69^\circ00{}^\prime41.87664707{}^{\prime\prime}$
+ $111^\circ01{}^\prime39.52843975{}^{\prime\prime}$
+ $134^\circ31{}^\prime54.15211982{}^{\prime\prime}$
+ $11^\circ51{}^\prime48.04299327{}^{\prime\prime}$
+ $167^\circ57{}^\prime00.7607586{}^{\prime\prime}$
+ $62^\circ40{}^\prime06.90027025{}^{\prime\prime}$
+ $86^\circ22{}^\prime57.30949883{}^{\prime\prime}$
+ $93^\circ37{}^\prime39.95895171{}^{\prime\prime}$
+ $117^\circ14{}^\prime49.7522144{}^{\prime\prime}$
+ $78^\circ08{}^\prime46.65029204{}^{\prime\prime}$
+ $101^\circ49{}^\prime21.94647892{}^{\prime\prime}$
+ $28^\circ49{}^\prime16.21053425{}^{\prime\prime}$
+ $52^\circ34{}^\prime56.22025098{}^{\prime\prime}$
+ $127^\circ28{}^\prime14.89982613{}^{\prime\prime}$
+ $150^\circ53{}^\prime43.36851833{}^{\prime\prime}$
+ $2^\circ37{}^\prime25.28096743{}^{\prime\prime}$
+ $26^\circ19{}^\prime10.19296874{}^{\prime\prime}$
+ $153^\circ38{}^\prime45.55173649{}^{\prime\prime}$
+ $176^\circ17{}^\prime30.67883187{}^{\prime\prime}$
+ $15^\circ25{}^\prime49.43804438{}^{\prime\prime}$
+ $39^\circ09{}^\prime24.17330046{}^{\prime\prime}$
+ $140^\circ51{}^\prime45.78771005{}^{\prime\prime}$
+ $164^\circ14{}^\prime51.16830131{}^{\prime\prime}$
+ $52^\circ19{}^\prime45.41515578{}^{\prime\prime}$
+ $76^\circ00{}^\prime54.35432629{}^{\prime\prime}$
+ $104^\circ00{}^\prime40.3191603{}^{\prime\prime}$
+ $127^\circ35{}^\prime18.49132396{}^{\prime\prime}$
+ $38^\circ28{}^\prime24.20830686{}^{\prime\prime}$
+ $62^\circ09{}^\prime24.90488478{}^{\prime\prime}$
+ $117^\circ52{}^\prime38.73247866{}^{\prime\prime}$
+ $141^\circ23{}^\prime18.86339205{}^{\prime\prime}$
+ $11^\circ51{}^\prime40.55787668{}^{\prime\prime}$
+ $168^\circ03{}^\prime13.67455894{}^{\prime\prime}$
+ $66^\circ00{}^\prime25.50011034{}^{\prime\prime}$
+ $89^\circ41{}^\prime49.40711649{}^{\prime\prime}$
+ $90^\circ14{}^\prime45.66080857{}^{\prime\prime}$
+ $113^\circ56{}^\prime46.48499003{}^{\prime\prime}$
+ $25^\circ52{}^\prime55.46889846{}^{\prime\prime}$
+ $49^\circ36{}^\prime25.53139002{}^{\prime\prime}$
+ $130^\circ25{}^\prime28.16246205{}^{\prime\prime}$
+ $153^\circ52{}^\prime16.80179427{}^{\prime\prime}$
+ $5^\circ18{}^\prime28.02210585{}^{\prime\prime}$
+ $29^\circ01{}^\prime06.88086914{}^{\prime\prime}$
+ $150^\circ59{}^\prime18.82490611{}^{\prime\prime}$
+ $174^\circ17{}^\prime23.56686487{}^{\prime\prime}$
+ $90^\circ02{}^\prime22.86896225{}^{\prime\prime}$
+ $101^\circ37{}^\prime15.59471603{}^{\prime\prime}$
+ $101^\circ46{}^\prime37.67470941{}^{\prime\prime}$
+ $78^\circ18{}^\prime27.84261148{}^{\prime\prime}$
+ $78^\circ10{}^\prime28.36657617{}^{\prime\prime}$
+ $45^\circ27{}^\prime35.97543537{}^{\prime\prime}$
+ $16^\circ59{}^\prime24.86749269{}^{\prime\prime}$
+ $39^\circ58{}^\prime36.5305221{}^{\prime\prime}$
+ $69^\circ06{}^\prime00.41200774{}^{\prime\prime}$
+ $110^\circ55{}^\prime43.84261342{}^{\prime\prime}$
+ $139^\circ53{}^\prime52.10746639{}^{\prime\prime}$
+ $161^\circ53{}^\prime57.44575812{}^{\prime\prime}$
+ $134^\circ14{}^\prime04.61794311{}^{\prime\prime}$
+ $45^\circ19{}^\prime31.8677554{}^{\prime\prime}$
+ $15^\circ41{}^\prime09.62278432{}^{\prime\prime}$
+ $12^\circ23{}^\prime30.02446134{}^{\prime\prime}$
+ $39^\circ16{}^\prime01.93418447{}^{\prime\prime}$
+ $69^\circ02{}^\prime23.91555142{}^{\prime\prime}$
+ $111^\circ01{}^\prime02.98397763{}^{\prime\prime}$
+ $140^\circ35{}^\prime18.81775813{}^{\prime\prime}$
+ $166^\circ57{}^\prime33.12823197{}^{\prime\prime}$
+ $163^\circ35{}^\prime33.54325283{}^{\prime\prime}$
+ $134^\circ29{}^\prime00.15614806{}^{\prime\prime}$
+ $11^\circ55{}^\prime58.302677{}^{\prime\prime}$
+ $167^\circ37{}^\prime52.38371474{}^{\prime\prime}$
+ $136^\circ57{}^\prime45.95755748{}^{\prime\prime}$
+ $135^\circ07{}^\prime08.42537213{}^{\prime\prime}$
+ $144^\circ03{}^\prime07.34583759{}^{\prime\prime}$
+ $136^\circ57{}^\prime45.95755748{}^{\prime\prime}$
+ $135^\circ07{}^\prime08.42537213{}^{\prime\prime}$
+ $144^\circ03{}^\prime07.34583759{}^{\prime\prime}$
+ $12^\circ21{}^\prime10.63672941{}^{\prime\prime}$
+ $11^\circ49{}^\prime31.42733953{}^{\prime\prime}$
+ $14^\circ26{}^\prime28.56626411{}^{\prime\prime}$
+ $117^\circ32{}^\prime31.4678604{}^{\prime\prime}$
+ $16^\circ04{}^\prime14.73718876{}^{\prime\prime}$
+ $62^\circ57{}^\prime07.77000849{}^{\prime\prime}$
+ $78^\circ42{}^\prime38.29587693{}^{\prime\prime}$
+ $101^\circ14{}^\prime22.04343375{}^{\prime\prime}$
+ $118^\circ48{}^\prime09.35939992{}^{\prime\prime}$
+ $141^\circ08{}^\prime27.59692398{}^{\prime\prime}$
+ $38^\circ36{}^\prime57.36221721{}^{\prime\prime}$
+ $61^\circ14{}^\prime04.57040488{}^{\prime\prime}$
+ $104^\circ39{}^\prime08.29781247{}^{\prime\prime}$
+ $127^\circ08{}^\prime29.11683192{}^{\prime\prime}$
+ $52^\circ44{}^\prime50.28926073{}^{\prime\prime}$
+ $75^\circ22{}^\prime30.28675274{}^{\prime\prime}$
+ $154^\circ17{}^\prime04.33890125{}^{\prime\prime}$
+ $175^\circ51{}^\prime30.60324792{}^{\prime\prime}$
+ $3^\circ07{}^\prime40.20738999{}^{\prime\prime}$
+ $25^\circ40{}^\prime46.72611271{}^{\prime\prime}$
+ $155^\circ31{}^\prime05.76852749{}^{\prime\prime}$
+ $177^\circ07{}^\prime48.37033358{}^{\prime\prime}$
+ $1^\circ51{}^\prime33.76315166{}^{\prime\prime}$
+ $24^\circ28{}^\prime05.09034799{}^{\prime\prime}$
+ $168^\circ33{}^\prime14.25941047{}^{\prime\prime}$
+ $11^\circ18{}^\prime49.45565605{}^{\prime\prime}$
+ $89^\circ48{}^\prime50.06947064{}^{\prime\prime}$
+ $112^\circ43{}^\prime37.64931806{}^{\prime\prime}$
+ $67^\circ11{}^\prime56.82656885{}^{\prime\prime}$
+ $90^\circ11{}^\prime11.75785172{}^{\prime\prime}$
+ $125^\circ45{}^\prime46.14049369{}^{\prime\prime}$
+ $148^\circ07{}^\prime09.66819251{}^{\prime\prime}$
+ $31^\circ38{}^\prime07.22086606{}^{\prime\prime}$
+ $54^\circ16{}^\prime21.09751607{}^{\prime\prime}$
+ $143^\circ36{}^\prime39.3424254{}^{\prime\prime}$
+ $165^\circ48{}^\prime19.81864969{}^{\prime\prime}$
+ $13^\circ45{}^\prime49.96366223{}^{\prime\prime}$
+ $36^\circ22{}^\prime59.16585{}^{\prime\prime}$
+ $94^\circ28{}^\prime09.44371894{}^{\prime\prime}$
+ $117^\circ00{}^\prime03.42456501{}^{\prime\prime}$
+ $62^\circ56{}^\prime30.19964872{}^{\prime\prime}$
+ $85^\circ32{}^\prime22.19145376{}^{\prime\prime}$
+ $110^\circ12{}^\prime59.25351694{}^{\prime\prime}$
+ $132^\circ40{}^\prime35.18429669{}^{\prime\prime}$
+ $47^\circ13{}^\prime11.25823017{}^{\prime\prime}$
+ $69^\circ48{}^\prime47.82814446{}^{\prime\prime}$
+ $129^\circ43{}^\prime35.22132347{}^{\prime\prime}$
+ $152^\circ07{}^\prime05.15361244{}^{\prime\prime}$
+ $27^\circ40{}^\prime14.4110196{}^{\prime\prime}$
+ $50^\circ18{}^\prime25.99569671{}^{\prime\prime}$]</div></div>
+</div>
+</div>
+<div class="section" id="Telescope-IDs-vs-Indices">
+<h2>Telescope IDs vs Indices<a class="headerlink" href="#Telescope-IDs-vs-Indices" title="Permalink to this headline">¶</a></h2>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">subarray.tel</span></code> is a dict mapped by <code class="docutils literal notranslate"><span class="pre">tel_id</span></code> (the indentifying number of a telescope). It is possible to have telescope IDs that do not start at 0, are not contiguouous (e.g. if a subarray is selected). Some functions and properties like <code class="docutils literal notranslate"><span class="pre">tel_coords</span></code> are numpy arrays (not dicts) so they are not mapped to the telescope ID, but rather the <em>index</em> within this SubarrayDescription. To convert between the two concepts you can do:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_ids_to_indices</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">23</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([ 0,  4, 22])
+</pre></div></div>
+</div>
+<p>or you can get the indexing array directly in numpy or dict form:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_index_array</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([ -1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,
+        12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,
+        25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,
+        38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,
+        51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,
+        64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,
+        77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,
+        90,  91,  92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102,
+       103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+       116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128,
+       129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141,
+       142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+       155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167,
+       168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_index_array</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">23</span><span class="p">]]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([ 0,  4, 22])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_indices</span><span class="p">[</span>
+    <span class="mi">1</span>
+<span class="p">]</span>  <span class="c1"># this is a dict of tel_id -&gt; tel_index, so we can only do one at once</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ids</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">get_tel_ids_for_type</span><span class="p">(</span><span class="n">subarray</span><span class="o">.</span><span class="n">telescope_types</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ids</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(30,
+ 31,
+ 32,
+ 33,
+ 34,
+ 35,
+ 36,
+ 37,
+ 38,
+ 39,
+ 40,
+ 41,
+ 42,
+ 43,
+ 44,
+ 45,
+ 46,
+ 47,
+ 48,
+ 49,
+ 50,
+ 51,
+ 52,
+ 53,
+ 54,
+ 55,
+ 56,
+ 57,
+ 58,
+ 59,
+ 60,
+ 61,
+ 62,
+ 63,
+ 64,
+ 65,
+ 66,
+ 67,
+ 68,
+ 69,
+ 70,
+ 71,
+ 72,
+ 73,
+ 74,
+ 75,
+ 76,
+ 77,
+ 78,
+ 79,
+ 80,
+ 81,
+ 82,
+ 83,
+ 84,
+ 85,
+ 86,
+ 87,
+ 88,
+ 89,
+ 90,
+ 91,
+ 92,
+ 93,
+ 94,
+ 95,
+ 96,
+ 97,
+ 98,
+ 99,
+ 131,
+ 132,
+ 133,
+ 134,
+ 135,
+ 136,
+ 137,
+ 138,
+ 139,
+ 140,
+ 141,
+ 142,
+ 143,
+ 144,
+ 145,
+ 146,
+ 147,
+ 148,
+ 149,
+ 150,
+ 151,
+ 152,
+ 153,
+ 154,
+ 155,
+ 156,
+ 157,
+ 158,
+ 159,
+ 160,
+ 161,
+ 162,
+ 163,
+ 164,
+ 165,
+ 166,
+ 167,
+ 168,
+ 169,
+ 170,
+ 171,
+ 172,
+ 173,
+ 174,
+ 175,
+ 176,
+ 177,
+ 178,
+ 179,
+ 180)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">idx</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel_ids_to_indices</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+<span class="n">idx</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([ 29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,
+        42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,
+        55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,
+        68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,
+        81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,  92,  93,
+        94,  95,  96,  97,  98, 130, 131, 132, 133, 134, 135, 136, 137,
+       138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150,
+       151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163,
+       164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176,
+       177, 178, 179])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">tel_coords</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;SkyCoord (GroundFrame: reference_location=None): (x, y, z) in m
+    [(  207.036  ,   156.949    , 14.25),
+     (  203.986  ,  -160.894    , 19.75),
+     ( -204.02   ,   160.893    , 22.25),
+     ( -207.07   ,  -156.95     , 28.25),
+     (  168.88199,   423.275    , 18.25),
+     (  160.729  ,  -426.44     , 33.25),
+     ( -160.76201,   426.43802  , 10.25),
+     ( -168.916  ,  -423.27698  , 42.25),
+     (    4.972  ,   519.86896  , 11.75),
+     (   -5.006  ,  -519.87103  , 41.25),
+     (  395.51   ,   399.996    , 11.25),
+     (  387.762  ,  -407.513    , 28.25),
+     ( -387.795  ,   407.512    , 13.25),
+     ( -395.545  ,  -399.99698  , 50.25),
+     (  495.605  ,   105.269005 ,  9.25),
+     (  493.494  ,  -114.760994 , 11.75),
+     ( -493.528  ,   114.76     , 28.25),
+     ( -495.64   ,  -105.269005 , 30.25),
+     (    6.927  ,   723.596    , 11.75),
+     (   -6.961  ,  -723.599    , 59.75),
+     (  621.223  ,   312.711    ,  7.25),
+     (  615.114  ,  -324.075    , 19.25),
+     ( -615.14197,   324.575    , 19.75),
+     ( -621.259  ,  -312.711    , 49.25),
+     (  441.802  ,   669.11206  , 30.25),
+     (  428.882  ,  -677.47     , 47.25),
+     ( -428.91397,   677.46704  ,  7.25),
+     ( -441.838  ,  -669.114    , 70.25),
+     (  820.094  ,    -7.8690004,  4.25),
+     ( -820.128  ,     7.87     , 30.75),
+     (  228.46   ,   794.887    , 25.25),
+     (  213.165  ,  -799.128    , 56.25),
+     ( -213.19801,   799.125    , 10.25),
+     ( -228.495  ,  -794.89     , 68.25),
+     (    9.046  ,   944.425    , 27.25),
+     (   -9.08   ,  -944.43     , 75.25),
+     (  668.034  ,   562.918    , 13.25),
+     (  657.111  ,  -575.635    , 43.25),
+     ( -657.142  ,   575.635    ,  8.25),
+     ( -668.07   ,  -562.919    , 66.25),
+     (  885.687  ,   219.253    ,  6.25),
+     (  881.318  ,  -236.20801  ,  9.25),
+     ( -881.35   ,   236.21     , 24.25),
+     ( -885.72205,  -219.252    , 42.25),
+     (  920.53705,   463.474    , 12.75),
+     (  911.476  ,  -481.054    , 26.25),
+     ( -911.507  ,   481.054    , 11.25),
+     ( -920.574  ,  -463.47302  , 59.25),
+     (  480.36603,   966.80896  , 56.25),
+     (  461.727  ,  -975.85297  , 65.75),
+     ( -461.758  ,   975.849    , 16.75),
+     ( -480.403  ,  -966.813    , 87.25),
+     (  714.73206,   843.133    , 49.25),
+     (  698.425  ,  -856.69604  , 53.75),
+     ( -698.455  ,   856.694    , 14.75),
+     ( -714.77   ,  -843.135    , 84.75),
+     ( 1100.131  ,   -10.556    ,  3.75),
+     (-1100.165  ,    10.558001 , 27.75),
+     (  249.865  ,  1107.552    , 55.25),
+     (  228.566  , -1112.148    , 77.75),
+     ( -227.39801,  1112.131    , 25.25),
+     ( -249.9    , -1107.557    , 89.25),
+     (  964.01   ,   730.71704  , 27.25),
+     (  949.81396,  -749.08295  , 46.25),
+     ( -949.844  ,   749.08203  , 17.25),
+     ( -964.048  ,  -730.71704  , 83.25),
+     ( 1199.684  ,   357.573    , 10.25),
+     ( 1192.605  ,  -380.52698  , 19.25),
+     (-1192.635  ,   380.53     , 12.75),
+     (-1199.7211 ,  -357.57     , 47.25),
+     ( 1100.131  ,   -20.       ,  3.75),
+     (  880.094  ,    -7.8690004,  4.25),
+     (  785.     ,   -42.9      ,  4.25),
+     ( -228.495  ,  -779.49896  , 68.25),
+     (  910.     ,   471.       , 12.75),
+     (  228.46   ,   810.       , 25.25),
+     (   -0.     ,   350.       , 21.  ),
+     (    0.     ,  -350.       , 39.  ),
+     ( -270.     ,   320.       , 22.  ),
+     ( -270.     ,  -320.       , 40.  ),
+     (  270.     ,   320.       , 20.  ),
+     (  270.     ,  -320.       , 30.  ),
+     ( -280.     ,   575.       , 10.  ),
+     ( -280.     ,  -575.00104  , 50.  ),
+     (  280.     ,   575.       , 20.  ),
+     (  280.     ,  -575.       , 40.  ),
+     ( -685.     ,   175.       , 25.  ),
+     ( -685.     ,  -175.       , 35.  ),
+     (  685.     ,   175.       , 10.  ),
+     (  685.     ,  -175.       , 18.  ),
+     (-1070.     ,   250.       , 20.  ),
+     (-1070.     ,  -250.       , 42.25),
+     ( 1070.     ,   250.       ,  5.  ),
+     ( 1070.     ,  -250.       , 11.75),
+     ( -970.     ,    -0.       , 30.  ),
+     (  970.     ,    -0.       ,  5.  ),
+     (  120.     ,  -590.00104  , 45.  ),
+     ( -120.     ,  -590.       , 49.  ),
+     (  120.     ,   590.       , 13.  ),
+     ( -120.     ,   590.       , 11.  ),
+     ( -500.     ,   465.       , 10.  ),
+     ( -500.     ,  -465.       , 52.  ),
+     (  500.     ,   465.       , 15.  ),
+     (  500.     ,  -465.       , 30.  ),
+     ( -770.     ,   360.       , 20.  ),
+     ( -770.     ,  -360.       , 53.  ),
+     (  770.     ,   360.       , 10.  ),
+     (  770.     ,  -360.       , 17.  ),
+     ( -260.     ,   920.       , 25.  ),
+     ( -260.     ,  -920.       , 75.  ),
+     (  260.     ,   920.       , 45.  ),
+     (  260.     ,  -920.       , 65.  ),
+     ( -500.     ,   815.       , 15.  ),
+     ( -500.     ,  -815.       , 75.  ),
+     (  500.     ,   815.       , 45.  ),
+     (  500.     ,  -815.       , 53.  ),
+     ( -810.     ,   655.       , 12.  ),
+     ( -810.     ,  -655.       , 68.  ),
+     (  810.     ,   655.       , 20.  ),
+     (  810.     ,  -655.       , 41.  )]&gt;
+</pre></div></div>
+</div>
+<p>so, with that method you can quickly get many telescope positions at once (the alternative is to use the dict <code class="docutils literal notranslate"><span class="pre">positions</span></code> which maps <code class="docutils literal notranslate"><span class="pre">tel_id</span></code> to a position on the ground</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subarray</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$[-20.643,~-64.817001,~34.299999] \; \mathrm{m}$</div></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="convert_images_to_2d.html" class="btn btn-neutral float-left" title="Convert camera images to pixels on a s square grid" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="camera_display.html" class="btn btn-neutral float-right" title="Example of a Camera Display" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

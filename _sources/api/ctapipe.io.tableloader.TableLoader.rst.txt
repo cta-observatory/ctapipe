@@ -1,0 +1,69 @@
+TableLoader
+===========
+
+.. currentmodule:: ctapipe.io.tableloader
+
+.. autoclass:: TableLoader
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TableLoader.focal_length_choice
+      ~TableLoader.input_url
+      ~TableLoader.load_dl1_images
+      ~TableLoader.load_dl1_muons
+      ~TableLoader.load_dl1_parameters
+      ~TableLoader.load_dl2
+      ~TableLoader.load_instrument
+      ~TableLoader.load_observation_info
+      ~TableLoader.load_simulated
+      ~TableLoader.load_true_images
+      ~TableLoader.load_true_parameters
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TableLoader.close
+      ~TableLoader.read_observation_information
+      ~TableLoader.read_shower_distribution
+      ~TableLoader.read_simulation_configuration
+      ~TableLoader.read_subarray_events
+      ~TableLoader.read_subarray_events_chunked
+      ~TableLoader.read_telescope_events
+      ~TableLoader.read_telescope_events_by_id
+      ~TableLoader.read_telescope_events_by_id_chunked
+      ~TableLoader.read_telescope_events_by_type
+      ~TableLoader.read_telescope_events_by_type_chunked
+      ~TableLoader.read_telescope_events_chunked
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: focal_length_choice
+   .. autoattribute:: input_url
+   .. autoattribute:: load_dl1_images
+   .. autoattribute:: load_dl1_muons
+   .. autoattribute:: load_dl1_parameters
+   .. autoattribute:: load_dl2
+   .. autoattribute:: load_instrument
+   .. autoattribute:: load_observation_info
+   .. autoattribute:: load_simulated
+   .. autoattribute:: load_true_images
+   .. autoattribute:: load_true_parameters
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: close
+   .. automethod:: read_observation_information
+   .. automethod:: read_shower_distribution
+   .. automethod:: read_simulation_configuration
+   .. automethod:: read_subarray_events
+   .. automethod:: read_subarray_events_chunked
+   .. automethod:: read_telescope_events
+   .. automethod:: read_telescope_events_by_id
+   .. automethod:: read_telescope_events_by_id_chunked
+   .. automethod:: read_telescope_events_by_type
+   .. automethod:: read_telescope_events_by_type_chunked
+   .. automethod:: read_telescope_events_chunked

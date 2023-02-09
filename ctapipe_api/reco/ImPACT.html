@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analysis with ImPACT &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Reconstructor" href="../../api/ctapipe.reco.Reconstructor.html" />
+    <link rel="prev" title="StereoMeanCombiner" href="../../api/ctapipe.reco.stereo_combination.StereoMeanCombiner.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="index.html#introduction">Introduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html#currently-implemented-algorithms">Currently Implemented Algorithms</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="index.html#moment-based-stereo-reconstruction">Moment-Based Stereo Reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="index.html#machine-learning-based-reconstruction">Machine-Learning-Based Reconstruction</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html#template-based-stereo-reconstruction">Template-Based Stereo Reconstruction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#reference-api">Reference/API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Docs</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+      <li class="breadcrumb-item active">Analysis with ImPACT</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/ctapipe_api/reco/ImPACT.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="analysis-with-impact">
+<span id="impact"></span><h1>Analysis with ImPACT<a class="headerlink" href="#analysis-with-impact" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="what-is-impact">
+<h2>What is ImPACT?<a class="headerlink" href="#what-is-impact" title="Permalink to this headline">¶</a></h2>
+<p>ImPACT stands for <strong>Image Pixel-wise fit for Atmospheric Cherenkov Telescopes</strong>, it is
+an event reconstruction algorithm originally created for the H.E.S.S. experiment. This
+reconstruction algorithm uses the full camera image to perform a fit of the shower axis
+and nergy, thereby extracting the maximum possible performance of the instrument.</p>
+<div class="section" id="image-templates">
+<h3>Image Templates<a class="headerlink" href="#image-templates" title="Permalink to this headline">¶</a></h3>
+<p>The first step of the analysis is to generate a library of image templates for all
+possible shower energies, impact distances and depth of maximum. There templates are
+essentially the expected images from a “perfect” and extremely finely pixelated camera,
+generated for all possible observing conditions of the shower. Currently these
+templates are created by performing a full Monte Carlo air shower simulations, followed
+by ray tracing of the created Cherenkov photons to the camera focal plane. For more
+details as to how this is performed check the paper (link).</p>
+<div class="figure align-center">
+<img alt="../../_images/ImageTemplates.png" src="../../_images/ImageTemplates.png" />
+</div>
+<p>The above figure shows 4 examples of the image templates, created in the nominal system
+(X-Y axis in degrees), with the Z-axis showing the expected number of photo-electrons.</p>
+</div>
+<div class="section" id="image-prediction">
+<h3>Image Prediction<a class="headerlink" href="#image-prediction" title="Permalink to this headline">¶</a></h3>
+<p>Once the template library has been generated it can then be used to create a predicted
+gamma-ray image by interpolating between the template available in the library.
+Currently this interpolation is performed in the energy, impact distance and Xmax
+dimensions, however in the future it is likely that azimuth and altitude dimensions will
+be added to this. Interpolation is performed using the <a class="reference internal" href="../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator" title="ctapipe.utils.TableInterpolator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableInterpolator</span></code></a>
+class.</p>
+<div class="figure align-default">
+<img alt="../../_images/predictions.png" src="../../_images/predictions.png" />
+</div>
+</div>
+<div class="section" id="calculating-image-likelihood">
+<h3>Calculating Image Likelihood<a class="headerlink" href="#calculating-image-likelihood" title="Permalink to this headline">¶</a></h3>
+<p>Once a prediction of the image expectation can be made it should be compared to the
+data to assess the likelihood that the model represents the data. Several likelihood
+functions have been formulated, however currently the ImPACT code uses the likelihood
+function formulated in</p>
+<div class="figure align-default">
+<img alt="../../_images/likelihood.png" src="../../_images/likelihood.png" />
+</div>
+<p>This likelihood of a signal s given an expectation of μ consists of a convolution of the
+Poisson distribution of each individual photo- electron n, with the resolution of the
+photosensor. Where the resolution of the photosensor is represented by a Gaussian of
+width  sqrt(σ2 + nσ2) , where pγ σp is the width of the pedestal (charge distribution from
+night sky background light and electronic noise) and σγ is the width of the single
+photoelectron distribution.</p>
+<p>Once this per pixel likelihood function has been defined it can be simply summed over all
+significant pixels, selected based on the two level tail cut described in, with two (or
+more) additional rows of pixels added around the image edge, and summed over all
+telescopes passing selection cuts to find an event likelihood for a given set of
+shower parameters.</p>
+</div>
+<div class="section" id="maximum-likelihood-fitting">
+<h3>Maximum Likelihood Fitting<a class="headerlink" href="#maximum-likelihood-fitting" title="Permalink to this headline">¶</a></h3>
+<p>This event likelihood must then be minimised in a 6-dimensional fit over direction,
+impact point, Xmax and primary energy. In order to simplify the reconstruction of Xmax
+it is first reconstructed using a geometrical approach, assuming depth of maximum
+corresponds to the brightest point in the image (calculated by taking the average position
+of the brightest 3 camera pixels). The minimisation can then be performed over a
+modification factor to the estimated Xmax, greatly reducing the time taken for the fit
+procedure.</p>
+<p>Fitting is performed using the <a class="reference external" href="https://iminuit.readthedocs.io/en/stable/">iminuit</a>
+package (a wrapper around the MINUIT minimiser), providing a fast and reliable minimisation.
+The algorithm finds a function minimum in the majority of cases, typically taking
+around 500 function calls to reach the minimum.</p>
+</div>
+<div class="section" id="performance">
+<h3>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h3>
+<p>Coming soon…?</p>
+</div>
+</div>
+<div class="section" id="running-an-impact-analysis">
+<h2>Running an ImPACT analysis<a class="headerlink" href="#running-an-impact-analysis" title="Permalink to this headline">¶</a></h2>
+<p>Simple pseudocode example of using ImPACT is shown below. Full example will be added to
+examples directory soon.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reconstruct_ImPACT</span><span class="p">():</span>
+
+     <span class="n">source</span> <span class="o">=</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+     <span class="n">impact</span> <span class="o">=</span> <span class="n">ImPACTReconstructor</span><span class="p">(</span><span class="n">minimiser</span><span class="o">=</span><span class="s2">&quot;minuit&quot;</span><span class="p">)</span>
+     <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+
+         <span class="c1"># Perform a regular Hillas reconstruction here</span>
+         <span class="n">impact</span><span class="o">.</span><span class="n">set_event_properties</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="c1"># Dictionary of camera image amplitudes</span>
+                                     <span class="n">pixel_x</span><span class="p">,</span> <span class="n">pixel_y</span><span class="p">,</span> <span class="c1"># Dictionary of camera pixel</span>
+                                                       <span class="c1"># positions</span>
+                                     <span class="n">pixel_area</span><span class="p">,</span> <span class="c1"># Dictionary of camera pixel areas</span>
+                                     <span class="n">type_tel</span><span class="p">,</span> <span class="c1"># Dictionary of telescope types</span>
+                                     <span class="n">tel_x</span><span class="p">,</span> <span class="n">tel_y</span><span class="p">,</span> <span class="c1"># Dictionary of telescope positions</span>
+                                     <span class="n">array_direction</span><span class="p">,</span><span class="c1"># HorizonSystem object</span>
+                                     <span class="n">hillas</span><span class="p">)</span> <span class="c1"># Dictionary of Hillas parameters</span>
+</pre></div>
+</div>
+<p>If you wish to run an ImPACT analysis outside of the standard ‘ImPACTReconstruction’
+script then some setup must be performed to get the analysis running. Firstly the
+ImPACT reconstruction class must be initialised (this takes some time so should be done
+outside the event loop).</p>
+<p>Once the class has been initialised the properties of the event must then be passed on
+to the ImPACT class. This can be performed using the
+<a class="reference internal" href="../../api/ctapipe.reco.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.set_event_properties" title="ctapipe.reco.ImPACTReconstructor.set_event_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_event_properties</span></code></a>
+function.  In order to perform the reconstruction one must pass to the ImPACT code the
+pixel positions in the nominal system, pixel areas (in angular units), the telescope
+types, telescope positions in the ground system system, the pointing direction of the
+array and the hillas parameters of the telescope images.</p>
+<p>Once the event properties have been passed the event reconstruction can be performed by
+simply calling the <a class="reference internal" href="../../api/ctapipe.reco.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor.predict" title="ctapipe.reco.ImPACTReconstructor.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a> function and
+providing a seed shower direction and energy.</p>
+<div class="section" id="choosing-you-minimiser">
+<h3>Choosing you minimiser<a class="headerlink" href="#choosing-you-minimiser" title="Permalink to this headline">¶</a></h3>
+<p>When initialising the ImPACT reconstructor (see
+<a class="reference internal" href="../../api/ctapipe.reco.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor" title="ctapipe.reco.ImPACTReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImPACTReconstructor</span></code></a>), one can choose the minimiser to be used in the
+reconstruction. Although “minuit” is defined as the default option and should currently
+be used for performance estimation other minimisers can be selected for testing
+purposes.</p>
+<p>Any of the minimiser names listed for <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize" title="(in SciPy v1.10.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">minimize</span></code></a> or
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares" title="(in SciPy v1.10.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">least_squares</span></code></a> can be used. For example “bfgs” or “lm” can be used to
+select the scipy BFGS or Levenberg-Marquart minimisers respectively.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../api/ctapipe.reco.stereo_combination.StereoMeanCombiner.html" class="btn btn-neutral float-left" title="StereoMeanCombiner" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../api/ctapipe.reco.Reconstructor.html" class="btn btn-neutral float-right" title="Reconstructor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

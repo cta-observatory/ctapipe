@@ -1,0 +1,29 @@
+SchedulingBlockContainer
+========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: SchedulingBlockContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SchedulingBlockContainer.meta
+      ~SchedulingBlockContainer.observing_mode
+      ~SchedulingBlockContainer.pointing_mode
+      ~SchedulingBlockContainer.prefix
+      ~SchedulingBlockContainer.producer_id
+      ~SchedulingBlockContainer.sb_id
+      ~SchedulingBlockContainer.sb_type
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: observing_mode
+   .. autoattribute:: pointing_mode
+   .. autoattribute:: prefix
+   .. autoattribute:: producer_id
+   .. autoattribute:: sb_id
+   .. autoattribute:: sb_type

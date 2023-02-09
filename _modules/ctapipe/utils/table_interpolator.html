@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.utils.table_interpolator &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.utils.table_interpolator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.utils.table_interpolator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Table interpolation class, to allow interpolation of 2D images in any number of other</span>
+<span class="sd">dimensions. Reads in an interim FITS table as defined below:</span>
+
+<span class="sd">Tables organised as a standard FITS image file with each table as an image HDU.</span>
+<span class="sd">---------------</span>
+<span class="sd">First (primary) HDU must contain the following header entries:</span>
+
+<span class="sd">CRPIXx, CRVALx, CRDELTAx: Number, position and pixel spacing of the reference pixel in</span>
+<span class="sd">the image. Where x is the axis number (1 or 2).</span>
+
+<span class="sd">GRIDVALS: Names of values describing the grid points</span>
+<span class="sd">e.g. GRIDVALS = ALT,AZ</span>
+<span class="sd">---------------</span>
+<span class="sd">Each HDU must contain a header entry containing the grid points described by GRIDVALS</span>
+<span class="sd">e.g. ALT =70</span>
+<span class="sd">AZI = 0</span>
+
+<span class="sd">It is also strongly recommended to include documentation for each interpolation</span>
+<span class="sd">dimension containing at least the units. This entry ust begin with DOC, followed by the</span>
+<span class="sd">dimension name</span>
+<span class="sd">e.g. DOCALT = &quot;Altitude of event (deg)&quot;</span>
+
+<span class="sd">TODO:</span>
+<span class="sd">    - Improve error handling</span>
+<span class="sd">    - Add option for caching nd interpolated value</span>
+<span class="sd">    - Better deal with edges of phase space</span>
+<span class="sd">    - Allow non-linear interpolation</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">interpolate</span>
+
+
+<div class="viewcode-block" id="TableInterpolator"><a class="viewcode-back" href="../../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator">[docs]</a><span class="k">class</span> <span class="nc">TableInterpolator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a simple class for loading lookup tables from a fits file and</span>
+<span class="sd">    interpolating between them</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialisation of class to load templates from a file and create the interpolation</span>
+<span class="sd">        objects</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: string</span>
+<span class="sd">            Location of Template file</span>
+<span class="sd">        verbose: int</span>
+<span class="sd">            Verbosity level,</span>
+<span class="sd">            0 = no logging</span>
+<span class="sd">            1 = File + interpolation point information</span>
+<span class="sd">            2 = Detailed description of interpolation points</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading lookup tables from&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="n">grid</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_fits_table</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">x_bins</span><span class="p">,</span> <span class="n">y_bins</span> <span class="o">=</span> <span class="n">bins</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">LinearNDInterpolator</span><span class="p">(</span>
+            <span class="n">grid</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_interpolator</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">NearestNDInterpolator</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_interp</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">RegularGridInterpolator</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">x_bins</span><span class="p">,</span> <span class="n">y_bins</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">x_bins</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_bins</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]),</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="TableInterpolator.parse_fits_table"><a class="viewcode-back" href="../../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator.parse_fits_table">[docs]</a>    <span class="k">def</span> <span class="nf">parse_fits_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function opens tables contained within fits files and parses them into a format</span>
+<span class="sd">        recognisable by the interpolator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str</span>
+<span class="sd">            Name of table file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            tuple (grid points, bin centres, images)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="n">primary_hdu</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>  <span class="c1"># We require first HDU to be primary</span>
+
+        <span class="c1"># Below definitions are standard</span>
+        <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span> <span class="o">=</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;CRPIX2&quot;</span><span class="p">],</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;CRPIX1&quot;</span><span class="p">]</span>
+        <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;CRVAL2&quot;</span><span class="p">],</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;CRVAL1&quot;</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
+        <span class="n">delta_x</span><span class="p">,</span> <span class="n">delta_y</span> <span class="o">=</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;CRDELTA2&quot;</span><span class="p">],</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;CRDELTA1&quot;</span><span class="p">]</span>
+        <span class="n">nbins_x</span><span class="p">,</span> <span class="n">nbins_y</span> <span class="o">=</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;NAXIS2&quot;</span><span class="p">],</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;NAXIS1&quot;</span><span class="p">]</span>
+        <span class="n">ix</span> <span class="o">*=</span> <span class="n">delta_x</span>
+        <span class="n">iy</span> <span class="o">*=</span> <span class="n">delta_y</span>
+
+        <span class="n">x_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">val_x</span> <span class="o">-</span> <span class="n">ix</span><span class="p">,</span> <span class="n">val_x</span> <span class="o">+</span> <span class="p">(</span><span class="n">delta_x</span> <span class="o">*</span> <span class="n">nbins_x</span><span class="p">)</span> <span class="o">-</span> <span class="n">ix</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">delta_x</span><span class="p">)</span>
+        <span class="n">y_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">val_y</span> <span class="o">-</span> <span class="n">iy</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">+</span> <span class="p">(</span><span class="n">delta_y</span> <span class="o">*</span> <span class="n">nbins_y</span><span class="p">)</span> <span class="o">-</span> <span class="n">iy</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">delta_y</span><span class="p">)</span>
+        <span class="n">grid_vals</span> <span class="o">=</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;GRIDVALS&quot;</span><span class="p">]</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">grid_vals</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Interpolation point source be called in order&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">primary_hdu</span><span class="p">[</span><span class="s2">&quot;DOC&quot;</span> <span class="o">+</span> <span class="n">p</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">template</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+            <span class="n">hdu_pt</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">:</span>
+                <span class="n">hdu_pt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="n">p</span><span class="p">])</span>
+            <span class="n">grid</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">hdu_pt</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">grid</span><span class="p">))</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_bins</span><span class="p">,</span> <span class="n">y_bins</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">grid</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">template</span></div>
+
+<div class="viewcode-block" id="TableInterpolator.interpolate"><a class="viewcode-back" href="../../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator.interpolate">[docs]</a>    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">pixel_pos_x</span><span class="p">,</span> <span class="n">pixel_pos_y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        params: ndarray</span>
+<span class="sd">            numpy array of interpolation parameters</span>
+<span class="sd">            currently [energy, impact distance, xmax]</span>
+<span class="sd">        pixel_pos_x: ndarray</span>
+<span class="sd">            pixel position in degrees</span>
+<span class="sd">        pixel_pos_y: ndarray</span>
+<span class="sd">            pixel position in degrees</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray of expected intensity for all pixel positions given</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolated_image</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_interp</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">image</span>
+
+        <span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pixel_pos_x</span><span class="p">,</span> <span class="n">pixel_pos_y</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_interp</span><span class="p">(</span><span class="n">points</span><span class="o">.</span><span class="n">T</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableInterpolator.interpolated_image"><a class="viewcode-back" href="../../../api/ctapipe.utils.TableInterpolator.html#ctapipe.utils.TableInterpolator.interpolated_image">[docs]</a>    <span class="k">def</span> <span class="nf">interpolated_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function for creating a ful interpolated image template from the interpolation library</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        params: ndarray</span>
+<span class="sd">            numpy array of interpolation parameters</span>
+<span class="sd">            currently [energy, impact distance, xmax]</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray of a single image template</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolator</span><span class="p">(</span><span class="n">params</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">image</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found a NaN&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nearest_interpolator</span><span class="p">(</span><span class="n">params</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">image</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

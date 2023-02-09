@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.muon.intensity_fitter &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.muon.intensity_fitter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.muon.intensity_fitter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Class for performing a HESS style 2D fit of muon images</span>
+
+<span class="sd">To do:</span>
+<span class="sd">    - Deal with astropy untis better, currently stripped and no checks made</span>
+<span class="sd">    - unit tests</span>
+<span class="sd">    - create container class for output</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">erf</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="kn">from</span> <span class="nn">iminuit</span> <span class="kn">import</span> <span class="n">Minuit</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">double</span><span class="p">,</span> <span class="n">vectorize</span>
+<span class="kn">from</span> <span class="nn">scipy.constants</span> <span class="kn">import</span> <span class="n">alpha</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">correlate1d</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.image.pixel_likelihood</span> <span class="kn">import</span> <span class="n">neg_log_likelihood_approx</span>
+
+<span class="kn">from</span> <span class="nn">...containers</span> <span class="kn">import</span> <span class="n">MuonEfficiencyContainer</span>
+<span class="kn">from</span> <span class="nn">...coordinates</span> <span class="kn">import</span> <span class="n">CameraFrame</span><span class="p">,</span> <span class="n">TelescopeFrame</span>
+<span class="kn">from</span> <span class="nn">...core</span> <span class="kn">import</span> <span class="n">TelescopeComponent</span>
+<span class="kn">from</span> <span class="nn">...core.traits</span> <span class="kn">import</span> <span class="n">FloatTelescopeParameter</span><span class="p">,</span> <span class="n">IntTelescopeParameter</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MuonIntensityFitter&quot;</span><span class="p">]</span>
+
+
+<span class="c1"># ratio of the areas of the unit circle and a square of side lengths 2</span>
+<span class="n">CIRCLE_SQUARE_AREA_RATIO</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
+
+<span class="c1"># Sqrt of 2, as it is needed multiple times</span>
+<span class="n">SQRT2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="nd">@vectorize</span><span class="p">([</span><span class="n">double</span><span class="p">(</span><span class="n">double</span><span class="p">,</span> <span class="n">double</span><span class="p">,</span> <span class="n">double</span><span class="p">)])</span>
+<span class="k">def</span> <span class="nf">chord_length</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">phi</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function for integrating the length of a chord across a circle</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    radius: float or ndarray</span>
+<span class="sd">        radius of circle</span>
+<span class="sd">    rho: float or ndarray</span>
+<span class="sd">        fractional distance of impact point from circle center</span>
+<span class="sd">    phi: float or ndarray in radians</span>
+<span class="sd">        rotation angles to calculate length</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float or ndarray:</span>
+<span class="sd">        chord length</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chord</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">rho</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">chord</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">rho</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="c1"># muon has hit the mirror</span>
+        <span class="n">chord</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">chord</span><span class="p">)</span> <span class="o">+</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># muon did not hit the mirror</span>
+        <span class="n">chord</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">chord</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">chord</span>
+
+
+<span class="k">def</span> <span class="nf">intersect_circle</span><span class="p">(</span><span class="n">mirror_radius</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">hole_radius</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform line integration along a given axis in the mirror frame</span>
+<span class="sd">    given an impact point on the mirror</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    angle: ndarray</span>
+<span class="sd">        Angle along which to integrate mirror</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    --------</span>
+<span class="sd">    float: length from impact point to mirror edge</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mirror_length</span> <span class="o">=</span> <span class="n">chord_length</span><span class="p">(</span><span class="n">mirror_radius</span><span class="p">,</span> <span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="n">mirror_radius</span><span class="p">),</span> <span class="n">angle</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">hole_radius</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mirror_length</span>
+
+    <span class="n">hole_length</span> <span class="o">=</span> <span class="n">chord_length</span><span class="p">(</span><span class="n">hole_radius</span><span class="p">,</span> <span class="p">(</span><span class="n">r</span> <span class="o">/</span> <span class="n">hole_radius</span><span class="p">),</span> <span class="n">angle</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mirror_length</span> <span class="o">-</span> <span class="n">hole_length</span>
+
+
+<span class="k">def</span> <span class="nf">pixels_on_ring</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">pixel_diameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate number of pixels of diameter ``pixel_diameter`` on the circumference</span>
+<span class="sd">    of a circle with radius ``radius``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">circumference</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radius</span>
+    <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">circumference</span> <span class="o">/</span> <span class="n">pixel_diameter</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_pixels</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">))</span>
+
+
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">linspace_two_pi</span><span class="p">(</span><span class="n">n_points</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">n_points</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">create_profile</span><span class="p">(</span>
+    <span class="n">mirror_radius</span><span class="p">,</span>
+    <span class="n">hole_radius</span><span class="p">,</span>
+    <span class="n">impact_parameter</span><span class="p">,</span>
+    <span class="n">radius</span><span class="p">,</span>
+    <span class="n">phi</span><span class="p">,</span>
+    <span class="n">pixel_diameter</span><span class="p">,</span>
+    <span class="n">oversampling</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform intersection over all angles and return length</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    impact_parameter: float</span>
+<span class="sd">        Impact distance from mirror center</span>
+<span class="sd">    ang: ndarray</span>
+<span class="sd">        Angles over which to integrate</span>
+<span class="sd">    phi: float</span>
+<span class="sd">        Rotation angle of muon image</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ndarray</span>
+<span class="sd">        Chord length for each angle</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">circumference</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radius</span>
+    <span class="n">pixels_on_circle</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">circumference</span> <span class="o">/</span> <span class="n">pixel_diameter</span><span class="p">)</span>
+
+    <span class="n">ang</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">+</span> <span class="n">linspace_two_pi</span><span class="p">(</span><span class="n">pixels_on_circle</span> <span class="o">*</span> <span class="n">oversampling</span><span class="p">)</span>
+
+    <span class="n">length</span> <span class="o">=</span> <span class="n">intersect_circle</span><span class="p">(</span><span class="n">mirror_radius</span><span class="p">,</span> <span class="n">impact_parameter</span><span class="p">,</span> <span class="n">ang</span><span class="p">,</span> <span class="n">hole_radius</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">correlate1d</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">oversampling</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wrap&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">/=</span> <span class="n">oversampling</span>
+
+    <span class="k">return</span> <span class="n">ang</span><span class="p">,</span> <span class="n">length</span>
+
+
+<span class="k">def</span> <span class="nf">image_prediction</span><span class="p">(</span>
+    <span class="n">mirror_radius</span><span class="p">,</span>
+    <span class="n">hole_radius</span><span class="p">,</span>
+    <span class="n">impact_parameter</span><span class="p">,</span>
+    <span class="n">phi</span><span class="p">,</span>
+    <span class="n">center_x</span><span class="p">,</span>
+    <span class="n">center_y</span><span class="p">,</span>
+    <span class="n">radius</span><span class="p">,</span>
+    <span class="n">ring_width</span><span class="p">,</span>
+    <span class="n">pixel_x</span><span class="p">,</span>
+    <span class="n">pixel_y</span><span class="p">,</span>
+    <span class="n">pixel_diameter</span><span class="p">,</span>
+    <span class="n">oversampling</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">min_lambda</span><span class="o">=</span><span class="mi">300</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">,</span>
+    <span class="n">max_lambda</span><span class="o">=</span><span class="mi">600</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    impact_parameter: quantity[length]</span>
+<span class="sd">        Impact distance of muon</span>
+<span class="sd">    center_x: quantity[angle]</span>
+<span class="sd">        Muon ring center in telescope frame</span>
+<span class="sd">    center_y: quantity[angle]</span>
+<span class="sd">        Muon ring center in telescope frame</span>
+<span class="sd">    radius: quantity[angle]</span>
+<span class="sd">        Radius of muon ring in telescope frame</span>
+<span class="sd">    ring_width: quantity[angle]</span>
+<span class="sd">        Gaussian width of muon ring</span>
+<span class="sd">    pixel_x: quantity[angle]</span>
+<span class="sd">        Pixel x coordinate in telescope</span>
+<span class="sd">    pixel_y: quantity[angle]</span>
+<span class="sd">        Pixel y coordinate in telescope</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ndarray:</span>
+<span class="sd">        Predicted signal</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">image_prediction_no_units</span><span class="p">(</span>
+        <span class="n">mirror_radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+        <span class="n">hole_radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+        <span class="n">impact_parameter</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+        <span class="n">phi</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">center_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">center_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">ring_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">pixel_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">pixel_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">pixel_diameter</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">),</span>
+        <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
+        <span class="n">min_lambda_m</span><span class="o">=</span><span class="n">min_lambda</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+        <span class="n">max_lambda_m</span><span class="o">=</span><span class="n">max_lambda</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@vectorize</span><span class="p">([</span><span class="n">double</span><span class="p">(</span><span class="n">double</span><span class="p">,</span> <span class="n">double</span><span class="p">,</span> <span class="n">double</span><span class="p">)])</span>
+<span class="k">def</span> <span class="nf">gaussian_cdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to compute values of a given gaussians</span>
+<span class="sd">    cumulative distribution function (cdf)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x: float or ndarray</span>
+<span class="sd">        point, at which the cdf should be evaluated</span>
+<span class="sd">    mu: float or ndarray</span>
+<span class="sd">        gaussian mean</span>
+<span class="sd">    sig: float or ndarray</span>
+<span class="sd">        gaussian standard deviation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float or ndarray: cdf-value at x</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">sig</span><span class="p">)))</span>
+
+
+<span class="k">def</span> <span class="nf">image_prediction_no_units</span><span class="p">(</span>
+    <span class="n">mirror_radius_m</span><span class="p">,</span>
+    <span class="n">hole_radius_m</span><span class="p">,</span>
+    <span class="n">impact_parameter_m</span><span class="p">,</span>
+    <span class="n">phi_rad</span><span class="p">,</span>
+    <span class="n">center_x_rad</span><span class="p">,</span>
+    <span class="n">center_y_rad</span><span class="p">,</span>
+    <span class="n">radius_rad</span><span class="p">,</span>
+    <span class="n">ring_width_rad</span><span class="p">,</span>
+    <span class="n">pixel_x_rad</span><span class="p">,</span>
+    <span class="n">pixel_y_rad</span><span class="p">,</span>
+    <span class="n">pixel_diameter_rad</span><span class="p">,</span>
+    <span class="n">oversampling</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">min_lambda_m</span><span class="o">=</span><span class="mf">300e-9</span><span class="p">,</span>
+    <span class="n">max_lambda_m</span><span class="o">=</span><span class="mf">600e-9</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function for producing the expected image for a given set of trial</span>
+<span class="sd">    muon parameters without using astropy units but expecting the input to</span>
+<span class="sd">    be in the correct ones.</span>
+
+<span class="sd">    See [chalmecalvet2013]_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># First produce angular position of each pixel w.r.t muon center</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">pixel_x_rad</span> <span class="o">-</span> <span class="n">center_x_rad</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">pixel_y_rad</span> <span class="o">-</span> <span class="n">center_y_rad</span>
+    <span class="n">ang</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">dy</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+    <span class="c1"># Add muon rotation angle</span>
+    <span class="n">ang</span> <span class="o">+=</span> <span class="n">phi_rad</span>
+
+    <span class="c1"># Produce smoothed muon profile</span>
+    <span class="n">ang_prof</span><span class="p">,</span> <span class="n">profile</span> <span class="o">=</span> <span class="n">create_profile</span><span class="p">(</span>
+        <span class="n">mirror_radius_m</span><span class="p">,</span>
+        <span class="n">hole_radius_m</span><span class="p">,</span>
+        <span class="n">impact_parameter_m</span><span class="p">,</span>
+        <span class="n">radius_rad</span><span class="p">,</span>
+        <span class="n">phi_rad</span><span class="p">,</span>
+        <span class="n">pixel_diameter_rad</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Produce gaussian weight for each pixel given ring width</span>
+    <span class="n">radial_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># The weight is the integral of the ring&#39;s radial gaussian profile inside the</span>
+    <span class="c1"># ring&#39;s width</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">pixel_diameter_rad</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">cdfs</span> <span class="o">=</span> <span class="n">gaussian_cdf</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">radial_dist</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="n">radial_dist</span> <span class="o">-</span> <span class="n">delta</span><span class="p">],</span> <span class="n">radius_rad</span><span class="p">,</span> <span class="n">ring_width_rad</span>
+    <span class="p">)</span>
+    <span class="n">gauss</span> <span class="o">=</span> <span class="n">cdfs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">cdfs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># interpolate profile to find prediction for each pixel</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">ang_prof</span><span class="p">,</span> <span class="n">profile</span><span class="p">)</span>
+
+    <span class="c1"># Multiply by integrated emissivity between 300 and 600 nm, and rest of factors to</span>
+    <span class="c1"># get total number of photons per pixel</span>
+    <span class="c1"># ^ would be per radian, but no need to put it here, would anyway cancel out below</span>
+
+    <span class="n">pred</span> <span class="o">*=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">min_lambda_m</span><span class="o">**-</span><span class="mi">1</span> <span class="o">-</span> <span class="n">max_lambda_m</span><span class="o">**-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pred</span> <span class="o">*=</span> <span class="n">pixel_diameter_rad</span> <span class="o">/</span> <span class="n">radius_rad</span>
+    <span class="c1"># multiply by angle (in radians) subtended by pixel width as seen from ring center</span>
+
+    <span class="n">pred</span> <span class="o">*=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">radius_rad</span><span class="p">)</span>
+
+    <span class="c1"># multiply by gaussian weight, to account for &quot;fraction of muon ring&quot; which falls</span>
+    <span class="c1"># within the pixel</span>
+    <span class="n">pred</span> <span class="o">*=</span> <span class="n">gauss</span>
+
+    <span class="c1"># Now it would be the total light in an area S delimited by: two radii of the</span>
+    <span class="c1"># ring, tangent to the sides of the pixel in question, and two circles concentric</span>
+    <span class="c1"># with the ring, also tangent to the sides of the pixel.</span>
+    <span class="c1"># A rough correction, assuming pixel is round, is introduced here:</span>
+    <span class="c1"># [pi*(pixel_diameter/2)**2]/ S. Actually, for the large rings (relative to pixel</span>
+    <span class="c1"># size) we are concerned with, a good enough approximation is the ratio between a</span>
+    <span class="c1"># circle&#39;s area and that of the square whose side is equal to the circle&#39;s</span>
+    <span class="c1"># diameter. In any case, since in the end we do a data-MC comparison of the muon</span>
+    <span class="c1"># ring analysis outputs, it is not critical that this value is exact.</span>
+
+    <span class="n">pred</span> <span class="o">*=</span> <span class="n">CIRCLE_SQUARE_AREA_RATIO</span>
+
+    <span class="k">return</span> <span class="n">pred</span>
+
+
+<span class="k">def</span> <span class="nf">build_negative_log_likelihood</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">,</span>
+    <span class="n">telescope_description</span><span class="p">,</span>
+    <span class="n">mask</span><span class="p">,</span>
+    <span class="n">oversampling</span><span class="p">,</span>
+    <span class="n">min_lambda</span><span class="p">,</span>
+    <span class="n">max_lambda</span><span class="p">,</span>
+    <span class="n">spe_width</span><span class="p">,</span>
+    <span class="n">pedestal</span><span class="p">,</span>
+    <span class="n">hole_radius</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an efficient negative log_likelihood function that does</span>
+<span class="sd">    not rely on astropy units internally by defining needed values as closures</span>
+<span class="sd">    in this function.</span>
+
+<span class="sd">    The likelihood is the gaussian approximation,</span>
+<span class="sd">    i.e. the unnumbered equation on page 22 between (24) and (25), from [denaurois2009]_</span>
+
+<span class="sd">    The logarithm of the likelihood is calculated analytically as far as possible</span>
+<span class="sd">    and terms constant under differentation are discarded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># get all the neeed values and transform them into appropriate units</span>
+    <span class="n">optics</span> <span class="o">=</span> <span class="n">telescope_description</span><span class="o">.</span><span class="n">optics</span>
+    <span class="n">mirror_area</span> <span class="o">=</span> <span class="n">optics</span><span class="o">.</span><span class="n">mirror_area</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">mirror_radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mirror_area</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="n">focal_length</span> <span class="o">=</span> <span class="n">optics</span><span class="o">.</span><span class="n">equivalent_focal_length</span>
+
+    <span class="n">cam</span> <span class="o">=</span> <span class="n">telescope_description</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+    <span class="n">camera_frame</span> <span class="o">=</span> <span class="n">CameraFrame</span><span class="p">(</span><span class="n">focal_length</span><span class="o">=</span><span class="n">focal_length</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">cam_rotation</span><span class="p">)</span>
+    <span class="n">cam_coords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">camera_frame</span><span class="p">)</span>
+    <span class="n">tel_coords</span> <span class="o">=</span> <span class="n">cam_coords</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">TelescopeFrame</span><span class="p">())</span>
+
+    <span class="c1"># Use only a subset of pixels, indicated by mask:</span>
+    <span class="n">pixel_x</span> <span class="o">=</span> <span class="n">tel_coords</span><span class="o">.</span><span class="n">fov_lon</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">pixel_y</span> <span class="o">=</span> <span class="n">tel_coords</span><span class="o">.</span><span class="n">fov_lat</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pixel_x</span> <span class="o">=</span> <span class="n">pixel_x</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">pixel_y</span> <span class="o">=</span> <span class="n">pixel_y</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">pedestal</span> <span class="o">=</span> <span class="n">pedestal</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="n">pixel_diameter</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">cam</span><span class="o">.</span><span class="n">pix_area</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="n">focal_length</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+    <span class="n">min_lambda</span> <span class="o">=</span> <span class="n">min_lambda</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">max_lambda</span> <span class="o">=</span> <span class="n">max_lambda</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="n">hole_radius_m</span> <span class="o">=</span> <span class="n">hole_radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">negative_log_likelihood</span><span class="p">(</span>
+        <span class="n">impact_parameter</span><span class="p">,</span>
+        <span class="n">phi</span><span class="p">,</span>
+        <span class="n">center_x</span><span class="p">,</span>
+        <span class="n">center_y</span><span class="p">,</span>
+        <span class="n">radius</span><span class="p">,</span>
+        <span class="n">ring_width</span><span class="p">,</span>
+        <span class="n">optical_efficiency_muon</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Likelihood function to be called by minimizer</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        impact_parameter: float</span>
+<span class="sd">            Impact distance from telescope center</span>
+<span class="sd">        center_x: float</span>
+<span class="sd">            center of muon ring in the telescope frame</span>
+<span class="sd">        center_y: float</span>
+<span class="sd">            center of muon ring in the telescope frame</span>
+<span class="sd">        radius: float</span>
+<span class="sd">            Radius of muon ring</span>
+<span class="sd">        ring_width: float</span>
+<span class="sd">            Gaussian width of muon ring</span>
+<span class="sd">        optical_efficiency_muon: float</span>
+<span class="sd">            Efficiency of the optical system</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float: Likelihood that model matches data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Generate model prediction</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">image_prediction_no_units</span><span class="p">(</span>
+            <span class="n">mirror_radius_m</span><span class="o">=</span><span class="n">mirror_radius</span><span class="p">,</span>
+            <span class="n">hole_radius_m</span><span class="o">=</span><span class="n">hole_radius_m</span><span class="p">,</span>
+            <span class="n">impact_parameter_m</span><span class="o">=</span><span class="n">impact_parameter</span><span class="p">,</span>
+            <span class="n">phi_rad</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
+            <span class="n">center_x_rad</span><span class="o">=</span><span class="n">center_x</span><span class="p">,</span>
+            <span class="n">center_y_rad</span><span class="o">=</span><span class="n">center_y</span><span class="p">,</span>
+            <span class="n">radius_rad</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
+            <span class="n">ring_width_rad</span><span class="o">=</span><span class="n">ring_width</span><span class="p">,</span>
+            <span class="n">pixel_x_rad</span><span class="o">=</span><span class="n">pixel_x</span><span class="p">,</span>
+            <span class="n">pixel_y_rad</span><span class="o">=</span><span class="n">pixel_y</span><span class="p">,</span>
+            <span class="n">pixel_diameter_rad</span><span class="o">=</span><span class="n">pixel_diameter</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
+            <span class="n">min_lambda_m</span><span class="o">=</span><span class="n">min_lambda</span><span class="p">,</span>
+            <span class="n">max_lambda_m</span><span class="o">=</span><span class="n">max_lambda</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># scale prediction by optical efficiency of the telescope</span>
+        <span class="n">prediction</span> <span class="o">*=</span> <span class="n">optical_efficiency_muon</span>
+
+        <span class="k">return</span> <span class="n">neg_log_likelihood_approx</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">spe_width</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">negative_log_likelihood</span>
+
+
+<span class="k">def</span> <span class="nf">create_initial_guess</span><span class="p">(</span><span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">telescope_description</span><span class="p">):</span>
+    <span class="n">geometry</span> <span class="o">=</span> <span class="n">telescope_description</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+    <span class="n">optics</span> <span class="o">=</span> <span class="n">telescope_description</span><span class="o">.</span><span class="n">optics</span>
+
+    <span class="n">focal_length</span> <span class="o">=</span> <span class="n">optics</span><span class="o">.</span><span class="n">equivalent_focal_length</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">pixel_area</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">pix_area</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">pixel_radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pixel_area</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="n">focal_length</span>
+
+    <span class="n">mirror_radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">optics</span><span class="o">.</span><span class="n">mirror_area</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="n">initial_guess</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;impact_parameter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mirror_radius</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;phi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;radius&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;center_x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">center_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;center_y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">center_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;ring_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">pixel_radius</span>
+    <span class="n">initial_guess</span><span class="p">[</span><span class="s2">&quot;optical_efficiency_muon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+    <span class="k">return</span> <span class="n">initial_guess</span>
+
+
+<div class="viewcode-block" id="MuonIntensityFitter"><a class="viewcode-back" href="../../../../api/ctapipe.image.MuonIntensityFitter.html#ctapipe.image.muon.MuonIntensityFitter">[docs]</a><span class="k">class</span> <span class="nc">MuonIntensityFitter</span><span class="p">(</span><span class="n">TelescopeComponent</span><span class="p">):</span>
+    <span class="n">spe_width</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Width of a single photo electron distribution&quot;</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mf">0.5</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">min_lambda_m</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum wavelength for Cherenkov light in m&quot;</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mf">300e-9</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">max_lambda_m</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum wavelength for Cherenkov light in m&quot;</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mf">600e-9</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">hole_radius_m</span> <span class="o">=</span> <span class="n">FloatTelescopeParameter</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Hole radius of the reflector in m&quot;</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;LST_*&quot;</span><span class="p">,</span> <span class="mf">0.308</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;MST_*&quot;</span><span class="p">,</span> <span class="mf">0.244</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;SST_1M_*&quot;</span><span class="p">,</span> <span class="mf">0.130</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">oversampling</span> <span class="o">=</span> <span class="n">IntTelescopeParameter</span><span class="p">(</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Oversampling for the line integration&quot;</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">3</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MuonIntensityFitter.__call__"><a class="viewcode-back" href="../../../../api/ctapipe.image.MuonIntensityFitter.html#ctapipe.image.muon.MuonIntensityFitter.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">pedestal</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        center_x: Angle quantity</span>
+<span class="sd">            Initial guess for muon ring center in telescope frame</span>
+<span class="sd">        center_y: Angle quantity</span>
+<span class="sd">            Initial guess for muon ring center in telescope frame</span>
+<span class="sd">        radius: Angle quantity</span>
+<span class="sd">            Radius of muon ring from circle fitting</span>
+<span class="sd">        pixel_x: ndarray</span>
+<span class="sd">            X position of pixels in image from circle fitting</span>
+<span class="sd">        pixel_y: ndarray</span>
+<span class="sd">            Y position of pixel in image from circle fitting</span>
+<span class="sd">        image: ndarray</span>
+<span class="sd">            Amplitude of image pixels</span>
+<span class="sd">        mask: ndarray</span>
+<span class="sd">            mask marking the pixels to be used in the likelihood fit</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MuonEfficiencyContainer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">telescope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">telescope</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">n_mirrors</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Currently only single mirror telescopes&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; are supported in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">negative_log_likelihood</span> <span class="o">=</span> <span class="n">build_negative_log_likelihood</span><span class="p">(</span>
+            <span class="n">image</span><span class="p">,</span>
+            <span class="n">telescope</span><span class="p">,</span>
+            <span class="n">mask</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">min_lambda</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_lambda_m</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">max_lambda</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_lambda_m</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">spe_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spe_width</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+            <span class="n">pedestal</span><span class="o">=</span><span class="n">pedestal</span><span class="p">,</span>
+            <span class="n">hole_radius</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hole_radius_m</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">negative_log_likelihood</span><span class="o">.</span><span class="n">errordef</span> <span class="o">=</span> <span class="n">Minuit</span><span class="o">.</span><span class="n">LIKELIHOOD</span>
+
+        <span class="n">initial_guess</span> <span class="o">=</span> <span class="n">create_initial_guess</span><span class="p">(</span><span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">telescope</span><span class="p">)</span>
+
+        <span class="c1"># Create Minuit object with first guesses at parameters</span>
+        <span class="c1"># strip away the units as Minuit doesnt like them</span>
+
+        <span class="n">minuit</span> <span class="o">=</span> <span class="n">Minuit</span><span class="p">(</span><span class="n">negative_log_likelihood</span><span class="p">,</span> <span class="o">**</span><span class="n">initial_guess</span><span class="p">)</span>
+
+        <span class="n">minuit</span><span class="o">.</span><span class="n">print_level</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">minuit</span><span class="o">.</span><span class="n">errors</span><span class="p">[</span><span class="s2">&quot;impact_parameter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">errors</span><span class="p">[</span><span class="s2">&quot;phi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">errors</span><span class="p">[</span><span class="s2">&quot;ring_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.001</span> <span class="o">*</span> <span class="n">radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">errors</span><span class="p">[</span><span class="s2">&quot;optical_efficiency_muon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.05</span>
+
+        <span class="n">minuit</span><span class="o">.</span><span class="n">limits</span><span class="p">[</span><span class="s2">&quot;impact_parameter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">limits</span><span class="p">[</span><span class="s2">&quot;phi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">limits</span><span class="p">[</span><span class="s2">&quot;ring_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">limits</span><span class="p">[</span><span class="s2">&quot;optical_efficiency_muon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">minuit</span><span class="o">.</span><span class="n">fixed</span><span class="p">[</span><span class="s2">&quot;radius&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">fixed</span><span class="p">[</span><span class="s2">&quot;center_x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">fixed</span><span class="p">[</span><span class="s2">&quot;center_y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Perform minimisation</span>
+        <span class="n">minuit</span><span class="o">.</span><span class="n">migrad</span><span class="p">()</span>
+
+        <span class="c1"># Get fitted values</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">minuit</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="k">return</span> <span class="n">MuonEfficiencyContainer</span><span class="p">(</span>
+            <span class="n">impact</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;impact_parameter&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">impact_x</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;impact_parameter&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;phi&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">impact_y</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;impact_parameter&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;phi&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;ring_width&quot;</span><span class="p">]),</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">),</span>
+            <span class="n">optical_efficiency</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;optical_efficiency_muon&quot;</span><span class="p">],</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

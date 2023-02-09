@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reconstruction (reco) &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Reconstructors based on Scikit-Learn (sklearn)" href="sklearn.html" />
+    <link rel="prev" title="EventSeeker" href="../../api/ctapipe.io.eventseeker.EventSeeker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../atmosphere/index.html">Atmosphere Models (<code class="xref py py-obj docutils literal notranslate"><span class="pre">atmosphere</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#currently-implemented-algorithms">Currently Implemented Algorithms</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#moment-based-stereo-reconstruction">Moment-Based Stereo Reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#machine-learning-based-reconstruction">Machine-Learning-Based Reconstruction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#template-based-stereo-reconstruction">Template-Based Stereo Reconstruction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.reco">ctapipe.reco Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.reco.reconstructor">ctapipe.reco.reconstructor Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.reco.hillas_intersection">ctapipe.reco.hillas_intersection Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.reco.hillas_reconstructor">ctapipe.reco.hillas_reconstructor Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.reco.impact">ctapipe.reco.impact Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Docs</a></li>
+      <li class="breadcrumb-item active">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/ctapipe_api/reco/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="reconstruction-reco">
+<span id="reco"></span><h1>Reconstruction (<a class="reference internal" href="#module-ctapipe.reco" title="ctapipe.reco"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code></a>)<a class="headerlink" href="#reconstruction-reco" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="#module-ctapipe.reco" title="ctapipe.reco"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.reco</span></code></a> contains functions and classes to reconstruct physical
+shower parameters, using either stereo (multiple images of a shower)
+or mono (single telescope) information.</p>
+<p>All shower reconstruction algorithms should be subclasses of
+<a class="reference internal" href="../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.Reconstructor" title="ctapipe.reco.Reconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconstructor</span></code></a> which defines some common functionality.</p>
+</div>
+<div class="section" id="currently-implemented-algorithms">
+<h2>Currently Implemented Algorithms<a class="headerlink" href="#currently-implemented-algorithms" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="moment-based-stereo-reconstruction">
+<h3>Moment-Based Stereo Reconstruction<a class="headerlink" href="#moment-based-stereo-reconstruction" title="Permalink to this headline">¶</a></h3>
+<p>Moment-base reconstruction uses the moments of each shower image (the
+<em>Hillas Parameters</em> to estimate the shower axis for each camera, and
+combines them geometrically to estimate the true shower direction.</p>
+<p>The implementation is in the <a class="reference internal" href="../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor" title="ctapipe.reco.HillasReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HillasReconstructor</span></code></a> class.</p>
+</div>
+<div class="section" id="machine-learning-based-reconstruction">
+<h3>Machine-Learning-Based Reconstruction<a class="headerlink" href="#machine-learning-based-reconstruction" title="Permalink to this headline">¶</a></h3>
+<p>This module also provides <a class="reference internal" href="../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.Reconstructor" title="ctapipe.reco.Reconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconstructor</span></code></a> implementations using
+machine learning algorithms.</p>
+<p>At the moment, these are based on algorithms from <code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code> and
+make use of DL1b and DL2 information.</p>
+</div>
+<div class="section" id="template-based-stereo-reconstruction">
+<h3>Template-Based Stereo Reconstruction<a class="headerlink" href="#template-based-stereo-reconstruction" title="Permalink to this headline">¶</a></h3>
+<p>Moment-base reconstruction uses the a fit of the full camera images to an expected
+image model to find the best fit shower axis, energy and depth of maximum.
+The implementation is in the <a class="reference internal" href="../../api/ctapipe.reco.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor" title="ctapipe.reco.ImPACTReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImPACTReconstructor</span></code></a> class.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sklearn.html">Reconstructors based on Scikit-Learn (<code class="xref py py-obj docutils literal notranslate"><span class="pre">sklearn</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html#reference-api">Reference/API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html#module-ctapipe.reco.sklearn">ctapipe.reco.sklearn Module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sklearn.html#classes">Classes</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.SKLearnReconstructor.html">SKLearnReconstructor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.SKLearnRegressionReconstructor.html">SKLearnRegressionReconstructor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.SKLearnClassificationReconstructor.html">SKLearnClassificationReconstructor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.EnergyRegressor.html">EnergyRegressor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.ParticleClassifier.html">ParticleClassifier</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.DispReconstructor.html">DispReconstructor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.sklearn.CrossValidator.html">CrossValidator</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stereo_combination.html">Stereo Combination</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stereo_combination.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stereo_combination.html#reference-api">Reference/API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stereo_combination.html#module-ctapipe.reco.stereo_combination">ctapipe.reco.stereo_combination Module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stereo_combination.html#classes">Classes</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.stereo_combination.StereoCombiner.html">StereoCombiner</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../api/ctapipe.reco.stereo_combination.StereoMeanCombiner.html">StereoMeanCombiner</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ImPACT.html">Analysis with ImPACT</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ImPACT.html#what-is-impact">What is ImPACT?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ImPACT.html#image-templates">Image Templates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ImPACT.html#image-prediction">Image Prediction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ImPACT.html#calculating-image-likelihood">Calculating Image Likelihood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ImPACT.html#maximum-likelihood-fitting">Maximum Likelihood Fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ImPACT.html#performance">Performance</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ImPACT.html#running-an-impact-analysis">Running an ImPACT analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ImPACT.html#choosing-you-minimiser">Choosing you minimiser</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-ctapipe.reco">
+<span id="ctapipe-reco-package"></span><h3>ctapipe.reco Package<a class="headerlink" href="#module-ctapipe.reco" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.Reconstructor" title="ctapipe.reco.Reconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>This is the base class from which all reconstruction algorithms should inherit from</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.GeometryReconstructor.html#ctapipe.reco.GeometryReconstructor" title="ctapipe.reco.GeometryReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GeometryReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>Base class for algorithms predicting only the shower geometry</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.ReconstructionProperty.html#ctapipe.reco.ReconstructionProperty" title="ctapipe.reco.ReconstructionProperty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReconstructionProperty</span></code></a>(value)</p></td>
+<td><p>Primary particle properties estimated by a <a class="reference internal" href="../../api/ctapipe.reco.Reconstructor.html#ctapipe.reco.Reconstructor" title="ctapipe.reco.Reconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconstructor</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.ShowerProcessor.html#ctapipe.reco.ShowerProcessor" title="ctapipe.reco.ShowerProcessor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShowerProcessor</span></code></a>(**kwargs)</p></td>
+<td><p>Run the stereo event reconstruction on the input events.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor" title="ctapipe.reco.HillasReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HillasReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>class that reconstructs the direction of an atmospheric shower using a simple hillas parametrisation of the camera images it provides a direction estimate in two steps and an estimate for the shower’s impact position on the ground.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.ImPACTReconstructor.html#ctapipe.reco.ImPACTReconstructor" title="ctapipe.reco.ImPACTReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImPACTReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>This class is an implementation if the impact_reco Monte Carlo Template based image fitting method from parsons14.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.HillasIntersection.html#ctapipe.reco.HillasIntersection" title="ctapipe.reco.HillasIntersection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HillasIntersection</span></code></a>(**kwargs)</p></td>
+<td><p>This class is a simple re-implementation of Hillas parameter based event reconstruction.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.EnergyRegressor.html#ctapipe.reco.EnergyRegressor" title="ctapipe.reco.EnergyRegressor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EnergyRegressor</span></code></a>(**kwargs)</p></td>
+<td><p>Use a scikit-learn regression model per telescope type to predict primary energy</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.ParticleClassifier.html#ctapipe.reco.ParticleClassifier" title="ctapipe.reco.ParticleClassifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParticleClassifier</span></code></a>(**kwargs)</p></td>
+<td><p>Predict dl2 particle classification</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.DispReconstructor.html#ctapipe.reco.DispReconstructor" title="ctapipe.reco.DispReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DispReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>Predict absolute value and sign for disp origin reconstruction for each telescope.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.StereoCombiner.html#ctapipe.reco.StereoCombiner" title="ctapipe.reco.StereoCombiner"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StereoCombiner</span></code></a>(**kwargs)</p></td>
+<td><p>Base Class for algorithms combining telescope-wise predictions to common prediction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.StereoMeanCombiner.html#ctapipe.reco.StereoMeanCombiner" title="ctapipe.reco.StereoMeanCombiner"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StereoMeanCombiner</span></code></a>(**kwargs)</p></td>
+<td><p>Calculate array-event prediction as (weighted) mean of telescope-wise predictions</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.CrossValidator.html#ctapipe.reco.CrossValidator" title="ctapipe.reco.CrossValidator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CrossValidator</span></code></a>(**kwargs)</p></td>
+<td><p>Class to train sklearn based reconstructors in a cross validation</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.reco.reconstructor">
+<span id="ctapipe-reco-reconstructor-module"></span><h3>ctapipe.reco.reconstructor Module<a class="headerlink" href="#module-ctapipe.reco.reconstructor" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id1">
+<h4>Classes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.reconstructor.Reconstructor.html#ctapipe.reco.reconstructor.Reconstructor" title="ctapipe.reco.reconstructor.Reconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>This is the base class from which all reconstruction algorithms should inherit from</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.reconstructor.GeometryReconstructor.html#ctapipe.reco.reconstructor.GeometryReconstructor" title="ctapipe.reco.reconstructor.GeometryReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GeometryReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>Base class for algorithms predicting only the shower geometry</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.reconstructor.TooFewTelescopesException.html#ctapipe.reco.reconstructor.TooFewTelescopesException" title="ctapipe.reco.reconstructor.TooFewTelescopesException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TooFewTelescopesException</span></code></a></p></td>
+<td><p>Less valid telescope events than required in an array event.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.reconstructor.InvalidWidthException.html#ctapipe.reco.reconstructor.InvalidWidthException" title="ctapipe.reco.reconstructor.InvalidWidthException"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InvalidWidthException</span></code></a></p></td>
+<td><p>Hillas width is 0 or nan</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.reconstructor.ReconstructionProperty.html#ctapipe.reco.reconstructor.ReconstructionProperty" title="ctapipe.reco.reconstructor.ReconstructionProperty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReconstructionProperty</span></code></a>(value)</p></td>
+<td><p>Primary particle properties estimated by a <a class="reference internal" href="../../api/ctapipe.reco.reconstructor.Reconstructor.html#ctapipe.reco.reconstructor.Reconstructor" title="ctapipe.reco.reconstructor.Reconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconstructor</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.reco.hillas_intersection">
+<span id="ctapipe-reco-hillas-intersection-module"></span><h3>ctapipe.reco.hillas_intersection Module<a class="headerlink" href="#module-ctapipe.reco.hillas_intersection" title="Permalink to this headline">¶</a></h3>
+<p>TODO:
+- Speed tests, need to be certain the looping on all telescopes is not killing
+performance
+- Introduce new weighting schemes
+- Make intersect_lines code more readable</p>
+<div class="section" id="id2">
+<h4>Classes<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.hillas_intersection.HillasIntersection.html#ctapipe.reco.hillas_intersection.HillasIntersection" title="ctapipe.reco.hillas_intersection.HillasIntersection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HillasIntersection</span></code></a>(**kwargs)</p></td>
+<td><p>This class is a simple re-implementation of Hillas parameter based event reconstruction.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.reco.hillas_reconstructor">
+<span id="ctapipe-reco-hillas-reconstructor-module"></span><h3>ctapipe.reco.hillas_reconstructor Module<a class="headerlink" href="#module-ctapipe.reco.hillas_reconstructor" title="Permalink to this headline">¶</a></h3>
+<p>Line-intersection-based fitting for reconstruction of direction
+and core position of a shower.</p>
+<div class="section" id="id3">
+<h4>Classes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.hillas_reconstructor.HillasReconstructor.html#ctapipe.reco.hillas_reconstructor.HillasReconstructor" title="ctapipe.reco.hillas_reconstructor.HillasReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HillasReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>class that reconstructs the direction of an atmospheric shower using a simple hillas parametrisation of the camera images it provides a direction estimate in two steps and an estimate for the shower’s impact position on the ground.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="module-ctapipe.reco.impact">
+<span id="ctapipe-reco-impact-module"></span><h3>ctapipe.reco.impact Module<a class="headerlink" href="#module-ctapipe.reco.impact" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="functions">
+<h4>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.impact.energy_prior.html#ctapipe.reco.impact.energy_prior" title="ctapipe.reco.impact.energy_prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_prior</span></code></a>(energy[, index])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.reco.impact.xmax_prior.html#ctapipe.reco.impact.xmax_prior" title="ctapipe.reco.impact.xmax_prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xmax_prior</span></code></a>(energy, xmax[, width])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.impact.guess_shower_depth.html#ctapipe.reco.impact.guess_shower_depth" title="ctapipe.reco.impact.guess_shower_depth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">guess_shower_depth</span></code></a>(energy)</p></td>
+<td><p>Simple estimation of depth of shower max based on the expected gamma-ray elongation rate.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id4">
+<h4>Classes<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.reco.impact.ImPACTReconstructor.html#ctapipe.reco.impact.ImPACTReconstructor" title="ctapipe.reco.impact.ImPACTReconstructor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImPACTReconstructor</span></code></a>(**kwargs)</p></td>
+<td><p>This class is an implementation if the impact_reco Monte Carlo Template based image fitting method from parsons14.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../api/ctapipe.io.eventseeker.EventSeeker.html" class="btn btn-neutral float-left" title="EventSeeker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sklearn.html" class="btn btn-neutral float-right" title="Reconstructors based on Scikit-Learn (sklearn)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

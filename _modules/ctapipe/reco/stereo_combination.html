@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.reco.stereo_combination &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.reco.stereo_combination</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.reco.stereo_combination</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">CartesianRepresentation</span><span class="p">,</span> <span class="n">SphericalRepresentation</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">UseEnum</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">Container</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core.traits</span> <span class="kn">import</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">CaselessStrEnum</span><span class="p">,</span> <span class="n">Unicode</span>
+<span class="kn">from</span> <span class="nn">ctapipe.reco.reconstructor</span> <span class="kn">import</span> <span class="n">ReconstructionProperty</span>
+
+<span class="kn">from</span> <span class="nn">..containers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArrayEventContainer</span><span class="p">,</span>
+    <span class="n">ParticleClassificationContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+    <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">add_defaults_and_meta</span>
+
+<span class="n">_containers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">,</span>
+    <span class="s2">&quot;classification&quot;</span><span class="p">:</span> <span class="n">ParticleClassificationContainer</span><span class="p">,</span>
+    <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;StereoCombiner&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;StereoMeanCombiner&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_grouped_add</span><span class="p">(</span><span class="n">tel_data</span><span class="p">,</span> <span class="n">n_array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the group-wise sum for each array event over the</span>
+<span class="sd">    corresponding telescope events. ``indices`` is an array</span>
+<span class="sd">    that gives the index of the subarray event for each telescope event,</span>
+<span class="sd">    returned by</span>
+<span class="sd">    ``np.unique(tel_events[[&quot;obs_id&quot;, &quot;event_id&quot;]], return_inverse=True)``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">combined_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">combined_values</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">tel_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">combined_values</span>
+
+
+<span class="k">def</span> <span class="nf">_weighted_mean_ufunc</span><span class="p">(</span><span class="n">tel_values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">n_array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">):</span>
+    <span class="c1"># avoid numerical problems by very large or small weights</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">sum_prediction</span> <span class="o">=</span> <span class="n">_grouped_add</span><span class="p">(</span>
+        <span class="n">tel_values</span> <span class="o">*</span> <span class="n">weights</span><span class="p">,</span>
+        <span class="n">n_array_events</span><span class="p">,</span>
+        <span class="n">indices</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sum_of_weights</span> <span class="o">=</span> <span class="n">_grouped_add</span><span class="p">(</span>
+        <span class="n">weights</span><span class="p">,</span>
+        <span class="n">n_array_events</span><span class="p">,</span>
+        <span class="n">indices</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">sum_of_weights</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">mean</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">sum_prediction</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">/</span> <span class="n">sum_of_weights</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">mean</span>
+
+
+<div class="viewcode-block" id="StereoCombiner"><a class="viewcode-back" href="../../../api/ctapipe.reco.StereoCombiner.html#ctapipe.reco.stereo_combination.StereoCombiner">[docs]</a><span class="k">class</span> <span class="nc">StereoCombiner</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base Class for algorithms combining telescope-wise predictions to common prediction&quot;&quot;&quot;</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">Unicode</span><span class="p">(</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Prefix to be added to the output container / column names&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">property</span> <span class="o">=</span> <span class="n">UseEnum</span><span class="p">(</span>
+        <span class="n">ReconstructionProperty</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which property is being combined&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StereoCombiner.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.StereoCombiner.html#ctapipe.reco.stereo_combination.StereoCombiner.__call__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill event container with stereo predictions</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="StereoCombiner.predict_table"><a class="viewcode-back" href="../../../api/ctapipe.reco.StereoCombiner.html#ctapipe.reco.stereo_combination.StereoCombiner.predict_table">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">predict_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mono_predictions</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs stereo predictions from a table of</span>
+<span class="sd">        telescope events.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="StereoMeanCombiner"><a class="viewcode-back" href="../../../api/ctapipe.reco.StereoMeanCombiner.html#ctapipe.reco.stereo_combination.StereoMeanCombiner">[docs]</a><span class="k">class</span> <span class="nc">StereoMeanCombiner</span><span class="p">(</span><span class="n">StereoCombiner</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate array-event prediction as (weighted) mean of telescope-wise predictions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">CaselessStrEnum</span><span class="p">(</span>
+        <span class="p">[</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;intensity&quot;</span><span class="p">,</span> <span class="s2">&quot;konrad&quot;</span><span class="p">],</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">log_target</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If true, calculate exp(mean(log(values)))&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">supported</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">ENERGY</span><span class="p">,</span>
+            <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">GEOMETRY</span><span class="p">,</span>
+            <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">PARTICLE_TYPE</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">supported</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Combination of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">property</span><span class="si">}</span><span class="s2"> not implemented in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Container</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">==</span> <span class="s2">&quot;intensity&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">hillas</span><span class="o">.</span><span class="n">intensity</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">==</span> <span class="s2">&quot;konrad&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">hillas</span><span class="o">.</span><span class="n">intensity</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">hillas</span><span class="o">.</span><span class="n">length</span> <span class="o">/</span> <span class="n">data</span><span class="o">.</span><span class="n">hillas</span><span class="o">.</span><span class="n">width</span>
+
+            <span class="k">return</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">==</span> <span class="s2">&quot;intensity&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;hillas_intensity&quot;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">==</span> <span class="s2">&quot;konrad&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;hillas_intensity&quot;</span><span class="p">]</span>
+                    <span class="o">*</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;hillas_length&quot;</span><span class="p">]</span>
+                    <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;hillas_width&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;Dl1 data needs to be provided in the form of a container or astropy.table.Table&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_combine_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">dl2</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">mono</span> <span class="o">=</span> <span class="n">dl2</span><span class="o">.</span><span class="n">energy</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">mono</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mono</span><span class="o">.</span><span class="n">energy</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">tel_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No parameters for weighting available&quot;</span><span class="p">)</span>
+                <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_weights</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">weights</span> <span class="o">/=</span> <span class="n">weights</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">weights</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+                <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="o">.</span><span class="n">energy</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">(</span>
+            <span class="n">energy</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">energy_uncert</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">std</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">telescopes</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_combine_classification</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">dl2</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">mono</span> <span class="o">=</span> <span class="n">dl2</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">mono</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mono</span><span class="o">.</span><span class="n">prediction</span><span class="p">)</span>
+                <span class="n">dl1</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span>
+                <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_weights</span><span class="p">(</span><span class="n">dl1</span><span class="p">)</span> <span class="k">if</span> <span class="n">dl1</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">container</span> <span class="o">=</span> <span class="n">ParticleClassificationContainer</span><span class="p">(</span>
+            <span class="n">prediction</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">telescopes</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="n">is_valid</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="p">)</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">container</span>
+
+    <span class="k">def</span> <span class="nf">_combine_altaz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">alt_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">az_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">dl2</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">mono</span> <span class="o">=</span> <span class="n">dl2</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">mono</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="n">alt_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mono</span><span class="o">.</span><span class="n">alt</span><span class="p">)</span>
+                <span class="n">az_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mono</span><span class="o">.</span><span class="n">az</span><span class="p">)</span>
+                <span class="n">dl1</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span>
+                <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_weights</span><span class="p">(</span><span class="n">dl1</span><span class="p">)</span> <span class="k">if</span> <span class="n">dl1</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># by construction len(alt_values) == len(az_values)</span>
+            <span class="n">coord</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">alt</span><span class="o">=</span><span class="n">alt_values</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="n">az_values</span><span class="p">)</span>
+            <span class="c1"># https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction</span>
+            <span class="n">mono_x</span><span class="p">,</span> <span class="n">mono_y</span><span class="p">,</span> <span class="n">mono_z</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">get_xyz</span><span class="p">()</span>
+            <span class="n">stereo_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">mono_x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+            <span class="n">stereo_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">mono_y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+            <span class="n">stereo_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">mono_z</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+            <span class="n">mean_cartesian</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">stereo_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">stereo_y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">stereo_z</span><span class="p">)</span>
+            <span class="n">mean_spherical</span> <span class="o">=</span> <span class="n">mean_cartesian</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">SphericalRepresentation</span><span class="p">)</span>
+            <span class="n">mean_altaz</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">mean_spherical</span><span class="p">)</span>
+
+            <span class="c1"># https://en.wikipedia.org/wiki/Directional_statistics#Measures_of_location_and_spread</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">mean_spherical</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">to_value</span><span class="p">()</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">r</span><span class="p">))</span>
+
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mean_altaz</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span>
+                <span class="n">alt</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">az</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">event</span><span class="o">.</span><span class="n">dl2</span><span class="o">.</span><span class="n">stereo</span><span class="o">.</span><span class="n">geometry</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">(</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">mean_altaz</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span>
+            <span class="n">az</span><span class="o">=</span><span class="n">mean_altaz</span><span class="o">.</span><span class="n">az</span><span class="p">,</span>
+            <span class="n">ang_distance_uncert</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">std</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">telescopes</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="StereoMeanCombiner.__call__"><a class="viewcode-back" href="../../../api/ctapipe.reco.StereoMeanCombiner.html#ctapipe.reco.stereo_combination.StereoMeanCombiner.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">ArrayEventContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the mean prediction for a single array event.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">is</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">ENERGY</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_combine_energy</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">is</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">PARTICLE_TYPE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_combine_classification</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">is</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">GEOMETRY</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_combine_altaz</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StereoMeanCombiner.predict_table"><a class="viewcode-back" href="../../../api/ctapipe.reco.StereoMeanCombiner.html#ctapipe.reco.stereo_combination.StereoMeanCombiner.predict_table">[docs]</a>    <span class="k">def</span> <span class="nf">predict_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mono_predictions</span><span class="p">:</span> <span class="n">Table</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the (array-)event-wise mean.</span>
+<span class="sd">        Telescope events, that are nan, get discarded.</span>
+<span class="sd">        This means you might end up with less events if</span>
+<span class="sd">        all telescope predictions of a shower are invalid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_tel&quot;</span>
+        <span class="c1"># TODO: Integrate table quality query once its done</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">mono_predictions</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_is_valid&quot;</span><span class="p">]</span>
+        <span class="n">valid_predictions</span> <span class="o">=</span> <span class="n">mono_predictions</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+
+        <span class="n">array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">multiplicity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+            <span class="n">mono_predictions</span><span class="p">[[</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">]],</span>
+            <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">stereo_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">array_events</span><span class="p">)</span>
+        <span class="c1"># copy metadata</span>
+        <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;obs_id&quot;</span><span class="p">,</span> <span class="s2">&quot;event_id&quot;</span><span class="p">):</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">mono_predictions</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span><span class="o">.</span><span class="n">description</span>
+
+        <span class="n">n_array_events</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">array_events</span><span class="p">)</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_weights</span><span class="p">(</span><span class="n">valid_predictions</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">is</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">PARTICLE_TYPE</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_predictions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">mono_predictions</span> <span class="o">=</span> <span class="n">valid_predictions</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_prediction&quot;</span><span class="p">]</span>
+                <span class="n">stereo_predictions</span> <span class="o">=</span> <span class="n">_weighted_mean_ufunc</span><span class="p">(</span>
+                    <span class="n">mono_predictions</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">n_array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stereo_predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_prediction&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stereo_predictions</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_is_valid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">stereo_predictions</span><span class="p">)</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_goodness_of_fit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">is</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">ENERGY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_predictions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">mono_energies</span> <span class="o">=</span> <span class="n">valid_predictions</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_energy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span>
+                    <span class="n">u</span><span class="o">.</span><span class="n">TeV</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+                    <span class="n">mono_energies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">mono_energies</span><span class="p">)</span>
+
+                <span class="n">stereo_energy</span> <span class="o">=</span> <span class="n">_weighted_mean_ufunc</span><span class="p">(</span>
+                    <span class="n">mono_energies</span><span class="p">,</span>
+                    <span class="n">weights</span><span class="p">,</span>
+                    <span class="n">n_array_events</span><span class="p">,</span>
+                    <span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="n">variance</span> <span class="o">=</span> <span class="n">_weighted_mean_ufunc</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">mono_energies</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">stereo_energy</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">)[</span><span class="n">valid</span><span class="p">])</span>
+                    <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="n">weights</span><span class="p">,</span>
+                    <span class="n">n_array_events</span><span class="p">,</span>
+                    <span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">variance</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_target</span><span class="p">:</span>
+                    <span class="n">stereo_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">stereo_energy</span><span class="p">)</span>
+                    <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stereo_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">stereo_energy</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_energy_uncert&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">std</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_is_valid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">stereo_energy</span><span class="p">)</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_goodness_of_fit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">property</span> <span class="ow">is</span> <span class="n">ReconstructionProperty</span><span class="o">.</span><span class="n">GEOMETRY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_predictions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">coord</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span>
+                    <span class="n">alt</span><span class="o">=</span><span class="n">valid_predictions</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_alt&quot;</span><span class="p">],</span>
+                    <span class="n">az</span><span class="o">=</span><span class="n">valid_predictions</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_az&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="c1"># https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction</span>
+                <span class="n">mono_x</span><span class="p">,</span> <span class="n">mono_y</span><span class="p">,</span> <span class="n">mono_z</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">get_xyz</span><span class="p">()</span>
+
+                <span class="n">stereo_x</span> <span class="o">=</span> <span class="n">_weighted_mean_ufunc</span><span class="p">(</span>
+                    <span class="n">mono_x</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">n_array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">stereo_y</span> <span class="o">=</span> <span class="n">_weighted_mean_ufunc</span><span class="p">(</span>
+                    <span class="n">mono_y</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">n_array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">stereo_z</span> <span class="o">=</span> <span class="n">_weighted_mean_ufunc</span><span class="p">(</span>
+                    <span class="n">mono_z</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">n_array_events</span><span class="p">,</span> <span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="n">mean_cartesian</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">stereo_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">stereo_y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">stereo_z</span>
+                <span class="p">)</span>
+                <span class="n">mean_spherical</span> <span class="o">=</span> <span class="n">mean_cartesian</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">SphericalRepresentation</span><span class="p">)</span>
+                <span class="n">mean_altaz</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">mean_spherical</span><span class="p">)</span>
+
+                <span class="c1"># https://en.wikipedia.org/wiki/Directional_statistics#Measures_of_location_and_spread</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">mean_spherical</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">to_value</span><span class="p">()</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">r</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mean_altaz</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span>
+                    <span class="n">alt</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="n">az</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_alt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean_altaz</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_az&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean_altaz</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_ang_distance_uncert&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">std</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_is_valid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_alt&quot;</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_az&quot;</span><span class="p">]),</span>
+            <span class="p">)</span>
+            <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_goodness_of_fit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+        <span class="n">tel_ids</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_array_events</span><span class="p">)]</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">valid_predictions</span><span class="p">[</span><span class="s2">&quot;tel_id&quot;</span><span class="p">]):</span>
+            <span class="n">tel_ids</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tel_id</span><span class="p">)</span>
+
+        <span class="n">stereo_table</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_telescopes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tel_ids</span>
+        <span class="n">add_defaults_and_meta</span><span class="p">(</span><span class="n">stereo_table</span><span class="p">,</span> <span class="n">_containers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">property</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stereo_table</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.core.traits &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.core.traits</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.core.traits</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Traitlet implementations for ctapipe</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
+
+<span class="kn">import</span> <span class="nn">traitlets</span>
+<span class="kn">import</span> <span class="nn">traitlets.config</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">Undefined</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.core.plugins</span> <span class="kn">import</span> <span class="n">detect_and_import_plugins</span>
+
+<span class="kn">from</span> <span class="nn">.component</span> <span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">non_abstract_children</span>
+<span class="kn">from</span> <span class="nn">.telescope_component</span> <span class="kn">import</span> <span class="n">TelescopeParameter</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Implemented here</span>
+    <span class="s2">&quot;AstroTime&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BoolTelescopeParameter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;IntTelescopeParameter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;FloatTelescopeParameter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;classes_with_traits&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;create_class_enum_trait&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;has_traits&quot;</span><span class="p">,</span>
+    <span class="c1"># imported from traitlets</span>
+    <span class="s2">&quot;Path&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Bool&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CRegExp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CaselessStrEnum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CInt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Dict&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Enum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Float&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Int&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;List&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Long&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Set&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TraitError&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Tuple&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Unicode&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;flag&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;observe&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># Aliases</span>
+<span class="n">Bool</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Bool</span>
+<span class="n">Int</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Int</span>
+<span class="n">CInt</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">CInt</span>
+<span class="n">Integer</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Integer</span>
+<span class="n">Float</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Float</span>
+<span class="n">Long</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Long</span>
+<span class="n">Unicode</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Unicode</span>
+<span class="n">Dict</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Dict</span>
+<span class="n">Enum</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Enum</span>
+<span class="n">List</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">List</span>
+<span class="n">Set</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Set</span>
+<span class="n">CRegExp</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">CRegExp</span>
+<span class="n">CaselessStrEnum</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">CaselessStrEnum</span>
+<span class="n">UseEnum</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">UseEnum</span>
+<span class="n">TraitError</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">TraitError</span>
+<span class="n">TraitType</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">TraitType</span>
+<span class="n">Tuple</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">Tuple</span>
+<span class="n">observe</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">observe</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="n">traitlets</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">boolean_flag</span>
+
+
+<span class="k">class</span> <span class="nc">AstroTime</span><span class="p">(</span><span class="n">TraitType</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A trait representing a point in Time, as understood by `astropy.time`&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;try to parse and return an ISO time string&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">the_time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">the_time</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s2">&quot;iso&quot;</span>
+            <span class="k">return</span> <span class="n">the_time</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="s2">&quot;an ISO8601 datestring or Time instance&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_none</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot;or None&quot;</span>
+        <span class="k">return</span> <span class="n">info</span>
+
+
+<span class="k">class</span> <span class="nc">Path</span><span class="p">(</span><span class="n">TraitType</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A path Trait for input/output files.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    exists: boolean or None</span>
+<span class="sd">        If True, path must exist, if False path must not exist</span>
+<span class="sd">    directory_ok: boolean</span>
+<span class="sd">        If False, path must not be a directory</span>
+<span class="sd">    file_ok: boolean</span>
+<span class="sd">        If False, path must not be a file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="n">Undefined</span><span class="p">,</span>
+        <span class="n">exists</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">directory_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">file_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="n">default_value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exists</span> <span class="o">=</span> <span class="n">exists</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory_ok</span> <span class="o">=</span> <span class="n">directory_ok</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_ok</span> <span class="o">=</span> <span class="n">file_ok</span>
+
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="s2">&quot;a pathlib.Path or non-empty str for &quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exists</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot;an existing&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">exists</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot;a not existing&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot;a&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory_ok</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_ok</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot; directory or file&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_ok</span><span class="p">:</span>
+                <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot; file&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory_ok</span><span class="p">:</span>
+                <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot;directory&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_none</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">+=</span> <span class="s2">&quot; or None&quot;</span>
+
+        <span class="k">return</span> <span class="n">info</span>
+
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fsdecode</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="n">Undefined</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_none</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># expand any environment variables in the path:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">,</span> <span class="s2">&quot;https&quot;</span><span class="p">):</span>
+                <span class="c1"># here to avoid circular import, since every module imports</span>
+                <span class="c1"># from ctapipe.core</span>
+                <span class="kn">from</span> <span class="nn">ctapipe.utils.download</span> <span class="kn">import</span> <span class="n">download_cached</span>
+
+                <span class="n">value</span> <span class="o">=</span> <span class="n">download_cached</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">&quot;dataset&quot;</span><span class="p">:</span>
+                <span class="c1"># here to avoid circular import, since every module imports</span>
+                <span class="c1"># from ctapipe.core</span>
+                <span class="kn">from</span> <span class="nn">ctapipe.utils</span> <span class="kn">import</span> <span class="n">get_dataset_path</span>
+
+                <span class="n">value</span> <span class="o">=</span> <span class="n">get_dataset_path</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;dataset://&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">netloc</span><span class="p">,</span> <span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span>
+        <span class="n">exists</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exists</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">exists</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exists</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span>
+                    <span class="s1">&#39;Path &quot;</span><span class="si">{}</span><span class="s1">&quot; </span><span class="si">{}</span><span class="s1"> exist&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">value</span><span class="p">,</span> <span class="s2">&quot;does not&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exists</span> <span class="k">else</span> <span class="s2">&quot;must not&quot;</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">exists</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory_ok</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Path &quot;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&quot; must not be a directory&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_ok</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Path &quot;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&quot; must not be a file&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span> <span class="nf">create_class_enum_trait</span><span class="p">(</span><span class="n">base_class</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">allow_none</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;create a configurable CaselessStrEnum traitlet from baseclass</span>
+
+<span class="sd">    the enumeration should contain all names of non_abstract_children()</span>
+<span class="sd">    of said baseclass and the default choice should be given by</span>
+<span class="sd">    ``base_class._default`` name.</span>
+
+<span class="sd">    default must be specified and must be the name of one child-class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">help</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">help</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> to use.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">base_class</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">non_abstract_children</span><span class="p">(</span><span class="n">base_class</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">default_value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">default_value</span><span class="si">}</span><span class="s2"> is not in choices: </span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">CaselessStrEnum</span><span class="p">(</span>
+        <span class="n">choices</span><span class="p">,</span>
+        <span class="n">default_value</span><span class="o">=</span><span class="n">default_value</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="n">help</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="n">allow_none</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ComponentName</span><span class="p">(</span><span class="n">Unicode</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A trait that is the name of a Component class&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># we need to prevent triggering importing plugins at</span>
+        <span class="c1"># import time to avoid circular imports, this flag is used</span>
+        <span class="c1"># to prevent calling the full plugin mechanism at defintion</span>
+        <span class="c1"># time of a `ComponentName`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cls must be a Component, got </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cls</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;help&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;The name of a </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> subclass&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span><span class="p">:</span>
+            <span class="n">children</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_help</span><span class="si">}</span><span class="s2">. Possible values: </span><span class="si">{</span><span class="n">children</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="nd">@help</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_help</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">info_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Any of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Any subclass of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_none</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ComponentNameList</span><span class="p">(</span><span class="n">List</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A trait that is a list of Component classes&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># we need to prevent triggering importing plugins at</span>
+        <span class="c1"># import time to avoid circular imports, this flag is used</span>
+        <span class="c1"># to prevent calling the full plugin mechanism at defintion</span>
+        <span class="c1"># time of a `ComponentNameList`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cls must be a Component, got </span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cls</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="n">trait</span> <span class="o">=</span> <span class="n">ComponentName</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">trait</span><span class="o">=</span><span class="n">trait</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;help&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;A list of </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> subclass names&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span><span class="p">:</span>
+            <span class="n">children</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_help</span><span class="si">}</span><span class="s2">. Possible values: </span><span class="si">{</span><span class="n">children</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="nd">@help</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_help</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">info_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_done</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;A list of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;A list of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s2"> subclasses&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">classes_with_traits</span><span class="p">(</span><span class="n">base_class</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a list of the base class plus its non-abstract children</span>
+<span class="sd">    if they have traits&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">base_class</span><span class="p">,</span> <span class="s2">&quot;plugin_entry_point&quot;</span><span class="p">):</span>
+        <span class="n">detect_and_import_plugins</span><span class="p">(</span><span class="n">base_class</span><span class="o">.</span><span class="n">plugin_entry_point</span><span class="p">)</span>
+
+    <span class="n">all_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">base_class</span><span class="p">]</span> <span class="o">+</span> <span class="n">non_abstract_children</span><span class="p">(</span><span class="n">base_class</span><span class="p">)</span>
+    <span class="n">with_traits</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">all_classes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">has_traits</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="n">with_traits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+
+        <span class="c1"># add subcomponents</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;classes&quot;</span><span class="p">):</span>
+            <span class="c1"># we will ignore failing classes to not break anyone</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+                <span class="n">classes</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">classes</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">classes</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+                    <span class="n">with_traits</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">classes_with_traits</span><span class="p">(</span><span class="n">component</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">with_traits</span>
+
+
+<span class="k">def</span> <span class="nf">has_traits</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="s2">&quot;parent&quot;</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True if cls has any traits apart from the usual ones</span>
+
+<span class="sd">    all our components have at least &#39;config&#39; and &#39;parent&#39; as traitlets</span>
+<span class="sd">    this is inherited from `traitlets.config.Configurable` so we ignore them</span>
+<span class="sd">    here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">class_trait_names</span><span class="p">())</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">ignore</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">FloatTelescopeParameter</span><span class="p">(</span><span class="n">TelescopeParameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;a `~ctapipe.core.telescope_component.TelescopeParameter` with Float trait type&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new FloatTelescopeParameter&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">trait</span><span class="o">=</span><span class="n">Float</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IntTelescopeParameter</span><span class="p">(</span><span class="n">TelescopeParameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;a `~ctapipe.core.telescope_component.TelescopeParameter` with Int trait type&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new IntTelescopeParameter&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">trait</span><span class="o">=</span><span class="n">Integer</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">BoolTelescopeParameter</span><span class="p">(</span><span class="n">TelescopeParameter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;a `~ctapipe.core.telescope_component.TelescopeParameter` with Bool trait type&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new BoolTelescopeParameter&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">trait</span><span class="o">=</span><span class="n">Bool</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+Float
+=====
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: Float
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Float.default_value
+      ~Float.info_text
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Float.from_string
+      ~Float.subclass_init
+      ~Float.validate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_value
+   .. autoattribute:: info_text
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_string
+   .. automethod:: subclass_init
+   .. automethod:: validate

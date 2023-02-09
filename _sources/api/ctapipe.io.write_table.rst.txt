@@ -1,0 +1,6 @@
+write_table
+===========
+
+.. currentmodule:: ctapipe.io
+
+.. autofunction:: write_table

@@ -1,0 +1,55 @@
+HDF5Merger
+==========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: HDF5Merger
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~HDF5Merger.append
+      ~HDF5Merger.dl1_images
+      ~HDF5Merger.dl1_muon
+      ~HDF5Merger.dl1_parameters
+      ~HDF5Merger.dl2_subarray
+      ~HDF5Merger.dl2_telescope
+      ~HDF5Merger.monitoring
+      ~HDF5Merger.output_path
+      ~HDF5Merger.overwrite
+      ~HDF5Merger.processing_statistics
+      ~HDF5Merger.simulation
+      ~HDF5Merger.telescope_events
+      ~HDF5Merger.true_images
+      ~HDF5Merger.true_parameters
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~HDF5Merger.__call__
+      ~HDF5Merger.close
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: append
+   .. autoattribute:: dl1_images
+   .. autoattribute:: dl1_muon
+   .. autoattribute:: dl1_parameters
+   .. autoattribute:: dl2_subarray
+   .. autoattribute:: dl2_telescope
+   .. autoattribute:: monitoring
+   .. autoattribute:: output_path
+   .. autoattribute:: overwrite
+   .. autoattribute:: processing_statistics
+   .. autoattribute:: simulation
+   .. autoattribute:: telescope_events
+   .. autoattribute:: true_images
+   .. autoattribute:: true_parameters
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: close

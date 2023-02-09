@@ -1,0 +1,8 @@
+<map id="inheritanced7974d158e" name="inheritanced7974d158e">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.component.Component.html#ctapipe.core.component.Component" target="_top" title="Base class of all Components." alt="" coords="286,19,347,35"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.core.telescope_component.TelescopeComponent.html#ctapipe.core.telescope_component.TelescopeComponent" target="_top" title="A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed," alt="" coords="377,19,478,35"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.image.reducer.DataVolumeReducer.html#ctapipe.image.reducer.DataVolumeReducer" target="_top" title="Base component for data volume reducers." alt="" coords="508,19,605,35"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.image.reducer.NullDataVolumeReducer.html#ctapipe.image.reducer.NullDataVolumeReducer" target="_top" title="Perform no data volume reduction" alt="" coords="643,3,757,19"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.image.reducer.TailCutsDataVolumeReducer.html#ctapipe.image.reducer.TailCutsDataVolumeReducer" target="_top" title="Reduce the time integrated shower image in 3 Steps:" alt="" coords="635,34,765,50"/>
+<area shape="rect" id="node6" title="The base class for all classes that have descriptors." alt="" coords="3,19,79,35"/>
+</map>

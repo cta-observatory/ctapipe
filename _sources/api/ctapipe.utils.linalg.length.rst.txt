@@ -1,0 +1,6 @@
+length
+======
+
+.. currentmodule:: ctapipe.utils.linalg
+
+.. autofunction:: length

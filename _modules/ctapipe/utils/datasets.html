@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.utils.datasets &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.utils.datasets</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.utils.datasets</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">resource_listdir</span>
+<span class="kn">from</span> <span class="nn">requests.exceptions</span> <span class="kn">import</span> <span class="n">HTTPError</span>
+
+<span class="kn">from</span> <span class="nn">.download</span> <span class="kn">import</span> <span class="n">download_file_cached</span><span class="p">,</span> <span class="n">get_cache_path</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">ctapipe_resources</span>
+
+    <span class="n">has_resources</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">has_resources</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">importlib.resources</span> <span class="kn">import</span> <span class="n">files</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">importlib_resources</span> <span class="kn">import</span> <span class="n">files</span>
+
+
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">Provenance</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;get_dataset_path&quot;</span><span class="p">,</span> <span class="s2">&quot;find_in_path&quot;</span><span class="p">,</span> <span class="s2">&quot;find_all_matching_datasets&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;get_default_url&quot;</span><span class="p">,</span> <span class="s2">&quot;DEFAULT_URL&quot;</span>
+<span class="p">]</span>
+
+
+<span class="c1">#: default base URL for downloading datasets</span>
+<span class="n">DEFAULT_URL</span> <span class="o">=</span> <span class="s2">&quot;http://cccta-dataserver.in2p3.fr/data/ctapipe-test-data/v1.1.0/&quot;</span>
+
+
+<div class="viewcode-block" id="get_default_url"><a class="viewcode-back" href="../../../api/ctapipe.utils.datasets.get_default_url.html#ctapipe.utils.datasets.get_default_url">[docs]</a><span class="k">def</span> <span class="nf">get_default_url</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the default download url for datasets</span>
+
+<span class="sd">    First tries to look-up CTAPIPE_DATASET_URL and then falls</span>
+<span class="sd">    back to ``DEFAULT_URL``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;CTAPIPE_DATASET_URL&quot;</span><span class="p">,</span> <span class="n">DEFAULT_URL</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_searchpath_dirs</span><span class="p">(</span><span class="n">searchpath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;returns a list of dirs in specified searchpath&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">get_default_url</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">searchpath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">searchpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;CTAPIPE_SVC_PATH&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">searchpath</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">searchpath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">searchpaths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">searchpaths</span> <span class="o">=</span> <span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="n">searchpath</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)]</span>
+    <span class="n">searchpaths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_cache_path</span><span class="p">(</span><span class="n">url</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">searchpaths</span>
+
+
+<div class="viewcode-block" id="find_all_matching_datasets"><a class="viewcode-back" href="../../../api/ctapipe.utils.find_all_matching_datasets.html#ctapipe.utils.datasets.find_all_matching_datasets">[docs]</a><span class="k">def</span> <span class="nf">find_all_matching_datasets</span><span class="p">(</span>
+    <span class="n">pattern</span><span class="p">,</span> <span class="n">searchpath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">regexp_group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a list of resource names (or substrings) matching the given</span>
+<span class="sd">    pattern, searching first in searchpath (a colon-separated list of</span>
+<span class="sd">    directories) and then in the ctapipe_resources module)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pattern: str</span>
+<span class="sd">       regular expression to use for matching</span>
+<span class="sd">    searchpath: str</span>
+<span class="sd">       colon-seprated list of directories in which to search, defaulting to</span>
+<span class="sd">       CTAPIPE_SVC_PATH environment variable</span>
+<span class="sd">    regexp_group: int</span>
+<span class="sd">       if not None, return the regular expression group indicated (assuming</span>
+<span class="sd">       pattern has a group specifier in it)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list(str):</span>
+<span class="sd">       resources names, use get_dataset_path() to retrieve the full filename</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">get_default_url</span><span class="p">()</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">searchpath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">searchpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;CTAPIPE_SVC_PATH&quot;</span><span class="p">)</span>
+    <span class="n">search_path_dirs</span> <span class="o">=</span> <span class="n">get_searchpath_dirs</span><span class="p">(</span><span class="n">searchpath</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="c1"># first check search path</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">search_path_dirs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">regexp_group</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">results</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">regexp_group</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">results</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+    <span class="c1"># then check resources module</span>
+    <span class="k">if</span> <span class="n">has_resources</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">resource_listdir</span><span class="p">(</span><span class="s2">&quot;ctapipe_resources&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">resource</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">regexp_group</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">regexp_group</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">resource</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="find_in_path"><a class="viewcode-back" href="../../../api/ctapipe.utils.find_in_path.html#ctapipe.utils.datasets.find_in_path">[docs]</a><span class="k">def</span> <span class="nf">find_in_path</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">searchpath</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Search in searchpath for filename, returning full path.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    searchpath: str</span>
+<span class="sd">        colon-separated list of directories (like PATH)</span>
+<span class="sd">    filename:</span>
+<span class="sd">        filename to find</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    full path to file if found, None otherwise</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">get_default_url</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">get_searchpath_dirs</span><span class="p">(</span><span class="n">searchpath</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">directory</span> <span class="o">/</span> <span class="n">filename</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="get_dataset_path"><a class="viewcode-back" href="../../../api/ctapipe.utils.get_dataset_path.html#ctapipe.utils.datasets.get_dataset_path">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_path</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the full file path to an auxiliary dataset needed by</span>
+<span class="sd">    ctapipe, given the dataset&#39;s full name (filename with no directory).</span>
+
+<span class="sd">    This will first search for the file in directories listed in</span>
+<span class="sd">    tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,</span>
+<span class="sd">    will look in the ctapipe_resources module</span>
+<span class="sd">    (if installed with the ctapipe-extra package), which contains the defaults.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename: str</span>
+<span class="sd">        name of dataset to fetch</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    string with full path to the given dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">searchpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;CTAPIPE_SVC_PATH&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">get_default_url</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">searchpath</span><span class="p">:</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">find_in_path</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">searchpath</span><span class="o">=</span><span class="n">searchpath</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filepath</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">filepath</span>
+
+    <span class="k">if</span> <span class="n">has_resources</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Resource &#39;</span><span class="si">{}</span><span class="s2">&#39; not found in CTAPIPE_SVC_PATH, looking in &quot;</span>
+            <span class="s2">&quot;ctapipe_resources...&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">ctapipe_resources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+
+    <span class="c1"># last, try downloading the data</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">download_file_cached</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">default_url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># let 404 raise the FileNotFoundError instead of HTTPError</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">404</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find resource: &#39;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&#39;,&quot;</span>
+        <span class="s2">&quot; You might want to install ctapipe_resources&quot;</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">try_filetypes</span><span class="p">(</span><span class="n">basename</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">file_types</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the contents of dataset as an `astropy.table.Table` object from</span>
+<span class="sd">    different file types if available.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    basename: str</span>
+<span class="sd">        base-name (without extension) of the dataset</span>
+<span class="sd">    role: str</span>
+<span class="sd">        Provenance role. It should be set to the CTA data hierarchy name when</span>
+<span class="sd">        possible (e.g. dl1.sub.svc.arraylayout). This will be recorded in the</span>
+<span class="sd">        provenance system.</span>
+<span class="sd">    file_types: dict</span>
+<span class="sd">        Mapping of file extensions to readers.</span>
+<span class="sd">    url : str</span>
+<span class="sd">        URL where the dataset is stored.</span>
+<span class="sd">    kwargs:</span>
+<span class="sd">        extra arguments to pass to Table.read()</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    table : astropy.table.Table</span>
+<span class="sd">        Table containing the data in a dataser from an available file</span>
+<span class="sd">        type entry.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">get_default_url</span><span class="p">()</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># look first in search pathes (includes cache)</span>
+    <span class="c1"># so we respect user provided paths and don&#39;t have to try non-existing downloads</span>
+    <span class="n">search_paths</span> <span class="o">=</span> <span class="n">get_searchpath_dirs</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">search_path</span> <span class="ow">in</span> <span class="n">search_paths</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ext</span><span class="p">,</span> <span class="n">reader</span> <span class="ow">in</span> <span class="n">file_types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">basename</span> <span class="o">+</span> <span class="n">ext</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">search_path</span> <span class="o">/</span> <span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">search_path</span> <span class="o">/</span> <span class="n">filename</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="c1"># no cache hit</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ext</span><span class="p">,</span> <span class="n">reader</span> <span class="ow">in</span> <span class="n">file_types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">basename</span> <span class="o">+</span> <span class="n">ext</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">get_dataset_path</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="n">HTTPError</span><span class="p">):</span>
+                <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">reader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">Provenance</span><span class="p">()</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span>
+
+    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+        <span class="s2">&quot;Couldn&#39;t find any file: </span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">basename</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_types</span><span class="p">))</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_table_dataset"><a class="viewcode-back" href="../../../api/ctapipe.utils.get_table_dataset.html#ctapipe.utils.datasets.get_table_dataset">[docs]</a><span class="k">def</span> <span class="nf">get_table_dataset</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;resource&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    get a tabular dataset as an `astropy.table.Table` object</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table_name: str</span>
+<span class="sd">        base name of table, without file extension</span>
+<span class="sd">    role: str</span>
+<span class="sd">        should be set to the CTA data hierarchy name when possible (e.g.</span>
+<span class="sd">        dl1.sub.svc.arraylayout). This will be recorded in the provenance</span>
+<span class="sd">        system.</span>
+<span class="sd">    kwargs:</span>
+<span class="sd">        extra arguments to pass to Table.read()</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Table</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># a mapping of types (keys) to any extra keyword args needed for</span>
+    <span class="c1"># table.read()</span>
+    <span class="n">table_types</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;.fits.gz&quot;</span><span class="p">:</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">,</span>
+        <span class="s2">&quot;.fits&quot;</span><span class="p">:</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">,</span>
+        <span class="s2">&quot;.ecsv&quot;</span><span class="p">:</span> <span class="n">partial</span><span class="p">(</span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;ascii.ecsv&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;.ecsv.txt&quot;</span><span class="p">:</span> <span class="n">partial</span><span class="p">(</span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;ascii.ecsv&quot;</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">try_filetypes</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">table_types</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_structured_dataset</span><span class="p">(</span><span class="n">basename</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;resource&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find and return a YAML or JSON dataset as a dictionary</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    basename: str</span>
+<span class="sd">        base-name (without extension) of the dataset</span>
+<span class="sd">    role: str</span>
+<span class="sd">        provenence role</span>
+<span class="sd">    kwargs: dict</span>
+<span class="sd">        any other arguments to pass on to yaml or json loader.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict:</span>
+<span class="sd">       dictionary of data in the file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load_json</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># a mapping of types (keys) to any extra keyword args needed for</span>
+    <span class="c1"># table.read()</span>
+    <span class="n">structured_types</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;.yaml&quot;</span><span class="p">:</span> <span class="n">load_yaml</span><span class="p">,</span> <span class="s2">&quot;.yml&quot;</span><span class="p">:</span> <span class="n">load_yaml</span><span class="p">,</span> <span class="s2">&quot;.json&quot;</span><span class="p">:</span> <span class="n">load_json</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">try_filetypes</span><span class="p">(</span><span class="n">basename</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">structured_types</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="resource_file"><a class="viewcode-back" href="../../../api/ctapipe.utils.resource_file.html#ctapipe.utils.datasets.resource_file">[docs]</a><span class="k">def</span> <span class="nf">resource_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the absoulte path of ctapipe resource files.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">files</span><span class="p">(</span><span class="s2">&quot;ctapipe&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;resources&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

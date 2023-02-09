@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.containers &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.containers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.containers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Container structures for data that should be read or written to disk</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">nan</span>
+
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">Container</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">Map</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ArrayEventContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ConcentrationContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DL0CameraContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DL0Container&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DL1CameraCalibrationContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DL1CameraContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DL1Container&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DL2Container&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EventCalibrationContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EventCameraCalibrationContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EventIndexContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EventType&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;FlatFieldContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;HillasParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CoreParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ImageParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;LeakageContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MonitoringCameraContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MonitoringContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MorphologyContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BaseHillasParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CameraHillasParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CameraTimingParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ParticleClassificationContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PedestalContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PixelStatusContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;R0CameraContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;R0Container&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;R1CameraContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;R1Container&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ReconstructedContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ReconstructedEnergyContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ReconstructedGeometryContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DispContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SimulatedCameraContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SimulatedShowerContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SimulatedShowerDistribution&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SimulationConfigContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TelEventIndexContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BaseTimingParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TimingParametersContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TriggerContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;WaveformCalibrationContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;StatisticsContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;IntensityStatisticsContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PeakTimeStatisticsContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SchedulingBlockContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ObservationBlockContainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ObservingMode&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ObservationBlockState&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="c1"># see https://github.com/astropy/astropy/issues/6509</span>
+<span class="n">NAN_TIME</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mjd&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s2">&quot;tai&quot;</span><span class="p">)</span>
+
+<span class="c1">#: Used for unsigned integer obs_id or sb_id default values:</span>
+<span class="n">UNKNOWN_ID</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+<span class="c1">#: Used for unsigned integer tel_id default value</span>
+<span class="n">UNKNOWN_TEL_ID</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+
+
+<span class="n">obs_id_field</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">Field</span><span class="p">,</span> <span class="n">UNKNOWN_ID</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Observation Block ID&quot;</span><span class="p">)</span>
+<span class="n">event_id_field</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">Field</span><span class="p">,</span> <span class="n">UNKNOWN_ID</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array Event ID&quot;</span><span class="p">)</span>
+<span class="n">tel_id_field</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">Field</span><span class="p">,</span> <span class="n">UNKNOWN_TEL_ID</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Telescope ID&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SchedulingBlockType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Types of Scheduling Block</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">OBSERVATION</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">CALIBRATION</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">ENGINEERING</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<div class="viewcode-block" id="ObservationBlockState"><a class="viewcode-back" href="../../api/ctapipe.containers.ObservationBlockState.html#ctapipe.containers.ObservationBlockState">[docs]</a><span class="k">class</span> <span class="nc">ObservationBlockState</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Observation Block States. Part of the Observation Configuration data</span>
+<span class="sd">    model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">FAILED</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">COMPLETED_SUCCEDED</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">COMPLETED_CANCELED</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">COMPLETED_TRUNCATED</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">ARCHIVED</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+
+<div class="viewcode-block" id="ObservingMode"><a class="viewcode-back" href="../../api/ctapipe.containers.ObservingMode.html#ctapipe.containers.ObservingMode">[docs]</a><span class="k">class</span> <span class="nc">ObservingMode</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;How a scheduling block is observed. Part of the Observation Configuration</span>
+<span class="sd">    data model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">WOBBLE</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ON_OFF</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GRID</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">CUSTOM</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+<span class="k">class</span> <span class="nc">PointingMode</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Describes how the telescopes move. Part of the Observation Configuration</span>
+<span class="sd">    data model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c1">#: drives track a point that moves with the sky</span>
+    <span class="n">TRACK</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1">#: drives stay fixed at an alt/az point while the sky drifts by</span>
+    <span class="n">DRIFT</span> <span class="o">=</span> <span class="mi">1</span>
+
+
+<span class="k">class</span> <span class="nc">CoordinateFrameType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;types of coordinate frames used in ObservationBlockContainers. Part of</span>
+<span class="sd">    the Observation Configuration data model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">ALTAZ</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ICRS</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GALACTIC</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<div class="viewcode-block" id="EventType"><a class="viewcode-back" href="../../api/ctapipe.containers.EventType.html#ctapipe.containers.EventType">[docs]</a><span class="k">class</span> <span class="nc">EventType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_&quot;&quot;&quot;</span>
+
+    <span class="c1"># calibrations are 0-15</span>
+    <span class="n">FLATFIELD</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">SINGLE_PE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">SKY_PEDESTAL</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">DARK_PEDESTAL</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">ELECTRONIC_PEDESTAL</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">OTHER_CALIBRATION</span> <span class="o">=</span> <span class="mi">15</span>
+
+    <span class="c1">#: For mono-telescope triggers (not used in MC)</span>
+    <span class="n">MUON</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">HARDWARE_STEREO</span> <span class="o">=</span> <span class="mi">17</span>
+
+    <span class="c1">#: ACADA (DAQ) software trigger</span>
+    <span class="n">DAQ</span> <span class="o">=</span> <span class="mi">24</span>
+
+    <span class="c1">#: Standard Physics  stereo trigger</span>
+    <span class="n">SUBARRAY</span> <span class="o">=</span> <span class="mi">32</span>
+
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="mi">255</span></div>
+
+
+<div class="viewcode-block" id="EventIndexContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.EventIndexContainer.html#ctapipe.containers.EventIndexContainer">[docs]</a><span class="k">class</span> <span class="nc">EventIndexContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;index columns to include in event lists, common to all data levels&quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># don&#39;t want to prefix these</span>
+    <span class="n">obs_id</span> <span class="o">=</span> <span class="n">obs_id_field</span><span class="p">()</span>
+    <span class="n">event_id</span> <span class="o">=</span> <span class="n">event_id_field</span><span class="p">()</span></div>
+
+
+<span class="k">class</span> <span class="nc">TelEventIndexContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    index columns to include in telescope-wise event lists, common to all data</span>
+<span class="sd">    levels that have telescope-wise information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># don&#39;t want to prefix these</span>
+    <span class="n">obs_id</span> <span class="o">=</span> <span class="n">obs_id_field</span><span class="p">()</span>
+    <span class="n">event_id</span> <span class="o">=</span> <span class="n">event_id_field</span><span class="p">()</span>
+    <span class="n">tel_id</span> <span class="o">=</span> <span class="n">tel_id_field</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="BaseHillasParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.BaseHillasParametersContainer.html#ctapipe.containers.BaseHillasParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">BaseHillasParametersContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base container for hillas parameters to</span>
+<span class="sd">    allow the CameraHillasParametersContainer to</span>
+<span class="sd">    be assigned to an ImageParametersContainer as well.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">intensity</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;total intensity (size)&quot;</span><span class="p">)</span>
+    <span class="n">skewness</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;measure of the asymmetry&quot;</span><span class="p">)</span>
+    <span class="n">kurtosis</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;measure of the tailedness&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CameraHillasParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.CameraHillasParametersContainer.html#ctapipe.containers.CameraHillasParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">CameraHillasParametersContainer</span><span class="p">(</span><span class="n">BaseHillasParametersContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Hillas Parameters in the camera frame. The cog position</span>
+<span class="sd">    is given in meter from the camera center.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;camera_frame_hillas&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;centroid x coordinate&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;centroid x coordinate&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;radial coordinate of centroid&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;polar coordinate of centroid&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+
+    <span class="n">length</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;standard deviation along the major-axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">length_uncertainty</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;uncertainty of length&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;standard spread along the minor-axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">width_uncertainty</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;uncertainty of width&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;rotation angle of ellipse&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HillasParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.HillasParametersContainer.html#ctapipe.containers.HillasParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">HillasParametersContainer</span><span class="p">(</span><span class="n">BaseHillasParametersContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Hillas Parameters in a spherical system centered on the pointing position</span>
+<span class="sd">    (TelescopeFrame). The cog position is given as offset in</span>
+<span class="sd">    longitude and latitude in degree.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;hillas&quot;</span>
+    <span class="n">fov_lon</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="s2">&quot;longitude angle in a spherical system centered on the pointing position&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">fov_lat</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="s2">&quot;latitude angle in a spherical system centered on the pointing position&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;radial coordinate of centroid&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;polar coordinate of centroid&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+
+    <span class="n">length</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;standard deviation along the major-axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">length_uncertainty</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;uncertainty of length&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;standard spread along the minor-axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">width_uncertainty</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;uncertainty of width&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;rotation angle of ellipse&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LeakageContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.LeakageContainer.html#ctapipe.containers.LeakageContainer">[docs]</a><span class="k">class</span> <span class="nc">LeakageContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fraction of signal in 1 or 2-pixel width border from the edge of the</span>
+<span class="sd">    camera, measured in number of signal pixels or in intensity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;leakage&quot;</span>
+
+    <span class="n">pixels_width_1</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;fraction of pixels after cleaning that are in camera border of width=1&quot;</span>
+    <span class="p">)</span>
+    <span class="n">pixels_width_2</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;fraction of pixels after cleaning that are in camera border of width=2&quot;</span>
+    <span class="p">)</span>
+    <span class="n">intensity_width_1</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">nan</span><span class="p">),</span>
+        <span class="s2">&quot;Intensity in photo-electrons after cleaning&quot;</span>
+        <span class="s2">&quot; that are in the camera border of width=1 pixel&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">intensity_width_2</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">nan</span><span class="p">),</span>
+        <span class="s2">&quot;Intensity in photo-electrons after cleaning&quot;</span>
+        <span class="s2">&quot; that are in the camera border of width=2 pixels&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConcentrationContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.ConcentrationContainer.html#ctapipe.containers.ConcentrationContainer">[docs]</a><span class="k">class</span> <span class="nc">ConcentrationContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concentrations are ratios between light amount</span>
+<span class="sd">    in certain areas of the image and the full image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;concentration&quot;</span>
+    <span class="n">cog</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;Percentage of photo-electrons inside one pixel diameter of the cog&quot;</span>
+    <span class="p">)</span>
+    <span class="n">core</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;Percentage of photo-electrons inside the hillas ellipse&quot;</span><span class="p">)</span>
+    <span class="n">pixel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;Percentage of photo-electrons in the brightest pixel&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BaseTimingParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.BaseTimingParametersContainer.html#ctapipe.containers.BaseTimingParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">BaseTimingParametersContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base container for timing parameters to</span>
+<span class="sd">    allow the CameraTimingParametersContainer to</span>
+<span class="sd">    be assigned to an ImageParametersContainer as well.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">intercept</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;intercept of arrival times along main shower axis&quot;</span><span class="p">)</span>
+    <span class="n">deviation</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span>
+        <span class="s2">&quot;Root-mean-square deviation of the pulse times &quot;</span>
+        <span class="s2">&quot;with respect to the predicted time&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CameraTimingParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.CameraTimingParametersContainer.html#ctapipe.containers.CameraTimingParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">CameraTimingParametersContainer</span><span class="p">(</span><span class="n">BaseTimingParametersContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Slope and Intercept of a linear regression of the arrival times</span>
+<span class="sd">    along the shower main axis in the camera frame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;camera_frame_timing&quot;</span>
+    <span class="n">slope</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;Slope of arrival times along main shower axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TimingParametersContainer</span><span class="p">(</span><span class="n">BaseTimingParametersContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Slope and Intercept of a linear regression of the arrival times</span>
+<span class="sd">    along the shower main axis in a</span>
+<span class="sd">    spherical system centered on the pointing position (TelescopeFrame)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;timing&quot;</span>
+    <span class="n">slope</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;Slope of arrival times along main shower axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="MorphologyContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.MorphologyContainer.html#ctapipe.containers.MorphologyContainer">[docs]</a><span class="k">class</span> <span class="nc">MorphologyContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parameters related to pixels surviving image cleaning&quot;&quot;&quot;</span>
+
+    <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Number of usable pixels&quot;</span><span class="p">)</span>
+    <span class="n">n_islands</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Number of distinct islands in the image&quot;</span><span class="p">)</span>
+    <span class="n">n_small_islands</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Number of &lt;= 2 pixel islands&quot;</span><span class="p">)</span>
+    <span class="n">n_medium_islands</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Number of 2-50 pixel islands&quot;</span><span class="p">)</span>
+    <span class="n">n_large_islands</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Number of &gt; 50 pixel islands&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">StatisticsContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Store descriptive statistics&quot;&quot;&quot;</span>
+
+    <span class="nb">max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">nan</span><span class="p">),</span> <span class="s2">&quot;value of pixel with maximum intensity&quot;</span><span class="p">)</span>
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">nan</span><span class="p">),</span> <span class="s2">&quot;value of pixel with minimum intensity&quot;</span><span class="p">)</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">nan</span><span class="p">),</span> <span class="s2">&quot;mean intensity&quot;</span><span class="p">)</span>
+    <span class="n">std</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">nan</span><span class="p">),</span> <span class="s2">&quot;standard deviation of intensity&quot;</span><span class="p">)</span>
+    <span class="n">skewness</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;skewness of intensity&quot;</span><span class="p">)</span>
+    <span class="n">kurtosis</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;kurtosis of intensity&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="IntensityStatisticsContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.IntensityStatisticsContainer.html#ctapipe.containers.IntensityStatisticsContainer">[docs]</a><span class="k">class</span> <span class="nc">IntensityStatisticsContainer</span><span class="p">(</span><span class="n">StatisticsContainer</span><span class="p">):</span>
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;intensity&quot;</span></div>
+
+
+<div class="viewcode-block" id="PeakTimeStatisticsContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.PeakTimeStatisticsContainer.html#ctapipe.containers.PeakTimeStatisticsContainer">[docs]</a><span class="k">class</span> <span class="nc">PeakTimeStatisticsContainer</span><span class="p">(</span><span class="n">StatisticsContainer</span><span class="p">):</span>
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;peak_time&quot;</span></div>
+
+
+<div class="viewcode-block" id="CoreParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.CoreParametersContainer.html#ctapipe.containers.CoreParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">CoreParametersContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Telescope-wise shower&#39;s direction in the Tilted/Ground Frame&quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;core&quot;</span>
+    <span class="n">psi</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;Image direction in the Tilted/Ground Frame&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;deg&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImageParametersContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.ImageParametersContainer.html#ctapipe.containers.ImageParametersContainer">[docs]</a><span class="k">class</span> <span class="nc">ImageParametersContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collection of image parameters&quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;params&quot;</span>
+    <span class="n">hillas</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">HillasParametersContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Hillas Parameters&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">BaseHillasParametersContainer</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">timing</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">TimingParametersContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Timing Parameters&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">BaseTimingParametersContainer</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">leakage</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">LeakageContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Leakage Parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">concentration</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">ConcentrationContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Concentration Parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">morphology</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">MorphologyContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Image Morphology Parameters&quot;</span>
+    <span class="p">)</span>
+    <span class="n">intensity_statistics</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">IntensityStatisticsContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Intensity image statistics&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">peak_time_statistics</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PeakTimeStatisticsContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Peak time image statistics&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">core</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">CoreParametersContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Image direction in the Tilted/Ground Frame&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DL1CameraContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.DL1CameraContainer.html#ctapipe.containers.DL1CameraContainer">[docs]</a><span class="k">class</span> <span class="nc">DL1CameraContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of output of camera calibration e.g the final calibrated</span>
+<span class="sd">    image in intensity units and the pulse time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">image</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Numpy array of camera image, after waveform extraction.&quot;</span> <span class="s2">&quot;Shape: (n_pixel)&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">peak_time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Numpy array containing position of the peak of the pulse as determined by &quot;</span>
+        <span class="s2">&quot;the extractor. Shape: (n_pixel, )&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">image_mask</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Boolean numpy array where True means the pixel has passed cleaning.&quot;</span>
+        <span class="s2">&quot; Shape: (n_pixel, )&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+        <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">is_valid</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;True if image extraction succeeded, False if failed &quot;</span>
+            <span class="s2">&quot;or in the case of TwoPass methods, that the first &quot;</span>
+            <span class="s2">&quot;pass only was returned.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Image parameters&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">ImageParametersContainer</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DL1Container"><a class="viewcode-back" href="../../api/ctapipe.containers.DL1Container.html#ctapipe.containers.DL1Container">[docs]</a><span class="k">class</span> <span class="nc">DL1Container</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;DL1 Calibrated Camera Images and associated data&quot;&quot;&quot;</span>
+
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">DL1CameraContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to DL1CameraContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DL1CameraCalibrationContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.DL1CameraCalibrationContainer.html#ctapipe.containers.DL1CameraCalibrationContainer">[docs]</a><span class="k">class</span> <span class="nc">DL1CameraCalibrationContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of DL1 calibration parameters for the current event</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pedestal_offset</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Residual mean pedestal of the waveforms for each pixel.&quot;</span>
+        <span class="s2">&quot; This value is subtracted from the waveforms of each pixel before&quot;</span>
+        <span class="s2">&quot; the pulse extraction.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">absolute_factor</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;Multiplicative coefficients for the absolute calibration of extracted charge into &quot;</span>
+        <span class="s2">&quot;physical units (e.g. photoelectrons or photons) for each pixel&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">relative_factor</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;Multiplicative Coefficients for the relative correction between pixels to achieve a &quot;</span>
+        <span class="s2">&quot;uniform charge response (post absolute calibration) from a &quot;</span>
+        <span class="s2">&quot;uniform illumination.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">time_shift</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Additive coefficients for the timing correction before charge extraction &quot;</span>
+        <span class="s2">&quot;for each pixel&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">R0CameraContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of raw data from a single telescope</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">waveform</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;numpy array containing ADC samples&quot;</span> <span class="s2">&quot;(n_channels, n_pixels, n_samples)&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">R0Container</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of a Merged Raw Data Event</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">R0CameraContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to R0CameraContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">R1CameraContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of r1 calibrated data from a single telescope</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">waveform</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;numpy array containing a set of images, one per ADC sample&quot;</span>
+            <span class="s2">&quot;Shape: (n_pixels, n_samples)&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;Numpy array containing the gain channel chosen for each pixel. &quot;</span>
+            <span class="s2">&quot;Shape: (n_pixels)&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">R1Container</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of a r1 calibrated Data Event</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">R1CameraContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to R1CameraContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="DL0CameraContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.DL0CameraContainer.html#ctapipe.containers.DL0CameraContainer">[docs]</a><span class="k">class</span> <span class="nc">DL0CameraContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of data volume reduced dl0 data from a single telescope</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">waveform</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;numpy array containing data volume reduced &quot;</span>
+            <span class="s2">&quot;p.e. samples&quot;</span>
+            <span class="s2">&quot;(n_pixels, n_samples). Note this may be a masked array, &quot;</span>
+            <span class="s2">&quot;if pixels or time slices are zero-suppressed&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">selected_gain_channel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;Numpy array containing the gain channel chosen for each pixel. &quot;</span>
+            <span class="s2">&quot;Shape: (n_pixels)&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DL0Container"><a class="viewcode-back" href="../../api/ctapipe.containers.DL0Container.html#ctapipe.containers.DL0Container">[docs]</a><span class="k">class</span> <span class="nc">DL0Container</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Storage of a data volume reduced Event</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">DL0CameraContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to DL0CameraContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TelescopeImpactParameterContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Impact Parameter computed from reconstructed shower geometry</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;impact&quot;</span>
+
+    <span class="n">distance</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;distance of the telescope to the shower axis&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">distance_uncert</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;uncertainty in impact_parameter&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SimulatedShowerContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;true&quot;</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="s2">&quot;Simulated Energy&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">)</span>
+    <span class="n">alt</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;Simulated altitude&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">az</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;Simulated azimuth&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">core_x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;Simulated core position (x)&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">core_y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;Simulated core position (y)&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">h_first_int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;Height of first interaction&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="s2">&quot;Simulated Xmax value&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">shower_primary_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">),</span>
+        <span class="s2">&quot;Simulated shower primary ID 0 (gamma), 1(e-),&quot;</span>
+        <span class="s2">&quot;2(mu-), 100*A+Z for nucleons and nuclei,&quot;</span>
+        <span class="s2">&quot;negative for antimatter.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SimulatedCameraContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    True images and parameters derived from them, analgous to the `DL1CameraContainer`</span>
+<span class="sd">    but for simulated data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">true_image_sum</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;Total number of detected Cherenkov photons in the camera&quot;</span>
+    <span class="p">)</span>
+    <span class="n">true_image</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Numpy array of camera image in PE as simulated before noise has been added. &quot;</span>
+        <span class="s2">&quot;Shape: (n_pixel)&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">true_parameters</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Parameters derived from the true_image&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">ImageParametersContainer</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">impact</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">TelescopeImpactParameterContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;true impact parameter&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SimulatedEventContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">shower</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">SimulatedShowerContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;True event information&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">SimulatedCameraContainer</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">SimulationConfigContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration parameters of the simulation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">corsika_version</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;CORSIKA version * 1000&quot;</span><span class="p">)</span>
+    <span class="n">simtel_version</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;sim_telarray version * 1000&quot;</span><span class="p">)</span>
+    <span class="n">energy_range_min</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Lower limit of energy range of primary particle&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">energy_range_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Upper limit of energy range of primary particle&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">prod_site_B_total</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">uT</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;total geomagnetic field&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">uT</span>
+    <span class="p">)</span>
+    <span class="n">prod_site_B_declination</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;magnetic declination&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+    <span class="p">)</span>
+    <span class="n">prod_site_B_inclination</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;magnetic inclination&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+    <span class="p">)</span>
+    <span class="n">prod_site_alt</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;height of observation level&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">spectral_index</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Power-law spectral index of spectrum&quot;</span><span class="p">)</span>
+    <span class="n">shower_prog_start</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Time when shower simulation started, CORSIKA: only date&quot;</span>
+    <span class="p">)</span>
+    <span class="n">shower_prog_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4&quot;</span><span class="p">)</span>
+    <span class="n">detector_prog_start</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Time when detector simulation started&quot;</span>
+    <span class="p">)</span>
+    <span class="n">detector_prog_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;simtelarray=1&quot;</span><span class="p">)</span>
+    <span class="n">n_showers</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Number of showers simulated&quot;</span><span class="p">)</span>
+    <span class="n">shower_reuse</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Numbers of uses of each shower&quot;</span><span class="p">)</span>
+    <span class="n">max_alt</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Maximimum shower altitude&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">min_alt</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum shower altitude&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">max_az</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Maximum shower azimuth&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">min_az</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum shower azimuth&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">diffuse</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Diffuse Mode On/Off&quot;</span><span class="p">)</span>
+    <span class="n">max_viewcone_radius</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Maximum viewcone radius&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+    <span class="n">min_viewcone_radius</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum viewcone radius&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+    <span class="n">max_scatter_range</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Maximum scatter range&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">min_scatter_range</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum scatter range&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">core_pos_mode</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Core Position Mode (0=Circular, 1=Rectangular)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">injection_height</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Height of particle injection&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">atmosphere</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Atmospheric model number&quot;</span><span class="p">)</span>
+    <span class="n">corsika_iact_options</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;CORSIKA simulation options for IACTs&quot;</span>
+    <span class="p">)</span>
+    <span class="n">corsika_low_E_model</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;CORSIKA low-energy simulation physics model&quot;</span>
+    <span class="p">)</span>
+    <span class="n">corsika_high_E_model</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span>
+        <span class="s2">&quot;CORSIKA physics model ID for high energies &quot;</span>
+        <span class="s2">&quot;(1=VENUS, 2=SIBYLL, 3=QGSJET, 4=DPMJET, 5=NeXus, 6=EPOS) &quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">corsika_bunchsize</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Number of Cherenkov photons per bunch&quot;</span><span class="p">)</span>
+    <span class="n">corsika_wlen_min</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum wavelength of cherenkov light&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">nm</span>
+    <span class="p">)</span>
+    <span class="n">corsika_wlen_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Maximum wavelength of cherenkov light&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">nm</span>
+    <span class="p">)</span>
+    <span class="n">corsika_low_E_detail</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;More details on low E interaction model (version etc.)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">corsika_high_E_detail</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;More details on high E interaction model (version etc.)&quot;</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TelescopeTriggerContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">NAN_TIME</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Telescope trigger time&quot;</span><span class="p">)</span>
+    <span class="n">n_trigger_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Number of trigger groups (sectors) listed&quot;</span>
+    <span class="p">)</span>
+    <span class="n">trigger_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;pixels involved in the camera trigger&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TriggerContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">NAN_TIME</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;central average time stamp&quot;</span><span class="p">)</span>
+    <span class="n">tels_with_trigger</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;List of telescope ids that triggered the array event&quot;</span>
+    <span class="p">)</span>
+    <span class="n">event_type</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">EventType</span><span class="o">.</span><span class="n">SUBARRAY</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Event type&quot;</span><span class="p">)</span>
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">TelescopeTriggerContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;telescope-wise trigger information&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ReconstructedGeometryContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Standard output of algorithms reconstructing shower geometry</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">alt</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;reconstructed altitude&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">alt_uncert</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;reconstructed altitude uncertainty&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">az</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;reconstructed azimuth&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">az_uncert</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;reconstructed azimuth uncertainty&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">ang_distance_uncert</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="s2">&quot;uncertainty radius of reconstructed altitude-azimuth position&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">core_x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;reconstructed x coordinate of the core position&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">core_y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;reconstructed y coordinate of the core position&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">core_uncert_x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="s2">&quot;reconstructed core position uncertainty along ground frame X axis&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">core_uncert_y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="s2">&quot;reconstructed core position uncertainty along ground frame Y axis&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">core_tilted_x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;reconstructed x coordinate of the core position&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">core_tilted_y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;reconstructed y coordinate of the core position&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="p">)</span>
+    <span class="n">core_tilted_uncert_x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="s2">&quot;reconstructed core position uncertainty along tilted frame X axis&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">core_tilted_uncert_y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+        <span class="s2">&quot;reconstructed core position uncertainty along tilted frame Y axis&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">h_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;reconstructed height of the shower maximum&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">h_max_uncert</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;uncertainty of h_max&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">is_valid</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;direction validity flag. True if the shower direction&quot;</span>
+            <span class="s2">&quot;was properly reconstructed by the algorithm&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">average_intensity</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;average intensity of the intensities used for reconstruction&quot;</span>
+    <span class="p">)</span>
+    <span class="n">goodness_of_fit</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;measure of algorithm success (if fit)&quot;</span><span class="p">)</span>
+    <span class="n">telescopes</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Telescopes used if stereo, or None if Mono&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ReconstructedEnergyContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Standard output of algorithms estimating energy</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="s2">&quot;reconstructed energy&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">)</span>
+    <span class="n">energy_uncert</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span> <span class="s2">&quot;reconstructed energy uncertainty&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">)</span>
+    <span class="n">is_valid</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;energy reconstruction validity flag. True if &quot;</span>
+            <span class="s2">&quot;the energy was properly reconstructed by the &quot;</span>
+            <span class="s2">&quot;algorithm&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">goodness_of_fit</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;goodness of the algorithm fit&quot;</span><span class="p">)</span>
+    <span class="n">telescopes</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Telescopes used if stereo, or None if Mono&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ParticleClassificationContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.ParticleClassificationContainer.html#ctapipe.containers.ParticleClassificationContainer">[docs]</a><span class="k">class</span> <span class="nc">ParticleClassificationContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Standard output of gamma/hadron classification algorithms</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">prediction</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot; prediction of the classifier, defined between [0,1]&quot;</span>
+            <span class="s2">&quot;, where values close to 1 mean that the positive class&quot;</span>
+            <span class="s2">&quot; (e.g. gamma in gamma-ray analysis) is more likely&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">is_valid</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;true if classification parameters are valid&quot;</span><span class="p">)</span>
+    <span class="n">goodness_of_fit</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;goodness of the algorithm fit&quot;</span><span class="p">)</span>
+    <span class="n">telescopes</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Telescopes used if stereo, or None if Mono&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DispContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.DispContainer.html#ctapipe.containers.DispContainer">[docs]</a><span class="k">class</span> <span class="nc">DispContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Standard output of disp reconstruction algorithms for origin reconstruction</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;disp_parameter&quot;</span>
+
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;reconstructed value for disp&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">is_valid</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;true if the predictions are valid&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">ReconstructedContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reconstructed shower info from multiple algorithms&quot;&quot;&quot;</span>
+
+    <span class="c1"># Note: there is a reason why the hiererchy is</span>
+    <span class="c1"># `event.dl2.stereo.geometry[algorithm]` and not</span>
+    <span class="c1"># `event.dl2[algorithm].stereo.geometry` and that is because when writing</span>
+    <span class="c1"># the data, the former makes it easier to only write information that a</span>
+    <span class="c1"># particular reconstructor generates, e.g. only write the geometry in cases</span>
+    <span class="c1"># where energy is not yet computed. Some algorithms will compute all three,</span>
+    <span class="c1"># but most will compute only fill or two of these sub-Contaiers:</span>
+
+    <span class="n">geometry</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">ReconstructedGeometryContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of algorithm to reconstructed shower parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">ReconstructedEnergyContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of algorithm to reconstructed energy parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">classification</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">ParticleClassificationContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of algorithm to classification parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TelescopeReconstructedContainer</span><span class="p">(</span><span class="n">ReconstructedContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Telescope-wise reconstructed quantities&quot;&quot;&quot;</span>
+
+    <span class="n">impact</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">TelescopeImpactParameterContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of algorithm to impact parameter info&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">DispContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of algorithm to reconstructed disp parameters&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="DL2Container"><a class="viewcode-back" href="../../api/ctapipe.containers.DL2Container.html#ctapipe.containers.DL2Container">[docs]</a><span class="k">class</span> <span class="nc">DL2Container</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reconstructed Shower information for a given reconstruction algorithm,</span>
+<span class="sd">    including optionally both per-telescope mono reconstruction and per-shower</span>
+<span class="sd">    stereo reconstructions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">TelescopeReconstructedContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to single-telescope reconstruction (DL2a)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">stereo</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">ReconstructedContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Stereo Shower reconstruction results&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TelescopePointingContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container holding pointing information for a single telescope</span>
+<span class="sd">    after all necessary correction and calibration steps.</span>
+<span class="sd">    These values should be used in the reconstruction to transform</span>
+<span class="sd">    between camera and sky coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;Azimuth, measured N-&gt;E&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">altitude</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;Altitude&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">PointingContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">TelescopePointingContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Telescope pointing positions&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">array_azimuth</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;Array pointing azimuth&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">array_altitude</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;Array pointing altitude&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">array_ra</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;Array pointing right ascension&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">array_dec</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;Array pointing declination&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="EventCameraCalibrationContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.EventCameraCalibrationContainer.html#ctapipe.containers.EventCameraCalibrationContainer">[docs]</a><span class="k">class</span> <span class="nc">EventCameraCalibrationContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for the calibration coefficients for the current event and camera</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dl1</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">DL1CameraCalibrationContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Container for DL1 calibration coefficients&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EventCalibrationContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.EventCalibrationContainer.html#ctapipe.containers.EventCalibrationContainer">[docs]</a><span class="k">class</span> <span class="nc">EventCalibrationContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for calibration coefficients for the current event</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># create the camera container</span>
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">EventCameraCalibrationContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to EventCameraCalibrationContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">MuonRingContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Container for the result of a ring fit in telescope frame&quot;&quot;&quot;</span>
+
+    <span class="n">center_fov_lon</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;center (fov_lon) of the fitted muon ring&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+    <span class="n">center_fov_lat</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;center (fov_lat) of the fitted muon ring&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;radius of the fitted muon ring&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+    <span class="n">center_phi</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;Angle of ring center within camera plane&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+    <span class="n">center_distance</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;Distance of ring center from camera center&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MuonEfficiencyContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="s2">&quot;width of the muon ring in degrees&quot;</span><span class="p">)</span>
+    <span class="n">impact</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;distance of muon impact position from center of mirror&quot;</span><span class="p">)</span>
+    <span class="n">impact_x</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;impact parameter x position&quot;</span><span class="p">)</span>
+    <span class="n">impact_y</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;impact parameter y position&quot;</span><span class="p">)</span>
+    <span class="n">optical_efficiency</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;optical efficiency muon&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MuonParametersContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="n">containment</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;containment of the ring inside the camera&quot;</span><span class="p">)</span>
+    <span class="n">completeness</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span><span class="p">,</span>
+        <span class="s2">&quot;Complenetess of the muon ring&quot;</span>
+        <span class="s2">&quot;, estimated by dividing the ring into segments&quot;</span>
+        <span class="s2">&quot; and counting segments above a threshold&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">intensity_ratio</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;Intensity ratio of pixels in the ring to all pixels&quot;</span><span class="p">)</span>
+    <span class="n">mean_squared_error</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;MSE of the deviation of all pixels after cleaning from the ring fit&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MuonTelescopeContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for muon analysis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ring</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">MuonRingContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;muon ring fit&quot;</span><span class="p">)</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">MuonParametersContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;muon parameters&quot;</span>
+    <span class="p">)</span>
+    <span class="n">efficiency</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">MuonEfficiencyContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;muon efficiency&quot;</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MuonContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Root container for muon parameters&quot;&quot;&quot;</span>
+
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">MuonTelescopeContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to MuonTelescopeContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="FlatFieldContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.FlatFieldContainer.html#ctapipe.containers.FlatFieldContainer">[docs]</a><span class="k">class</span> <span class="nc">FlatFieldContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for flat-field parameters obtained from a set of</span>
+<span class="sd">    [n_events] flat-field events</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sample_time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Time associated to the flat-field event set &quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+    <span class="p">)</span>
+    <span class="n">sample_time_min</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Minimum time of the flat-field events&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+    <span class="p">)</span>
+    <span class="n">sample_time_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Maximum time of the flat-field events&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+    <span class="p">)</span>
+    <span class="n">n_events</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Number of events used for statistics&quot;</span><span class="p">)</span>
+
+    <span class="n">charge_mean</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of signal charge mean (n_chan, n_pix)&quot;</span><span class="p">)</span>
+    <span class="n">charge_median</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of signal charge median (n_chan, n_pix)&quot;</span><span class="p">)</span>
+    <span class="n">charge_std</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of signal charge standard deviation (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">time_mean</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of signal time mean (n_chan, n_pix)&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+    <span class="n">time_median</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of signal time median (n_chan, n_pix)&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span>
+    <span class="p">)</span>
+    <span class="n">time_std</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of signal time standard deviation (n_chan, n_pix)&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span>
+    <span class="p">)</span>
+    <span class="n">relative_gain_mean</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of the relative flat-field coefficient mean (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">relative_gain_median</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of the relative flat-field coefficient  median (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">relative_gain_std</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;np array of the relative flat-field coefficient standard deviation (n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">relative_time_median</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;np array of time (median) - time median averaged over camera (n_chan, n_pix)&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">charge_median_outliers</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Boolean np array of charge median outliers (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">charge_std_outliers</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Boolean np array of charge std outliers (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">time_median_outliers</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Boolean np array of pixel time (median) outliers (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PedestalContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.PedestalContainer.html#ctapipe.containers.PedestalContainer">[docs]</a><span class="k">class</span> <span class="nc">PedestalContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for pedestal parameters obtained from a set of</span>
+<span class="sd">    [n_pedestal] pedestal events</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_events</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Number of events used for statistics&quot;</span><span class="p">)</span>
+    <span class="n">sample_time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Time associated to the pedestal event set&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+    <span class="p">)</span>
+    <span class="n">sample_time_min</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Time of first pedestal event&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">sample_time_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Time of last pedestal event&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">charge_mean</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of pedestal average (n_chan, n_pix)&quot;</span><span class="p">)</span>
+    <span class="n">charge_median</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of the pedestal  median (n_chan, n_pix)&quot;</span><span class="p">)</span>
+    <span class="n">charge_std</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of the pedestal standard deviation (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">charge_median_outliers</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Boolean np array of the pedestal median outliers (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">charge_std_outliers</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Boolean np array of the pedestal std outliers (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">PixelStatusContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for pixel status information</span>
+<span class="sd">    It contains masks obtained by several data analysis steps</span>
+<span class="sd">    At r0/r1 level only the hardware_mask is initialized</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">hardware_failing_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Boolean np array (True = failing pixel) from the hardware pixel status data (&quot;</span>
+        <span class="s2">&quot;n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">pedestal_failing_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Boolean np array (True = failing pixel) from the pedestal data analysis (&quot;</span>
+        <span class="s2">&quot;n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">flatfield_failing_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Boolean np array (True = failing pixel) from the flat-field data analysis (&quot;</span>
+        <span class="s2">&quot;n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">WaveformCalibrationContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for the pixel calibration coefficients</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Time associated to the calibration event&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">time_min</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Earliest time of validity for the calibration event&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+    <span class="p">)</span>
+    <span class="n">time_max</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;Latest time of validity for the calibration event&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+    <span class="p">)</span>
+
+    <span class="n">dc_to_pe</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">pedestal_per_sample</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;np array of average pedestal value per sample (digital count) (n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">time_correction</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of time correction values (n_chan, n_pix)&quot;</span><span class="p">)</span>
+
+    <span class="n">n_pe</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;np array of photo-electrons in calibration signal (n_chan, n_pix)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">unusable_pixels</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="MonitoringCameraContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.MonitoringCameraContainer.html#ctapipe.containers.MonitoringCameraContainer">[docs]</a><span class="k">class</span> <span class="nc">MonitoringCameraContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for camera monitoring data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">flatfield</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">FlatFieldContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Data from flat-field event distributions&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">pedestal</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PedestalContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Data from pedestal event distributions&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">pixel_status</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PixelStatusContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Container for masks with pixel status&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">calibration</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">WaveformCalibrationContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Container for calibration coefficients&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MonitoringContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.MonitoringContainer.html#ctapipe.containers.MonitoringContainer">[docs]</a><span class="k">class</span> <span class="nc">MonitoringContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Root container for monitoring data (MON)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># create the camera container</span>
+    <span class="n">tel</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">Map</span><span class="p">,</span> <span class="n">MonitoringCameraContainer</span><span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;map of tel_id to MonitoringCameraContainer&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">SimulatedShowerDistribution</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    2D histogram of simulated number of showers simulated as function of energy and</span>
+<span class="sd">    core distance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">obs_id</span> <span class="o">=</span> <span class="n">obs_id_field</span><span class="p">()</span>
+    <span class="n">hist_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Histogram ID&quot;</span><span class="p">)</span>
+    <span class="n">n_entries</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Number of entries in the histogram&quot;</span><span class="p">)</span>
+    <span class="n">bins_energy</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;array of energy bin lower edges, as in np.histogram&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">TeV</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">bins_core_dist</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;array of core-distance bin lower edges, as in np.histogram&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">histogram</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;array of histogram entries, size (n_bins_x, n_bins_y)&quot;</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="ArrayEventContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer">[docs]</a><span class="k">class</span> <span class="nc">ArrayEventContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top-level container for all event information&quot;&quot;&quot;</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">EventIndexContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;event indexing information&quot;</span>
+    <span class="p">)</span>
+    <span class="n">r0</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">R0Container</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Raw Data&quot;</span><span class="p">)</span>
+    <span class="n">r1</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">R1Container</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;R1 Calibrated Data&quot;</span><span class="p">)</span>
+    <span class="n">dl0</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">DL0Container</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;DL0 Data Volume Reduced Data&quot;</span>
+    <span class="p">)</span>
+    <span class="n">dl1</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">DL1Container</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;DL1 Calibrated image&quot;</span><span class="p">)</span>
+    <span class="n">dl2</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">DL2Container</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;DL2 reconstruction info&quot;</span><span class="p">)</span>
+    <span class="n">simulation</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Simulated Event Information&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">SimulatedEventContainer</span>
+    <span class="p">)</span>
+    <span class="n">trigger</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">TriggerContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;central trigger information&quot;</span>
+    <span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;number of events processed&quot;</span><span class="p">)</span>
+    <span class="n">pointing</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PointingContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array and telescope pointing positions&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">calibration</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">EventCalibrationContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Container for calibration coefficients for the current event&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">mon</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">MonitoringContainer</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;container for event-wise monitoring data (MON)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">muon</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">MuonContainer</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Container for muon analysis results&quot;</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">SchedulingBlockContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores information about the scheduling block. This is a simplified</span>
+<span class="sd">    version of the SB model, only storing what is necessary for analysis. From</span>
+<span class="sd">    [cta_sb_ob]_</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">sb_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">UNKNOWN_ID</span><span class="p">,</span> <span class="s2">&quot;Scheduling block ID&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+    <span class="n">sb_type</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">SchedulingBlockType</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Type of scheduling block&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">SchedulingBlockType</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">producer_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="s2">&quot;unknown&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Origin of the sb_id, i.e. name of the telescope site or &#39;simulation&#39;&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">observing_mode</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">ObservingMode</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+        <span class="s2">&quot;Defines how observations within the Scheduling Block are distributed in space&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">ObservingMode</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">pointing_mode</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">PointingMode</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span> <span class="s2">&quot;Defines how the telescope drives move&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">PointingMode</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="ObservationBlockContainer"><a class="viewcode-back" href="../../api/ctapipe.containers.ObservationBlockContainer.html#ctapipe.containers.ObservationBlockContainer">[docs]</a><span class="k">class</span> <span class="nc">ObservationBlockContainer</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores information about the observation&quot;&quot;&quot;</span>
+
+    <span class="n">default_prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">obs_id</span> <span class="o">=</span> <span class="n">obs_id_field</span><span class="p">()</span>
+    <span class="n">sb_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">UNKNOWN_ID</span><span class="p">,</span> <span class="s2">&quot;ID of the parent SchedulingBlock&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+    <span class="n">producer_id</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="s2">&quot;unknown&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Origin of the obs_id, i.e. name of the telescope site or &#39;simulation&#39;&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">ObservationBlockState</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span> <span class="s2">&quot;State of this OB&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">ObservationBlockState</span>
+    <span class="p">)</span>
+
+    <span class="n">subarray_pointing_lat</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="s2">&quot;latitude of the nominal center coordinate of this observation&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">subarray_pointing_lon</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+        <span class="s2">&quot;longitude of the nominal center coordinate of this observation&quot;</span><span class="p">,</span>
+        <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">subarray_pointing_frame</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">CoordinateFrameType</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s2">&quot;Frame in which the subarray_target is non-moving. If the frame is ALTAZ, &quot;</span>
+            <span class="s2">&quot;the meaning of (lon,lat) is (azimuth, altitude) while for ICRS it is &quot;</span>
+            <span class="s2">&quot;(right-ascension, declination)&quot;</span>
+        <span class="p">),</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">CoordinateFrameType</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">scheduled_duration</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="s2">&quot;expected duration from scheduler&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">min</span>
+    <span class="p">)</span>
+    <span class="n">scheduled_start_time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">NAN_TIME</span><span class="p">,</span> <span class="s2">&quot;expected start time from scheduler&quot;</span><span class="p">)</span>
+    <span class="n">actual_start_time</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">NAN_TIME</span><span class="p">,</span> <span class="s2">&quot;true start time&quot;</span><span class="p">)</span>
+    <span class="n">actual_duration</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">nan</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="s2">&quot;true duration&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

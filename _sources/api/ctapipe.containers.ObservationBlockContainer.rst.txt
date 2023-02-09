@@ -1,0 +1,41 @@
+ObservationBlockContainer
+=========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ObservationBlockContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ObservationBlockContainer.actual_duration
+      ~ObservationBlockContainer.actual_start_time
+      ~ObservationBlockContainer.meta
+      ~ObservationBlockContainer.obs_id
+      ~ObservationBlockContainer.prefix
+      ~ObservationBlockContainer.producer_id
+      ~ObservationBlockContainer.sb_id
+      ~ObservationBlockContainer.scheduled_duration
+      ~ObservationBlockContainer.scheduled_start_time
+      ~ObservationBlockContainer.state
+      ~ObservationBlockContainer.subarray_pointing_frame
+      ~ObservationBlockContainer.subarray_pointing_lat
+      ~ObservationBlockContainer.subarray_pointing_lon
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: actual_duration
+   .. autoattribute:: actual_start_time
+   .. autoattribute:: meta
+   .. autoattribute:: obs_id
+   .. autoattribute:: prefix
+   .. autoattribute:: producer_id
+   .. autoattribute:: sb_id
+   .. autoattribute:: scheduled_duration
+   .. autoattribute:: scheduled_start_time
+   .. autoattribute:: state
+   .. autoattribute:: subarray_pointing_frame
+   .. autoattribute:: subarray_pointing_lat
+   .. autoattribute:: subarray_pointing_lon

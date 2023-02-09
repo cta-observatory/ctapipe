@@ -1,0 +1,6 @@
+impact_distance
+===============
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autofunction:: impact_distance

@@ -1,0 +1,23 @@
+TableReader
+===========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: TableReader
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TableReader.add_column_transform
+      ~TableReader.close
+      ~TableReader.open
+      ~TableReader.read
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: add_column_transform
+   .. automethod:: close
+   .. automethod:: open
+   .. automethod:: read

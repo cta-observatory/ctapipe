@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.io.astropy_helpers &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.io.astropy_helpers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.io.astropy_helpers</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions to help adapt internal ctapipe data to astropy formats and conventions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">ExitStack</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">join</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+
+<span class="kn">from</span> <span class="nn">.hdf5tableio</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_FILTERS</span><span class="p">,</span>
+    <span class="n">get_column_attrs</span><span class="p">,</span>
+    <span class="n">get_column_transforms</span><span class="p">,</span>
+    <span class="n">get_node_meta</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.tableio</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EnumColumnTransform</span><span class="p">,</span>
+    <span class="n">QuantityColumnTransform</span><span class="p">,</span>
+    <span class="n">StringTransform</span><span class="p">,</span>
+    <span class="n">TimeColumnTransform</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;read_table&quot;</span><span class="p">,</span> <span class="s2">&quot;join_allow_empty&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="read_table"><a class="viewcode-back" href="../../../api/ctapipe.io.read_table.html#ctapipe.io.read_table">[docs]</a><span class="k">def</span> <span class="nf">read_table</span><span class="p">(</span>
+    <span class="n">h5file</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">table_cls</span><span class="o">=</span><span class="n">Table</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a table from an HDF5 file</span>
+
+<span class="sd">    This reads a table written in the ctapipe format table as an `astropy.table.Table`</span>
+<span class="sd">    object, inversing the column transformations units.</span>
+
+<span class="sd">    This uses the same conventions as the `~ctapipe.io.HDF5TableWriter`,</span>
+<span class="sd">    with the exception of Enums, that will remain as integers.</span>
+
+<span class="sd">    (start, stop, step) behave like python slices.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    h5file: Union[str, Path, tables.file.File]</span>
+<span class="sd">        input filename or PyTables file handle</span>
+<span class="sd">    path: str</span>
+<span class="sd">        path to table in the file</span>
+<span class="sd">    start: int or None</span>
+<span class="sd">        if given, this is the first row to be loaded</span>
+<span class="sd">    stop: int or None</span>
+<span class="sd">        if given, this is the last row to be loaded (not inclusive)</span>
+<span class="sd">    step: int or None</span>
+<span class="sd">        step between rows.</span>
+<span class="sd">    condition: str</span>
+<span class="sd">        A numexpr expression to only load rows fulfilling this condition.</span>
+<span class="sd">        For example, use &quot;hillas_length &gt; 0&quot; to only load rows where the</span>
+<span class="sd">        hillas length is larger than 0 (so not nan and not 0).</span>
+<span class="sd">        Ignored when reading tables that were written using astropy.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    astropy.table.Table:</span>
+<span class="sd">        table in Astropy Format</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+            <span class="n">h5file</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">h5file</span><span class="p">))</span>
+
+        <span class="c1"># check if the table was written using astropy table io, if yes</span>
+        <span class="c1"># just use astropy</span>
+        <span class="n">is_astropy</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.__table_column_meta__&quot;</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span>
+        <span class="k">if</span> <span class="n">is_astropy</span><span class="p">:</span>
+            <span class="n">sl</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">table_cls</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">h5file</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">path</span><span class="p">)[</span><span class="n">sl</span><span class="p">]</span>
+
+        <span class="c1"># support leaving out the leading &#39;/&#39; for consistency with other</span>
+        <span class="c1"># methods</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">h5file</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">Table</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Node </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is a </span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, must be a Table&quot;</span>
+            <span class="p">)</span>
+        <span class="n">transforms</span><span class="p">,</span> <span class="n">descriptions</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">_parse_hdf5_attrs</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">condition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">read_where</span><span class="p">(</span>
+                <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span>
+            <span class="p">)</span>
+
+        <span class="n">astropy_table</span> <span class="o">=</span> <span class="n">table_cls</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">tr</span> <span class="ow">in</span> <span class="n">transforms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">astropy_table</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># keep enums as integers, much easier to deal with in tables</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tr</span><span class="p">,</span> <span class="n">EnumColumnTransform</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">astropy_table</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">tr</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="n">astropy_table</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">descriptions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">astropy_table</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">astropy_table</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">desc</span>
+
+        <span class="k">return</span> <span class="n">astropy_table</span></div>
+
+
+<div class="viewcode-block" id="write_table"><a class="viewcode-back" href="../../../api/ctapipe.io.write_table.html#ctapipe.io.write_table">[docs]</a><span class="k">def</span> <span class="nf">write_table</span><span class="p">(</span>
+    <span class="n">table</span><span class="p">,</span>
+    <span class="n">h5file</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">,</span>
+    <span class="n">append</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span>
+    <span class="n">filters</span><span class="o">=</span><span class="n">DEFAULT_FILTERS</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write a table to an HDF5 file</span>
+
+<span class="sd">    This writes a table in the ctapipe format into ``h5file``.</span>
+
+<span class="sd">                attrs.update(transform.get_meta(name))</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table: astropy.table.Table</span>
+<span class="sd">        The table to be written.</span>
+<span class="sd">    h5file: Union[str, Path, tables.file.File]</span>
+<span class="sd">        input filename or PyTables file handle. If a PyTables file handle,</span>
+<span class="sd">        must be opened writable.</span>
+<span class="sd">    path: str</span>
+<span class="sd">        dataset path inside the ``h5file``</span>
+<span class="sd">    append: bool</span>
+<span class="sd">        Wether to try to append to or replace an existing table</span>
+<span class="sd">    overwrite: bool</span>
+<span class="sd">        If table is already in file and overwrite and append are false,</span>
+<span class="sd">        raise an error.</span>
+<span class="sd">    mode: str</span>
+<span class="sd">        If given a path for ``h5file``, it will be opened in this mode.</span>
+<span class="sd">        See the docs of ``tables.open_file``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">copied</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">parent</span><span class="p">,</span> <span class="n">table_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">append</span> <span class="ow">and</span> <span class="n">overwrite</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;overwrite and append are mutually exclusive&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">File</span><span class="p">):</span>
+            <span class="n">h5file</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">))</span>
+
+        <span class="n">already_exists</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">h5file</span><span class="o">.</span><span class="n">root</span>
+        <span class="k">if</span> <span class="n">already_exists</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">append</span><span class="p">:</span>
+                <span class="n">h5file</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">table_name</span><span class="p">)</span>
+                <span class="n">already_exists</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">append</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Table </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> already exists in output file, use append or overwrite&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">column</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CTAFIELD_</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">_DESC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">description</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">Time</span><span class="p">):</span>
+                <span class="n">transform</span> <span class="o">=</span> <span class="n">TimeColumnTransform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="s2">&quot;tai&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mjd&quot;</span><span class="p">)</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">get_meta</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">copied</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                    <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">copied</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="n">table</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+
+            <span class="c1"># TODO: use variable length strings as soon as tables supports them.</span>
+            <span class="c1"># See PyTables/PyTables#48</span>
+            <span class="k">elif</span> <span class="n">column</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;U&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">copied</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                    <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">copied</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="n">table</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">column</span><span class="p">])</span>
+                <span class="n">transform</span> <span class="o">=</span> <span class="n">StringTransform</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">get_meta</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">column</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">transform</span> <span class="o">=</span> <span class="n">QuantityColumnTransform</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">get_meta</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">already_exists</span><span class="p">:</span>
+            <span class="n">h5_table</span> <span class="o">=</span> <span class="n">h5file</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span>
+                <span class="n">parent</span><span class="p">,</span>
+                <span class="n">table_name</span><span class="p">,</span>
+                <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span>
+                <span class="n">expectedrows</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">),</span>
+                <span class="n">createparents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">obj</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">as_array</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">h5_table</span> <span class="o">=</span> <span class="n">h5file</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">h5_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">as_array</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">h5_table</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">h5_table</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span></div>
+
+
+<span class="k">def</span> <span class="nf">_parse_hdf5_attrs</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+    <span class="n">column_attrs</span> <span class="o">=</span> <span class="n">get_column_attrs</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+    <span class="n">descriptions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">col_name</span><span class="p">:</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DESC&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">attrs</span> <span class="ow">in</span> <span class="n">column_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">transforms</span> <span class="o">=</span> <span class="n">get_column_transforms</span><span class="p">(</span><span class="n">column_attrs</span><span class="p">)</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">get_node_meta</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">transforms</span><span class="p">,</span> <span class="n">descriptions</span><span class="p">,</span> <span class="n">meta</span>
+
+
+<span class="k">def</span> <span class="nf">join_allow_empty</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Join two astropy tables, allowing both sides to be empty tables.</span>
+
+<span class="sd">    See https://github.com/astropy/astropy/issues/12012 for why</span>
+<span class="sd">    this is necessary.</span>
+
+<span class="sd">    This behaves as `~astropy.table.join`, with the only difference of</span>
+<span class="sd">    allowing empty tables to be joined.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">left_empty</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">left</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">right_empty</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">right</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s2">&quot;inner&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">left_empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">left</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">right_empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">right</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">left_empty</span> <span class="ow">or</span> <span class="n">right_empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">left</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">left_empty</span> <span class="ow">or</span> <span class="n">right_empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">right</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s2">&quot;outer&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">left_empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">right</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">right_empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">left</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">join</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="n">join_type</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+SoftwareTrigger
+===============
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: SoftwareTrigger
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SoftwareTrigger.min_telescopes
+      ~SoftwareTrigger.min_telescopes_of_type
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SoftwareTrigger.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: min_telescopes
+   .. autoattribute:: min_telescopes_of_type
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

@@ -1,0 +1,31 @@
+EnergyRegressor
+===============
+
+.. currentmodule:: ctapipe.reco.sklearn
+
+.. autoclass:: EnergyRegressor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EnergyRegressor.property
+      ~EnergyRegressor.target
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~EnergyRegressor.__call__
+      ~EnergyRegressor.predict_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: property
+   .. autoattribute:: target
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: predict_table

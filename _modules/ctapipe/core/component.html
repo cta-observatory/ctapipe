@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.core.component &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.core.component</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.core.component</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Class to handle configuration for algorithms &quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">weakref</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">cleandoc</span><span class="p">,</span> <span class="n">isabstract</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+
+<span class="kn">from</span> <span class="nn">docutils.core</span> <span class="kn">import</span> <span class="n">publish_parts</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="kn">import</span> <span class="n">TraitError</span>
+<span class="kn">from</span> <span class="nn">traitlets.config</span> <span class="kn">import</span> <span class="n">Configurable</span>
+
+<span class="kn">from</span> <span class="nn">.plugins</span> <span class="kn">import</span> <span class="n">detect_and_import_plugins</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;non_abstract_children&quot;</span><span class="p">,</span> <span class="s2">&quot;Component&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">find_config_in_hierarchy</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">trait_name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the value of a config item in the hierarchy by going up the hierarchy</span>
+<span class="sd">    from the parent and then down again to the child.</span>
+<span class="sd">    This is needed as parent.config is the full config and not the</span>
+<span class="sd">    config starting at the level of the parent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">config</span>
+
+    <span class="c1"># find the path from the config root to the desired object</span>
+    <span class="n">hierarchy</span> <span class="o">=</span> <span class="p">[</span><span class="n">class_name</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">hierarchy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+
+    <span class="n">hierarchy</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">))</span>
+
+    <span class="c1"># go down to the config value searched</span>
+
+    <span class="c1"># root key is optional</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">hierarchy</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">root</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">subconfig</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="n">root</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">subconfig</span> <span class="o">=</span> <span class="n">config</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">:</span>
+        <span class="n">subconfig</span> <span class="o">=</span> <span class="n">subconfig</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">subconfig</span><span class="p">[</span><span class="n">trait_name</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="non_abstract_children"><a class="viewcode-back" href="../../../api/ctapipe.core.non_abstract_children.html#ctapipe.core.non_abstract_children">[docs]</a><span class="k">def</span> <span class="nf">non_abstract_children</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return all non-abstract subclasses of a base class recursively.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    base : class</span>
+<span class="sd">        High level class object that is inherited by the</span>
+<span class="sd">        desired subclasses</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    non_abstract : dict</span>
+<span class="sd">        dict of all non-abstract subclasses</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">subclasses</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">g</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">()</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">non_abstract_children</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">non_abstract</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">subclasses</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">isabstract</span><span class="p">(</span><span class="n">g</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">non_abstract</span></div>
+
+
+<span class="k">class</span> <span class="nc">AbstractConfigurableMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">Configurable</span><span class="p">),</span> <span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Metaclass to be able to make Component abstract</span>
+<span class="sd">    see: https://stackoverflow.com/a/7314847/3838691</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="Component"><a class="viewcode-back" href="../../../api/ctapipe.core.component.Component.html#ctapipe.core.Component">[docs]</a><span class="k">class</span> <span class="nc">Component</span><span class="p">(</span><span class="n">Configurable</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">AbstractConfigurableMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class of all Components.</span>
+
+<span class="sd">    Components are classes that are configurable via traitlets</span>
+<span class="sd">    and setup a logger in the ctapipe logging hierarchy.</span>
+
+<span class="sd">    ``traitlets`` can validate values and provide defaults and</span>
+<span class="sd">    descriptions. These will be automatically translated into</span>
+<span class="sd">    configuration parameters (command-line, config file, etc). Note</span>
+<span class="sd">    that any parameter that should be externally configurable must</span>
+<span class="sd">    have its ``config`` attribute set to ``True``, e.g. defined like</span>
+<span class="sd">    ``myparam = Integer(0, help=&#39;the parameter&#39;).tag(config=True)``.</span>
+
+<span class="sd">    All components also contain a ``Logger`` instance in their ``log``</span>
+<span class="sd">    attribute, that you must use to output info, debugging data,</span>
+<span class="sd">    warnings, etc (do not use ``print()`` statements, instead use</span>
+<span class="sd">    ``self.log.info()``, ``self.log.warning()``, ``self.log.debug()``, etc).</span>
+
+<span class="sd">    Components are generally used within `ctapipe.core.Tool`</span>
+<span class="sd">    subclasses, which provide configuration handling and command-line</span>
+<span class="sd">    tool generation.</span>
+
+<span class="sd">    For example:</span>
+
+<span class="sd">    .. code:: python</span>
+
+<span class="sd">        from ctapipe.core import Component</span>
+<span class="sd">        from traitlets import (Integer, Float)</span>
+
+<span class="sd">        class MyComponent(Component):</span>
+<span class="sd">            \&quot;\&quot;\&quot; Does something \&quot;\&quot;\&quot;</span>
+<span class="sd">            some_option = Integer(default_value=6,</span>
+<span class="sd">                                  help=&#39;a value to set&#39;).tag(config=True)</span>
+
+
+<span class="sd">        comp = MyComponent()</span>
+<span class="sd">        comp.some_option = 6      # ok</span>
+<span class="sd">        comp.some_option = &#39;test&#39; # will fail validation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">        parent: Tool or Component</span>
+<span class="sd">            If a Component is created by another Component or Tool,</span>
+<span class="sd">            you need to pass the creating Component as parent, e.g.</span>
+<span class="sd">            `parent=self`. This makes sure the config is correctly</span>
+<span class="sd">            handed down to the child components.</span>
+<span class="sd">            Do not pass config in this case.</span>
+<span class="sd">        kwargs</span>
+<span class="sd">            Traitlets to be overridden.</span>
+<span class="sd">            TraitError is raised if kwargs contains a key that does not</span>
+<span class="sd">            correspond to a traitlet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Only one of `config` or `parent` allowed&quot;</span>
+                <span class="s2">&quot; If you create a Component as part of another, give `parent=self`&quot;</span>
+                <span class="s2">&quot; and not `config`&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># set up logging (for some reason the logger registered by LoggingConfig</span>
+        <span class="c1"># doesn&#39;t use a child logger of the parent by default)</span>
+        <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">getChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Transform warning about wrong traitlets in the config to an error</span>
+        <span class="c1"># Only works for Components, unfortunately not for Tools, since</span>
+        <span class="c1"># Tools use `log.warning` instead of `warnings.warn`</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;.*Config option.*not recognized&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">parent</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">proxy</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">UserWarning</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_trait</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TraitError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Traitlet does not exist: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Component.from_name"><a class="viewcode-back" href="../../../api/ctapipe.core.component.Component.html#ctapipe.core.Component.from_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Obtain an instance of a subclass via its name</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the subclass to obtain</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            This argument is typically only specified when using this method</span>
+<span class="sd">            from within a Tool.</span>
+<span class="sd">        parent : ctapipe.core.Tool</span>
+<span class="sd">            Tool executable that is calling this component.</span>
+<span class="sd">            Passes the correct logger and configuration to the component.</span>
+<span class="sd">            This argument is typically only specified when using this method</span>
+<span class="sd">            from within a Tool (config need not be passed if parent is used).</span>
+<span class="sd">        kwargs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        instace</span>
+<span class="sd">            Instance of subclass to this class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">requested_subclass</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">non_abstract_subclasses</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">requested_subclass</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Component.non_abstract_subclasses"><a class="viewcode-back" href="../../../api/ctapipe.core.component.Component.html#ctapipe.core.Component.non_abstract_subclasses">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">non_abstract_subclasses</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get dict{name: cls} of non abstract subclasses,</span>
+<span class="sd">        subclasses can possibly be definded in plugins</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;plugin_entry_point&quot;</span><span class="p">):</span>
+            <span class="n">detect_and_import_plugins</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">plugin_entry_point</span><span class="p">)</span>
+
+        <span class="n">subclasses</span> <span class="o">=</span> <span class="p">{</span><span class="n">base</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span> <span class="n">base</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">non_abstract_children</span><span class="p">(</span><span class="bp">cls</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="n">subclasses</span></div>
+
+<div class="viewcode-block" id="Component.get_current_config"><a class="viewcode-back" href="../../../api/ctapipe.core.component.Component.html#ctapipe.core.Component.get_current_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;return the current configuration as a dict (e.g. the values</span>
+<span class="sd">        of all traits, even if they were not set during configuration)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">traits</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
+                <span class="n">config</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">config</span></div>
+
+    <span class="k">def</span> <span class="nf">_repr_html_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;nice HTML rep, with blue for non-default values&quot;&quot;&quot;</span>
+        <span class="n">traits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">traits</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">docstring</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">publish_parts</span><span class="p">(</span><span class="n">cleandoc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">),</span> <span class="n">writer_name</span><span class="o">=</span><span class="s2">&quot;html&quot;</span><span class="p">)[</span>
+                <span class="s2">&quot;html_body&quot;</span>
+            <span class="p">]</span>
+            <span class="ow">or</span> <span class="s2">&quot;Undocumented&quot;</span>
+        <span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;&lt;div style=&#39;border:1px solid black; max-width: 700px; padding:2em&#39;; word-wrap:break-word;&gt;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;b&gt;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&lt;/b&gt;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;p&gt; </span><span class="si">{</span><span class="n">docstring</span><span class="si">}</span><span class="s2"> &lt;/p&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&lt;table&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;    &lt;colgroup&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;        &lt;col span=&#39;1&#39; style=&#39; &#39;&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;        &lt;col span=&#39;1&#39; style=&#39;width: 20em;&#39;&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;        &lt;col span=&#39;1&#39; &gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;    &lt;/colgroup&gt;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;    &lt;tbody&gt;&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_config</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">htmlval</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;/&lt;wbr&gt;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;_&lt;wbr&gt;&quot;</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># allow breaking at boundary</span>
+
+            <span class="c1"># traits of the current component</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">traits</span><span class="p">:</span>
+                <span class="n">thehelp</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">traits</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">help</span><span class="si">}</span><span class="s2"> (default: </span><span class="si">{</span><span class="n">traits</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">default_value</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;tr&gt;&lt;th&gt;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&lt;/th&gt;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="n">traits</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">default_value</span><span class="p">:</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;&lt;td style=&#39;text-align: left;&#39;&gt;&lt;span style=&#39;color:blue; max-width:30em;&#39;&gt;</span><span class="si">{</span><span class="n">htmlval</span><span class="si">}</span><span class="s2">&lt;/span&gt;&lt;/td&gt;&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;td style=&#39;text-align: left;&#39;&gt;</span><span class="si">{</span><span class="n">htmlval</span><span class="si">}</span><span class="s2">&lt;/td&gt;&quot;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;&lt;td style=&#39;text-align: left;&#39;&gt;&lt;i&gt;</span><span class="si">{</span><span class="n">thehelp</span><span class="si">}</span><span class="s2">&lt;/i&gt;&lt;/td&gt;&lt;/tr&gt;&quot;</span>
+                <span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    &lt;/tbody&gt;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&lt;/table&gt;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&lt;/div&gt;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make Components pickle-able by removing non-pickleable members&quot;&quot;&quot;</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;_trait_values&quot;</span><span class="p">][</span><span class="s2">&quot;parent&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;_trait_notifiers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="n">state</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

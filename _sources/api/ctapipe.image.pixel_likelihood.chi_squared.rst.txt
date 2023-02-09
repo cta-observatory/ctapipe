@@ -1,0 +1,6 @@
+chi_squared
+===========
+
+.. currentmodule:: ctapipe.image.pixel_likelihood
+
+.. autofunction:: chi_squared

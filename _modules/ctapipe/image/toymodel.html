@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ctapipe.image.toymodel &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ctapipe.image.toymodel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ctapipe.image.toymodel</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities to generate toymodel (fake) reconstruction inputs for testing</span>
+<span class="sd">purposes.</span>
+
+<span class="sd">Examples:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    &gt;&gt;&gt; from ctapipe.instrument import CameraGeometry</span>
+<span class="sd">    &gt;&gt;&gt; geom = CameraGeometry.make_rectangular(20, 20)</span>
+<span class="sd">    &gt;&gt;&gt; showermodel = Gaussian(</span>
+<span class="sd">    ...    x=0.25 * u.m, y=0.0 * u.m,</span>
+<span class="sd">    ...    length=0.1 * u.m, width=0.02 * u.m,</span>
+<span class="sd">    ...    psi=&#39;40d&#39;</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; image, signal, noise = showermodel.generate_image(geom, intensity=1000)</span>
+<span class="sd">    &gt;&gt;&gt; print(image.shape)</span>
+<span class="sd">    (400,)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils</span> <span class="kn">import</span> <span class="n">linalg</span>
+<span class="kn">from</span> <span class="nn">ctapipe.image.hillas</span> <span class="kn">import</span> <span class="n">camera_to_shower_coordinates</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">multivariate_normal</span><span class="p">,</span> <span class="n">skewnorm</span><span class="p">,</span> <span class="n">norm</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">convolve1d</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">default_rng</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;WaveformModel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Gaussian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SkewedGaussian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ImageModel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;obtain_time_image&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">TOYMODEL_RNG</span> <span class="o">=</span> <span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="obtain_time_image"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.obtain_time_image.html#ctapipe.image.toymodel.obtain_time_image">[docs]</a><span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span>
+    <span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="n">centroid_x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="n">centroid_y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="n">psi</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+    <span class="n">time_gradient</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+    <span class="n">time_intercept</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">obtain_time_image</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">centroid_x</span><span class="p">,</span> <span class="n">centroid_y</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">time_gradient</span><span class="p">,</span> <span class="n">time_intercept</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a pulse time image for a toymodel shower. Assumes the time development</span>
+<span class="sd">    occurs only along the longitudinal (major) axis of the shower, and scales</span>
+<span class="sd">    linearly with distance along the axis.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : u.Quantity[length]</span>
+<span class="sd">        X camera coordinate to evaluate the time at.</span>
+<span class="sd">        Usually the array of pixel X positions</span>
+<span class="sd">    y : u.Quantity[length]</span>
+<span class="sd">        Y camera coordinate to evaluate the time at.</span>
+<span class="sd">        Usually the array of pixel Y positions</span>
+<span class="sd">    centroid_x : u.Quantity[length]</span>
+<span class="sd">        X camera coordinate for the centroid of the shower</span>
+<span class="sd">    centroid_y : u.Quantity[length]</span>
+<span class="sd">        Y camera coordinate for the centroid of the shower</span>
+<span class="sd">    psi : convertible to `astropy.coordinates.Angle`</span>
+<span class="sd">        rotation angle about the centroid (0=x-axis)</span>
+<span class="sd">    time_gradient : u.Quantity[time/length]</span>
+<span class="sd">        Rate at which the time changes with distance along the shower axis</span>
+<span class="sd">    time_intercept : u.Quantity[time]</span>
+<span class="sd">        Pulse time at the shower centroid</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float or ndarray</span>
+<span class="sd">        Pulse time in nanoseconds at (x, y)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">longitudinal</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">camera_to_shower_coordinates</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">centroid_x</span><span class="p">,</span> <span class="n">centroid_y</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span>
+    <span class="n">longitudinal_m</span> <span class="o">=</span> <span class="n">longitudinal</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">time_gradient_ns_m</span> <span class="o">=</span> <span class="n">time_gradient</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">time_intercept_ns</span> <span class="o">=</span> <span class="n">time_intercept</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">longitudinal_m</span> <span class="o">*</span> <span class="n">time_gradient_ns_m</span> <span class="o">+</span> <span class="n">time_intercept_ns</span></div>
+
+
+<div class="viewcode-block" id="WaveformModel"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.WaveformModel.html#ctapipe.image.toymodel.WaveformModel">[docs]</a><span class="k">class</span> <span class="nc">WaveformModel</span><span class="p">:</span>
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">reference_pulse_sample_width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="n">sample_width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference_pulse</span><span class="p">,</span> <span class="n">reference_pulse_sample_width</span><span class="p">,</span> <span class="n">sample_width</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a toy model waveform using the reference pulse shape of a</span>
+<span class="sd">        camera. Useful for testing image extraction algorithms.</span>
+
+<span class="sd">        Does not include the electronic noise and the Excess Noise Factor of</span>
+<span class="sd">        the photosensor, and therefore should not be used to make charge</span>
+<span class="sd">        resolution conclusions about a camera.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        reference_pulse_sample_width : u.Quantity[time]</span>
+<span class="sd">            Sample width of the reference pulse shape</span>
+<span class="sd">        reference_pulse : ndarray</span>
+<span class="sd">            Reference pulse shape</span>
+<span class="sd">        sample_width : u.Quantity[time]</span>
+<span class="sd">            Sample width of the waveform</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upsampling</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">reference_pulse_sample_width</span> <span class="o">=</span> <span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+        <span class="n">sample_width_ns</span> <span class="o">=</span> <span class="n">sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+        <span class="n">ref_max_sample</span> <span class="o">=</span> <span class="n">reference_pulse</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">reference_pulse_sample_width</span>
+        <span class="n">reference_pulse_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ref_max_sample</span><span class="p">,</span> <span class="n">reference_pulse_sample_width</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_width_ns</span> <span class="o">=</span> <span class="n">sample_width_ns</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">upsampling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">reference_pulse_x</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_width_ns</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_x</span><span class="p">,</span> <span class="n">reference_pulse_x</span><span class="p">,</span> <span class="n">reference_pulse</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_y</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_y</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_width_ns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_y</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_y</span><span class="o">.</span><span class="n">size</span> <span class="o">//</span> <span class="mi">2</span>
+
+<div class="viewcode-block" id="WaveformModel.get_waveform"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.WaveformModel.html#ctapipe.image.toymodel.WaveformModel.get_waveform">[docs]</a>    <span class="k">def</span> <span class="nf">get_waveform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain the waveform toy model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        charge : ndarray</span>
+<span class="sd">            Amount of charge in each pixel</span>
+<span class="sd">            Shape: (n_pixels)</span>
+<span class="sd">        time : ndarray</span>
+<span class="sd">            The signal time in the waveform in nanoseconds</span>
+<span class="sd">            Shape: (n_pixels)</span>
+<span class="sd">        n_samples : int</span>
+<span class="sd">            Number of samples in the waveform</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        waveform : ndarray</span>
+<span class="sd">            Toy model waveform</span>
+<span class="sd">            Shape (n_pixels, n_samples)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_pixels</span> <span class="o">=</span> <span class="n">charge</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">n_upsampled_samples</span> <span class="o">=</span> <span class="n">n_samples</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">upsampling</span>
+        <span class="n">readout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">n_upsampled_samples</span><span class="p">))</span>
+
+        <span class="n">sample</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_width_ns</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">outofrange</span> <span class="o">=</span> <span class="p">(</span><span class="n">sample</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">sample</span> <span class="o">&gt;=</span> <span class="n">n_upsampled_samples</span><span class="p">)</span>
+        <span class="n">sample</span><span class="p">[</span><span class="n">outofrange</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">charge</span><span class="p">[</span><span class="n">outofrange</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">readout</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_pixels</span><span class="p">),</span> <span class="n">sample</span><span class="p">]</span> <span class="o">=</span> <span class="n">charge</span>
+        <span class="n">convolved</span> <span class="o">=</span> <span class="n">convolve1d</span><span class="p">(</span>
+            <span class="n">readout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_interp_y</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span>
+        <span class="p">)</span>
+        <span class="n">sampled</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">convolved</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">n_pixels</span><span class="p">,</span> <span class="n">convolved</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">upsampling</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">upsampling</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_width_ns</span>  <span class="c1"># Waveform units: p.e.</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">sampled</span></div>
+
+<div class="viewcode-block" id="WaveformModel.from_camera_readout"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.WaveformModel.html#ctapipe.image.toymodel.WaveformModel.from_camera_readout">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_camera_readout</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">readout</span><span class="p">,</span> <span class="n">gain_channel</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create class from a `ctapipe.instrument.CameraReadout`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        readout : `ctapipe.instrument.CameraReadout`</span>
+<span class="sd">        gain_channel : int</span>
+<span class="sd">            The reference pulse gain channel to use</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        WaveformModel</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">[</span><span class="n">gain_channel</span><span class="p">],</span>
+            <span class="n">readout</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">readout</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">),</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ImageModel"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.ImageModel.html#ctapipe.image.toymodel.ImageModel">[docs]</a><span class="k">class</span> <span class="nc">ImageModel</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<div class="viewcode-block" id="ImageModel.pdf"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.ImageModel.html#ctapipe.image.toymodel.ImageModel.pdf">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Probability density function.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="ImageModel.generate_image"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.ImageModel.html#ctapipe.image.toymodel.ImageModel.generate_image">[docs]</a>    <span class="k">def</span> <span class="nf">generate_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camera</span><span class="p">,</span> <span class="n">intensity</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">nsb_level_pe</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a randomized DL1 shower image.</span>
+<span class="sd">        For the signal, poisson random numbers are drawn from</span>
+<span class="sd">        the expected signal distribution for each pixel.</span>
+<span class="sd">        For the background, for each pixel a poisson random number</span>
+<span class="sd">        if drawn with mean ``nsb_level_pe``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        camera : `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">            camera geometry object</span>
+<span class="sd">        intensity : int</span>
+<span class="sd">            Total number of photo electrons to generate</span>
+<span class="sd">        nsb_level_pe : type</span>
+<span class="sd">            level of NSB/pedestal in photo-electrons</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        image: array with length n_pixels containing the image</span>
+<span class="sd">        signal: only the signal part of image</span>
+<span class="sd">        noise: only the noise part of image</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">TOYMODEL_RNG</span>
+
+        <span class="n">expected_signal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expected_signal</span><span class="p">(</span><span class="n">camera</span><span class="p">,</span> <span class="n">intensity</span><span class="p">)</span>
+
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">expected_signal</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">nsb_level_pe</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="p">(</span><span class="n">signal</span> <span class="o">+</span> <span class="n">noise</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">noise</span></div>
+
+<div class="viewcode-block" id="ImageModel.expected_signal"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.ImageModel.html#ctapipe.image.toymodel.ImageModel.expected_signal">[docs]</a>    <span class="k">def</span> <span class="nf">expected_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camera</span><span class="p">,</span> <span class="n">intensity</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Expected signal in each pixel for the given camera</span>
+<span class="sd">        and total intensity.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        camera: `ctapipe.instrument.CameraGeometry`</span>
+<span class="sd">            camera geometry object</span>
+<span class="sd">        intensity: int</span>
+<span class="sd">            Total number of expected photo electrons</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        image: array with length n_pixels containing the image</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">camera</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">camera</span><span class="o">.</span><span class="n">pix_y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pdf</span> <span class="o">*</span> <span class="n">intensity</span> <span class="o">*</span> <span class="n">camera</span><span class="o">.</span><span class="n">pix_area</span><span class="o">.</span><span class="n">value</span></div></div>
+
+
+<div class="viewcode-block" id="Gaussian"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.Gaussian.html#ctapipe.image.toymodel.Gaussian">[docs]</a><span class="k">class</span> <span class="nc">Gaussian</span><span class="p">(</span><span class="n">ImageModel</span><span class="p">):</span>
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">psi</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create 2D Gaussian model for a shower image in a camera.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        centroid : u.Quantity[length, shape=(2, )]</span>
+<span class="sd">            position of the centroid of the shower in camera coordinates</span>
+<span class="sd">        width: u.Quantity[length]</span>
+<span class="sd">            width of shower (minor axis)</span>
+<span class="sd">        length: u.Quantity[length]</span>
+<span class="sd">            length of shower (major axis)</span>
+<span class="sd">        psi : convertable to `astropy.coordinates.Angle`</span>
+<span class="sd">            rotation angle about the centroid (0=x-axis)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        a `scipy.stats` object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span>
+
+<div class="viewcode-block" id="Gaussian.pdf"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.Gaussian.html#ctapipe.image.toymodel.Gaussian.pdf">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;2d probability for photon electrons in the camera plane&quot;&quot;&quot;</span>
+        <span class="n">aligned_covariance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="c1"># rotate by psi angle: C&#39; = R C R+</span>
+        <span class="n">rotation</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">rotation_matrix_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">)</span>
+        <span class="n">rotated_covariance</span> <span class="o">=</span> <span class="n">rotation</span> <span class="o">@</span> <span class="n">aligned_covariance</span> <span class="o">@</span> <span class="n">rotation</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">return</span> <span class="n">multivariate_normal</span><span class="p">(</span>
+            <span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)],</span> <span class="n">cov</span><span class="o">=</span><span class="n">rotated_covariance</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)]))</span></div></div>
+
+
+<div class="viewcode-block" id="SkewedGaussian"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.SkewedGaussian.html#ctapipe.image.toymodel.SkewedGaussian">[docs]</a><span class="k">class</span> <span class="nc">SkewedGaussian</span><span class="p">(</span><span class="n">ImageModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A shower image that has a skewness along the major axis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">skewness</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create 2D skewed Gaussian model for a shower image in a camera.</span>
+<span class="sd">        Skewness is only applied along the main shower axis.</span>
+<span class="sd">        See https://en.wikipedia.org/wiki/Skew_normal_distribution and</span>
+<span class="sd">        https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html</span>
+<span class="sd">        for details.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        centroid : u.Quantity[length, shape=(2, )]</span>
+<span class="sd">            position of the centroid of the shower in camera coordinates</span>
+<span class="sd">        width: u.Quantity[length]</span>
+<span class="sd">            width of shower (minor axis)</span>
+<span class="sd">        length: u.Quantity[length]</span>
+<span class="sd">            length of shower (major axis)</span>
+<span class="sd">        psi : convertable to `astropy.coordinates.Angle`</span>
+<span class="sd">            rotation angle about the centroid (0=x-axis)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        a `scipy.stats` object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skewness</span> <span class="o">=</span> <span class="n">skewness</span>
+
+    <span class="k">def</span> <span class="nf">_moments_to_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns loc and scale from mean, std and skewnewss.&quot;&quot;&quot;</span>
+        <span class="c1"># see https://en.wikipedia.org/wiki/Skew_normal_distribution#Estimation</span>
+        <span class="n">skew23</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skewness</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skewness</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">skew23</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">skew23</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">delta</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="o">-</span><span class="n">scale</span> <span class="o">*</span> <span class="n">delta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">a</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">scale</span>
+
+<div class="viewcode-block" id="SkewedGaussian.pdf"><a class="viewcode-back" href="../../../api/ctapipe.image.toymodel.SkewedGaussian.html#ctapipe.image.toymodel.SkewedGaussian.pdf">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;2d probability for photon electrons in the camera plane.&quot;&quot;&quot;</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">])</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+
+        <span class="n">rotation</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">rotation_matrix_2d</span><span class="p">(</span><span class="o">-</span><span class="n">Angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">))</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)])</span>
+        <span class="n">long</span><span class="p">,</span> <span class="n">trans</span> <span class="o">=</span> <span class="n">rotation</span> <span class="o">@</span> <span class="p">(</span><span class="n">pos</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">trans_pdf</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">))</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">trans</span><span class="p">)</span>
+
+        <span class="n">a</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moments_to_parameters</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">trans_pdf</span> <span class="o">*</span> <span class="n">skewnorm</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">long</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">RingGaussian</span><span class="p">(</span><span class="n">ImageModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A shower image consisting of a ring with gaussian radial profile.</span>
+<span class="sd">    Simplified model for a muon ring.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span>
+
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;2d probability for photon electrons in the camera plane.&quot;&quot;&quot;</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radius</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">))</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

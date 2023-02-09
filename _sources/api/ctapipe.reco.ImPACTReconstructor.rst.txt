@@ -1,0 +1,53 @@
+ImPACTReconstructor
+===================
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: ImPACTReconstructor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ImPACTReconstructor.ped_table
+      ~ImPACTReconstructor.spe
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ImPACTReconstructor.get_hillas_mean
+      ~ImPACTReconstructor.get_likelihood
+      ~ImPACTReconstructor.get_likelihood_min
+      ~ImPACTReconstructor.get_likelihood_nlopt
+      ~ImPACTReconstructor.get_shower_max
+      ~ImPACTReconstructor.image_prediction
+      ~ImPACTReconstructor.initialise_templates
+      ~ImPACTReconstructor.minimise
+      ~ImPACTReconstructor.predict
+      ~ImPACTReconstructor.predict_time
+      ~ImPACTReconstructor.reset_interpolator
+      ~ImPACTReconstructor.rotate_translate
+      ~ImPACTReconstructor.set_event_properties
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: ped_table
+   .. autoattribute:: spe
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: get_hillas_mean
+   .. automethod:: get_likelihood
+   .. automethod:: get_likelihood_min
+   .. automethod:: get_likelihood_nlopt
+   .. automethod:: get_shower_max
+   .. automethod:: image_prediction
+   .. automethod:: initialise_templates
+   .. automethod:: minimise
+   .. automethod:: predict
+   .. automethod:: predict_time
+   .. automethod:: reset_interpolator
+   .. automethod:: rotate_translate
+   .. automethod:: set_event_properties

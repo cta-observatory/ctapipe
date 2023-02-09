@@ -1,0 +1,31 @@
+TelescopeFrame
+==============
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autoclass:: TelescopeFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TelescopeFrame.default_differential
+      ~TelescopeFrame.default_representation
+      ~TelescopeFrame.frame_attributes
+      ~TelescopeFrame.frame_specific_representation_info
+      ~TelescopeFrame.location
+      ~TelescopeFrame.name
+      ~TelescopeFrame.obstime
+      ~TelescopeFrame.telescope_pointing
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: frame_attributes
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: location
+   .. autoattribute:: name
+   .. autoattribute:: obstime
+   .. autoattribute:: telescope_pointing

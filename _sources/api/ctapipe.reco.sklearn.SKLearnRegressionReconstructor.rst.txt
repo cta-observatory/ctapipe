@@ -1,0 +1,19 @@
+SKLearnRegressionReconstructor
+==============================
+
+.. currentmodule:: ctapipe.reco.sklearn
+
+.. autoclass:: SKLearnRegressionReconstructor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SKLearnRegressionReconstructor.log_target
+      ~SKLearnRegressionReconstructor.model_cls
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: log_target
+   .. autoattribute:: model_cls

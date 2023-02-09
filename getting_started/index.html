@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started For Developers &mdash; ctapipe v0.17.1.dev630+g3afb8e35.d20230209</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Development Guidelines" href="../development/index.html" />
+    <link rel="prev" title="Getting Started For Users" href="../getting_started_users/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ctapipe
+          </a>
+              <div class="version">
+                0.17.1.dev630+g3afb8e35.d20230209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started_users/index.html">Getting Started For Users</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started For Developers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#get-the-ctapipe-software">Get the ctapipe software</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#step-1-fork-the-master-cta-observatory-ctapipe-repository">Step 1: Fork the Master CTA-Observatory ctapipe repository</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-2-clone-your-forked-version-locally">Step 2: clone your forked version locally</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-4-set-up-your-package-environment">Step 4: Set up your package environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-5-setup-ctapipe-for-development">Step 5: Setup ctapipe for development</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#developing-a-new-feature-or-code-change">Developing a new feature or code change</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-a-feature-branch">1. Create a feature branch:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#edit-the-code">2. Edit the code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#push-your-branch-to-your-fork-on-github">3. Push your branch to your fork on github</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#make-a-pull-request">4. make a <em>Pull Request</em></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#wait-for-a-code-review">5. Wait for a code review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#delete-your-feature-branch">6. delete your feature branch</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#more-development-help">More Development help</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started For Developers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/getting_started/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="getting-started-for-developers">
+<span id="getting-started"></span><h1>Getting Started For Developers<a class="headerlink" href="#getting-started-for-developers" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>the following guide is used only if you want to <em>develop</em> the
+<code class="docutils literal notranslate"><span class="pre">ctapipe</span></code> package, if you just want to write code that uses it
+externally, you can install <code class="docutils literal notranslate"><span class="pre">ctapipe</span></code> as a conda package
+with <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">-c</span> <span class="pre">conda-forge</span> <span class="pre">ctapipe</span></code>.</p>
+</div>
+<p>This guide assumes you are using the <em>Anaconda</em> python distribution,
+installed locally (<em>miniconda</em> should also work).</p>
+<p>You can use <em>python 3.7</em> or above (we currently test on 3.7 and 3.8)</p>
+<div class="section" id="get-the-ctapipe-software">
+<h2>Get the ctapipe software<a class="headerlink" href="#get-the-ctapipe-software" title="Permalink to this headline">¶</a></h2>
+<p>In order to checkout the software in such a way that you can read <em>and
+commit</em> changes, you need to <a class="reference external" href="https://help.github.com/articles/fork-a-repo/">Fork and Clone</a> the main ctapipe
+repository (cta-observatory/ctapipe).</p>
+<p>First, it’s useful to make a directory where you have can check out
+cta GIT repos (this is optinal - you can put it anywhere)</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>mkdir<span class="w"> </span>ctasoft
+<span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>ctasoft
+</pre></div>
+</div>
+<div class="section" id="step-1-fork-the-master-cta-observatory-ctapipe-repository">
+<h3>Step 1: Fork the Master CTA-Observatory ctapipe repository<a class="headerlink" href="#step-1-fork-the-master-cta-observatory-ctapipe-repository" title="Permalink to this headline">¶</a></h3>
+<p>Follow the instructions in the link above to make a <em>fork</em> of the
+ctapipe repo in your own GitHub userspace. That fork will be then
+called <em>yourusername</em>/ctapipe (it’s as simple as clicking the fork button on <a class="reference external" href="https://github.com/cta-observatory/ctapipe">main ctapipe github page</a>.</p>
+<p>You only need to make this fork once, when you first start developing, and
+you can use it from then on.</p>
+</div>
+<div class="section" id="step-2-clone-your-forked-version-locally">
+<h3>Step 2: clone your forked version locally<a class="headerlink" href="#step-2-clone-your-forked-version-locally" title="Permalink to this headline">¶</a></h3>
+<p>Next, you need to clone (copy to your local machine) the newly forked
+ctapipe repo (make sure you put in your own username there):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/<span class="o">[</span>YOUR-GITHUB-USERNAME<span class="o">]</span>/ctapipe.git
+<span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>ctapipe
+</pre></div>
+</div>
+<p>You now need to tell Git that this repo where the master CTA version is:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/cta-observatory/ctapipe.git
+</pre></div>
+</div>
+<p>If that worked, then you should see a <em>upstream</em> target in
+addition to <em>origin</em> when typing <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">-v</span></code>.  Later if you want
+to pull in any changes from the master repo, you just need to type
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">master</span></code>.</p>
+</div>
+<div class="section" id="step-4-set-up-your-package-environment">
+<h3>Step 4: Set up your package environment<a class="headerlink" href="#step-4-set-up-your-package-environment" title="Permalink to this headline">¶</a></h3>
+<p>Change to the directory where you cloned <code class="docutils literal notranslate"><span class="pre">ctapipe</span></code>, and type:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>cta-dev<span class="w"> </span>-f<span class="w"> </span>environment.yml
+</pre></div>
+</div>
+<p>This will create a conda virtual environment called <code class="docutils literal notranslate"><span class="pre">cta-dev</span></code> with all
+the ctapipe dependencies and a few useful packages for development and
+interaction. Next, switch to this new virtual environment:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">source</span><span class="w"> </span>activate<span class="w"> </span>cta-dev
+</pre></div>
+</div>
+<p>You will need to type that last command any time you open a new
+terminal to actiavate the virtual environment (you can of course
+install everything into the base Anaconda environment without creating
+a virtual environment, but then you may have trouble if you want to
+install other packages with different requirements on the
+dependencies)</p>
+</div>
+<div class="section" id="step-5-setup-ctapipe-for-development">
+<h3>Step 5: Setup ctapipe for development<a class="headerlink" href="#step-5-setup-ctapipe-for-development" title="Permalink to this headline">¶</a></h3>
+<p>Now setup this cloned version for development. The following command
+will make symlinks in your python library directory to your ctapipe
+installation (it creates a <code class="docutils literal notranslate"><span class="pre">.pth</span></code> file, there is no need to set
+PYTHONPATH, in fact it should be blank to avoid other problems). From
+then on, all the ctapipe binaries and the library itself will be
+usable from anywhere.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>ctapipe supports adding so-called event sources and reconstructors
+through plugins. In order for the respective tests to pass you have
+to install the test plugin via</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>./test_plugin
+</pre></div>
+</div>
+<p>Run the tests to make sure everything is OK:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pytest
+</pre></div>
+</div>
+<p>Build the HTML docs locally and open them in your web browser:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>make<span class="w"> </span>doc
+</pre></div>
+</div>
+<p>Run the example Python scripts:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>examples
+<span class="gp">$ </span>python<span class="w"> </span>xxx_example.py
+</pre></div>
+</div>
+<p>try running some command line tools:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>ctapipe-info<span class="w"> </span>--all
+<span class="gp">$ </span>ctapipe-camdemo<span class="w"> </span>--camera<span class="o">=</span>NectarCam<span class="w">  </span><span class="c1"># try --help for more info</span>
+</pre></div>
+</div>
+<p>To update to the latest development version (merging in remote changes
+to your local working copy):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>master
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="developing-a-new-feature-or-code-change">
+<h2>Developing a new feature or code change<a class="headerlink" href="#developing-a-new-feature-or-code-change" title="Permalink to this headline">¶</a></h2>
+<p>We adhere to the PEP8 coding style (see our <a class="reference internal" href="../development/style-guide.html"><span class="doc">Style Guide</span></a>).
+To enforce this, setup the
+<a class="reference external" href="https://pre-commit.com/">pre-commit hook</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pre-commit install
+</pre></div>
+</div>
+<p>You should always create a branch when developing some new code (unless it is
+a very small change).  Generally make a new branch for each new feature, so
+that you can make pull-requests for each one separately and not mix code
+from each.  Remember that <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">switch</span> <span class="pre">&lt;name&gt;</span></code> switches between branches,
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">switch</span> <span class="pre">-c</span> <span class="pre">&lt;name&gt;</span></code> creates a new branch, and <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">branch</span></code> on it’s own
+will tell you which branches are available and which one you are currently on.</p>
+<p>First think of a name for your code change, here we’ll use
+<em>implement_feature_1</em> as an example.</p>
+<div class="section" id="create-a-feature-branch">
+<h3>1. Create a feature branch:<a class="headerlink" href="#create-a-feature-branch" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>implement_feature_1
+</pre></div>
+</div>
+</div>
+<div class="section" id="edit-the-code">
+<h3>2. Edit the code<a class="headerlink" href="#edit-the-code" title="Permalink to this headline">¶</a></h3>
+<p>and make as many commits as you want (more than one is generally
+better for large changes!).</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>git<span class="w"> </span>add<span class="w"> </span>some_changed_file.py<span class="w"> </span>another_file.py
+$<span class="w"> </span>git<span class="w"> </span>commit
+<span class="w">  </span><span class="o">[</span><span class="nb">type</span><span class="w"> </span>descriptive<span class="w"> </span>message<span class="w"> </span><span class="k">in</span><span class="w"> </span>window<span class="w"> </span>that<span class="w"> </span>pops<span class="w"> </span>up<span class="o">]</span>
+</pre></div>
+</div>
+<p>and repeat. The commit message should follow the <em>GIT conventions</em>:
+the first line is a short description, followed by a blank line,
+followed by details if needed (in a bullet list if applicable). You
+may even refer to GitHub issue ids, and they will be automatically
+linked to the commit in the issue tracker.  An example commit message:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fixed</span> <span class="n">bug</span> <span class="c1">#245</span>
+
+<span class="o">-</span> <span class="n">changed</span> <span class="n">the</span> <span class="n">order</span> <span class="n">of</span> <span class="k">if</span> <span class="n">statements</span> <span class="n">to</span> <span class="n">avoid</span> <span class="n">logical</span> <span class="n">error</span>
+<span class="o">-</span> <span class="n">added</span> <span class="n">unit</span> <span class="n">test</span> <span class="n">to</span> <span class="n">check</span> <span class="k">for</span> <span class="n">regression</span>
+</pre></div>
+</div>
+<p>Of course, make sure you frequently test via <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">test</span></code> (or <code class="docutils literal notranslate"><span class="pre">pytest</span></code> in a
+sub-module), check the style, and make sure the docs render correctly
+(both code and top-level) using <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">doc</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A git commit should ideally contain one and only one feature change
+(e.g it should not mix changes that are logically different
+together). Therefore it’s best to group related changes with <code class="docutils literal notranslate"><span class="pre">git</span>
+<span class="pre">add</span> <span class="pre">&lt;files&gt;</span></code>. You may even commit only <em>parts</em> of a changed file
+using and <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">add</span> <span class="pre">-p</span></code>.  If you want to keep your git commit
+history clean, learn to use commands like <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">--ammend</span></code>
+(append to previous commit without creating a new one, e.g. when
+you find a typo or something small).</p>
+<p>A clean history and a chain of well-written commit messages will
+make it easier on code reviews to see what you did.</p>
+</div>
+</div>
+<div class="section" id="push-your-branch-to-your-fork-on-github">
+<h3>3. Push your branch to your fork on github<a class="headerlink" href="#push-your-branch-to-your-fork-on-github" title="Permalink to this headline">¶</a></h3>
+<p>(sometimes refered to as
+“publishing” since it becomes public, but only in your fork) by running</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push
+</pre></div>
+</div>
+<p>You can do this at any time and more than once. It just moves the changes
+from your local branch on your development machine to your fork on github.</p>
+</div>
+<div class="section" id="make-a-pull-request">
+<h3>4. make a <em>Pull Request</em><a class="headerlink" href="#make-a-pull-request" title="Permalink to this headline">¶</a></h3>
+<p>When you’re happy, you make PR on on your github fork page by clicking
+“pull request”.  You can also do this via <em>GitHub Desktop</em> if you have
+that installed, by pushing the pull-request button in the
+upper-right-hand corner.</p>
+<p>Make sure to describe all the changes and give examples and use cases!</p>
+<p>See the <a class="reference internal" href="../development/pullrequests.html#pullrequests"><span class="std std-ref">Making and Accepting Pull Requests</span></a> section for more info.</p>
+</div>
+<div class="section" id="wait-for-a-code-review">
+<h3>5. Wait for a code review<a class="headerlink" href="#wait-for-a-code-review" title="Permalink to this headline">¶</a></h3>
+<p>Keep in mind the following:</p>
+<ul class="simple">
+<li><p>At least one reviewer must look at your code and accept your
+request. They may ask for changes before accepting.</p></li>
+<li><p>All unit tests must pass.  They are automatically run by Travis when
+you submit or update your pull request and you can monitor the
+results on the pull-request page.  If there is a test that you added
+that should <em>not</em> pass because the feature is not yet implemented,
+you may <a class="reference external" href="https://docs.pytest.org/en/latest/skipping.html">mark it as skipped temporarily</a> until the
+feature is complete.</p></li>
+<li><p>All documentation must build without errors. Again, this is checked
+by Travis.  It is your responsibility to run “make doc” and check
+that you don’t have any syntax errors in your docstrings.</p></li>
+<li><p>All code you have written should follow the style guide (e.g. no
+warnings when you run the <code class="docutils literal notranslate"><span class="pre">flake8</span></code> syntax checker)</p></li>
+</ul>
+<p>If the reviewer asks for changes, all you need to do is make them, <code class="docutils literal notranslate"><span class="pre">git</span>
+<span class="pre">commit</span></code> them and then run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span></code> and the reviewer will see the changes.</p>
+<p>When the PR is accepted, the reviewer will merge your branch into the
+<em>master</em> repo on cta-observatory’s account.</p>
+</div>
+<div class="section" id="delete-your-feature-branch">
+<h3>6. delete your feature branch<a class="headerlink" href="#delete-your-feature-branch" title="Permalink to this headline">¶</a></h3>
+<p>since it is no longer needed (assuming it was accepted and merged in):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>master<span class="w">   </span><span class="c1"># switch back to your master branch</span>
+</pre></div>
+</div>
+<p>pull in the upstream changes, which should include your new features, and
+remove the branch from the local and remote (github).</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>master
+git<span class="w"> </span>branch<span class="w"> </span>--delete<span class="w"> </span>--remotes<span class="w"> </span>implement_feature_1
+</pre></div>
+</div>
+<p>Note the last step can also be done on the GitHub website.</p>
+</div>
+</div>
+<div class="section" id="more-development-help">
+<h2>More Development help<a class="headerlink" href="#more-development-help" title="Permalink to this headline">¶</a></h2>
+<p>For coding details, read the <a class="reference internal" href="../development/index.html#guidelines"><span class="std std-ref">Development Guidelines</span></a> section of this
+documentation.</p>
+<p>To make git a bit easier (if you are on a Mac computer) you may want
+to use the <a class="reference external" href="https://desktop.github.com/">github-desktop GUI</a>, which
+can do most of the fork/clone and remote git commands above
+automatically. It provides a graphical view of your fork and the
+upstream cta-observatory repository, so you can see easily what
+version you are working on. It will handle the forking, syncing, and
+even allow you to issue pull-requests.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../getting_started_users/index.html" class="btn btn-neutral float-left" title="Getting Started For Users" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../development/index.html" class="btn btn-neutral float-right" title="Development Guidelines" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright ctapipe developers.  Last updated 09 Feb 2023 14:43.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
