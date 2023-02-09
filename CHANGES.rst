@@ -74,12 +74,12 @@ New Features
   using ``ctapipe-process``, merging those to large training files using ``ctapipe-merge``
   and then train the models.
   [`#1767 <https://github.com/cta-observatory/ctapipe/pull/1767>`__,
-   `#2121 <https://github.com/cta-observatory/ctapipe/pull/2121>`__,
-   `#2133 <https://github.com/cta-observatory/ctapipe/pull/2133>`__,
-   `#2138 <https://github.com/cta-observatory/ctapipe/pull/2138>`__,
-   `#2217 <https://github.com/cta-observatory/ctapipe/pull/2217>`__,
-   `#2229 <https://github.com/cta-observatory/ctapipe/pull/2229>`__,
-   `#2140 <https://github.com/cta-observatory/ctapipe/pull/2140>`__]
+  `#2121 <https://github.com/cta-observatory/ctapipe/pull/2121>`__,
+  `#2133 <https://github.com/cta-observatory/ctapipe/pull/2133>`__,
+  `#2138 <https://github.com/cta-observatory/ctapipe/pull/2138>`__,
+  `#2217 <https://github.com/cta-observatory/ctapipe/pull/2217>`__,
+  `#2229 <https://github.com/cta-observatory/ctapipe/pull/2229>`__,
+  `#2140 <https://github.com/cta-observatory/ctapipe/pull/2140>`__]
 
 - ``Tool`` now comes with an ``ExitStack`` that enables proper
   handling of context-manager members inside ``Tool.run``.
