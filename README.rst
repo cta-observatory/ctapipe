@@ -76,6 +76,4 @@ or via::
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 Developers should follow the development install instructions found in the
-`documentation <https://cta-observatory.github
-.io/ctapipe/getting_started>`__.
-
+`documentation <https://cta-observatory.github.io/ctapipe/getting_started>`__.
