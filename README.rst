@@ -15,7 +15,7 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
   :target: https://zenodo.org/badge/latestdoi/37927055
 
 Low-level data processing pipeline software for
-`CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
+`CTA <www.cta-observatory.org>`__ (the Cherenkov Telescope Array)
 
 This is code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an
@@ -31,7 +31,7 @@ Citing this software
 If you use this software for a publication, please cite the Zenodo Record
 for the specific version you are using and our latest publication.
 
-You can find all ctapipe Zenodo records here: `List of ctapipe Records on Zenodo <https://zenodo.org/search?q=conceptrecid:%223372210%22&sort=-version&all_versions=True>`_.
+You can find all ctapipe Zenodo records here: `List of ctapipe Records on Zenodo <https://zenodo.org/search?q=conceptrecid:%223372210%22&sort=-version&all_versions=True>`__.
 
 There is also a Zenodo DOI always pointing to the latest version: |doilatest|
 
@@ -69,13 +69,13 @@ or via::
 
   pip install ctapipe
 
-**Note**: to install a specific version of ctapipe take look at the documentation `here <https://cta-observatory.github.io/ctapipe/getting_started_users>`_.
+**Note**: to install a specific version of ctapipe take look at the documentation `here <https://cta-observatory.github.io/ctapipe/getting_started_users>`__.
 
-**Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`_.
+**Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`__.
 
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 Developers should follow the development install instructions found in the
 `documentation <https://cta-observatory.github
-.io/ctapipe/getting_started>`_.
+.io/ctapipe/getting_started>`__.
 
