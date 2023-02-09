@@ -47,49 +47,11 @@ API Changes
 
 - Remove ``-f`` flag as alias for ``--overwrite`` and fail early if output exists, but overwrite is not set [`#2213 <https://github.com/cta-observatory/ctapipe/pull/2213>`__]
 
-- Change how ML reconstructors are given to the ``ctapipe-process`` tool,
-  the ``ShowerProcessor`` and the ``ctapipe-apply-models`` tool.
-  The tools now take ``--reconstructor`` options, which might repeated,
-  and results in a list of reconstructors that are applied in the given order.
-
-  SKLearn reconstructors now return a dict mapping the new ``ReconstructionProperty`` enum
-  to tables to enable reconstructors that predict multiple properties at once. [`#2229 <https://github.com/cta-observatory/ctapipe/pull/2229>`__]
 
 - The ``_chunked`` methods of the ``TableLoader`` now return
   an Iterator over namedtuples with start, stop, data. [`#2241 <https://github.com/cta-observatory/ctapipe/pull/2241>`__]
 
 - Remove debug-logging and early-exits in ``hdf5eventsource`` so broken files raise errors. [`#2244 <https://github.com/cta-observatory/ctapipe/pull/2244>`__]
-
-
-Bug Fixes
----------
-
-- Fix for Hillas lines in ``ArrayDisplay`` being wrong in the new ``EastingNorthingFrame``. [`#2134 <https://github.com/cta-observatory/ctapipe/pull/2134>`__]
-
-- Replace usage of ``$HOME`` with ``Path.home()`` for cross-platform compatibility. [`#2155 <https://github.com/cta-observatory/ctapipe/pull/2155>`__]
-
-- Fix for ``TableLoader`` having the wrong data types for ``obs_id``,
-  ``event_id`` and ``tel_id``. [`#2163 <https://github.com/cta-observatory/ctapipe/pull/2163>`__]
-
-- Fix ``Tool`` printing a large traceback in case of certain configuration errors. [`#2171 <https://github.com/cta-observatory/ctapipe/pull/2171>`__]
-
-- The string representation of ``Field`` now sets numpy print options
-  to prevent large arrays in the docstrings of ``Container`` classes. [`#2173 <https://github.com/cta-observatory/ctapipe/pull/2173>`__]
-
-- Fix missing comma in eventio version requirement in setup.cfg (#2185). [`#2187 <https://github.com/cta-observatory/ctapipe/pull/2187>`__]
-
-- Move reading of stereo data before skipping empty events in HDF5EventSource,
-  this fixes a bug where the stereo data and simulation data get out of sync
-  with the other event data when using ``allowed_tels``. [`#2189 <https://github.com/cta-observatory/ctapipe/pull/2189>`__]
-
-- Fix mixture of quantity and unit-less values passed to ``np.histogram``
-  in ``ctapipe.image.muon.ring_completeness``, which raises an error with
-  astropy 5.2.1. [`#2197 <https://github.com/cta-observatory/ctapipe/pull/2197>`__]
-
-
-Data Model Changes
-------------------
-
 
 New Features
 ------------
@@ -97,19 +59,27 @@ New Features
 - Implement Components and Tools to perform training and application of 
   machine learning models based on scikit-learn.
 
-  Three new tools are implemented:
+  Four new tools are implemented:
   - ``ctapipe-train-energy-regressor``
   - ``ctapipe-train-particle-classifier``
+  - ``ctapipe-train-disp-reconstructor``
   - ``ctapipe-apply-models``
 
   The first two tools are used to train energy regression and particle classification
-  respectively and the third tool can apply those models in bulk to input files.
-  ``ctapipe-process`` can now also apply models trained with the first two tools directly in
-  the event loop.
+  respectively. The third tool trains two models for geometrical reconstruction using the disp
+  method and the fourth tool can apply those models in bulk to input files.
+  ``ctapipe-process`` can now also apply these trained models directly in the event loop.
 
   The intended workflow is to process training files to a combined dl1 / dl2 level
   using ``ctapipe-process``, merging those to large training files using ``ctapipe-merge``
-  and then train the models. [`#1767 <https://github.com/cta-observatory/ctapipe/pull/1767>`__]
+  and then train the models.
+  [`#1767 <https://github.com/cta-observatory/ctapipe/pull/1767>`__,
+   `#2121 <https://github.com/cta-observatory/ctapipe/pull/2121>`__,
+   `#2133 <https://github.com/cta-observatory/ctapipe/pull/2133>`__,
+   `#2138 <https://github.com/cta-observatory/ctapipe/pull/2138>`__,
+   `#2217 <https://github.com/cta-observatory/ctapipe/pull/2217>`__,
+   `#2229 <https://github.com/cta-observatory/ctapipe/pull/2229>`__,
+   `#2140 <https://github.com/cta-observatory/ctapipe/pull/2140>`__]
 
 - ``Tool`` now comes with an ``ExitStack`` that enables proper
   handling of context-manager members inside ``Tool.run``.
@@ -136,13 +106,6 @@ New Features
 
 - Allow lookup of ``TelescopeParameter`` values by telescope type. [`#2120 <https://github.com/cta-observatory/ctapipe/pull/2120>`__]
 
-- Enable using previously predicted values as input for the next model
-  in ``ctapipe-apply-models``, e.g. using predicted energy for classification. [`#2121 <https://github.com/cta-observatory/ctapipe/pull/2121>`__]
-
-- ``ctapipe-apply-models`` can now apply models in chunks of subarray events,
-  greatly improving memory efficiency by not having to load all events into
-  memory at once. [`#2133 <https://github.com/cta-observatory/ctapipe/pull/2133>`__]
-
 - Implement a ``SoftwareTrigger`` component to handle the effect of
   selecting sub-arrays from larger arrays in the simulations.
   The component can remove events where the stereo trigger would not have
@@ -150,14 +113,6 @@ New Features
   for cases like the CTA LSTs, that have their own hardware stereo trigger
   that requires at least two LSTs taking part in an event. [`#2136 <https://github.com/cta-observatory/ctapipe/pull/2136>`__]
 
-- This adds a disp reconstruction including ``ctapipe-train-disp-reconstructor`` for training
-  two machine learning models and application of these models in ``ctapipe-apply-models``
-  and ``ctapipe-process``.
-  ``DispContainer`` is added for storing the disp prediction.
-  Stereo predictions are done by taking a weighted average of the single telescope predictions. [`#2138 <https://github.com/cta-observatory/ctapipe/pull/2138>`__]
-
-- The number of samples used for training machine learning models
-  can now be specified per telescope type. [`#2140 <https://github.com/cta-observatory/ctapipe/pull/2140>`__]
 
 - It's now possible to transform between ``GroundFrame`` coordinates
   and ``astropy.coordinates.EarthLocation``, enabling the conversion
@@ -178,7 +133,31 @@ New Features
   plot coordinates into the camera display, e.g. to show 
   the source position or the position of stars in the FoV. [`#2203 <https://github.com/cta-observatory/ctapipe/pull/2203>`__]
 
-- Add option to configure prefixes of ml models keeping the model class as default prefix. [`#2217 <https://github.com/cta-observatory/ctapipe/pull/2217>`__]
+
+Bug Fixes
+---------
+
+- Fix for Hillas lines in ``ArrayDisplay`` being wrong in the new ``EastingNorthingFrame``. [`#2134 <https://github.com/cta-observatory/ctapipe/pull/2134>`__]
+
+- Replace usage of ``$HOME`` with ``Path.home()`` for cross-platform compatibility. [`#2155 <https://github.com/cta-observatory/ctapipe/pull/2155>`__]
+
+- Fix for ``TableLoader`` having the wrong data types for ``obs_id``,
+  ``event_id`` and ``tel_id``. [`#2163 <https://github.com/cta-observatory/ctapipe/pull/2163>`__]
+
+- Fix ``Tool`` printing a large traceback in case of certain configuration errors. [`#2171 <https://github.com/cta-observatory/ctapipe/pull/2171>`__]
+
+- The string representation of ``Field`` now sets numpy print options
+  to prevent large arrays in the docstrings of ``Container`` classes. [`#2173 <https://github.com/cta-observatory/ctapipe/pull/2173>`__]
+
+- Fix missing comma in eventio version requirement in setup.cfg (#2185). [`#2187 <https://github.com/cta-observatory/ctapipe/pull/2187>`__]
+
+- Move reading of stereo data before skipping empty events in HDF5EventSource,
+  this fixes a bug where the stereo data and simulation data get out of sync
+  with the other event data when using ``allowed_tels``. [`#2189 <https://github.com/cta-observatory/ctapipe/pull/2189>`__]
+
+- Fix mixture of quantity and unit-less values passed to ``np.histogram``
+  in ``ctapipe.image.muon.ring_completeness``, which raises an error with
+  astropy 5.2.1. [`#2197 <https://github.com/cta-observatory/ctapipe/pull/2197>`__]
 
 
 Maintenance
