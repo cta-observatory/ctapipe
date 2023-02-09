@@ -1,5 +1,5 @@
 ============================================================
-ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
+ctapipe |pypi| |conda| |doilatest| |ci| |coverage| |codacy|
 ============================================================
 
 .. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=master
@@ -13,6 +13,8 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
   :target: https://codecov.io/gh/cta-observatory/ctapipe
 .. |doilatest| image:: https://zenodo.org/badge/37927055.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
+.. |pypi| image:: https://badge.fury.io/py/ctapipe.svg
+    :target: https://pypi.org/project/ctapipe
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`__ (the Cherenkov Telescope Array)
