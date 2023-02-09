@@ -1,2 +1,0 @@
-The string representation of ``Field`` now sets numpy print options
-to prevent large arrays in the docstrings of ``Container`` classes.

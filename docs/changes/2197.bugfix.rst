@@ -1,3 +1,0 @@
-Fix mixture of quantity and unit-less values passed to ``np.histogram``
-in ``ctapipe.image.muon.ring_completeness``, which raises an error with
-astropy 5.2.1.

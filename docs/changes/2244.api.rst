@@ -1,1 +1,0 @@
-Remove debug-logging and early-exits in ``hdf5eventsource`` so broken files raise errors.

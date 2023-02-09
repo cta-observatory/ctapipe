@@ -1,3 +1,0 @@
-Move reading of stereo data before skipping empty events in HDF5EventSource,
-this fixes a bug where the stereo data and simulation data get out of sync
-with the other event data when using ``allowed_tels``.

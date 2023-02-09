@@ -1,5 +1,0 @@
-This adds a disp reconstruction including ``ctapipe-train-disp-reconstructor`` for training
-two machine learning models and application of these models in ``ctapipe-apply-models``
-and ``ctapipe-process``.
-``DispContainer`` is added for storing the disp prediction.
-Stereo predictions are done by taking a weighted average of the single telescope predictions.

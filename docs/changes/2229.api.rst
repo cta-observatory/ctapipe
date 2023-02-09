@@ -1,7 +1,0 @@
-Change how ML reconstructors are given to the ``ctapipe-process`` tool,
-the ``ShowerProcessor`` and the ``ctapipe-apply-models`` tool.
-The tools now take ``--reconstructor`` options, which might repeated,
-and results in a list of reconstructors that are applied in the given order.
-
-SKLearn reconstructors now return a dict mapping the new ``ReconstructionProperty`` enum
-to tables to enable reconstructors that predict multiple properties at once.

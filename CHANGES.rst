@@ -1,3 +1,196 @@
+ctapipe v0.18.0 (2023-02-09)
+============================
+
+
+API Changes
+-----------
+
+- ctapipe now uses entry points for plugin discovery. ``EventSource`` implementations 
+  now need to advertise a ``ctapipe_io`` entry point, to be discovered by ctapipe.
+  Additionally, ctapipe now includes preliminary support for discovering ``Reconstructor``
+  implementations via the ``ctapipe_reco`` entry_point. [`#2101 <https://github.com/cta-observatory/ctapipe/pull/2101>`__]
+
+- Migrate muon analysis into the ``ctapipe-process`` tool:
+
+  1. The former ``muon_reconstruction`` tool is dropped and all functionalities are transferred 
+     into the ``ctapipe-process`` tool.
+
+  2. The ``process`` tool now has a ``write_muon_parameters`` flag which defaults to ``false``.
+     Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1 image 
+     parameters, so they are computed in case they are not available from the input even 
+     if the user did not explicitly ask for the computation of image parameters.
+
+  3. Two instances of ``QualityQuery``, ``MuonProcessor.ImageParameterQuery`` and ``MuonProcessor.RingQuery`` 
+     are added to the muon analysis to either preselect images according to image parameters and 
+     to select images according to the initial, geometrical ring fit for further processing. 
+     Deselected events or those where the muon analysis fails are being returned and written 
+     filled with invalid value markers instead of being ignored.
+     Base configure options for the muon analysis were added to the ``base_config.yaml``.
+
+  4. The ``DataWriter`` now writes the results of a muon analysis into ``/dl1/event/telescope/muon/tel_id``,
+     given ``write_moun_parameters`` is set to ``true``.
+
+  5. Muon nodes were added to the ``HDF5EventSource``, the ``TableLoader`` and the ``ctapipe-merge`` tool. [`#2168 <https://github.com/cta-observatory/ctapipe/pull/2168>`__]
+
+- Change default behaviour of ``run_rool``:
+
+  1. The default value of ``raises`` is now ``True``. That means, when using
+     ``run_tool``, the Exceptions raised by a Tool will be re-raised. The raised
+     exceptions can be tested for their type and content.
+     If the Tool must fail and only the non-zero error case is important to test,
+     set ``raises=False`` (as it was before).
+
+  2. If the ``cwd`` parameter is ``None`` (as per default), now a temporary directory
+     is used instead of the directory, where ``run_tool`` is called (typically via
+     pytest). This way, log-files and other output files don't clutter your
+     working space. [`#2175 <https://github.com/cta-observatory/ctapipe/pull/2175>`__]
+
+- Remove ``-f`` flag as alias for ``--overwrite`` and fail early if output exists, but overwrite is not set [`#2213 <https://github.com/cta-observatory/ctapipe/pull/2213>`__]
+
+- The ``_chunked`` methods of the ``TableLoader`` now return
+  an Iterator over namedtuples with start, stop, data. [`#2241 <https://github.com/cta-observatory/ctapipe/pull/2241>`__]
+
+- Remove debug-logging and early-exits in ``hdf5eventsource`` so broken files raise errors. [`#2244 <https://github.com/cta-observatory/ctapipe/pull/2244>`__]
+
+New Features
+------------
+
+- Implement Components and Tools to perform training and application of 
+  machine learning models based on scikit-learn.
+
+  Four new tools are implemented:
+  - ``ctapipe-train-energy-regressor``
+  - ``ctapipe-train-particle-classifier``
+  - ``ctapipe-train-disp-reconstructor``
+  - ``ctapipe-apply-models``
+
+  The first two tools are used to train energy regression and particle classification
+  respectively. The third tool trains two models for geometrical reconstruction using the disp
+  method and the fourth tool can apply those models in bulk to input files.
+  ``ctapipe-process`` can now also apply these trained models directly in the event loop.
+
+  The intended workflow is to process training files to a combined dl1 / dl2 level
+  using ``ctapipe-process``, merging those to large training files using ``ctapipe-merge``
+  and then train the models.
+  [`#1767 <https://github.com/cta-observatory/ctapipe/pull/1767>`__,
+  `#2121 <https://github.com/cta-observatory/ctapipe/pull/2121>`__,
+  `#2133 <https://github.com/cta-observatory/ctapipe/pull/2133>`__,
+  `#2138 <https://github.com/cta-observatory/ctapipe/pull/2138>`__,
+  `#2217 <https://github.com/cta-observatory/ctapipe/pull/2217>`__,
+  `#2229 <https://github.com/cta-observatory/ctapipe/pull/2229>`__,
+  `#2140 <https://github.com/cta-observatory/ctapipe/pull/2140>`__]
+
+- ``Tool`` now comes with an ``ExitStack`` that enables proper
+  handling of context-manager members inside ``Tool.run``.
+  Things that require a cleanup step should be implemented
+  as context managers and be added to the tool like this:
+
+  .. code::
+
+      self.foo = self.enter_context(Foo())
+
+  This will ensure that ``Foo.__exit__`` is called when the
+  ``Tool`` terminates, for whatever reason. [`#1926 <https://github.com/cta-observatory/ctapipe/pull/1926>`__]
+
+- Implement atmospheric profiles for conversions from h_max to X_max.
+  The new module ``ctapipe.atmosphere`` has classes for the most common cases
+  of a simple ``ExponentialAtmosphereDensityProfile``, a ``TableAtmosphereDensityProfile``
+  and CORSIKA's ``FiveLayerAtmosphereDensityProfile``. [`#2000 <https://github.com/cta-observatory/ctapipe/pull/2000>`__]
+
+- ``TableLoader`` can now also load observation and scheduling block configuration. [`#2096 <https://github.com/cta-observatory/ctapipe/pull/2096>`__]
+
+- The ``ctapipe-info`` tool now supports printing information about
+  the available ``EventSource`` and ``Reconstructor`` implementations
+  as well as io and reco plugins. [`#2101 <https://github.com/cta-observatory/ctapipe/pull/2101>`__]
+
+- Allow lookup of ``TelescopeParameter`` values by telescope type. [`#2120 <https://github.com/cta-observatory/ctapipe/pull/2120>`__]
+
+- Implement a ``SoftwareTrigger`` component to handle the effect of
+  selecting sub-arrays from larger arrays in the simulations.
+  The component can remove events where the stereo trigger would not have
+  decided to record an event and also remove single telescopes from events
+  for cases like the CTA LSTs, that have their own hardware stereo trigger
+  that requires at least two LSTs taking part in an event. [`#2136 <https://github.com/cta-observatory/ctapipe/pull/2136>`__]
+
+
+- It's now possible to transform between ``GroundFrame`` coordinates
+  and ``astropy.coordinates.EarthLocation``, enabling the conversion
+  between relative array coordinates (used in the simulation) and
+  absolute real-world coordinates. [`#2167 <https://github.com/cta-observatory/ctapipe/pull/2167>`__]
+
+- The ``ctapipe-display-dl1`` tool now has a ``QualityQuery`` instance which can be used
+  to select which images should be displayed. [`#2172 <https://github.com/cta-observatory/ctapipe/pull/2172>`__]
+
+- Add a new ``ctapipe.io.HDF5Merger`` component that can selectively merge
+  HDF5 files produced with ctapipe. The new component is now used in the
+  ``ctapipe-merge`` tool but can also be used on its own.
+  This component is also used by ``ctapipe-apply-models`` to selectively copy
+  data from the input file to the output file.
+  Through using this new component, ``ctapipe-merge`` gained support for
+  fine-grained control which information should be included in the output file
+  and for appending to existing output files. [`#2179 <https://github.com/cta-observatory/ctapipe/pull/2179>`__]
+
+- ``CameraDisplay.overlay_coordinate`` can now be used to 
+  plot coordinates into the camera display, e.g. to show 
+  the source position or the position of stars in the FoV. [`#2203 <https://github.com/cta-observatory/ctapipe/pull/2203>`__]
+
+
+Bug Fixes
+---------
+
+- Fix for Hillas lines in ``ArrayDisplay`` being wrong in the new ``EastingNorthingFrame``. [`#2134 <https://github.com/cta-observatory/ctapipe/pull/2134>`__]
+
+- Replace usage of ``$HOME`` with ``Path.home()`` for cross-platform compatibility. [`#2155 <https://github.com/cta-observatory/ctapipe/pull/2155>`__]
+
+- Fix for ``TableLoader`` having the wrong data types for ``obs_id``,
+  ``event_id`` and ``tel_id``. [`#2163 <https://github.com/cta-observatory/ctapipe/pull/2163>`__]
+
+- Fix ``Tool`` printing a large traceback in case of certain configuration errors. [`#2171 <https://github.com/cta-observatory/ctapipe/pull/2171>`__]
+
+- The string representation of ``Field`` now sets numpy print options
+  to prevent large arrays in the docstrings of ``Container`` classes. [`#2173 <https://github.com/cta-observatory/ctapipe/pull/2173>`__]
+
+- Fix missing comma in eventio version requirement in setup.cfg (#2185). [`#2187 <https://github.com/cta-observatory/ctapipe/pull/2187>`__]
+
+- Move reading of stereo data before skipping empty events in HDF5EventSource,
+  this fixes a bug where the stereo data and simulation data get out of sync
+  with the other event data when using ``allowed_tels``. [`#2189 <https://github.com/cta-observatory/ctapipe/pull/2189>`__]
+
+- Fix mixture of quantity and unit-less values passed to ``np.histogram``
+  in ``ctapipe.image.muon.ring_completeness``, which raises an error with
+  astropy 5.2.1. [`#2197 <https://github.com/cta-observatory/ctapipe/pull/2197>`__]
+
+
+Maintenance
+-----------
+
+- Use towncrier for the generation of change logs [`#2144 <https://github.com/cta-observatory/ctapipe/pull/2144>`__]
+
+- Replace usage of deprecated astropy matrix function. [`#2166 <https://github.com/cta-observatory/ctapipe/pull/2166>`__]
+
+- Use ``weakref.proxy(parent)`` in ``Component.__init__``.
+
+  Due to the configuration systems, children need to reference their parent(s).
+  When parents get out of scope, their children still hold the reference to them.
+  That means that python cannot garbage-collect the parents (which are Tools, most of the time).
+
+  This change uses weak-references (which do not increase the reference count),
+  which means parent-Tools can get garbage collected by python.
+
+  This decreases the memory consumption of the tests by roughly 50%. [`#2223 <https://github.com/cta-observatory/ctapipe/pull/2223>`__]
+
+
+Refactoring and Optimization
+----------------------------
+
+- Speed-up table loader by using ``hstack`` instead of ``join`` where possible. [`#2126 <https://github.com/cta-observatory/ctapipe/pull/2126>`__]
+
+
+v0.7.0 – 0.17.0
+===============
+
+For changelogs for these releases, please visit the `github releases page <https://github.com/cta-observatory/ctapipe/releases>`__
+
 
 v0.6.1
 ======
