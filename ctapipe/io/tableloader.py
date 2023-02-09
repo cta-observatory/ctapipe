@@ -251,6 +251,19 @@ class TableLoader(Component):
         if self.load_instrument:
             self.instrument_table = self.subarray.to_table("joined")
 
+        groups = {
+            "load_dl1_parameters": PARAMETERS_GROUP,
+            "load_dl1_images": IMAGES_GROUP,
+            "load_true_parameters": TRUE_PARAMETERS_GROUP,
+            "load_true_images": TRUE_IMAGES_GROUP,
+        }
+        for attr, group in groups.items():
+            if getattr(self, attr) and group not in self.h5file.root:
+                self.log.info(
+                    "Setting %s to False, input file does not contain such data", attr
+                )
+                setattr(self, attr, False)
+
     def close(self):
         """Close the underlying hdf5 file"""
         if self._should_close:
@@ -330,11 +343,26 @@ class TableLoader(Component):
         return read_table(self.h5file, OBSERVATION_TABLE)
 
     def _join_observation_info(self, table):
-        observation_table = self.read_observation_information()
-        table = join_allow_empty(
-            table, observation_table, keys="obs_id", join_type="left"
+        obs_table = self.read_observation_information()
+        # in v0.17, obs_id had inconsistent dtypes in different tables
+        # Joining then gets messed up then because a join between int32 and uint64
+        # casts the obs_id in the joint result to float.
+        obs_table["obs_id"] = obs_table["obs_id"].astype(table["obs_id"].dtype)
+
+        # to be able to sort to original table order
+        self._add_index_if_needed(table)
+
+        joint = join_allow_empty(
+            table,
+            obs_table,
+            keys="obs_id",
+            join_type="left",
         )
-        return table
+
+        # sort back to original order and remove index col
+        self._sort_to_original_order(joint)
+        del table["__index__"]
+        return joint
 
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
         """Read subarray-based event information.
@@ -734,7 +762,7 @@ class TableLoader(Component):
             by_id[tel_id] = self._join_subarray_info(
                 by_id[tel_id], subarray_events=subarray_events
             )
-            self._sort_to_original_order(by_id[tel_id], include_tel_id=True)
+            self._sort_to_original_order(by_id[tel_id], include_tel_id=False)
 
         return by_id
 
