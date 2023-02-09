@@ -16,15 +16,15 @@ API Changes
      into the ``ctapipe-process`` tool.
 
   2. The ``process`` tool now has a ``write_muon_parameters`` flag which defaults to ``false``.
-     Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1b image 
-     parameters so even if ``write_parameters`` is ``false`` and no parameters are present in the 
-     ``EventSource`` those are computed. 
+     Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1 image 
+     parameters, so they are computed in case they are not available from the input even 
+     if the user did not explicitly ask for the computation of image parameters.
 
   3. Two instances of ``QualityQuery``, ``MuonProcessor.ImageParameterQuery`` and ``MuonProcessor.RingQuery`` 
      are added to the muon analysis to either preselect images according to image parameters and 
      to select images according to the initial, geometrical ring fit for further processing. 
      Deselected events or those where the muon analysis fails are being returned and written 
-     filled with ``NaN``s instead of being ignored.
+     filled with invalid value markers instead of being ignored.
      Base configure options for the muon analysis were added to the ``base_config.yaml``.
 
   4. The ``DataWriter`` now writes the results of a muon analysis into ``/dl1/event/telescope/muon/tel_id``,
@@ -46,7 +46,6 @@ API Changes
      working space. [`#2175 <https://github.com/cta-observatory/ctapipe/pull/2175>`__]
 
 - Remove ``-f`` flag as alias for ``--overwrite`` and fail early if output exists, but overwrite is not set [`#2213 <https://github.com/cta-observatory/ctapipe/pull/2213>`__]
-
 
 - The ``_chunked`` methods of the ``TableLoader`` now return
   an Iterator over namedtuples with start, stop, data. [`#2241 <https://github.com/cta-observatory/ctapipe/pull/2241>`__]
@@ -125,6 +124,8 @@ New Features
 - Add a new ``ctapipe.io.HDF5Merger`` component that can selectively merge
   HDF5 files produced with ctapipe. The new component is now used in the
   ``ctapipe-merge`` tool but can also be used on its own.
+  This component is also used by ``ctapipe-apply-models`` to selectively copy
+  data from the input file to the output file.
   Through using this new component, ``ctapipe-merge`` gained support for
   fine-grained control which information should be included in the output file
   and for appending to existing output files. [`#2179 <https://github.com/cta-observatory/ctapipe/pull/2179>`__]
@@ -165,7 +166,7 @@ Maintenance
 
 - Use towncrier for the generation of change logs [`#2144 <https://github.com/cta-observatory/ctapipe/pull/2144>`__]
 
-- Replace usage of deprecated aastropy matrix function. [`#2166 <https://github.com/cta-observatory/ctapipe/pull/2166>`__]
+- Replace usage of deprecated astropy matrix function. [`#2166 <https://github.com/cta-observatory/ctapipe/pull/2166>`__]
 
 - Use ``weakref.proxy(parent)`` in ``Component.__init__``.
 
