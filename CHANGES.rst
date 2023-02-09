@@ -185,6 +185,12 @@ Refactoring and Optimization
 - Speed-up table loader by using ``hstack`` instead of ``join`` where possible. [`#2126 <https://github.com/cta-observatory/ctapipe/pull/2126>`__]
 
 
+v0.7.0 – 0.17.0
+===============
+
+For changelogs for these releases, please visit the `github releases page <https://github.com/cta-observatory/ctapipe/releases>`__
+
+
 v0.6.1
 ======
 
