@@ -1,6 +1,0 @@
-Add a new ``ctapipe.io.HDF5Merger`` component that can selectively merge
-HDF5 files produced with ctapipe. The new component is now used in the
-``ctapipe-merge`` tool but can also be used on its own.
-Through using this new component, ``ctapipe-merge`` gained support for
-fine-grained control which information should be included in the output file
-and for appending to existing output files.

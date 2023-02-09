@@ -1,6 +1,0 @@
-Implement a ``SoftwareTrigger`` component to handle the effect of
-selecting sub-arrays from larger arrays in the simulations.
-The component can remove events where the stereo trigger would not have
-decided to record an event and also remove single telescopes from events
-for cases like the CTA LSTs, that have their own hardware stereo trigger
-that requires at least two LSTs taking part in an event.

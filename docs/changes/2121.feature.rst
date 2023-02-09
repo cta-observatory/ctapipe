@@ -1,2 +1,0 @@
-Enable using previously predicted values as input for the next model
-in ``ctapipe-apply-models``, e.g. using predicted energy for classification.

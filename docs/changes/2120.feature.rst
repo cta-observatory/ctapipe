@@ -1,1 +1,0 @@
-Allow lookup of ``TelescopeParameter`` values by telescope type.

@@ -1,3 +1,0 @@
-The ``ctapipe-info`` tool now supports printing information about
-the available ``EventSource`` and ``Reconstructor`` implementations
-as well as io and reco plugins.
