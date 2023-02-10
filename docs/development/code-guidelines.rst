@@ -12,9 +12,9 @@ regularly.
 References for good coding practices
 ------------------------------------
 
-* `Good Python Style <http://docs.python-guide.org/en/latest/writing/style/>`_
-* `Best Practices in Scientific Computing (Presentation) <http://swcarpentry.github.io/slideshows/best-practices/index.html>`_
-* `Best Practices for Scientific Computing (Paper) <http://arxiv.org/abs/1210.0530>`_
+* `Good Python Style <https://docs.python-guide.org/en/latest/writing/style/>`_
+* `Best Practices in Scientific Computing (Presentation) <https://swcarpentry.github.io/slideshows/best-practices/index.html>`_
+* `Best Practices for Scientific Computing (Paper) <https://arxiv.org/abs/1210.0530>`_
 
 Checking for Logistic Errors
 ----------------------------
@@ -44,7 +44,7 @@ All code your write should have associated *unit tests* to ensure the
 code works, gives resonable results, handles error cases properly, and
 to keep bugs at a minimum
 
-Unit tests in ``ctapipe`` uses `pytest <http://docs.pytest.org>`_ .
+Unit tests in ``ctapipe`` uses `pytest <https://docs.pytest.org>`_ .
 Each module should put tests in a ``[module_name]/test`` subdirectory,
 which can contain one or more files called ``test_[X]`` containing tests to run,
 which are then automatically discovered.

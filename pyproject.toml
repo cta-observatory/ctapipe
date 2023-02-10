@@ -36,19 +36,21 @@ filterwarnings = [
     directory = "docs/changes"
     filename = "CHANGES.rst"
     template = "docs/changes/template.rst"
+    # let towncrier create proper links to the merged PR
+    issue_format = "`#{issue} <https://github.com/cta-observatory/ctapipe/pull/{issue}>`__"
 
     [tool.towncrier.fragment.feature]
-        name = "New Feature"
+        name = "New Features"
         showcontent = true
 
-    [tool.towncrier.fragment.bug]
+    [tool.towncrier.fragment.bugfix]
         name = "Bug Fixes"
         showcontent = true
 
     [tool.towncrier.fragment.api]
         name = "API Changes"
         showcontent = true
-    
+
     [tool.towncrier.fragment.datamodel]
         name = "Data Model Changes"
         showcontent = true

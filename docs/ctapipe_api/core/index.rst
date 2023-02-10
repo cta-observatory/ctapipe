@@ -48,6 +48,9 @@ Reference/API
 .. automodapi:: ctapipe.core.component
     :no-inheritance-diagram:
 
+.. automodapi:: ctapipe.core.telescope_component
+    :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.core.tool
     :no-inheritance-diagram:
 

@@ -23,7 +23,7 @@ from .eventsource import EventSource
 logger = logging.getLogger(__name__)
 
 
-class ToyEventSource(EventSource, TelescopeComponent):
+class ToyEventSource(TelescopeComponent, EventSource):
     # override input url from EventSource, we don't need one here
     input_url = traits.Path(allow_none=True, default_value=None).tag(config=True)
 
@@ -54,7 +54,6 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
     def __init__(self, subarray, config=None, parent=None, rng=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self._subarray = subarray
         self._camera_radii = {}
 
         if rng is None:
@@ -65,10 +64,6 @@ class ToyEventSource(EventSource, TelescopeComponent):
     @staticmethod
     def calc_width(eccentricity, length):
         return length * np.sqrt(1 - eccentricity**2)
-
-    @property
-    def subarray(self):
-        return self._subarray
 
     @property
     def is_simulation(self):
@@ -87,10 +82,6 @@ class ToyEventSource(EventSource, TelescopeComponent):
     def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
         ob = ObservationBlockContainer(producer_id="ctapipe toymodel")
         return {ob.ob_id: ob}
-
-    @subarray.setter
-    def subarray(self, value):
-        self._subarray = value
 
     @staticmethod
     def is_compatible(file_path):

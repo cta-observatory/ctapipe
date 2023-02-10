@@ -23,6 +23,10 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    MuonEfficiencyContainer,
+    MuonParametersContainer,
+    MuonRingContainer,
+    MuonTelescopeContainer,
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
@@ -81,6 +85,9 @@ def get_hdf5_datalevels(h5file):
 
     if "/dl1/event/telescope/parameters" in h5file.root:
         datalevels.append(DataLevel.DL1_PARAMETERS)
+
+    if "/dl1/event/telescope/muon" in h5file.root:
+        datalevels.append(DataLevel.DL1_MUON)
 
     if "/dl2" in h5file.root:
         datalevels.append(DataLevel.DL2)
@@ -204,6 +211,9 @@ class HDF5EventSource(EventSource):
 
         version = self.file_.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
         self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
+        self._obs_ids = tuple(
+            self.file_.root.configuration.observation.observation_block.col("obs_id")
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -245,10 +255,16 @@ class HDF5EventSource(EventSource):
                 return False
 
             # we can now read both R1 and DL1
+            has_muons = "/dl1/event/telescope/muon" in f.root
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            if not datalevels.intersection(
-                ("R1", "DL1_IMAGES", "DL1_PARAMETERS", "DL2")
-            ):
+            datalevels = datalevels & {
+                "R1",
+                "DL1_IMAGES",
+                "DL1_PARAMETERS",
+                "DL2",
+                "DL1_MUON",
+            }
+            if not datalevels and not has_muons:
                 return False
 
         return True
@@ -270,6 +286,13 @@ class HDF5EventSource(EventSource):
                 return True
         return False
 
+    @lazyproperty
+    def has_muon_parameters(self):
+        """
+        True for files that contain muon parameters
+        """
+        return "/dl1/event/telescope/muon" in self.file_.root
+
     @property
     def subarray(self):
         return self._subarray
@@ -282,9 +305,9 @@ class HDF5EventSource(EventSource):
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return read_atmosphere_density_profile(self.file_)
 
-    @lazyproperty
+    @property
     def obs_ids(self):
-        return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
+        return self._obs_ids
 
     @property
     def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
@@ -458,6 +481,19 @@ class HDF5EventSource(EventSource):
                     for table in self.file_.root.dl1.event.telescope.parameters
                 }
 
+        if self.has_muon_parameters:
+            muon_readers = {
+                table.name: self.reader.read(
+                    f"/dl1/event/telescope/muon/{table.name}",
+                    containers=[
+                        MuonRingContainer,
+                        MuonParametersContainer,
+                        MuonEfficiencyContainer,
+                    ],
+                )
+                for table in self.file_.root.dl1.event.telescope.muon
+            }
+
         dl2_readers = {}
         if DL2_SUBARRAY_GROUP in self.file_.root:
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
@@ -573,18 +609,26 @@ class HDF5EventSource(EventSource):
 
                 data.trigger.tel[tel_index.tel_id] = tel_trigger
 
+            if self.is_simulation:
+                data.simulation.shower = next(mc_shower_reader)
+
+            for kind, readers in dl2_readers.items():
+                c = getattr(data.dl2.stereo, kind)
+                for algorithm, reader in readers.items():
+                    c[algorithm] = next(reader)
+
             # this needs to stay *after* reading the telescope trigger table
+            # and after reading all subarray event information, so that we don't
+            # go out of sync
             if len(data.trigger.tels_with_trigger) == 0:
                 continue
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
 
-            if self.is_simulation:
-                data.simulation.shower = next(mc_shower_reader)
-
             for tel_id in data.trigger.tel.keys():
                 key = f"tel_{tel_id:03d}"
+
                 if self.allowed_tels and tel_id not in self.allowed_tels:
                     continue
 
@@ -598,33 +642,13 @@ class HDF5EventSource(EventSource):
                     simulated = data.simulation.tel[tel_id]
 
                 if DataLevel.DL1_IMAGES in self.datalevels:
-                    if key not in image_readers:
-                        logger.debug(
-                            f"Triggered telescope {tel_id} is missing "
-                            "from the image table."
-                        )
-                        continue
-
                     data.dl1.tel[tel_id] = next(image_readers[key])
 
                     if self.has_simulated_dl1:
-                        if key not in simulated_image_iterators:
-                            logger.warning(
-                                f"Triggered telescope {tel_id} is missing "
-                                "from the simulated image table, but was present at the "
-                                "reconstructed image table."
-                            )
-                            continue
                         simulated_image_row = next(simulated_image_iterators[key])
                         simulated.true_image = simulated_image_row["true_image"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    if f"tel_{tel_id:03d}" not in param_readers:
-                        logger.debug(
-                            f"Triggered telescope {tel_id} is missing "
-                            "from the parameters table."
-                        )
-                        continue
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
@@ -639,16 +663,7 @@ class HDF5EventSource(EventSource):
                         peak_time_statistics=params[6],
                     )
                     if self.has_simulated_dl1:
-                        if f"tel_{tel_id:03d}" not in simulated_param_readers:
-                            logger.debug(
-                                f"Triggered telescope {tel_id} is missing "
-                                "from the simulated parameters table, but was "
-                                "present at the reconstructed parameters table."
-                            )
-                            continue
-                        simulated_params = next(
-                            simulated_param_readers[f"tel_{tel_id:03d}"]
-                        )
+                        simulated_params = next(simulated_param_readers[key])
                         simulated.true_parameters = ImageParametersContainer(
                             hillas=simulated_params[0],
                             leakage=simulated_params[1],
@@ -656,6 +671,14 @@ class HDF5EventSource(EventSource):
                             morphology=simulated_params[3],
                             intensity_statistics=simulated_params[4],
                         )
+
+                if self.has_muon_parameters:
+                    ring, parameters, efficiency = next(muon_readers[key])
+                    data.muon.tel[tel_id] = MuonTelescopeContainer(
+                        ring=ring,
+                        parameters=parameters,
+                        efficiency=efficiency,
+                    )
 
                 for kind, algorithms in dl2_tel_readers.items():
                     c = getattr(data.dl2.tel[tel_id], kind)
@@ -666,11 +689,6 @@ class HDF5EventSource(EventSource):
                         if kind == "impact" and self.datamodel_version == (4, 0, 0):
                             prefix = f"{algorithm}_tel_{c[algorithm].default_prefix}"
                             c[algorithm].prefix = prefix
-
-            for kind, readers in dl2_readers.items():
-                c = getattr(data.dl2.stereo, kind)
-                for algorithm, reader in readers.items():
-                    c[algorithm] = next(reader)
 
             yield data
             counter += 1
@@ -719,11 +737,13 @@ class HDF5EventSource(EventSource):
         # Same comments as to _fill_array_pointing apply
         pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
         for tel_id in data.trigger.tel.keys():
+            key = f"tel_{tel_id:03d}"
+
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
-            tel_pointing_table = pointing_group[f"tel_{tel_id:03d}"]
-            closest_time_index = tel_pointing_finder[f"tel_{tel_id:03d}"].closest(
+            tel_pointing_table = pointing_group[key]
+            closest_time_index = tel_pointing_finder[key].closest(
                 data.trigger.tel[tel_id].time.mjd
             )
 

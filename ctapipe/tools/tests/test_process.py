@@ -4,20 +4,25 @@
 Test ctapipe-process on a few different use cases
 """
 
+from subprocess import CalledProcessError
+
+import astropy.units as u
 import numpy as np
 import pandas as pd
 import pytest
 import tables
+from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io import read_table
+from ctapipe.io import EventSource, TableLoader, read_table
 from ctapipe.io.tests.test_event_source import DummyEventSource
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
 from ctapipe.utils import get_dataset_path, resource_file
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
+LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
 @pytest.mark.parametrize(
@@ -69,20 +74,18 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_path / "dl1b_fromdl1a.dl1.h5"
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={dl1_image_file}",
-                f"--output={dl1b_from_dl1a_file}",
-                "--camera-frame",
-                "--write-parameters",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={dl1_image_file}",
+            f"--output={dl1b_from_dl1a_file}",
+            "--camera-frame",
+            "--write-parameters",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
 
     # check tables were written
@@ -152,7 +155,7 @@ def test_stage1_datalevels(tmp_path):
     config = resource_file("stage1_config.json")
     tool = ProcessorTool()
 
-    assert (
+    with pytest.raises(CalledProcessError):
         run_tool(
             tool,
             argv=[
@@ -164,8 +167,7 @@ def test_stage1_datalevels(tmp_path):
             ],
             cwd=tmp_path,
         )
-        == 1
-    )
+
     # make sure the dummy event source was really used
     assert isinstance(tool.event_source, DummyEventSource)
 
@@ -175,18 +177,16 @@ def test_stage_2_from_simtel(tmp_path):
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                "--input=dataset://gamma_prod5.simtel.zst",
-                f"--output={output}",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            "--input=dataset://gamma_prod5.simtel.zst",
+            f"--output={output}",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
 
     # check tables were written
@@ -208,18 +208,16 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={dl1_image_file}",
-                f"--output={output}",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={dl1_image_file}",
+            f"--output={output}",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
 
     # check tables were written
@@ -233,18 +231,16 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
 
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={dl1_parameters_file}",
-                f"--output={output}",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={dl1_parameters_file}",
+            f"--output={output}",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
 
     # check tables were written
@@ -258,20 +254,18 @@ def test_ml_preprocessing_from_simtel(tmp_path):
     config = resource_file("ml_preprocessing_config.json")
     output = tmp_path / "test_ml_preprocessing.DL1DL2.h5"
 
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
-                f"--output={output}",
-                "--max-events=5",
-                "--overwrite",
-                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={GAMMA_TEST_LARGE}",
+            f"--output={output}",
+            "--max-events=5",
+            "--overwrite",
+            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
 
     # check tables were written
@@ -292,19 +286,17 @@ def test_image_modifications(tmp_path, dl1_image_file):
     noise_config = resource_file("image_modification_config.json")
 
     dl1_modified = tmp_path / "dl1_modified.dl1.h5"
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={noise_config}",
-                f"--input={dl1_image_file}",
-                f"--output={dl1_modified}",
-                "--write-parameters",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 0
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={noise_config}",
+            f"--input={dl1_image_file}",
+            f"--output={dl1_modified}",
+            "--write-parameters",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
     )
     modified_images = read_table(dl1_modified, "/dl1/event/telescope/images/tel_025")
     # Test that significantly more light is recorded (bias in dim pixels)
@@ -347,3 +339,142 @@ def test_quickstart(tmp_path):
 
     for config in CONFIGS_TO_WRITE:
         assert (tmp_path / "ProdX" / config).exists()
+
+
+def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
+    """In #2057 reading a subset of allowed tels from
+    simtel yields another result as reading from DL1,
+    which was produced with all tels.
+
+    This test has three steps:
+    1) Create a DL2 file from simtel.
+    2) Create a DL1 file from simtel.
+    3) Create from that DL1 file another DL2 file.
+
+    Keep in mind that both DL2 allowed_tels need to be the same,
+    but different from the allowed_tels in the simtel->DL1 step!
+    """
+
+    input_path = prod5_proton_simtel_path
+
+    many_tels = [
+        f"--EventSource.allowed_tels={i}"
+        for i in (30, 100, 102, 105, 106, 108, 111, 112, 113, 114, 115, 121, 122, 128)
+    ]
+    few_tels = [
+        f"--EventSource.allowed_tels={i}" for i in (102, 108, 111, 112, 121, 122, 128)
+    ]
+
+    # 1) Create DL2 from simtel.
+    dl2_from_simtel = tmp_path / "from_simtel.dl2.h5"
+    argv = [
+        f"--input={input_path}",
+        f"--output={dl2_from_simtel}",
+        "--write-showers",
+        "--write-parameters",
+        "--progress",
+        "--EventSource.focal_length_choice=EQUIVALENT",
+    ] + few_tels
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+
+    # 2) Create DL1 from simtel.
+    dl1_from_simtel = tmp_path / "from_simtel.dl1.h5"
+    argv = [
+        f"--input={input_path}",
+        f"--output={dl1_from_simtel}",
+        "--write-showers",
+        "--write-parameters",
+        "--progress",
+        "--EventSource.focal_length_choice=EQUIVALENT",
+    ] + many_tels
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+
+    # 3) Create from that DL1 file another DL2 file.
+    dl2_from_dl1 = tmp_path / "from_dl1.dl2.h5"
+    argv = [
+        f"--input={dl1_from_simtel}",
+        f"--output={dl2_from_dl1}",
+        "--write-showers",
+        "--write-parameters",
+        "--progress",
+        "--EventSource.focal_length_choice=EQUIVALENT",
+    ] + few_tels
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+
+    args = dict(load_dl2=True, load_simulated=True)
+    with TableLoader(dl2_from_simtel, **args) as loader:
+        events_from_simtel = loader.read_subarray_events()
+    with TableLoader(dl2_from_dl1, **args) as loader:
+        events_from_dl1 = loader.read_subarray_events()
+
+    # both files should contain identical data
+    assert_array_equal(events_from_simtel["event_id"], events_from_dl1["event_id"])
+
+    assert_allclose(
+        events_from_simtel["HillasReconstructor_core_x"],
+        events_from_dl1["HillasReconstructor_core_x"],
+    )
+
+    # regression test: before the simulation iterator was not incremented,
+    # so the simulated events don't match the reconstructed events
+    assert_allclose(
+        events_from_simtel["true_core_x"],
+        events_from_dl1["true_core_x"],
+    )
+
+
+def test_muon_reconstruction_simtel(tmp_path):
+    """ensure processor tool generates expected output when used to analyze muons"""
+    muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={LST_MUONS}",
+            f"--output={muon_simtel_output_file}",
+            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+            "--overwrite",
+            "--write-muon-parameters",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    table = read_table(muon_simtel_output_file, "/dl1/event/telescope/muon/tel_001")
+    assert len(table) > 20
+    assert np.count_nonzero(np.isfinite(table["muonring_radius"])) > 0
+    assert np.all(
+        np.logical_or(
+            np.isfinite(table["muonring_radius"]),
+            np.isnan(table["muonring_radius"]),
+        )
+    )
+
+    with EventSource(
+        muon_simtel_output_file, focal_length_choice="EQUIVALENT"
+    ) as source:
+        radius = table["muonring_radius"].quantity
+        efficiency = table["muonefficiency_optical_efficiency"]
+        completeness = table["muonparameters_completeness"]
+
+        for event in source:
+            muon = event.muon.tel[1]
+            assert u.isclose(muon.ring.radius, radius[event.count], equal_nan=True)
+            assert np.isclose(
+                muon.parameters.completeness, completeness[event.count], equal_nan=True
+            )
+            assert np.isclose(
+                muon.efficiency.optical_efficiency,
+                efficiency[event.count],
+                equal_nan=True,
+            )
+
+
+def test_plugin_help(capsys):
+    ProcessorTool().print_help(classes=True)
+    captured = capsys.readouterr()
+    assert (
+        "PluginEventSource.foo" in captured.out
+    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
+    assert (
+        "PluginReconstructor.foo" in captured.out
+    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"

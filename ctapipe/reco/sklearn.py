@@ -4,47 +4,42 @@ Component Wrappers around sklearn models
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
+from typing import Dict
 
 import astropy.units as u
 import joblib
 import numpy as np
+from astropy.coordinates import AltAz
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
-from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
 from tqdm import tqdm
+from traitlets import TraitError
 
 from ..containers import (
     ArrayEventContainer,
+    DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
 )
-from ..core import Component, FeatureGenerator, Provenance, QualityQuery
-from ..core.traits import (
-    Bool,
-    ComponentName,
-    Dict,
-    Enum,
-    Int,
-    Integer,
-    List,
-    Path,
-    TraitError,
-    Unicode,
-)
+from ..coordinates import TelescopeFrame
+from ..core import Component, FeatureGenerator, Provenance, QualityQuery, traits
 from ..io import write_table
-from .preprocessing import check_valid_rows, collect_features, table_to_float
-from .reconstructor import Reconstructor
+from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
+from .reconstructor import ReconstructionProperty, Reconstructor
 from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
 
 __all__ = [
     "SKLearnReconstructor",
     "SKLearnRegressionReconstructor",
-    "SKLearnClassficationReconstructor",
+    "SKLearnClassificationReconstructor",
     "EnergyRegressor",
     "ParticleClassifier",
+    "DispReconstructor",
     "CrossValidator",
 ]
 
@@ -57,7 +52,7 @@ SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 class MLQualityQuery(QualityQuery):
     """Quality criteria for machine learning models with different defaults"""
 
-    quality_criteria = List(
+    quality_criteria = traits.List(
         default_value=[
             ("> 50 phe", "hillas_intensity > 50"),
             ("Positive width", "hillas_width > 0"),
@@ -73,29 +68,34 @@ class SKLearnReconstructor(Reconstructor):
 
     Keeps a dictionary of sklearn models, the current tools are designed
     to train one model per telescope type.
-
-    Models can either be instantiated normally, or they can load themselves
-    from a pickled file if the ``load_path`` traitlet is given.
     """
 
-    #: What particle property is being predicted, one of "energy", "geometry", "classification"
-    property = None
     #: Name of the target column in training table
-    target: str = None
+    target: str = ""
 
-    features = List(Unicode(), help="Features to use for this model").tag(config=True)
-    model_config = Dict({}, help="kwargs for the sklearn model").tag(config=True)
-    model_cls = Enum(SUPPORTED_MODELS.keys(), default_value=None, allow_none=True).tag(
+    #: property predicted, overridden in baseclass
+    property = None
+
+    prefix = traits.Unicode(
+        default_value=None,
+        allow_none=True,
+        help="Prefix for the output of this model. If None, ``model_cls`` is used.",
+    ).tag(config=True)
+    features = traits.List(traits.Unicode(), help="Features to use for this model").tag(
         config=True
     )
+    model_config = traits.Dict({}, help="kwargs for the sklearn model").tag(config=True)
+    model_cls = traits.Enum(
+        SUPPORTED_MODELS.keys(), default_value=None, allow_none=True
+    ).tag(config=True)
 
-    stereo_combiner_cls = ComponentName(
+    stereo_combiner_cls = traits.ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
         help="Which stereo combination method to use",
     ).tag(config=True)
 
-    load_path = Path(
+    load_path = traits.Path(
         default_value=None,
         allow_none=True,
         help="If given, load serialized model from this path",
@@ -117,8 +117,11 @@ class SKLearnReconstructor(Reconstructor):
                     "__init__() missing 1 required positional argument: 'subarray'"
                 )
 
+            if self.prefix is None:
+                # Default prefix is model_cls
+                self.prefix = self.model_cls
+
             super().__init__(subarray, **kwargs)
-            self.subarray = subarray
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = MLQualityQuery(parent=self)
 
@@ -129,7 +132,7 @@ class SKLearnReconstructor(Reconstructor):
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
-                prefix=self.model_cls,
+                prefix=self.prefix,
                 property=self.property,
                 parent=self,
             )
@@ -144,6 +147,9 @@ class SKLearnReconstructor(Reconstructor):
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
+
+            if self.prefix is None:
+                self.prefix = self.model_cls
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -186,37 +192,12 @@ class SKLearnReconstructor(Reconstructor):
             Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
 
-    @classmethod
-    def read(cls, path, **kwargs):
-        with open(path, "rb") as f:
-            instance = joblib.load(f)
-
-        for attr, value in kwargs.items():
-            setattr(instance, attr, value)
-
-        if not isinstance(instance, cls):
-            raise TypeError(
-                f"{path} did not contain an instance of {cls}, got {instance}"
-            )
-
-        Provenance().add_input_file(path, role="ml-model")
-        return instance
-
     @lazyproperty
     def instrument_table(self):
         return QTable(self.subarray.to_table("joined"))
 
     def _new_model(self):
         return SUPPORTED_MODELS[self.model_cls](**self.model_config)
-
-    def _table_to_X(self, table):
-        """
-        Extract features as numpy ndarray to be given to sklearn from input table
-        """
-        feature_table = table[self.features]
-        valid = check_valid_rows(feature_table, log=self.log)
-        X = table_to_float(feature_table[valid])
-        return X, valid
 
     def _table_to_y(self, table, mask=None):
         """
@@ -234,16 +215,10 @@ class SKLearnReconstructor(Reconstructor):
         """
         self._models[key] = self._new_model()
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         self.unit = table[self.target].unit
         y = self._table_to_y(table, mask=valid)
         self._models[key].fit(X, y)
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state["_trait_values"]["parent"] = None
-        state["_trait_notifiers"] = {}
-        return state
 
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
@@ -251,14 +226,14 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
     Base class for regression tasks
     """
 
-    model_cls = Enum(
+    model_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
         allow_none=True,
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
-    log_target = Bool(
+    log_target = traits.Bool(
         default_value=False,
         help="If True, the model is trained to predict the natural logarithm.",
     ).tag(config=True)
@@ -269,7 +244,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
                 f"No model available for key {key},"
                 f" available models: {self._models.keys()}"
             )
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         n_outputs = getattr(self._models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
@@ -302,23 +277,23 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
         return y
 
 
-class SKLearnClassficationReconstructor(SKLearnReconstructor):
+class SKLearnClassificationReconstructor(SKLearnReconstructor):
     """
     Base class for classification tasks
     """
 
-    model_cls = Enum(
+    model_cls = traits.Enum(
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
         allow_none=True,
-        help="Which scikit-learn regression model to use.",
+        help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
-    invalid_class = Integer(
+    invalid_class = traits.Integer(
         default_value=-1, help="The label to fill in case no prediction could be made"
     ).tag(config=True)
 
-    positive_class = Integer(
+    positive_class = traits.Integer(
         default_value=1,
         help=(
             "The label value of the positive class in case of binary classification."
@@ -334,7 +309,7 @@ class SKLearnClassficationReconstructor(SKLearnReconstructor):
                 f" available models: {self._models.keys()}"
             )
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         n_outputs = getattr(self._models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
@@ -355,7 +330,7 @@ class SKLearnClassficationReconstructor(SKLearnReconstructor):
                 f" available models: {self._models.keys()}"
             )
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
 
         n_classes = getattr(self._models[key], "n_classes_", 2)
         n_rows = len(table)
@@ -385,7 +360,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     #: Name of the target table column for training
     target = "true_energy"
-    property = "energy"
+    property = ReconstructionProperty.ENERGY
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -413,12 +388,12 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
                     is_valid=False,
                 )
 
-            container.prefix = f"{self.model_cls}_tel"
-            event.dl2.tel[tel_id].energy[self.model_cls] = container
+            container.prefix = f"{self.prefix}_tel"
+            event.dl2.tel[tel_id].energy[self.prefix] = container
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Table:
+    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
         table = self.feature_generator(table)
 
@@ -431,32 +406,33 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
         result = Table(
             {
-                f"{self.model_cls}_tel_energy": energy,
-                f"{self.model_cls}_tel_is_valid": is_valid,
+                f"{self.prefix}_tel_energy": energy,
+                f"{self.prefix}_tel_is_valid": is_valid,
             }
         )
         add_defaults_and_meta(
             result,
             ReconstructedEnergyContainer,
-            prefix=self.model_cls,
+            prefix=self.prefix,
             stereo=False,
         )
-        return result
+        return {ReconstructionProperty.ENERGY: result}
 
 
-class ParticleClassifier(SKLearnClassficationReconstructor):
+class ParticleClassifier(SKLearnClassificationReconstructor):
     """
     Predict dl2 particle classification
     """
 
     #: Name of the target table column for training
     target = "true_shower_primary_id"
-    property = "classification"
 
-    positive_class = Integer(
+    positive_class = traits.Integer(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
+
+    property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
@@ -479,12 +455,12 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
                     prediction=np.nan, is_valid=False
                 )
 
-            container.prefix = f"{self.model_cls}_tel"
-            event.dl2.tel[tel_id].classification[self.model_cls] = container
+            container.prefix = f"{self.prefix}_tel"
+            event.dl2.tel[tel_id].classification[self.prefix] = container
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Table:
+    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
         table = self.feature_generator(table)
 
@@ -497,22 +473,343 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
 
         result = Table(
             {
-                f"{self.model_cls}_tel_prediction": score,
-                f"{self.model_cls}_tel_is_valid": is_valid,
+                f"{self.prefix}_tel_prediction": score,
+                f"{self.prefix}_tel_is_valid": is_valid,
             }
         )
         add_defaults_and_meta(
-            result, ParticleClassificationContainer, prefix=self.model_cls, stereo=False
+            result, ParticleClassificationContainer, prefix=self.prefix, stereo=False
         )
-        return result
+        return {ReconstructionProperty.PARTICLE_TYPE: result}
+
+
+class DispReconstructor(Reconstructor):
+    """
+    Predict absolute value and sign for disp origin reconstruction for each telescope.
+    """
+
+    target = "true_norm"
+
+    prefix = traits.Unicode(default_value="disp", allow_none=False).tag(config=True)
+
+    features = traits.List(
+        traits.Unicode(), help="Features to use for both models"
+    ).tag(config=True)
+
+    log_target = traits.Bool(
+        default_value=False,
+        help="If True, the model is trained to predict the natural logarithm of the absolute value.",
+    ).tag(config=True)
+
+    norm_config = traits.Dict({}, help="kwargs for the sklearn regressor").tag(
+        config=True
+    )
+
+    norm_cls = traits.Enum(
+        SUPPORTED_REGRESSORS.keys(),
+        default_value=None,
+        allow_none=True,
+        help="Which scikit-learn regression model to use.",
+    ).tag(config=True)
+
+    sign_config = traits.Dict({}, help="kwargs for the sklearn classifier").tag(
+        config=True
+    )
+
+    sign_cls = traits.Enum(
+        SUPPORTED_CLASSIFIERS.keys(),
+        default_value=None,
+        allow_none=True,
+        help="Which scikit-learn classification model to use.",
+    ).tag(config=True)
+
+    stereo_combiner_cls = traits.ComponentName(
+        StereoCombiner,
+        default_value="StereoMeanCombiner",
+        help="Which stereo combination method to use",
+    ).tag(config=True)
+
+    load_path = traits.Path(
+        default_value=None,
+        allow_none=True,
+        help="If given, load serialized model from this path",
+    ).tag(config=True)
+
+    def __init__(self, subarray=None, models=None, **kwargs):
+        # Run the Component __init__ first to handle the configuration
+        # and make `self.load_path` available
+        Component.__init__(self, **kwargs)
+
+        if self.load_path is None:
+            if self.norm_cls is None or self.sign_cls is None:
+                raise TraitError(
+                    "Must provide `norm_cls` and `sign_cls` if not loading from file"
+                )
+
+            if subarray is None:
+                raise TypeError(
+                    "__init__() missing 1 required positional argument: 'subarray'"
+                )
+
+            super().__init__(subarray, **kwargs)
+            self.quality_query = MLQualityQuery(parent=self)
+            self.feature_generator = FeatureGenerator(parent=self)
+
+            # to verify settings
+            self._new_models()
+
+            self._models = {} if models is None else models
+            self.unit = None
+            self.stereo_combiner = StereoCombiner.from_name(
+                self.stereo_combiner_cls,
+                prefix=self.prefix,
+                property=ReconstructionProperty.GEOMETRY,
+                parent=self,
+            )
+        else:
+            loaded = self.read(self.load_path)
+            if (
+                subarray is not None
+                and loaded.subarray.telescope_types != subarray.telescope_types
+            ):
+                self.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded from file"
+                )
+            self.__dict__.update(loaded.__dict__)
+            self.subarray = subarray
+
+    def _new_models(self):
+        norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**self.norm_config)
+        sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**self.sign_config)
+        return norm_regressor, sign_classifier
+
+    def _table_to_y(self, table, mask=None):
+        """
+        Extract target values as numpy array from input table
+        """
+        # make sure we use the unit that was used during training
+        if self.unit is not None:
+            norm = table[mask][self.target].quantity.to_value(self.unit)
+        else:
+            norm = np.array(table[self.target][mask])
+
+        abs_norm = np.abs(norm)
+        sign_norm = np.sign(norm)
+
+        if self.log_target:
+            abs_norm = np.log(abs_norm)
+
+        return abs_norm, sign_norm
+
+    def fit(self, key, table):
+        """
+        Create and fit new models for ``key`` using the data in ``table``.
+        """
+        self._models[key] = self._new_models()
+
+        X, valid = table_to_X(table, self.features, self.log)
+        self.unit = table[self.target].unit
+        norm, sign = self._table_to_y(table, mask=valid)
+        self._models[key][0].fit(X, norm)
+        self._models[key][1].fit(X, sign)
+
+    def write(self, path, overwrite=False):
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise IOError(f"Path {path} exists and overwrite=False")
+
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-models")
+            joblib.dump(self, f, compress=True)
+
+    @classmethod
+    def read(cls, path, **kwargs):
+        with open(path, "rb") as f:
+            instance = joblib.load(f)
+
+        for attr, value in kwargs.items():
+            setattr(instance, attr, value)
+
+        if not isinstance(instance, cls):
+            raise TypeError(
+                f"{path} did not contain an instance of {cls}, got {instance}"
+            )
+
+        Provenance().add_input_file(path, role="ml-models")
+        return instance
+
+    @lazyproperty
+    def instrument_table(self):
+        return self.subarray.to_table("joined")
+
+    def _predict(self, key, table):
+        if key not in self._models:
+            raise KeyError(
+                f"No model available for key {key},"
+                f" available models: {self._models.keys()}"
+            )
+        X, valid = table_to_X(table, self.features, self.log)
+        prediction = np.full(len(table), np.nan)
+
+        if np.any(valid):
+            valid_norms = self._models[key][0].predict(X)
+
+            if self.log_target:
+                prediction[valid] = np.exp(valid_norms)
+            else:
+                prediction[valid] = valid_norms
+
+            prediction[valid] *= self._models[key][1].predict(X)
+
+        if self.unit is not None:
+            prediction = u.Quantity(prediction, self.unit, copy=False)
+
+        return prediction, valid
+
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """Event-wise prediction for the EventSource-Loop.
+
+        Fills the event.dl2.tel[tel_id].disp[prefix] container
+        and event.dl2.tel[tel_id].geometry[prefix] container.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
+        """
+        for tel_id in event.trigger.tels_with_trigger:
+            table = collect_features(event, tel_id, self.instrument_table)
+            table = self.feature_generator(table)
+
+            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+
+            if passes_quality_checks:
+                disp, valid = self._predict(self.subarray.tel[tel_id], table)
+                disp_container = DispContainer(
+                    norm=disp[0],
+                    is_valid=valid[0],
+                )
+
+                if valid:
+                    hillas = event.dl1.tel[tel_id].parameters.hillas
+                    psi = hillas.psi.to_value(u.rad)
+
+                    fov_lon = hillas.fov_lon + disp[0] * np.cos(psi)
+                    fov_lat = hillas.fov_lat + disp[0] * np.sin(psi)
+                    altaz = TelescopeFrame(
+                        fov_lon=fov_lon,
+                        fov_lat=fov_lat,
+                        telescope_pointing=AltAz(
+                            alt=event.pointing.tel[tel_id].altitude,
+                            az=event.pointing.tel[tel_id].azimuth,
+                        ),
+                    ).transform_to(AltAz())
+
+                    altaz_container = ReconstructedGeometryContainer(
+                        alt=altaz.alt, az=altaz.az, is_valid=True
+                    )
+
+                else:
+                    altaz_container = ReconstructedGeometryContainer(
+                        alt=u.Quantity(np.nan, u.deg, copy=False),
+                        az=u.Quantity(np.nan, u.deg, copy=False),
+                        is_valid=False,
+                    )
+            else:
+                disp_container = DispContainer(
+                    norm=u.Quantity(np.nan, self.unit),
+                    is_valid=False,
+                )
+                altaz_container = ReconstructedGeometryContainer(
+                    alt=u.Quantity(np.nan, u.deg, copy=False),
+                    az=u.Quantity(np.nan, u.deg, copy=False),
+                    is_valid=False,
+                )
+
+            disp_container.prefix = f"{self.prefix}_parameter"
+            altaz_container.prefix = f"{self.prefix}_tel"
+            event.dl2.tel[tel_id].disp[self.prefix] = disp_container
+            event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
+
+        self.stereo_combiner(event)
+
+    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
+        """Predict on a table of events
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table of features
+
+        Returns
+        -------
+        disp_table : `~astropy.table.Table`
+            Table with disp predictions, matches the corresponding
+            container definition
+        altaz_table : `~astropy.table.Table`
+            Table with resulting predictions of horizontal coordinates
+        """
+        table = self.feature_generator(table)
+
+        n_rows = len(table)
+        disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
+        is_valid = np.full(n_rows, False)
+
+        valid = self.quality_query.get_table_mask(table)
+        disp[valid], is_valid[valid] = self._predict(key, table[valid])
+
+        disp_result = Table(
+            {
+                f"{self.prefix}_parameter_norm": disp,
+                f"{self.prefix}_parameter_is_valid": is_valid,
+            }
+        )
+        add_defaults_and_meta(
+            disp_result,
+            DispContainer,
+            prefix=f"{self.prefix}_parameter",
+            stereo=False,
+        )
+
+        psi = table["hillas_psi"].quantity.to_value(u.rad)
+        fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
+        fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
+
+        # FIXME: Assume constant and parallel pointing for each run
+        self.log.warning("Assuming constant and parallel pointing for each run")
+        alt, az = telescope_to_horizontal(
+            lon=fov_lon,
+            lat=fov_lat,
+            pointing_alt=table["subarray_pointing_lat"],
+            pointing_az=table["subarray_pointing_lon"],
+        )
+
+        altaz_result = Table(
+            {
+                f"{self.prefix}_tel_alt": alt,
+                f"{self.prefix}_tel_az": az,
+                f"{self.prefix}_tel_is_valid": is_valid,
+            }
+        )
+        add_defaults_and_meta(
+            altaz_result,
+            ReconstructedGeometryContainer,
+            prefix=self.prefix,
+            stereo=False,
+        )
+
+        return {
+            ReconstructionProperty.DISP: disp_result,
+            ReconstructionProperty.GEOMETRY: altaz_result,
+        }
 
 
 class CrossValidator(Component):
     """Class to train sklearn based reconstructors in a cross validation"""
 
-    n_cross_validations = Int(5).tag(config=True)
+    n_cross_validations = traits.Int(5).tag(config=True)
 
-    output_path = Path(
+    output_path = traits.Path(
         default_value=None,
         allow_none=True,
         directory_ok=False,
@@ -524,9 +821,9 @@ class CrossValidator(Component):
         ),
     ).tag(config=True)
 
-    rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
-        config=True
-    )
+    rng_seed = traits.Int(
+        default_value=1337, help="Seed for the random number generator"
+    ).tag(config=True)
 
     def __init__(self, model_component, **kwargs):
         super().__init__(**kwargs)
@@ -534,12 +831,15 @@ class CrossValidator(Component):
         self.model_component = model_component
         self.rng = np.random.default_rng(self.rng_seed)
 
-        if isinstance(self.model_component, SKLearnClassficationReconstructor):
+        if isinstance(self.model_component, SKLearnClassificationReconstructor):
             self.cross_validate = self._cross_validate_classification
             self.split_data = StratifiedKFold
         elif isinstance(self.model_component, SKLearnRegressionReconstructor):
             self.cross_validate = self._cross_validate_regressor
             self.split_data = KFold
+        elif isinstance(self.model_component, DispReconstructor):
+            self.cross_validate = self._cross_validate_disp
+            self.split_data = StratifiedKFold
         else:
             raise KeyError(
                 "Unsupported Model of type %s supplied", self.model_component
@@ -565,7 +865,11 @@ class CrossValidator(Component):
             random_state=self.rng.integers(0, 2**31 - 1),
         )
 
-        cv_it = kfold.split(table, table[self.model_component.target])
+        if isinstance(self.model_component, DispReconstructor):
+            cv_it = kfold.split(table, np.sign(table[self.model_component.target]))
+        else:
+            cv_it = kfold.split(table, table[self.model_component.target])
+
         for fold, (train_indices, test_indices) in enumerate(
             tqdm(
                 cv_it,
@@ -575,6 +879,7 @@ class CrossValidator(Component):
         ):
             train = table[train_indices]
             test = table[test_indices]
+
             cv_prediction, truth, metrics = self.cross_validate(
                 telescope_type, train, test
             )
@@ -585,6 +890,7 @@ class CrossValidator(Component):
                         "tel_type": [str(telescope_type)] * len(truth),
                         "prediction": cv_prediction,
                         "truth": truth,
+                        "true_energy": test["true_energy"],
                     }
                 )
             )
@@ -623,6 +929,15 @@ class CrossValidator(Component):
         roc_auc = roc_auc_score(truth, prediction)
         return prediction, truth, {"ROC AUC": roc_auc}
 
+    def _cross_validate_disp(self, telescope_type, train, test):
+        models = self.model_component
+        models.fit(telescope_type, train)
+        prediction, _ = models._predict(telescope_type, test)
+        truth = test[models.target]
+        r2 = r2_score(np.abs(truth), np.abs(prediction))
+        accuracy = accuracy_score(np.sign(truth), np.sign(prediction))
+        return prediction, truth, {"R^2": r2, "accuracy": accuracy}
+
     def write(self, overwrite=False):
         if self.output_path.exists() and not overwrite:
             raise IOError(f"Path {self.output_path} exists and overwrite=False")
@@ -630,5 +945,5 @@ class CrossValidator(Component):
         Provenance().add_output_file(self.output_path, role="ml-cross-validation")
         for tel_type, results in self.cv_predictions.items():
             write_table(
-                results, self.output_path, f"cv_predictions_{tel_type}", overwrite=True
+                results, self.output_path, f"/cv_predictions_{tel_type}", overwrite=True
             )

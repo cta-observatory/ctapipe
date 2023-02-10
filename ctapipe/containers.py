@@ -45,6 +45,7 @@ __all__ = [
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
+    "DispContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -754,6 +755,11 @@ class ReconstructedGeometryContainer(Container):
     alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
     az = Field(nan * u.deg, "reconstructed azimuth", unit=u.deg)
     az_uncert = Field(nan * u.deg, "reconstructed azimuth uncertainty", unit=u.deg)
+    ang_distance_uncert = Field(
+        nan * u.deg,
+        "uncertainty radius of reconstructed altitude-azimuth position",
+        unit=u.deg,
+    )
     core_x = Field(
         nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
     )
@@ -843,6 +849,17 @@ class ParticleClassificationContainer(Container):
     telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
+class DispContainer(Container):
+    """
+    Standard output of disp reconstruction algorithms for origin reconstruction
+    """
+
+    default_prefix = "disp_parameter"
+
+    norm = Field(nan * u.deg, "reconstructed value for disp", unit=u.deg)
+    is_valid = Field(False, "true if the predictions are valid")
+
+
 class ReconstructedContainer(Container):
     """Reconstructed shower info from multiple algorithms"""
 
@@ -874,6 +891,10 @@ class TelescopeReconstructedContainer(ReconstructedContainer):
     impact = Field(
         default_factory=partial(Map, TelescopeImpactParameterContainer),
         description="map of algorithm to impact parameter info",
+    )
+    disp = Field(
+        default_factory=partial(Map, DispContainer),
+        description="map of algorithm to reconstructed disp parameters",
     )
 
 
@@ -940,10 +961,14 @@ class EventCalibrationContainer(Container):
 
 
 class MuonRingContainer(Container):
-    """Container for the result of a ring fit, center_x, center_y"""
+    """Container for the result of a ring fit in telescope frame"""
 
-    center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
-    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    center_fov_lon = Field(
+        nan * u.deg, "center (fov_lon) of the fitted muon ring", unit=u.deg
+    )
+    center_fov_lat = Field(
+        nan * u.deg, "center (fov_lat) of the fitted muon ring", unit=u.deg
+    )
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
     center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
@@ -971,7 +996,31 @@ class MuonParametersContainer(Container):
     )
     intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
     mean_squared_error = Field(
-        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
+        nan * u.deg**2,
+        "MSE of the deviation of all pixels after cleaning from the ring fit",
+    )
+
+
+class MuonTelescopeContainer(Container):
+    """
+    Container for muon analysis
+    """
+
+    ring = Field(default_factory=MuonRingContainer, description="muon ring fit")
+    parameters = Field(
+        default_factory=MuonParametersContainer, description="muon parameters"
+    )
+    efficiency = Field(
+        default_factory=MuonEfficiencyContainer, description="muon efficiency"
+    )
+
+
+class MuonContainer(Container):
+    """Root container for muon parameters"""
+
+    tel = Field(
+        default_factory=partial(Map, MuonTelescopeContainer),
+        description="map of tel_id to MuonTelescopeContainer",
     )
 
 
@@ -1210,6 +1259,9 @@ class ArrayEventContainer(Container):
     mon = Field(
         default_factory=MonitoringContainer,
         description="container for event-wise monitoring data (MON)",
+    )
+    muon = Field(
+        default_factory=MuonContainer, description="Container for muon analysis results"
     )
 
 

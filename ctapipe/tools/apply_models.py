@@ -1,20 +1,18 @@
 """
 Tool to apply machine learning models in bulk (as opposed to event by event).
 """
-import shutil
-
 import numpy as np
 import tables
-from astropy.table.operations import hstack, vstack
+from astropy.table import Table, join, vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Integer, Path, flag
-from ctapipe.io import TableLoader, write_table
+from ctapipe.core.traits import Bool, Integer, List, Path, classes_with_traits, flag
+from ctapipe.io import HDF5Merger, TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.io.tableloader import _join_subarray_events
-from ctapipe.reco import EnergyRegressor, ParticleClassifier, StereoCombiner
+from ctapipe.reco import Reconstructor
 
 __all__ = [
     "ApplyModels",
@@ -38,12 +36,10 @@ class ApplyModels(Tool):
     examples = """
     ctapipe-apply-models \\
         --input gamma.dl2.h5 \\
-        --energy-regressor energy_regressor.pkl \\
-        --particle-classifier particle-classifier.pkl \\
+        --reconstructor energy_regressor.pkl \\
+        --reconstructor particle-classifier.pkl \\
         --output gamma_applied.dl2.h5
     """
-
-    overwrite = Bool(default_value=False).tag(config=True)
 
     input_url = Path(
         default_value=None,
@@ -60,20 +56,10 @@ class ApplyModels(Tool):
         help="Output file",
     ).tag(config=True)
 
-    energy_regressor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained EnergyRegressor",
-    ).tag(config=True)
-
-    particle_classifier_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Input path for the trained ParticleClassifier",
+    reconstructor_paths = List(
+        Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="Paths to trained reconstructors to be applied to the input data",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -82,143 +68,144 @@ class ApplyModels(Tool):
         help="How many subarray events to load at once for making predictions.",
     ).tag(config=True)
 
+    progress_bar = Bool(
+        help="show progress bar during processing",
+        default_value=True,
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
-        "energy-regressor": "ApplyModels.energy_regressor_path",
-        "particle-classifier": "ApplyModels.particle_classifier_path",
+        ("r", "reconstructor"): "ApplyModels.reconstructor_paths",
         ("o", "output"): "ApplyModels.output_path",
         "chunk-size": "ApplyModels.chunk_size",
     }
 
     flags = {
         **flag(
-            "overwrite",
-            "ApplyModels.overwrite",
-            "Overwrite tables in output file if it exists",
-            "Don't overwrite tables in output file if it exists",
+            "progress",
+            "ProcessorTool.progress_bar",
+            "show a progress bar during event processing",
+            "don't show a progress bar during event processing",
         ),
-        "f": (
-            {"ApplyModels": {"overwrite": True}},
-            "Overwrite output file if it exists",
+        **flag(
+            "dl1-parameters",
+            "HDF5Merger.dl1_parameters",
+            "Include dl1 parameters",
+            "Exclude dl1 parameters",
+        ),
+        **flag(
+            "dl1-images",
+            "HDF5Merger.dl1_images",
+            "Include dl1 images",
+            "Exclude dl1 images",
+        ),
+        **flag(
+            "true-parameters",
+            "HDF5Merger.true_parameters",
+            "Include true parameters",
+            "Exclude true parameters",
+        ),
+        **flag(
+            "true-images",
+            "HDF5Merger.true_images",
+            "Include true images",
+            "Exclude true images",
         ),
     }
 
-    classes = [
-        TableLoader,
-        EnergyRegressor,
-        ParticleClassifier,
-        StereoCombiner,
-    ]
+    classes = [TableLoader] + classes_with_traits(Reconstructor)
 
     def setup(self):
         """
         Initialize components from config
         """
+        self.check_output(self.output_path)
         self.log.info("Copying to output destination.")
-        if self.output_path.exists() and not self.overwrite:
-            raise IOError(f"Output path {self.output_path} exists, but overwrite=False")
 
-        shutil.copy(self.input_url, self.output_path)
+        with HDF5Merger(self.output_path, parent=self) as merger:
+            merger(self.input_url)
 
-        self.h5file = tables.open_file(self.output_path, mode="r+")
-        self.loader = TableLoader(
-            parent=self,
-            h5file=self.h5file,
-            load_dl1_parameters=True,
-            load_dl2=True,
-            load_instrument=True,
-            load_dl1_images=False,
-            load_simulated=False,
+        self.h5file = self.enter_context(tables.open_file(self.output_path, mode="r+"))
+        self.loader = self.enter_context(
+            TableLoader(
+                self.input_url,
+                parent=self,
+                load_dl1_parameters=True,
+                load_dl2=True,
+                load_instrument=True,
+                load_dl1_images=False,
+                load_simulated=False,
+                load_observation_info=True,
+            )
         )
 
-        self._reconstructors = []
-
-        if self.energy_regressor_path is not None:
-            self._reconstructors.append(
-                EnergyRegressor.read(
-                    self.energy_regressor_path,
-                    parent=self,
-                )
-            )
-        if self.particle_classifier_path is not None:
-            self._reconstructors.append(
-                ParticleClassifier.read(
-                    self.particle_classifier_path,
-                    parent=self,
-                )
-            )
+        self._reconstructors = [
+            Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            for path in self.reconstructor_paths
+        ]
 
     def start(self):
         """Apply models to input tables"""
-        for reconstructor in self._reconstructors:
-            self.log.info("Applying %s", reconstructor)
-            self._apply(reconstructor)
-            # FIXME: this is a not-so-nice solution for the issues that
-            # the table loader does not seem to see the newly written tables
-            # we close and reopen the file and then table loader loads also the new tables
-            self.h5file.close()
-            self.h5file = tables.open_file(self.output_path, mode="r+")
-            self.loader.h5file = self.h5file
-
-    def _apply(self, reconstructor):
-        prefix = reconstructor.model_cls
-        property = reconstructor.property
-
-        desc = f"Applying {reconstructor.__class__.__name__}"
-        unit = "chunk"
-
         chunk_iterator = self.loader.read_telescope_events_by_id_chunked(
             self.chunk_size
         )
-        for chunk in tqdm(chunk_iterator, desc=desc, unit=unit):
-            tel_tables = []
+        bar = tqdm(
+            chunk_iterator,
+            desc="Applying reconstructors",
+            unit=" Array Events",
+            total=chunk_iterator.n_total,
+            disable=not self.progress_bar,
+        )
+        with bar:
+            for chunk, (start, stop, tel_tables) in enumerate(chunk_iterator):
+                for reconstructor in self._reconstructors:
+                    self.log.debug("Applying %s to chunk %d", reconstructor, chunk)
+                    self._apply(reconstructor, tel_tables, start=start, stop=stop)
 
-            for tel_id, table in chunk.items():
-                tel = self.loader.subarray.tel[tel_id]
+                bar.update(stop - start)
 
-                if tel not in reconstructor._models:
-                    self.log.warning(
-                        "No model in %s for telescope type %s, skipping tel %d",
-                        reconstructor,
-                        tel,
-                        tel_id,
-                    )
-                    continue
+    def _apply(self, reconstructor, tel_tables, start, stop):
+        prefix = reconstructor.prefix
 
-                if len(table) == 0:
-                    self.log.warning("No events for telescope %d", tel_id)
-                    continue
+        for tel_id, table in tel_tables.items():
+            tel = self.loader.subarray.tel[tel_id]
 
-                table.remove_columns(
-                    [c for c in table.colnames if c.startswith(prefix)]
+            if tel not in reconstructor._models:
+                self.log.warning(
+                    "No model in %s for telescope type %s, skipping tel %d",
+                    reconstructor,
+                    tel,
+                    tel_id,
                 )
+                continue
 
-                predictions = reconstructor.predict_table(tel, table)
-                table = hstack(
-                    [table, predictions],
-                    join_type="exact",
-                    metadata_conflicts="ignore",
-                )
+            if len(table) == 0:
+                self.log.info("No events for telescope %d", tel_id)
+                continue
+
+            predictions = reconstructor.predict_table(tel, table)
+            for prop, prediction_table in predictions.items():
+                # copy/overwrite columns into full feature table
+                new_columns = prediction_table.colnames
+                for col in new_columns:
+                    table[col] = prediction_table[col]
+
+                output_columns = ["obs_id", "event_id", "tel_id"] + new_columns
                 write_table(
-                    table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
+                    table[output_columns],
                     self.output_path,
-                    f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
+                    f"/dl2/event/telescope/{prop}/{prefix}/tel_{tel_id:03d}",
                     append=True,
                 )
-                tel_tables.append(table)
 
-            if len(tel_tables) == 0:
-                raise ValueError("No predictions made for any telescope")
+        self._combine(reconstructor, tel_tables, start=start, stop=stop)
 
-            self._combine(
-                reconstructor.stereo_combiner,
-                vstack(tel_tables),
-                start=chunk_iterator.start,
-                stop=chunk_iterator.stop,
-            )
+    def _combine(self, reconstructor, tel_tables, start, stop):
+        stereo_table = vstack(list(tel_tables.values()))
 
-    def _combine(self, combiner, mono_predictions, start=None, stop=None):
-        stereo_predictions = combiner.predict_table(mono_predictions)
+        combiner = reconstructor.stereo_combiner
+        stereo_predictions = combiner.predict_table(stereo_table)
+        del stereo_table
 
         trafo = TelListToMaskTransform(self.loader.subarray)
         for c in filter(
@@ -228,12 +215,15 @@ class ApplyModels(Tool):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
             stereo_predictions[c.name].description = c.description
 
+        # stacking the single telescope tables and joining
+        # potentially changes the order of the subarray events.
         # to ensure events are stored in the correct order,
         # we resort to trigger table order
         trigger = read_table(
             self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
         )[["obs_id", "event_id"]]
         trigger["__sort_index__"] = np.arange(len(trigger))
+
         stereo_predictions = _join_subarray_events(trigger, stereo_predictions)
         stereo_predictions.sort("__sort_index__")
         del stereo_predictions["__sort_index__"]
@@ -245,9 +235,25 @@ class ApplyModels(Tool):
             append=True,
         )
 
-    def finish(self):
-        """Close input file"""
-        self.h5file.close()
+        for tel_table in tel_tables.values():
+            _add_stereo_prediction(tel_table, stereo_predictions)
+
+
+def _add_stereo_prediction(tel_events, array_events):
+    """Add columns from array_events table to tel_events table"""
+    join_table = Table(
+        {
+            "obs_id": tel_events["obs_id"],
+            "event_id": tel_events["event_id"],
+            "__sort_index__": np.arange(len(tel_events)),
+        }
+    )
+    joined = join(join_table, array_events, keys=["obs_id", "event_id"])
+    del join_table
+    joined.sort("__sort_index__")
+    joined.remove_columns(["obs_id", "event_id", "__sort_index__"])
+    for colname in joined.colnames:
+        tel_events[colname] = joined[colname]
 
 
 def main():

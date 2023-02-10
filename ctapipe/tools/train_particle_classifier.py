@@ -5,7 +5,7 @@ import numpy as np
 from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
+from ctapipe.core.traits import Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -77,21 +77,10 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
-    overwrite = Bool(help="overwrite existing output files").tag(config=True)
-
     random_seed = Int(
         default_value=0,
         help="Random number seed for sampling and the cross validation splitting",
     ).tag(config=True)
-
-    flags = {
-        **flag(
-            "overwrite",
-            "TrainEnergyRegressor.overwrite",
-            "Overwrite output existing output files",
-            "Don't overwrite existing output files",
-        ),
-    }
 
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
@@ -147,17 +136,7 @@ class TrainParticleClassifier(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
         )
-
-        if self.output_path.suffix != ".pkl":
-            self.log.warning(
-                "Expected .pkl extension for output_path, got %s",
-                self.output_path.suffix,
-            )
-
-        if self.output_path.exists() and not self.overwrite:
-            raise TraitError(
-                f"output_path '{self.output_path}' exists and overwrite=False"
-            )
+        self.check_output(self.output_path, self.cross_validate.output_path)
 
     def start(self):
         """
@@ -189,7 +168,8 @@ class TrainParticleClassifier(Tool):
 
         table = self.classifier.feature_generator(table)
 
-        columns = self.classifier.features + [self.classifier.target]
+        # Add true energy for energy-dependent performance plots
+        columns = self.classifier.features + [self.classifier.target, "true_energy"]
         table = table[columns]
 
         valid = check_valid_rows(table)

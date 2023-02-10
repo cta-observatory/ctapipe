@@ -112,6 +112,13 @@ usable from anywhere.
 
     $ pip install -e .
 
+ctapipe supports adding so-called event sources and reconstructors 
+through plugins. In order for the respective tests to pass you have 
+to install the test plugin via
+
+.. code-block:: console
+
+    $ pip install -e ./test_plugin
 
 Run the tests to make sure everything is OK:
 

@@ -3,7 +3,7 @@ Class and related functions to read DL1 (a,b) and/or DL2 (a) data
 from an HDF5 file produced with ctapipe-process.
 """
 import warnings
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from pathlib import Path
 from typing import Dict
 
@@ -22,6 +22,7 @@ __all__ = ["TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
+MUON_GROUP = "/dl1/event/telescope/muon"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
@@ -36,6 +37,9 @@ DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
 
 SUBARRAY_EVENT_KEYS = ["obs_id", "event_id"]
 TELESCOPE_EVENT_KEYS = ["obs_id", "event_id", "tel_id"]
+
+
+Chunk = namedtuple("Chunk", ["start", "stop", "data"])
 
 
 class IndexNotMatching(UserWarning):
@@ -70,30 +74,29 @@ class ChunkIterator:
         self.func = func
         self.n_total = n_total
         self.chunk_size = chunk_size
-        self._current_chunk = 0
         self.n_chunks = int(np.ceil(self.n_total / self.chunk_size))
         self.args = args
         self.kwargs = kwargs
-        self.start = None
-        self.end = None
 
     def __len__(self):
         return self.n_chunks
 
-    def __iter__(self):
-        self._current_chunk = 0
-        return self
+    def __getitem__(self, chunk):
 
-    def __next__(self):
-        if self._current_chunk == self.n_chunks:
-            raise StopIteration
+        if chunk < 0:
+            chunk = self.n_chunks - chunk
 
-        chunk = self._current_chunk
-        self.start = chunk * self.chunk_size
-        self.stop = min(self.n_total, (chunk + 1) * self.chunk_size)
+        if chunk >= self.n_chunks:
+            raise IndexError(
+                f"Index {chunk} is out of bounds for {self.__class__.__name__}"
+                f" of length {len(self)}"
+            )
 
-        self._current_chunk += 1
-        return self.func(*self.args, start=self.start, stop=self.stop, **self.kwargs)
+        start = chunk * self.chunk_size
+        stop = min(self.n_total, (chunk + 1) * self.chunk_size)
+        return Chunk(
+            start, stop, self.func(*self.args, start=start, stop=stop, **self.kwargs)
+        )
 
 
 def _empty_telescope_events_table():
@@ -177,6 +180,9 @@ class TableLoader(Component):
     load_dl1_parameters = traits.Bool(
         True, help="load reconstructed image parameters"
     ).tag(config=True)
+    load_dl1_muons = traits.Bool(False, help="load muon ring parameters").tag(
+        config=True
+    )
 
     load_dl2 = traits.Bool(False, help="load available dl2 stereo parameters").tag(
         config=True
@@ -244,6 +250,19 @@ class TableLoader(Component):
         self.instrument_table = None
         if self.load_instrument:
             self.instrument_table = self.subarray.to_table("joined")
+
+        groups = {
+            "load_dl1_parameters": PARAMETERS_GROUP,
+            "load_dl1_images": IMAGES_GROUP,
+            "load_true_parameters": TRUE_PARAMETERS_GROUP,
+            "load_true_images": TRUE_IMAGES_GROUP,
+        }
+        for attr, group in groups.items():
+            if getattr(self, attr) and group not in self.h5file.root:
+                self.log.info(
+                    "Setting %s to False, input file does not contain such data", attr
+                )
+                setattr(self, attr, False)
 
     def close(self):
         """Close the underlying hdf5 file"""
@@ -324,11 +343,26 @@ class TableLoader(Component):
         return read_table(self.h5file, OBSERVATION_TABLE)
 
     def _join_observation_info(self, table):
-        observation_table = self.read_observation_information()
-        table = join_allow_empty(
-            table, observation_table, keys="obs_id", join_type="left"
+        obs_table = self.read_observation_information()
+        # in v0.17, obs_id had inconsistent dtypes in different tables
+        # Joining then gets messed up then because a join between int32 and uint64
+        # casts the obs_id in the joint result to float.
+        obs_table["obs_id"] = obs_table["obs_id"].astype(table["obs_id"].dtype)
+
+        # to be able to sort to original table order
+        self._add_index_if_needed(table)
+
+        joint = join_allow_empty(
+            table,
+            obs_table,
+            keys="obs_id",
+            join_type="left",
         )
-        return table
+
+        # sort back to original order and remove index col
+        self._sort_to_original_order(joint)
+        del table["__index__"]
+        return joint
 
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
         """Read subarray-based event information.
@@ -434,6 +468,12 @@ class TableLoader(Component):
                 PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, parameters)
+
+        if self.load_dl1_muons:
+            muon_parameters = self._read_telescope_table(
+                MUON_GROUP, tel_id, start=tel_start, stop=tel_stop
+            )
+            table = _merge_telescope_tables(table, muon_parameters)
 
         if self.load_dl1_images:
             images = self._read_telescope_table(
@@ -722,7 +762,7 @@ class TableLoader(Component):
             by_id[tel_id] = self._join_subarray_info(
                 by_id[tel_id], subarray_events=subarray_events
             )
-            self._sort_to_original_order(by_id[tel_id], include_tel_id=True)
+            self._sort_to_original_order(by_id[tel_id], include_tel_id=False)
 
         return by_id
 

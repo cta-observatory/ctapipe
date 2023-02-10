@@ -2,8 +2,7 @@
 High level processing of showers.
 """
 from ..containers import ArrayEventContainer
-from ..core import Component
-from ..core.traits import ComponentNameList
+from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .reconstructor import Reconstructor
 
@@ -29,7 +28,7 @@ class ShowerProcessor(Component):
     in which case the order of ``reconstructor_types`` is important.
     """
 
-    reconstructor_types = ComponentNameList(
+    reconstructor_types = traits.ComponentNameList(
         Reconstructor,
         default_value=["HillasReconstructor"],
         help=(

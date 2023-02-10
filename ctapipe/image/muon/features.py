@@ -1,6 +1,7 @@
+import astropy.units as u
 import numpy as np
-from ...utils.quantities import all_to_value
 
+from ...utils.quantities import all_to_value
 
 __all__ = [
     "mean_squared_error",
@@ -105,8 +106,10 @@ def ring_completeness(
     """
 
     angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+    if hasattr(angle, "unit"):
+        angle = angle.to_value(u.rad)
 
-    hist, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
+    hist, _ = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
 
     bins_above_threshold = hist > threshold
 
@@ -144,7 +147,7 @@ def ring_containment(radius, center_x, center_y, camera_radius):
         radius, center_x, center_y, camera_radius = all_to_value(
             radius, center_x, center_y, camera_radius, unit=radius.unit
         )
-    d = np.sqrt(center_x ** 2 + center_y ** 2)
+    d = np.sqrt(center_x**2 + center_y**2)
 
     # one circle fully contained in the other
     if d <= np.abs(camera_radius - radius):
@@ -154,5 +157,5 @@ def ring_containment(radius, center_x, center_y, camera_radius):
     if d > (radius + camera_radius):
         return 0.0
 
-    a = (radius ** 2 - camera_radius ** 2 + d ** 2) / (2 * d)
+    a = (radius**2 - camera_radius**2 + d**2) / (2 * d)
     return np.arccos(a / radius) / np.pi

@@ -2,21 +2,26 @@ from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
+from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
 from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
+from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
 )
 from .utils import add_defaults_and_meta
 
 _containers = {
     "energy": ReconstructedEnergyContainer,
     "classification": ParticleClassificationContainer,
+    "geometry": ReconstructedGeometryContainer,
 }
 
 __all__ = [
@@ -65,8 +70,8 @@ class StereoCombiner(Component):
         help="Prefix to be added to the output container / column names",
     ).tag(config=True)
 
-    property = CaselessStrEnum(
-        ["energy", "classification", "geometry"],
+    property = UseEnum(
+        ReconstructionProperty,
         help="Which property is being combined",
     ).tag(config=True)
 
@@ -102,10 +107,14 @@ class StereoMeanCombiner(StereoCombiner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.property not in {"energy", "classification"}:
+        supported = {
+            ReconstructionProperty.ENERGY,
+            ReconstructionProperty.GEOMETRY,
+            ReconstructionProperty.PARTICLE_TYPE,
+        }
+        if self.property not in supported:
             raise NotImplementedError(
-                f"Cannot combine {self.property}."
-                "Implemented are: energy, classification"
+                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
     def _calculate_weights(self, data):
@@ -205,15 +214,67 @@ class StereoMeanCombiner(StereoCombiner):
         )
         event.dl2.stereo.classification[self.prefix] = container
 
+    def _combine_altaz(self, event):
+        ids = []
+        alt_values = []
+        az_values = []
+        weights = []
+
+        for tel_id, dl2 in event.dl2.tel.items():
+            mono = dl2.geometry[self.prefix]
+            if mono.is_valid:
+                alt_values.append(mono.alt)
+                az_values.append(mono.az)
+                dl1 = event.dl1.tel[tel_id].parameters
+                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                ids.append(tel_id)
+
+        if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
+            coord = AltAz(alt=alt_values, az=az_values)
+            # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
+            mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
+            stereo_x = np.average(mono_x, weights=weights)
+            stereo_y = np.average(mono_y, weights=weights)
+            stereo_z = np.average(mono_z, weights=weights)
+
+            mean_cartesian = CartesianRepresentation(x=stereo_x, y=stereo_y, z=stereo_z)
+            mean_spherical = mean_cartesian.represent_as(SphericalRepresentation)
+            mean_altaz = AltAz(mean_spherical)
+
+            # https://en.wikipedia.org/wiki/Directional_statistics#Measures_of_location_and_spread
+            r = mean_spherical.distance.to_value()
+            std = np.sqrt(-2 * np.log(r))
+
+            valid = True
+        else:
+            mean_altaz = AltAz(
+                alt=u.Quantity(np.nan, u.deg, copy=False),
+                az=u.Quantity(np.nan, u.deg, copy=False),
+            )
+            std = np.nan
+            valid = False
+
+        event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
+            alt=mean_altaz.alt,
+            az=mean_altaz.az,
+            ang_distance_uncert=u.Quantity(np.rad2deg(std), u.deg, copy=False),
+            telescopes=ids,
+            is_valid=valid,
+            prefix=self.prefix,
+        )
+
     def __call__(self, event: ArrayEventContainer) -> None:
         """
         Calculate the mean prediction for a single array event.
         """
-        if self.property == "energy":
+        if self.property is ReconstructionProperty.ENERGY:
             self._combine_energy(event)
 
-        elif self.property == "classification":
+        elif self.property is ReconstructionProperty.PARTICLE_TYPE:
             self._combine_classification(event)
+
+        elif self.property is ReconstructionProperty.GEOMETRY:
+            self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
@@ -241,7 +302,7 @@ class StereoMeanCombiner(StereoCombiner):
         n_array_events = len(array_events)
         weights = self._calculate_weights(valid_predictions)
 
-        if self.property == "classification":
+        if self.property is ReconstructionProperty.PARTICLE_TYPE:
             if len(valid_predictions) > 0:
                 mono_predictions = valid_predictions[f"{prefix}_prediction"]
                 stereo_predictions = _weighted_mean_ufunc(
@@ -254,7 +315,7 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.prefix}_is_valid"] = np.isfinite(stereo_predictions)
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
 
-        elif self.property == "energy":
+        elif self.property is ReconstructionProperty.ENERGY:
             if len(valid_predictions) > 0:
                 mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(
                     u.TeV
@@ -294,6 +355,55 @@ class StereoMeanCombiner(StereoCombiner):
             )
             stereo_table[f"{self.prefix}_is_valid"] = np.isfinite(stereo_energy)
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+
+        elif self.property is ReconstructionProperty.GEOMETRY:
+            if len(valid_predictions) > 0:
+                coord = AltAz(
+                    alt=valid_predictions[f"{prefix}_alt"],
+                    az=valid_predictions[f"{prefix}_az"],
+                )
+                # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
+                mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
+
+                stereo_x = _weighted_mean_ufunc(
+                    mono_x, weights, n_array_events, indices[valid]
+                )
+                stereo_y = _weighted_mean_ufunc(
+                    mono_y, weights, n_array_events, indices[valid]
+                )
+                stereo_z = _weighted_mean_ufunc(
+                    mono_z, weights, n_array_events, indices[valid]
+                )
+
+                mean_cartesian = CartesianRepresentation(
+                    x=stereo_x, y=stereo_y, z=stereo_z
+                )
+                mean_spherical = mean_cartesian.represent_as(SphericalRepresentation)
+                mean_altaz = AltAz(mean_spherical)
+
+                # https://en.wikipedia.org/wiki/Directional_statistics#Measures_of_location_and_spread
+                r = mean_spherical.distance.to_value()
+                std = np.sqrt(-2 * np.log(r))
+            else:
+                mean_altaz = AltAz(
+                    alt=u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False),
+                    az=u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False),
+                )
+                std = np.full(n_array_events, np.nan)
+
+            stereo_table[f"{self.prefix}_alt"] = mean_altaz.alt.to(u.deg)
+            stereo_table[f"{self.prefix}_az"] = mean_altaz.az.to(u.deg)
+
+            stereo_table[f"{self.prefix}_ang_distance_uncert"] = u.Quantity(
+                np.rad2deg(std), u.deg, copy=False
+            )
+
+            stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(
+                np.isfinite(stereo_table[f"{self.prefix}_alt"]),
+                np.isfinite(stereo_table[f"{self.prefix}_az"]),
+            )
+            stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+
         else:
             raise NotImplementedError()
 

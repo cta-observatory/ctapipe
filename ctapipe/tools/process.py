@@ -11,6 +11,7 @@ from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
+from ..image.muon import MuonProcessor
 from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
@@ -36,8 +37,14 @@ __all__ = ["ProcessorTool"]
 
 class ProcessorTool(Tool):
     """
-    Process data from lower-data levels up to DL1, including both image
-    extraction and optinally image parameterization
+    Process data from lower-data levels up to DL1 and DL2, including image
+    extraction and optionally image parameterization as well as muon analysis
+    and shower reconstruction.
+
+    Note that the muon analysis and shower reconstruction both depend on
+    parametrized images and therefore compute image parameters even if
+    DataWriter.write_parameters=False in case these are not already present
+    in the input file.
     """
 
     name = "ctapipe-process"
@@ -74,21 +81,14 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        "energy-regressor": "ShowerProcessor.EnergyRegressor.load_path",
-        "particle-classifier": "ShowerProcessor.ParticleClassifier.load_path",
+        "reconstructor": "ShowerProcessor.reconstructor_types",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
     flags = {
-        "f": (
+        "overwrite": (
             {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
-        ),
-        **flag(
-            "overwrite",
-            "DataWriter.overwrite",
-            "Overwrite output file if it exists",
-            "Don't overwrite output file if it exists",
         ),
         **flag(
             "progress",
@@ -131,6 +131,12 @@ class ProcessorTool(Tool):
             "DataWriter.write_index_tables",
             "generate PyTables index tables for the parameter and image datasets",
         ),
+        **flag(
+            "write-muon-parameters",
+            "DataWriter.write_muon_parameters",
+            "store DL1/Event/Telescope muon parameters in output",
+            "don't store DL1/Event/Telescope muon parameters in output",
+        ),
         "camera-frame": (
             {"ImageProcessor": {"use_telescope_frame": False}},
             "Use camera frame for image parameters instead of telescope frame",
@@ -142,6 +148,7 @@ class ProcessorTool(Tool):
             CameraCalibrator,
             DataWriter,
             ImageProcessor,
+            MuonProcessor,
             ShowerProcessor,
             metadata.Instrument,
             metadata.Contact,
@@ -160,12 +167,14 @@ class ProcessorTool(Tool):
     def setup(self):
 
         # setup components:
-        self.event_source = EventSource(parent=self)
+        self.event_source = self.enter_context(EventSource(parent=self))
+
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
-                "%s  needs the EventSource to provide either R1 or DL0 or DL1A data"
+                "%s  needs the EventSource to provide at least one of these datalevels: %s"
                 ", %s provides only %s",
                 self.name,
+                COMPATIBLE_DATALEVELS,
                 self.event_source,
                 self.event_source.datalevels,
             )
@@ -176,27 +185,10 @@ class ProcessorTool(Tool):
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
-        self.write = DataWriter(event_source=self.event_source, parent=self)
-
-        # add ml reco classes if model paths were supplied via cli and not already configured
-        reco_aliases = {
-            "--energy-regressor": "EnergyRegressor",
-            "--particle-classifier": "ParticleClassifier",
-        }
-        for alias, name in reco_aliases.items():
-            has_alias = any(arg.startswith(alias) for arg in self.argv)
-            if has_alias and name not in self.process_shower.reconstructor_types:
-                self.log.info(
-                    "Adding %s to ShowerProcesser because path was given on cli", name
-                )
-                reconstructor = Reconstructor.from_name(
-                    name,
-                    parent=self.process_shower,
-                    subarray=subarray,
-                )
-                self.process_shower.reconstructors.append(reconstructor)
-                self.process_shower.reconstructor_types.append(name)
-                self.write.write_showers = True
+        self.write = self.enter_context(
+            DataWriter(event_source=self.event_source, parent=self)
+        )
+        self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)
 
@@ -229,10 +221,15 @@ class ProcessorTool(Tool):
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
-        return self.write.write_parameters or self.should_compute_dl2
+        return (
+            self.write.write_parameters
+            or self.should_compute_dl2
+            or self.should_compute_muon_parameters
+        )
 
     @property
     def should_calibrate(self):
+        """returns true if data should be calibrated"""
         if self.force_recompute_dl1:
             return True
 
@@ -244,6 +241,14 @@ class ProcessorTool(Tool):
 
         if self.should_compute_dl1:
             return DataLevel.DL1_IMAGES not in self.event_source.datalevels
+
+        return False
+
+    @property
+    def should_compute_muon_parameters(self):
+        """returns true if we should compute muon parameters info"""
+        if self.write.write_muon_parameters:
+            return True
 
         return False
 
@@ -279,6 +284,9 @@ class ProcessorTool(Tool):
         """
         self.log.info("(re)compute DL1: %s", self.should_compute_dl1)
         self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
+        self.log.info(
+            "compute muon parameters: %s", self.should_compute_muon_parameters
+        )
         self.event_source.subarray.info(printer=self.log.info)
 
         for event in tqdm(
@@ -306,6 +314,9 @@ class ProcessorTool(Tool):
             if self.should_compute_dl1:
                 self.process_images(event)
 
+            if self.should_compute_muon_parameters:
+                self.process_muons(event)
+
             if self.should_compute_dl2:
                 self.process_shower(event)
 
@@ -316,8 +327,6 @@ class ProcessorTool(Tool):
         Last steps after processing events.
         """
         self.write.write_simulation_histograms(self.event_source)
-        self.write.finish()
-        self.event_source.close()
         self._write_processing_statistics()
 
 

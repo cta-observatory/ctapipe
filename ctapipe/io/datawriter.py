@@ -21,12 +21,13 @@ from ..containers import (
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
-from . import EventSource, HDF5TableWriter, TableWriter
 from . import metadata as meta
 from .astropy_helpers import write_table
 from .datalevels import DataLevel
+from .eventsource import EventSource
+from .hdf5tableio import HDF5TableWriter
 from .simteleventsource import SimTelEventSource
-from .tableio import FixedPointColumnTransform, TelListToMaskTransform
+from .tableio import FixedPointColumnTransform, TableWriter, TelListToMaskTransform
 
 __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
@@ -194,6 +195,10 @@ class DataWriter(Component):
         help="Store DL2 stereo shower parameters if available", default_value=False
     ).tag(config=True)
 
+    write_muon_parameters = Bool(
+        help="Store muon parameters if available", default_value=False
+    ).tag(config=True)
+
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
     ).tag(config=True)
@@ -326,6 +331,9 @@ class DataWriter(Component):
             self._write_dl2_telescope_events(self._writer, event)
             self._write_dl2_stereo_event(self._writer, event)
 
+        if self.write_muon_parameters:
+            self._write_muon_telescope_events(self._writer, event)
+
     def finish(self):
         """called after all events are done"""
         self.log.info("Finishing output")
@@ -357,6 +365,8 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
+        if self.write_muon_parameters:
+            data_levels.append(DataLevel.DL1_MUON)
         if self.write_showers:
             data_levels.append(DataLevel.DL2)
         if self.write_raw_waveforms:
@@ -398,6 +408,7 @@ class DataWriter(Component):
             self.write_images,
             self.write_showers,
             self.write_waveforms,
+            self.write_muon_parameters,
         ]
         if not any(writable_things):
             raise ToolConfigurationError(
@@ -702,6 +713,18 @@ class DataWriter(Component):
                             true_parameters.intensity_statistics,
                         ],
                     )
+
+    def _write_muon_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+
+        for tel_id, muon in event.muon.tel.items():
+            table_name = self.table_name(tel_id)
+            tel_index = _get_tel_index(event, tel_id)
+            writer.write(
+                f"dl1/event/telescope/muon/{table_name}",
+                [tel_index, muon.ring, muon.parameters, muon.efficiency],
+            )
 
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer

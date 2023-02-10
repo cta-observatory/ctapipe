@@ -42,6 +42,11 @@ class MissingFrameAttributeWarning(Warning):
     pass
 
 
+def get_representation_component_names(frame):
+    """Return the component names of a Frame (or SkyCoord)"""
+    return tuple(frame.get_representation_component_names().keys())
+
+
 # astropy requires all AltAz to have locations
 # and obstimes so they can be converted into true skycoords
 # Also it is required to transform one AltAz into another one
@@ -62,7 +67,7 @@ def altaz_to_altaz(from_coo, to_frame):
     location = from_coo.location
     if from_coo.obstime is None:
         warnings.warn(
-            "Horizontal coordinate has no location, assuming same frame",
+            "AltAz coordinate has no location, assuming same frame",
             MissingFrameAttributeWarning,
         )
         location = to_frame.location

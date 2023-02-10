@@ -9,7 +9,11 @@ from traitlets import Dict, Float, Int, TraitError
 from traitlets.config import Config
 
 from .. import Component, Tool
-from ..tool import export_tool_config_to_commented_yaml, run_tool
+from ..tool import (
+    ToolConfigurationError,
+    export_tool_config_to_commented_yaml,
+    run_tool,
+)
 
 
 def test_tool_simple():
@@ -193,8 +197,8 @@ def test_tool_exit_code():
 
     assert exc.value.code == 1
 
-    assert run_tool(tool, ["--help"]) == 0
-    assert run_tool(tool, ["--non-existent-option"]) == 2
+    assert run_tool(tool, ["--help"], raises=False) == 0
+    assert run_tool(tool, ["--non-existent-option"], raises=False) == 2
 
 
 def test_tool_command_line_precedence():
@@ -325,6 +329,20 @@ def test_tool_logging_quiet(capsys):
     assert len(log) == 0
 
 
+def test_tool_overwrite_output(capsys, tmp_path):
+    path = tmp_path / "overwrite_dummy"
+    tool = Tool()
+    # path does not exist
+    tool.check_output(path)
+    # path exists and no overwrite
+    path.touch()
+    with pytest.raises(ToolConfigurationError):
+        tool.check_output(path)
+    # path exists and overwrite is True
+    tool.overwrite = True
+    tool.check_output(path)
+
+
 def test_invalid_traits(tmp_path, caplog):
     caplog.set_level(logging.INFO, logger="ctapipe")
 
@@ -334,14 +352,19 @@ def test_invalid_traits(tmp_path, caplog):
         param = Float(5.0, help="parameter").tag(config=True)
 
     # 2 means trait error
-    assert run_tool(MyTool(), ["--MyTool.foo=5"]) == 2
+    assert run_tool(MyTool(), ["--MyTool.foo=5"], raises=False) == 2
+
+    with pytest.raises(ToolConfigurationError):
+        run_tool(MyTool(), ["--MyTool.foo=5"], raises=True)
 
     # test that it also works for config files
     config = tmp_path / "config.json"
     with config.open("w") as f:
         json.dump({"MyTool": {"foo": 5}}, f)
 
-    assert run_tool(MyTool(), [f"--config={config}"]) == 2
+    assert run_tool(MyTool(), [f"--config={config}"], raises=False) == 2
+    with pytest.raises(ToolConfigurationError):
+        assert run_tool(MyTool(), [f"--config={config}"], raises=True)
 
 
 def test_tool_raises():
@@ -365,3 +388,41 @@ def test_tool_raises():
 
     with pytest.raises(ValueError):
         run_tool(ToolBad(), raises=True)
+
+
+def test_exit_stack():
+    """Test that components that are context managers are properly handled"""
+
+    class TestManager:
+        def __init__(self):
+            self.enter_called = False
+            self.exit_called = False
+
+        def __enter__(self):
+            self.enter_called = True
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.exit_called = True
+
+    class AtExitTool(Tool):
+        def setup(self):
+            self.manager = self.enter_context(TestManager())
+
+    tool = AtExitTool()
+    run_tool(tool)
+    assert tool.manager.enter_called
+    assert tool.manager.exit_called
+
+    # test this also works when there is an exception in the user code
+    class FailTool(Tool):
+        def setup(self):
+            self.manager = self.enter_context(TestManager())
+
+        def start(self):
+            raise Exception("Failed")
+
+    tool = FailTool()
+    assert run_tool(tool, raises=False) == 1
+    assert tool.manager.enter_called
+    assert tool.manager.exit_called

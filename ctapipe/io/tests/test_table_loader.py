@@ -6,6 +6,7 @@ from astropy.table import Table
 
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.utils.datasets import get_dataset_path
 
 
 def check_equal_array_event_order(table1, table2):
@@ -83,6 +84,25 @@ def test_telescope_events_for_tel_id(dl1_file):
         assert "image" in table.colnames
         assert np.all(table["tel_id"] == 8)
         assert table["obs_id"].dtype == np.int32
+
+    assert not table_loader.h5file.isopen
+
+
+def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
+    """Test loading muon data for a single telescope"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(
+        dl1_muon_output_file,
+        load_dl1_muons=True,
+        load_dl1_parameters=False,
+        focal_length_choice="EQUIVALENT",
+    ) as table_loader:
+        table = table_loader.read_telescope_events([1])
+        assert "muonring_radius" in table.colnames
+        assert "muonparameters_containment" in table.colnames
+        assert "muonefficiency_optical_efficiency" in table.colnames
+        assert np.all(table["tel_id"] == 1)
 
     assert not table_loader.h5file.isopen
 
@@ -284,9 +304,18 @@ def test_chunked(dl2_shower_geometry_file):
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
         for chunk, (events, tel_events, by_type, by_id) in enumerate(zip(*iters)):
+
+            expected_start = chunk * chunk_size
+            expected_stop = min(n_events, (chunk + 1) * chunk_size)
+
+            start, stop, events = events
+            tel_events = tel_events.data
+            by_type = by_type.data
+            by_id = by_id.data
+            assert expected_start == start
+            assert expected_stop == stop
+
             n_read += len(events)
-            start = chunk * chunk_size
-            stop = min(n_events, (chunk + 1) * chunk_size)
 
             # last chunk might be smaller
             if chunk == (n_chunks - 1):
@@ -378,3 +407,28 @@ def test_read_empty_table(dl2_shower_geometry_file):
     ) as loader:
         table = loader.read_telescope_events([6])
         assert len(table) == 0
+
+
+def test_order_merged():
+    """Test reading functions return data in correct event order"""
+    from ctapipe.io import TableLoader
+
+    path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+
+    tel_trigger = read_table(path, "/dl1/event/telescope/trigger")
+    with TableLoader(
+        path,
+        load_dl1_parameters=False,
+        load_dl2=True,
+        load_observation_info=True,
+    ) as loader:
+        tables = loader.read_telescope_events_by_id()
+
+        for tel_id, table in tables.items():
+            mask = tel_trigger["tel_id"] == tel_id
+            check_equal_array_event_order(table, tel_trigger[mask])
+
+        tables = loader.read_telescope_events_by_type()
+        for tel, table in tables.items():
+            mask = np.isin(tel_trigger["tel_id"], loader.subarray.get_tel_ids(tel))
+            check_equal_array_event_order(table, tel_trigger[mask])

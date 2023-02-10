@@ -112,8 +112,3 @@ def test_scts(prod5_sst):
             image=np.zeros(telescope.camera.geometry.n_pixels),
             pedestal=np.zeros(telescope.camera.geometry.n_pixels),
         )
-
-
-if __name__ == "__main__":
-    # test_chord_length()
-    test_muon_efficiency_fit()
