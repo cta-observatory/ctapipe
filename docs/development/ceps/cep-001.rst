@@ -21,9 +21,9 @@ on how CEPs are authored, discussed and reviewed.
 
 A CEP is a design document that provides information to the community, 
 proposing a major addition or change to ctapipe. It can also describe 
-changes to its processes or environment. 
-The CEP should provide a concise technical specification of the feature
-and a rationale for the feature.
+changes to its processes or environment. The CEP should provide a 
+concise technical specification of the feature and a rationale for 
+the feature.
 
 We intend CEPs to be the primary mechanisms for proposing major new features,
 for collecting community input on an issue, and for documenting the design
