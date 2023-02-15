@@ -72,7 +72,7 @@ Writing a CEP
 =============
 
 The CEP process begins with a new idea for ctapipe. It is highly recommended
-that a single CEP contain a single key proposal or new idea. Note that small
+that a single CEP contains a single key proposal or new idea. Note that small
 enhancements or patches as a rule don't need a CEP and can be injected into the
 ctapipe development workflow with a patch submission to the ctapipe issue
 tracker. The more focused the CEP, the more successful it tends to be. If in
