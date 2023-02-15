@@ -4,12 +4,15 @@ import logging
 import os
 import sys
 
-from pkg_resources import resource_filename
-
 from ..core import Provenance, get_module_version
 from ..core.plugins import detect_and_import_plugins
 from ..utils import datasets
 from .utils import get_parser
+
+if sys.version_info < (3, 9):
+    from importlib_resources import files
+else:
+    from importlib.resources import files
 
 __all__ = ["info"]
 
@@ -189,7 +192,7 @@ def _info_resources():
     all_resources = sorted(datasets.find_all_matching_datasets(r"\w.*"))
     home = os.path.expanduser("~")
     try:
-        resource_dir = resource_filename("ctapipe_resources", "")
+        resource_dir = files("ctapipe_resources")
     except ImportError:
         resource_dir = None
 
