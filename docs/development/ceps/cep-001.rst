@@ -19,7 +19,7 @@ CEP stands for "ctapipe Enhancement Proposal". This is CEP 1, which
 describes the purpose of writing CEPs as well as giving some guidelines
 on how CEPs are authored, discussed and reviewed.
 
-An CEP is a design document providing information to the community, or 
+A CEP is a design document providing information to the community, or 
 describing a new feature for ctapipe or its processes or environment. 
 The CEP should provide a concise technical specification of the feature
 and a rationale for the feature.
