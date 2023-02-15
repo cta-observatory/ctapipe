@@ -15,7 +15,7 @@ CEP 1 - Purpose and guidelines
 Abstract
 ========
 
-CEP stands for "Ctapipe Enhancment Proposal". This is CEP 1, which
+CEP stands for "ctapipe Enhancement Proposal". This is CEP 1, which
 describes the purpose of writing CEPs as well as giving some guidelines
 on how CEPs are authored, discussed and reviewed.
 
