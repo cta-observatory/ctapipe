@@ -245,6 +245,7 @@ advice from Thomas A Caswell.
 
 
 .. _PEPs: https://www.python.org/dev/peps/pep-0001/
+.. _PIGs: https://docs.gammapy.org/dev/development/pigs/index.html
 .. _NEPs: https://docs.scipy.org/doc/numpy-dev/neps/index.html
 .. _APEs: https://github.com/astropy/astropy-APEs
 .. _JEPs: https://github.com/jupyter/enhancement-proposals
