@@ -37,7 +37,7 @@ history is the historical record of the feature proposal
 What is a CEP?
 ==============
 
-CTApipe Enhancment Proposals are short documents proposing a major
+ctapipe Enhancment Proposals are short documents proposing a major
 addition or change to ctapipe. CEPs are like `APEs`_, `JEPs`_, `NEPs`_, 
 `PEPs`_, and `PIGs`_, just for ctapipe. Using such enhancement proposals
 is common for large and long-term open-source Python projects.
