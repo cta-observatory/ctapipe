@@ -174,7 +174,7 @@ mistakes only. Put your main feedback as normal comments in the "Conversation"
 tab, so that for someone reading the discussion later they will see your 
 comment directly.
 
-The final decision on any CEP is made by the ctapipe coordination committee.
+The final decision on any CEP is made by the ctapipe core developer team.
 We expect that in most cases, the people participating in the CEP review will
 reach a consensus and the coordination committee will follow the outcome
 of the public discussion. But in unusual cases where disagreement remains,
@@ -241,3 +241,18 @@ The above proposal text borrows heavily from the Gammapy change proposal documen
 having started as a straight copy of it. It also copies and adapts substantial 
 parts of the change proposal document for Astropy, as well as incorporates some 
 advice from Thomas A Caswell.
+
+
+.. _PEPs: https://www.python.org/dev/peps/pep-0001/
+.. _NEPs: https://docs.scipy.org/doc/numpy-dev/neps/index.html
+.. _APEs: https://github.com/astropy/astropy-APEs
+.. _JEPs: https://github.com/jupyter/enhancement-proposals
+.. _APE template: https://github.com/astropy/astropy-APEs/blob/master/APEtemplate.rst
+.. _APE 2: https://github.com/astropy/astropy-APEs/blob/master/APE2.rst
+.. _APE 5: https://github.com/astropy/astropy-APEs/blob/master/APE5.rst
+.. _APE 7: https://github.com/astropy/astropy-APEs/blob/master/APE7.rst
+.. _APE 10: https://github.com/astropy/astropy-APEs/blob/master/APE10.rst
+.. _APE 13: https://github.com/astropy/astropy-APEs/blob/master/APE13.rst
+.. _PEP 8: https://www.python.org/dev/peps/pep-0008/
+.. _PEP 389: https://www.python.org/dev/peps/pep-0389/
+.. _PEP 481: https://www.python.org/dev/peps/pep-0481/
