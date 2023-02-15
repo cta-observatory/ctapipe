@@ -26,7 +26,7 @@ and a rationale for the feature.
 
 We intend CEPs to be the primary mechanisms for proposing major new features,
 for collecting community input on an issue, and for documenting the design
-decisions that have gone into Python. The CEP author is responsible for
+decisions that have gone into ctapipe. The CEP author is responsible for
 building consensus within the community and documenting dissenting opinions.
 
 Because the CEPs are maintained as text files in a versioned repository
