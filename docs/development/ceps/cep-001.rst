@@ -19,8 +19,9 @@ CEP stands for "ctapipe Enhancement Proposal". This is CEP 1, which
 describes the purpose of writing CEPs as well as giving some guidelines
 on how CEPs are authored, discussed and reviewed.
 
-A CEP is a design document providing information to the community, or 
-describing a new feature for ctapipe or its processes or environment. 
+A CEP is a design document that provides information to the community, 
+proposing a major addition or change to ctapipe. It can also describe 
+changes to its processes or environment. 
 The CEP should provide a concise technical specification of the feature
 and a rationale for the feature.
 
@@ -155,7 +156,7 @@ format described above, shepherds the discussions in the appropriate forums, and
 to build community consensus around the idea. This sheparding function is usually done by
 the author, but the role can be filled by any interested party.  Most discussions concerning
 ctapipe will happen by talking to each other directly (calls or face-to-face), or online on 
-the mailing list or Github.
+slack or Github.
 
 CEP review
 ==========
@@ -176,9 +177,9 @@ comment directly.
 
 The final decision on any CEP is made by the ctapipe core developer team.
 We expect that in most cases, the people participating in the CEP review will
-reach a consensus and the coordination committee will follow the outcome
+reach a consensus and the core developer team will follow the outcome
 of the public discussion. But in unusual cases where disagreement remains,
-the coordination committee will talk to the people involved in the discussion
+the core developers will talk to the people involved in the discussion
 with the goal to reach consensus or compromise, and then make the final decision.
 
 Usually a short "Decision rationale" section will be added at the end of the 
@@ -191,12 +192,12 @@ CEPs can have a status of:
 
 * "draft" - in draft status, either in the writing or discussion phase
 * "withdrawn" - withdrawn by the author
-* "accepted/accepted-in-progress" - accepted by the coordination committee and,
-  in the case of a "standard track" CEP the work of implementing the code 
+* "accepted/accepted-in-progress" - accepted by the core developer team and,
+  in the case of a "standard track" CEP, the work of implementing the code 
   changes is ongoing
-* "accepted-implemented" - accepted by the coordination committee, and the 
+* "accepted-implemented" - accepted by the core developer team, and the 
   suggestion has been fully implemented into ctapipe
-* "rejected" - rejected by the coordination committee
+* "rejected" - rejected by the core developer team
 
 When a CEP is put up for discussion as a pull request, it should have a status of
 "draft". Then once the discussion and review is done, the status will change to
@@ -228,12 +229,12 @@ Specifically the following points remain flexible:
   doesn't, that edits will be made with clarifications or even changes.
   Whether to edit an existing CEP or whether to write a new follow-up CEP will
   be discussed on a case by case basis.
-* What to do if the coordination committee doesn't agree on some CEP?
+* What to do if the core developer team doesn't agree on some CEP?
   For now, we leave this question to the future. We expect that this scenario
   might arise, it's normal that opinions on technical solutions or importance
   of use cases or projects to support with ctapipe differ. We also expect
-  that ctapipe coordination committee members will be friendly people that
-  can collaborate and find a solution or at least compromise that works for everyone.
+  that ctapipe the core developers will be friendly people that can collaborate
+  and find a solution or at least compromise that works for everyone.
 
 Acknowledgments
 ===============
