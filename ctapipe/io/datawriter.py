@@ -109,7 +109,16 @@ def write_reference_metadata_headers(
     instrument_info: meta.Instrument
         instrument metadata
     """
-    activity = PROV.current_activity.provenance
+    activity = PROV.current_activity
+    if activity is None and len(PROV.finished_activities) > 0:
+        # assume that we write provenance for a "just finished activity"
+        activity = PROV.finished_activities[-1]
+
+    if activity is not None:
+        activity_meta = meta.Activity.from_provenance(activity.provenance)
+    else:
+        activity_meta = None
+
     category = "Sim" if is_simulation else "Other"
 
     reference = meta.Reference(
@@ -129,7 +138,7 @@ def write_reference_metadata_headers(
             subtype="",
             id_=",".join(str(x) for x in obs_ids),
         ),
-        activity=meta.Activity.from_provenance(activity),
+        activity=activity_meta,
         instrument=instrument_info,
     )
 

@@ -156,9 +156,8 @@ class Provenance(metaclass=Singleton):
     @property
     def current_activity(self):
         if len(self._activities) == 0:
-            log.debug("No activity has been started... starting a default one")
-            self.start_activity()
-        return self._activities[-1]  # current activity as at the top of stack
+            return None
+        return self._activities[-1]  # current activity is at the top of stack
 
     @property
     def finished_activities(self):
