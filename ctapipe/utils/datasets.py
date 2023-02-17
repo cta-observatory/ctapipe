@@ -8,7 +8,6 @@ from pathlib import Path
 
 import yaml
 from astropy.table import Table
-from pkg_resources import resource_listdir
 from requests.exceptions import HTTPError
 
 from .download import download_file_cached, get_cache_path
@@ -31,8 +30,11 @@ from ..core import Provenance
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "get_dataset_path", "find_in_path", "find_all_matching_datasets",
-    "get_default_url", "DEFAULT_URL"
+    "get_dataset_path",
+    "find_in_path",
+    "find_all_matching_datasets",
+    "get_default_url",
+    "DEFAULT_URL",
 ]
 
 
@@ -66,7 +68,10 @@ def get_searchpath_dirs(searchpath=None, url=None):
 
 
 def find_all_matching_datasets(
-    pattern, searchpath=None, regexp_group=None, url=None,
+    pattern,
+    searchpath=None,
+    regexp_group=None,
+    url=None,
 ):
     """
     Returns a list of resource names (or substrings) matching the given
@@ -111,13 +116,13 @@ def find_all_matching_datasets(
 
     # then check resources module
     if has_resources:
-        for resource in resource_listdir("ctapipe_resources", ""):
-            match = re.match(pattern, resource)
+        for resource in files("ctapipe_resources").iterdir():
+            match = re.match(pattern, resource.name)
             if match:
                 if regexp_group is not None:
                     results.add(match.group(regexp_group))
                 else:
-                    results.add(Path(resource))
+                    results.add(resource)
 
     return list(results)
 

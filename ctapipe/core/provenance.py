@@ -17,14 +17,17 @@ from importlib import import_module
 from os.path import abspath
 from pathlib import Path
 
-import pkg_resources
 import psutil
 from astropy.time import Time
-from pkg_resources import get_distribution
 
 import ctapipe
 
 from .support import Singleton
+
+if sys.version_info < (3, 9):
+    from importlib_metadata import distributions, version
+else:
+    from importlib.metadata import distributions, version
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +55,7 @@ def get_module_version(name):
         return module.__version__
     except AttributeError:
         try:
-            return get_distribution(name).version
+            return version(name)
         except Exception:
             return "unknown"
     except ImportError:
@@ -286,8 +289,8 @@ class _ActivityProvenance:
 
 def _get_python_packages():
     return [
-        {"name": p.project_name, "version": p.version, "path": p.module_path}
-        for p in sorted(pkg_resources.working_set, key=lambda p: p.project_name)
+        {"name": p.name, "version": p.version}
+        for p in sorted(distributions(), key=lambda d: d.name)
     ]
 
 
