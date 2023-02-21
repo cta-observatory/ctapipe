@@ -151,7 +151,7 @@ Once a complete draft for a CEP is written, it can be submitted for comunity dis
 by opening a pull request adding a RST file to the  ``docs/development/ceps`` folder 
 in the main ctapipe repository.
 
-Each CEP must have a advocate -- someone who beyond writing the CEP using the style and 
+Each CEP must have an advocate -- someone who beyond writing the CEP using the style and 
 format described above, shepherds the discussions in the appropriate forums, and attempts
 to build community consensus around the idea. This sheparding function is usually done by
 the author, but the role can be filled by any interested party.  Most discussions concerning
