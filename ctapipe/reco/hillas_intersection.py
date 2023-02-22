@@ -218,6 +218,15 @@ class HillasIntersection(HillasGeometryReconstructor):
         src_fov_lon, src_fov_lat, err_fov_lon, err_fov_lat = self.reconstruct_nominal(
             hillas_dict_mod
         )
+
+        # Catch events reconstructed at great angular distance from camera center
+        # and retrun INVALID container to prevent SkyCoord error below.
+        if (
+            np.abs(src_fov_lat) * u.rad > 45 * u.deg
+            or np.abs(src_fov_lon) * u.rad > 45 * u.deg
+        ):
+            return INVALID
+
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
             hillas_dict_mod, tel_x, tel_y
         )
