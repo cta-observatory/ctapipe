@@ -298,6 +298,17 @@ remove the branch from the local and remote (github).
 
 Note the last step can also be done on the GitHub website.
 
+-------------------
+Debugging Your Code
+-------------------
+
+More often than not your tests will fail or your algorithm will
+show strange behaviour. **Debugging** is one of the power tools each
+developer should know. Since using ``print`` statements is **not** debugging and does
+not give you access to runtime variables at the point where your code fails, we recommend
+using ``pdb`` or ``ipdb`` for an IPython shell. 
+A nice introdcution can be found `here <https://hasil-sharma.github.io/2017-05-13-python-ipdb/>`_.
+
 ---------------------
 More Development help
 ---------------------
