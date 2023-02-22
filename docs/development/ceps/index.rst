@@ -27,14 +27,14 @@ Proposed CEPs
 
    proposed/*
 
-Draft CEPs
-==========
+Rejected CEPs
+=============
 
 .. toctree::
    :maxdepth: 1   
    :glob:
 
-   drafts/*
+   rejected/*
 
 
 .. _pull requests with the "cep" label: https://github.com/cta-observatory/ctapipe/issues?q=label%3ACEP
