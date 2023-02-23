@@ -13,7 +13,8 @@ can be found on Github as `pull requests with the "CEP" label`_ .
 
 Accepted CEPs
 =============
-.. toctree::
+.. 
+    toctree::
    :maxdepth: 1   
    :glob:
 
@@ -30,7 +31,8 @@ Proposed CEPs
 Rejected CEPs
 =============
 
-.. toctree::
+.. 
+   toctree::
    :maxdepth: 1   
    :glob:
 
