@@ -1,0 +1,6 @@
+We now use ``ruff``, a fast linter and formatter.
+``ruff`` Replaces ``isort``, ``flake8``, ``pylint``, and the codacy CI.
+
+- ``ruff`` is used as a pre-commit
+- ``pre-commit`` is used in a separate CI workflow,
+  that way, the linting CI does not diverge from the local pre-commit hooks.
