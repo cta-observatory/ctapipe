@@ -99,7 +99,6 @@ jobs:
 
       - name: Static codechecks
         run: |
-          ruff .
           restructuredtext-lint README.rst
 
       - name: ctapipe-info
