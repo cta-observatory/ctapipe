@@ -64,3 +64,7 @@ filterwarnings = [
     [[tool.towncrier.section]]
         name = ""
         path = ""
+
+[tool.ruff]
+ # F: pyflakes, E/W: pycodestyle, I: isort, N: pep8-naming, PL: pylint
+ select = ["F", "E", "W", "I", "N", "PL"]

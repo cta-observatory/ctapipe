@@ -100,7 +100,7 @@ jobs:
 
       - name: Static codechecks
         run: |
-          flake8 ctapipe
+          ruff .
           restructuredtext-lint README.rst
 
       - name: ctapipe-info
