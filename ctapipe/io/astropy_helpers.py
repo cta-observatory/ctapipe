@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+
 Functions to help adapt internal ctapipe data to astropy formats and conventions
 """
 import os
@@ -65,7 +66,6 @@ def read_table(
     """
 
     with ExitStack() as stack:
-
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
