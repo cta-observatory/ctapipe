@@ -3,6 +3,7 @@ on:
   schedule:
     - cron: '30 1 * * *'
   workflow_call:
+  pull_request: # remove before merging
 
 jobs:
   stale:
@@ -17,4 +18,4 @@ jobs:
           days-before-pr-stale: 45
           days-before-pr-close: 10
           exempt-all-pr-milestones: true  # don't stale PRs that have a milestone attached
-          debug-only: true
+          debug-only: true  # remove before merging
