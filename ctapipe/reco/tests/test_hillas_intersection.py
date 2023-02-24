@@ -220,14 +220,15 @@ def test_intersection_nominal_reconstruction(example_subarray):
 def test_badly_reconstructed_event(prod5_mst_flashcam):
     """
     Test that events reconstructed at large angular distance
-    from FoV center return INVALID
+    from FoV center return INVALID. Event and array loosely follow an
+    actual simulation event.
     """
-    tel_pos = {1: np.array([-50, 0, 0]) * u.m, 2: np.array([50, 0, 0]) * u.m}
+    tel_pos = {1: np.array([150, 75, 0]) * u.m, 2: np.array([150, -240, 0]) * u.m}
     tel_desc = {1: prod5_mst_flashcam, 2: prod5_mst_flashcam}
     reference_location = EarthLocation(
-        lon=-17.890879 * u.deg,
-        lat=28.761579 * u.deg,
-        height=2199 * u.m,
+        lon=-70.32 * u.deg,
+        lat=-24.68 * u.deg,
+        height=2147 * u.m,
     )
     two_tel_subarray = SubarrayDescription(
         "two_tel_subarray",
@@ -238,21 +239,21 @@ def test_badly_reconstructed_event(prod5_mst_flashcam):
     hill_inter = HillasIntersection(two_tel_subarray)
 
     hillas_tel_1 = HillasParametersContainer(
-        fov_lon=1 * u.deg,
-        fov_lat=1 * u.deg,
-        intensity=100,
+        fov_lon=0.6 * u.deg,
+        fov_lat=-0.3 * u.deg,
+        intensity=95,
         psi=85.3 * u.deg,
-        length=0.5 * u.deg,
-        width=0.3 * u.deg,
+        length=0.09 * u.deg,
+        width=0.05 * u.deg,
     )
 
     hillas_tel_2 = HillasParametersContainer(
-        fov_lon=0 * u.deg,
-        fov_lat=0 * u.deg,
-        intensity=100,
+        fov_lon=-0.1 * u.deg,
+        fov_lat=-0.4 * u.deg,
+        intensity=119,
         psi=85.0 * u.deg,
-        length=0.5 * u.deg,
-        width=0.3 * u.deg,
+        length=0.15 * u.deg,
+        width=0.04 * u.deg,
     )
 
     hillas_dir = {1: hillas_tel_1, 2: hillas_tel_2}
