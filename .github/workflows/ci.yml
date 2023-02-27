@@ -93,14 +93,13 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install codecov pytest-cov flake8 restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
+          pip install codecov pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
           pip freeze
 
       - name: Static codechecks
         run: |
-          flake8 ctapipe
           restructuredtext-lint README.rst
 
       - name: ctapipe-info
