@@ -1,0 +1,2 @@
+Remove redundant sort to original event order in ``TableLoader``.
+This caused the sorting index to be removed before the final sort to original order when reading events.
