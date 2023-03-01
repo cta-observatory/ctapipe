@@ -259,7 +259,7 @@ class BaseHillasParametersContainer(Container):
     intensity = Field(nan, "total intensity (size)")
     skewness = Field(nan, "measure of the asymmetry")
     kurtosis = Field(nan, "measure of the tailedness")
-
+    chisq = Field(nan, "measure of chi squared")
 
 class CameraHillasParametersContainer(BaseHillasParametersContainer):
     """
@@ -278,7 +278,7 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
-
+    
 
 class HillasParametersContainer(BaseHillasParametersContainer):
     """
@@ -307,6 +307,82 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
+class BaseImageFitParametersContainer(Container):
+    """
+    Base container for hillas parameters to
+    allow the CameraHillasParametersContainer to
+    be assigned to an ImageParametersContainer as well.
+    """
+
+    intensity = Field(nan, "total intensity (size)")
+    skewness = Field(nan, "measure of the asymmetry")
+    skewness_uncertainty = Field(nan, "measure of skewness uncertainty")
+    kurtosis = Field(nan, "measure of the tailedness")
+    chisq = Field(nan, "measure of chi squared")
+    likelihood = Field(nan, "measure of likelihood")
+
+class CameraImageFitParametersContainer(BaseImageFitParametersContainer):
+    """
+    Hillas Parameters in the camera frame. The cog position
+    is given in meter from the camera center.
+    """
+
+    default_prefix = "camera_frame_fit"
+    x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
+    x_uncertainty = Field(nan * u.m, "centroid x unceratinty", unit=u.m)
+    y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
+    y_uncertainty = Field(nan * u.m, "centroid y unceratinty", unit=u.m)
+    r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
+    r_uncertainty = Field(nan * u.m, "centroid r uncertainty", unit=u.m)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
+    phi_uncertainty = Field(nan * u.deg, "polar coordinate of centroid uncertainty", unit=u.deg)
+
+    length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
+    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
+    width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
+    width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi_uncertainty = Field(nan * u.deg, "rotation angle of ellipse uncertainty", unit=u.deg)
+
+class ImageFitParametersContainer(BaseImageFitParametersContainer):
+    """
+    Hillas Parameters in a spherical system centered on the pointing position
+    (TelescopeFrame). The cog position is given as offset in
+    longitude and latitude in degree.
+    """
+
+    default_prefix = "hillas"
+    fov_lon = Field(
+        nan * u.deg,
+        "longitude angle in a spherical system centered on the pointing position",
+        unit=u.deg,
+    )
+    fov_lon_uncertainty = Field(
+        nan * u.deg,
+        "longitude angle in a spherical system centered on the pointing position uncertainty",
+        unit=u.deg,
+    )
+    fov_lat = Field(
+        nan * u.deg,
+        "latitude angle in a spherical system centered on the pointing position",
+        unit=u.deg,
+    )
+    fov_lat_uncertainty = Field(
+        nan * u.deg,
+        "latitude angle in a spherical system centered on the pointing position uncertainty",
+        unit=u.deg,
+    )
+    r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
+    r_uncertainty = Field(nan * u.deg, "radial coordinate of centroid uncertainty", unit=u.deg)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
+    phi_uncertainty = Field(nan * u.deg, "polar coordinate of centroid uncertainty", unit=u.deg)
+
+    length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
+    length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
+    width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
+    width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi_uncertainty = Field(nan * u.deg, "rotation angle of ellipse uncertainty", unit=u.deg)
 
 class LeakageContainer(Container):
     """
@@ -432,6 +508,11 @@ class ImageParametersContainer(Container):
         default_factory=HillasParametersContainer,
         description="Hillas Parameters",
         type=BaseHillasParametersContainer,
+    )
+    image_fit = Field(
+        default_factory=ImageFitParametersContainer,
+        description="Image fit Parameters",
+        type=BaseImageFitParametersContainer,
     )
     timing = Field(
         default_factory=TimingParametersContainer,

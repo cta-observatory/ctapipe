@@ -18,6 +18,16 @@ Examples:
     >>> print(image.shape)
     (400,)
 """
+<<<<<<< HEAD
+=======
+import numpy as np
+from ctapipe.utils import linalg
+from ctapipe.image.hillas import camera_to_shower_coordinates
+import astropy.units as u
+from astropy.coordinates import Angle
+from scipy.stats import multivariate_normal, skewnorm, norm, cauchy
+from scipy.ndimage import convolve1d
+>>>>>>> 80b8b74f (first step towards new image parametrization algorithm)
 from abc import ABCMeta, abstractmethod
 
 import astropy.units as u
@@ -33,6 +43,7 @@ __all__ = [
     "WaveformModel",
     "Gaussian",
     "SkewedGaussian",
+    "SkewedCauchy",
     "ImageModel",
     "obtain_time_image",
 ]
@@ -366,3 +377,69 @@ class RingGaussian(ImageModel):
         """2d probability for photon electrons in the camera plane."""
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
         return self.dist.pdf(r)
+
+
+class SkewedCauchy(ImageModel):
+    """A shower image that has a skewness along the major axis.
+    """
+
+    @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
+    def __init__(self, x, y, length, width, psi, skewness):
+        """Create 2D skewed Cauchy model for a shower image in a camera.
+        Skewness is only applied along the main shower axis.
+        See https://en.wikipedia.org/wiki/Skew_normal_distribution ,
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html , and 
+        https://en.wikipedia.org/wiki/Cauchy_distribution for details.
+
+        Parameters
+        ----------
+        centroid : u.Quantity[length, shape=(2, )]
+            position of the centroid of the shower in camera coordinates
+        width: u.Quantity[length]
+            width of shower (minor axis)
+        length: u.Quantity[length]
+            length of shower (major axis)
+        psi : convertable to `astropy.coordinates.Angle`
+            rotation angle about the centroid (0=x-axis)
+
+        Returns
+        -------
+        a `scipy.stats` object
+
+        """
+        self.x = x
+        self.y = y
+        self.width = width
+        self.length = length
+        self.psi = psi
+        self.skewness = skewness
+
+    def _moments_to_parameters(self):
+        """Returns loc and scale from mean, std and skewnewss."""
+        # see https://en.wikipedia.org/wiki/Skew_normal_distribution#Estimation
+        skew23 = np.abs(self.skewness) ** (2 / 3)
+        delta = np.sign(self.skewness) * np.sqrt(
+            (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
+        )
+        a = delta / np.sqrt(1 - delta ** 2)
+        scale = self.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
+        loc = -scale * delta * np.sqrt(2 / np.pi)
+
+        return a, loc, scale
+
+    @u.quantity_input(x=u.m, y=u.m)
+    def pdf(self, x, y):
+        """2d probability for photon electrons in the camera plane."""
+        mu = u.Quantity([self.x, self.y]).to_value(u.m)
+
+        rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
+        pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
+        long, trans = rotation @ (pos - mu).T
+
+        trans_pdf = cauchy(loc=0, scale=self.width.to_value(u.m)).pdf(trans)
+
+        a, loc, scale = self._moments_to_parameters()
+
+        return trans_pdf * skewnorm(a=a, loc=loc, scale=scale).pdf(long)
+
+
