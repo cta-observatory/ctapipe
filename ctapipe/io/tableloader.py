@@ -349,19 +349,12 @@ class TableLoader(Component):
         # casts the obs_id in the joint result to float.
         obs_table["obs_id"] = obs_table["obs_id"].astype(table["obs_id"].dtype)
 
-        # to be able to sort to original table order
-        self._add_index_if_needed(table)
-
         joint = join_allow_empty(
             table,
             obs_table,
             keys="obs_id",
             join_type="left",
         )
-
-        # sort back to original order and remove index col
-        self._sort_to_original_order(joint)
-        del table["__index__"]
         return joint
 
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
