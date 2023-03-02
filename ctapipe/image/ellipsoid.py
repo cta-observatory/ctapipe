@@ -65,6 +65,10 @@ def extra_rows(n, cleaned_mask, geometry):
 
     return mask
 
+#def boundaries():
+
+
+
 def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedestal):
     """
     Computes image parameters for a given shower image.
@@ -107,11 +111,11 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
 
     size = np.sum(image)
 
-    if size == 0.0:
-        raise ImageFitParameterizationError("size=0, cannot calculate ImageFitParameters")
-  
     x0 = create_initial_guess(geom, image)
-    
+
+    if size <= len(x0):
+        raise ImageFitParameterizationError("size=0, cannot calculate ImageFitParameters")
+
     mask = extra_rows(n, cleaned_mask, geom)
     cleaned_image = image.copy()  
     cleaned_image[~mask] = 0.0
@@ -119,10 +123,10 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
     size = np.sum(cleaned_image)
 
     def fit(cog_x, cog_y, psi, length, width, skewness, amplitude):
-        prediction = amplitude * SkewedCauchy(cog_x*unit, cog_y*unit, length*unit, width*unit, psi*u.rad, skewness).pdf(geom.pix_x, geom.pix_y)
+        prediction = size * SkewedCauchy(cog_x*unit, cog_y*unit, length*unit, width*unit, psi*u.rad, skewness).pdf(geom.pix_x, geom.pix_y)
         return neg_log_likelihood_approx(cleaned_image, prediction, spe_width, pedestal)
 
-    m = Minuit(fit, cog_x=x0['x'].value, cog_y=x0['y'].value, psi=x0['psi'].value, length=x0['length'].value, width=x0['width'].value, skewness=x0['skewness'], amplitude=1)
+    m = Minuit(fit, cog_x=x0['x'].value, cog_y=x0['y'].value, psi=x0['psi'].value, length=x0['length'].value, width=x0['width'].value, skewness=x0['skewness'], amplitude=size)
 
     if bounds != None:
         m.limits = bounds
@@ -130,8 +134,8 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
     m.errordef=1  #neg log likelihood
     m.simplex().migrad()
     m.hesse()  
-    likelihood = m.fval
 
+    likelihood = m.fval
     pars = m.values
     errors = m.errors
 
