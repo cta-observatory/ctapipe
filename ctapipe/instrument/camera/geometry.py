@@ -249,7 +249,6 @@ class CameraGeometry:
             [0, width, 0], [0, 0, width], unit=cam.pix_x.unit, frame=cam.frame
         )
         points_trans = points.transform_to(frame)
-
         x_name, y_name = get_representation_component_names(cam.frame)
         points_x = getattr(points, x_name)
         points_y = getattr(points, y_name)
@@ -301,7 +300,7 @@ class CameraGeometry:
             cam_rotation=cam_rotation,
             neighbors=cam._neighbors,
             apply_derotation=False,
-            frame=frame,
+            frame=points_trans.frame,
         )
 
     def __hash__(self):
