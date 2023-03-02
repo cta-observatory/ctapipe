@@ -20,6 +20,8 @@ the Tutorials section for more complete examples)
    :caption: Visualization
     camera_display
     array_display
+    shower_core
+
 
 .. toctree::
     :maxdepth: 1
