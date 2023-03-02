@@ -48,3 +48,4 @@ dependencies:
   - zstandard
   - eventio>=1.9.1
   - jinja2=3.0 # for sphinx 3.5, remove when updating to 4.x
+  - ffmpeg # for making movies in the documentation
