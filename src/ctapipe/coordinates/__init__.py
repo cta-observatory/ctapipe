@@ -3,6 +3,7 @@ Coordinates.
 """
 
 import warnings
+from typing import Union
 
 from astropy.coordinates import (
     CIRS,
@@ -10,6 +11,7 @@ from astropy.coordinates import (
     FunctionTransformWithFiniteDifference,
     frame_transform_graph,
 )
+from astropy.coordinates.baseframe import BaseCoordinateFrame
 
 from .camera_frame import CameraFrame, EngineeringCameraFrame
 from .ground_frames import (
@@ -51,9 +53,16 @@ class MissingFrameAttributeWarning(Warning):
     pass
 
 
-def get_representation_component_names(frame):
-    """Return the component names of a Frame (or SkyCoord)"""
-    return tuple(frame.get_representation_component_names().keys())
+def get_representation_component_names(
+    frame: Union[BaseCoordinateFrame, type[BaseCoordinateFrame]]
+):
+    """
+    Return the component names of a Frame (or SkyCoord)
+    """
+    if isinstance(frame, type):
+        return tuple(frame().get_representation_component_names().keys())
+    else:
+        return tuple(frame.get_representation_component_names().keys())
 
 
 # astropy requires all AltAz to have locations
