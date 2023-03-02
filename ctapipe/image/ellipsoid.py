@@ -68,7 +68,6 @@ def extra_rows(n, cleaned_mask, geometry):
 #def boundaries():
 
 
-
 def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedestal):
     """
     Computes image parameters for a given shower image.
