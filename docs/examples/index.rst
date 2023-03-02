@@ -16,11 +16,16 @@ the Tutorials section for more complete examples)
     convert_images_to_2d
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Visualization
+    camera_display
+    array_display
+
+.. toctree::
     :maxdepth: 1
     :caption: Core functionality
 
     InstrumentDescription
-    camera_display
     containers
     Tools
     provenance
