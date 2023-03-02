@@ -2,7 +2,7 @@
 Coordinates.
 """
 import warnings
-from typing import Union
+from typing import Type, Union
 
 from astropy.coordinates import (
     CIRS,
@@ -45,7 +45,7 @@ class MissingFrameAttributeWarning(Warning):
 
 
 def get_representation_component_names(
-    frame: Union[BaseCoordinateFrame, type[BaseCoordinateFrame]]
+    frame: Union[BaseCoordinateFrame, Type[BaseCoordinateFrame]]
 ):
     """
     Return the component names of a Frame (or SkyCoord)
