@@ -1,0 +1,9 @@
+`CameraGeometry.transform_to()` now correctly accepts astropy coordinate frame *classes*, not just instances.  When passing a *frame class* (any class that inherits from `astropy.coordinates.baseframe.BaseCoordinateFrame`), all of the frame attributes that exist in `CameraGeometry.frame` attribute are correctly propagated to the transformed geometry.  For example:
+
+
+.. code: python
+
+   geom2 = geom_in_camera_frame.transform_to(EngineeringCameraFrame)
+   geom2.focal_length == geom_in_camera_frame.focal_length
+
+   # True
