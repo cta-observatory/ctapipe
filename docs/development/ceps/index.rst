@@ -22,7 +22,8 @@ Accepted CEPs
 
 Proposed CEPs
 =============
-.. toctree::
+.. 
+   toctree::
    :maxdepth: 1   
    :glob:
 
