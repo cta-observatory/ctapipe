@@ -320,6 +320,10 @@ class BaseImageFitParametersContainer(Container):
     kurtosis = Field(nan, "measure of the tailedness")
     chisq = Field(nan, "measure of chi squared")
     likelihood = Field(nan, "measure of likelihood")
+    n_pix_fit = Field(nan, "number of pixels used in the fit")
+    n_free_par = Field(nan, "number of free parameters")
+    is_valid = Field(nan, "returns True if the fit is valid")
+    is_accurate = Field(nan, "returns True if the fit is accurate")
 
 class CameraImageFitParametersContainer(BaseImageFitParametersContainer):
     """

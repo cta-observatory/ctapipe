@@ -112,8 +112,11 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
 
     x0 = create_initial_guess(geom, image)
 
-    if size <= len(x0):
+    if size == 0:
         raise ImageFitParameterizationError("size=0, cannot calculate ImageFitParameters")
+
+    if np.count_nonzero(image) <= len(x0):
+        raise ImageFitParameterizationError("The number of free parameters is higher than the number of pixels to fit, cannot perform fit")
 
     mask = extra_rows(n, cleaned_mask, geom)
     cleaned_image = image.copy()  
@@ -180,6 +183,10 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
             skewness_uncertainty=errors[5],
             kurtosis=kurtosis_long,
             likelihood=likelihood,
+            n_pix_fit=np.count_nonzero(cleaned_image),
+            n_free_par=len(x0),
+            is_valid=m.valid,
+            is_accurate=m.accurate,
             )
     return ImageFitParametersContainer(
         fov_lon=u.Quantity(pars[0], unit),
@@ -201,6 +208,10 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
         skewness_uncertainty=errors[5],
         kurtosis=kurtosis_long,
         likelihood=likelihood,
+        n_pix_fit=np.count_nonzero(cleaned_image),
+        n_free_par=len(x0),
+        is_valid=m.valid,
+        is_accurate=m.accurate,
         )
 
 
