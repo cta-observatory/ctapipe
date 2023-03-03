@@ -1,1 +1,1 @@
-the `examples/` subdirectory was removed as most scripts there were out of date. Useful information in those examples was moved to example notebooks in docs/examples
+the ``examples/`` subdirectory was removed as most scripts there were out of date. Useful information in those examples was moved to example notebooks in docs/examples

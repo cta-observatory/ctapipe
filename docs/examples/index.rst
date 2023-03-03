@@ -15,9 +15,11 @@ the Tutorials section for more complete examples)
     nd_interpolation
     convert_images_to_2d
 
+
 .. toctree::
-   :maxdepth: 1
-   :caption: Visualization
+    :maxdepth: 1
+    :caption: Visualization
+
     camera_display
     array_display
     shower_core
