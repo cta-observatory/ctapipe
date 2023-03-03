@@ -12,7 +12,7 @@ from ctapipe.visualization import CameraDisplay
 
 
 def main():
-    fig, axs = plt.subplots(1, 3, constrained_layout=True, figsize=(8, 3))
+    _, axs = plt.subplots(1, 3, constrained_layout=True, figsize=(8, 3))
 
     model = Gaussian(0 * u.m, 0.1 * u.m, 0.3 * u.m, 0.05 * u.m, 25 * u.deg)
 
