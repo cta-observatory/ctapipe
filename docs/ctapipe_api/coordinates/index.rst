@@ -36,15 +36,15 @@ The following special frames are defined for CTA:
 they can be transformed to and from any other `astropy.coordinates` frame, like
 `astropy.coordinates.AltAz` or `astropy.coordinates.ICRS` (RA/Dec)
 
-The two different coordinate frames are shown here:
+The three different coordinate frames are shown here:
 
-.. plot:: ../examples/plot_camera_frames.py
-    :include-source:
+.. plot:: ../ctapipe_api/coordinates/plot_camera_frames.py
+
 
 The `CameraFrame` is used internally in ``ctapipe`` and comes from ``sim_telarray``.
 It abstracts the transformation differences between 1 and 2 mirror telescopes away.
 The `EngineeringCameraFrame` is used by MAGIC, FACT and the H.E.S.S. analysis
-software.
+software. Finally the `TelescopeFrame` shows the camera in angular coordinates on the sky, centered on the observation position for a given telescope.
 
 
 Reference/API
