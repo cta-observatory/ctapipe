@@ -10,14 +10,17 @@ from astropy.coordinates import Angle
 from ctapipe.image.cleaning import dilate
 import scipy.optimize as opt
 from iminuit import Minuit
-from ctapipe.image.pixel_likelihood import chi_squared, neg_log_likelihood_approx
+from ctapipe.image.pixel_likelihood import chi_squared, neg_log_likelihood_approx, neg_log_likelihood_numeric
 from ctapipe.image.hillas import hillas_parameters, camera_to_shower_coordinates
-from ctapipe.image.toymodel import SkewedCauchy, SkewedGaussian
+from ctapipe.image.toymodel import SkewedCauchy, SkewedGaussian, Gaussian
 from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
+from itertools import combinations
+from ctapipe.image.leakage import leakage_parameters
+from ctapipe.image.concentration import concentration_parameters
 
 __all__ = ["image_fit_parameters", "ImageFitParameterizationError"]
 
-def create_initial_guess(geometry, image):
+def create_initial_guess(geometry, image, pdf):
     """
     This function computes the initial guess for the fit using the Hillas parameters
     
@@ -34,7 +37,7 @@ def create_initial_guess(geometry, image):
     initial_guess : initial Hillas parameters 
     """
     hillas = hillas_parameters(geometry, image)
-
+    
     initial_guess = {}
     initial_guess["x"] = hillas.x
     initial_guess["y"] = hillas.y
@@ -42,6 +45,18 @@ def create_initial_guess(geometry, image):
     initial_guess["width"] = hillas.width
     initial_guess["psi"] = hillas.psi
     initial_guess["skewness"] = hillas.skewness
+    skew23 = np.abs(hillas.skewness) ** (2 / 3)
+    delta = np.sign(hillas.skewness) * np.sqrt(
+          (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
+    )
+    scale = hillas.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
+    
+    if pdf == "Gaussian":
+        initial_guess["amplitude"] = hillas.intensity/(np.sqrt(2*np.pi)*hillas.length.value*hillas.width.value)
+    if pdf == "Cauchy":
+        initial_guess["amplitude"] = hillas.intensity/(np.pi*scale*hillas.width.value)
+    if pdf == "Skewed":
+        initial_guess["amplitude"] = hillas.intensity/(np.sqrt(2*np.pi)*scale*hillas.width.value)
 
     return initial_guess
 
@@ -65,10 +80,48 @@ def extra_rows(n, cleaned_mask, geometry):
 
     return mask
 
-#def boundaries():
+def boundaries(geometry, image, cleaning_mask, cleaned_image, x0, f, pdf):
+    """
+    Parameters
+    ----------
+    f : limit in radius, it may depend on the centroid distance from the centre of camera
+    """
+    row_image = image.copy()
+    row_image[~cleaning_mask] = 0.0
+    row_image[row_image < 0] = 0.0
 
+    pix_area = geometry.pix_area.value[0]
+    area = pix_area * np.count_nonzero(row_image)
 
-def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedestal):
+    leakage = leakage_parameters(geometry, image, cleaning_mask)
+    fract_pix_border = leakage.pixels_width_2
+    fract_int_border = leakage.intensity_width_2
+
+    delta_x = geometry.pix_x.value - x0["x"].value
+    delta_y = geometry.pix_y.value - x0["y"].value
+    longitudinal = delta_x * np.cos(x0["psi"].value) + delta_y * np.sin(x0["psi"].value)
+    transverse = delta_x * -np.sin(x0["psi"].value) + delta_y * np.cos(x0["psi"].value)
+
+    cogx_min, cogx_max = np.min(geometry.pix_x.value[cleaned_image>0]), np.max(geometry.pix_x.value[cleaned_image>0])
+    cogy_min, cogy_max = np.min(geometry.pix_y.value[cleaned_image>0]), np.max(geometry.pix_y.value[cleaned_image>0])
+
+    x_dis = np.max(longitudinal[row_image>0]) - np.min(longitudinal[row_image>0])
+    y_dis = np.max(transverse[row_image>0]) - np.min(transverse[row_image>0])
+    length_min, length_max = np.sqrt(pix_area), x_dis/(1 - fract_pix_border)
+
+    width_min, width_max = np.sqrt(pix_area), y_dis
+    scale = length_min/ np.sqrt(1 - 2 / np.pi)
+    #ampl_min, ampl_max = 0, np.sum(row_image) * 1/scale * 1/(np.sqrt(2*np.pi)*width_min) 
+    skew_min, skew_max = -0.99, 0.99
+
+    if pdf == "Gaussian":
+        return [(cogx_min, cogx_max), (cogy_min, cogy_max), (-np.pi/2, np.pi/2), (length_min, length_max), (width_min, width_max), (0, np.sum(row_image)*1/(2*np.pi*width_min*length_min))]
+    if pdf == "Skewed":
+        return [(cogx_min, cogx_max), (cogy_min, cogy_max), (-np.pi/2, np.pi/2), (length_min, length_max), (width_min, width_max), (skew_min, skew_max), (0, np.sum(row_image) * 1/scale * 1/(np.sqrt(2*np.pi)*width_min))]
+    if pdf == "Cauchy":
+        return [(cogx_min, cogx_max), (cogy_min, cogy_max), (-np.pi/2, np.pi/2), (length_min, length_max), (width_min, width_max), (skew_min, skew_max), (0, np.sum(row_image) * 1/scale * 1/(np.pi*width_min))]
+
+def image_fit_parameters(geom, image, f, n, cleaned_mask, spe_width, pedestal, pdf):
     """
     Computes image parameters for a given shower image.
 
@@ -102,18 +155,20 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
     pix_y = geom.pix_y
     image = np.asanyarray(image, dtype=np.float64)
 
+    pdf_dict = {"Gaussian": Gaussian,
+            "Skewed": SkewedGaussian,
+            "Cauchy": SkewedCauchy,
+            }
+
     if isinstance(image, np.ma.masked_array):
         image = np.ma.filled(image, 0)
 
     if not (pix_x.shape == pix_y.shape == image.shape):
         raise ValueError("Image and pixel shape do not match")
 
-    size = np.sum(image)
-
-    x0 = create_initial_guess(geom, image)
-
-    if size == 0:
-        raise ImageFitParameterizationError("size=0, cannot calculate ImageFitParameters")
+    prev_image = image.copy()
+    prev_image[~cleaned_mask] = 0.0
+    x0 = create_initial_guess(geom, prev_image, pdf)
 
     if np.count_nonzero(image) <= len(x0):
         raise ImageFitParameterizationError("The number of free parameters is higher than the number of pixels to fit, cannot perform fit")
@@ -124,18 +179,28 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
     cleaned_image[cleaned_image<0] = 0.0
     size = np.sum(cleaned_image)
 
+    
     def fit(cog_x, cog_y, psi, length, width, skewness, amplitude):
-        prediction = size * SkewedCauchy(cog_x*unit, cog_y*unit, length*unit, width*unit, psi*u.rad, skewness).pdf(geom.pix_x, geom.pix_y)
+        prediction = pdf_dict[pdf](cog_x*unit, cog_y*unit, length*unit, width*unit, psi*u.rad, skewness, amplitude).pdf(geom.pix_x, geom.pix_y)
         return neg_log_likelihood_approx(cleaned_image, prediction, spe_width, pedestal)
 
-    m = Minuit(fit, cog_x=x0['x'].value, cog_y=x0['y'].value, psi=x0['psi'].value, length=x0['length'].value, width=x0['width'].value, skewness=x0['skewness'], amplitude=size)
+    def fit_gauss(cog_x, cog_y, psi, length, width, amplitude):
+        prediction = pdf_dict[pdf](cog_x*unit, cog_y*unit, length*unit, width*unit, psi*u.rad, amplitude).pdf(geom.pix_x, geom.pix_y)
+        return neg_log_likelihood_approx(cleaned_image, prediction, spe_width, pedestal)
+
+    if pdf != "Gaussian":
+        m = Minuit(fit, cog_x=x0['x'].value, cog_y=x0['y'].value, psi=x0['psi'].value, length=x0['length'].value, width=x0['width'].value, skewness=x0["skewness"], amplitude=x0["amplitude"])
+    else:
+        m = Minuit(fit_gauss, cog_x=x0['x'].value, cog_y=x0['y'].value, psi=x0['psi'].value, length=x0['length'].value, width=x0['width'].value, amplitude=x0["amplitude"])
+
+    bounds = boundaries(geom, image, mask, prev_image, x0, f, pdf)
 
     if bounds != None:
         m.limits = bounds
     
     m.errordef=1  #neg log likelihood
-    m.simplex().migrad()
-    m.hesse()  
+    m.migrad()
+    m.hesse()
 
     likelihood = m.fval
     pars = m.values
@@ -153,14 +218,20 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
     delta_x = geom.pix_x.value - pars[0]
     delta_y = geom.pix_y.value - pars[1]
 
-    cov = np.cov(delta_x, delta_y, aweights=cleaned_image, ddof=0)
-    eig_vals, eig_vecs = np.linalg.eigh(cov)
-
     longitudinal = delta_x * np.cos(pars[2]) + delta_y * np.sin(pars[2])
 
     m4_long = np.average(longitudinal**4, weights=cleaned_image)
     kurtosis_long = m4_long / pars[3]**4
-    skewness_long = pars[5]
+
+    if pdf != "Gaussian":
+        skewness_long = pars[5]
+        amplitude=pars[6],
+        amplitude_uncertainty=errors[6]
+    else:
+        m3_long = np.average(longitudinal**3, weights=image)
+        skewness_long = m3_long / pars[3]**3 
+        amplitude=pars[5],
+        amplitude_uncertainty=errors[5]
 
     if unit.is_equivalent(u.m):
         return CameraImageFitParametersContainer(
@@ -173,6 +244,8 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
             phi=Angle(fit_phi, unit=u.rad),
             phi_uncertainty=Angle(fit_phi_err, unit=u.rad),
             intensity=size,
+            amplitude=amplitude,
+            amplitude_uncertainty=amplitude_uncertainty,
             length=u.Quantity(pars[3], unit),
             length_uncertainty=u.Quantity(errors[3], unit),
             width=u.Quantity(pars[4], unit),
@@ -180,7 +253,6 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
             psi=Angle(pars[2], unit=u.rad),
             psi_uncertainty=Angle(errors[2], unit=u.rad),
             skewness=skewness_long,
-            skewness_uncertainty=errors[5],
             kurtosis=kurtosis_long,
             likelihood=likelihood,
             n_pix_fit=np.count_nonzero(cleaned_image),
@@ -198,6 +270,8 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
         phi=Angle(fit_phi, unit=u.rad),
         phi_uncertainty=Angle(fit_phi_err, unit=u.rad),
         intensity=size,
+        amplitude=amplitude,
+        amplitude_uncertainty=amplitude_uncertainty,
         length=u.Quantity(pars[3], unit),
         length_uncertainty=u.Quantity(errors[3], unit),
         width=u.Quantity(pars[4], unit),
@@ -205,7 +279,6 @@ def image_fit_parameters(geom, image, bounds, n, cleaned_mask, spe_width, pedest
         psi=Angle(pars[2], unit=u.rad),
         psi_uncertainty=Angle(errors[2], unit=u.rad),
         skewness=skewness_long,
-        skewness_uncertainty=errors[5],
         kurtosis=kurtosis_long,
         likelihood=likelihood,
         n_pix_fit=np.count_nonzero(cleaned_image),

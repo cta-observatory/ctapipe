@@ -18,16 +18,7 @@ Examples:
     >>> print(image.shape)
     (400,)
 """
-<<<<<<< HEAD
-=======
-import numpy as np
-from ctapipe.utils import linalg
-from ctapipe.image.hillas import camera_to_shower_coordinates
-import astropy.units as u
 from astropy.coordinates import Angle
-from scipy.stats import multivariate_normal, skewnorm, norm, cauchy
-from scipy.ndimage import convolve1d
->>>>>>> 80b8b74f (first step towards new image parametrization algorithm)
 from abc import ABCMeta, abstractmethod
 
 import astropy.units as u
@@ -38,6 +29,7 @@ from scipy.stats import multivariate_normal, norm, skewnorm
 
 from ctapipe.image.hillas import camera_to_shower_coordinates
 from ctapipe.utils import linalg
+import scipy
 
 __all__ = [
     "WaveformModel",
@@ -251,7 +243,8 @@ class ImageModel(metaclass=ABCMeta):
 
 
 class Gaussian(ImageModel):
-    def __init__(self, x, y, length, width, psi):
+    @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
+    def __init__(self, x, y, length, width, psi, ampl):
         """Create 2D Gaussian model for a shower image in a camera.
 
         Parameters
@@ -276,31 +269,23 @@ class Gaussian(ImageModel):
         self.width = width
         self.length = length
         self.psi = psi
+        self.ampl = ampl
 
-        aligned_covariance = np.array(
-            [
-                [self.length.to_value(self.unit) ** 2, 0],
-                [0, self.width.to_value(self.unit) ** 2],
-            ]
-        )
-        # rotate by psi angle: C' = R C R+
-        rotation = linalg.rotation_matrix_2d(self.psi)
-        rotated_covariance = rotation @ aligned_covariance @ rotation.T
-        self.dist = multivariate_normal(
-            mean=u.Quantity([self.x, self.y]).to_value(self.unit),
-            cov=rotated_covariance,
-        )
-
+    @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane"""
-        X = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        return self.dist.pdf(X)
+        long = (x.to_value(u.m) - self.x.to_value(u.m)) * np.cos(Angle(self.psi)) + (y.to_value(u.m) - self.y.to_value(u.m)) * np.sin(Angle(self.psi))
+        trans = (x.to_value(u.m) - self.x.to_value(u.m)) * -np.sin(Angle(self.psi)) + (y.to_value(u.m) - self.y.to_value(u.m)) * np.cos(Angle(self.psi))
+
+        gaussian_pdf = self.ampl * np.exp(-1/2*(long)**2/self.length.to_value(u.m)**2 - 1/2*(trans)**2/self.width.to_value(u.m)**2)
+
+        return gaussian_pdf
 
 
 class SkewedGaussian(ImageModel):
     """A shower image that has a skewness along the major axis."""
-
-    def __init__(self, x, y, length, width, psi, skewness):
+    @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
+    def __init__(self, x, y, length, width, psi, skewness, amplitude):
         """Create 2D skewed Gaussian model for a shower image in a camera.
         Skewness is only applied along the main shower axis.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution and
@@ -330,6 +315,7 @@ class SkewedGaussian(ImageModel):
         self.length = length
         self.psi = psi
         self.skewness = skewness
+        self.amplitude = amplitude
 
         a, loc, scale = self._moments_to_parameters()
         self.long_dist = skewnorm(a=a, loc=loc, scale=scale)
@@ -352,9 +338,18 @@ class SkewedGaussian(ImageModel):
 
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
-        pos = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        long, trans = self.rotation @ (pos - self.mu).T
-        return self.trans_dist.pdf(trans) * self.long_dist.pdf(long)
+
+        mu = u.Quantity([self.x, self.y]).to_value(u.m)
+
+        rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
+        pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
+        long, trans = rotation @ (pos - mu).T
+
+        trans_pdf = np.exp(-1/2*(trans)**2/self.width.to_value(u.m)**2)
+
+        a, loc, scale = self._moments_to_parameters()
+
+        return self.amplitude * trans_pdf * np.exp(-1/2*((long - loc)/scale)**2)*(1 + scipy.special.erf(a/np.sqrt(2)*(long - loc)/scale))
 
 
 class RingGaussian(ImageModel):
@@ -384,7 +379,7 @@ class SkewedCauchy(ImageModel):
     """
 
     @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
-    def __init__(self, x, y, length, width, psi, skewness):
+    def __init__(self, x, y, length, width, psi, skewness, amplitude):
         """Create 2D skewed Cauchy model for a shower image in a camera.
         Skewness is only applied along the main shower axis.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution ,
@@ -413,6 +408,7 @@ class SkewedCauchy(ImageModel):
         self.length = length
         self.psi = psi
         self.skewness = skewness
+        self.amplitude = amplitude
 
     def _moments_to_parameters(self):
         """Returns loc and scale from mean, std and skewnewss."""
@@ -436,10 +432,11 @@ class SkewedCauchy(ImageModel):
         pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
         long, trans = rotation @ (pos - mu).T
 
-        trans_pdf = cauchy(loc=0, scale=self.width.to_value(u.m)).pdf(trans)
-
         a, loc, scale = self._moments_to_parameters()
 
-        return trans_pdf * skewnorm(a=a, loc=loc, scale=scale).pdf(long)
+        trans_pdf = 1/(1 + (trans/self.width.to_value(u.m))**2) 
+        skew_pdf = np.exp(-1/2*((long - loc)/scale)**2)*(1 + scipy.special.erf(a/np.sqrt(2)*(long - loc)/scale))  
+
+        return self.amplitude * trans_pdf * skew_pdf
 
 
