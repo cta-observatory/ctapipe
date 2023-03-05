@@ -1,7 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # -*- coding: UTF-8 -*-
 """
-Ellipsoid-style image fitting based shower image parametrization.
+Image fitting based shower image parametrization.
 """
 
 import astropy.units as u
@@ -22,7 +22,7 @@ __all__ = ["image_fit_parameters", "ImageFitParameterizationError"]
 
 def create_initial_guess(geometry, image, pdf):
     """
-    This function computes the initial guess for the fit using the Hillas parameters
+    This function computes the initial guess for the image fit using the Hillas parameters
     
     Parameters
     ----------
@@ -31,10 +31,12 @@ def create_initial_guess(geometry, image, pdf):
     image : array_like
         Charge in each pixel, the cleaning mask should already be applied to
         improve performance.
+    pdf : str
+        Name of the PDF function to use
 
     Returns
     -------
-    initial_guess : initial Hillas parameters 
+    initial_guess : Hillas parameters 
     """
     hillas = hillas_parameters(geometry, image)
     
@@ -46,22 +48,22 @@ def create_initial_guess(geometry, image, pdf):
     initial_guess["psi"] = hillas.psi
     initial_guess["skewness"] = hillas.skewness
     skew23 = np.abs(hillas.skewness) ** (2 / 3)
-    delta = np.sign(hillas.skewness) * np.sqrt(
-          (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
-    )
-    scale = hillas.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
+    delta = np.sign(hillas.skewness) * np.sqrt((np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3)))
+    scale_skew = hillas.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
     
     if pdf == "Gaussian":
         initial_guess["amplitude"] = hillas.intensity/(np.sqrt(2*np.pi)*hillas.length.value*hillas.width.value)
     if pdf == "Cauchy":
-        initial_guess["amplitude"] = hillas.intensity/(np.pi*scale*hillas.width.value)
+        initial_guess["amplitude"] = hillas.intensity/(np.pi*scale_skew*hillas.width.value)
     if pdf == "Skewed":
-        initial_guess["amplitude"] = hillas.intensity/(np.sqrt(2*np.pi)*scale*hillas.width.value)
+        initial_guess["amplitude"] = hillas.intensity/(np.sqrt(2*np.pi)*scale_skew*hillas.width.value)
 
     return initial_guess
 
 def extra_rows(n, cleaned_mask, geometry):
     """
+    This function adds n extra rows to the cleaning mask for a better fit of the shower tail
+    
     Parameters
     ----------
     n : int
@@ -69,7 +71,7 @@ def extra_rows(n, cleaned_mask, geometry):
     cleaned_mask : boolean
        The cleaning mask applied for Hillas parametrization
     geometry : ctapipe.instrument.CameraGeometry
-        Camera geometry, the cleaning mask should be applied to improve performance
+        Camera geometry
 
     """
     mask = cleaned_mask.copy()
@@ -80,20 +82,40 @@ def extra_rows(n, cleaned_mask, geometry):
 
     return mask
 
-def boundaries(geometry, image, cleaning_mask, cleaned_image, x0, f, pdf):
+def boundaries(geometry, image, cleaning_mask, clean_row_mask, x0, pdf):
     """
+    Computes the boundaries of the fit.
+
     Parameters
     ----------
-    f : limit in radius, it may depend on the centroid distance from the centre of camera
+    geometry : ctapipe.instrument.CameraGeometry
+        Camera geometry
+    image : array-like
+        Charge in each pixel, no cleaning mask should be applied
+    cleaning_mask : boolean
+        mask after image cleaning
+    clean_row_mask : boolean
+        mask after image cleaning and dilation
+    x0 : dict
+       seeds of the fit
+    pdf: str
+       PDF name
+    
+    Returns
+    -------
+    Limits of the fit for each free parameter
     """
     row_image = image.copy()
-    row_image[~cleaning_mask] = 0.0
+    row_image[~clean_row_mask] = 0.0
     row_image[row_image < 0] = 0.0
+
+    cleaned_image= image.copy()
+    cleaned_image[~cleaning_mask] = 0.0
 
     pix_area = geometry.pix_area.value[0]
     area = pix_area * np.count_nonzero(row_image)
 
-    leakage = leakage_parameters(geometry, image, cleaning_mask)
+    leakage = leakage_parameters(geometry, image, clean_row_mask)
     fract_pix_border = leakage.pixels_width_2
     fract_int_border = leakage.intensity_width_2
 
@@ -110,8 +132,7 @@ def boundaries(geometry, image, cleaning_mask, cleaned_image, x0, f, pdf):
     length_min, length_max = np.sqrt(pix_area), x_dis/(1 - fract_pix_border)
 
     width_min, width_max = np.sqrt(pix_area), y_dis
-    scale = length_min/ np.sqrt(1 - 2 / np.pi)
-    #ampl_min, ampl_max = 0, np.sum(row_image) * 1/scale * 1/(np.sqrt(2*np.pi)*width_min) 
+    scale = length_min/ np.sqrt(1 - 2 / np.pi) 
     skew_min, skew_max = -0.99, 0.99
 
     if pdf == "Gaussian":
@@ -121,21 +142,20 @@ def boundaries(geometry, image, cleaning_mask, cleaned_image, x0, f, pdf):
     if pdf == "Cauchy":
         return [(cogx_min, cogx_max), (cogy_min, cogy_max), (-np.pi/2, np.pi/2), (length_min, length_max), (width_min, width_max), (skew_min, skew_max), (0, np.sum(row_image) * 1/scale * 1/(np.pi*width_min))]
 
-def image_fit_parameters(geom, image, f, n, cleaned_mask, spe_width, pedestal, pdf):
+def image_fit_parameters(geom, image, n, cleaned_mask, spe_width, pedestal, pdf, bounds=None):
     """
     Computes image parameters for a given shower image.
 
-    Implementation analogous to https://arxiv.org/pdf/1211.0254.pdf
+    Implementation similar to https://arxiv.org/pdf/1211.0254.pdf
 
     Parameters
     ----------
     geom : ctapipe.instrument.CameraGeometry
-        Camera geometry, the cleaning mask should be applied to improve performance
+        Camera geometry
     image : array_like
-        Charge in each pixel, the cleaning mask should already be applied to
-        improve performance.
+        Charge in each pixel
     bounds : default format [(low_limx, high_limx), (low_limy, high_limy), ...]
-        Parameters boundary condition
+        Parameters boundary condition. If bounds == None, boundaries function is applied as a default
     n : int
       number of extra rows after cleaning
     cleaned_mask : boolean
@@ -144,6 +164,8 @@ def image_fit_parameters(geom, image, f, n, cleaned_mask, spe_width, pedestal, p
         Width of single p.e. peak (:math:`σ_γ`).
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
+    pdf : str
+        name of the prob distrib to use for the fit
 
     Returns
     -------
@@ -179,7 +201,6 @@ def image_fit_parameters(geom, image, f, n, cleaned_mask, spe_width, pedestal, p
     cleaned_image[cleaned_image<0] = 0.0
     size = np.sum(cleaned_image)
 
-    
     def fit(cog_x, cog_y, psi, length, width, skewness, amplitude):
         prediction = pdf_dict[pdf](cog_x*unit, cog_y*unit, length*unit, width*unit, psi*u.rad, skewness, amplitude).pdf(geom.pix_x, geom.pix_y)
         return neg_log_likelihood_approx(cleaned_image, prediction, spe_width, pedestal)
@@ -193,7 +214,7 @@ def image_fit_parameters(geom, image, f, n, cleaned_mask, spe_width, pedestal, p
     else:
         m = Minuit(fit_gauss, cog_x=x0['x'].value, cog_y=x0['y'].value, psi=x0['psi'].value, length=x0['length'].value, width=x0['width'].value, amplitude=x0["amplitude"])
 
-    bounds = boundaries(geom, image, mask, prev_image, x0, f, pdf)
+    bounds = boundaries(geom, image, cleaned_mask, mask, x0, pdf)
 
     if bounds != None:
         m.limits = bounds
