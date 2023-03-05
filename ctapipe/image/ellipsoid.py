@@ -52,7 +52,7 @@ def create_initial_guess(geometry, image, pdf):
     scale_skew = hillas.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
     
     if pdf == "Gaussian":
-        initial_guess["amplitude"] = hillas.intensity/(np.sqrt(2*np.pi)*hillas.length.value*hillas.width.value)
+        initial_guess["amplitude"] = hillas.intensity/(2*np.pi*hillas.length.value*hillas.width.value)
     if pdf == "Cauchy":
         initial_guess["amplitude"] = hillas.intensity/(np.pi*scale_skew*hillas.width.value)
     if pdf == "Skewed":
@@ -115,7 +115,7 @@ def boundaries(geometry, image, cleaning_mask, clean_row_mask, x0, pdf):
     pix_area = geometry.pix_area.value[0]
     area = pix_area * np.count_nonzero(row_image)
 
-    leakage = leakage_parameters(geometry, image, clean_row_mask)
+    leakage = leakage_parameters(geometry, image, clean_row_mask)  #TODO: length boundaries dependent on leakage or distance of centroid to centre of camera
     fract_pix_border = leakage.pixels_width_2
     fract_int_border = leakage.intensity_width_2
 
@@ -124,12 +124,12 @@ def boundaries(geometry, image, cleaning_mask, clean_row_mask, x0, pdf):
     longitudinal = delta_x * np.cos(x0["psi"].value) + delta_y * np.sin(x0["psi"].value)
     transverse = delta_x * -np.sin(x0["psi"].value) + delta_y * np.cos(x0["psi"].value)
 
-    cogx_min, cogx_max = np.min(geometry.pix_x.value[cleaned_image>0]), np.max(geometry.pix_x.value[cleaned_image>0])
-    cogy_min, cogy_max = np.min(geometry.pix_y.value[cleaned_image>0]), np.max(geometry.pix_y.value[cleaned_image>0])
+    cogx_min, cogx_max = np.min(geometry.pix_x.value[cleaned_image>0.3*np.max(cleaned_image)]), np.max(geometry.pix_x.value[cleaned_image>0.3*np.max(cleaned_image)])
+    cogy_min, cogy_max = np.min(geometry.pix_y.value[cleaned_image>0.3*np.max(cleaned_image)]), np.max(geometry.pix_y.value[cleaned_image>0.3*np.max(cleaned_image)])
 
     x_dis = np.max(longitudinal[row_image>0]) - np.min(longitudinal[row_image>0])
     y_dis = np.max(transverse[row_image>0]) - np.min(transverse[row_image>0])
-    length_min, length_max = np.sqrt(pix_area), x_dis/(1 - fract_pix_border)
+    length_min, length_max = np.sqrt(pix_area), x_dis 
 
     width_min, width_max = np.sqrt(pix_area), y_dis
     scale = length_min/ np.sqrt(1 - 2 / np.pi) 
@@ -142,7 +142,7 @@ def boundaries(geometry, image, cleaning_mask, clean_row_mask, x0, pdf):
     if pdf == "Cauchy":
         return [(cogx_min, cogx_max), (cogy_min, cogy_max), (-np.pi/2, np.pi/2), (length_min, length_max), (width_min, width_max), (skew_min, skew_max), (0, np.sum(row_image) * 1/scale * 1/(np.pi*width_min))]
 
-def image_fit_parameters(geom, image, n, cleaned_mask, spe_width, pedestal, pdf, bounds=None):
+def image_fit_parameters(geom, image, n, cleaned_mask, spe_width, pedestal, pdf="Cauchy", bounds=None):
     """
     Computes image parameters for a given shower image.
 
@@ -165,7 +165,7 @@ def image_fit_parameters(geom, image, n, cleaned_mask, spe_width, pedestal, pdf,
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
     pdf : str
-        name of the prob distrib to use for the fit
+        name of the prob distrib to use for the fit, options = "Gaussian", "Cauchy", "Skewed"
 
     Returns
     -------
@@ -216,6 +216,9 @@ def image_fit_parameters(geom, image, n, cleaned_mask, spe_width, pedestal, pdf,
 
     bounds = boundaries(geom, image, cleaned_mask, mask, x0, pdf)
 
+    if bounds == None:
+        bounds = boundaries(geom, image, cleaned_mask, mask, x0, pdf)
+        m.limits = bounds
     if bounds != None:
         m.limits = bounds
     

@@ -244,7 +244,7 @@ class ImageModel(metaclass=ABCMeta):
 
 class Gaussian(ImageModel):
     @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
-    def __init__(self, x, y, length, width, psi, ampl):
+    def __init__(self, x, y, length, width, psi, amplitude):
         """Create 2D Gaussian model for a shower image in a camera.
 
         Parameters
@@ -257,6 +257,7 @@ class Gaussian(ImageModel):
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
+        amplitude : normalization amplitude
 
         Returns
         -------
@@ -269,7 +270,7 @@ class Gaussian(ImageModel):
         self.width = width
         self.length = length
         self.psi = psi
-        self.ampl = ampl
+        self.amplitude = amplitude
 
     @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
@@ -277,7 +278,7 @@ class Gaussian(ImageModel):
         long = (x.to_value(u.m) - self.x.to_value(u.m)) * np.cos(Angle(self.psi)) + (y.to_value(u.m) - self.y.to_value(u.m)) * np.sin(Angle(self.psi))
         trans = (x.to_value(u.m) - self.x.to_value(u.m)) * -np.sin(Angle(self.psi)) + (y.to_value(u.m) - self.y.to_value(u.m)) * np.cos(Angle(self.psi))
 
-        gaussian_pdf = self.ampl * np.exp(-1/2*(long)**2/self.length.to_value(u.m)**2 - 1/2*(trans)**2/self.width.to_value(u.m)**2)
+        gaussian_pdf = self.amplitude * np.exp(-1/2*(long)**2/self.length.to_value(u.m)**2 - 1/2*(trans)**2/self.width.to_value(u.m)**2)
 
         return gaussian_pdf
 
@@ -302,6 +303,7 @@ class SkewedGaussian(ImageModel):
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
+        amplitude : normalization amplitude
 
         Returns
         -------
@@ -396,6 +398,7 @@ class SkewedCauchy(ImageModel):
             length of shower (major axis)
         psi : convertable to `astropy.coordinates.Angle`
             rotation angle about the centroid (0=x-axis)
+        amplitude : normalization amplitude
 
         Returns
         -------
