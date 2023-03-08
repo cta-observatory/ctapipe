@@ -44,10 +44,10 @@ INVALID = ReconstructedGeometryContainer(
     prefix="HillasIntersection",
 )
 
-FOV_ANGULAR_DISTANCE_LIMIT = 45 * u.deg
+FOV_ANGULAR_DISTANCE_LIMIT_RAD = (45 * u.deg).to_value(u.rad)
 
 
-def far_outside_fov(fov_lat, fov_lon):
+def _far_outside_fov(fov_lat, fov_lon):
     """
     Check if a given latitude or longiude in the FoV is further away from
     the FoV center than `FOV_ANGULAR_DISTANCE_LIMIT`
@@ -247,7 +247,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         # Catch events reconstructed at great angular distance from camera center
         # and retrun INVALID container to prevent SkyCoord error below.
-        if far_outside_fov(src_fov_lat * u.rad, src_fov_lon * u.rad):
+        if _far_outside_fov(src_fov_lat, src_fov_lon):
             return INVALID
 
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
