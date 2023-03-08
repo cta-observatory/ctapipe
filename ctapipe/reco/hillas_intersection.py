@@ -63,8 +63,8 @@ def _far_outside_fov(fov_lat, fov_lon):
     -------
     bool
     """
-    lat_outside_fov = np.abs(fov_lat) > FOV_ANGULAR_DISTANCE_LIMIT
-    lon_outside_fov = np.abs(fov_lon) > FOV_ANGULAR_DISTANCE_LIMIT
+    lat_outside_fov = np.abs(fov_lat) > FOV_ANGULAR_DISTANCE_LIMIT_RAD
+    lon_outside_fov = np.abs(fov_lon) > FOV_ANGULAR_DISTANCE_LIMIT_RAD
     return lat_outside_fov or lon_outside_fov
 
 
