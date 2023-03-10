@@ -215,6 +215,7 @@ def _info_system():
     print("\n*** ctapipe system environment ***\n")
 
     prov = Provenance()
+    prov.start_activity("ctapipe-info")
     system_prov = prov.current_activity.provenance["system"]
 
     for section in ["platform", "python"]:
