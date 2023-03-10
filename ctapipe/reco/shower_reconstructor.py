@@ -6,7 +6,8 @@ import numpy as np
 from iminuit import Minuit
 
 from ctapipe.containers import Model3DReconstructedGeometryContainer
-from ctapipe.core.traits import FloatTelescopeParameter, Unicode
+from ctapipe.core import QualityQuery
+from ctapipe.core.traits import FloatTelescopeParameter, List, Tuple, Unicode
 from ctapipe.image import (
     GaussianShowermodel,
     ShowermodelPredictor,
@@ -14,6 +15,30 @@ from ctapipe.image import (
 )
 from ctapipe.reco import Reconstructor
 from ctapipe.visualization import CameraDisplay
+
+INVALID = Model3DReconstructedGeometryContainer()
+
+
+class HillasReconstructorQuery(QualityQuery):
+    """
+    Quality checks on HillasReconstructor container
+    """
+
+    quality_criteria = List(
+        Tuple(Unicode(), Unicode()),
+        default_value=[
+            ("is_valid", "hillas_reco_container.is_valid == True"),
+        ],
+        help=(
+            "Quality cuts as list of tuples of ('description', 'expression string'), "
+            "e.g. ``[('is_valid', 'hillas_reco_container.is_valid > True'),]``, "
+            "to select images for analysis. "
+            "You may use ``numpy`` as ``np`` and ``astropy.units`` as ``u``, "
+            "but no other modules. "
+            "HillasReconstructor container can be accessed by prefixing the wanted parameter "
+            "with ``hillas_reco_container``. "
+        ),
+    ).tag(config=True)
 
 
 class Model3DGeometryReconstructor(Reconstructor):
@@ -39,6 +64,7 @@ class Model3DGeometryReconstructor(Reconstructor):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
+        self.hillas_query = HillasReconstructorQuery(parent=self)
         self.predictor = ShowermodelPredictor(self.subarray)
 
     def __call__(self, event):
@@ -55,6 +81,14 @@ class Model3DGeometryReconstructor(Reconstructor):
             raise KeyError(
                 f"The geometry seed {self.geometry_seed} could not be provided. Run {self.geometry_seed} before this reconstructors."
             )
+
+        checks = self.hillas_query(
+            hillas_reco_container=event.dl2.stereo.geometry["HillasReconstructor"]
+        )
+
+        if not all(checks):
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID
+            return
 
         tel_spe_widths = {}
         tel_pedestal_widths = {}
@@ -249,7 +283,7 @@ class Model3DGeometryReconstructor(Reconstructor):
             "length": length.to_value(u.m),
         }
 
-    def peek(self, event):
+    def peek(self, event, show=True):
         """
         Plotting function. Plots reconstructed images and dl1 images for the minimized shower model and the corresponding event.
         Has to be called after the reconstructor call `reconstructor(event)`.
@@ -258,6 +292,8 @@ class Model3DGeometryReconstructor(Reconstructor):
         ----------
         event : `ctapipe.containers.ArrayEventContainer`
         """
+        if not event.dl2.stereo.geometry["Model3DGeometryReconstructor"].is_valid:
+            return
         generated_images = self.predictor.generate_images()
 
         fig, axs = plt.subplots(
@@ -283,4 +319,7 @@ class Model3DGeometryReconstructor(Reconstructor):
                 title="DL1 Image",
             )
             disp_dl1_image.add_colorbar()
-        plt.show()
+
+        if show:
+            plt.show()
+        plt.close()
