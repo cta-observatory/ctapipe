@@ -322,4 +322,3 @@ class Model3DGeometryReconstructor(Reconstructor):
 
         if show:
             plt.show()
-        plt.close()
