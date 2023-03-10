@@ -149,7 +149,7 @@ class Activity(HasTraits):
             type_="software",
             id_=activity["activity_uuid"],
             start_time=activity["start"]["time_utc"],
-            stop_time=activity["stop"]["time_utc"],
+            stop_time=activity["stop"].get("time_utc", Time.now()),
             software_name="ctapipe",
             software_version=activity["system"]["ctapipe_version"],
         )
