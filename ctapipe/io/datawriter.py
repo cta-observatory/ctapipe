@@ -114,13 +114,8 @@ def write_reference_metadata_headers(
         # assume that we write provenance for a "just finished activity"
         activity = PROV.finished_activities[-1]
 
-    if activity is not None:
-        activity_meta = meta.Activity.from_provenance(activity.provenance)
-    else:
-        activity_meta = None
-
+    activity_meta = meta.Activity.from_provenance(activity.provenance)
     category = "Sim" if is_simulation else "Other"
-
     reference = meta.Reference(
         contact=contact_info,
         product=meta.Product(
