@@ -52,8 +52,8 @@ def get_representation_component_names(
     """
     if isinstance(frame, type):
         return tuple(frame().get_representation_component_names().keys())
-    else:
-        return tuple(frame.get_representation_component_names().keys())
+
+    return tuple(frame.get_representation_component_names().keys())
 
 
 # astropy requires all AltAz to have locations
