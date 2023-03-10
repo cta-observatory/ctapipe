@@ -158,7 +158,7 @@ class Activity(HasTraits):
     type_ = Unicode("software")
     id_ = Unicode()
     start_time = AstroTime()
-    stop_time = AstroTime()
+    stop_time = AstroTime(allow_none=True, default_value=None)
     software_name = Unicode("unknown")
     software_version = Unicode("unknown")
 
