@@ -86,6 +86,16 @@ class Provenance(metaclass=Singleton):
         self._activities.append(activity)
         log.debug(f"started activity: {activity_name}")
 
+    def _get_current_or_start_activity(self):
+        if self.current_activity is None:
+            log.warning(
+                "No activity has been started yet."
+                " Provenance().start_activity(<name>) should be called explicitly."
+            )
+            self.start_activity()
+
+        return self.current_activity
+
     def add_input_file(self, filename, role=None):
         """register an input to the current activity
 
@@ -96,11 +106,12 @@ class Provenance(metaclass=Singleton):
         role: str
             role this input file satisfies (optional)
         """
-        self.current_activity.register_input(abspath(filename), role=role)
+        activity = self._get_current_or_start_activity()
+        activity.register_input(abspath(filename), role=role)
         log.debug(
-            "added input entity '{}' to activity: '{}'".format(
-                filename, self.current_activity.name
-            )
+            "added input entity '%s' to activity: '%s'",
+            filename,
+            activity.name,
         )
 
     def add_output_file(self, filename, role=None):
@@ -115,11 +126,12 @@ class Provenance(metaclass=Singleton):
             role this output file satisfies (optional)
 
         """
-        self.current_activity.register_output(abspath(filename), role=role)
+        activity = self._get_current_or_start_activity()
+        activity.register_output(abspath(filename), role=role)
         log.debug(
-            "added output entity '{}' to activity: '{}'".format(
-                filename, self.current_activity.name
-            )
+            "added output entity '%s' to activity: '%s'",
+            filename,
+            activity.name,
         )
 
     def add_config(self, config):
@@ -131,7 +143,13 @@ class Provenance(metaclass=Singleton):
         config: dict
             configuration parameters
         """
-        self.current_activity.register_config(config)
+        activity = self._get_current_or_start_activity()
+        activity.register_config(config)
+        log.debug(
+            "added config entity '%s' to activity: '%s'",
+            config,
+            activity.name,
+        )
 
     def finish_activity(self, status="completed", activity_name=None):
         """end the current activity"""
