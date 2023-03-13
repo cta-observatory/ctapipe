@@ -73,13 +73,15 @@ class TrainEnergyRegressor(Tool):
         """
         Initialize components from config
         """
-        self.loader = TableLoader(
-            parent=self,
-            load_dl1_images=False,
-            load_dl1_parameters=True,
-            load_dl2=True,
-            load_simulated=True,
-            load_instrument=True,
+        self.loader = self.enter_context(
+            TableLoader(
+                parent=self,
+                load_dl1_images=False,
+                load_dl1_parameters=True,
+                load_dl2=True,
+                load_simulated=True,
+                load_instrument=True,
+            )
         )
         self.n_events.attach_subarray(self.loader.subarray)
 
