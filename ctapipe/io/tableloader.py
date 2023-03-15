@@ -310,19 +310,23 @@ class TableLoader(Component):
         return table
 
     @staticmethod
-    def _sort_to_original_order(table, include_tel_id=False):
+    def _sort_to_original_order(table, include_tel_id=False, keep_index=False):
         if len(table) == 0:
             return
         if include_tel_id:
             table.sort(("__index__", "tel_id"))
         else:
             table.sort("__index__")
-        table.remove_column("__index__")
+
+        if not keep_index:
+            table.remove_column("__index__")
 
     @staticmethod
     def _add_index_if_needed(table):
         if "__index__" not in table.colnames:
             table["__index__"] = np.arange(len(table))
+            return True
+        return False
 
     def read_simulation_configuration(self):
         """
@@ -350,7 +354,7 @@ class TableLoader(Component):
         obs_table["obs_id"] = obs_table["obs_id"].astype(table["obs_id"].dtype)
 
         # to be able to sort to original table order
-        self._add_index_if_needed(table)
+        index_added = self._add_index_if_needed(table)
 
         joint = join_allow_empty(
             table,
@@ -360,8 +364,9 @@ class TableLoader(Component):
         )
 
         # sort back to original order and remove index col
-        self._sort_to_original_order(joint)
-        del table["__index__"]
+        self._sort_to_original_order(joint, keep_index=not index_added)
+        if index_added:
+            table.remove_column("__index__")
         return joint
 
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
