@@ -24,11 +24,7 @@ from ctapipe.image.extractor import (
     subtract_baseline,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from numpy.testing import assert_allclose, assert_equal
-from scipy.stats import norm
-from traitlets.config.loader import Config
-from traitlets.traitlets import TraitError
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
 
 extractors = non_abstract_children(ImageExtractor)
@@ -640,6 +636,7 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
     expected = np.average([29, 30, 31], weights=[5, 10, 3])
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
 
+
 def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
     # Test on toy model
     (
@@ -661,11 +658,11 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
     with EventSource(prod5_gamma_simtel_path) as source:
         subarray = source.subarray
         extractor = FlashCamExtractor(subarray)
-        
+
         def is_flashcam(tel_id):
             return subarray.tel[tel_id].camera.name == "FlashCam"
 
-        for event in source:    
+        for event in source:
             for tel_id in filter(is_flashcam, event.trigger.tels_with_trigger):
                 true_charge = event.simulation.tel[tel_id].true_image
 
@@ -678,7 +675,9 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid == True
 
-                bright_pixels = (true_charge > 30) & (true_charge < 3000) & ~broken_pixels
+                bright_pixels = (
+                    (true_charge > 30) & (true_charge < 3000) & ~broken_pixels
+                )
                 assert_allclose(
                     dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
                 )
