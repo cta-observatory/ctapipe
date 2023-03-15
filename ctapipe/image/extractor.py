@@ -1320,7 +1320,8 @@ def deconvolution_parameters(
     leading_edge_timing : bool
         Whether time calculation will be done on the leading edge.
     leading_edge_rel_descend_limit : float
-        If leading edge timing is used, the fraction of the peak value down to which samples are accumulated in the centroid calculation.
+        If leading edge timing is used, the fraction of the peak value down to which samples are accumulated in the
+        centroid calculation.
     time_profile_pdf : callable or None
         PDF of the assumed effective Cherenkov time profile to assume when
         calculating the gain loss; takes nanoseconds as arguments and returns
@@ -1349,7 +1350,9 @@ def deconvolution_parameters(
 
     if camera_sample_width_nsec < ref_sample_width_nsec:
         raise ValueError(
-            f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be equal to or shorter than the camera sampling time (got {camera_sample_width_nsec} ns); need a reference single p.e. pulse shape with finer sampling!"
+            f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be equal to or shorter than the "
+            f"camera sampling time (got {camera_sample_width_nsec} ns); need a reference single p.e. pulse shape with "
+            "finer sampling!"
         )
     avg_step = int(round(camera_sample_width_nsec / ref_sample_width_nsec))
 
@@ -1507,12 +1510,12 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
 
     descend_limit = rel_descend_limit * peak_amplitude
 
-    sum = float64(0.0)
+    sum_ = float64(0.0)
     jsum = float64(0.0)
 
     j = peak_index
     while j >= 0 and waveforms[j] > descend_limit:
-        sum += waveforms[j]
+        sum_ += waveforms[j]
         jsum += j * waveforms[j]
         j -= 1
         if waveforms[j] > peak_amplitude:
@@ -1520,14 +1523,14 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
 
     j = peak_index + 1
     while j < n_samples and waveforms[j] > descend_limit:
-        sum += waveforms[j]
+        sum_ += waveforms[j]
         jsum += j * waveforms[j]
         j += 1
         if waveforms[j] > peak_amplitude:
             descend_limit = rel_descend_limit * peak_amplitude
 
-    if sum != 0.0:
-        centroids[0] = jsum / sum
+    if sum_ != 0.0:
+        centroids[0] = jsum / sum_
 
 
 class FlashCamExtractor(ImageExtractor):
@@ -1538,11 +1541,13 @@ class FlashCamExtractor(ImageExtractor):
     the resulting pulse due to convolution with detector response. The modified waveform is integrated in a
     window around a peak, which is defined by the neighbors of the pixel. The waveforms are clipped in
     order to reduce the contribution from the afterpulses in the neighbor sum. If leading_edge_timing is
-    set to True, the so-called leading edge time is found (with the adaptive_centroid function) instead of the peak time.
+    set to True, the so-called leading edge time is found (with the adaptive_centroid function) instead of the peak
+    time.
 
     This extractor has been optimized for the FlashCam [2].
 
-    [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to Digital Signal Processing (California Technical Publishing)
+    [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to Digital Signal Processing (California Technical
+    Publishing)
     [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium.
     A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
 
