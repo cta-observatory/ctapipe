@@ -88,9 +88,9 @@ class Provenance(metaclass=Singleton):
 
     def _get_current_or_start_activity(self):
         if self.current_activity is None:
-            log.warning(
-                "No activity has been started yet."
-                " Provenance().start_activity(<name>) should be called explicitly."
+            log.info(
+                "No activity has been explicitly started, starting new default activity."
+                " Consider calling Provenance().start_activity(<name>) explicitly."
             )
             self.start_activity()
 
