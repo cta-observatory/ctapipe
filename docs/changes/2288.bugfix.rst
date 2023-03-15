@@ -1,0 +1,2 @@
+Fix ``TableLoader.read_subarray_events`` raising an exception when
+``load_observation_info=True``.
