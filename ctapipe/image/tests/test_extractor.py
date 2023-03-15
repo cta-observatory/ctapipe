@@ -30,7 +30,6 @@ from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
-from ctapipe.io import EventSource
 from ctapipe.io.eventsource import EventSource
 
 extractors = non_abstract_children(ImageExtractor)
