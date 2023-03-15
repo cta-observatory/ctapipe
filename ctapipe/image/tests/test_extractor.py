@@ -72,7 +72,7 @@ def subarray_1_LST(prod3_lst):
 
 
 @pytest.fixture(scope="module")
-def subarray_1_MST_FC(prod5_mst_flashcam):
+def subarray_mst_fc(prod5_mst_flashcam):
     subarray = SubarrayDescription(
         "One MST with FlashCam",
         tel_positions={1: np.zeros(3) * u.m},
@@ -106,8 +106,8 @@ def toymodel(subarray):
 
 
 @pytest.fixture(scope="module")
-def toymodel_1_MST_FC(subarray_1_MST_FC):
-    return get_test_toymodel(subarray_1_MST_FC)
+def toymodel_mst_fc(subarray_mst_fc: object) -> object:
+    return get_test_toymodel(subarray_mst_fc)
 
 
 def test_extract_around_peak(toymodel):
@@ -637,7 +637,7 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
 
 
-def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
+def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
     # Test on toy model
     (
         waveforms,
@@ -646,7 +646,7 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
         selected_gain_channel,
         true_charge,
         true_time,
-    ) = toymodel_1_MST_FC
+    ) = toymodel_mst_fc
     extractor = FlashCamExtractor(subarray=subarray)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
@@ -676,7 +676,7 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
                 assert dl1.is_valid == True
 
                 bright_pixels = (
-                    (true_charge > 30) & (true_charge < 3000) & ~broken_pixels
+                    (true_charge > 30) & (true_charge < 3000) & (~broken_pixels)
                 )
                 assert_allclose(
                     dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
