@@ -1586,7 +1586,7 @@ class FlashCamExtractor(ImageExtractor):
 
     leading_edge_timing = BoolTelescopeParameter(
         default_value=True, help="Calculate leading edge time instead of peak time"
-    ).tag(config=False)
+    ).tag(config=True)
 
     leading_edge_rel_descend_limit = FloatTelescopeParameter(
         default_value=0.05,
