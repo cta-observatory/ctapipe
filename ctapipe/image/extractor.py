@@ -25,14 +25,10 @@ from abc import abstractmethod
 from functools import lru_cache
 from typing import Callable, List, Optional, Tuple
 
+import astropy.units as u
 import numpy as np
 import numpy.typing as npt
 import scipy.stats
-from numba import float32, float64, guvectorize, int64, njit, prange
-from scipy.ndimage import convolve1d
-from scipy.signal import filtfilt
-from traitlets import Bool, Int
-
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -42,13 +38,17 @@ from ctapipe.core.traits import (
     IntTelescopeParameter,
 )
 from ctapipe.instrument import CameraDescription
+from numba import float32, float64, guvectorize, int64, njit, prange
+from scipy.ndimage import convolve1d
+from scipy.signal import filtfilt
+from traitlets import Bool, Int
 
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
 from .morphology import brightest_island, number_of_islands
 from .timing import timing_parameters
-import astropy.units as u
+
 
 @guvectorize(
     [
@@ -1532,20 +1532,21 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
 class FlashCamExtractor(ImageExtractor):
     """
 
-    The waveforms are first upsampled to achieve one nanosecond sampling (as a default, for the FlashCam). 
-    A pole-zero deconvolution [1] is then performed to the waveforms to recover the original impulse or narrow 
-    the resulting pulse due to convolution with detector response. The modified waveform is integrated in a 
+    The waveforms are first upsampled to achieve one nanosecond sampling (as a default, for the FlashCam).
+    A pole-zero deconvolution [1] is then performed to the waveforms to recover the original impulse or narrow
+    the resulting pulse due to convolution with detector response. The modified waveform is integrated in a
     window around a peak, which is defined by the neighbors of the pixel. The waveforms are clipped in
     order to reduce the contribution from the afterpulses in the neighbor sum. If leading_edge_timing is
     set to True, the so-called leading edge time is found (with the adaptive_centroid function) instead of the peak time.
-    
+
     This extractor has been optimized for the FlashCam [2].
-    
+
     [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to Digital Signal Processing (California Technical Publishing)
-    [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium. 
+    [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium.
     A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
 
     """
+
     upsampling = IntTelescopeParameter(
         default_value=4, help="Define the upsampling factor for waveforms"
     ).tag(config=True, min=1)
