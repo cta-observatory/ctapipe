@@ -1,1 +1,0 @@
-Fix ``--overwrite`` option not taking effect for ``ctapipe-apply-models``.
