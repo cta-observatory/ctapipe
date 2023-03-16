@@ -22,7 +22,6 @@ from ..instrument import SubarrayDescription
 from .cleaning import ImageCleaner
 from .concentration import concentration_parameters
 from .hillas import hillas_parameters
-from .ellipsoid import image_fit_parameters
 from .leakage import leakage_parameters
 from .modifications import ImageModifier
 from .morphology import morphology_parameters

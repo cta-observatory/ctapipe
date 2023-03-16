@@ -4,18 +4,17 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
+from ctapipe.containers import (CameraHillasParametersContainer,
+                                HillasParametersContainer)
+from ctapipe.coordinates import TelescopeFrame
+from ctapipe.image import tailcuts_clean, toymodel
+from ctapipe.image.ellipsoid import (ImageFitParameterizationError,
+                                     image_fit_parameters)
+from ctapipe.image.hillas import HillasParameterizationError, hillas_parameters
+from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from numpy import isclose
 from pytest import approx
 
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
-from ctapipe.coordinates import TelescopeFrame
-from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import HillasParameterizationError, hillas_parameters
-from ctapipe.image.ellipsoid import ImageFitParameterizationError, image_fit_parameters
-from ctapipe.instrument import CameraGeometry, SubarrayDescription
 
 def create_sample_image(
     psi="-30d",
@@ -50,7 +49,7 @@ def test_imagefit_failure(prod5_lst):
     blank_image = np.zeros(geom.n_pixels)
 
     with pytest.raises(ImageFitParameterizationError):
-        image_fit_parameters(geom, blank_image)
+        image_fit_parameters(geom, blank_image, n=2, blank_image==1, spe_width=0.6, pesdestal=200)
 
 def test_hillas_similarity(prod5_lst):
     geom = prod5_lst.camera.geometry
@@ -59,7 +58,7 @@ def test_hillas_similarity(prod5_lst):
     cleaned_image = image.copy()
     cleaned_image[~clean_mask] = 0
 
-    imagefit = image_fit_parameters(geom, image_zeros)
+    imagefit = image_fit_parameters(geom, image_zeros, n=2, clean_mask, spe_width=0.6, pedestal=200)  #TODO: include proper numbers from simulation
     hillas = hillas_parameters(geom, image_zeros)
 
     assert_allclose(imagefit.r, hillas.r, rtol=0.2)
