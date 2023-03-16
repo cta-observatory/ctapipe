@@ -399,6 +399,21 @@ class ImageParametersContainer(Container):
     )
 
 
+class ImPACTLikelihoodContainer(Container):
+    """
+    Concentrations are ratios between light amount
+    in certain areas of the image and the full image.
+    """
+
+    default_prefix = "ImPACTLikelihood"
+    log_likelihood = Field(
+        nan, "Per telescope likelihood of the ImPACT best fit location"
+    )
+    impact_distance = Field(
+        nan, "Distance (tilted frame) of telescope to fitted core position"
+    )
+
+
 class DL1CameraContainer(Container):
     """
     Storage of output of camera calibration e.g the final calibrated

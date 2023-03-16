@@ -5,7 +5,8 @@ from ..containers import ArrayEventContainer
 from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .reconstructor import Reconstructor
-
+from .impact_distance import shower_impact_distance
+from ctapipe.core import traits
 
 class ShowerProcessor(Component):
     """
@@ -39,6 +40,8 @@ class ShowerProcessor(Component):
         ),
     ).tag(config=True)
 
+    advanced_reconstructor_type = traits.CaselessStrEnum(["ImPACTReconstructor", ""], default_value="", help="name minimiser to use in the fit").tag(config=True)
+
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
@@ -60,14 +63,16 @@ class ShowerProcessor(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
-        self.reconstructors = [
-            Reconstructor.from_name(
-                reco_type,
-                subarray=self.subarray,
-                parent=self,
-            )
-            for reco_type in self.reconstructor_types
-        ]
+
+        self.reconstructor = Reconstructor.from_name(
+            self.reconstructor_type,
+            subarray=self.subarray,
+            parent=self,
+        )
+        if self.advanced_reconstructor_type != "":
+            self.advanced_reconstructor = Reconstructor.from_name(self.advanced_reconstructor_type,
+            subarray=self.subarray, parent=self)
+
 
     def __call__(self, event: ArrayEventContainer):
         """
@@ -78,5 +83,28 @@ class ShowerProcessor(Component):
         event : ctapipe.containers.ArrayEventContainer
             Top-level container for all event information.
         """
-        for reconstructor in self.reconstructors:
-            reconstructor(event)
+
+        k = self.reconstructor_type            
+        event.dl2.stereo.geometry[k] = self.reconstructor(event)
+        
+        if self.advanced_reconstructor_type != "":
+            geometry, energy = self.advanced_reconstructor(event)
+            event.dl2.stereo.geometry[self.advanced_reconstructor_type] = geometry
+            event.dl2.stereo.energy[self.advanced_reconstructor_type] = energy
+
+        # compute and store the impact parameter for each reconstruction (for
+        # now there is only one, but in the future this should be a loop over
+        # reconstructors)
+
+        # for the stereo reconstructor:
+        impact_distances = shower_impact_distance(
+            shower_geom=event.dl2.stereo.geometry[k], subarray=self.subarray
+        )
+
+        for tel_id in event.trigger.tels_with_trigger:
+            tel_index = self.subarray.tel_indices[tel_id]
+            event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
+                distance=impact_distances[tel_index],
+                prefix=f"{self.reconstructor_type}_tel",
+            )
+

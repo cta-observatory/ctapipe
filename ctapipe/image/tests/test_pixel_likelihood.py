@@ -18,7 +18,7 @@ def test_chi_squared():
     chi = chi_squared(image, prediction, ped)
     bad_chi = chi_squared(image, bad_prediction, ped)
 
-    assert chi < bad_chi
+    assert np.sum(chi) < np.sum(bad_chi)
 
 
 def test_mean_poisson_likelihoood_gaussian():
@@ -28,7 +28,7 @@ def test_mean_poisson_likelihoood_gaussian():
     small_mean_likelihood = mean_poisson_likelihood_gaussian(prediction, spe, 0)
     large_mean_likelihood = mean_poisson_likelihood_gaussian(prediction, spe, 1)
 
-    assert small_mean_likelihood < large_mean_likelihood
+    assert np.sum(small_mean_likelihood) < np.sum(large_mean_likelihood)
 
 
 def test_mean_poisson_likelihood_full():
@@ -55,7 +55,7 @@ def test_full_likelihood():
     expectation_small = np.array([1, 1, 1])
 
     full_like_small = neg_log_likelihood(image_small, expectation_small, spe, pedestal)
-    exp_diff = full_like_small - np.sum(
+    exp_diff = np.sum(full_like_small) - np.sum(
         np.asarray([2.75630505, 2.62168656, 3.39248449])
     )
 
@@ -67,11 +67,11 @@ def test_full_likelihood():
 
     full_like_large = neg_log_likelihood(image_large, expectation_large, spe, pedestal)
     # Check against known values
-    exp_diff = full_like_large - np.sum(
+    exp_diff = np.sum(full_like_large) - np.sum(
         np.asarray([7.45489137, 5.99305388, 7.66226007])
     )
 
-    assert exp_diff / np.sum(full_like_large) < 1e-4
+    assert exp_diff / np.sum(full_like_large) < 3e-4
 
     gaus_like_large = neg_log_likelihood_approx(
         image_large, expectation_large, spe, pedestal

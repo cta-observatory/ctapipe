@@ -249,8 +249,10 @@ class HillasIntersection(GeometryReconstructor):
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
-            core_tilted_x=u.Quantity(core_x, u.m),
-            core_tilted_y=u.Quantity(core_y, u.m),
+
+            core_tilted_x=tilt.x,
+            core_tilted_y=tilt.y,
+
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
             telescopes=[h for h in hillas_dict_mod.keys()],
@@ -391,8 +393,8 @@ class HillasIntersection(GeometryReconstructor):
         hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        crossing_x, crossing_y = self.intersect_lines(
-            tel_x[:, 0], tel_y[:, 0], hillas1[0], tel_x[:, 1], tel_y[:, 1], hillas2[0]
+        crossing_y, crossing_x = self.intersect_lines(
+            tel_y[:, 0], tel_x[:, 0], hillas1[0], tel_y[:, 1], tel_x[:, 1], hillas2[0]
         )
 
         # Weight by chosen method

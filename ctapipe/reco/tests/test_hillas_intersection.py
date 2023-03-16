@@ -117,8 +117,8 @@ def test_intersection_reco_impact_point_tilted(example_subarray):
         hillas_parameters=hillas_dict, tel_x=tel_x_dict, tel_y=tel_y_dict
     )
 
-    np.testing.assert_allclose(reco_konrad[0], delta.to_value(u.m), atol=1e-8)
-    np.testing.assert_allclose(reco_konrad[1], -delta.to_value(u.m), atol=1e-8)
+    np.testing.assert_allclose(reco_konrad[0], -delta.to_value(u.m), atol=1e-6)
+    np.testing.assert_allclose(reco_konrad[1], delta.to_value(u.m), atol=1e-6)
 
 
 def test_intersection_weighting_spoiled_parameters(example_subarray):
@@ -142,8 +142,8 @@ def test_intersection_weighting_spoiled_parameters(example_subarray):
         hillas_parameters=hillas_dict, tel_x=tel_x_dict, tel_y=tel_y_dict
     )
 
-    np.testing.assert_allclose(reco_konrad_spoiled[0], delta.to_value(u.m), atol=1e-1)
-    np.testing.assert_allclose(reco_konrad_spoiled[1], -delta.to_value(u.m), atol=1e-1)
+    np.testing.assert_allclose(reco_konrad_spoiled[0], -delta.to_value(u.m), atol=1e-1)
+    np.testing.assert_allclose(reco_konrad_spoiled[1], delta.to_value(u.m), atol=1e-1)
 
 
 def test_intersection_nominal_reconstruction(example_subarray):

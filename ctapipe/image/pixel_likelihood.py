@@ -93,11 +93,11 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     -------
     float
     """
-    theta = pedestal**2 + prediction * (1 + spe_width**2)
+    
+    theta = 2 * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
+    neg_log_l = np.log(np.pi * theta)/2. + (image - prediction) ** 2 / theta
 
-    neg_log_l = np.log(theta + EPSILON) + (image - prediction) ** 2 / theta
-
-    return np.sum(neg_log_l)
+    return 2 * neg_log_l
 
 
 def neg_log_likelihood_numeric(
@@ -145,7 +145,7 @@ def neg_log_likelihood_numeric(
         )
         likelihood += _l
 
-    return -np.sum(np.log(likelihood + EPSILON))
+    return -np.log(likelihood)
 
 
 def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety=20.0):
@@ -211,7 +211,7 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
     theta = pedestal**2 + prediction * (1 + spe_width**2)
     mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta + EPSILON)
 
-    return np.sum(mean_log_likelihood)
+    return mean_log_likelihood
 
 
 def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
@@ -298,4 +298,4 @@ def chi_squared(image, prediction, pedestal, error_factor=2.9):
     chi_square = (image - prediction) ** 2 / (pedestal + 0.5 * (image - prediction))
     chi_square *= 1.0 / error_factor
 
-    return np.sum(chi_square)
+    return chi_square
