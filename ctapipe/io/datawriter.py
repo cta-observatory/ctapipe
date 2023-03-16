@@ -21,11 +21,13 @@ from ..containers import (
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
-from . import EventSource, HDF5TableWriter, TableWriter
 from . import metadata as meta
+from .astropy_helpers import write_table
 from .datalevels import DataLevel
+from .eventsource import EventSource
+from .hdf5tableio import HDF5TableWriter
 from .simteleventsource import SimTelEventSource
-from .tableio import FixedPointColumnTransform, TelListToMaskTransform
+from .tableio import FixedPointColumnTransform, TableWriter, TelListToMaskTransform
 
 __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
@@ -46,8 +48,10 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v4.0.0"
+DATA_MODEL_VERSION = "v5.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v5.0.0: - Change DL2 telescope-wise container prefixes from {algorithm}_tel to {algorithm}_tel_{kind}.
+            As of now, this only changes 'tel_distance' to 'tel_impact_distance'
 - v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
             This breaks backwards and forwards compatibility for almost everything.
           - Container prefixes are now included for reconstruction algorithms
@@ -105,9 +109,13 @@ def write_reference_metadata_headers(
     instrument_info: meta.Instrument
         instrument metadata
     """
-    activity = PROV.current_activity.provenance
-    category = "Sim" if is_simulation else "Other"
+    activity = PROV.current_activity
+    if activity is None and len(PROV.finished_activities) > 0:
+        # assume that we write provenance for a "just finished activity"
+        activity = PROV.finished_activities[-1]
 
+    activity_meta = meta.Activity.from_provenance(activity.provenance)
+    category = "Sim" if is_simulation else "Other"
     reference = meta.Reference(
         contact=contact_info,
         product=meta.Product(
@@ -125,7 +133,7 @@ def write_reference_metadata_headers(
             subtype="",
             id_=",".join(str(x) for x in obs_ids),
         ),
-        activity=meta.Activity.from_provenance(activity),
+        activity=activity_meta,
         instrument=instrument_info,
     )
 
@@ -162,7 +170,7 @@ class DataWriter(Component):
             "Additional metadata keywords and values that describe this data. "
             "This should be a dictionary where the keys will be appended to the "
             "CONTEXT section of the output file's attributes. Keys can be hierarchical "
-            "by using a space between each level, e.g. `SIMULATION PRODUCTION` "
+            "by using a space between each level, e.g. ``SIMULATION PRODUCTION`` "
             "would make a key PRODUCTION grouped under the key SIMULATION"
         )
     ).tag(config=True)
@@ -189,6 +197,10 @@ class DataWriter(Component):
 
     write_showers = Bool(
         help="Store DL2 stereo shower parameters if available", default_value=False
+    ).tag(config=True)
+
+    write_muon_parameters = Bool(
+        help="Store muon parameters if available", default_value=False
     ).tag(config=True)
 
     compression_level = Int(
@@ -256,7 +268,6 @@ class DataWriter(Component):
         self._subarray: SubarrayDescription = event_source.subarray
 
         self._hdf5_filters = None
-        self._writer: HDF5TableWriter = None
 
         self._setup_output_path()
         self._setup_compression()
@@ -272,6 +283,9 @@ class DataWriter(Component):
         self._write_scheduling_and_observation_blocks()
         if self._is_simulation:
             self._write_simulation_configuration()
+            self._write_atmosphere_profile(
+                "/simulation/service/atmosphere_density_profile"
+            )
 
     def __enter__(self):
         return self
@@ -321,29 +335,31 @@ class DataWriter(Component):
             self._write_dl2_telescope_events(self._writer, event)
             self._write_dl2_stereo_event(self._writer, event)
 
+        if self.write_muon_parameters:
+            self._write_muon_telescope_events(self._writer, event)
+
     def finish(self):
         """called after all events are done"""
         self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
-        if self._writer:
-            if self.write_index_tables:
-                self._generate_indices()
 
-            write_reference_metadata_headers(
-                subarray=self._subarray,
-                obs_ids=self.event_source.obs_ids,
-                writer=self._writer,
-                is_simulation=self._is_simulation,
-                data_levels=self.datalevels,
-                contact_info=self.contact_info,
-                instrument_info=self.instrument_info,
-            )
+        if self.write_index_tables:
+            self._generate_indices()
 
-            self._write_context_metadata_headers()
+        write_reference_metadata_headers(
+            subarray=self._subarray,
+            obs_ids=self.event_source.obs_ids,
+            writer=self._writer,
+            is_simulation=self._is_simulation,
+            data_levels=self.datalevels,
+            contact_info=self.contact_info,
+            instrument_info=self.instrument_info,
+        )
 
-            self._writer.close()
-            self._writer = None
+        self._write_context_metadata_headers()
+
+        self._writer.close()
 
     @property
     def datalevels(self):
@@ -353,6 +369,8 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
+        if self.write_muon_parameters:
+            data_levels.append(DataLevel.DL1_MUON)
         if self.write_showers:
             data_levels.append(DataLevel.DL2)
         if self.write_raw_waveforms:
@@ -394,7 +412,7 @@ class DataWriter(Component):
             self.write_images,
             self.write_showers,
             self.write_waveforms,
-            self.write_parameters,
+            self.write_muon_parameters,
         ]
         if not any(writable_things):
             raise ToolConfigurationError(
@@ -700,6 +718,18 @@ class DataWriter(Component):
                         ],
                     )
 
+    def _write_muon_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+
+        for tel_id, muon in event.muon.tel.items():
+            table_name = self.table_name(tel_id)
+            tel_index = _get_tel_index(event, tel_id)
+            writer.write(
+                f"dl1/event/telescope/muon/{table_name}",
+                [tel_index, muon.ring, muon.parameters, muon.efficiency],
+            )
+
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
     ):
@@ -797,3 +827,31 @@ class DataWriter(Component):
             context_dict[key] = value
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
+
+    def _write_atmosphere_profile(self, path):
+        """
+        write atmosphere profiles if they are in a tabular format
+
+        Parameters
+        ----------
+        path: str
+            path in the HDF5 file where to place the profile
+
+        """
+
+        profile = self.event_source.atmosphere_density_profile
+
+        if profile:
+            if hasattr(profile, "table"):
+                write_table(
+                    table=profile.table,
+                    h5file=self._writer.h5file,
+                    path=path,
+                    append=False,
+                )
+            else:
+                self.logger.warning(
+                    f"The AtmosphereDensityProfile type '{profile.__class__.__name__}' "
+                    "is not serializable. No atmosphere profile will be stored in the "
+                    "output file"
+                )

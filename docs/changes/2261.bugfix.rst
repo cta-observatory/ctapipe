@@ -1,0 +1,1 @@
+Ensure the correct activity metadata is written into output files.

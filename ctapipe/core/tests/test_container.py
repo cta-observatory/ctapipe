@@ -1,9 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-import pytest
-from ctapipe.core import Container, Field, Map, DeprecatedField, FieldValidationError
+from functools import partial
+
 import numpy as np
-import warnings
+import pytest
 from astropy import units as u
+
+from ctapipe.core import Container, DeprecatedField, Field, FieldValidationError, Map
 
 
 def test_prefix():
@@ -159,7 +161,8 @@ def test_container_as_dict():
 
     class GrandParentContainer(Container):
         y = Field(2, "some other value")
-        child = Field(ParentContainer(), "child")
+        child = Field(default_factory=ParentContainer, description="child")
+        map = Field(default_factory=partial(Map, ChildContainer))
 
     cont = ParentContainer()
 
@@ -167,9 +170,7 @@ def test_container_as_dict():
     assert cont.as_dict(recursive=True) == {"x": 0, "child": {"z": 1}}
     assert cont.as_dict(recursive=True, add_prefix=True) == {
         "parent_x": 0,
-        "parent_child": {
-            "child_z": 1
-        }
+        "parent_child": {"child_z": 1},
     }
 
     assert cont.as_dict(recursive=True, flatten=True, add_prefix=False) == {
@@ -182,9 +183,17 @@ def test_container_as_dict():
         "child_z": 1,
     }
 
-    d = GrandParentContainer().as_dict(recursive=True, flatten=True, add_prefix=True)
-    assert d == {'parent_x': 0, 'child_z': 1, 'grandparent_y': 2}
-
+    cont = GrandParentContainer()
+    cont.map["foo"] = ChildContainer(z=3)
+    cont.map["bar"] = ChildContainer(z=4)
+    d = cont.as_dict(recursive=True, flatten=True, add_prefix=True, add_key=True)
+    assert d == {
+        "parent_x": 0,
+        "child_z": 1,
+        "grandparent_y": 2,
+        "foo_child_z": 3,
+        "bar_child_z": 4,
+    }
 
 
 def test_container_brackets():
@@ -201,7 +210,7 @@ def test_container_brackets():
 
 def test_deprecated_field():
 
-    with warnings.catch_warnings(record=True) as warning:
+    with pytest.warns(DeprecationWarning, match="answer to all questions"):
 
         class ExampleContainer(Container):
             answer = DeprecatedField(
@@ -210,9 +219,6 @@ def test_deprecated_field():
 
         cont = ExampleContainer()
         cont.answer = 6
-        assert len(warning) == 1
-        assert issubclass(warning[-1].category, DeprecationWarning)
-        assert "deprecated" in str(warning[-1].message)
 
 
 def test_field_validation():
@@ -309,3 +315,11 @@ def test_recursive_validation():
         cont.map[0] = ChildContainer(x=1 * u.m)
         cont.map[1] = ChildContainer(x=1 * u.s)
         cont.validate()
+
+
+def test_long_field_repr():
+    field = Field(default_factory=lambda: np.geomspace(1.0, 1e4, 5))
+    assert repr(field) == "Field(default=[1.e+00 1.e+01 ... 1.e+03 1.e+04])"
+
+    field = Field(default_factory=lambda: np.linspace(1.0, 2.0, 5))
+    assert repr(field) == "Field(default=[1.   1.25 ... 1.75 2.  ])"

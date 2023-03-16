@@ -6,6 +6,7 @@ from astropy.table import Table
 
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.utils.datasets import get_dataset_path
 
 
 def check_equal_array_event_order(table1, table2):
@@ -87,6 +88,25 @@ def test_telescope_events_for_tel_id(dl1_file):
     assert not table_loader.h5file.isopen
 
 
+def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
+    """Test loading muon data for a single telescope"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(
+        dl1_muon_output_file,
+        load_dl1_muons=True,
+        load_dl1_parameters=False,
+        focal_length_choice="EQUIVALENT",
+    ) as table_loader:
+        table = table_loader.read_telescope_events([1])
+        assert "muonring_radius" in table.colnames
+        assert "muonparameters_containment" in table.colnames
+        assert "muonefficiency_optical_efficiency" in table.colnames
+        assert np.all(table["tel_id"] == 1)
+
+    assert not table_loader.h5file.isopen
+
+
 def test_load_instrument(dl1_file):
     """Test joining instrument data onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
@@ -132,6 +152,15 @@ def test_true_parameters(dl1_file):
     ) as table_loader:
         table = table_loader.read_telescope_events()
         assert "true_hillas_intensity" in table.colnames
+
+
+def test_observation_info(dl1_file):
+    """Test joining observation info onto telescope events"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(dl1_file, load_observation_info=True) as table_loader:
+        table = table_loader.read_telescope_events()
+        assert "subarray_pointing_lat" in table.colnames
 
 
 def test_read_subarray_events(dl2_shower_geometry_file):
@@ -193,7 +222,8 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
         expected_ids = subarray.get_tel_ids_for_type("MST_MST_FlashCam")
         assert set(table["tel_id"].data).issubset(expected_ids)
         assert "equivalent_focal_length" in table.colnames
-        assert "HillasReconstructor_tel_distance" in table.colnames
+        # regression test for #2051
+        assert "HillasReconstructor_tel_impact_distance" in table.colnames
 
 
 def test_read_telescope_events_by_type(dl2_shower_geometry_file):
@@ -269,13 +299,23 @@ def test_chunked(dl2_shower_geometry_file):
         tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
         event_it = table_loader.read_subarray_events_chunked(chunk_size)
         by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size)
+        by_id_it = table_loader.read_telescope_events_by_id_chunked(chunk_size)
 
-        iters = (event_it, tel_event_it, by_type_it)
+        iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
-        for chunk, (events, tel_events, by_type) in enumerate(zip(*iters)):
+        for chunk, (events, tel_events, by_type, by_id) in enumerate(zip(*iters)):
+
+            expected_start = chunk * chunk_size
+            expected_stop = min(n_events, (chunk + 1) * chunk_size)
+
+            start, stop, events = events
+            tel_events = tel_events.data
+            by_type = by_type.data
+            by_id = by_id.data
+            assert expected_start == start
+            assert expected_stop == stop
+
             n_read += len(events)
-            start = chunk * chunk_size
-            stop = min(n_events, (chunk + 1) * chunk_size)
 
             # last chunk might be smaller
             if chunk == (n_chunks - 1):
@@ -293,7 +333,29 @@ def test_chunked(dl2_shower_geometry_file):
             n_events_by_type = 0
             for table in by_type.values():
                 n_events_by_type += len(table)
+                assert set(zip(table["obs_id"], table["event_id"])).issubset(
+                    set(
+                        zip(
+                            trigger[start:stop]["obs_id"],
+                            trigger[start:stop]["event_id"],
+                        )
+                    )
+                )
+                assert not np.ma.is_masked(table["HillasReconstructor_is_valid"])
+            assert n_events_by_type == len(tel_events)
 
+            n_events_by_id = 0
+            for table in by_id.values():
+                n_events_by_id += len(table)
+                assert set(zip(table["obs_id"], table["event_id"])).issubset(
+                    set(
+                        zip(
+                            trigger[start:stop]["obs_id"],
+                            trigger[start:stop]["event_id"],
+                        )
+                    )
+                )
+                assert not np.ma.is_masked(table["HillasReconstructor_is_valid"])
             assert n_events_by_type == len(tel_events)
 
     assert n_read == n_events
@@ -345,3 +407,32 @@ def test_read_empty_table(dl2_shower_geometry_file):
     ) as loader:
         table = loader.read_telescope_events([6])
         assert len(table) == 0
+
+
+def test_order_merged():
+    """Test reading functions return data in correct event order"""
+    from ctapipe.io import TableLoader
+
+    path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
+
+    trigger = read_table(path, "/dl1/event/subarray/trigger")
+    tel_trigger = read_table(path, "/dl1/event/telescope/trigger")
+    with TableLoader(
+        path,
+        load_dl1_parameters=True,
+        load_dl2=True,
+        load_observation_info=True,
+    ) as loader:
+        events = loader.read_subarray_events()
+        check_equal_array_event_order(events, trigger)
+
+        tables = loader.read_telescope_events_by_id()
+
+        for tel_id, table in tables.items():
+            mask = tel_trigger["tel_id"] == tel_id
+            check_equal_array_event_order(table, tel_trigger[mask])
+
+        tables = loader.read_telescope_events_by_type()
+        for tel, table in tables.items():
+            mask = np.isin(tel_trigger["tel_id"], loader.subarray.get_tel_ids(tel))
+            check_equal_array_event_order(table, tel_trigger[mask])

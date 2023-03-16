@@ -2,7 +2,7 @@ from itertools import cycle
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.lines import Line2D
@@ -68,6 +68,7 @@ class ArrayDisplay:
         # transform to the new frame.
         self.tel_coords = subarray.tel_coords.transform_to(frame).cartesian
         self.unit = self.tel_coords.x.unit
+        self.frame = frame
 
         # set up colors per telescope type
         tel_types = [str(tel) for tel in subarray.tels.values()]
@@ -320,7 +321,9 @@ class ArrayDisplay:
             half of the length of the segments to be plotted (in meters)
         """
 
-        coords = self.tel_coords
+        # transform to GroundFrame
+        positions_in_frame = SkyCoord(self.tel_coords, frame=self.frame)
+        coords = positions_in_frame.transform_to(GroundFrame())
         c = self.tel_colors
 
         r = np.array([-range, range])
@@ -334,8 +337,20 @@ class ArrayDisplay:
 
             x = x_0 + np.cos(psi).value * r
             y = y_0 + np.sin(psi).value * r
-            self.axes.plot(x, y, color=c[idx], **kwargs)
-            self.axes.scatter(x_0, y_0, color=c[idx])
+
+            # transform back to desired frame
+            line = (
+                SkyCoord(x, y, z=0, unit="m", frame=GroundFrame())
+                .transform_to(self.frame)
+                .cartesian
+            )
+
+            self.axes.plot(line.x, line.y, color=c[idx], **kwargs)
+            self.axes.scatter(
+                positions_in_frame[idx].cartesian.x.to_value(u.m),
+                positions_in_frame[idx].cartesian.y.to_value(u.m),
+                color=c[idx],
+            )
 
     def add_labels(self):
         px = self.tel_coords.x.to_value("m")

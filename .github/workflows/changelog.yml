@@ -1,0 +1,24 @@
+name: Changelog
+
+on:
+  pull_request:
+    # should also be re-run when changing labels
+    types: [opened, reopened, labeled, unlabeled, synchronize]
+
+env:
+  FRAGMENT_NAME: "docs/changes/${{ github.event.number }}.*.rst"
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check for news fragment
+        if: ${{ ! contains( github.event.pull_request.labels.*.name, 'no-changelog-needed')}}
+        uses: andstor/file-existence-action@v2
+        with: 
+          files: ${{ env.FRAGMENT_NAME }}
+          fail: true

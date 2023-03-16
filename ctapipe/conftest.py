@@ -7,9 +7,11 @@ from copy import deepcopy
 import pytest
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
+from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
+from ctapipe.utils.datasets import resource_file
 from ctapipe.utils.filelock import FileLock
 
 PYTEST_HEADER_MODULES.clear()
@@ -146,6 +148,13 @@ def prod5_gamma_simtel_path():
 
 
 @pytest.fixture(scope="session")
+def prod5_gamma_lapalma_simtel_path():
+    return get_dataset_path(
+        "gamma_20deg_0deg_run1___cta-prod5-lapalma_desert-2158m-LaPalma-dark_100evts.simtel.zst"
+    )
+
+
+@pytest.fixture(scope="session")
 def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
@@ -185,13 +194,13 @@ def prod3_astri(subarray_prod3_paranal):
 @pytest.fixture(scope="session")
 def dl1_tmp_path(tmp_path_factory):
     """Temporary directory for global dl1 test data"""
-    return tmp_path_factory.mktemp("dl1")
+    return tmp_path_factory.mktemp("dl1_")
 
 
 @pytest.fixture(scope="session")
 def dl2_tmp_path(tmp_path_factory):
     """Temporary directory for global dl2 test data"""
-    return tmp_path_factory.mktemp("dl2")
+    return tmp_path_factory.mktemp("dl2_")
 
 
 @pytest.fixture(scope="session")
@@ -199,7 +208,6 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
     """
     File containing both parameters and shower geometry from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl2_tmp_path / "gamma.training.h5"
@@ -220,11 +228,34 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_path):
+    """
+    File containing both parameters and shower geometry from a gamma simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl2_tmp_path / "gamma_lapalma.training.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_lapalma_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+            "--write-showers",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
     """
     File containing both parameters and shower geometry from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl2_tmp_path / "proton.training.h5"
@@ -250,7 +281,6 @@ def dl2_merged_file(dl2_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_
     """
     File containing both parameters and shower geometry from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.merge import MergeTool
 
     output = dl2_tmp_path / "merged.training.h5"
@@ -274,7 +304,6 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "gamma.dl1.h5"
@@ -296,11 +325,60 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
+    """
+    DL1 file containing both images and parameters from a gamma simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "gamma_camera_frame.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--camera-frame",
+            "--write-images",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
+    """
+    DL1 file containing both images and parameters from a gamma simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl2_tmp_path / "gamma_no_dl1.dl2.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--write-showers",
+            "--no-write-images",
+            "--no-write-parameters",
+            "--max-events=20",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "gamma_images.dl1.h5"
@@ -327,7 +405,6 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "gamma_parameters.dl1.h5"
@@ -352,7 +429,6 @@ def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "muons.dl1.h5"
@@ -367,9 +443,36 @@ def dl1_muon_file(dl1_tmp_path):
             f"--input={infile}",
             f"--output={output}",
             "--write-images",
-            "--DataWriter.write_parameters=False",
-            "--DataWriter.Contact.name=αℓℓ the äüöß",
+            "--no-write-parameters",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
+    """
+    DL1 file containing images, parameters and muon ring parameters
+    from a muon simulation set.
+    """
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "muon_output.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={dl1_muon_file}",
+            f"--output={output}",
+            "--no-write-images",
+            "--no-write-parameters",
+            "--write-muon-parameters",
+            "--HDF5EventSource.focal_length_choice=EQUIVALENT",
+            "--max-events=30",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -380,7 +483,6 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
     """
     DL1 file containing images and parameters for a prod5 proton run
     """
-    from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "proton.dl1.h5"
@@ -397,3 +499,120 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
+
+
+@pytest.fixture(scope="session")
+def model_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("models")
+
+
+@pytest.fixture(scope="session")
+def energy_regressor_path(model_tmp_path):
+    from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
+
+    out_file = model_tmp_path / "energy.pkl"
+
+    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+        if out_file.is_file():
+            return out_file
+
+        tool = TrainEnergyRegressor()
+        config = resource_file("train_energy_regressor.yaml")
+        ret = run_tool(
+            tool,
+            argv=[
+                "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+                "--overwrite",
+            ],
+        )
+        assert ret == 0
+        return out_file
+
+
+@pytest.fixture(scope="session")
+def gamma_train_clf(model_tmp_path, energy_regressor_path):
+    from ctapipe.tools.apply_models import ApplyModels
+
+    inpath = "dataset://gamma_diffuse_dl2_train_small.dl2.h5"
+    outpath = model_tmp_path / "gamma_train_clf.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={inpath}",
+            f"--output={outpath}",
+            f"--reconstructor={energy_regressor_path}",
+        ],
+        raises=True,
+    )
+    return outpath
+
+
+@pytest.fixture(scope="session")
+def proton_train_clf(model_tmp_path, energy_regressor_path):
+    from ctapipe.tools.apply_models import ApplyModels
+
+    inpath = "dataset://proton_dl2_train_small.dl2.h5"
+    outpath = model_tmp_path / "proton_train_clf.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={inpath}",
+            f"--output={outpath}",
+            f"--reconstructor={energy_regressor_path}",
+        ],
+        raises=True,
+    )
+    return outpath
+
+
+@pytest.fixture(scope="session")
+def particle_classifier_path(model_tmp_path, gamma_train_clf, proton_train_clf):
+    from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
+
+    out_file = model_tmp_path / "particle_classifier.pkl"
+    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+        if out_file.is_file():
+            return out_file
+
+        config = resource_file("train_particle_classifier.yaml")
+
+        ret = run_tool(
+            TrainParticleClassifier(),
+            argv=[
+                f"--signal={gamma_train_clf}",
+                f"--background={proton_train_clf}",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+                "--overwrite",
+            ],
+        )
+        assert ret == 0
+        return out_file
+
+
+@pytest.fixture(scope="session")
+def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
+    from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
+
+    out_file = model_tmp_path / "disp_reconstructor.pkl"
+    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+        if out_file.is_file():
+            return out_file
+
+        config = resource_file("train_disp_reconstructor.yaml")
+
+        ret = run_tool(
+            TrainDispReconstructor(),
+            argv=[
+                f"--input={gamma_train_clf}",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+            ],
+        )
+        assert ret == 0
+        return out_file

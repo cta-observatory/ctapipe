@@ -15,12 +15,12 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import (
+from ..containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
     ReconstructedGeometryContainer,
 )
-from ctapipe.coordinates import (
+from ..coordinates import (
     CameraFrame,
     MissingFrameAttributeWarning,
     NominalFrame,
@@ -28,11 +28,10 @@ from ctapipe.coordinates import (
     TiltedGroundFrame,
     project_to_ground,
 )
-from ctapipe.core import traits
-from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.reco.reco_algorithms import (
+from ..core import traits
+from .reconstructor import (
+    GeometryReconstructor,
     InvalidWidthException,
-    Reconstructor,
     TooFewTelescopesException,
 )
 
@@ -45,7 +44,7 @@ INVALID = ReconstructedGeometryContainer(
 )
 
 
-class HillasIntersection(Reconstructor):
+class HillasIntersection(GeometryReconstructor):
     """
     This class is a simple re-implementation of Hillas parameter based event
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
@@ -83,8 +82,6 @@ class HillasIntersection(Reconstructor):
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        _ = get_atmosphere_profile_functions(self.atmosphere_profile_name)
-        self.thickness_profile, self.altitude_profile = _
 
         # other weighting schemes can be implemented. just add them as additional methods
         if self.weighting == "Konrad":
@@ -96,18 +93,18 @@ class HillasIntersection(Reconstructor):
 
         Parameters
         ----------
-        event: `ctapipe.containers.ArrayEventContainer`
-            The event, needs to have dl1 parameters
-
-        Returns
-        -------
-        ReconstructedGeometryContainer
+        event : `~ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
 
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
-            return INVALID
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID
+            self._store_impact_parameter(event)
+            return
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -118,7 +115,11 @@ class HillasIntersection(Reconstructor):
 
         telescope_pointings = self._get_telescope_pointings(event)
 
-        return self._predict(hillas_dict, array_pointing, telescope_pointings)
+        event.dl2.stereo.geometry[self.__class__.__name__] = self._predict(
+            hillas_dict, array_pointing, telescope_pointings
+        )
+
+        self._store_impact_parameter(event)
 
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
@@ -248,8 +249,10 @@ class HillasIntersection(Reconstructor):
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
+
             core_tilted_x=tilt.x,
             core_tilted_y=tilt.y,
+
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
             telescopes=[h for h in hillas_dict_mod.keys()],

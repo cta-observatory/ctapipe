@@ -58,11 +58,18 @@ Only ctapipe maintainers can do this, because you need write permission to the m
 
 How to make a release?
 ----------------------
+1. Open a new PR to generate a meaningfull changelog. Run ``towncrier`` in order to 
+   do this:
 
-1. Create a new github release, a good starting point should already be made by the
+.. code-block:: bash
+
+    towncrier build --version=<VERSION NUMBER>
+
+
+2. Create a new github release, a good starting point should already be made by the
    release drafter plugin.
 
-2. The PyPI upload will be done automatically by travis
+3. The PyPI upload will be done automatically by travis
 
-3. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/
+4. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/
    An pull request to update the recipe should be opened automatically by a conda-forge bot when a new version is published to PyPi.

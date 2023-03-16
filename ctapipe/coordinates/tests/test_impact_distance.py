@@ -6,13 +6,14 @@ tests for impact distance computations
 
 import numpy as np
 from astropy import units as u
+
 from ctapipe.containers import ReconstructedGeometryContainer
-from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.reco.impact_distance import (
+from ctapipe.coordinates.impact_distance import (
     impact_distance,
     shower_impact_distance,
     shower_impact_distance_with_frames,
 )
+from ctapipe.instrument.subarray import SubarrayDescription
 
 
 def test_impact_distance():

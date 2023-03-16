@@ -41,6 +41,8 @@ __all__ = [
     "chi_squared",
 ]
 
+EPSILON = 5.0e-324
+
 
 class PixelLikelihoodError(RuntimeError):
     pass
@@ -91,6 +93,7 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     -------
     float
     """
+    
     theta = 2 * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
     neg_log_l = np.log(np.pi * theta)/2. + (image - prediction) ** 2 / theta
 
@@ -133,9 +136,9 @@ def neg_log_likelihood_numeric(
     ns = ns[ns >= 0]
 
     for n in ns:
-        theta = pedestal ** 2 + n * spe_width ** 2
+        theta = pedestal**2 + n * spe_width**2
         _l = (
-            prediction ** n
+            prediction**n
             * np.exp(-prediction)
             / theta
             * np.exp(-((image - n) ** 2) / (2 * theta))
@@ -205,8 +208,8 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
     -------
     float
     """
-    theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
-    mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta)
+    theta = pedestal**2 + prediction * (1 + spe_width**2)
+    mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta + EPSILON)
 
     return mean_log_likelihood
 
@@ -252,7 +255,7 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
 
     mean_like = 0
 
-    width = ped ** 2 + prediction * spe_width ** 2
+    width = ped**2 + prediction * spe_width**2
     width = np.sqrt(width)
 
     for pred, w, spe, p in zip(prediction, width, spe_width, ped):

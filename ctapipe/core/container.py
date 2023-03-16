@@ -95,7 +95,9 @@ class Field:
                     func = repr(self.default_factory.func)
                 default = f"{func}({cls})"
             else:
-                default = str(self.default_factory())
+                # make sure numpy arrays are not dominating everything
+                with np.printoptions(threshold=4, precision=3, edgeitems=2):
+                    default = str(self.default_factory())
         else:
             default = str(self.default)
         cmps = [f"Field(default={default}"]
@@ -360,7 +362,7 @@ class Container(metaclass=ContainerMeta):
         """Get the keys of the container"""
         return (getattr(self, k) for k in self.fields.keys())
 
-    def as_dict(self, recursive=False, flatten=False, add_prefix=False):
+    def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):
         """
         Convert the `Container` into a dictionary
 
@@ -373,19 +375,26 @@ class Container(metaclass=ContainerMeta):
             by appending the sub-Container name.
         add_prefix: bool
             include the container's prefix in the name of each item
+        add_key: bool
+            include map key
         """
         if not recursive:
             return dict(self.items(add_prefix=add_prefix))
+
+        kwargs = dict(
+            recursive=recursive,
+            add_prefix=add_prefix,
+            flatten=flatten,
+            add_key=add_key,
+        )
 
         d = dict()
         for key, val in self.items(add_prefix=add_prefix):
             if isinstance(val, (Container, Map)):
                 if flatten:
-                    d.update(val.as_dict(recursive, add_prefix=add_prefix, flatten=flatten))
+                    d.update(val.as_dict(**kwargs))
                 else:
-                    d[key] = val.as_dict(
-                        recursive=recursive, flatten=flatten, add_prefix=add_prefix
-                    )
+                    d[key] = val.as_dict(**kwargs)
             else:
                 d[key] = val
         return d
@@ -456,7 +465,7 @@ class Map(defaultdict):
     by ``tel_id`` or algorithm name).
     """
 
-    def as_dict(self, recursive=False, flatten=False, add_prefix=False):
+    def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):
         if not recursive:
             return dict(self.items())
         else:
@@ -466,7 +475,7 @@ class Map(defaultdict):
                     if flatten:
                         d.update(
                             {
-                                f"{key}_{k}": v
+                                f"{key}_{k}" if add_key else k: v
                                 for k, v in val.as_dict(
                                     recursive, add_prefix=add_prefix
                                 ).items()

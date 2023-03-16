@@ -31,12 +31,10 @@ from configparser import ConfigParser
 
 import ctapipe
 
-conf = ConfigParser()
-conf.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
-setup_cfg = dict(conf.items("metadata"))
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-needs_sphinx = "1.5"
+setup_cfg = ConfigParser()
+setup_cfg.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
+setup_metadata = dict(setup_cfg.items("metadata"))
+setup_options = dict(setup_cfg.items("options"))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -50,9 +48,11 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.mathjax",
     "sphinx_automodapi.automodapi",
+    "sphinx_automodapi.smart_resolver",
     "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
 
 numpydoc_show_class_members = False
@@ -106,9 +106,11 @@ nitpick_ignore = [
     ("py:class", "traitlets.traitlets.ClassBasedTraitType"),
     ("py:class", "traitlets.traitlets.Int"),
     ("py:class", "traitlets.config.application.Application"),
+    ("py:class", "traitlets.utils.sentinel.Sentinel"),
+    ("py:class", "traitlets.traitlets.ObserveHandler"),
     ("py:obj", "traitlets.config.boolean_flag"),
     ("py:obj", "traitlets.TraitError"),
-    ("py:obj", "-v"),
+    ("py:obj", "-v"),  # fix for wrong syntax in a traitlets docstring
     ("py:meth", "MetaHasDescriptors.__init__"),
     ("py:meth", "HasTraits.__new__"),
     ("py:meth", "BaseDescriptor.instance_init"),
@@ -116,6 +118,7 @@ nitpick_ignore = [
     ("py:obj", "name"),
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
+    ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
 ]
 
 # The suffix(es) of source filenames.
@@ -134,11 +137,17 @@ suppress_warnings = ["ref.citation"]  # ignore citation not referenced warnings
 
 # General information about the project.
 
-project = setup_cfg["name"]
-author = setup_cfg["author"]
+project = setup_metadata["name"]
+author = setup_metadata["author"]
 copyright = "{}.  Last updated {}".format(
-    setup_cfg["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
+    setup_metadata["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
 )
+python_requires = setup_options["python_requires"]
+
+# make some variables available to each page
+rst_epilog = f"""
+.. |python_requires| replace:: {python_requires}
+"""
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -158,7 +167,13 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "**.ipynb_checkpoints",
+    "changes",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
@@ -189,7 +204,7 @@ html_context = {
     "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
 }
 
-
+html_favicon = "_static/favicon.ico"
 # -- Options for HTMLHelp output ------------------------------------------
 
 
@@ -257,7 +272,7 @@ intersphinx_mapping = {
     "pytables": ("http://www.pytables.org/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
-    "cython": ("http://docs.cython.org/en/latest/", None),
+    "cython": ("https://docs.cython.org/en/latest/", None),
     "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }

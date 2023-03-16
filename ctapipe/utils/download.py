@@ -1,9 +1,11 @@
-import requests
+import logging
 import os
 from pathlib import Path
-import logging
-from tqdm.auto import tqdm
 from urllib.parse import urlparse
+
+import requests
+from tqdm.auto import tqdm
+
 from .filelock import FileLock
 
 __all__ = ["download_file", "download_cached", "download_file_cached"]
@@ -29,6 +31,7 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     log.info(f"Downloading {url} to {path}")
     name = urlparse(url).path.split("/")[-1]
     path = Path(path)
+    part_file = None
 
     with requests.get(url, stream=True, auth=auth, timeout=5) as r:
         # make sure the request is successful
@@ -53,9 +56,9 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     f.write(chunk)
                     pbar.update(len(chunk))
-        except:  # we really want to catch everythin here
+        except BaseException:  # we really want to catch everything here
             # cleanup part file if something goes wrong
-            if part_file.is_file():
+            if part_file is not None and part_file.is_file():
                 part_file.unlink()
             raise
 
@@ -67,7 +70,7 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
     if os.getenv(env_override):
         base = Path(os.environ["CTAPIPE_CACHE"])
     else:
-        base = Path(os.environ["HOME"]) / ".cache" / cache_name
+        base = Path.home() / ".cache" / cache_name
 
     url = urlparse(url)
 

@@ -4,6 +4,7 @@ from .guess import guess_telescope
 from .optics import FocalLengthKind, OpticsDescription, ReflectorShape, SizeType
 from .subarray import SubarrayDescription, UnknownTelescopeID
 from .telescope import TelescopeDescription
+from .trigger import SoftwareTrigger
 
 __all__ = [
     "CameraDescription",
@@ -19,4 +20,5 @@ __all__ = [
     "FocalLengthKind",
     "ReflectorShape",
     "SizeType",
+    "SoftwareTrigger",
 ]

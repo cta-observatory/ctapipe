@@ -28,7 +28,7 @@ from abc import abstractmethod
 
 import numpy as np
 
-from ..core.component import TelescopeComponent
+from ..core import TelescopeComponent
 from ..core.traits import (
     BoolTelescopeParameter,
     FloatTelescopeParameter,

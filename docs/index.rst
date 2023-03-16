@@ -27,7 +27,7 @@ What is ctapipe?
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
 * License: BSD-3
-* Python 3.7 or later
+* Python: |python_requires|
 
 
 
@@ -40,6 +40,7 @@ General documentation
   :maxdepth: 1
   :glob:
 
+  getting_started_users/index
   getting_started/index
   development/index
   tutorials/index
@@ -61,6 +62,6 @@ we reach version 1.0.
 Development Help
 ================
 
-* Development workflow examples from AstroPy: http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
+* Development workflow examples from AstroPy: https://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
 * GIT tutorial: https://www.atlassian.com/git/tutorials/syncing/git-pull
 * Code distribution and Packaging https://packaging.python.org/en/latest/

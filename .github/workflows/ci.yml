@@ -3,34 +3,48 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
     tags:
-      - '**'
+      - "**"
   pull_request:
 
 env:
   NUMBA_NUM_THREADS: 1
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
+  GITHUB_PR_NUMBER: ${{ github.event.number }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: --files $(git diff origin/main --name-only)
   tests:
     runs-on: ${{ matrix.os }}
+    needs: lint
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             python-version: "3.8"
-            install-method: conda
+            install-method: mamba
 
           - os: ubuntu-latest
             python-version: "3.9"
-            install-method: conda
+            install-method: mamba
 
           - os: ubuntu-latest
             python-version: "3.10"
-            install-method: conda
-            codecov: true
+            install-method: mamba
+            extra-args: ["codecov"]
 
           - os: ubuntu-latest
             python-version: "3.10"
@@ -38,7 +52,7 @@ jobs:
 
           - os: macos-latest
             python-version: "3.10"
-            install-method: conda
+            install-method: mamba
 
           - os: macos-latest
             python-version: "3.8"
@@ -46,7 +60,8 @@ jobs:
 
     defaults:
       run:
-        shell: bash -l {0}
+        # We need login shells (-l) for micromamba to work.
+        shell: bash -leo pipefail {0}
 
     steps:
       - uses: actions/checkout@v3
@@ -59,64 +74,64 @@ jobs:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data
 
-      - name: Prepare conda installation
-        if: matrix.install-method == 'conda'
+      - name: Prepare mamba installation
+        if: matrix.install-method == 'mamba'
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          # fix mamba error that the directory does not exist
-          mkdir -p ~/conda_pkgs_dir/cache
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
-      - name: Conda setup
-        if: matrix.install-method == 'conda'
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          mamba-version: "*"
-          auto-update-conda: true
-          activate-environment: "cta-dev"
-          environment-file: environment.yml
+      - name: mamba setup
+        if: matrix.install-method == 'mamba'
+        uses: mamba-org/provision-with-micromamba@v14
 
       - name: Python setup
         if: matrix.install-method == 'pip'
-        uses: conda-incubator/setup-miniconda@v2
+        uses: actions/setup-python@v4
         with:
-          mamba-version: "*"
-          channels: conda-forge,default
           python-version: ${{ matrix.python-version }}
+          check-latest: true
 
-      - name: Update pip
-        if: matrix.install-method == 'pip'
-        run: pip install -U pip
+      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }}
+        name: Fix Python PATH on macOS
+        # See https://github.com/actions/setup-python/issues/132 and
+        # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
+        # Login shells on macOS prepend system paths, so we need to
+        # prepend the python path from actions/setup-python.
+        # Micromamba sets up ~/.bash_profile, where we need to set the path now.
+        run: |
+          tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
       - name: Install dependencies
         run: |
           python --version
-          pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
+          pip install codecov pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
+          pip install ./test_plugin
           pip freeze
 
       - name: Static codechecks
-        # need to use a login shell for the conda setup to work
-        shell: bash -leo pipefail {0}
         run: |
-          pyflakes ctapipe
+          restructuredtext-lint README.rst
+
+      - name: ctapipe-info
+        run: |
+          ctapipe-info --all
 
       - name: Tests
-        # need to use a login shell for the conda setup to work
-        shell: bash -leo pipefail {0}
         run: |
+          cd $(mktemp -d)
           pytest -n auto --dist loadscope \
             --cov --cov-report=xml \
             --doctest-modules --doctest-glob='*.rst' \
-            --ignore=docs/conf.py \
-            ctapipe docs
+            --ignore=$HOME/work/ctapipe/ctapipe/docs/conf.py \
+            --pyargs ctapipe $HOME/work/ctapipe/ctapipe/docs
 
           ctapipe-info --version
 
-      - uses: codecov/codecov-action@v2
-        if: matrix.codecov
+      - uses: codecov/codecov-action@v3
+        if: contains(matrix.extra-args, 'codecov')
 
   docs:
     runs-on: ubuntu-latest
@@ -133,15 +148,20 @@ jobs:
       - name: Install doc dependencies
         run: |
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
-          pip install -U pip setuptools wheel
+          pip install -U pip towncrier
           pip install -e .[docs]
+          pip install ./test_plugin
           git describe --tags
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
-      - name: Build docs
-        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
+      - name: Produce Changelog
+        run: |
+          towncrier build --yes
 
-      - name: Deploy to gihub pages
+      - name: Build docs
+        run: make doc
+
+      - name: Deploy to github pages
         # only run on push to master
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         uses: JamesIves/github-pages-deploy-action@3.7.1
@@ -151,3 +171,7 @@ jobs:
           FOLDER: docs/_build/html
           CLEAN: true
           SINGLE_COMMIT: true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: docs
+          path: docs/_build/html

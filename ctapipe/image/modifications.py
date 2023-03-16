@@ -1,9 +1,9 @@
 import numpy as np
 from numba import njit
-from ..core.component import TelescopeComponent
-from ..core.traits import FloatTelescopeParameter, BoolTelescopeParameter, Int
-from ..instrument import SubarrayDescription
 
+from ..core import TelescopeComponent
+from ..core.traits import BoolTelescopeParameter, FloatTelescopeParameter, Int
+from ..instrument import SubarrayDescription
 
 __all__ = [
     "ImageModifier",

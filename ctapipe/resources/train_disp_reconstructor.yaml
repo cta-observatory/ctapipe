@@ -1,0 +1,68 @@
+# ======================================================================
+# ctapipe-train-disp-reconstructor config file.
+# version: VERSION
+#
+# Configuration for training machine-learning models
+# ======================================================================
+TrainDispReconstructor:
+  CrossValidator:
+    n_cross_validations: 5
+
+  DispReconstructor:
+    norm_cls: ExtraTreesRegressor
+    norm_config:
+      n_estimators: 10
+      max_depth: 10
+      n_jobs: -1
+
+    log_target: True
+
+    sign_cls: ExtraTreesClassifier
+    sign_config:
+      n_estimators: 10
+      max_depth: 10
+      n_jobs: -1
+
+    features:
+      - hillas_intensity
+      - hillas_r
+      - hillas_length
+      - hillas_width
+      - hillas_skewness
+      - hillas_kurtosis
+      - timing_slope
+      - timing_deviation
+      - leakage_intensity_width_1
+      - leakage_intensity_width_2
+      - leakage_pixels_width_1
+      - leakage_pixels_width_2
+      - concentration_cog
+      - concentration_core
+      - morphology_n_islands
+      - morphology_n_large_islands
+      - morphology_n_medium_islands
+      - morphology_n_pixels
+      - morphology_n_small_islands
+      - peak_time_std
+      - peak_time_skewness
+      - peak_time_kurtosis
+      - intensity_max
+      - intensity_mean
+      - intensity_std
+      - intensity_skewness
+      - intensity_kurtosis
+      - area
+      - ExtraTreesRegressor_energy
+      - ExtraTreesRegressor_tel_energy
+
+    QualityQuery:
+      quality_criteria:
+        - ["HillasValid", "HillasReconstructor_is_valid"]
+        - ["enough intensity", "hillas_intensity > 50"]
+        - ["Positive width", "hillas_width > 0"]
+        - ["enough pixels", "morphology_n_pixels > 3"]
+        - ["not clipped", "leakage_intensity_width_2 < 0.5"]
+
+    FeatureGenerator:
+      features:
+        - ["area", "hillas_width * hillas_length"]

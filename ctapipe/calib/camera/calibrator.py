@@ -13,8 +13,8 @@ from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
+    ComponentName,
     TelescopeParameter,
-    create_class_enum_trait,
 )
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
@@ -53,19 +53,17 @@ class CameraCalibrator(TelescopeComponent):
         The name of the ImageExtractor subclass to be used for image extraction
     """
 
-    data_volume_reducer_type = create_class_enum_trait(
+    data_volume_reducer_type = ComponentName(
         DataVolumeReducer, default_value="NullDataVolumeReducer"
     ).tag(config=True)
 
     image_extractor_type = TelescopeParameter(
-        trait=create_class_enum_trait(
-            ImageExtractor, default_value="NeighborPeakWindowSum"
-        ),
+        trait=ComponentName(ImageExtractor, default_value="NeighborPeakWindowSum"),
         default_value="NeighborPeakWindowSum",
         help="Name of the ImageExtractor subclass to be used.",
     ).tag(config=True)
 
-    invalid_pixel_handler_type = create_class_enum_trait(
+    invalid_pixel_handler_type = ComponentName(
         InvalidPixelHandler,
         default_value="NeighborAverage",
         help="Name of the InvalidPixelHandler to use",

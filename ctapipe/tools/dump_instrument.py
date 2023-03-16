@@ -16,7 +16,6 @@ class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)
     name = "ctapipe-dump-instrument"
 
-    infile = Path(exists=True, help="input simtelarray file").tag(config=True)
     outdir = Path(
         file_ok=False,
         directory_ok=True,
@@ -24,6 +23,7 @@ class DumpInstrumentTool(Tool):
         default_value=None,
         help="Output directory. If not given, the current working directory will be used.",
     ).tag(config=True)
+
     format = Enum(
         ["fits", "ecsv", "hdf5"],
         default_value="fits",
@@ -32,22 +32,26 @@ class DumpInstrumentTool(Tool):
     )
 
     aliases = {
-        ("i", "input"): "DumpInstrumentTool.infile",
+        ("i", "input"): "EventSource.input_url",
         ("f", "format"): "DumpInstrumentTool.format",
         ("o", "outdir"): "DumpInstrumentTool.outdir",
     }
 
+    classes = [EventSource]
+
     def setup(self):
-        with EventSource(self.infile) as source:
+        with EventSource(parent=self) as source:
+            self.infile = source.input_url
             self.subarray = source.subarray
 
     def start(self):
         if self.outdir is None:
             self.outdir = pathlib.Path(os.getcwd())
+
         self.outdir.mkdir(exist_ok=True, parents=True)
 
         if self.format == "hdf5":
-            self.subarray.to_hdf("subarray.h5")
+            self.subarray.to_hdf(self.outdir / "subarray.h5")
         else:
             self.write_camera_definitions()
             self.write_optics_descriptions()

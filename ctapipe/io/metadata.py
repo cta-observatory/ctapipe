@@ -23,12 +23,10 @@ them (as in `Activity.from_provenance()`)
 
 """
 import os
-import pwd
 import uuid
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from contextlib import ExitStack
-from pathlib import Path
 
 import tables
 from astropy.time import Time
@@ -52,9 +50,9 @@ __all__ = [
 
 
 CONVERSIONS = {
-    Time: lambda t: t.utc.iso,
-    list: lambda l: ",".join([convert(elem) for elem in l]),
-    DataLevel: lambda d: d.name,
+    Time: lambda value: value.utc.iso,
+    list: lambda value: ",".join([convert(elem) for elem in value]),
+    DataLevel: lambda value: value.name,
 }
 
 
@@ -63,6 +61,18 @@ def convert(value):
     if (conv := CONVERSIONS.get(type(value))) is not None:
         return conv(value)
     return value
+
+
+def _get_user_name():
+    """return the logged in user's name, as a fall-back if none is specified"""
+    try:
+        import pwd
+
+        return pwd.getpwuid(os.getuid()).pw_gecos
+    except ImportError:
+        # the pwd module is not available on some non-unix systems (Windows), so
+        # here we just fall back to a default name
+        return "Unknown User"
 
 
 class Contact(Configurable):
@@ -76,12 +86,12 @@ class Contact(Configurable):
     def default_name(self):
         """if no name specified, use the system's user name"""
         try:
-            return pwd.getpwuid(os.getuid()).pw_gecos
+            return _get_user_name()
         except RuntimeError:
             return ""
 
     def __repr__(self):
-        return f"Contact(name={self.name}, email={self.email}, organization={self.organization})"
+        return f"{self.__class__.__name__}(name={self.name}, email={self.email}, organization={self.organization})"
 
 
 class Product(HasTraits):
@@ -98,7 +108,17 @@ class Product(HasTraits):
     data_model_url = Unicode("unknown")
     format = Unicode()
 
-    # pylint: disable=no-self-use
+    def __init__(self, **kwargs):
+        if "data_levels" in kwargs:
+            data_levels = kwargs["data_levels"]
+            if isinstance(data_levels, str):
+                if data_levels.strip() == "":
+                    kwargs["data_levels"] = []
+                else:
+                    kwargs["data_levels"] = data_levels.split(",")
+
+        super().__init__(**kwargs)
+
     @default("creation_time")
     def default_time(self):
         """return current time by default"""
@@ -129,6 +149,7 @@ class Activity(HasTraits):
             type_="software",
             id_=activity["activity_uuid"],
             start_time=activity["start"]["time_utc"],
+            stop_time=activity["stop"].get("time_utc", Time.now()),
             software_name="ctapipe",
             software_version=activity["system"]["ctapipe_version"],
         )
@@ -137,6 +158,7 @@ class Activity(HasTraits):
     type_ = Unicode("software")
     id_ = Unicode()
     start_time = AstroTime()
+    stop_time = AstroTime(allow_none=True, default_value=None)
     software_name = Unicode("unknown")
     software_version = Unicode("unknown")
 
@@ -182,6 +204,7 @@ class Instrument(Configurable):
         ],
         "Other",
     ).tag(config=True)
+
     type_ = Unicode("unspecified").tag(config=True)
     subtype = Unicode("unspecified").tag(config=True)
     version = Unicode("unspecified").tag(config=True)
@@ -189,8 +212,10 @@ class Instrument(Configurable):
 
     def __repr__(self):
         return (
-            f"Contact({self.site=}, {self.class_=}, {self.type_=}, "
-            f"{self.subtype=}, {self.version=}, {self.id_=})"
+            f"{self.__class__.__name__}("
+            f"site={self.site}, class_={self.class_}, type_={self.type_}"
+            f", subtype={self.subtype}, version={self.version}, id_={self.id_}"
+            ")"
         )
 
 
@@ -241,6 +266,39 @@ class Reference(HasTraits):
         meta.update(_to_dict(self.instrument, prefix=prefix + "INSTRUMENT "))
         return meta
 
+    @classmethod
+    def from_dict(cls, metadata):
+        kwargs = defaultdict(dict)
+        for hierarchical_key, value in metadata.items():
+
+            components = hierarchical_key.split(" ")
+
+            if components[0] != "CTA":
+                continue
+
+            if len(components) < 3:
+                continue
+
+            group = components[1].lower()
+            key = "_".join(components[2:]).lower()
+
+            # handle python builtins / keywords
+            if key in {"type", "id", "class"}:
+                key = key + "_"
+
+            kwargs[group][key] = value
+
+        return cls(
+            contact=Contact(**kwargs["contact"]),
+            product=Product(**kwargs["product"]),
+            process=Process(**kwargs["process"]),
+            activity=Activity(**kwargs["activity"]),
+            instrument=Instrument(**kwargs["instrument"]),
+        )
+
+    def __repr__(self):
+        return str(self.to_dict())
+
 
 def write_to_hdf5(metadata, h5file, path="/"):
     """
@@ -279,16 +337,11 @@ def read_metadata(h5file, path="/"):
     metadata: dictionnary
     """
     with ExitStack() as stack:
-        if isinstance(h5file, (str, Path)):
+        if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
-        elif isinstance(h5file, tables.file.File):
-            pass
-        else:
-            raise ValueError(
-                f"expected a string, Path, or PyTables "
-                f"filehandle for argument 'h5file', got {h5file}"
-            )
 
         node = h5file.get_node(path)
         metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
         return metadata
+
+    raise IOError("Could not read metadata")

@@ -158,7 +158,7 @@ class UnstructuredInterpolator:
         else:
             s = self._tri.find_simplex(points)
             # get the vertices for each simplex
-            v = self._tri.vertices[s]
+            v = self._tri.simplices[s]
             # get transform matrices for each simplex
             m = self._tri.transform[s]
             self._previous_v = v

@@ -1,27 +1,26 @@
 """
 Coordinates.
 """
-
-import numpy as np
+import warnings
 
 from astropy.coordinates import (
+    CIRS,
     AltAz,
     FunctionTransformWithFiniteDifference,
-    CIRS,
     frame_transform_graph,
-    spherical_to_cartesian,
 )
-import warnings
-from .telescope_frame import TelescopeFrame
-from .nominal_frame import NominalFrame
+
+from .camera_frame import CameraFrame, EngineeringCameraFrame
 from .ground_frames import (
+    EastingNorthingFrame,
     GroundFrame,
     TiltedGroundFrame,
     project_to_ground,
-    EastingNorthingFrame,
 )
-from .camera_frame import CameraFrame, EngineeringCameraFrame
-
+from .impact_distance import impact_distance, shower_impact_distance
+from .nominal_frame import NominalFrame
+from .telescope_frame import TelescopeFrame
+from .utils import altaz_to_righthanded_cartesian
 
 __all__ = [
     "TelescopeFrame",
@@ -34,11 +33,18 @@ __all__ = [
     "MissingFrameAttributeWarning",
     "project_to_ground",
     "altaz_to_righthanded_cartesian",
+    "impact_distance",
+    "shower_impact_distance",
 ]
 
 
 class MissingFrameAttributeWarning(Warning):
     pass
+
+
+def get_representation_component_names(frame):
+    """Return the component names of a Frame (or SkyCoord)"""
+    return tuple(frame.get_representation_component_names().keys())
 
 
 # astropy requires all AltAz to have locations
@@ -61,28 +67,12 @@ def altaz_to_altaz(from_coo, to_frame):
     location = from_coo.location
     if from_coo.obstime is None:
         warnings.warn(
-            "Horizontal coordinate has no location, assuming same frame",
+            "AltAz coordinate has no location, assuming same frame",
             MissingFrameAttributeWarning,
         )
         location = to_frame.location
 
     if obstime is None or location is None:
-        return to_frame.realize_frame(from_coo.spherical)
+        return to_frame.realize_frame(from_coo.data)
 
     return from_coo.transform_to(CIRS(obstime=obstime)).transform_to(to_frame)
-
-
-def altaz_to_righthanded_cartesian(alt, az):
-    """Turns an alt/az coordinate into a 3d direction in a right-handed coordinate
-    system.  This is because azimuths are in a left-handed system.
-
-    See e.g: https://github.com/astropy/astropy/issues/5300
-
-    Parameters
-    ----------
-    alt: u.Quantity
-        altitude
-    az: u.Quantity
-        azimuth
-    """
-    return np.array(spherical_to_cartesian(r=1, lat=alt, lon=-az))

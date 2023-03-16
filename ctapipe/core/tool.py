@@ -6,11 +6,15 @@ import pathlib
 import re
 import textwrap
 from abc import abstractmethod
+from contextlib import ExitStack
 from inspect import cleandoc
+from subprocess import CalledProcessError
+from tempfile import mkdtemp
 from typing import Union
 
 import yaml
 from docutils.core import publish_parts
+from traitlets import TraitError
 
 try:
     import tomli as toml
@@ -71,8 +75,16 @@ class Tool(Application):
     which will automatically add their configuration parameters to the
     tool.
 
-    Once a tool is constructed and the virtual methods defined, the
-    user can call the `run` method to setup and start it.
+    Once a tool is constructed and the abstract methods are implemented,
+    the user can call the `run` method to setup and start it.
+
+    Tools have an `~contextlib.ExitStack` to guarantee cleanup tasks are
+    run when the tool terminates, also in case of errors. If a task needs
+    a cleanup, it must be a context manager and ``Tool.enter_context``
+    must be called on the object. This will guarantee that the ``__exit__``
+    method of the context manager is called after the tool has finished
+    executing. This happens after the ``finish`` method has run or
+    in case of exceptions.
 
 
     .. code:: python
@@ -93,16 +105,16 @@ class Tool(Application):
             iterations = Integer(5,help="Number of times to run",
                                  allow_none=False).tag(config=True)
 
-            def setup_comp(self):
+            def setup(self):
                 self.comp = MyComponent(self, parent=self)
                 self.comp2 = SecondaryMyComponent(self, parent=self)
 
-            def setup_advanced(self):
-                self.advanced = AdvancedComponent(self, parent=self)
+                # correct use of component that is a context manager
+                # using it like this makes sure __exit__ will be called
+                # at the end of Tool.run, even in case of exceptions
+                self.comp3 = self.enter_context(MyComponent(parent=self))
 
-            def setup(self):
-                self.setup_comp()
-                self.setup_advanced()
+                self.advanced = AdvancedComponent(parent=self)
 
             def start(self):
                 self.log.info("Performing {} iterations..."\
@@ -146,6 +158,7 @@ class Tool(Application):
     ).tag(config=True)
 
     log_config = Dict(default_value={}).tag(config=True)
+
     log_file = Path(
         default_value=None,
         exists=None,
@@ -153,12 +166,15 @@ class Tool(Application):
         help="Filename for the log",
         allow_none=True,
     ).tag(config=True)
+
     log_file_level = Enum(
         values=Application.log_level.values,
         default_value="INFO",
         help="Logging Level for File Logging",
     ).tag(config=True)
+
     quiet = Bool(default_value=False).tag(config=True)
+    overwrite = Bool(default_value=False).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -169,8 +185,9 @@ class Tool(Application):
         return self.name + ".provenance.log"
 
     def __init__(self, **kwargs):
-        # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
+
+        # make sure there are some default aliases in all Tools:
         aliases = {
             ("c", "config"): "Tool.config_files",
             "log-level": "Tool.log_level",
@@ -187,8 +204,12 @@ class Tool(Application):
                 {"Tool": {"log_level": "DEBUG"}},
                 "Set log level to DEBUG",
             ),
+            "overwrite": (
+                {"Tool": {"overwrite": True}},
+                "Overwrite existing output files without asking",
+            ),
         }
-        self.flags.update(flags)
+        self.flags = {**flags, **self.flags}
 
         self.is_setup = False
         self.version = version
@@ -200,6 +221,20 @@ class Tool(Application):
         self.log = logging.getLogger(f"{self.module_name}.{self.name}")
         self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
+        self._exit_stack = ExitStack()
+
+    def enter_context(self, context_manager):
+        """
+        Add a new context manager to the `~contextlib.ExitStack` of this Tool
+
+        This method should be used with things that need a cleanup step,
+        also in case of exception. ``enter_context`` will call
+        ``context_manager.__enter__`` and return its result.
+
+        This will guarantee that ``context_manager.__exit__`` is called when
+        `~ctapipe.core.Tool.run` finishes, even when an error occurs.
+        """
+        return self._exit_stack.enter_context(context_manager)
 
     def initialize(self, argv=None):
         """handle config and any other low-level setup"""
@@ -294,28 +329,63 @@ class Tool(Application):
         self._registered_components.append(component_instance)
         return component_instance
 
+    def check_output(self, *output_paths):
+        """
+        Test if output files exist and if they do, throw an error
+        unless ``self.overwrite`` is set to True.
+        This should be checked during tool setup to avoid having a tool only
+        realize the output can not be written after some long-running calculations
+        (e.g. training of ML-models).
+        Because we currently do not collect all created output files in the tool
+        (they can be attached to some component), the output files need
+        to be given and can not easily be derived from ``self``.
+
+        Parameters
+        ----------
+        output_paths: Path
+            One or more output path to check.
+
+        """
+        for output in output_paths:
+            if output is not None and output.exists():
+                if self.overwrite:
+                    self.log.warning("Overwriting %s", output)
+                else:
+                    raise ToolConfigurationError(
+                        f"Output path {output} exists, but overwrite=False"
+                    )
+
     @abstractmethod
     def setup(self):
-        """set up the tool (override in subclass). Here the user should
-        construct all ``Components`` and open files, etc."""
-        pass
+        """Set up the tool.
+
+        This method runs after the configuration and command line options
+        have been parsed.
+
+        Here the tool should construct all ``Components``, open files, etc.
+        """
 
     @abstractmethod
     def start(self):
-        """main body of tool (override in subclass). This is  automatically
-        called after `Tool.initialize` when the `Tool.run` is called.
         """
-        pass
+        Main function of the tool.
+
+        This is automatically called after `Tool.initialize` when `Tool.run` is called.
+        """
 
     @abstractmethod
     def finish(self):
-        """finish up (override in subclass). This is called automatically
-        after `Tool.start` when `Tool.run` is called."""
+        """
+        Finish up.
+
+        This is called automatically after `Tool.start` when `Tool.run` is called.
+        """
         self.log.info("Goodbye")
 
     def run(self, argv=None, raises=False):
-        """Run the tool. This automatically calls `initialize()`,
-        `start()` and `finish()`
+        """Run the tool.
+
+        This automatically calls `Tool.initialize`, `Tool.start` and `Tool.finish`
 
         Parameters
         ----------
@@ -323,49 +393,58 @@ class Tool(Application):
         argv: list(str)
             command-line arguments, or None to get them
             from sys.argv automatically
+
+        raises : bool
+            Whether to raise Exceptions (to test them) or not.
         """
 
         # return codes are taken from:
-        #  http://tldp.org/LDP/abs/html/exitcodes.html
+        #  https://tldp.org/LDP/abs/html/exitcodes.html
 
         exit_status = 0
 
-        try:
-            self.initialize(argv)
-            self.log.info(f"Starting: {self.name}")
-            Provenance().start_activity(self.name)
-            self.setup()
-            self.is_setup = True
-            self.log.debug(f"CONFIG: {self.get_current_config()}")
-            Provenance().add_config(self.get_current_config())
+        with self._exit_stack:
+            try:
+                self.initialize(argv)
+                self.log.info(f"Starting: {self.name}")
+                Provenance().start_activity(self.name)
+                self.setup()
+                self.is_setup = True
+                self.log.debug(f"CONFIG: {self.get_current_config()}")
+                Provenance().add_config(self.get_current_config())
 
-            # check for any traitlets warnings using our custom handler
-            if len(self.trait_warning_handler.errors) > 0:
-                raise ToolConfigurationError("Found config errors")
+                # check for any traitlets warnings using our custom handler
+                if len(self.trait_warning_handler.errors) > 0:
+                    raise ToolConfigurationError("Found config errors")
 
-            # remove handler to not impact performance with regex matching
-            self.log.removeHandler(self.trait_warning_handler)
+                # remove handler to not impact performance with regex matching
+                self.log.removeHandler(self.trait_warning_handler)
 
-            self.start()
-            self.finish()
-            self.log.info(f"Finished: {self.name}")
-            Provenance().finish_activity(activity_name=self.name)
-        except ToolConfigurationError as err:
-            self.log.error(f"{err}.  Use --help for more info")
-            exit_status = 2  # wrong cmd line parameter
-        except KeyboardInterrupt:
-            self.log.warning("WAS INTERRUPTED BY CTRL-C")
-            Provenance().finish_activity(activity_name=self.name, status="interrupted")
-            exit_status = 130  # Script terminated by Control-C
-        except Exception as err:
-            self.log.exception(f"Caught unexpected exception: {err}")
-            Provenance().finish_activity(activity_name=self.name, status="error")
-            exit_status = 1  # any other error
-            if raises:
-                raise err
-        finally:
-            if not {"-h", "--help", "--help-all"}.intersection(self.argv):
-                self.write_provenance()
+                self.start()
+                self.finish()
+                self.log.info(f"Finished: {self.name}")
+                Provenance().finish_activity(activity_name=self.name)
+            except (ToolConfigurationError, TraitError) as err:
+                self.log.error("%s", err)
+                self.log.error("Use --help for more info")
+                exit_status = 2  # wrong cmd line parameter
+                if raises:
+                    raise
+            except KeyboardInterrupt:
+                self.log.warning("WAS INTERRUPTED BY CTRL-C")
+                Provenance().finish_activity(
+                    activity_name=self.name, status="interrupted"
+                )
+                exit_status = 130  # Script terminated by Control-C
+            except Exception as err:
+                self.log.exception(f"Caught unexpected exception: {err}")
+                Provenance().finish_activity(activity_name=self.name, status="error")
+                exit_status = 1  # any other error
+                if raises:
+                    raise
+            finally:
+                if not {"-h", "--help", "--help-all"}.intersection(self.argv):
+                    self.write_provenance()
 
         self.exit(exit_status)
 
@@ -528,9 +607,20 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     return "\n".join(lines)
 
 
-def run_tool(tool: Tool, argv=None, cwd=None, raises=False):
+def run_tool(tool: Tool, argv=None, cwd=None, raises=True):
     """
-    Utility run a certain tool in a python session without exitinig
+    Utility run a certain tool in a python session without exiting.
+
+    Parameters
+    ----------
+    argv : List[str]
+        List of command line arguments for the tool.
+    cwd : str or pathlib.Path
+        Path to a temporary working directory. If none, a new (random)
+        temporary directeory gets created.
+    raises : bool
+        If true, raises Exceptions from running tools, to test them.
+        If false, tools can return a non-zero exit code.
 
     Returns
     -------
@@ -538,12 +628,15 @@ def run_tool(tool: Tool, argv=None, cwd=None, raises=False):
         The return code of the tool, 0 indicates success, everything else an error
     """
     current_cwd = pathlib.Path().absolute()
-    cwd = pathlib.Path(cwd) if cwd is not None else current_cwd
+    cwd = pathlib.Path(cwd) if cwd is not None else mkdtemp()
+    argv = argv or []
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
-        tool.run(argv or [], raises=raises)
+        tool.run(argv, raises=raises)
     except SystemExit as e:
+        if raises and e.code != 0:
+            raise CalledProcessError(e.code, [tool.name] + argv)
         return e.code
     finally:
         os.chdir(current_cwd)

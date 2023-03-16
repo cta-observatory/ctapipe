@@ -1,9 +1,9 @@
 import json
 
+import pytest
+
 from ctapipe.core import Provenance
 from ctapipe.core.provenance import _ActivityProvenance
-
-import pytest
 
 
 @pytest.fixture
@@ -19,7 +19,9 @@ def provenance():
     prov.finish_activity("test1")
     return prov
 
-    assert set(prov.finished_activity_names) == {"test2", "test1"}
+
+def test_provenance_activity_names(provenance):
+    assert set(provenance.finished_activity_names) == {"test2", "test1"}
 
 
 def test_ActivityProvenance():

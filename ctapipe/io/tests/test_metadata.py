@@ -18,7 +18,9 @@ def test_construct_and_write_metadata(tmp_path):
 
     reference = meta.Reference(
         contact=meta.Contact(
-            name="Somebody", email="a@b.com", organization="CTA Consortium"
+            name="Somebody",
+            email="a@b.com",
+            organization="CTA Consortium",
         ),
         product=meta.Product(
             description="An Amazing Product",
@@ -28,7 +30,7 @@ def test_construct_and_write_metadata(tmp_path):
             data_association="Subarray",
             data_model_name="Unofficial DL1",
             data_model_version="1.0",
-            data_model_url="http://google.com",
+            data_model_url="https://example.org",
             format="hdf5",
         ),
         process=meta.Process(type_="Simulation", subtype="Prod3b", id_="423442"),
@@ -91,3 +93,42 @@ def test_read_metadata(tmp_path):
         metadata_out = meta.read_metadata(file, path=metadata_path)
 
     assert metadata_out == metadata_in
+
+
+def test_from_dict():
+    prov = Provenance()
+    prov.start_activity("test")
+    prov.finish_activity()
+    prov_activity = prov.finished_activities[0]
+
+    reference = meta.Reference(
+        contact=meta.Contact(
+            name="Somebody",
+            email="a@b.com",
+            organization="CTA Consortium",
+        ),
+        product=meta.Product(
+            description="An Amazing Product",
+            creation_time="2020-10-11 15:23:31",
+            data_category="Sim",
+            data_levels=["DL1_IMAGES", "DL1_PARAMETERS"],
+            data_association="Subarray",
+            data_model_name="Unofficial DL1",
+            data_model_version="1.0",
+            data_model_url="http://google.com",
+            format="hdf5",
+        ),
+        process=meta.Process(type_="Simulation", subtype="Prod3b", id_="423442"),
+        activity=meta.Activity.from_provenance(prov_activity.provenance),
+        instrument=meta.Instrument(
+            site="CTA-North",
+            class_="Array",
+            type_="Layout H1B",
+            version="1.0",
+            id_="threshold",
+        ),
+    )
+
+    as_dict = reference.to_dict()
+    back = meta.Reference.from_dict(as_dict)
+    assert back.to_dict() == as_dict

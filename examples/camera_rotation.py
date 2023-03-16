@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     for ii in range(N):
         plt.subplot(1, N, ii + 1)
-        geom.rotate(ii * (geom.pix_rotation + 30 * u.deg))
+        geom.rotate(geom.pix_rotation + ii * 30 * u.deg)
         d2 = CameraDisplay(geom, image=image, cmap="viridis")
 
     plt.tight_layout()

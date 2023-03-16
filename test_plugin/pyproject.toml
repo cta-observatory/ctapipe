@@ -1,0 +1,20 @@
+[project]
+name = "ctapipe_test_plugin"
+version = "0.1.0"
+dependencies = [
+	"ctapipe",
+]
+
+
+[build-system]
+requires = ["setuptools >= 61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = {}  # Scan the project directory with the default parameters
+
+[project.entry-points.ctapipe_io]
+PluginEventSource = "ctapipe_test_plugin:PluginEventSource"
+
+[project.entry-points.ctapipe_reco]
+PluginReconstructor = "ctapipe_test_plugin:PluginReconstructor"

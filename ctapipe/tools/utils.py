@@ -2,7 +2,13 @@
 """Utils to create scripts and command-line tools"""
 import argparse
 import importlib
+import sys
 from collections import OrderedDict
+
+if sys.version_info < (3, 10):
+    from importlib_metadata import distribution
+else:
+    from importlib.metadata import distribution
 
 __all__ = [
     "ArgparseFormatter",
@@ -33,14 +39,16 @@ def get_parser(function=None, description="N/A"):
 def get_installed_tools():
     """Get list of installed scripts via ``pkg-resources``.
 
-    See http://peak.telecommunity.com/DevCenter/PkgResources#convenience-api
+    See https://setuptools.pypa.io/en/latest/pkg_resources.html#convenience-api
 
     TODO: not sure if this will be useful ... maybe to check if the list
     of installed packages matches the available scripts somehow?
     """
-    from pkg_resources import get_entry_map
-
-    console_tools = get_entry_map("ctapipe")["console_scripts"]
+    console_tools = {
+        ep.name: ep.value
+        for ep in distribution("ctapipe").entry_points
+        if ep.group == "console_scripts"
+    }
     return console_tools
 
 
@@ -49,8 +57,9 @@ def get_all_descriptions():
     tools = get_installed_tools()
 
     descriptions = OrderedDict()
-    for name, info in tools.items():
-        module = importlib.import_module(info.module_name)
+    for name, value in tools.items():
+        module_name, attr = value.split(":")
+        module = importlib.import_module(module_name)
         if hasattr(module, "__doc__") and module.__doc__ is not None:
             try:
                 descrip = module.__doc__

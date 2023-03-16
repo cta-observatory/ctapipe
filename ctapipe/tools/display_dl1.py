@@ -1,13 +1,15 @@
 """
 Calibrate dl0 data to dl1, and plot the photoelectron images.
 """
+from contextlib import ExitStack
 from copy import copy
 
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 from ..calib import CameraCalibrator
-from ..core import Component, Tool
+from ..core import Component, QualityQuery, Tool
+from ..core.tool import ToolConfigurationError
 from ..core.traits import Bool, Int, Path, classes_with_traits, flag
 from ..image.extractor import ImageExtractor
 from ..io import EventSource
@@ -57,6 +59,7 @@ class ImagePlotter(Component):
         self.cb_peak_time = None
         self.pdf = None
         self.subarray = subarray
+        self._exit_stack = ExitStack()
 
         self._init_figure()
 
@@ -66,7 +69,7 @@ class ImagePlotter(Component):
         self.ax_peak_time = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
             self.log.info(f"Creating PDF: {self.output_path}")
-            self.pdf = PdfPages(self.output_path)
+            self.pdf = self._exit_stack.enter_context(PdfPages(self.output_path))
 
     def plot(self, event, tel_id):
         image = event.dl1.tel[tel_id].image
@@ -123,6 +126,13 @@ class ImagePlotter(Component):
         if self.pdf is not None:
             self.pdf.savefig(self.fig)
 
+    def __enter__(self):
+        self._exit_stack.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return self._exit_stack.__exit__(exc_type, exc_value, traceback)
+
     def finish(self):
         if self.pdf is not None:
             self.log.info("Closing PDF")
@@ -163,18 +173,20 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = EventSource.from_config(parent=self)
+        self.eventsource = self.enter_context(EventSource.from_config(parent=self))
+        self.quality_query = QualityQuery(parent=self)
+
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 
         if not self.eventsource.has_any_datalevel(compatible_datalevels):
-            raise Exception(
+            raise ToolConfigurationError(
                 "The input file contains no pixelwise information. "
                 "Images can not be constructed."
             )
         subarray = self.eventsource.subarray
 
         self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
-        self.plotter = ImagePlotter(parent=self, subarray=subarray)
+        self.plotter = self.enter_context(ImagePlotter(parent=self, subarray=subarray))
 
     def start(self):
         for event in self.eventsource:
@@ -189,7 +201,8 @@ class DisplayDL1Calib(Tool):
                 tel_list = [self.telescope]
 
             for tel_id in tel_list:
-                self.plotter.plot(event, tel_id)
+                if all(self.quality_query(dl1=event.dl1.tel[tel_id])):
+                    self.plotter.plot(event, tel_id)
 
     def finish(self):
         self.plotter.finish()

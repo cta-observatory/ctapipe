@@ -1,8 +1,10 @@
-from .unstructured_interpolator import UnstructuredInterpolator
-import numpy as np
-import pickle
 import gzip
+import pickle
+
+import numpy as np
 import numpy.ma as ma
+
+from .unstructured_interpolator import UnstructuredInterpolator
 
 
 class BaseTemplate:
@@ -315,7 +317,6 @@ class TemplateNetworkInterpolator(BaseTemplate):
             )
 
         interpolated_value[interpolated_value < 0] = 0
-        interpolated_value = interpolated_value
 
         return interpolated_value
 

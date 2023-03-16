@@ -4,12 +4,15 @@ import logging
 import os
 import sys
 
-from .utils import get_parser
 from ..core import Provenance, get_module_version
-from ..core.plugins import detect_and_import_io_plugins
+from ..core.plugins import detect_and_import_plugins
 from ..utils import datasets
+from .utils import get_parser
 
-from pkg_resources import resource_filename
+if sys.version_info < (3, 9):
+    from importlib_resources import files
+else:
+    from importlib.resources import files
 
 __all__ = ["info"]
 
@@ -56,6 +59,20 @@ def main(args=None):
         "--all", dest="show_all", action="store_true", help="show all info"
     )
     parser.add_argument("--plugins", action="store_true", help="Print plugin info")
+    parser.add_argument(
+        "--datamodel", action="store_true", help="Print data model info"
+    )
+    parser.add_argument(
+        "--event-sources",
+        action="store_true",
+        help="Print available EventSource implementations",
+    )
+    parser.add_argument(
+        "--reconstructors",
+        action="store_true",
+        help="Print available Reconstructor implementations",
+    )
+
     args = parser.parse_args(args)
 
     if len(sys.argv) <= 1:
@@ -73,14 +90,20 @@ def info(
     system=False,
     plugins=False,
     show_all=False,
+    datamodel=False,
+    event_sources=False,
+    reconstructors=False,
 ):
     """
     Display information about the current ctapipe installation.
     """
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+    logging.basicConfig(level=logging.CRITICAL, format="%(levelname)s - %(message)s")
 
     if version or show_all:
         _info_version()
+
+    if datamodel or show_all:
+        _info_datamodel()
 
     if tools or show_all:
         _info_tools()
@@ -96,6 +119,12 @@ def info(
 
     if plugins or show_all:
         _info_plugins()
+
+    if event_sources or show_all:
+        _info_sources()
+
+    if reconstructors or show_all:
+        _info_reconstructors()
 
 
 def _info_version():
@@ -119,8 +148,9 @@ def _info_tools():
     # full help text from the docstring or ArgumentParser?
     # This is the function names, we want the command-line names
     # that are defined in setup.py !???
-    from ctapipe.tools.utils import get_all_descriptions
     from textwrap import TextWrapper
+
+    from ctapipe.tools.utils import get_all_descriptions
 
     wrapper = TextWrapper(width=80, subsequent_indent=" " * 35)
 
@@ -148,7 +178,7 @@ def _info_dependencies():
 
 
 def _info_resources():
-    """ display all known resources """
+    """display all known resources"""
 
     print("\n*** ctapipe resources ***\n")
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
@@ -162,7 +192,7 @@ def _info_resources():
     all_resources = sorted(datasets.find_all_matching_datasets(r"\w.*"))
     home = os.path.expanduser("~")
     try:
-        resource_dir = resource_filename("ctapipe_resources", "")
+        resource_dir = files("ctapipe_resources")
     except ImportError:
         resource_dir = None
 
@@ -185,6 +215,7 @@ def _info_system():
     print("\n*** ctapipe system environment ***\n")
 
     prov = Provenance()
+    prov.start_activity("ctapipe-info")
     system_prov = prov.current_activity.provenance["system"]
 
     for section in ["platform", "python"]:
@@ -197,16 +228,52 @@ def _info_system():
 
 
 def _info_plugins():
-    plugins = detect_and_import_io_plugins()
-    print("\n*** ctapipe io plugins ***\n")
+    for kind in ("io", "reco"):
+        plugins = detect_and_import_plugins(f"ctapipe_{kind}")
+        print(f"\n*** ctapipe_{kind} plugins ***\n")
 
-    if not plugins:
-        print("No io plugins installed")
-        return
+        if not plugins:
+            print(f"No {kind} plugins installed")
+            return
 
-    for name in plugins:
-        version = get_module_version(name)
-        print(f"{name:>20s} -- {version}")
+        for name in plugins:
+            version = get_module_version(name)
+            print(f"{name:>20s} -- {version}")
+
+
+def _info_sources():
+    from ctapipe.io import EventSource
+
+    print("\n*** ctapipe available EventSource implementations ***\n")
+    sources = EventSource.non_abstract_subclasses()
+    maxlen = max(len(source) for source in sources)
+    for source in sources.values():
+        print(
+            f"{source.__name__:>{maxlen}s} -- {source.__module__}.{source.__qualname__}"
+        )
+
+
+def _info_reconstructors():
+    from ctapipe.reco import Reconstructor
+
+    print("\n*** ctapipe Reconstructor implementations ***\n")
+    sources = Reconstructor.non_abstract_subclasses()
+    maxlen = max(len(source) for source in sources)
+    for source in sources.values():
+        print(
+            f"{source.__name__:>{maxlen}s} -- {source.__module__}.{source.__qualname__}"
+        )
+
+
+def _info_datamodel():
+    from ctapipe.io.datawriter import DATA_MODEL_CHANGE_HISTORY, DATA_MODEL_VERSION
+    from ctapipe.io.hdf5eventsource import COMPATIBLE_DATA_MODEL_VERSIONS
+
+    print("\n*** ctapipe data model ***\n")
+    print(f"output version: {DATA_MODEL_VERSION}")
+    print(f"compatible input versions: {', '.join(COMPATIBLE_DATA_MODEL_VERSIONS)}")
+    print("change history:")
+    print(DATA_MODEL_CHANGE_HISTORY)
 
 
 if __name__ == "__main__":

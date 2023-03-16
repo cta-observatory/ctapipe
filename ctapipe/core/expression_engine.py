@@ -4,9 +4,6 @@ Expression Engine
 import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
 
-from .component import Component
-from .traits import List, Tuple, Unicode
-
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
 ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
@@ -19,27 +16,25 @@ class ExpressionError(TypeError):
     """Signal a problem with a user-defined selection criteria function"""
 
 
-class ExpressionEngine(Component):
+class ExpressionEngine:
     """
     Compile expressions on init, evaluate on call.
     """
 
-    expressions = List(
-        Tuple(Unicode(), Unicode()),
-        help="List of 2-Tuples of Strings: ('name', 'expression').",
-    ).tag(config=True)
+    def __init__(self, expressions):
+        self.expressions = expressions
+        self._compile()
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-
+    def _compile(self):
         self.compiled = []
         for name, expression in self.expressions:
             try:
                 self.compiled.append(compile(expression, __name__, mode="eval"))
-            except Exception:
+            except Exception as err:
                 raise ExpressionError(
-                    f"Error compiling expression '{expression}' for {name}"
-                )
+                    f"Error compiling expression '{expression}' for {name}\n"
+                    f"{type(err).__name__}: {err}"
+                ) from err
 
     def __call__(self, locals):
         for expr in self.compiled:
@@ -48,4 +43,15 @@ class ExpressionEngine(Component):
             except NameError as err:
                 raise ExpressionError(f"Error evaluating expression '{expr}': {err}")
             except Exception as err:
-                raise ExpressionError(f"Error evaluating expression '{expr}'") from err
+                raise ExpressionError(
+                    f"Error evaluating expression '{expr}': {err}"
+                ) from err
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["compiled"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._compile()

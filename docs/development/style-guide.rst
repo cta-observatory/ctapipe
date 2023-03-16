@@ -39,10 +39,10 @@ environment* (IDE) is used to develop code, rather than a basic text
 editor. IDEs will automatically mark lines that have style
 problems. The recommended IDEs are:
 
-* `PyCharm CE <http://www.jetbrains.com/pycharm>`_ (Jetbrains)
-* emacs with the `elpy <http://elpy.readthedocs.io/en/latest/>`_
+* `PyCharm CE <https://www.jetbrains.com/pycharm>`_ (Jetbrains)
+* emacs with the `elpy <https://elpy.readthedocs.io/en/latest/>`_
   package installed
-* `PyDev <http://www.pydev.org>`_ (Eclipse)
+* `PyDev <https://www.pydev.org>`_ (Eclipse)
 
 The IDEs provide a lot of support for avoiding common style and coding
 mistakes, and automatic re-formatting (e.g. ``M-x py-autopep8-buffer``

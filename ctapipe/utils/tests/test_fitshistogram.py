@@ -1,11 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
 import pytest
+
 from ctapipe.utils.fitshistogram import Histogram
 
 
 def compare_histograms(hist1: Histogram, hist2: Histogram):
-    """ check that 2 histograms are identical in value """
+    """check that 2 histograms are identical in value"""
     assert hist1.ndims == hist2.ndims
     assert (hist1.axis_names == hist2.axis_names).all()
     assert (hist1.data == hist2.data).all
@@ -67,7 +68,7 @@ def test_outliers():
     Check that out-of-range values work as expected
     """
     H = Histogram(nbins=[5, 10], ranges=[[-2.5, 2.5], [-1, 1]])
-    H.fill(np.array([[1, 1],]))
+    H.fill(np.array([[1, 1]]))
     val1 = H.get_value((100, 100), outlier_value=-10000)
     val2 = H.get_value((-100, 0), outlier_value=None)
     assert val1 == -10000
@@ -76,7 +77,7 @@ def test_outliers():
 
 @pytest.fixture(scope="session")
 def histogram_file(tmpdir_factory):
-    """ a fixture that fetches a temporary output dir/file for a test
+    """a fixture that fetches a temporary output dir/file for a test
     histogram"""
     return str(tmpdir_factory.mktemp("data").join("histogram_test.fits"))
 
@@ -91,7 +92,7 @@ def test_histogram_fits(histogram_file):
 
     hist.to_fits().writeto(histogram_file, overwrite=True)
     newhist = Histogram.from_fits(histogram_file)
-
+    assert newhist.data.dtype.byteorder == "="
     # check that the values are the same
     compare_histograms(hist, newhist)
 
