@@ -129,7 +129,7 @@ def test_regressor(model_cls, example_table, log_target, example_subarray):
     assert np.isfinite(reco_energy[valid]).all()
     assert np.isnan(reco_energy[~valid]).all()
 
-    assert regressor.stereo_combiner.property == "energy"
+    assert regressor.stereo_combiner.property == ReconstructionProperty.ENERGY
     assert regressor.stereo_combiner.prefix == model_cls
 
 
