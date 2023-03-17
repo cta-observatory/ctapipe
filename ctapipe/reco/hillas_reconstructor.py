@@ -22,6 +22,7 @@ from ..coordinates import (
 from .reconstructor import (
     GeometryReconstructor,
     InvalidWidthException,
+    ReconstructionProperty,
     TooFewTelescopesException,
 )
 
@@ -105,6 +106,8 @@ class HillasReconstructor(GeometryReconstructor):
     uncertainty on the reconstructed parameters
 
     """
+
+    property = ReconstructionProperty.GEOMETRY
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
