@@ -1,8 +1,7 @@
 """
 High level processing of showers.
 """
-from ..containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ..coordinates import shower_impact_distance
+from ..containers import ArrayEventContainer
 from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .reconstructor import Reconstructor
@@ -40,12 +39,6 @@ class ShowerProcessor(Component):
         ),
     ).tag(config=True)
 
-    advanced_reconstructor_type = traits.CaselessStrEnum(
-        ["ImPACTReconstructor", ""],
-        default_value="",
-        help="name minimiser to use in the fit",
-    ).tag(config=True)
-
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
@@ -67,26 +60,14 @@ class ShowerProcessor(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
-
-        # TODO: Have someone review my guess about how this
-        # "several reconstructors in order" malarkey is supposed
-        # to go
-        self.reconstructors = {}
-        for name in self.reconstructor_types:
+        self.reconstructors = [
             Reconstructor.from_name(
-                name,
+                reco_type,
                 subarray=self.subarray,
                 parent=self,
             )
-
-        # TODO: Have someone review my guess about how this
-        # "several reconstructors in order" malarkey is supposed
-        # to go.Here I just assumed iterating over the list is ok
-        self.advanced_reconstructors = dict()
-        for name in self.advanced_reconstructor_type:
-            self.advanced_reconstructors[name] = Reconstructor.from_name(
-                name, subarray=self.subarray, parent=self
-            )
+            for reco_type in self.reconstructor_types
+        ]
 
     def __call__(self, event: ArrayEventContainer):
         """
@@ -97,34 +78,5 @@ class ShowerProcessor(Component):
         event : ctapipe.containers.ArrayEventContainer
             Top-level container for all event information.
         """
-
-        # TODO: Have someone review my guess about how this
-        # "several reconstructors in order" malarkey is supposed
-        # to go. Here I just assumed iterating over the list is ok
-        for k in self.reconstructor_types:
-            event.dl2.stereo.geometry[k] = self.reconstructors[k](event)
-
-        # TODO: Have someone review my guess about how this
-        # "several reconstructors in order" malarkey is supposed
-        # to go. Here I just assumed iterating over the list is ok
-        for ka in self.advanced_reconstructor_type:
-            geometry, energy = self.advanced_reconstructors[k](event)
-            event.dl2.stereo.geometry[ka] = geometry
-            event.dl2.stereo.energy[ka] = energy
-
-            # compute and store the impact parameter for each reconstruction (for
-            # now there is only one, but in the future this should be a loop over
-            # reconstructors)
-
-            # for the stereo reconstructor:
-        for k in self.reconstructor_types:
-            impact_distances = shower_impact_distance(
-                shower_geom=event.dl2.stereo.geometry[k], subarray=self.subarray
-            )
-
-            for tel_id in event.trigger.tels_with_trigger:
-                tel_index = self.subarray.tel_indices[tel_id]
-                event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
-                    distance=impact_distances[tel_index],
-                    prefix=f"{k}_tel",
-                )
+        for reconstructor in self.reconstructors:
+            reconstructor(event)
