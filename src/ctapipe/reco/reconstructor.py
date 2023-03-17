@@ -42,7 +42,7 @@ class ReconstructionProperty(Flag):
     DISP = auto()
 
     def __str__(self):
-        return f"{self.name}"
+        return f"{self.name.lower()}"
 
 
 class TooFewTelescopesException(Exception):
