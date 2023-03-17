@@ -1,5 +1,6 @@
 import weakref
 from abc import abstractmethod
+from enum import Flag, auto
 
 import astropy.units as u
 import joblib
@@ -10,7 +11,6 @@ from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterCont
 from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
 from ctapipe.core.traits import Integer, List
 
-from ..compat import StrEnum
 from ..coordinates import shower_impact_distance
 
 __all__ = [
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-class ReconstructionProperty(StrEnum):
+class ReconstructionProperty(Flag):
     """
     Primary particle properties estimated by a `Reconstructor`
 

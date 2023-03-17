@@ -111,6 +111,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
     property = (ReconstructionProperty.GEOMETRY)
 
     def __init__(self, subarray: SubarrayDescription, **kwargs):
+
         super().__init__(subarray=subarray, **kwargs)
         _cam_radius_m = {
             cam: cam.geometry.guess_radius().to_value(u.m)
