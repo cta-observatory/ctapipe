@@ -1,3 +1,19 @@
+Ctapipe 0.18.1 (2023-03-16)
+===========================
+
+
+Bug Fixes
+---------
+
+- Ensure the correct activity metadata is written into output files. [`#2261 <https://github.com/cta-observatory/ctapipe/pull/2261>`__]
+
+- Fix ``--overwrite`` option not taking effect for ``ctapipe-apply-models``. [`#2287 <https://github.com/cta-observatory/ctapipe/pull/2287>`__]
+
+- Fix ``TableLoader.read_subarray_events`` raising an exception when
+  ``load_observation_info=True``. [`#2288 <https://github.com/cta-observatory/ctapipe/pull/2288>`__]
+
+
+
 ctapipe v0.18.0 (2023-02-09)
 ============================
 
