@@ -44,6 +44,7 @@ from .impact_utilities import (
 )
 from .reconstructor import (
     InvalidWidthException,
+    ReconstructionProperty,
     Reconstructor,
     TooFewTelescopesException,
 )
@@ -119,6 +120,8 @@ class ImPACTReconstructor(Reconstructor):
         "UNKNOWN-960PX": 1.0,
     }
     spe = 0.6  # Also hard code single p.e. distribution width
+
+    property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
 
     def __init__(self, subarray, dummy_reconstructor=False, **kwargs):
         super().__init__(subarray, **kwargs)
