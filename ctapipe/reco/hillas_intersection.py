@@ -32,6 +32,7 @@ from ..core import traits
 from .reconstructor import (
     GeometryReconstructor,
     InvalidWidthException,
+    ReconstructionProperty,
     TooFewTelescopesException,
 )
 
@@ -73,6 +74,8 @@ class HillasIntersection(GeometryReconstructor):
     weighting = traits.CaselessStrEnum(
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
+
+    property = ReconstructionProperty.GEOMETRY
 
     def __init__(self, subarray, **kwargs):
         """
