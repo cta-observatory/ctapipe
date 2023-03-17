@@ -273,14 +273,14 @@ class StereoMeanCombiner(StereoCombiner):
             for itm in self.supported
             if self.property & itm in ReconstructionProperty
         ]
-        for propert in properties:
-            if property is ReconstructionProperty.ENERGY:
+        for prop in properties:
+            if prop is ReconstructionProperty.ENERGY:
                 self._combine_energy(event)
 
-            elif property is ReconstructionProperty.PARTICLE_TYPE:
+            elif prop is ReconstructionProperty.PARTICLE_TYPE:
                 self._combine_classification(event)
 
-            elif property is ReconstructionProperty.GEOMETRY:
+            elif prop is ReconstructionProperty.GEOMETRY:
                 self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
