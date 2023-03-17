@@ -1,5 +1,6 @@
 import weakref
 from abc import abstractmethod
+from enum import Flag, auto
 
 import astropy.units as u
 import joblib
@@ -10,7 +11,6 @@ from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterCont
 from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
 from ctapipe.core.traits import Integer, List
 
-from ..compat import StrEnum
 from ..coordinates import shower_impact_distance
 
 __all__ = [
@@ -22,22 +22,27 @@ __all__ = [
 ]
 
 
-class ReconstructionProperty(StrEnum):
+class ReconstructionProperty(Flag):
     """
     Primary particle properties estimated by a `Reconstructor`
 
-    The str values of this enum are used for data storage.
+    These properties are of enum.Flag type and can thus be
+    combined using bitwise operators to indicate a reconstructor
+    provides several properties at once.
     """
 
     #: Energy if the primary particle
-    ENERGY = "energy"
+    ENERGY = auto()
     #: Geometric properties of the primary particle,
     #: direction and impact point
-    GEOMETRY = "geometry"
+    GEOMETRY = auto()
     #: Prediction score that a particle belongs to a certain class
-    PARTICLE_TYPE = "classification"
+    PARTICLE_TYPE = auto()
     #: Disp, distance of the source position from the Hillas COG along the main axis
-    DISP = "disp"
+    DISP = auto()
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class TooFewTelescopesException(Exception):
