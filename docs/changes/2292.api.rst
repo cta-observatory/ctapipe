@@ -1,0 +1,11 @@
+Changed  `ReconstructionProperties` into a enum of `Flag` type, meaning a reconstructor can say it provides both geometry and particle type by setting
+`self.property = ReconstructionProperty.ENERGY | ReconstructionProperty.PARTICLE_TYPE`
+
+It is also possible to pick out a list of properties a reconstructor supports given a flag combination in `self.property` using this (slightly unreadable) list comprehension
+
+.. code-block:: python
+        properties = [
+            self.property & itm
+            for itm in self.supported
+            if self.property & itm in ReconstructionProperty
+        ]
