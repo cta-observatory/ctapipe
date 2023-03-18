@@ -30,7 +30,7 @@ from ..coordinates import (
 )
 from ..core import traits
 from .reconstructor import (
-    GeometryReconstructor,
+    HillasGeometryReconstructor,
     InvalidWidthException,
     ReconstructionProperty,
     TooFewTelescopesException,
@@ -45,7 +45,7 @@ INVALID = ReconstructedGeometryContainer(
 )
 
 
-class HillasIntersection(GeometryReconstructor):
+class HillasIntersection(HillasGeometryReconstructor):
     """
     This class is a simple re-implementation of Hillas parameter based event
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
@@ -252,8 +252,8 @@ class HillasIntersection(GeometryReconstructor):
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
-            core_tilted_x=u.Quantity(core_x, u.m),
-            core_tilted_y=u.Quantity(core_y, u.m),
+            core_tilted_x=tilt.x,
+            core_tilted_y=tilt.y,
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
             telescopes=[h for h in hillas_dict_mod.keys()],

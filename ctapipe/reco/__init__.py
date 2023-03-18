@@ -5,7 +5,11 @@
 from .hillas_intersection import HillasIntersection
 from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
-from .reconstructor import GeometryReconstructor, ReconstructionProperty, Reconstructor
+from .reconstructor import (
+    HillasGeometryReconstructor,
+    ReconstructionProperty,
+    Reconstructor,
+)
 from .shower_processor import ShowerProcessor
 from .sklearn import (
     CrossValidator,
@@ -17,7 +21,7 @@ from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 __all__ = [
     "Reconstructor",
-    "GeometryReconstructor",
+    "HillasGeometryReconstructor",
     "ReconstructionProperty",
     "ShowerProcessor",
     "HillasReconstructor",
