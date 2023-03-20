@@ -4,6 +4,7 @@ from contextlib import nullcontext
 from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
+from itertools import chain
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -14,7 +15,6 @@ from astropy.table import Table
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
-from itertools import chain
 
 from ..atmosphere import (
     AtmosphereDensityProfile,
@@ -24,12 +24,15 @@ from ..atmosphere import (
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
+    CameraMonitoringContainer,
     CoordinateFrameType,
     EventIndexContainer,
     EventType,
+    LaserCalibrationContainer,
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
+    PixelMonitoringContainer,
     PixelStatusContainer,
     PointingContainer,
     PointingMode,
@@ -38,15 +41,12 @@ from ..containers import (
     SchedulingBlockContainer,
     SchedulingBlockType,
     SimulatedCameraContainer,
-    PixelMonitoringContainer,
-    CameraMonitoringContainer,
-    LaserCalibrationContainer,
-    TelescopeSimulationConfigContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
+    TelescopeSimulationConfigContainer,
     TelescopeTriggerContainer,
     TriggerContainer,
 )
@@ -350,7 +350,6 @@ def read_atmosphere_profile_from_simtel(
         context_manager = nullcontext(simtelfile)
 
     with context_manager as simtel:
-
         if (
             not hasattr(simtel, "atmospheric_profiles")
             or len(simtel.atmospheric_profiles) == 0
@@ -358,7 +357,6 @@ def read_atmosphere_profile_from_simtel(
             return []
 
         for atmo in simtel.atmospheric_profiles:
-
             metadata = dict(
                 observation_level=atmo["obslevel"] * u.cm,
                 atmosphere_id=atmo["id"],
@@ -723,7 +721,9 @@ class SimTelEventSource(EventSource):
         # for events without event_id, we use negative event_ids
         pseudo_event_id = 0
 
-        for counter, array_event in enumerate(chain((self.first_event, ), self.event_iter)):
+        for counter, array_event in enumerate(
+            chain((self.first_event,), self.event_iter)
+        ):
             event_id = array_event.get("event_id", 0)
             if event_id == 0:
                 pseudo_event_id -= 1
@@ -779,9 +779,7 @@ class SimTelEventSource(EventSource):
                     .get("photoelectrons", None)
                 )
 
-
                 if data.simulation is not None:
-
                     if data.simulation.shower is not None:
                         impact_container = TelescopeImpactParameterContainer(
                             distance=impact_distances[
@@ -794,15 +792,14 @@ class SimTelEventSource(EventSource):
                         impact_container = TelescopeImpactParameterContainer(
                             prefix="true_impact",
                         )
-                    
-                
+
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
                         true_image_sum=true_image_sums[
                             self.telescope_indices_original[tel_id]
                         ],
                         true_image=true_image,
                         impact=impact_container,
-                    ) 
+                    )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
@@ -970,13 +967,12 @@ class SimTelEventSource(EventSource):
         point in time, this dictionary will always have
         length 1.
         """
-        
 
         assert len(self.obs_ids) == 1
         obs_id = self.obs_ids[0]
         # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
-            
+
         simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
@@ -1016,62 +1012,114 @@ class SimTelEventSource(EventSource):
         )
 
         for tel_id in self.file_.pixel_monitorings.keys():
-            nsb_rate = (self.file_.pixel_monitorings.get(tel_id, {}).get("nsb_rate"))
-            qe_rel = (self.file_.pixel_monitorings.get(tel_id, {}).get("qe_rel"))
-            hv_rel = (self.file_.pixel_monitorings.get(tel_id, {}).get("hv_rel"))
-            current = (self.file_.pixel_monitorings.get(tel_id, {}).get("current"))
-            fadc_amp_hg = (self.file_.pixel_monitorings.get(tel_id, {}).get("fadc_amp_hg"))
-            gain_rel = (self.file_.pixel_monitorings.get(tel_id, {}).get("gain_rel"))
-            
-            service_container = PixelMonitoringContainer(
-                    nsb_pe_rate=nsb_rate,
-                    qe_rel=qe_rel,
-                    high_voltage=hv_rel,
-                    current=current,
-                    fadc_amp=fadc_amp_hg,
-                    gain=gain_rel,
-                    )
+            nsb_rate = self.file_.pixel_monitorings.get(tel_id, {}).get("nsb_rate")
+            qe_rel = self.file_.pixel_monitorings.get(tel_id, {}).get("qe_rel")
+            hv_rel = self.file_.pixel_monitorings.get(tel_id, {}).get("hv_rel")
+            current = self.file_.pixel_monitorings.get(tel_id, {}).get("current")
+            fadc_amp_hg = self.file_.pixel_monitorings.get(tel_id, {}).get(
+                "fadc_amp_hg"
+            )
+            gain_rel = self.file_.pixel_monitorings.get(tel_id, {}).get("gain_rel")
 
-            calib = (self.file_.laser_calibrations.get(tel_id, {}).get("calib"))
-            max_int_frac = (self.file_.laser_calibrations.get(tel_id, {}).get("max_int_frac"))
-            max_pix_tm_frac = (self.file_.laser_calibrations.get(tel_id, {}).get("max_pix_tm_frac"))
-            tm_calib = (self.file_.laser_calibrations.get(tel_id, {}).get("tm_calib"))
-            flat_fielding = (self.file_.laser_calibrations.get(tel_id, {}).get("flat_fielding"))
+            service_container = PixelMonitoringContainer(
+                nsb_pe_rate=nsb_rate,
+                qe_rel=qe_rel,
+                high_voltage=hv_rel,
+                current=current,
+                fadc_amp=fadc_amp_hg,
+                gain=gain_rel,
+            )
+
+            calib = self.file_.laser_calibrations.get(tel_id, {}).get("calib")
+            max_int_frac = self.file_.laser_calibrations.get(tel_id, {}).get(
+                "max_int_frac"
+            )
+            max_pix_tm_frac = self.file_.laser_calibrations.get(tel_id, {}).get(
+                "max_pix_tm_frac"
+            )
+            tm_calib = self.file_.laser_calibrations.get(tel_id, {}).get("tm_calib")
+            flat_fielding = self.file_.laser_calibrations.get(tel_id, {}).get(
+                "flat_fielding"
+            )
 
             laser_container = LaserCalibrationContainer(
-                    calib=calib,
-                    max_integ_frac=max_int_frac,
-                    max_timing_frac=max_pix_tm_frac,
-                    tm_calib=tm_calib,
-                    flat_fielding=flat_fielding,
-                    )
+                calib=calib,
+                max_integ_frac=max_int_frac,
+                max_timing_frac=max_pix_tm_frac,
+                tm_calib=tm_calib,
+                flat_fielding=flat_fielding,
+            )
 
-            monitor_id = (self.file_.camera_monitorings.get(tel_id, {}).get("monitor_id"))
-            monitor_time = (self.file_.camera_monitorings.get(tel_id, {}).get("moni_time"))
-            status_time = (self.file_.camera_monitorings.get(tel_id, {}).get("status_time"))
-            trigger_time = (self.file_.camera_monitorings.get(tel_id, {}).get("trig_time"))
-            trigger_rate = (self.file_.camera_monitorings.get(tel_id, {}).get("trigger_rate"))
-            sector_rate = (self.file_.camera_monitorings.get(tel_id, {}).get("sector_rate"))
-            event_rate = (self.file_.camera_monitorings.get(tel_id, {}).get("event_rate"))
-            data_rate = (self.file_.camera_monitorings.get(tel_id, {}).get("data_rate"))
-            ped_noise_time = (self.file_.camera_monitorings.get(tel_id, {}).get("ped_noise_time"))
-            pedestal = (self.file_.camera_monitorings.get(tel_id, {}).get("pedestal"))
-            noise = (self.file_.camera_monitorings.get(tel_id, {}).get("noise"))
-            hv_temp_time = (self.file_.camera_monitorings.get(tel_id, {}).get("hv_temp_time"))
-            drawer_temp = (self.file_.camera_monitorings.get(tel_id, {}).get("drawer_temp"))
-            camera_temp = (self.file_.camera_monitorings.get(tel_id, {}).get("camera_temp"))
-            hv_v_mon = (self.file_.camera_monitorings.get(tel_id, {}).get("hv_v_mon"))
-            hv_i_mon = (self.file_.camera_monitorings.get(tel_id, {}).get("hv_i_mon"))
-            hv_stat = (self.file_.camera_monitorings.get(tel_id, {}).get("hv_stat"))
-            dc_rate_time = (self.file_.camera_monitorings.get(tel_id, {}).get("dc_rate_time"))
-            set_daq_time = (self.file_.camera_monitorings.get(tel_id, {}).get("set_daq_time"))
+            monitor_id = self.file_.camera_monitorings.get(tel_id, {}).get("monitor_id")
+            monitor_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "moni_time"
+            )
+            status_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "status_time"
+            )
+            trigger_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "trig_time"
+            )
+            trigger_rate = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "trigger_rate"
+            )
+            sector_rate = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "sector_rate"
+            )
+            event_rate = self.file_.camera_monitorings.get(tel_id, {}).get("event_rate")
+            data_rate = self.file_.camera_monitorings.get(tel_id, {}).get("data_rate")
+            ped_noise_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "ped_noise_time"
+            )
+            pedestal = self.file_.camera_monitorings.get(tel_id, {}).get("pedestal")
+            noise = self.file_.camera_monitorings.get(tel_id, {}).get("noise")
+            hv_temp_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "hv_temp_time"
+            )
+            drawer_temp = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "drawer_temp"
+            )
+            camera_temp = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "camera_temp"
+            )
+            hv_v_mon = self.file_.camera_monitorings.get(tel_id, {}).get("hv_v_mon")
+            hv_i_mon = self.file_.camera_monitorings.get(tel_id, {}).get("hv_i_mon")
+            hv_stat = self.file_.camera_monitorings.get(tel_id, {}).get("hv_stat")
+            dc_rate_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "dc_rate_time"
+            )
+            set_daq_time = self.file_.camera_monitorings.get(tel_id, {}).get(
+                "set_daq_time"
+            )
 
-            cameraservice_container = CameraMonitoringContainer(monitor_id=monitor_id, monitor_time=monitor_time, status_time=status_time, trigger_time=trigger_time, sector_rate=sector_rate,
-                    event_rate=event_rate, data_rate=data_rate, ped_noise_time=ped_noise_time, pedestal=pedestal, noise=noise, hv_temp_time=hv_temp_time, drawer_temp=drawer_temp, 
-                    camera_temp=camera_temp, hv_voltage_monitor=hv_v_mon, hv_current_monitor=hv_i_mon, hv_stat=hv_stat, dc_rate_time=dc_rate_time, set_daq_time=set_daq_time, trigger_rate=trigger_rate)
+            cameraservice_container = CameraMonitoringContainer(
+                monitor_id=monitor_id,
+                monitor_time=monitor_time,
+                status_time=status_time,
+                trigger_time=trigger_time,
+                sector_rate=sector_rate,
+                event_rate=event_rate,
+                data_rate=data_rate,
+                ped_noise_time=ped_noise_time,
+                pedestal=pedestal,
+                noise=noise,
+                hv_temp_time=hv_temp_time,
+                drawer_temp=drawer_temp,
+                camera_temp=camera_temp,
+                hv_voltage_monitor=hv_v_mon,
+                hv_current_monitor=hv_i_mon,
+                hv_stat=hv_stat,
+                dc_rate_time=dc_rate_time,
+                set_daq_time=set_daq_time,
+                trigger_rate=trigger_rate,
+            )
 
-            simulation_config.tel[tel_id] = TelescopeSimulationConfigContainer(pixel_monitoring=service_container, laser_calibration=laser_container, camera_monitoring=cameraservice_container)
-        
+            simulation_config.tel[tel_id] = TelescopeSimulationConfigContainer(
+                pixel_monitoring=service_container,
+                laser_calibration=laser_container,
+                camera_monitoring=cameraservice_container,
+            )
+
         return {obs_id: simulation_config}
 
     def _fill_scheduling_and_observation_blocks(self):

@@ -11,7 +11,6 @@ import numpy as np
 import tables
 from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
-
 from ctapipe.instrument.optics import FocalLengthKind
 
 from ..core import Component, Provenance, traits
@@ -569,11 +568,16 @@ class TableLoader(Component):
     def _get_tel_start_stop(self, tel_id, start, stop):
         tel_start = None
         tel_stop = None
+<<<<<<< HEAD
         index = self.subarray.tel_ids_to_indices(tel_id)[0]
 
         # find first/last row for each telescope
         if start is not None:
             tel_start = self._n_telescope_events[start, index]
+=======
+        if start is not None or stop is not None:
+            indices = self.subarray.tel_ids_to_indices(tel_ids)
+>>>>>>> 81440372 (coding style)
 
         if stop is None or stop >= len(self._n_telescope_events):
             tel_stop = None

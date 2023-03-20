@@ -586,31 +586,40 @@ class PixelMonitoringContainer(Container):
     """
     True information about nsb rate, quantum efficiency, high voltage, current and amplification settings for each pixel and telescope.
     """
-    nsb_pe_rate = Field(np.int32(-1), "NSB pixel p.e. rate in units of p.e./ns"
-            )
 
-    qe_rel = Field(None, "Quantum efficiency w.r.t nominal"
-            )
+    nsb_pe_rate = Field(np.int32(-1), "NSB pixel p.e. rate in units of p.e./ns")
+
+    qe_rel = Field(None, "Quantum efficiency w.r.t nominal")
 
     high_voltage = Field(None, "High voltage w.r.t. nominal")
     current = Field(None, "Current at pixel")
     fadc_amp = Field(None, "FADC amplitude per mean per p.e.")
     gain = Field(None, "Assumed (PMT/common) gain w.r.t. nominal")
 
+
 class LaserCalibrationContainer(Container):
     """
     Laser calibartion information computed
     """
+
     calib = Field(None, "ADC to laser/LED p.e.")
-    max_integ_frac = Field(None, "Maximum fraction of the signal which can be in the fixed integration window")
-    max_timing_frac = Field(None, "Maximum fraction of the signal which can be in the pixel timing integration")
+    max_integ_frac = Field(
+        None,
+        "Maximum fraction of the signal which can be in the fixed integration window",
+    )
+    max_timing_frac = Field(
+        None,
+        "Maximum fraction of the signal which can be in the pixel timing integration",
+    )
     tm_calib = Field(nan * u.ns, "Transit time calibration", unit=u.ns)
     flat_fielding = Field(None, "Flat-field correction")
+
 
 class CameraMonitoringContainer(Container):
     """
     Camera monitoring
     """
+
     monitor_id = Field(-1, "Monitoring id incremented with each update")
     monitor_time = Field(None, "Time when last monitoring data was sent")
     status_time = Field(None, "Status time")
@@ -622,7 +631,9 @@ class CameraMonitoringContainer(Container):
     ped_noise_time = Field(None, "Time when pedestals + noise were determined")
     pedestal = Field(None, "Average pedestal on ADC sums")
     noise = Field(None, "Average noise on ADC sums")
-    hv_temp_time = Field(None, "Time when high voltage, currents and temperature were all read out")
+    hv_temp_time = Field(
+        None, "Time when high voltage, currents and temperature were all read out"
+    )
     drawer_temp = Field(None, "Drawer temperature")
     camera_temp = Field(None, "ADC values")
     hv_voltage_monitor = Field(None, "ADC values of HV voltage monitor")
@@ -631,18 +642,19 @@ class CameraMonitoringContainer(Container):
     dc_rate_time = Field(None, "Time when DC current and pixels scalers were read")
     set_daq_time = Field(None, "Time when DAQ parameters were set")
 
+
 class TelescopeSimulationConfigContainer(Container):
     pixel_monitoring = Field(
         default_factory=PixelMonitoringContainer,
         description="True pixel monitoring information",
     )
     laser_calibration = Field(
-        default_factory = LaserCalibrationContainer,
-        description = "True laser calibration information",
+        default_factory=LaserCalibrationContainer,
+        description="True laser calibration information",
     )
     camera_monitoring = Field(
-        default_factory = CameraMonitoringContainer,
-        description = "True camera monitoring information",
+        default_factory=CameraMonitoringContainer,
+        description="True camera monitoring information",
     )
 
 

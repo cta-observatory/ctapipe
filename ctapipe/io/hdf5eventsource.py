@@ -7,7 +7,6 @@ import astropy.units as u
 import numpy as np
 import tables
 from astropy.utils.decorators import lazyproperty
-
 from ctapipe.atmosphere import AtmosphereDensityProfile
 from ctapipe.instrument.optics import FocalLengthKind
 
@@ -30,9 +29,6 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
-    PixelMonitoringContainer,
-    LaserCalibrationContainer,
-    CameraMonitoringContainer,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -40,7 +36,6 @@ from ..containers import (
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
-    TelescopeSimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
@@ -341,6 +336,7 @@ class HDF5EventSource(EventSource):
         self.file_.root.configuration.simulation.run.
         These are used to match the correct header to each event
         """
+
         # Just returning next(reader) would work as long as there are no merged files
         # The reader ignores obs_id making the setup somewhat tricky
         # This is ugly but supports multiple headers so each event can have
@@ -503,7 +499,6 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
 
             for kind, group in dl2_group._v_children.items():
-
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:
@@ -556,7 +551,7 @@ class HDF5EventSource(EventSource):
                         prefixes=["true_impact"],
                     )
                     for table in self.file_.root.simulation.event.telescope.impact
-                }        
+                }
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
@@ -747,6 +742,9 @@ class HDF5EventSource(EventSource):
                 continue
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 81440372 (coding style)
             tel_pointing_table = pointing_group[key]
             closest_time_index = tel_pointing_finder[key].closest(
                 data.trigger.tel[tel_id].time.mjd
@@ -762,6 +760,9 @@ class HDF5EventSource(EventSource):
                 pointing_telescope["altitude"],
                 attrs["altitude"]["UNIT"],
             )
+<<<<<<< HEAD
 =======
             tel_pointing_table = pointing_group[f"tel_{tel_id:03d}"]
 >>>>>>> cd2ee7d3 (changes made to include pixel monitoring information)
+=======
+>>>>>>> 81440372 (coding style)

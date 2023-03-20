@@ -5,12 +5,20 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
+<<<<<<< HEAD
 from tqdm.auto import tqdm
 from traitlets import List
 
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io.hdf5merger import CannotMerge
 
+=======
+import tables
+from ctapipe.utils.arrays import recarray_drop_columns
+from tqdm.auto import tqdm
+from traitlets import List
+
+>>>>>>> 81440372 (coding style)
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
 from ..io import HDF5Merger
@@ -78,9 +86,7 @@ parameter_nodes = {
 }
 
 SIMULATED_IMAGE_GROUP = "/simulation/event/telescope/images"
-simulation_images = {
-        SIMULATED_IMAGE_GROUP          
-        }
+simulation_images = {SIMULATED_IMAGE_GROUP}
 
 dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
 
@@ -253,6 +259,7 @@ class MergeTool(Tool):
             unit="Files",
             disable=not self.progress_bar,
         ):
+<<<<<<< HEAD
             try:
                 self.merger(input_path)
                 n_merged += 1
@@ -260,6 +267,28 @@ class MergeTool(Tool):
                 if not self.skip_broken_files:
                     raise
                 self.log.warning("Skipping broken file: %s", error)
+=======
+            if not HDF5EventSource.is_compatible(input_path):
+                self.log.critical(f"input file {input_path} is not a supported file")
+                if self.skip_broken_files:
+                    continue
+                else:
+                    sys.exit(1)
+
+            with tables.open_file(input_path, mode="r") as h5file:
+                if self.check_file_broken(h5file) is True:
+                    if self.skip_broken_files is True:
+                        continue
+                    else:
+                        self.log.critical("Broken file detected.")
+                        sys.exit(1)
+
+                self.merge_tables(h5file)
+                self.add_statistics(h5file)
+
+            PROV.add_input_file(str(input_path))
+            merged_files_counter += 1
+>>>>>>> 81440372 (coding style)
 
         self.log.info(
             "%d out of %d files have been merged!",
