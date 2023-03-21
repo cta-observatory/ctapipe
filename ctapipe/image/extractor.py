@@ -31,7 +31,6 @@ import numpy.typing as npt
 import scipy.stats
 from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
-from scipy.signal import filtfilt
 from traitlets import Bool, Int
 
 from ctapipe.containers import DL1CameraContainer
@@ -703,7 +702,6 @@ class SlidingWindowMaxSum(ImageExtractor):
         n_channels = len(readout.reference_pulse_shape)
         correction = np.ones(n_channels, dtype=np.float64)
         for ichannel, pulse_shape in enumerate(readout.reference_pulse_shape):
-
             # apply the same method as sliding window to find the highest sum
             cwf = np.cumsum(pulse_shape)
             # add zero at the begining so it is easier to substract the two arrays later
@@ -1452,12 +1450,18 @@ def deconvolve(
     deconvolved_waveforms = np.atleast_2d(waveforms) - np.atleast_2d(baselines).T
     deconvolved_waveforms[:, 1:] -= pole_zero * deconvolved_waveforms[:, :-1]
     deconvolved_waveforms[:, 0] = 0
+
+    def filtfilt_custom(signal, filt):
+        forward = convolve1d(signal, filt, axis=-1, mode="nearest")
+        backward = convolve1d(forward[::-1], filt, axis=-1, mode="nearest")
+        return backward[::-1]
+
     if upsampling > 1:
-        return filtfilt(
-            np.ones(upsampling),
-            upsampling,
-            np.repeat(deconvolved_waveforms, upsampling, axis=-1),
-        )
+        filt = np.ones(upsampling)
+        filt_weighted = filt / upsampling
+        signal = np.repeat(deconvolved_waveforms, upsampling, axis=-1)
+        return filtfilt_custom(signal, filt_weighted)
+
     return deconvolved_waveforms
 
 
