@@ -144,7 +144,7 @@ class Reconstructor(TelescopeComponent):
 
 class HillasGeometryReconstructor(Reconstructor):
     """
-    Base class for algorithms predicting only the shower geometry
+    Base class for algorithms predicting only the shower geometry using Hillas Based methods
     """
 
     def _create_hillas_dict(self, event):
