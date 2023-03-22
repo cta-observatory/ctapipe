@@ -1415,6 +1415,16 @@ def deconvolution_parameters(
     return pole_zeros, gains, shifts, pz2d_shifts
 
 
+def __filtfilt_fast(signal, filt):
+    """
+    Apply a linear filter forward and backward to a signal, based on scipy.signal.filtfilt.
+    filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
+    """
+    forward = convolve1d(signal, filt, axis=-1, mode="nearest")
+    backward = convolve1d(forward[::-1], filt, axis=-1, mode="nearest")
+    return backward[::-1]
+
+
 def deconvolve(
     waveforms: npt.ArrayLike,
     baselines: npt.ArrayLike,
@@ -1451,16 +1461,11 @@ def deconvolve(
     deconvolved_waveforms[:, 1:] -= pole_zero * deconvolved_waveforms[:, :-1]
     deconvolved_waveforms[:, 0] = 0
 
-    def filtfilt_custom(signal, filt):
-        forward = convolve1d(signal, filt, axis=-1, mode="nearest")
-        backward = convolve1d(forward[::-1], filt, axis=-1, mode="nearest")
-        return backward[::-1]
-
     if upsampling > 1:
         filt = np.ones(upsampling)
         filt_weighted = filt / upsampling
         signal = np.repeat(deconvolved_waveforms, upsampling, axis=-1)
-        return filtfilt_custom(signal, filt_weighted)
+        return __filtfilt_fast(signal, filt_weighted)
 
     return deconvolved_waveforms
 
@@ -1539,6 +1544,7 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
 
 class FlashCamExtractor(ImageExtractor):
     """
+    Image extractor applying signal preprocessing for FlashCam
 
     The waveforms are first upsampled to achieve one nanosecond sampling (as a default, for the FlashCam).
     A pole-zero deconvolution [1] is then performed to the waveforms to recover the original impulse or narrow
