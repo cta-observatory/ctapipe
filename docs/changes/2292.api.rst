@@ -3,7 +3,8 @@ Changed  `ReconstructionProperties` into a enum of `Flag` type, meaning a recons
 
 It is also possible to pick out a list of properties a reconstructor supports given a flag combination in `self.property` using this (slightly unreadable) list comprehension
 
-.. code:: python
+    .. code:: python
+    
         properties = [
             self.property & itm
             for itm in self.supported
