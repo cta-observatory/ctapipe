@@ -43,9 +43,9 @@ from .impact_utilities import (
     rotate_translate,
 )
 from .reconstructor import (
+    HillasGeometryReconstructor,
     InvalidWidthException,
     ReconstructionProperty,
-    Reconstructor,
     TooFewTelescopesException,
 )
 
@@ -64,7 +64,7 @@ INVALID_ENERGY = ReconstructedEnergyContainer(
 __all__ = ["ImPACTReconstructor"]
 
 
-class ImPACTReconstructor(Reconstructor):
+class ImPACTReconstructor(HillasGeometryReconstructor):
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from parsons14.  This method uses a
     comparision of the predicted image from a library of image
