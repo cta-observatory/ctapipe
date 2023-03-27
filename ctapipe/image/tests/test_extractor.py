@@ -4,6 +4,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
+from scipy.signal import filtfilt
 from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
@@ -17,7 +18,9 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     SlidingWindowMaxSum,
     TwoPassWindowSum,
+    __filtfilt_fast,
     adaptive_centroid,
+    deconvolve,
     extract_around_peak,
     extract_sliding_window,
     integration_correction,
@@ -673,6 +676,51 @@ def test_adaptive_centroid(toymodel_mst_fc):
         0.0,
     )
     assert (peak_pos == peak_time).all()
+
+
+def test_deconvolve(toymodel_mst_fc):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+
+    deconvolved_waveforms_0 = deconvolve(waveforms, 0, 0, 0.0)
+
+    assert (deconvolved_waveforms_0[:, 1:] == waveforms[:, 1:]).all()
+
+    deconvolved_waveforms_1 = deconvolve(waveforms, 0, 0, 1.0)
+
+    assert (deconvolved_waveforms_1[:, 1:] == np.diff(waveforms, axis=-1)).all()
+
+
+def test_upsampling(toymodel_mst_fc):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+
+    upsampling = 4
+    filt = np.ones(upsampling)
+    filt_weighted = filt / upsampling
+    signal = np.repeat(waveforms, upsampling, axis=-1)
+    up_waveforms = __filtfilt_fast(signal, filt_weighted)
+
+    assert (
+        up_waveforms
+        - filtfilt(
+            np.ones(upsampling),
+            upsampling,
+            np.repeat(waveforms, upsampling, axis=-1),
+        )
+    ).all() < 1e-10
 
 
 def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
