@@ -17,6 +17,7 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     SlidingWindowMaxSum,
     TwoPassWindowSum,
+    adaptive_centroid,
     extract_around_peak,
     extract_sliding_window,
     integration_correction,
@@ -408,7 +409,6 @@ def test_neighbor_peak_window_sum_local_weight(toymodel):
 
 
 def test_Two_pass_window_sum_no_noise(subarray_1_LST):
-
     rng = np.random.default_rng(0)
 
     subarray = subarray_1_LST
@@ -585,7 +585,6 @@ def test_extractor_tel_param(toymodel):
 
 @pytest.mark.parametrize("Extractor", non_abstract_children(ImageExtractor))
 def test_dtype(Extractor, subarray):
-
     tel_id = 1
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     selected_gain_channel = np.zeros(n_pixels, dtype=int)
@@ -635,6 +634,45 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     expected = np.average([29, 30, 31], weights=[5, 10, 3])
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
+
+
+def test_adaptive_centroid(toymodel_mst_fc):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+
+    neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+
+    trig_time = np.argmax(waveforms, axis=-1)
+    peak_time = adaptive_centroid(
+        waveforms,
+        trig_time,
+        1,
+    )
+
+    assert (peak_time == trig_time).all()
+
+    waveforms = waveforms[np.min(waveforms, axis=-1) > 0.0]
+    peak_pos = neighbor_average_maximum(
+        waveforms,
+        neighbors_indices=neighbors.indices,
+        neighbors_indptr=neighbors.indptr,
+        local_weight=0,
+        broken_pixels=broken_pixels,
+    )
+
+    peak_time = adaptive_centroid(
+        waveforms,
+        peak_pos,
+        0.0,
+    )
+    assert (peak_pos == peak_time).all()
 
 
 def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
