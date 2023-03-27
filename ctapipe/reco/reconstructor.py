@@ -15,7 +15,7 @@ from ..coordinates import shower_impact_distance
 
 __all__ = [
     "Reconstructor",
-    "GeometryReconstructor",
+    "HillasGeometryReconstructor",
     "TooFewTelescopesException",
     "InvalidWidthException",
     "ReconstructionProperty",
@@ -142,9 +142,9 @@ class Reconstructor(TelescopeComponent):
         return instance
 
 
-class GeometryReconstructor(Reconstructor):
+class HillasGeometryReconstructor(Reconstructor):
     """
-    Base class for algorithms predicting only the shower geometry
+    Base class for algorithms predicting only the shower geometry using Hillas Based methods
     """
 
     def _create_hillas_dict(self, event):
