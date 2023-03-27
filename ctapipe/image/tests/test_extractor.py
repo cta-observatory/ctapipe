@@ -706,21 +706,39 @@ def test_upsampling(toymodel_mst_fc):
         true_charge,
         true_time,
     ) = toymodel_mst_fc
+    upsampling_even = 4
+    upsampling_odd = 3
+    filt_even = np.ones(upsampling_even)
+    filt_weighted_even = filt_even / upsampling_even
+    signal_even = np.repeat(waveforms, upsampling_even, axis=-1)
+    up_waveforms_even = __filtfilt_fast(signal_even, filt_weighted_even)
 
-    upsampling = 4
-    filt = np.ones(upsampling)
-    filt_weighted = filt / upsampling
-    signal = np.repeat(waveforms, upsampling, axis=-1)
-    up_waveforms = __filtfilt_fast(signal, filt_weighted)
+    np.testing.assert_allclose(
+        up_waveforms_even,
+        filtfilt(
+            np.ones(upsampling_even),
+            upsampling_even,
+            np.repeat(waveforms, upsampling_even, axis=-1),
+        ),
+        rtol=1e-4,
+        atol=1e-4,
+    )
 
-    assert (
-        up_waveforms
-        - filtfilt(
-            np.ones(upsampling),
-            upsampling,
-            np.repeat(waveforms, upsampling, axis=-1),
-        )
-    ).all() < 1e-10
+    filt_odd = np.ones(upsampling_odd)
+    filt_weighted_odd = filt_odd / upsampling_odd
+    signal_odd = np.repeat(waveforms, upsampling_odd, axis=-1)
+    up_waveforms_odd = __filtfilt_fast(signal_odd, filt_weighted_odd)
+
+    np.testing.assert_allclose(
+        up_waveforms_odd,
+        filtfilt(
+            np.ones(upsampling_odd),
+            upsampling_odd,
+            np.repeat(waveforms, upsampling_odd, axis=-1),
+        ),
+        rtol=1e-4,
+        atol=1e-4,
+    )
 
 
 def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
