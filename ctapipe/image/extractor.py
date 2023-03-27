@@ -1421,8 +1421,8 @@ def __filtfilt_fast(signal, filt):
     filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
     """
     forward = convolve1d(signal, filt, axis=-1, mode="nearest")
-    backward = convolve1d(forward[::-1], filt, axis=-1, mode="nearest")
-    return backward[::-1]
+    backward = convolve1d(forward[:, ::-1], filt, axis=-1, mode="nearest")
+    return backward[:, ::-1]
 
 
 def deconvolve(
