@@ -1472,8 +1472,8 @@ def deconvolve(
 
 @guvectorize(
     [
-        (float64[:], int64, float64, float32[:]),
         (float32[:], int64, float64, float32[:]),
+        (float64[:], int64, float64, float32[:]),
     ],
     "(s),(),()->()",
     nopython=True,
