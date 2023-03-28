@@ -3,6 +3,7 @@ import numpy as np
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
+from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
@@ -113,10 +114,18 @@ class TrainDispReconstructor(Tool):
     def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
         self.log.info("Events read from input: %d", len(table))
+        if len(table) == 0:
+            raise TooFewEvents(
+                f"Input file does not contain any events for telescope type {telescope_type}"
+            )
 
         mask = self.models.quality_query.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
+        if len(table) == 0:
+            raise TooFewEvents(
+                f"No events after quality query for telescope type {telescope_type}"
+            )
 
         table = self.models.feature_generator(table)
 

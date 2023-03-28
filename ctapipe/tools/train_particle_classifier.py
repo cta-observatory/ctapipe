@@ -6,6 +6,7 @@ from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
+from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -164,11 +165,19 @@ class TrainParticleClassifier(Tool):
 
     def _read_table(self, telescope_type, loader, n_events=None):
         table = loader.read_telescope_events([telescope_type])
-
         self.log.info("Events read from input: %d", len(table))
+        if len(table) == 0:
+            raise TooFewEvents(
+                f"Input file does not contain any events for telescope type {telescope_type}"
+            )
+
         mask = self.classifier.quality_query.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
+        if len(table) == 0:
+            raise TooFewEvents(
+                f"No events after quality query for telescope type {telescope_type}"
+            )
 
         table = self.classifier.feature_generator(table)
 
