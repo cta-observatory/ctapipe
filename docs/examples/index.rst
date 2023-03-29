@@ -14,7 +14,6 @@ the Tutorials section for more complete examples)
 
     camera_display
     array_display
-    shower_core
 
     
 .. toctree::
