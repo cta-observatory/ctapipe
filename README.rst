@@ -17,7 +17,7 @@ ctapipe |pypi| |conda| |doilatest| |ci| |coverage| |codacy|
     :target: https://pypi.org/project/ctapipe
 
 Low-level data processing pipeline software for
-`CTA <www.cta-observatory.org>`__ (the Cherenkov Telescope Array)
+`CTA <https://www.cta-observatory.org>`__ (the Cherenkov Telescope Array)
 
 This is code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an
