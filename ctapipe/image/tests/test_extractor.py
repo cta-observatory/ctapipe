@@ -4,6 +4,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
+from scipy.signal import filtfilt
 from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
@@ -11,11 +12,15 @@ from traitlets.traitlets import TraitError
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     FixedWindowSum,
+    FlashCamExtractor,
     FullWaveformSum,
     ImageExtractor,
     NeighborPeakWindowSum,
     SlidingWindowMaxSum,
     TwoPassWindowSum,
+    __filtfilt_fast,
+    adaptive_centroid,
+    deconvolve,
     extract_around_peak,
     extract_sliding_window,
     integration_correction,
@@ -24,10 +29,12 @@ from ctapipe.image.extractor import (
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import EventSource
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
 extractors.remove(FixedWindowSum)
+extractors.remove(FlashCamExtractor)
 
 
 @pytest.fixture(scope="module")
@@ -68,6 +75,16 @@ def subarray_1_LST(prod3_lst):
     return subarray
 
 
+@pytest.fixture(scope="module")
+def subarray_mst_fc(prod5_mst_flashcam):
+    subarray = SubarrayDescription(
+        "One MST with FlashCam",
+        tel_positions={1: np.zeros(3) * u.m},
+        tel_descriptions={1: prod5_mst_flashcam},
+    )
+    return subarray
+
+
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     tel_id = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -90,6 +107,11 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 @pytest.fixture(scope="module")
 def toymodel(subarray):
     return get_test_toymodel(subarray)
+
+
+@pytest.fixture(scope="module")
+def toymodel_mst_fc(subarray_mst_fc: object) -> object:
+    return get_test_toymodel(subarray_mst_fc)
 
 
 def test_extract_around_peak(toymodel):
@@ -390,7 +412,6 @@ def test_neighbor_peak_window_sum_local_weight(toymodel):
 
 
 def test_Two_pass_window_sum_no_noise(subarray_1_LST):
-
     rng = np.random.default_rng(0)
 
     subarray = subarray_1_LST
@@ -567,7 +588,6 @@ def test_extractor_tel_param(toymodel):
 
 @pytest.mark.parametrize("Extractor", non_abstract_children(ImageExtractor))
 def test_dtype(Extractor, subarray):
-
     tel_id = 1
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     selected_gain_channel = np.zeros(n_pixels, dtype=int)
@@ -617,3 +637,151 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     expected = np.average([29, 30, 31], weights=[5, 10, 3])
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
+
+
+def test_adaptive_centroid(toymodel_mst_fc):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+
+    neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+
+    trig_time = np.argmax(waveforms, axis=-1)
+    peak_time = adaptive_centroid(
+        waveforms,
+        trig_time,
+        1,
+    )
+
+    assert (peak_time == trig_time).all()
+
+    waveforms = waveforms[np.min(waveforms, axis=-1) > 0.0]
+    peak_pos = neighbor_average_maximum(
+        waveforms,
+        neighbors_indices=neighbors.indices,
+        neighbors_indptr=neighbors.indptr,
+        local_weight=0,
+        broken_pixels=broken_pixels,
+    )
+
+    peak_time = adaptive_centroid(
+        waveforms,
+        peak_pos,
+        0.0,
+    )
+    assert (peak_pos == peak_time).all()
+
+
+def test_deconvolve(toymodel_mst_fc):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+
+    deconvolved_waveforms_0 = deconvolve(waveforms, 0, 0, 0.0)
+
+    assert (deconvolved_waveforms_0[:, 1:] == waveforms[:, 1:]).all()
+
+    deconvolved_waveforms_1 = deconvolve(waveforms, 0, 0, 1.0)
+
+    assert (deconvolved_waveforms_1[:, 1:] == np.diff(waveforms, axis=-1)).all()
+
+
+def test_upsampling(toymodel_mst_fc):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+    upsampling_even = 4
+    upsampling_odd = 3
+    filt_even = np.ones(upsampling_even)
+    filt_weighted_even = filt_even / upsampling_even
+    signal_even = np.repeat(waveforms, upsampling_even, axis=-1)
+    up_waveforms_even = __filtfilt_fast(signal_even, filt_weighted_even)
+
+    np.testing.assert_allclose(
+        up_waveforms_even,
+        filtfilt(
+            np.ones(upsampling_even),
+            upsampling_even,
+            np.repeat(waveforms, upsampling_even, axis=-1),
+        ),
+        rtol=1e-4,
+        atol=1e-4,
+    )
+
+    filt_odd = np.ones(upsampling_odd)
+    filt_weighted_odd = filt_odd / upsampling_odd
+    signal_odd = np.repeat(waveforms, upsampling_odd, axis=-1)
+    up_waveforms_odd = __filtfilt_fast(signal_odd, filt_weighted_odd)
+
+    np.testing.assert_allclose(
+        up_waveforms_odd,
+        filtfilt(
+            np.ones(upsampling_odd),
+            upsampling_odd,
+            np.repeat(waveforms, upsampling_odd, axis=-1),
+        ),
+        rtol=1e-4,
+        atol=1e-4,
+    )
+
+
+def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
+    # Test on toy model
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_mst_fc
+    extractor = FlashCamExtractor(subarray=subarray)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.image, true_charge, rtol=0.15)
+    assert_allclose(dl1.peak_time, true_time, atol=1.0)
+    assert dl1.is_valid == True
+
+    # Test on prod5 simulations
+    with EventSource(prod5_gamma_simtel_path) as source:
+        subarray = source.subarray
+        extractor = FlashCamExtractor(subarray)
+
+        def is_flashcam(tel_id):
+            return subarray.tel[tel_id].camera.name == "FlashCam"
+
+        for event in source:
+            for tel_id in filter(is_flashcam, event.trigger.tels_with_trigger):
+                true_charge = event.simulation.tel[tel_id].true_image
+
+                waveforms = event.r1.tel[tel_id].waveform
+                selected_gain_channel = np.zeros(waveforms.shape[0], dtype=np.int64)
+                broken_pixels = event.mon.tel[
+                    tel_id
+                ].pixel_status.hardware_failing_pixels[0]
+
+                dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+                assert dl1.is_valid == True
+
+                bright_pixels = (
+                    (true_charge > 30) & (true_charge < 3000) & (~broken_pixels)
+                )
+                assert_allclose(
+                    dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
+                )
