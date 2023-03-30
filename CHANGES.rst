@@ -1,5 +1,41 @@
-Ctapipe 0.18.1 (2023-03-16)
-===========================
+ctapipe v0.19.0 (2023-03-30)
+============================
+
+API Changes
+-----------
+
+- Renamed ``GeometryReconstructor`` to ``HillasGeometryReconstructor`` [`#2293 <https://github.com/cta-observatory/ctapipe/pull/2293>`__]
+
+
+Bug Fixes
+---------
+
+
+Data Model Changes
+------------------
+
+
+New Features
+------------
+
+- Add signal extraction algorithm for the FlashCam. [`#2188 <https://github.com/cta-observatory/ctapipe/pull/2188>`__]
+
+
+Maintenance
+-----------
+
+- The ``examples/`` subdirectory was removed as most scripts there were out of date. Useful information in those examples was moved to example notebooks in docs/examples [`#2266 <https://github.com/cta-observatory/ctapipe/pull/2266>`__]
+
+- The tools to train ml models now provide better error messages in case
+  the input files did not contain any events for specific telescope types. [`#2295 <https://github.com/cta-observatory/ctapipe/pull/2295>`__]
+
+
+Refactoring and Optimization
+----------------------------
+
+
+ctapipe v0.18.1 (2023-03-16)
+============================
 
 
 Bug Fixes
