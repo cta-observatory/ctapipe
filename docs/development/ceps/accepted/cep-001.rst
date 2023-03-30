@@ -5,12 +5,12 @@
 CEP 1 - Purpose and guidelines
 **********************************
 
-* Status: draft
-* Discussion:  NA
-* Date accepted: NA
-* Last revised: Febuary 10, 2023
+* Status: accepted
+* Discussion: `PR #2256`_
+* Date accepted: 2023-03-06
+* Last revised: 2023-03-06
 * Author: Tomas Bylund
-* Created: Febuary 10, 2023
+* Created: 2023-02-23
 
 Abstract
 ========
@@ -258,3 +258,4 @@ advice from Thomas A Caswell.
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
 .. _PEP 389: https://www.python.org/dev/peps/pep-0389/
 .. _PEP 481: https://www.python.org/dev/peps/pep-0481/
+.. _PR #2256: https://github.com/cta-observatory/ctapipe/pull/2256/
