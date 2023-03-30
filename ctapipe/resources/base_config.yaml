@@ -72,14 +72,14 @@ ImageProcessor:
     # a single value is equivalent to specifying a one-item list containing
     # [type, '*', value] .
     picture_threshold_pe: # top-level threshold in photoelectrons
-      - [type, "LST*", 6.0]
-      - [type, "MST*NectarCam", 8.0]
-      - [type, "MST*FlashCam", 10000] # disabled for now
+      - [type, "LST*", 8.5]
+      - [type, "MST*NectarCam", 9.0]
+      - [type, "MST*FlashCam", 9.0]
       - [type, "SST_ASTRI_CHEC", 4.0]
     boundary_threshold_pe: # second-level threshold in photoelectrons
-      - [type, "LST*", 3.0]
-      - [type, "MST*NectarCam", 4.0]
-      - [type, "MST*FlashCam", 10000] # disabled for now
+      - [type, "LST*", 4.25]
+      - [type, "MST*NectarCam", 4.5]
+      - [type, "MST*FlashCam", 4.5]
       - [type, "SST_ASTRI_CHEC", 2.0]
     keep_isolated_pixels: False # If False, pixels with  < min_picture_neighbors are removed.
     min_picture_neighbors: 2 # Minimum number of neighbors above threshold to consider
@@ -92,6 +92,7 @@ ImageProcessor:
     quality_criteria:
       - ["enough_pixels", "np.count_nonzero(image) > 2"]
       - ["enough_charge", "image.sum() > 50"]
+
 
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
 # transition. It is run only if the parameter DataWriter.write_showers=True.
@@ -113,7 +114,7 @@ ShowerProcessor:
         - [enough intensity, "parameters.hillas.intensity > 50"]
         - [Positive width, "parameters.hillas.width.value > 0"]
         - [enough pixels, "parameters.morphology.n_pixels > 3"]
-        - [not clipped, "parameters.leakage.intensity_width_2 < 0.8"]
+        - [not clipped, "parameters.leakage.intensity_width_2 < 0.5"]
 
 # The MuonProcessor analyses DL1 images for muons and writes muon parameters.
 # It is only run if DataWriter.write_muon_parameters=True.
