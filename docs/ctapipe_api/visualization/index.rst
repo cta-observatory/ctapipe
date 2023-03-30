@@ -20,13 +20,6 @@ The main classes are:
 * `ArrayDisplay` 
 
 
-Getting Started
-===============
-
-.. plot:: ../examples/plot_hillas_parameters.py
-    :include-source:
-
-
 Reference/API
 =============
 

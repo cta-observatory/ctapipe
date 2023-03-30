@@ -5,14 +5,14 @@ different coordinate frames for camera coordinates.
 import astropy.units as u
 import matplotlib.pyplot as plt
 
-from ctapipe.coordinates import EngineeringCameraFrame
+from ctapipe.coordinates import EngineeringCameraFrame, TelescopeFrame
 from ctapipe.image.toymodel import Gaussian
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.visualization import CameraDisplay
 
 
 def main():
-    fig, axs = plt.subplots(1, 2, constrained_layout=True, figsize=(6, 3))
+    _, axs = plt.subplots(1, 3, constrained_layout=True, figsize=(8, 3))
 
     model = Gaussian(0 * u.m, 0.1 * u.m, 0.3 * u.m, 0.05 * u.m, 25 * u.deg)
 
@@ -27,9 +27,15 @@ def main():
         ax=axs[1],
         image=image,
     )
+    CameraDisplay(
+        cam.transform_to(TelescopeFrame()),
+        ax=axs[2],
+        image=image,
+    )
 
     axs[0].set_title("CameraFrame")
     axs[1].set_title("EngineeringCameraFrame")
+    axs[2].set_title("TelescopeFrame")
 
     plt.show()
 
