@@ -1,2 +1,0 @@
-The tools to train ml models now provide better error messages in case
-the input files did not contain any events for specific telescope types.
