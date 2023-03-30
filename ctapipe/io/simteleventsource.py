@@ -1045,21 +1045,11 @@ class SimTelEventSource(EventSource):
             laser_container = LaserCalibrationContainer(
                 calib=calib,
                 max_integ_frac=max_int_frac,
-                max_timing_frac=max_pix_tm_frac,
                 tm_calib=tm_calib,
                 flat_fielding=flat_fielding,
             )
 
             monitor_id = self.file_.camera_monitorings.get(tel_id, {}).get("monitor_id")
-            monitor_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "moni_time"
-            )
-            status_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "status_time"
-            )
-            trigger_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "trig_time"
-            )
             trigger_rate = self.file_.camera_monitorings.get(tel_id, {}).get(
                 "trigger_rate"
             )
@@ -1068,14 +1058,8 @@ class SimTelEventSource(EventSource):
             )
             event_rate = self.file_.camera_monitorings.get(tel_id, {}).get("event_rate")
             data_rate = self.file_.camera_monitorings.get(tel_id, {}).get("data_rate")
-            ped_noise_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "ped_noise_time"
-            )
             pedestal = self.file_.camera_monitorings.get(tel_id, {}).get("pedestal")
             noise = self.file_.camera_monitorings.get(tel_id, {}).get("noise")
-            hv_temp_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "hv_temp_time"
-            )
             drawer_temp = self.file_.camera_monitorings.get(tel_id, {}).get(
                 "drawer_temp"
             )
@@ -1085,32 +1069,19 @@ class SimTelEventSource(EventSource):
             hv_v_mon = self.file_.camera_monitorings.get(tel_id, {}).get("hv_v_mon")
             hv_i_mon = self.file_.camera_monitorings.get(tel_id, {}).get("hv_i_mon")
             hv_stat = self.file_.camera_monitorings.get(tel_id, {}).get("hv_stat")
-            dc_rate_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "dc_rate_time"
-            )
-            set_daq_time = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "set_daq_time"
-            )
 
             cameraservice_container = CameraMonitoringContainer(
                 monitor_id=monitor_id,
-                monitor_time=monitor_time,
-                status_time=status_time,
-                trigger_time=trigger_time,
                 sector_rate=sector_rate,
                 event_rate=event_rate,
                 data_rate=data_rate,
-                ped_noise_time=ped_noise_time,
                 pedestal=pedestal,
                 noise=noise,
-                hv_temp_time=hv_temp_time,
                 drawer_temp=drawer_temp,
                 camera_temp=camera_temp,
                 hv_voltage_monitor=hv_v_mon,
                 hv_current_monitor=hv_i_mon,
                 hv_stat=hv_stat,
-                dc_rate_time=dc_rate_time,
-                set_daq_time=set_daq_time,
                 trigger_rate=trigger_rate,
             )
 

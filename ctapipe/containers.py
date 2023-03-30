@@ -607,11 +607,7 @@ class LaserCalibrationContainer(Container):
         None,
         "Maximum fraction of the signal which can be in the fixed integration window",
     )
-    max_timing_frac = Field(
-        None,
-        "Maximum fraction of the signal which can be in the pixel timing integration",
-    )
-    tm_calib = Field(nan * u.ns, "Transit time calibration", unit=u.ns)
+    tm_calib = Field(nan * u.ns, "Transit time calibration")
     flat_fielding = Field(None, "Flat-field correction")
 
 
@@ -621,26 +617,17 @@ class CameraMonitoringContainer(Container):
     """
 
     monitor_id = Field(-1, "Monitoring id incremented with each update")
-    monitor_time = Field(None, "Time when last monitoring data was sent")
-    status_time = Field(None, "Status time")
-    trigger_time = Field(None, "Time when last trigger monitor data was read")
     trigger_rate = Field(None, "Camera average local trigger rate in Hz")
     sector_rate = Field(None, "Sector trigger rate in Hz")
     event_rate = Field(-1, "Average event rate in Hz")
     data_rate = Field(-1, "Average rate of packed data in MB per sec")
-    ped_noise_time = Field(None, "Time when pedestals + noise were determined")
     pedestal = Field(None, "Average pedestal on ADC sums")
     noise = Field(None, "Average noise on ADC sums")
-    hv_temp_time = Field(
-        None, "Time when high voltage, currents and temperature were all read out"
-    )
     drawer_temp = Field(None, "Drawer temperature")
     camera_temp = Field(None, "ADC values")
     hv_voltage_monitor = Field(None, "ADC values of HV voltage monitor")
     hv_current_monitor = Field(None, "ADC values of HV current monitor")
     hv_stat = Field(None, "Set if HV switched off for pixel")
-    dc_rate_time = Field(None, "Time when DC current and pixels scalers were read")
-    set_daq_time = Field(None, "Time when DAQ parameters were set")
 
 
 class TelescopeSimulationConfigContainer(Container):

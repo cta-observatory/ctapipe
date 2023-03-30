@@ -9,7 +9,11 @@ from typing import Dict
 
 import numpy as np
 import tables
+<<<<<<< HEAD
 from astropy.table import Table, hstack, vstack
+=======
+from astropy.table import Table, vstack, join
+>>>>>>> 4fd38ddb (write new config values to a HDF5 format file)
 from astropy.utils.decorators import lazyproperty
 from ctapipe.instrument.optics import FocalLengthKind
 
@@ -27,7 +31,9 @@ SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
-SERVICE_GROUP = "/simulation/service/telescope"
+PIXEL_CONFIG_GROUP = "/simulation/service/telescope/pixel_monitoring"
+CAMERA_CONFIG_GROUP = "/simulation/service/telescope/camera_monitoring"
+LASER_GROUP = "/simulation/service/telescope/laser_calibration"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
@@ -148,7 +154,10 @@ def _merge_subarray_tables(table1, table2):
 def _merge_telescope_tables(table1, table2):
     return _merge_table_same_index(table1, table2, TELESCOPE_EVENT_KEYS)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4fd38ddb (write new config values to a HDF5 format file)
 class TableLoader(Component):
     """
     Load telescope-event or subarray-event data from ctapipe HDF5 files
@@ -328,11 +337,33 @@ class TableLoader(Component):
             return True
         return False
 
-    def read_simulation_configuration(self):
+    def read_simulation_configuration(self, tel_id):
         """
         Read the simulation configuration table
         """
-        return read_table(self.h5file, SIMULATION_CONFIG_TABLE)
+        table = _empty_telescope_events_table()
+
+        if PIXEL_CONFIG_GROUP in self.h5file.root:
+            pixel_conf = self._read_telescope_table(
+                PIXEL_CONFIG_GROUP,
+                tel_id,
+            )
+        if CAMERA_CONFIG_GROUP in self.h5file.root:
+            camera_conf = self._read_telescope_table(
+                CAMERA_CONFIG_GROUP,
+                tel_id,
+            )
+            table = join(pixel_conf, camera_conf, keys=('obs_id', 'tel_id'))
+
+        if LASER_GROUP in self.h5file.root:
+            laser_conf = self._read_telescope_table(
+                LASER_GROUP,
+                tel_id,
+            )
+            table = join(table, laser_conf, keys=('obs_id', 'tel_id'))
+
+        config = read_table(self.h5file, SIMULATION_CONFIG_TABLE)
+        return join(table, config, keys=('obs_id', 'tel_id'))
 
     def read_shower_distribution(self):
         """
@@ -528,15 +559,6 @@ class TableLoader(Component):
                 stop=tel_stop,
             )
             table = _join_telescope_events(table, impacts)
-
-        if self.load_simulated and SERVICE_GROUP in self.h5file.root:
-            services = self._read_telescope_table(
-                SERVICE_GROUP,
-                tel_id,
-                start=start,
-                stop=stop,
-            )
-            table = _join_telescope_events(table, services)
 
         return table
 

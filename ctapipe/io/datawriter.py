@@ -160,7 +160,6 @@ class DataWriter(Component):
                 process_images(event)
                 write_data(event)
     """
-
     # pylint: disable=too-many-instance-attributes
     contact_info = Instance(meta.Contact, kw={}).tag(config=True)
     instrument_info = Instance(meta.Instrument, kw={}).tag(config=True)
@@ -532,7 +531,7 @@ class DataWriter(Component):
         for ob in self.event_source.observation_blocks.values():
             self._writer.write("configuration/observation/observation_block", ob)
 
-    def _write_simulation_configuration(self):
+    def _write_simulation_configuration(self): #, event: ArrayEventContainer):
         """
         Write the simulation headers to a single row of a table. Later
         if this file is merged with others, that table will grow.
@@ -547,11 +546,33 @@ class DataWriter(Component):
             default_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
+        class ExtraSimInfoTel(Container):
+            """just to contain obs_id and tel_id"""
+
+            default_prefix = ""
+            obs_id = Field(0, "Simulation Run Identifier")
+            tel_id = Field(1, "Simulation tel_id Identifier")
+
         for obs_id, config in self.event_source.simulation_config.items():
             extramc = ExtraSimInfo(obs_id=obs_id)
             config.prefix = ""
 
-            self._writer.write("configuration/simulation/run", [extramc, config])
+            for tel_id, sim_config in config.tel.items():
+                table_name = self.table_name(tel_id)
+                tel_index = ExtraSimInfoTel(obs_id=obs_id, tel_id=tel_id)
+                self._writer.write("configuration/simulation/run", [tel_index, config])
+                self._writer.write(
+                    f"simulation/service/telescope/pixel_monitoring/{table_name}",
+                    [tel_index, sim_config.pixel_monitoring],
+                )
+                self._writer.write(
+                    f"simulation/service/telescope/camera_monitoring/{table_name}",
+                    [tel_index, sim_config.camera_monitoring],
+                )
+                self._writer.write(
+                    f"simulation/service/telescope/laser_calibration/{table_name}",
+                    [tel_index, sim_config.laser_calibration],
+                )
 
     def write_simulation_histograms(self, event_source):
         """Write the distribution of thrown showers
