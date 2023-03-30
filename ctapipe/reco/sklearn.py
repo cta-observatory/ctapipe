@@ -18,6 +18,8 @@ from sklearn.utils import all_estimators
 from tqdm import tqdm
 from traitlets import TraitError
 
+from ctapipe.exceptions import TooFewEvents
+
 from ..containers import (
     ArrayEventContainer,
     DispContainer,
@@ -847,7 +849,7 @@ class CrossValidator(Component):
 
     def __call__(self, telescope_type, table):
         if len(table) <= self.n_cross_validations:
-            raise ValueError(f"Too few events for {telescope_type}.")
+            raise TooFewEvents(f"Too few events for {telescope_type}.")
 
         self.log.info(
             "Starting cross-validation with %d folds for type %s.",

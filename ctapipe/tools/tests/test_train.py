@@ -1,6 +1,7 @@
 import pytest
 
 from ctapipe.core import run_tool
+from ctapipe.exceptions import TooFewEvents
 from ctapipe.utils.datasets import resource_file
 
 
@@ -29,7 +30,7 @@ def test_too_few_events(tmp_path, dl2_shower_geometry_file):
     config = resource_file("train_energy_regressor.yaml")
     out_file = tmp_path / "energy.pkl"
 
-    with pytest.raises(ValueError, match="Too few events"):
+    with pytest.raises(TooFewEvents, match="No events after quality query"):
         run_tool(
             tool,
             argv=[
