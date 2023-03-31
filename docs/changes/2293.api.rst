@@ -1,1 +1,0 @@
-Renames ``GeometryReconstructor`` to ``HillasGeometryReconstructor``
