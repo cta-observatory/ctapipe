@@ -1,11 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """ print information about ctapipe and its command-line tools. """
-from configparser import ConfigParser
 import logging
 import os
+import sys
+from configparser import ConfigParser
 from pathlib import Path
 from re import split
-import sys
 
 from ..core import Provenance, get_module_version
 from ..core.plugins import detect_and_import_plugins
@@ -286,7 +286,8 @@ def _info_reconstructors():
 
 
 def _info_datamodel():
-    from ctapipe.io.datawriter import DATA_MODEL_CHANGE_HISTORY, DATA_MODEL_VERSION
+    from ctapipe.io.datawriter import (DATA_MODEL_CHANGE_HISTORY,
+                                       DATA_MODEL_VERSION)
     from ctapipe.io.hdf5eventsource import COMPATIBLE_DATA_MODEL_VERSIONS
 
     print("\n*** ctapipe data model ***\n")
