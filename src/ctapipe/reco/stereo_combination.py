@@ -113,12 +113,13 @@ class StereoMeanCombiner(StereoCombiner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.supported = {
-            ReconstructionProperty.ENERGY,
-            ReconstructionProperty.GEOMETRY,
-            ReconstructionProperty.PARTICLE_TYPE,
+        self.available_combiners = {
+            ReconstructionProperty.ENERGY: self._combine_energy,
+            ReconstructionProperty.GEOMETRY: self._combine_altaz,
+            ReconstructionProperty.PARTICLE_TYPE: self._combine_classification,
         }
-        if self.property not in self.supported:
+
+        if self.property not in self.available_combiners:
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
@@ -272,20 +273,9 @@ class StereoMeanCombiner(StereoCombiner):
         Calculate the mean prediction for a single array event.
         """
 
-        properties = [
-            self.property & itm
-            for itm in self.supported
-            if self.property & itm in ReconstructionProperty
-        ]
-        for prop in properties:
-            if prop is ReconstructionProperty.ENERGY:
-                self._combine_energy(event)
-
-            elif prop is ReconstructionProperty.PARTICLE_TYPE:
-                self._combine_classification(event)
-
-            elif prop is ReconstructionProperty.GEOMETRY:
-                self._combine_altaz(event)
+        for prop in ReconstructionProperty:
+            if prop in self.available_combiners:
+                self.available_combiners[prop](event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
