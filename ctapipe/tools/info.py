@@ -1,7 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """ print information about ctapipe and its command-line tools. """
+from configparser import ConfigParser
 import logging
 import os
+from pathlib import Path
+from re import split
 import sys
 
 from ..core import Provenance, get_module_version
@@ -16,26 +19,41 @@ else:
 
 __all__ = ["info"]
 
-# TODO: this list should be global (or generated at install time)
-_dependencies = sorted(
-    [
-        "astropy",
-        "matplotlib",
-        "numpy",
-        "traitlets",
-        "sklearn",
-        "scipy",
-        "numba",
-        "pytest",
-        "iminuit",
-        "tables",
-        "eventio",
-    ]
-)
+conf = ConfigParser()
+conf.read(Path(__file__).parent / Path("../../setup.cfg"))
+setup_cfg_options = dict(conf.items("options"))
+setup_cfg_options_extras = dict(conf.items("options.extras_require"))
+
+_dependencies = sorted(setup_cfg_options["install_requires"].split("\n")[1:])
 
 _optional_dependencies = sorted(
-    ["ctapipe_resources", "pytest", "graphviz", "matplotlib"]
+    setup_cfg_options_extras["tests"].split("\n")[1:]
+    + setup_cfg_options_extras["docs"].split("\n")[1:]
 )
+
+
+def get_package_name_setuptools(name):
+    """Extract a package name from setuptools syntax.
+
+    Parameters
+    ----------
+    name: str
+        Name of the package as specified in files like
+        ``setup.cfg``, ``setup.py`` or ``pyproject.toml``.
+
+    Returns
+    -------
+    module_name: str
+        Name of package without version specification.
+    """
+
+    version_delimeters = [" ", "=", "~", ">", "<"]
+    if any([i in name for i in version_delimeters]):
+        package_name = split(r"|".join(version_delimeters), name)[0]
+    else:
+        package_name = name
+
+    return package_name
 
 
 def main(args=None):
@@ -167,12 +185,14 @@ def _info_dependencies():
     print("\n*** ctapipe core dependencies ***\n")
 
     for name in _dependencies:
+        name = get_package_name_setuptools(name)
         version = get_module_version(name)
         print(f"{name:>20s} -- {version}")
 
     print("\n*** ctapipe optional dependencies ***\n")
 
     for name in _optional_dependencies:
+        name = get_package_name_setuptools(name)
         version = get_module_version(name)
         print(f"{name:>20s} -- {version}")
 
