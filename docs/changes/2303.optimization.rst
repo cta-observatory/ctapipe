@@ -1,0 +1,2 @@
+Optimize ``ctapipe-info --dependencies`` by reading them from the package installation code.
+Use ``pytest-console-scripts`` to test this tool.
