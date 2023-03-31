@@ -1,7 +1,13 @@
 version: 2
 
+build:
+  os: ubuntu-22.04
+  apt_packages:
+    - ffmpeg
+  tools:
+    python: "3.8"
+
 python:
-  version: "3.8"
   install:
     - method: pip
       path: .
