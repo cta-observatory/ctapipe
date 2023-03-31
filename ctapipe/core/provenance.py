@@ -53,7 +53,7 @@ def get_module_version(name):
     try:
         module = import_module(name)
         return module.__version__
-    except AttributeError:
+    except (AttributeError, ModuleNotFoundError):
         try:
             return version(name)
         except Exception:
