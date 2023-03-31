@@ -43,7 +43,6 @@ optional_nodes = {
     "/simulation/event/telescope/images",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/impact",
-    "/simulation/event/telescope/service",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
     "/dl2/event/telescope/geometry",
@@ -65,8 +64,10 @@ simulation_nodes = {
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
     "/simulation/service/shower_distribution",
-    "/simulation/event/telescope/service",
     "/configuration/simulation/run",
+    "/simulation/service/telescope/camera_monitoring",
+    "/simulation/service/telescope/pixel_monitoring",
+    "/simulation/service/telescope/laser_calibration",
 }
 nodes_with_tels = {
     "/dl1/monitoring/telescope/pointing",
@@ -75,7 +76,9 @@ nodes_with_tels = {
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
     "/simulation/event/telescope/impact",
-    "/simulation/event/telescope/service",
+    "/simulation/service/telescope/camera_monitoring",
+    "/simulation/service/telescope/pixel_monitoring",
+    "/simulation/service/telescope/laser_calibration",
 }
 image_nodes = {
     "/dl1/event/telescope/images",
