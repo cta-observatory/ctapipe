@@ -286,8 +286,7 @@ def _info_reconstructors():
 
 
 def _info_datamodel():
-    from ctapipe.io.datawriter import (DATA_MODEL_CHANGE_HISTORY,
-                                       DATA_MODEL_VERSION)
+    from ctapipe.io.datawriter import DATA_MODEL_CHANGE_HISTORY, DATA_MODEL_VERSION
     from ctapipe.io.hdf5eventsource import COMPATIBLE_DATA_MODEL_VERSIONS
 
     print("\n*** ctapipe data model ***\n")
