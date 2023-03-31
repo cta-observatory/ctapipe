@@ -35,7 +35,7 @@ def test_apply_energy_regressor(
         raises=True,
     )
     assert ret == 0
-    print(output_path)
+
     prefix = "ExtraTreesRegressor"
     table = read_table(output_path, f"/dl2/event/subarray/energy/{prefix}")
     for col in "obs_id", "event_id":
