@@ -27,6 +27,7 @@ dependencies:
   - psutil
   - pytables
   - pytest
+  - pytest-console-scripts
   - pytest-cov
   - pytest-runner
   - pytest-astropy-header
