@@ -617,14 +617,18 @@ class CameraMonitoringContainer(Container):
     """
 
     monitor_id = Field(-1, "Monitoring id incremented with each update")
-    trigger_rate = Field(None, "Camera average local trigger rate in Hz")
-    sector_rate = Field(None, "Sector trigger rate in Hz")
-    event_rate = Field(-1, "Average event rate in Hz")
-    data_rate = Field(-1, "Average rate of packed data in MB per sec")
+    trigger_rate = Field(
+        None, "Camera average local trigger rate in s^-1", unit=u.s**-1
+    )
+    sector_rate = Field(None, "Sector trigger rate in s^-1", unit=u.s**-1)
+    event_rate = Field(-1, "Average event rate in events per sec", unit=u.s**-1)
+    data_rate = Field(
+        -1, "Average rate of packed data in MB per sec", unit=u.Mbyte / u.s
+    )
     pedestal = Field(None, "Average pedestal on ADC sums")
     noise = Field(None, "Average noise on ADC sums")
-    drawer_temp = Field(None, "Drawer temperature")
-    camera_temp = Field(None, "ADC values")
+    drawer_temp = Field(None, "Drawer temperature", unit=u.deg_C)
+    camera_temp = Field(None, "ADC values", unit=u.deg_C)
     hv_voltage_monitor = Field(None, "ADC values of HV voltage monitor")
     hv_current_monitor = Field(None, "ADC values of HV current monitor")
     hv_stat = Field(None, "Set if HV switched off for pixel")

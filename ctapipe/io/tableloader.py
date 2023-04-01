@@ -9,7 +9,7 @@ from typing import Dict
 
 import numpy as np
 import tables
-from astropy.table import Table, hstack, vstack, join
+from astropy.table import Table, hstack, join, vstack
 from astropy.utils.decorators import lazyproperty
 from ctapipe.instrument.optics import FocalLengthKind
 
@@ -84,7 +84,6 @@ class ChunkIterator:
         return self.n_chunks
 
     def __getitem__(self, chunk):
-
         if chunk < 0:
             chunk = self.n_chunks - chunk
 
@@ -149,6 +148,7 @@ def _merge_subarray_tables(table1, table2):
 
 def _merge_telescope_tables(table1, table2):
     return _merge_table_same_index(table1, table2, TELESCOPE_EVENT_KEYS)
+
 
 class TableLoader(Component):
     """
@@ -345,17 +345,17 @@ class TableLoader(Component):
                 CAMERA_CONFIG_GROUP,
                 tel_id,
             )
-            table = join(pixel_conf, camera_conf, keys=('obs_id', 'tel_id'))
+            table = join(pixel_conf, camera_conf, keys=("obs_id", "tel_id"))
 
         if LASER_GROUP in self.h5file.root:
             laser_conf = self._read_telescope_table(
                 LASER_GROUP,
                 tel_id,
             )
-            table = join(table, laser_conf, keys=('obs_id', 'tel_id'))
+            table = join(table, laser_conf, keys=("obs_id", "tel_id"))
 
         config = read_table(self.h5file, SIMULATION_CONFIG_TABLE)
-        return join(table, config, keys=('obs_id', 'tel_id'))
+        return join(table, config, keys=("obs_id", "tel_id"))
 
     def read_shower_distribution(self):
         """

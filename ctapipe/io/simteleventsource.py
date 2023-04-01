@@ -1034,9 +1034,6 @@ class SimTelEventSource(EventSource):
             max_int_frac = self.file_.laser_calibrations.get(tel_id, {}).get(
                 "max_int_frac"
             )
-            max_pix_tm_frac = self.file_.laser_calibrations.get(tel_id, {}).get(
-                "max_pix_tm_frac"
-            )
             tm_calib = self.file_.laser_calibrations.get(tel_id, {}).get("tm_calib")
             flat_fielding = self.file_.laser_calibrations.get(tel_id, {}).get(
                 "flat_fielding"

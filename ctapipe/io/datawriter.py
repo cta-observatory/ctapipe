@@ -160,6 +160,7 @@ class DataWriter(Component):
                 process_images(event)
                 write_data(event)
     """
+
     # pylint: disable=too-many-instance-attributes
     contact_info = Instance(meta.Contact, kw={}).tag(config=True)
     instrument_info = Instance(meta.Instrument, kw={}).tag(config=True)
@@ -531,7 +532,7 @@ class DataWriter(Component):
         for ob in self.event_source.observation_blocks.values():
             self._writer.write("configuration/observation/observation_block", ob)
 
-    def _write_simulation_configuration(self): #, event: ArrayEventContainer):
+    def _write_simulation_configuration(self):  # , event: ArrayEventContainer):
         """
         Write the simulation headers to a single row of a table. Later
         if this file is merged with others, that table will grow.
@@ -554,7 +555,6 @@ class DataWriter(Component):
             tel_id = Field(1, "Simulation tel_id Identifier")
 
         for obs_id, config in self.event_source.simulation_config.items():
-            extramc = ExtraSimInfo(obs_id=obs_id)
             config.prefix = ""
 
             for tel_id, sim_config in config.tel.items():
@@ -642,7 +642,6 @@ class DataWriter(Component):
         self, writer: TableWriter, event: ArrayEventContainer
     ):
         for tel_id, r1_tel in event.r1.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -653,7 +652,6 @@ class DataWriter(Component):
         self, writer: TableWriter, event: ArrayEventContainer
     ):
         for tel_id, r0_tel in event.r0.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -743,7 +741,6 @@ class DataWriter(Component):
     def _write_muon_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
     ):
-
         for tel_id, muon in event.muon.tel.items():
             table_name = self.table_name(tel_id)
             tel_index = _get_tel_index(event, tel_id)
