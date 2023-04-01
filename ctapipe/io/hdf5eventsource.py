@@ -320,7 +320,7 @@ class HDF5EventSource(EventSource):
     def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
         """
         Returns the simulation config(s) as
-        a dict mapping obs_id to the respective config.
+        a dict mapping obs_id to respective config.
         """
         return self._simulation_configs
 
@@ -741,10 +741,6 @@ class HDF5EventSource(EventSource):
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 81440372 (coding style)
             tel_pointing_table = pointing_group[key]
             closest_time_index = tel_pointing_finder[key].closest(
                 data.trigger.tel[tel_id].time.mjd
@@ -760,9 +756,3 @@ class HDF5EventSource(EventSource):
                 pointing_telescope["altitude"],
                 attrs["altitude"]["UNIT"],
             )
-<<<<<<< HEAD
-=======
-            tel_pointing_table = pointing_group[f"tel_{tel_id:03d}"]
->>>>>>> cd2ee7d3 (changes made to include pixel monitoring information)
-=======
->>>>>>> 81440372 (coding style)

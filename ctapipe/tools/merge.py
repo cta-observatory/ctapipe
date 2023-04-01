@@ -5,115 +5,21 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-<<<<<<< HEAD
 from tqdm.auto import tqdm
 from traitlets import List
 
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io.hdf5merger import CannotMerge
 
-=======
 import tables
 from ctapipe.utils.arrays import recarray_drop_columns
 from tqdm.auto import tqdm
 from traitlets import List
 
->>>>>>> 81440372 (coding style)
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
 from ..io import HDF5Merger
 from ..io import metadata as meta
-
-<<<<<<< HEAD
-=======
-PROV = Provenance()
-
-VERSION_KEY = "CTA PRODUCT DATA MODEL VERSION"
-IMAGE_STATISTICS_PATH = "/dl1/service/image_statistics"
-DL2_STATISTICS_GROUP = "/dl2/service/tel_event_statistics"
-
-required_nodes = {
-    "/dl1/event/subarray/trigger",
-    "/dl1/event/telescope/trigger",
-    "/dl1/monitoring/subarray/pointing",
-}
-
-optional_nodes = {
-    "/simulation/service/shower_distribution",
-    "/simulation/event/telescope/images",
-    "/simulation/event/telescope/parameters",
-    "/simulation/event/telescope/impact",
-    "/dl1/event/telescope/parameters",
-    "/dl1/event/telescope/images",
-    "/dl2/event/telescope/geometry",
-    "/dl2/event/telescope/impact",
-    "/dl2/event/telescope/energy",
-    "/dl2/event/telescope/classification",
-    "/dl2/event/subarray/geometry",
-    "/dl2/event/subarray/energy",
-    "/dl2/event/subarray/classification",
-}
-
-observation_configuration_nodes = {
-    "/configuration/observation/observation_block",
-    "/configuration/observation/scheduling_block",
-}
-
-simulation_nodes = {
-    "/simulation/event/subarray/shower",
-    "/simulation/event/telescope/parameters",
-    "/simulation/event/telescope/images",
-    "/simulation/service/shower_distribution",
-    "/configuration/simulation/run",
-    "/simulation/service/telescope/camera_monitoring",
-    "/simulation/service/telescope/pixel_monitoring",
-    "/simulation/service/telescope/laser_calibration",
-}
-nodes_with_tels = {
-    "/dl1/monitoring/telescope/pointing",
-    "/dl1/event/telescope/parameters",
-    "/dl1/event/telescope/images",
-    "/simulation/event/telescope/parameters",
-    "/simulation/event/telescope/images",
-    "/simulation/event/telescope/impact",
-    "/simulation/service/telescope/camera_monitoring",
-    "/simulation/service/telescope/pixel_monitoring",
-    "/simulation/service/telescope/laser_calibration",
-}
-image_nodes = {
-    "/dl1/event/telescope/images",
-}
-parameter_nodes = {
-    "/simulation/event/telescope/parameters",
-    "/dl1/event/telescope/parameters",
-}
-
-SIMULATED_IMAGE_GROUP = "/simulation/event/telescope/images"
-simulation_images = {SIMULATED_IMAGE_GROUP}
-
-dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
-
-dl2_algorithm_tel_nodes = {
-    "/dl2/event/telescope/geometry",
-    "/dl2/event/telescope/impact",
-    "/dl2/event/telescope/energy",
-    "/dl2/event/telescope/classification",
-}
-
-all_nodes = (
-    required_nodes
-    | optional_nodes
-    | simulation_nodes
-    | nodes_with_tels
-    | image_nodes
-    | parameter_nodes
-    | simulation_images
-    | dl2_subarray_nodes
-    | observation_configuration_nodes
-    | dl2_algorithm_tel_nodes
-)
-
->>>>>>> 4c7130a7 (modifying merge to include monitorings)
 
 class MergeTool(Tool):
     """
@@ -262,7 +168,6 @@ class MergeTool(Tool):
             unit="Files",
             disable=not self.progress_bar,
         ):
-<<<<<<< HEAD
             try:
                 self.merger(input_path)
                 n_merged += 1
@@ -270,28 +175,6 @@ class MergeTool(Tool):
                 if not self.skip_broken_files:
                     raise
                 self.log.warning("Skipping broken file: %s", error)
-=======
-            if not HDF5EventSource.is_compatible(input_path):
-                self.log.critical(f"input file {input_path} is not a supported file")
-                if self.skip_broken_files:
-                    continue
-                else:
-                    sys.exit(1)
-
-            with tables.open_file(input_path, mode="r") as h5file:
-                if self.check_file_broken(h5file) is True:
-                    if self.skip_broken_files is True:
-                        continue
-                    else:
-                        self.log.critical("Broken file detected.")
-                        sys.exit(1)
-
-                self.merge_tables(h5file)
-                self.add_statistics(h5file)
-
-            PROV.add_input_file(str(input_path))
-            merged_files_counter += 1
->>>>>>> 81440372 (coding style)
 
         self.log.info(
             "%d out of %d files have been merged!",
