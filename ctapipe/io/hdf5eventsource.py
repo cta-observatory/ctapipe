@@ -7,6 +7,7 @@ import astropy.units as u
 import numpy as np
 import tables
 from astropy.utils.decorators import lazyproperty
+
 from ctapipe.atmosphere import AtmosphereDensityProfile
 from ctapipe.instrument.optics import FocalLengthKind
 

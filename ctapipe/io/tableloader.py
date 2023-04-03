@@ -11,6 +11,7 @@ import numpy as np
 import tables
 from astropy.table import Table, hstack, join, vstack
 from astropy.utils.decorators import lazyproperty
+
 from ctapipe.instrument.optics import FocalLengthKind
 
 from ..core import Component, Provenance, traits
