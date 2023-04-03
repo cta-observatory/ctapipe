@@ -9,7 +9,6 @@ from ctapipe.utils import get_dataset_path
 
 prod5_path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
-
 def test_construct():
     # at least one of input_url / parent / config is required
     with pytest.raises(ValueError):
@@ -180,7 +179,6 @@ def test_allowed_tels():
     assert reader.allowed_tels is None
     reader = EventSource(input_url=dataset, allowed_tels={1, 3})
     assert reader.allowed_tels == {1, 3}
-
 
 def test_allowed_tels_from_config():
     dataset = get_dataset_path(prod5_path)

@@ -510,8 +510,11 @@ class SimTelEventSource(EventSource):
             zcat=not self.back_seekable,
         )
 
-        self.event_iter = iter(self.file_)
-        self.first_event = next(self.event_iter)
+        try:
+            self.event_iter = iter(self.file_)
+            self.first_event = next(self.event_iter)
+        except:  # Telescopes with no events will raise an error. This is not a nice solution. 
+            pass
 
         if self.back_seekable and self.is_stream:
             raise IOError("back seekable was required but not possible for inputfile")
