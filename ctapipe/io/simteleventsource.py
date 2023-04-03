@@ -513,7 +513,9 @@ class SimTelEventSource(EventSource):
         try:
             self.event_iter = iter(self.file_)
             self.first_event = next(self.event_iter)
-        except:  # Telescopes with no events will raise an error. This is not a nice solution. 
+        except (
+            StopIteration
+        ):  # Telescopes with no events will raise an error. This is not a nice solution.
             pass
 
         if self.back_seekable and self.is_stream:

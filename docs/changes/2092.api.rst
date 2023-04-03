@@ -1,0 +1,1 @@
+Include telescope-dependent simulation configuration information from prod6 simulations.
