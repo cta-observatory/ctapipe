@@ -3,6 +3,13 @@ from copy import deepcopy
 import astropy.units as u
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_equal
+from scipy import signal
+from scipy.signal import filtfilt, peak_widths
+from scipy.stats import norm
+from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
+
 from ctapipe.core import non_abstract_children
 from ctapipe.image.cleaning import dilate
 from ctapipe.image.extractor import (
@@ -26,12 +33,6 @@ from ctapipe.image.extractor import (
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
-from numpy.testing import assert_allclose, assert_equal
-from scipy import signal
-from scipy.signal import filtfilt, peak_widths
-from scipy.stats import norm
-from traitlets.config.loader import Config
-from traitlets.traitlets import TraitError
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually

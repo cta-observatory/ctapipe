@@ -29,6 +29,10 @@ import astropy.units as u
 import numpy as np
 import numpy.typing as npt
 import scipy.stats
+from numba import float32, float64, guvectorize, int64, njit, prange
+from scipy.ndimage import convolve1d
+from traitlets import Bool, Int
+
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -38,9 +42,6 @@ from ctapipe.core.traits import (
     IntTelescopeParameter,
 )
 from ctapipe.instrument import CameraDescription
-from numba import float32, float64, guvectorize, int64, njit, prange
-from scipy.ndimage import convolve1d
-from traitlets import Bool, Int
 
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
