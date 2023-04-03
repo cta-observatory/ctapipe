@@ -556,11 +556,12 @@ class DataWriter(Component):
 
         for obs_id, config in self.event_source.simulation_config.items():
             config.prefix = ""
-
+            mcextra = ExtraSimInfo(obs_id=obs_id)
+            self._writer.write("configuration/simulation/run", [mcextra, config])
             for tel_id, sim_config in config.tel.items():
                 table_name = self.table_name(tel_id)
                 tel_index = ExtraSimInfoTel(obs_id=obs_id, tel_id=tel_id)
-                self._writer.write("configuration/simulation/run", [tel_index, config])
+                #self._writer.write("configuration/simulation/run", [tel_index, config])
                 self._writer.write(
                     f"simulation/service/telescope/pixel_monitoring/{table_name}",
                     [tel_index, sim_config.pixel_monitoring],

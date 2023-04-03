@@ -41,6 +41,10 @@ from ..containers import (
     TelEventIndexContainer,
     TimingParametersContainer,
     TriggerContainer,
+    CameraMonitoringContainer,
+    LaserCalibrationContainer,
+    PixelMonitoringContainer,
+    TelescopeSimulationConfigContainer
 )
 from ..core import Container, Field
 from ..core.traits import UseEnum
@@ -351,8 +355,53 @@ class HDF5EventSource(EventSource):
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
                 containers=(SimulationConfigContainer, ObsIdContainer),
+                ignore_columns={"tel"},
             )
-            return {index.obs_id: config for (config, index) in reader}
+
+        if self.is_simulation:
+            camera_reader = {
+                table.name: HDF5TableReader(self.file_).read(
+                    f"/simulation/service/telescope/camera_monitoring/{table.name}",
+                    containers=CameraMonitoringContainer,
+                )
+                for table in self.file_.root.simulation.service.telescope.camera_monitoring
+                }            
+            pixel_reader = {
+                table.name: HDF5TableReader(self.file_).read(
+                    f"/simulation/service/telescope/pixel_monitoring/{table.name}",
+                    PixelMonitoringContainer,
+                )
+                for table in self.file_.root.simulation.service.telescope.pixel_monitoring
+                }
+            laser_reader = {
+                table.name: HDF5TableReader(self.file_).read(
+                    f"/simulation/service/telescope/laser_calibration/{table.name}",
+                    LaserCalibrationContainer,
+                )
+                for table in self.file_.root.simulation.service.telescope.laser_calibration
+                }
+
+            for config, index in reader:
+                for key in laser_reader:
+                    tel_id = int(key[5:7])
+                    for p in pixel_reader[key]:
+                        pixel_container = p
+                    for c in camera_reader[key]:
+                        camera_container = c
+                    for l in laser_reader[key]:
+                        laser_container = l
+
+                    config.tel[tel_id] = TelescopeSimulationConfigContainer(
+                        pixel_monitoring=p,
+                        laser_calibration=l,
+                        camera_monitoring=c,
+                    )
+                
+                output_config = {index.obs_id: config}
+
+                return output_config
+
+
         else:
             return {}
 

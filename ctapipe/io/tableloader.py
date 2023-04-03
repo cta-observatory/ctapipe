@@ -355,7 +355,7 @@ class TableLoader(Component):
             table = join(table, laser_conf, keys=("obs_id", "tel_id"))
 
         config = read_table(self.h5file, SIMULATION_CONFIG_TABLE)
-        return join(table, config, keys=("obs_id", "tel_id"))
+        return join(table, config, keys=("obs_id"))
 
     def read_shower_distribution(self):
         """
