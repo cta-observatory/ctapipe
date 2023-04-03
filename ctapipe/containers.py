@@ -621,9 +621,9 @@ class CameraMonitoringContainer(Container):
         None, "Camera average local trigger rate in s^-1", unit=u.s**-1
     )
     sector_rate = Field(None, "Sector trigger rate in s^-1", unit=u.s**-1)
-    event_rate = Field(-1, "Average event rate in events per sec", unit=u.s**-1)
+    event_rate = Field(None, "Average event rate in events per sec", unit=u.s**-1)
     data_rate = Field(
-        -1, "Average rate of packed data in MB per sec", unit=u.Mbyte / u.s
+        None, "Average rate of packed data in MB per sec", unit=u.Mbyte / u.s
     )
     pedestal = Field(None, "Average pedestal on ADC sums")
     noise = Field(None, "Average noise on ADC sums")

@@ -329,12 +329,10 @@ class TableLoader(Component):
             return True
         return False
 
-    def read_simulation_configuration(self, tel_id):
+    def read_simulation_tel_config(self, tel_id):
         """
-        Read the simulation configuration table
+        Read the simulation configuration table group
         """
-        table = _empty_telescope_events_table()
-
         if PIXEL_CONFIG_GROUP in self.h5file.root:
             pixel_conf = self._read_telescope_table(
                 PIXEL_CONFIG_GROUP,
@@ -354,8 +352,14 @@ class TableLoader(Component):
             )
             table = join(table, laser_conf, keys=("obs_id", "tel_id"))
 
+        return table
+
+    def read_simulation_configuration(self):
+        """
+        Read the simulation configuration table
+        """
         config = read_table(self.h5file, SIMULATION_CONFIG_TABLE)
-        return join(table, config, keys=("obs_id"))
+        return config
 
     def read_shower_distribution(self):
         """
