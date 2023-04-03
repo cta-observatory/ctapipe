@@ -1,0 +1,1 @@
+Add time parameters (FWHM, rise and fall time, and time over threshold) 
