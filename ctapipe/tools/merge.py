@@ -11,11 +11,6 @@ from traitlets import List
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io.hdf5merger import CannotMerge
 
-import tables
-from ctapipe.utils.arrays import recarray_drop_columns
-from tqdm.auto import tqdm
-from traitlets import List
-
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
 from ..io import HDF5Merger

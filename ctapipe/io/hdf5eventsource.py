@@ -13,6 +13,7 @@ from ctapipe.instrument.optics import FocalLengthKind
 from ..containers import (
     ArrayEventContainer,
     CameraHillasParametersContainer,
+    CameraMonitoringContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
     DL1CameraContainer,
@@ -20,6 +21,7 @@ from ..containers import (
     HillasParametersContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
+    LaserCalibrationContainer,
     LeakageContainer,
     MorphologyContainer,
     MuonEfficiencyContainer,
@@ -29,6 +31,7 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
+    PixelMonitoringContainer,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -37,14 +40,11 @@ from ..containers import (
     SimulatedShowerContainer,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
+    TelescopeSimulationConfigContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
     TimingParametersContainer,
     TriggerContainer,
-    CameraMonitoringContainer,
-    LaserCalibrationContainer,
-    PixelMonitoringContainer,
-    TelescopeSimulationConfigContainer
 )
 from ..core import Container, Field
 from ..core.traits import UseEnum
@@ -365,42 +365,41 @@ class HDF5EventSource(EventSource):
                     containers=CameraMonitoringContainer,
                 )
                 for table in self.file_.root.simulation.service.telescope.camera_monitoring
-                }            
+            }
             pixel_reader = {
                 table.name: HDF5TableReader(self.file_).read(
                     f"/simulation/service/telescope/pixel_monitoring/{table.name}",
                     PixelMonitoringContainer,
                 )
                 for table in self.file_.root.simulation.service.telescope.pixel_monitoring
-                }
+            }
             laser_reader = {
                 table.name: HDF5TableReader(self.file_).read(
                     f"/simulation/service/telescope/laser_calibration/{table.name}",
                     LaserCalibrationContainer,
                 )
                 for table in self.file_.root.simulation.service.telescope.laser_calibration
-                }
+            }
 
             for config, index in reader:
                 for key in laser_reader:
                     tel_id = int(key[5:7])
-                    for p in pixel_reader[key]:
-                        pixel_container = p
-                    for c in camera_reader[key]:
-                        camera_container = c
-                    for l in laser_reader[key]:
-                        laser_container = l
+                    for pp in pixel_reader[key]:
+                        pixel_container = pp
+                    for cc in camera_reader[key]:
+                        camera_container = cc
+                    for ll in laser_reader[key]:
+                        laser_container = ll
 
                     config.tel[tel_id] = TelescopeSimulationConfigContainer(
-                        pixel_monitoring=p,
-                        laser_calibration=l,
-                        camera_monitoring=c,
+                        pixel_monitoring=pixel_container,
+                        laser_calibration=laser_container,
+                        camera_monitoring=camera_container,
                     )
-                
+
                 output_config = {index.obs_id: config}
 
                 return output_config
-
 
         else:
             return {}

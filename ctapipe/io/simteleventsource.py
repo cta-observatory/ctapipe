@@ -1047,22 +1047,33 @@ class SimTelEventSource(EventSource):
             )
 
             monitor_id = self.file_.camera_monitorings.get(tel_id, {}).get("monitor_id")
-            trigger_rate = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "trigger_rate"
-            ) * u.s**-1
-            sector_rate = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "sector_rate"
-            ) * u.s**-1
-            event_rate = self.file_.camera_monitorings.get(tel_id, {}).get("event_rate") * u.s**-1
-            data_rate = self.file_.camera_monitorings.get(tel_id, {}).get("data_rate") * u.Mbyte * u.s**-1
+            trigger_rate = (
+                self.file_.camera_monitorings.get(tel_id, {}).get("trigger_rate")
+                * u.s**-1
+            )
+            sector_rate = (
+                self.file_.camera_monitorings.get(tel_id, {}).get("sector_rate")
+                * u.s**-1
+            )
+            event_rate = (
+                self.file_.camera_monitorings.get(tel_id, {}).get("event_rate")
+                * u.s**-1
+            )
+            data_rate = (
+                self.file_.camera_monitorings.get(tel_id, {}).get("data_rate")
+                * u.Mbyte
+                * u.s**-1
+            )
             pedestal = self.file_.camera_monitorings.get(tel_id, {}).get("pedestal")
             noise = self.file_.camera_monitorings.get(tel_id, {}).get("noise")
-            drawer_temp = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "drawer_temp"
-            ) * u.deg_C
-            camera_temp = self.file_.camera_monitorings.get(tel_id, {}).get(
-                "camera_temp"
-            ) * u.deg_C
+            drawer_temp = (
+                self.file_.camera_monitorings.get(tel_id, {}).get("drawer_temp")
+                * u.deg_C
+            )
+            camera_temp = (
+                self.file_.camera_monitorings.get(tel_id, {}).get("camera_temp")
+                * u.deg_C
+            )
             hv_v_mon = self.file_.camera_monitorings.get(tel_id, {}).get("hv_v_mon")
             hv_i_mon = self.file_.camera_monitorings.get(tel_id, {}).get("hv_i_mon")
             hv_stat = self.file_.camera_monitorings.get(tel_id, {}).get("hv_stat")
