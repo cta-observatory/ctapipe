@@ -16,6 +16,7 @@ from ..core.traits import Bool, Unicode, flag
 from ..io import HDF5Merger
 from ..io import metadata as meta
 
+
 class MergeTool(Tool):
     """
     Merge multiple ctapipe HDF5 files into one
