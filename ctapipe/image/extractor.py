@@ -29,10 +29,6 @@ import astropy.units as u
 import numpy as np
 import numpy.typing as npt
 import scipy.stats
-from numba import float32, float64, guvectorize, int64, njit, prange
-from scipy.ndimage import convolve1d
-from traitlets import Bool, Int
-
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -42,13 +38,16 @@ from ctapipe.core.traits import (
     IntTelescopeParameter,
 )
 from ctapipe.instrument import CameraDescription
+from numba import float32, float64, guvectorize, int64, njit, prange
+from scipy.ndimage import convolve1d
+from traitlets import Bool, Int
 
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
 from .morphology import brightest_island, number_of_islands
 from .timing import timing_parameters
-from scipy.signal import filtfilt
+
 
 @guvectorize(
     [
@@ -350,10 +349,20 @@ def integration_correction(
 
     return correction
 
-def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_start, baseline_end, thr, peak_index=None):
+
+def time_parameters(
+    waveforms,
+    upper_limit,
+    lower_limit,
+    upsampling,
+    baseline_start,
+    baseline_end,
+    thr,
+    peak_index=None,
+):
     """
     Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
-    
+
     Parameters
     ----------
     waveforms : ndarray
@@ -394,18 +403,16 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
     """
 
     if upsampling > 1:
-        waveforms = filtfilt(
-            np.ones(upsampling),
-            upsampling,
-            np.repeat(waveforms, upsampling, axis=-1),
-        )
+        filt = np.ones(upsampling)
+        filt_weighted = filt / upsampling
+        signal = np.repeat(waveforms, upsampling, axis=-1)
+        waveforms = __filtfilt_fast(signal, filt_weighted)
 
-    if peak_index == None:  # take the maximum of the waveform as a default
+    if peak_index is None:  # take the maximum of the waveform as a default
         peak_index = np.argmax(waveforms, axis=-1)
     else:
-        peak_index = peak_index*upsampling  # to correct for upsampling
+        peak_index = peak_index * upsampling  # to correct for upsampling
 
-    n_wv = len(waveforms)
     baseline = np.mean(waveforms[:, 1:5], axis=-1)
 
     fwhm = []
@@ -413,13 +420,17 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
     fall_time = []
     time_over_thr = []
 
-    for i in range(0, n_wv):
+    for i in range(0, len(waveforms)):
         waveform = waveforms[i]
         n_samples = waveform.size
-        
+
         peak_amplitude = waveform[peak_index[i]]
-        upper_amplitude = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end]))*upper_limit 
-        lower_amplitude = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end]))*lower_limit
+        upper_amplitude = (
+            peak_amplitude - np.mean(waveform[baseline_start:baseline_end])
+        ) * upper_limit
+        lower_amplitude = (
+            peak_amplitude - np.mean(waveform[baseline_start:baseline_end])
+        ) * lower_limit
         phalf = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end])) / 2.0
 
         start = peak_index[i] - 1
@@ -428,7 +439,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
             start -= 1
         while stop < n_samples and waveform[stop] >= phalf:
             stop += 1
-        fwhm.append((stop - start)/upsampling)    
+        fwhm.append((stop - start) / upsampling)
 
         indices_high = []
         indices_low = []
@@ -441,15 +452,24 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
             rise_ind -= 1
         while fall_ind < n_samples and waveform[fall_ind] >= lower_amplitude:
             if waveform[fall_ind] <= upper_amplitude:
-                 indices_high.append(fall_ind)
+                indices_high.append(fall_ind)
             fall_ind += 1
-        rise_time.append(max(indices_low, default=0)/upsampling - min(indices_low, default=0)/upsampling)
-        fall_time.append(max(indices_high, default=0)/upsampling - min(indices_high, default=0)/upsampling)
+        rise_time.append(
+            max(indices_low, default=0) / upsampling
+            - min(indices_low, default=0) / upsampling
+        )
+        fall_time.append(
+            max(indices_high, default=0) / upsampling
+            - min(indices_high, default=0) / upsampling
+        )
 
-        between_ind = np.where(waveform > (2500+baseline[i]))[0]  #count number of samples with amplitude > thr
+        between_ind = np.where(waveform > (2500 + baseline[i]))[
+            0
+        ]  # count number of samples with amplitude > thr
         time_over_thr.append(max(between_ind, default=0) - min(between_ind, default=0))
 
     return fwhm, rise_time, fall_time, time_over_thr
+
 
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):

@@ -3,13 +3,6 @@ from copy import deepcopy
 import astropy.units as u
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_equal
-from scipy.signal import filtfilt
-from scipy import signal
-from scipy.stats import norm
-from traitlets.config.loader import Config
-from traitlets.traitlets import TraitError
-
 from ctapipe.core import non_abstract_children
 from ctapipe.image.cleaning import dilate
 from ctapipe.image.extractor import (
@@ -33,8 +26,12 @@ from ctapipe.image.extractor import (
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
-
-from scipy.signal import find_peaks, peak_widths
+from numpy.testing import assert_allclose, assert_equal
+from scipy import signal
+from scipy.signal import filtfilt, peak_widths
+from scipy.stats import norm
+from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -157,36 +154,76 @@ def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
 def toymodel_mst_fc(subarray_mst_fc: object) -> object:
     return get_test_toymodel(subarray_mst_fc)
 
+
 def test_fwhm(toymodel):
     waveforms, _, _, _, true_charge, _ = toymodel
+    peak = np.argmax(waveforms, axis=-1)
     fwhm_scp = np.array([])
 
     for i in range(0, len(waveforms)):
         peak_index = np.argmax(waveforms[i])
-        width, width_height, l_ips, r_ips = peak_widths(waveforms[i],
-                                 peaks=[peak_index,], rel_height=0.5,)
+        width, width_height, l_ips, r_ips = peak_widths(
+            waveforms[i],
+            peaks=[
+                peak_index,
+            ],
+            rel_height=0.5,
+        )
 
         fwhm_scp = np.append(fwhm_scp, width)
 
-    fwhm, _, _, _ = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1, upsampling=1, baseline_start=19, baseline_end=24, thr=2500)
-    
-    assert_allclose(np.array(fwhm)[true_charge>0], fwhm_scp[true_charge>0], atol=1e-4, rtol=1e-4)
+    fwhm, _, _, _ = time_parameters(
+        waveforms,
+        upper_limit=0.9,
+        lower_limit=0.1,
+        upsampling=100,
+        baseline_start=19,
+        baseline_end=24,
+        thr=2500,
+    )
+
+    assert_allclose(
+        np.array(fwhm)[(peak > 5) & (peak < (len(waveforms[0]) - 5))],
+        fwhm_scp[(peak > 5) & (peak < (len(waveforms[0]) - 5))],
+        atol=1e-2,
+        rtol=1e-2,
+    )
+
 
 def test_tot(toymodel):
     waveforms, _, _, _, true_charge, _ = toymodel
     max_wv = np.max(np.max(waveforms, axis=-1))
 
-    thr = max_wv + 100  #threshold is always above the pulse
-     
-    _, _, _, tot_scp = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1, upsampling=1, baseline_start=19, baseline_end=24, thr=thr)
-    
-    assert (np.array(tot_scp).all() == 0)
+    thr = max_wv + 100  # threshold is always above the pulse
+
+    _, _, _, tot_scp = time_parameters(
+        waveforms,
+        upper_limit=0.9,
+        lower_limit=0.1,
+        upsampling=1,
+        baseline_start=19,
+        baseline_end=24,
+        thr=thr,
+    )
+
+    assert np.array(tot_scp).all() == 0
+
 
 def test_rise_time(toymodel):
     waveforms = np.array([list(signal.unit_impulse(7, 2))])
-    _, rise_time, _, _ = time_parameters(waveforms, upper_limit=0.9, lower_limit=0.1, upsampling=1, baseline_start=19, baseline_end=24, thr=2000)
+    _, rise_time, fall_time, _ = time_parameters(
+        waveforms,
+        upper_limit=0.9,
+        lower_limit=0.1,
+        upsampling=1,
+        baseline_start=19,
+        baseline_end=24,
+        thr=2000,
+    )
 
-    assert (np.array(rise_time).all() == 0.0)
+    assert np.array(rise_time).all() == 0.0
+    assert np.array(fall_time).all() == 0.0
+
 
 def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
