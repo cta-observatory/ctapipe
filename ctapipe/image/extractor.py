@@ -406,6 +406,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
         peak_index = peak_index*upsampling  # to correct for upsampling
 
     n_wv = len(waveforms)
+    baseline = np.mean(waveforms[:, 1:5], axis=-1)
 
     fwhm = []
     rise_time = []
@@ -445,7 +446,7 @@ def time_parameters(waveforms, upper_limit, lower_limit, upsampling, baseline_st
         rise_time.append(max(indices_low, default=0)/upsampling - min(indices_low, default=0)/upsampling)
         fall_time.append(max(indices_high, default=0)/upsampling - min(indices_high, default=0)/upsampling)
 
-        between_ind = np.where(waveform > thr)[0]  #count number of samples with amplitude > thr
+        between_ind = np.where(waveform > (2500+baseline[i]))[0]  #count number of samples with amplitude > thr
         time_over_thr.append(max(between_ind, default=0) - min(between_ind, default=0))
 
     return fwhm, rise_time, fall_time, time_over_thr
