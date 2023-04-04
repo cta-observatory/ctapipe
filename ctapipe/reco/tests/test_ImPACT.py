@@ -13,7 +13,6 @@ from ctapipe.reco.impact_utilities import (
     generate_fake_template,
     rotate_translate,
 )
-from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
 #    CameraHillasParametersContainer,
 #    ReconstructedEnergyContainer,
