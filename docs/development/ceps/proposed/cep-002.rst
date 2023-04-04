@@ -1,0 +1,66 @@
+.. _cep-002:
+
+
+***********************
+CEP 2 - Event Structure
+***********************
+
+* Status: draft
+* Discussion: NA
+* Date accepted: NA
+* Last revised: 2023-04-04
+* Author: Maximilian Linhoff
+* Created: 2023-04-04
+
+Abstract
+========
+
+Currently, the hierarchy of the ctapipe ``ArrayEvent`` container has the data
+levels first and then each data level has a ``Map`` ``tel`` for telescope specific
+information in subcontainers.
+This CEP proposes to change this structure to have a container ``TelescopeEvent``
+as parent for all telescope-wise information that then contains the data levels.
+
+Proposed new structure
+======================
+
+Thhis CEP proposes to change the current layout of ``ArrayEvent`` from having multiple
+data levels each with a ``Map`` containing telescope-wise data to a structure
+where each ``ArrayEvent`` is composed of one to many ``TelescopeEvents`` containing
+all telescope-wise information for all data levels.
+
+The ``ArrayEvent`` should also be renamed to ``SubarrayEvent``, to match with other naming
+patterns in ctapipe, such as the ``SubarrayDescription``, making it clear that the array is split
+into multiple subarrays, each observing their own observation block.
+
+The main structure after the change will look like this:
+
+.. code-block::
+
+   SubarrayEvent
+   - index
+   - trigger
+   - simulation
+   - dl0
+   - dl1
+   - dl2
+   - tel: Map[tel_id -> TelescopeEvent]
+
+   TelescopeEvent
+   - index
+   - trigger
+   - simulation
+   - r0
+   - r1
+   - dl0
+   - dl1
+   - dl2
+
+Advantages of the new structure
+===============================
+
+
+Advantages of the old structure
+===============================
+
+.. _PEP 481: https://www.python.org/dev/peps/pep-0481/
