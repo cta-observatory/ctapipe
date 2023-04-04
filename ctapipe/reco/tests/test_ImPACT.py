@@ -1,7 +1,6 @@
 import astropy.units as u
 import numpy as np
 
-# import pytest
 from astropy.coordinates import AltAz, Angle, SkyCoord
 from numpy.testing import assert_allclose
 
@@ -14,6 +13,7 @@ from ctapipe.reco.impact_utilities import (
     generate_fake_template,
     rotate_translate,
 )
+from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
 #    CameraHillasParametersContainer,
 #    ReconstructedEnergyContainer,
@@ -190,7 +190,6 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
     shower_test.is_valid = True
 
     event.dl2.stereo.geometry["test"] = shower_test
-
     reconstructor = ImPACTReconstructor(subarray)
     reconstructor.root_dir = str(tmp_path)
     result, energy = reconstructor(event)

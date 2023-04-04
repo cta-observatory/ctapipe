@@ -75,7 +75,7 @@ def test_shower_processor_geometry(
         DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
         print(f"reco type {reco_type}")
         print(DL2a.is_valid, DL2a.alt)
-        #print(DL2a)
+        # print(DL2a)
         if not DL2a.is_valid:
             assert not isfinite(DL2a.alt)
             assert not isfinite(DL2a.az)

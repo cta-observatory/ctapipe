@@ -3,6 +3,7 @@
 
 """
 import copy
+import pytest
 from string import Template
 
 import numpy as np
@@ -30,6 +31,7 @@ from ..image.pixel_likelihood import (
     neg_log_likelihood_approx,
 )
 from ..instrument import get_atmosphere_profile_functions
+from ..utils.deprecation import CTAPipeDeprecationWarning
 from ..utils.template_network_interpolator import (
     DummyTemplateInterpolator,
     DummyTimeInterpolator,
@@ -143,10 +145,12 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # depth of maximum To do this we need the conversion table from CORSIKA
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        _ = get_atmosphere_profile_functions(
-            self.atmosphere_profile_name, with_units=False
-        )
-        self.thickness_profile, self.altitude_profile = _
+
+        with pytest.warns(CTAPipeDeprecationWarning):
+            _ = get_atmosphere_profile_functions(
+                self.atmosphere_profile_name, with_units=False
+            )
+            self.thickness_profile, self.altitude_profile = _
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
