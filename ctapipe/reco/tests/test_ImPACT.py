@@ -1,35 +1,24 @@
 import astropy.units as u
 import numpy as np
 
-import pytest
+# import pytest
 from astropy.coordinates import AltAz, Angle, SkyCoord
 from numpy.testing import assert_allclose
-from astropy.coordinates import Angle, AltAz, SkyCoord
 
-
+from ctapipe.containers import HillasParametersContainer, ReconstructedGeometryContainer
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.reco.impact_utilities import (
-    rotate_translate,
     create_dummy_templates,
-    generate_fake_template,
     create_seed,
+    generate_fake_template,
+    rotate_translate,
 )
 
-
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    ReconstructedEnergyContainer,
-    ReconstructedGeometryContainer,
-)
+#    CameraHillasParametersContainer,
+#    ReconstructedEnergyContainer,
 
 
-@pytest.mark.skip(
-    """Raises AstropyDeprecationWarning, which fails this test.
-    One needs to use 'ctapipe.atmosphere' instead of
-    'ctapipe.instrument.atmosphere.get_atmosphere_profile_functions'.
-    Change 'ctapipe.reco.impact.py' line 132 to re-enable this test.
-    """
-)
 class TestImPACT:
     @classmethod
     def setup_class(self):
@@ -51,7 +40,6 @@ class TestImPACT:
             skewness=0,
             kurtosis=0,
         )
-
 
     def test_brightest_mean_average(self):
         """

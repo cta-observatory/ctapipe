@@ -124,11 +124,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
 
     def __init__(self, subarray, dummy_reconstructor=False, **kwargs):
-        super().__init__(subarray, **kwargs)
-
         """
         Create a new instance of ImPACTReconstructor
         """
+
+        super().__init__(subarray, **kwargs)
 
         self.subarray = subarray
         # First we create a dictionary of image template interpolators

@@ -34,9 +34,9 @@ def get_atmosphere_profile_table(atmosphere_name="paranal"):
     return table
 
 
-@deprecated(
-    since="v0.16.0", message="use ctapipe.atmosphere profiles from EventSource instead"
-)
+# @deprecated(
+#    since="v0.16.0", message="use ctapipe.atmosphere profiles from EventSource instead"
+# )
 def get_atmosphere_profile_functions(atmosphere_name="paranal", with_units=True):
     """
     Gives atmospheric profile as a continuous function thickness(
