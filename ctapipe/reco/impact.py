@@ -490,7 +490,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # Rotate and translate all pixels such that they match the
         # template orientation
         pix_x_rot, pix_y_rot = rotate_translate(
-            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi
+            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi.value
         )
 
         # In the interpolator class we can gain speed advantages by using masked arrays
