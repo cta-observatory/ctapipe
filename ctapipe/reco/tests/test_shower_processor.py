@@ -44,17 +44,18 @@ def test_shower_processor_geometry(
 
     process_shower(example_event_copy)
 
+    print(reconstructor_types)
     for reco_type in reconstructor_types:
         DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
-        print(f"reco type {reco_type}")
-        print(DL2a.is_valid, DL2a.alt)
-        if DL2a.is_valid:
-            assert isfinite(DL2a.alt)
-            assert isfinite(DL2a.az)
-            assert isfinite(DL2a.core_x)
-            assert isfinite(DL2a.core_x)
-            assert isfinite(DL2a.core_y)
-            assert isfinite(DL2a.average_intensity)
+        print(reco_type)
+        print(DL2a)
+        assert isfinite(DL2a.alt)
+        assert isfinite(DL2a.az)
+        assert isfinite(DL2a.core_x)
+        assert isfinite(DL2a.core_x)
+        assert isfinite(DL2a.core_y)
+        assert DL2a.is_valid
+        assert isfinite(DL2a.average_intensity)
 
     # Increase some quality cuts and check that we get defaults
     for reco_type in reconstructor_types:
@@ -73,13 +74,12 @@ def test_shower_processor_geometry(
 
     for reco_type in reconstructor_types:
         DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
-        print(f"reco type {reco_type}")
-        print(DL2a.is_valid, DL2a.alt)
-        # print(DL2a)
-        if not DL2a.is_valid:
-            assert not isfinite(DL2a.alt)
-            assert not isfinite(DL2a.az)
-            assert not isfinite(DL2a.core_x)
-            assert not isfinite(DL2a.core_x)
-            assert not isfinite(DL2a.core_y)
-            assert not isfinite(DL2a.average_intensity)
+        print(DL2a)
+        assert not isfinite(DL2a.alt)
+        assert not isfinite(DL2a.az)
+        assert not isfinite(DL2a.core_x)
+        assert not isfinite(DL2a.core_x)
+        assert not isfinite(DL2a.core_y)
+        assert not DL2a.is_valid
+        assert not isfinite(DL2a.average_intensity)
+

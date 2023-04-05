@@ -46,4 +46,4 @@ def test_reconstructors(reconstructors):
             assert event.dl2.stereo.geometry[name].alt.unit.is_equivalent(u.deg)
             assert event.dl2.stereo.geometry[name].az.unit.is_equivalent(u.deg)
             assert event.dl2.stereo.geometry[name].core_x.unit.is_equivalent(u.m)
-    
+
