@@ -24,7 +24,7 @@ as parent for all telescope-wise information that then contains the data levels.
 Proposed new structure
 ======================
 
-Thhis CEP proposes to change the current layout of ``ArrayEvent`` from having multiple
+This CEP proposes to change the current layout of ``ArrayEvent`` from having multiple
 data levels each with a ``Map`` containing telescope-wise data to a structure
 where each ``ArrayEvent`` is composed of one to many ``TelescopeEvents`` containing
 all telescope-wise information for all data levels.
@@ -44,6 +44,7 @@ The main structure after the change will look like this:
    - dl0
    - dl1
    - dl2
+   - dl3
    - tel: Map[tel_id -> TelescopeEvent]
 
    TelescopeEvent
@@ -55,12 +56,40 @@ The main structure after the change will look like this:
    - dl0
    - dl1
    - dl2
+   - dl3
+
+Which each data level container having subcontainers for specific fields, including monitoring
+information (interpolated / chosen for that specific event).
+
 
 Advantages of the new structure
 ===============================
+
+The new proposed scheme makes it easier to parallelize over array events and move loops
+over telescopes out of code paths that only deal with a single telescope.
+E.g. in the ``CameraCalibrator``, ``ImageProcessor`` and more classes,
+we currently have to provide the ``ArrayEvent``,
+so that higher data levels can be filled from lower data levels, although only one telescope
+is processed at a time.
+
+Using the new structure, these classes could get a single ``TelescopeEvent`` and the loop
+could be moved outside those classes to a single place, which then also makes it possible
+to distribute over multiple threads without having to add threading to each and every
+individual class.
+
+It also makes writing ``EventSource`` implementations simpler,
+as reading data of different telescopes might require opening multiple files (as e.g. foreseen for the CTAO DL0 files).
+Each of those files could read the corresponding information into independent ``TelescopeEvent`` instances, that are then joined into single ``SubarrayEvent``.
+
+Previous discussions
+====================
+
+Previous discussion of this issue has occurred over multiple issues,
+most importantly `Issue 1165`_.
 
 
 Advantages of the old structure
 ===============================
 
-.. _PEP 481: https://www.python.org/dev/peps/pep-0481/
+By having the data level first in the hierarchy, it is easier to drop certain data levels for
+all telescopes.

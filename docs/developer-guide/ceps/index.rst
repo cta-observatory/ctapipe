@@ -13,18 +13,18 @@ can be found on GitHub as `pull requests with the "CEP" label`_ .
 
 Accepted CEPs
 =============
-.. toctree::
-   :maxdepth: 1
-   :glob:
 
-   accepted/*
+.. .. toctree::
+..    :maxdepth: 1
+..    :glob:
+
+..    accepted/*
 
 Proposed CEPs
 =============
-..
-   toctree::
+
+.. toctree::
    :maxdepth: 1
-   :glob:
 
    proposed/*
 
