@@ -17,8 +17,8 @@ from ctapipe.reco import HillasGeometryReconstructor, ShowerProcessor
     [
         [reco_type]
         for reco_type in HillasGeometryReconstructor.non_abstract_subclasses().keys()
-    ]
-    + [["HillasReconstructor", "HillasIntersection"]],
+    ],
+    ids=list(HillasGeometryReconstructor.non_abstract_subclasses().keys()),
 )
 def test_shower_processor_geometry(
     example_event, example_subarray, reconstructor_types
@@ -82,4 +82,3 @@ def test_shower_processor_geometry(
         assert not isfinite(DL2a.core_y)
         assert not DL2a.is_valid
         assert not isfinite(DL2a.average_intensity)
-
