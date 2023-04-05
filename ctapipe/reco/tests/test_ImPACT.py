@@ -191,6 +191,6 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
     event.dl2.stereo.geometry["test"] = shower_test
     reconstructor = ImPACTReconstructor(subarray)
     reconstructor.root_dir = str(tmp_path)
-    result, energy = reconstructor(event)
-    assert result.is_valid
-    assert energy.is_valid
+    reconstructor(event)
+    assert event.dl2.stereo.geometry.is_valid
+    assert event.dl2.stereo.energy.is_valid

@@ -53,14 +53,14 @@ from .reconstructor import (
 
 PROV = Provenance()
 
-INVALID = ReconstructedGeometryContainer(
+INVALID_GEOMETRY = ReconstructedGeometryContainer(
     telescopes=[],
     prefix="ImPACTReconstructor",
 )
 
 INVALID_ENERGY = ReconstructedEnergyContainer(
-    telescopes=[],
     prefix="ImPACTReconstructor",
+    telescopes=[],
 )
 
 __all__ = ["ImPACTReconstructor"]
@@ -189,7 +189,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
-            return INVALID, INVALID_ENERGY
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
+            event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
+            self._store_impact_parameter(event)
+            return
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -210,8 +213,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask = event.dl1.tel[tel_id].image_mask
 
             # Dilate the images around the original cleaning to help the fit
-            for i in range(3):
-                mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
             mask_dict[tel_id] = mask
 
         # This is a placeholder for proper energy reconstruction
@@ -223,7 +227,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 valid_seed = True
 
         if valid_seed is False:
-            return INVALID, INVALID_ENERGY
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
+            event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
+            self._store_impact_parameter(event)
+            return
 
         shower_result, energy_result = self.predict(
             hillas_dict=hillas_dict,
@@ -235,8 +242,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             time_dict=time_dict,
             shower_seed=reconstructor_prediction,
         )
-
-        return shower_result, energy_result
+        event.dl2.stereo.geometry[self.__class__.__name__] = shower_result
+        event.dl2.stereo.energy[self.__class__.__name__] = energy_result
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -358,7 +365,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # we should convert to height above ground
         # mean_height *= np.cos(zen)
         # Add on the height of the detector above sea level
-        mean_height += 2150
+        mean_height += 2150 # TODO: Make this depend on telescope array
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
@@ -840,7 +847,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 like_min = like
 
         if fit_params is None:
-            return INVALID, INVALID_ENERGY
+            return INVALID_GEOMETRY, INVALID_ENERGY
 
         # Now do full minimisation
         seed = create_seed(
