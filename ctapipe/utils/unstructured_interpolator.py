@@ -146,7 +146,7 @@ class UnstructuredInterpolator:
                 # If not we have to search through our point space
                 else:
                     s = self._tri.find_simplex(points)
-                    v = self._tri.vertices[s]
+                    v = self._tri.simplices[s]
                     m = self._tri.transform[s]
                     self._previous_v = v
                     self._previous_m = m
