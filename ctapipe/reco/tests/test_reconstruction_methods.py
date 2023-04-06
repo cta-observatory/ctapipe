@@ -6,11 +6,12 @@ from ctapipe.image import ImageProcessor
 from ctapipe.io import EventSource
 from ctapipe.reco import HillasIntersection, HillasReconstructor
 from ctapipe.utils import get_dataset_path
+from ctapipe.reco.impact import ImPACTReconstructor
 
 
 @pytest.fixture
 def reconstructors():
-    return [HillasIntersection, HillasReconstructor]
+    return [HillasIntersection, HillasReconstructor, ImPACTReconstructor]
 
 
 def test_reconstructors(reconstructors):
@@ -25,8 +26,9 @@ def test_reconstructors(reconstructors):
     filename = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
+    template_file = get_dataset_path("LSTCam.template.gz")
 
-    source = EventSource(filename, max_events=10, focal_length_choice="EQUIVALENT")
+    source = EventSource(filename, max_events=6, focal_length_choice="EQUIVALENT")
     subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
     image_processor = ImageProcessor(source.subarray)
@@ -37,7 +39,8 @@ def test_reconstructors(reconstructors):
 
         for ReconstructorType in reconstructors:
             reconstructor = ReconstructorType(subarray)
-
+            if ReconstructorType is ImPACTReconstructor:
+                reconstructor.root_dir = str(template_file.parents[0])
             reconstructor(event)
 
             name = ReconstructorType.__name__
