@@ -310,9 +310,9 @@ class HillasParametersContainer(BaseHillasParametersContainer):
 
 class BaseImageFitParametersContainer(Container):
     """
-    Base container for hillas parameters to
+    Base container for hillas parameters after fitting to
     allow the CameraHillasParametersContainer to
-    be assigned to an ImageParametersContainer as well.
+    be assigned to an ImageFitParametersContainer as well.
     """
 
     intensity = Field(nan, "total intensity (size)")
@@ -323,13 +323,17 @@ class BaseImageFitParametersContainer(Container):
     likelihood = Field(nan, "measure of likelihood")
     n_pix_fit = Field(nan, "number of pixels used in the fit")
     n_free_par = Field(nan, "number of free parameters")
-    is_valid = Field(False, "returns True if the fit is valid")
-    is_accurate = Field(False, "returns True if the fit is accurate")
+    is_valid = Field(
+        False, "returns True if the fit is valid. If False, the fit is not reliable."
+    )
+    is_accurate = Field(
+        False, "returns True if the fit is accurate. If False, the fit is not reliable."
+    )
 
 
 class CameraImageFitParametersContainer(BaseImageFitParametersContainer):
     """
-    Hillas Parameters in the camera frame. The cog position
+    Hillas Parameters after fit in the camera frame. The cog position
     is given in meter from the camera center.
     """
 
@@ -359,7 +363,7 @@ class CameraImageFitParametersContainer(BaseImageFitParametersContainer):
 
 class ImageFitParametersContainer(BaseImageFitParametersContainer):
     """
-    Hillas Parameters in a spherical system centered on the pointing position
+    Image fitting parameters in a spherical system centered on the pointing position
     (TelescopeFrame). The cog position is given as offset in
     longitude and latitude in degree.
     """

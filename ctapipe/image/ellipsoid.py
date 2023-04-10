@@ -20,10 +20,9 @@ from ..containers import CameraImageFitParametersContainer, ImageFitParametersCo
 __all__ = ["image_fit_parameters", "ImageFitParameterizationError"]
 
 
-def initial_guess(geometry, image, pdf):
+def initial_guess(geometry, image, pdf, size):
     """
     This function computes the seeds of the fit with Hillas
-
     Parameters
     ----------
     geometry : ctapipe.instrument.CameraGeometry
@@ -33,7 +32,6 @@ def initial_guess(geometry, image, pdf):
         improve performance.
     pdf : str
         Name of the PDF function to use
-
     Returns
     -------
     initial_guess : Hillas parameters
@@ -58,20 +56,12 @@ def initial_guess(geometry, image, pdf):
     if (hillas.width.to_value(unit) == 0) or (hillas.length.to_value(unit) == 0):
         raise ImageFitParameterizationError("Hillas width and/or length is zero")
 
-    skew23 = np.abs(hillas.skewness) ** (2 / 3)
-    delta = np.sign(hillas.skewness) * np.sqrt(
-        (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
-    )
-    scale_skew = hillas.length.to_value(unit) / np.sqrt(1 - 2 * delta**2 / np.pi)
-
     if pdf == "Gaussian":
-        initial_guess["amplitude"] = 1 / (
-            hillas.length.to_value(unit) * hillas.width.value
-        )
+        initial_guess["amplitude"] = size
     if pdf == "Cauchy":
-        initial_guess["amplitude"] = 1 / (scale_skew * hillas.width.value)
+        initial_guess["amplitude"] = size
     if pdf == "Skewed":
-        initial_guess["amplitude"] = 1 / (scale_skew * hillas.width.value)
+        initial_guess["amplitude"] = size
 
     return initial_guess
 
@@ -79,7 +69,6 @@ def initial_guess(geometry, image, pdf):
 def extra_rows(n, cleaned_mask, geometry):
     """
     This function adds n extra rows around the cleaned pixels
-
     Parameters
     ----------
     n : int
@@ -88,7 +77,6 @@ def extra_rows(n, cleaned_mask, geometry):
        The cleaning mask applied for Hillas parametrization
     geometry : ctapipe.instrument.CameraGeometry
         Camera geometry
-
     """
     mask = cleaned_mask.copy()
     for ii in range(n):
@@ -102,7 +90,6 @@ def extra_rows(n, cleaned_mask, geometry):
 def sensible_boundaries(geometry, cleaned_image, pdf):
     """
     Computes boundaries of the fit based on Hillas parameters
-
     Parameters
     ----------
     geometry: ctapipe.instrument.CameraGeometry
@@ -111,20 +98,26 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
         Charge per pixel, cleaning mask should be applied
     pdf: str
         fitted PDF
-
     Returns
     -------
     list of boundaries
     """
     hillas = hillas_parameters(geometry, cleaned_image)
 
-    cogx_min, cogx_max = hillas.x - 0.1, hillas.x + 0.1
-    cogy_min, cogy_max = hillas.y - 0.1, hillas.y + 0.1
+    unit = geometry.pix_x.unit
+    camera_radius = geometry.guess_radius().to_value(unit)
+
+    cogx_min, cogx_max = np.sign(hillas.x - 0.1) * min(
+        np.abs(hillas.x - 0.1), camera_radius
+    ), np.sign(hillas.x + 0.1) * min(np.abs(hillas.x + 0.1), camera_radius)
+    cogy_min, cogy_max = np.sign(hillas.y - 0.1) * min(
+        np.abs(hillas.y - 0.1), camera_radius
+    ), np.sign(hillas.y + 0.1) * min(np.abs(hillas.y + 0.1), camera_radius)
     psi_min, psi_max = -np.pi / 2, np.pi / 2
     length_min, length_max = hillas.length, hillas.length + 0.3
     width_min, width_max = hillas.width, hillas.width + 0.1
     skew_min, skew_max = -0.99, 0.99
-    ampl_min, ampl_max = hillas.intensity, 2 * hillas.intensity
+    ampl_min, ampl_max = hillas.intensity, np.inf
 
     return [
         (cogx_min, cogx_max),
@@ -137,62 +130,53 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
     ]
 
 
-def boundaries(geometry, image, clean_mask, row_mask, x0, pdf):
+def boundaries(geometry, image, dilated_mask, x0, pdf):
     """
     Computes the boundaries of the fit.
-
     Parameters
     ----------
     geometry : ctapipe.instrument.CameraGeometry
         Camera geometry
     image : array-like
         Charge in each pixel, no cleaning mask should be applied
-    clean_mask : boolean
-        mask after image cleaning
-    row_mask : boolean
+    dilated_mask : boolean
         mask after image cleaning and dilation
     x0 : dict
        seeds of the fit
     pdf: str
        PDF name
-
     Returns
     -------
     Limits of the fit for each free parameter
     """
-    unit = geometry.pix_x.unit
-    camera_radius = geometry.guess_radius().to_value(unit)
-    pix_area = geometry.pix_area.value[0]
     x = geometry.pix_x.value
     y = geometry.pix_y.value
-    leakage = leakage_parameters(geometry, image, clean_mask)
-
-    # Cleaned image
-    cleaned_image = image.copy()
-    cleaned_image[~clean_mask] = 0.0
+    unit = geometry.pix_x.unit
+    camera_radius = geometry.guess_radius().to_value(unit)
+    # pix_area = geometry.pix_area.value[0]
+    leakage = leakage_parameters(geometry, image, dilated_mask)
 
     # Dilated image
     row_image = image.copy()
-    row_image[~row_mask] = 0.0
+    row_image[~dilated_mask] = 0.0
     row_image[row_image < 0] = 0.0
 
-    cogx_min, cogx_max = np.sign(np.min(x[clean_mask])) * min(
-        np.abs(np.min(x[clean_mask])), camera_radius
-    ), np.sign(np.max(x[clean_mask])) * min(
-        np.abs(np.max(x[clean_mask])), camera_radius
-    )
-    cogy_min, cogy_max = np.sign(np.min(y[clean_mask])) * min(
-        np.abs(np.min(y[clean_mask])), camera_radius
-    ), np.sign(np.max(y[clean_mask])) * min(
-        np.abs(np.max(y[clean_mask])), camera_radius
-    )
+    max_x = np.max(x[dilated_mask])
+    min_x = np.min(x[dilated_mask])
+    max_y = np.max(y[dilated_mask])
+    min_y = np.min(y[dilated_mask])
 
-    max_x = np.max(x[row_mask])
-    min_x = np.min(x[row_mask])
-    max_y = np.max(y[row_mask])
-    min_y = np.min(y[row_mask])
+    cogx_min, cogx_max = np.sign(min_x) * min(np.abs(min_x), camera_radius), np.sign(
+        max_x
+    ) * min(np.abs(max_x), camera_radius)
 
-    if (leakage.intensity_width_1 > 0.2) & (leakage.intensity_width_2 > 0.2):
+    cogy_min, cogy_max = np.sign(min_y) * min(np.abs(min_y), camera_radius), np.sign(
+        max_y
+    ) * min(np.abs(max_y), camera_radius)
+
+    if (leakage.intensity_width_1 > 0.2) & (
+        leakage.intensity_width_2 > 0.2
+    ):  # truncated
         if (x0["x"] > 0) & (x0["y"] > 0):
             max_x = 2 * max_x
             max_y = 2 * max_y
@@ -206,33 +190,16 @@ def boundaries(geometry, image, clean_mask, row_mask, x0, pdf):
             max_x = 2 * max_x
             min_y = 2 * min_y
 
-    delta_x_max = max_x - x0["x"].value
-    delta_y_max = max_y - x0["y"].value
-    delta_x_min = min_x - x0["x"].value
-    delta_y_min = min_y - x0["y"].value
-
-    trans_max = delta_x_max * -np.sin(x0["psi"].value) + delta_y_max * np.cos(
-        x0["psi"].value
-    )
-    trans_min = delta_x_min * -np.sin(x0["psi"].value) + delta_y_min * np.cos(
-        x0["psi"].value
-    )
-
     long_dis = np.sqrt((max_x - min_x) ** 2 + (max_y - min_y) ** 2)
-    trans_dis = np.abs(trans_max - trans_min)
 
-    if (long_dis < np.sqrt(pix_area)) or (trans_dis < np.sqrt(pix_area)):
-        long_dis = np.sqrt(pix_area)
-        trans_dis = np.sqrt(pix_area)
-
-    length_min, length_max = np.sqrt(pix_area), long_dis
-    width_min, width_max = np.sqrt(pix_area), trans_dis
+    length_min, length_max = x0["length"].value, long_dis
+    width_min, width_max = x0["width"].value, x0["width"].value + 0.1
 
     scale = length_min / np.sqrt(1 - 2 / np.pi)
     skew_min, skew_max = -0.99, 0.99
 
     if pdf == "Gaussian":
-        amplitude = 1 / (width_min * length_min)
+        amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
 
         return [
             (cogx_min, cogx_max),
@@ -243,7 +210,7 @@ def boundaries(geometry, image, clean_mask, row_mask, x0, pdf):
             (0, amplitude),
         ]
     if pdf == "Skewed":
-        amplitude = 1 / scale * 1 / (width_min)
+        amplitude = np.sum(row_image) / scale * 1 / (2 * np.pi * width_min)
 
         return [
             (cogx_min, cogx_max),
@@ -255,7 +222,9 @@ def boundaries(geometry, image, clean_mask, row_mask, x0, pdf):
             (0, amplitude),
         ]
     if pdf == "Cauchy":
-        amplitude = 1 / scale * 1 / (width_min)
+        amplitude = (
+            np.sum(row_image) / scale * 1 / (np.sqrt(2 * np.pi) * np.pi * width_min / 2)
+        )
 
         return [
             (cogx_min, cogx_max),
@@ -277,16 +246,12 @@ def image_fit_parameters(
     image,
     n,
     cleaned_mask,
-    spe_width=0.5,
-    pedestal=1,
     pdf="Cauchy",
     bounds=None,
 ):
     """
     Computes image parameters for a given shower image.
-
     Implementation based on https://arxiv.org/pdf/1211.0254.pdf
-
     Parameters
     ----------
     geom : ctapipe.instrument.CameraGeometry
@@ -305,7 +270,6 @@ def image_fit_parameters(
         Width of pedestal (:math:`σ_p`).
     pdf : str
         name of the prob distrib to use for the fit, options = "Gaussian", "Cauchy", "Skewed"
-
     Returns
     -------
     ImageFitParametersContainer:
@@ -324,14 +288,13 @@ def image_fit_parameters(
         "DUMMY": 0,
         "testcam": 0,
     }
+    spe_width = 0.5
+    pedestal = ped_table[geom.name]
     pdf_dict = {
         "Gaussian": Gaussian,
         "Skewed": SkewedGaussian,
         "Cauchy": SkewedCauchy,
     }
-
-    if pedestal == 1:
-        pedestal = ped_table[geom.name]
 
     unit = geom.pix_x.unit
     pix_x = geom.pix_x
@@ -353,13 +316,7 @@ def image_fit_parameters(
 
     cleaned_image = image.copy()
     cleaned_image[~cleaned_mask] = 0.0
-
-    x0 = initial_guess(geom, cleaned_image, pdf)
-
-    if np.count_nonzero(image) <= len(x0):
-        raise ImageFitParameterizationError(
-            "The number of free parameters is higher than the number of pixels to fit, cannot perform fit"
-        )
+    cleaned_image[cleaned_image < 0] = 0.0
 
     dilated_mask = extra_rows(n, cleaned_mask, geom)
     dilated_image = image.copy()
@@ -367,8 +324,15 @@ def image_fit_parameters(
     dilated_image[dilated_image < 0] = 0.0
     size = np.sum(dilated_image)
 
+    x0 = initial_guess(geom, cleaned_image, pdf, size)
+
+    if np.count_nonzero(image) <= len(x0):
+        raise ImageFitParameterizationError(
+            "The number of free parameters is higher than the number of pixels to fit, cannot perform fit"
+        )
+
     def fit(cog_x, cog_y, psi, length, width, skewness, amplitude):
-        prediction = size * pdf_dict[pdf](
+        prediction = pdf_dict[pdf](
             cog_x * unit,
             cog_y * unit,
             length * unit,
@@ -382,7 +346,7 @@ def image_fit_parameters(
         return like
 
     def fit_gauss(cog_x, cog_y, psi, length, width, amplitude):
-        prediction = size * pdf_dict[pdf](
+        prediction = pdf_dict[pdf](
             cog_x * unit,
             cog_y * unit,
             length * unit,
@@ -417,7 +381,7 @@ def image_fit_parameters(
         )
 
     if bounds is None:
-        bounds = boundaries(geom, image, cleaned_mask, dilated_mask, x0, pdf)
+        bounds = boundaries(geom, image, dilated_mask, x0, pdf)
         m.limits = bounds
     if bounds is not None:
         m.limits = bounds
@@ -446,7 +410,7 @@ def image_fit_parameters(
 
     longitudinal = delta_x * np.cos(pars[2]) + delta_y * np.sin(pars[2])
 
-    m4_long = np.average(longitudinal**4, weights=cleaned_image)
+    m4_long = np.average(longitudinal**4, weights=dilated_image)
     kurtosis_long = m4_long / pars[3] ** 4
 
     if pdf != "Gaussian":
@@ -454,7 +418,7 @@ def image_fit_parameters(
         amplitude = pars[6]
         amplitude_uncertainty = errors[6]
     else:
-        m3_long = np.average(longitudinal**3, weights=image)
+        m3_long = np.average(longitudinal**3, weights=dilated_image)
         skewness_long = m3_long / pars[3] ** 3
         amplitude = pars[5]
         amplitude_uncertainty = errors[5]
