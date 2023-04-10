@@ -535,11 +535,12 @@ class ImageParametersContainer(Container):
         description="Hillas Parameters",
         type=BaseHillasParametersContainer,
     )
-    image_fit = Field(
-        default_factory=ImageFitParametersContainer,
-        description="Image fit Parameters",
-        type=BaseImageFitParametersContainer,
-    )
+    # Can be added after this PR is successful, otherwise errors appear
+    # image_fit = Field(
+    #    default_factory=ImageFitParametersContainer,
+    #    description="Image fit Parameters",
+    #    type=BaseImageFitParametersContainer,
+    # )
     timing = Field(
         default_factory=TimingParametersContainer,
         description="Timing Parameters",

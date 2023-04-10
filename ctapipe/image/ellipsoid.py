@@ -105,29 +105,42 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
     hillas = hillas_parameters(geometry, cleaned_image)
 
     unit = geometry.pix_x.unit
-    camera_radius = geometry.guess_radius().to_value(unit)
+    camera_radius = geometry.guess_radius()
 
-    cogx_min, cogx_max = np.sign(hillas.x - 0.1) * min(
-        np.abs(hillas.x - 0.1), camera_radius
-    ), np.sign(hillas.x + 0.1) * min(np.abs(hillas.x + 0.1), camera_radius)
-    cogy_min, cogy_max = np.sign(hillas.y - 0.1) * min(
-        np.abs(hillas.y - 0.1), camera_radius
-    ), np.sign(hillas.y + 0.1) * min(np.abs(hillas.y + 0.1), camera_radius)
+    cogx_min, cogx_max = np.sign(hillas.x) * min(
+        np.abs(hillas.x - u.Quantity(0.1, unit)), camera_radius
+    ), np.sign(hillas.x) * min(np.abs(hillas.x + u.Quantity(0.1, unit)), camera_radius)
+    cogy_min, cogy_max = np.sign(hillas.y) * min(
+        np.abs(hillas.y - u.Quantity(0.1, unit)), camera_radius
+    ), np.sign(hillas.y) * min(np.abs(hillas.y + u.Quantity(0.1, unit)), camera_radius)
+
+    print(cogx_min)
+
     psi_min, psi_max = -np.pi / 2, np.pi / 2
-    length_min, length_max = hillas.length, hillas.length + 0.3
-    width_min, width_max = hillas.width, hillas.width + 0.1
+    length_min, length_max = hillas.length, hillas.length + u.Quantity(0.3, unit)
+    width_min, width_max = hillas.width, hillas.width + +u.Quantity(0.1, unit)
     skew_min, skew_max = -0.99, 0.99
     ampl_min, ampl_max = hillas.intensity, np.inf
 
-    return [
-        (cogx_min, cogx_max),
-        (cogy_min, cogy_max),
-        (psi_min, psi_max),
-        (length_min, length_max),
-        (width_min, width_max),
-        (skew_min, skew_max),
-        (ampl_min, ampl_max),
-    ]
+    if pdf != "Gaussian":
+        return [
+            (cogx_min.to_value(unit), cogx_max.to_value(unit)),
+            (cogy_min.to_value(unit), cogy_max.to_value(unit)),
+            (psi_min, psi_max),
+            (length_min.to_value(unit), length_max.to_value(unit)),
+            (width_min.to_value(unit), width_max.to_value(unit)),
+            (skew_min, skew_max),
+            (ampl_min, ampl_max),
+        ]
+    else:
+        return [
+            (cogx_min.to_value(unit), cogx_max.to_value(unit)),
+            (cogy_min.to_value(unit), cogy_max.to_value(unit)),
+            (psi_min, psi_max),
+            (length_min.to_value(unit), length_max.to_value(unit)),
+            (width_min.to_value(unit), width_max.to_value(unit)),
+            (ampl_min, ampl_max),
+        ]
 
 
 def boundaries(geometry, image, dilated_mask, x0, pdf):
@@ -192,8 +205,11 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
 
     long_dis = np.sqrt((max_x - min_x) ** 2 + (max_y - min_y) ** 2)
 
+    width_unc = u.Quantity(0.05, unit)
     length_min, length_max = x0["length"].value, long_dis
-    width_min, width_max = x0["width"].value, x0["width"].value + 0.1
+    width_min, width_max = x0["width"].value, x0["width"].value + width_unc.to_value(
+        unit
+    )
 
     scale = length_min / np.sqrt(1 - 2 / np.pi)
     skew_min, skew_max = -0.99, 0.99
@@ -312,7 +328,7 @@ def image_fit_parameters(
         raise ValueError("Image and pixel shape do not match")
 
     if len(image) != len(pix_x) != len(cleaned_mask):
-        raise ValueError("Image should do not have the mask applied")
+        raise ValueError("Cleaning mask should not be already applied")
 
     cleaned_image = image.copy()
     cleaned_image[~cleaned_mask] = 0.0

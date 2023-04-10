@@ -14,7 +14,13 @@ from ctapipe.containers import (
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean, toymodel
 from ctapipe.image.concentration import concentration_parameters
-from ctapipe.image.ellipsoid import ImageFitParameterizationError, image_fit_parameters
+from ctapipe.image.ellipsoid import (
+    ImageFitParameterizationError,
+    boundaries,
+    image_fit_parameters,
+    initial_guess,
+    sensible_boundaries,
+)
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
 
 
@@ -45,6 +51,35 @@ def create_sample_image(
     clean_mask = tailcuts_clean(geometry, image, 10, 5)
 
     return image, clean_mask
+
+
+def test_sensible_boundaries(prod5_lst):
+    geom = prod5_lst.camera.geometry
+    image, clean_mask = create_sample_image(geometry=geom)
+
+    unit = geom.pix_x.unit
+    cleaned_image = image.copy()
+    cleaned_image[~clean_mask] = 0.0
+
+    bounds = sensible_boundaries(geom, cleaned_image, pdf="Gaussian")
+    hillas = hillas_parameters(geom, cleaned_image)
+
+    assert bounds[3][0] == hillas.length.to_value(unit)
+
+
+def test_boundaries(prod5_lst):
+
+    geom = prod5_lst.camera.geometry
+    image, clean_mask = create_sample_image(geometry=geom)
+
+    cleaned_image = image.copy()
+    cleaned_image[~clean_mask] = 0.0
+
+    x0 = initial_guess(geom, cleaned_image, "Gaussian", np.sum(cleaned_image))
+    bounds = boundaries(geom, image, clean_mask, x0, pdf="Gaussian")
+
+    for i in range(len(bounds)):
+        assert bounds[i][1] > bounds[i][0]  # upper limit > lower limit
 
 
 def compare_result(x, y):
@@ -357,9 +392,9 @@ def test_skewness(prod5_lst):
                 assert psi_same or psi_opposite
 
                 if psi_same:
-                    assert result.skewness == approx(skew, abs=0.6)
+                    assert result.skewness == approx(skew, abs=0.5)
                 else:
-                    assert result.skewness == approx(-skew, abs=0.6)
+                    assert result.skewness == approx(-skew, abs=0.5)
 
                 assert signal.sum() == result.intensity
 
@@ -385,9 +420,9 @@ def test_skewness(prod5_lst):
                 assert psi_same or psi_opposite
 
                 if psi_same:
-                    assert result.skewness == approx(skew, abs=0.8)
+                    assert result.skewness == approx(skew, abs=0.5)
                 else:
-                    assert result.skewness == approx(-skew, abs=0.8)
+                    assert result.skewness == approx(-skew, abs=0.5)
 
                 assert signal.sum() == result.intensity
 
