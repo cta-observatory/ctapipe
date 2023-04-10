@@ -419,8 +419,10 @@ class SkewedCauchy(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
+        x : u.Quantity[cx]
+            position of the centroid in x-axis of the shower in camera coordinates
+        y : u.Quantity[cy]
+            position of the centroid in y-axis of the shower in camera coordinates
         width: u.Quantity[length]
             width of shower (minor axis)
         length: u.Quantity[length]
@@ -472,7 +474,7 @@ class SkewedCauchy(ImageModel):
 
         if self.amplitude is None:
             self.amplitude = 1 / (
-                np.sqrt(2 * np.pi) * np.pi * scale * self.width.value / 2
+                np.sqrt(2 * np.pi) * np.pi * scale * (self.width.value / 2)
             )
 
         trans_pdf = 1 / (1 + (trans / (self.width.to_value(self.unit) / 2)) ** 2)

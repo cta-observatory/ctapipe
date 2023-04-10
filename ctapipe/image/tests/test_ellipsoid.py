@@ -17,8 +17,8 @@ from ctapipe.image.concentration import concentration_parameters
 from ctapipe.image.ellipsoid import (
     ImageFitParameterizationError,
     boundaries,
+    create_initial_guess,
     image_fit_parameters,
-    initial_guess,
     sensible_boundaries,
 )
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
@@ -75,7 +75,7 @@ def test_boundaries(prod5_lst):
     cleaned_image = image.copy()
     cleaned_image[~clean_mask] = 0.0
 
-    x0 = initial_guess(geom, cleaned_image, "Gaussian", np.sum(cleaned_image))
+    x0 = create_initial_guess(geom, cleaned_image, np.sum(cleaned_image))
     bounds = boundaries(geom, image, clean_mask, x0, pdf="Gaussian")
 
     for i in range(len(bounds)):
@@ -339,7 +339,104 @@ def test_with_toy(prod5_lst):
                 assert u.isclose(result.y, y, rtol=0.1)
 
                 # assert u.isclose(result.width, width, rtol=3)  #TODO: something wrong with Cauchy
-                # assert u.isclose(result.length, length, rtol=3)
+                assert u.isclose(result.length, length, rtol=0.2)
+                assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
+                    result.psi.to_value(u.deg) - psi.deg
+                ) == approx(180.0, abs=2)
+
+
+def test_with_toy_alternative_bounds(prod5_lst):
+    rng = np.random.default_rng(42)
+    geom = prod5_lst.camera.geometry
+
+    width = 0.03 * u.m
+    length = 0.15 * u.m
+    intensity = 500
+
+    xs = u.Quantity([0.2, 0.2, -0.2, -0.2], u.m)
+    ys = u.Quantity([0.2, -0.2, 0.2, -0.2], u.m)
+    psis = Angle([-60, -45, 0, 45, 60], unit="deg")
+
+    for x, y in zip(xs, ys):
+        for psi in psis:
+
+            # make a toymodel shower model
+            model_gaussian = toymodel.Gaussian(
+                x=x, y=y, width=width, length=length, psi=psi
+            )
+
+            model_skewed = toymodel.SkewedGaussian(
+                x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
+            )
+            model_cauchy = toymodel.SkewedCauchy(
+                x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
+            )
+
+            image, signal, noise = model_gaussian.generate_image(
+                geom, intensity=intensity, nsb_level_pe=0, rng=rng
+            )
+
+            clean_mask = np.array(signal) > 0
+            bounds = sensible_boundaries(geom, signal, pdf="Gaussian")
+            result = image_fit_parameters(
+                geom,
+                signal,
+                n=0,
+                cleaned_mask=clean_mask,
+                pdf="Gaussian",
+                bounds=bounds,
+            )
+
+            if result.is_valid or result.is_accurate:
+                assert u.isclose(result.x, x, rtol=0.1)
+                assert u.isclose(result.y, y, rtol=0.1)
+
+                assert u.isclose(result.width, width, rtol=0.1)
+                assert u.isclose(result.length, length, rtol=0.1)
+                assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
+                    result.psi.to_value(u.deg) - psi.deg
+                ) == approx(180.0, abs=2)
+
+            image, signal, noise = model_skewed.generate_image(
+                geom, intensity=intensity, nsb_level_pe=0, rng=rng
+            )
+
+            clean_mask = np.array(signal) > 0
+            bounds = sensible_boundaries(geom, signal, pdf="Skewed")
+            result = image_fit_parameters(
+                geom, signal, n=0, cleaned_mask=clean_mask, pdf="Skewed", bounds=bounds
+            )
+
+            if result.is_valid or result.is_accurate:
+                assert u.isclose(result.x, x, rtol=0.1)
+                assert u.isclose(result.y, y, rtol=0.1)
+
+                assert u.isclose(result.width, width, rtol=0.1)
+                assert u.isclose(result.length, length, rtol=0.1)
+                assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
+                    result.psi.to_value(u.deg) - psi.deg
+                ) == approx(180.0, abs=2)
+
+            image, signal, noise = model_cauchy.generate_image(
+                geom, intensity=intensity, nsb_level_pe=0, rng=rng
+            )
+            clean_mask = np.array(signal) > 0
+            bounds = sensible_boundaries(geom, signal, pdf="Cauchy")
+            result = image_fit_parameters(
+                geom,
+                signal,
+                n=0,
+                cleaned_mask=clean_mask,
+                pdf="Cauchy",
+                bounds=bounds,
+            )
+
+            if result.is_valid or result.is_accurate:
+                assert u.isclose(result.x, x, rtol=0.1)
+                assert u.isclose(result.y, y, rtol=0.1)
+
+                # assert u.isclose(result.width, width, rtol=3)  #TODO: something wrong with Cauchy
+                assert u.isclose(result.length, length, rtol=0.2)
                 assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
                     result.psi.to_value(u.deg) - psi.deg
                 ) == approx(180.0, abs=2)

@@ -26,8 +26,8 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     """
 
     h = hillas_parameters
-    if isinstance(h, CameraHillasParametersContainer) or isinstance(
-        h, CameraImageFitParametersContainer
+    if isinstance(
+        h, (CameraHillasParametersContainer, CameraImageFitParametersContainer)
     ):
         unit = h.x.unit
         pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
@@ -40,9 +40,7 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
             geom.pixel_width,
             unit=unit,
         )
-    elif isinstance(h, HillasParametersContainer) or isinstance(
-        h, ImageFitParametersContainer
-    ):
+    elif isinstance(h, (HillasParametersContainer, ImageFitParametersContainer)):
         unit = h.fov_lon.unit
         pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
             geom.pix_x,

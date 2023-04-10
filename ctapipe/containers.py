@@ -376,7 +376,8 @@ class ImageFitParametersContainer(BaseImageFitParametersContainer):
     )
     fov_lon_uncertainty = Field(
         nan * u.deg,
-        "longitude angle in a spherical system centered on the pointing position uncertainty",
+        "longitude angle in a spherical system centered on the pointing position "
+        "uncertainty",
         unit=u.deg,
     )
     fov_lat = Field(
@@ -386,7 +387,8 @@ class ImageFitParametersContainer(BaseImageFitParametersContainer):
     )
     fov_lat_uncertainty = Field(
         nan * u.deg,
-        "latitude angle in a spherical system centered on the pointing position uncertainty",
+        "latitude angle in a spherical system centered on the pointing position "
+        "uncertainty",
         unit=u.deg,
     )
     r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
