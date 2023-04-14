@@ -106,7 +106,7 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install codecov pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
+          pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
           pip freeze
