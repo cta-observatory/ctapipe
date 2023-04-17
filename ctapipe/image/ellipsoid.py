@@ -13,7 +13,7 @@ from ctapipe.image.cleaning import dilate
 from ctapipe.image.hillas import hillas_parameters
 from ctapipe.image.leakage import leakage_parameters
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
-from ctapipe.image.toymodel import Gaussian, SkewedCauchy, SkewedGaussian
+from ctapipe.image.toymodel import Gaussian, SkewedGaussian, SkewedLaplace
 
 from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
 
@@ -57,7 +57,6 @@ def create_initial_guess(geometry, image, size):
         raise ImageFitParameterizationError("Hillas width and/or length is zero")
 
     initial_guess["amplitude"] = size
-
     return initial_guess
 
 
@@ -92,7 +91,7 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
     cleaned_image: ndarray
         Charge for each pixel, cleaning mask should be applied
     pdf: str
-        name of the PDF used, options = "Gaussian", "Cauchy", "Skewed"
+        name of the PDF used, options = "Gaussian", "Laplace", "Skewed"
     Returns
     -------
     list of boundaries
@@ -150,7 +149,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     x0 : dict
        seeds of the fit
     pdf: str
-       name of the PDF, options = "Gaussian", "Cauchy", "Skewed"
+       name of the PDF, options = "Gaussian", "Laplace", "Skewed"
     Returns
     -------
     list of boundaries
@@ -170,6 +169,10 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     min_x = np.min(x[dilated_mask])
     max_y = np.max(y[dilated_mask])
     min_y = np.min(y[dilated_mask])
+
+    psi_min, psi_max = max(x0["psi"].value - 0.2, -np.pi / 2), min(
+        x0["psi"].value + 0.2, np.pi / 2
+    )
 
     cogx_min, cogx_max = np.sign(min_x) * min(np.abs(min_x), camera_radius), np.sign(
         max_x
@@ -204,7 +207,9 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     )
 
     scale = length_min / np.sqrt(1 - 2 / np.pi)
-    skew_min, skew_max = -0.99, 0.99
+    skew_min, skew_max = max(-0.99, x0["skewness"] - 0.3), min(
+        0.99, x0["skewness"] + 0.3
+    )
 
     if pdf == "Gaussian":
         amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
@@ -212,7 +217,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         return [
             (cogx_min, cogx_max),
             (cogy_min, cogy_max),
-            (-np.pi / 2, np.pi / 2),
+            (psi_min, psi_max),
             (length_min, length_max),
             (width_min, width_max),
             (0, amplitude),
@@ -223,21 +228,24 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         return [
             (cogx_min, cogx_max),
             (cogy_min, cogy_max),
-            (-np.pi / 2, np.pi / 2),
+            (psi_min, psi_max),
             (length_min, length_max),
             (width_min, width_max),
             (skew_min, skew_max),
             (0, amplitude),
         ]
-    if pdf == "Cauchy":
+    if pdf == "Laplace":
         amplitude = (
-            np.sum(row_image) / scale * 1 / (np.sqrt(2 * np.pi) * np.pi * width_min / 2)
+            np.sum(row_image)
+            / scale
+            * 1
+            / (np.sqrt(2 * np.pi) * np.sqrt(2) * width_min)
         )
 
         return [
             (cogx_min, cogx_max),
             (cogy_min, cogy_max),
-            (-np.pi / 2, np.pi / 2),
+            (psi_min, psi_max),
             (length_min, length_max),
             (width_min, width_max),
             (skew_min, skew_max),
@@ -254,7 +262,7 @@ def image_fit_parameters(
     image,
     n,
     cleaned_mask,
-    pdf="Cauchy",
+    pdf="Laplace",
     bounds=None,
 ):
     """
@@ -273,7 +281,7 @@ def image_fit_parameters(
     cleaned_mask : boolean
        The cleaning mask to apply to find Hillas parameters
     pdf : str
-        name of the prob distrib to use for the fit, options = "Gaussian", "Cauchy", "Skewed"
+        name of the prob distrib to use for the fit, options = "Gaussian", "Laplace", "Skewed"
     Returns
     -------
     ImageFitParametersContainer:
@@ -297,7 +305,7 @@ def image_fit_parameters(
     pdf_dict = {
         "Gaussian": Gaussian,
         "Skewed": SkewedGaussian,
-        "Cauchy": SkewedCauchy,
+        "Laplace": SkewedLaplace,
     }
 
     unit = geom.pix_x.unit

@@ -65,6 +65,8 @@ def test_sensible_boundaries(prod5_lst):
     hillas = hillas_parameters(geom, cleaned_image)
 
     assert bounds[3][0] == hillas.length.to_value(unit)
+    for i in range(len(bounds)):
+        assert bounds[i][1] > bounds[i][0]
 
 
 def test_boundaries(prod5_lst):
@@ -197,11 +199,9 @@ def test_truncated(prod5_lst):
         cleaned_image = image.copy()
         cleaned_image[~clean_mask] = 0.0
 
+        # Gaussian
         result = image_fit_parameters(
-            geom,
-            image,
-            n=2,
-            cleaned_mask=clean_mask,
+            geom, image, n=2, cleaned_mask=clean_mask, pdf="Gaussian"
         )
 
         hillas = hillas_parameters(geom, cleaned_image)
@@ -212,49 +212,63 @@ def test_truncated(prod5_lst):
         conc_hillas = concentration_parameters(geom, cleaned_image, hillas).core
 
         assert conc_fit > conc_hillas
-        assert conc_fit > 0.5
+        assert conc_fit > 0.4
+
+        # Skewed
+        result = image_fit_parameters(
+            geom, image, n=2, cleaned_mask=clean_mask, pdf="Skewed"
+        )
+
+        assert result.length.value > hillas.length.value
+
+        conc_fit = concentration_parameters(geom, cleaned_image, result).core
+
+        assert conc_fit > conc_hillas
+        assert conc_fit > 0.4
+
+        # Laplace
+        result = image_fit_parameters(
+            geom,
+            image,
+            n=2,
+            cleaned_mask=clean_mask,
+        )
+
+        assert result.length.value > hillas.length.value
+
+        conc_fit = concentration_parameters(geom, cleaned_image, result).core
+
+        assert conc_fit > conc_hillas
+        assert conc_fit > 0.4
 
 
 def test_percentage(prod5_lst):
-    rng = np.random.default_rng(42)
     geom = prod5_lst.camera.geometry
 
     widths = u.Quantity([0.01, 0.02, 0.03, 0.07], u.m)
     lengths = u.Quantity([0.1, 0.2, 0.3, 0.4], u.m)
-    intensity = 5000
+    intensities = np.array([2000, 5000])
 
     xs = u.Quantity([0.1, 0.2, -0.1, -0.2], u.m)
     ys = u.Quantity([-0.2, -0.1, 0.2, 0.1], u.m)
     psis = Angle([-60, -45, 10, 45, 60], unit="deg")
 
-    for x, y, width, length in zip(xs, ys, widths, lengths):
+    for x, y, width, length, intensity in zip(xs, ys, widths, lengths, intensities):
         for psi in psis:
-            model_gaussian = toymodel.SkewedCauchy(
-                x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
-            )
-            image, signal, noise = model_gaussian.generate_image(
-                geom, intensity=intensity, nsb_level_pe=5, rng=rng
-            )
+            # Gaussian
+            image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
-            clean_mask = signal > 0
             fit = image_fit_parameters(
-                geom,
-                signal,
-                n=0,
-                cleaned_mask=clean_mask,
+                geom, image, n=2, cleaned_mask=clean_mask, pdf="Gaussian"
             )
 
-            conc = concentration_parameters(geom, signal, fit)
+            cleaned_image = image.copy()
+            cleaned_image[~clean_mask] = 0.0
+            conc = concentration_parameters(geom, image, fit)
             signal_inside_ellipse = conc.core
 
             if fit.is_valid and fit.is_accurate:
-                assert signal_inside_ellipse > 0.5
-
-            conc = concentration_parameters(geom, noise, fit)
-            signal_inside_ellipse = conc.core
-
-            if fit.is_valid and fit.is_accurate:
-                assert signal_inside_ellipse < 0.1
+                assert signal_inside_ellipse > 0.3
 
 
 def test_with_toy(prod5_lst):
@@ -280,7 +294,7 @@ def test_with_toy(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
-            model_cauchy = toymodel.SkewedCauchy(
+            model_laplace = toymodel.SkewedLaplace(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
 
@@ -326,20 +340,20 @@ def test_with_toy(prod5_lst):
                     result.psi.to_value(u.deg) - psi.deg
                 ) == approx(180.0, abs=2)
 
-            image, signal, noise = model_cauchy.generate_image(
+            image, signal, noise = model_laplace.generate_image(
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
             )
             clean_mask = np.array(signal) > 0
             result = image_fit_parameters(
-                geom, signal, n=0, cleaned_mask=clean_mask, pdf="Cauchy"
+                geom, signal, n=0, cleaned_mask=clean_mask, pdf="Laplace"
             )
 
             if result.is_valid or result.is_accurate:
                 assert u.isclose(result.x, x, rtol=0.1)
                 assert u.isclose(result.y, y, rtol=0.1)
 
-                # assert u.isclose(result.width, width, rtol=3)  #TODO: something wrong with Cauchy
-                assert u.isclose(result.length, length, rtol=0.2)
+                assert u.isclose(result.width, width, rtol=0.15)
+                assert u.isclose(result.length, length, rtol=0.1)
                 assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
                     result.psi.to_value(u.deg) - psi.deg
                 ) == approx(180.0, abs=2)
@@ -368,7 +382,7 @@ def test_with_toy_alternative_bounds(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
-            model_cauchy = toymodel.SkewedCauchy(
+            model_laplace = toymodel.SkewedLaplace(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
 
@@ -417,17 +431,17 @@ def test_with_toy_alternative_bounds(prod5_lst):
                     result.psi.to_value(u.deg) - psi.deg
                 ) == approx(180.0, abs=2)
 
-            image, signal, noise = model_cauchy.generate_image(
+            image, signal, noise = model_laplace.generate_image(
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
             )
             clean_mask = np.array(signal) > 0
-            bounds = sensible_boundaries(geom, signal, pdf="Cauchy")
+            bounds = sensible_boundaries(geom, signal, pdf="Laplace")
             result = image_fit_parameters(
                 geom,
                 signal,
                 n=0,
                 cleaned_mask=clean_mask,
-                pdf="Cauchy",
+                pdf="Laplace",
                 bounds=bounds,
             )
 
@@ -435,8 +449,8 @@ def test_with_toy_alternative_bounds(prod5_lst):
                 assert u.isclose(result.x, x, rtol=0.1)
                 assert u.isclose(result.y, y, rtol=0.1)
 
-                # assert u.isclose(result.width, width, rtol=3)  #TODO: something wrong with Cauchy
-                assert u.isclose(result.length, length, rtol=0.2)
+                assert u.isclose(result.width, width, rtol=0.15)
+                assert u.isclose(result.length, length, rtol=0.1)
                 assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
                     result.psi.to_value(u.deg) - psi.deg
                 ) == approx(180.0, abs=2)
@@ -447,22 +461,24 @@ def test_skewness(prod5_lst):
 
     geom = prod5_lst.camera.geometry
 
-    width = 0.03 * u.m
-    length = 0.15 * u.m
-    intensity = 500
+    widths = u.Quantity([0.02, 0.03, 0.04], u.m)
+    lengths = u.Quantity([0.15, 0.2, 0.3], u.m)
+    intensities = np.array([500, 1500, 2000])
 
     xs = u.Quantity([0.2, 0.2, -0.2, -0.2], u.m)
     ys = u.Quantity([0.2, -0.2, 0.2, -0.2], u.m)
-    psis = Angle([-60, -45, 0, 45, 60], unit="deg")
-    skews = np.array([0, 0.5, -0.5, 0.8])
+    psis = Angle([-60, -45, 0, 45, 60, 90], unit="deg")
+    skews = np.array([0, 0.5, -0.5, 0.8, -0.8, 0.9])
 
-    for x, y, skew in zip(xs, ys, skews):
+    for x, y, skew, intensity, width, length in zip(
+        xs, ys, skews, intensities, widths, lengths
+    ):
         for psi in psis:
 
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=skew
             )
-            model_cauchy = toymodel.SkewedCauchy(
+            model_laplace = toymodel.SkewedLaplace(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=skew
             )
 
@@ -482,44 +498,44 @@ def test_skewness(prod5_lst):
                 assert u.isclose(result.width, width, rtol=0.1)
                 assert u.isclose(result.length, length, rtol=0.1)
 
-                psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=5)
+                psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=1)
                 psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(
-                    180.0, abs=5
+                    180.0, abs=1
                 )
                 assert psi_same or psi_opposite
 
                 if psi_same:
-                    assert result.skewness == approx(skew, abs=0.5)
+                    assert result.skewness == approx(skew, abs=0.3)
                 else:
-                    assert result.skewness == approx(-skew, abs=0.5)
+                    assert result.skewness == approx(-skew, abs=0.3)
 
                 assert signal.sum() == result.intensity
 
-            image, signal, noise = model_cauchy.generate_image(
+            image, signal, noise = model_laplace.generate_image(
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
             )
             clean_mask = np.array(signal) > 0
             result = image_fit_parameters(
-                geom, signal, n=0, cleaned_mask=clean_mask, pdf="Cauchy"
+                geom, signal, n=0, cleaned_mask=clean_mask, pdf="Laplace"
             )
 
             if result.is_valid or result.is_accurate:
                 assert u.isclose(result.x, x, rtol=0.1)
                 assert u.isclose(result.y, y, rtol=0.1)
 
-                # assert u.isclose(result.width, width, rtol=0.1)
-                # assert u.isclose(result.length, length, rtol=0.1)
+                assert u.isclose(result.width, width, rtol=0.1)
+                assert u.isclose(result.length, length, rtol=0.15)
 
-                psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=5)
+                psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=1)
                 psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(
-                    180.0, abs=5
+                    180.0, abs=1
                 )
                 assert psi_same or psi_opposite
 
                 if psi_same:
-                    assert result.skewness == approx(skew, abs=0.5)
+                    assert result.skewness == approx(skew, abs=0.3)
                 else:
-                    assert result.skewness == approx(-skew, abs=0.5)
+                    assert result.skewness == approx(-skew, abs=0.3)
 
                 assert signal.sum() == result.intensity
 

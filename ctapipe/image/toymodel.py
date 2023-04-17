@@ -38,7 +38,7 @@ __all__ = [
     "WaveformModel",
     "Gaussian",
     "SkewedGaussian",
-    "SkewedCauchy",
+    "SkewedLaplace",
     "ImageModel",
     "obtain_time_image",
 ]
@@ -406,16 +406,17 @@ class RingGaussian(ImageModel):
         return self.dist.pdf(r)
 
 
-class SkewedCauchy(ImageModel):
-    """A shower image that has a skewness along the major axis."""
+class SkewedLaplace(ImageModel):
+    """A shower image that has a skewness along the major axis and follows the Laplace distribution along the
+    transverse axis"""
 
     @u.quantity_input
     def __init__(self, x, y, length, width, psi, skewness, amplitude=None):
         """Create 2D function with a Skewed Gaussian in the longitudinal direction
-        and a Cauchy function modelling the transverse of the shower in a camera.
+        and a Laplace function modelling the transverse of the shower in a camera.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution ,
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html , and
-        https://en.wikipedia.org/wiki/Cauchy_distribution for details.
+        https://en.wikipedia.org/wiki/Laplace_distribution for details.
 
         Parameters
         ----------
@@ -462,8 +463,7 @@ class SkewedCauchy(ImageModel):
 
     @u.quantity_input
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane. THe standard deviation of a Cauchy is
-        undefined, therefore here the definition of the width of the shower is the FWHM"""
+        """2d probability for photon electrons in the camera plane."""
         mu = u.Quantity([self.x, self.y]).to_value(self.unit)
 
         rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
@@ -474,10 +474,16 @@ class SkewedCauchy(ImageModel):
 
         if self.amplitude is None:
             self.amplitude = 1 / (
-                np.sqrt(2 * np.pi) * np.pi * scale * (self.width.value / 2)
+                np.sqrt(2 * np.pi)
+                * np.sqrt(2)
+                * scale
+                * (self.width.to_value(self.unit))
             )
 
-        trans_pdf = 1 / (1 + (trans / (self.width.to_value(self.unit) / 2)) ** 2)
+        # trans_pdf = 1 / (1 + (trans / (self.width.to_value(self.unit) / (2 * np.tan(np.pi*(p-1/2))))) ** 2)
+        trans_pdf = np.exp(
+            -np.sqrt(trans**2) * np.sqrt(2) / self.width.to_value(self.unit)
+        )
         skew_pdf = np.exp(-1 / 2 * ((long - loc) / scale) ** 2) * (
             1 + scipy.special.erf(a / np.sqrt(2) * (long - loc) / scale)
         )
