@@ -1,0 +1,7 @@
+Add ``SubarrayDescription.mulitplicity`` method that can compute
+telescope multiplicity for a given telescope boolean mask, either for
+all telescope or a given telescope type.
+
+Enable adding additional keyword arguments to ``FeatureGenerator``.
+
+Pass the ``SubarrayDescription`` to ``FeatureGenerator`` in sklearn classes.
