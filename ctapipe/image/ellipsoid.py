@@ -4,6 +4,8 @@
 Shower image parametrization based on image fitting.
 """
 
+from enum import Enum
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
@@ -11,13 +13,25 @@ from iminuit import Minuit
 
 from ctapipe.image.cleaning import dilate
 from ctapipe.image.hillas import hillas_parameters
-from ctapipe.image.leakage import leakage_parameters
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
 from ctapipe.image.toymodel import Gaussian, SkewedGaussian, SkewedLaplace
 
 from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
 
-__all__ = ["image_fit_parameters", "ImageFitParameterizationError"]
+__all__ = [
+    "create_initial_guess",
+    "sensible_boundaries",
+    "boundaries",
+    "image_fit_parameters",
+    "ImageFitParameterizationError",
+    "PDFType",
+]
+
+
+class PDFType(Enum):
+    gaussian = "gaussian"
+    laplace = "laplace"
+    skewed = "skewed"
 
 
 def create_initial_guess(geometry, image, size):
@@ -76,8 +90,6 @@ def extra_rows(n, cleaned_mask, geometry):
     for row in range(n):
         mask = dilate(geometry, mask)
 
-    mask = np.array((mask.astype(int) + cleaned_mask.astype(int)), dtype=bool)
-
     return mask
 
 
@@ -90,8 +102,8 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
         Camera geometry
     cleaned_image: ndarray
         Charge for each pixel, cleaning mask should be applied
-    pdf: str
-        name of the PDF used, options = "Gaussian", "Laplace", "Skewed"
+    pdf: PDFType instance
+        e.g. PDFType("gaussian")
     Returns
     -------
     list of boundaries
@@ -114,7 +126,7 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
     skew_min, skew_max = -0.99, 0.99
     ampl_min, ampl_max = 0, np.inf
 
-    if pdf != "Gaussian":
+    if pdf != PDFType.gaussian:
         return [
             (cogx_min.to_value(unit), cogx_max.to_value(unit)),
             (cogy_min.to_value(unit), cogy_max.to_value(unit)),
@@ -148,8 +160,8 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         mask after image cleaning and dilation
     x0 : dict
        seeds of the fit
-    pdf: str
-       name of the PDF, options = "Gaussian", "Laplace", "Skewed"
+    pdf: PDFType instance
+        e.g. PDFType("gaussian")
     Returns
     -------
     list of boundaries
@@ -158,7 +170,6 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     y = geometry.pix_y.value
     unit = geometry.pix_x.unit
     camera_radius = geometry.guess_radius().to_value(unit)
-    leakage = leakage_parameters(geometry, image, dilated_mask)
 
     # Dilated image
     row_image = image.copy()
@@ -182,8 +193,8 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         max_y
     ) * min(np.abs(max_y), camera_radius)
 
-    if (leakage.intensity_width_1 > 0.2) & (
-        leakage.intensity_width_2 > 0.2
+    if (
+        np.sqrt(x0["x"].value ** 2 + x0["y"].value ** 2) > 0.8 * camera_radius
     ):  # truncated
         if (x0["x"] > 0) & (x0["y"] > 0):
             max_x = 2 * max_x
@@ -211,7 +222,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         0.99, x0["skewness"] + 0.3
     )
 
-    if pdf == "Gaussian":
+    if pdf == PDFType.gaussian:
         amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
 
         return [
@@ -222,7 +233,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
             (width_min, width_max),
             (0, amplitude),
         ]
-    if pdf == "Skewed":
+    if pdf == PDFType.skewed:
         amplitude = np.sum(row_image) / scale * 1 / (2 * np.pi * width_min)
 
         return [
@@ -234,7 +245,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
             (skew_min, skew_max),
             (0, amplitude),
         ]
-    if pdf == "Laplace":
+    if pdf == PDFType.laplace:
         amplitude = (
             np.sum(row_image)
             / scale
@@ -262,7 +273,7 @@ def image_fit_parameters(
     image,
     n,
     cleaned_mask,
-    pdf="Laplace",
+    pdf=PDFType("skewed"),
     bounds=None,
 ):
     """
@@ -280,8 +291,8 @@ def image_fit_parameters(
       number of extra rows to add after cleaning
     cleaned_mask : boolean
        The cleaning mask to apply to find Hillas parameters
-    pdf : str
-        name of the prob distrib to use for the fit, options = "Gaussian", "Laplace", "Skewed"
+    pdf: PDFType instance
+        e.g. PDFType("gaussian")
     Returns
     -------
     ImageFitParametersContainer:
@@ -302,10 +313,11 @@ def image_fit_parameters(
     }
     spe_width = 0.5
     pedestal = ped_table[geom.name]
+    pdf = PDFType(pdf)
     pdf_dict = {
-        "Gaussian": Gaussian,
-        "Skewed": SkewedGaussian,
-        "Laplace": SkewedLaplace,
+        PDFType.gaussian: Gaussian,
+        PDFType.skewed: SkewedGaussian,
+        PDFType.laplace: SkewedLaplace,
     }
 
     unit = geom.pix_x.unit
@@ -370,7 +382,7 @@ def image_fit_parameters(
             like = 1e9
         return like
 
-    if pdf != "Gaussian":
+    if pdf != PDFType.gaussian:
         m = Minuit(
             fit,
             cog_x=x0["x"].to_value(unit),
@@ -395,7 +407,7 @@ def image_fit_parameters(
     if bounds is None:
         bounds = boundaries(geom, image, dilated_mask, x0, pdf)
         m.limits = bounds
-    if bounds is not None:
+    else:
         m.limits = bounds
 
     m.errordef = 1  # neg log likelihood
@@ -425,7 +437,7 @@ def image_fit_parameters(
     m4_long = np.average(longitudinal**4, weights=dilated_image)
     kurtosis_long = m4_long / pars[3] ** 4
 
-    if pdf != "Gaussian":
+    if pdf != PDFType.gaussian:
         skewness_long = pars[5]
         skewness_uncertainty = errors[5]
         amplitude = pars[6]
