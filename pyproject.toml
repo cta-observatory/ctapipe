@@ -37,6 +37,7 @@ dependencies = [
     "numpy >=1.23,<3.0.0a0",
     "packaging",
     "psutil",
+    "pyirf",
     "pyyaml >=5.1",
     "requests",
     "scikit-learn !=1.4.0", # 1.4.0 breaks with astropy tables, before and after works
@@ -105,6 +106,7 @@ ctapipe-dump-instrument = "ctapipe.tools.dump_instrument:main"
 ctapipe-display-dl1 = "ctapipe.tools.display_dl1:main"
 ctapipe-process = "ctapipe.tools.process:main"
 ctapipe-merge = "ctapipe.tools.merge:main"
+ctapipe-make-irfs = "ctapipe.tools.make-irf:main"
 ctapipe-fileinfo = "ctapipe.tools.fileinfo:main"
 ctapipe-quickstart = "ctapipe.tools.quickstart:main"
 ctapipe-calculate-pixel-statistics = "ctapipe.tools.calculate_pixel_stats:main"
