@@ -1,6 +1,8 @@
 """
 Generate Features.
 """
+from collections import ChainMap
+
 from .component import Component
 from .expression_engine import ExpressionEngine
 from .traits import List, Tuple, Unicode
@@ -51,7 +53,7 @@ class FeatureGenerator(Component):
         self.engine = ExpressionEngine(expressions=self.features)
         self._feature_names = [name for name, _ in self.features]
 
-    def __call__(self, table):
+    def __call__(self, table, **kwargs):
         """
         Apply feature generation to the input table.
 
@@ -60,8 +62,9 @@ class FeatureGenerator(Component):
         however the new columns won't be visible in the input table.
         """
         table = _shallow_copy_table(table)
+        lookup = ChainMap(table, kwargs)
 
-        for result, name in zip(self.engine(table), self._feature_names):
+        for result, name in zip(self.engine(lookup), self._feature_names):
             if name in table.colnames:
                 raise FeatureGeneratorException(f"{name} is already a column of table.")
             try:
