@@ -427,7 +427,7 @@ class SubarrayDescription:
 
     def get_tel_ids_for_type(self, tel_type) -> Tuple[int]:
         """
-        return list of tel_ids that have the given tel_type
+        return tuple of tel_ids that have the given tel_type
 
         Parameters
         ----------
@@ -447,6 +447,25 @@ class SubarrayDescription:
             return tuple(
                 tel_id for tel_id, descr in self.tels.items() if str(descr) == tel_type
             )
+
+    def get_tel_indices_for_type(self, tel_type):
+        """
+        return tuple of telescope indices that have the given tel_type
+
+        Parameters
+        ----------
+        tel_type: str or TelescopeDescription
+           telescope type string (e.g. 'MST_MST_NectarCam')
+        """
+        return self.tel_ids_to_indices(self.get_tel_ids_for_type(tel_type))
+
+    def multiplicity(self, tel_mask, tel_type=None):
+        if tel_type is None:
+            return np.count_nonzero(tel_mask, axis=-1)
+
+        return np.count_nonzero(
+            tel_mask[..., self.get_tel_indices_for_type(tel_type)], axis=-1
+        )
 
     def get_tel_ids(
         self, telescopes: Iterable[Union[int, str, TelescopeDescription]]
