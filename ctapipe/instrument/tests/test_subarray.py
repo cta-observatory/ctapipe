@@ -246,3 +246,27 @@ def test_unknown_telescopes(example_subarray):
 
     with pytest.raises(UnknownTelescopeID):
         example_subarray.select_subarray([300, 201])
+
+
+def test_multiplicity(subarray_prod5_paranal):
+
+    subarray = subarray_prod5_paranal.select_subarray([1, 2, 20, 21, 80, 81])
+
+    mask = np.array([True, False, True, True, False, False])
+
+    assert subarray.multiplicity(mask) == 3
+    assert subarray.multiplicity(mask, "LST_LST_LSTCam") == 1
+    assert subarray.multiplicity(mask, "MST_MST_FlashCam") == 2
+    assert subarray.multiplicity(mask, "SST_ASTRI_CHEC") == 0
+
+    masks = np.array(
+        [
+            [True, False, True, True, False, False],
+            [True, True, False, True, False, True],
+        ]
+    )
+
+    np.testing.assert_equal(subarray.multiplicity(masks), [3, 4])
+    np.testing.assert_equal(subarray.multiplicity(masks, "LST_LST_LSTCam"), [1, 2])
+    np.testing.assert_equal(subarray.multiplicity(masks, "MST_MST_FlashCam"), [2, 1])
+    np.testing.assert_equal(subarray.multiplicity(masks, "SST_ASTRI_CHEC"), [0, 1])
