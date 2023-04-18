@@ -460,6 +460,24 @@ class SubarrayDescription:
         return self.tel_ids_to_indices(self.get_tel_ids_for_type(tel_type))
 
     def multiplicity(self, tel_mask, tel_type=None):
+        """
+        Compute multiplicity from a telescope mask
+
+        Parameters
+        ----------
+        tel_mask : np.ndarray
+            Boolean array with last dimension of size n_telescopes
+        tel_type : None, str or TelescopeDescription
+            If not given, compute multiplicity from all telescopes.
+            If given, the multiplicity of the given telescope type will
+            be computed.
+
+        Returns
+        -------
+        multiplicity : int or np.ndarray
+            Number of true values for given telescope mask and telescope type
+        """
+
         if tel_type is None:
             return np.count_nonzero(tel_mask, axis=-1)
 
