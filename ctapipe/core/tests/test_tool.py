@@ -426,3 +426,32 @@ def test_exit_stack():
     assert run_tool(tool, raises=False) == 1
     assert tool.manager.enter_called
     assert tool.manager.exit_called
+
+
+def test_activity(tmp_path):
+    """check that the config is correctly in the provenance"""
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"MyTool": {"userparam": 10.0}}))
+    provenance_path = tmp_path / "provenance.json"
+
+    run_tool(
+        tool,
+        [
+            "--config",
+            str(config_path),
+            f"--provenance-log={provenance_path}",
+        ],
+    )
+
+    provlog = json.loads(tool.provenance_log.read_text())
+    inputs = provlog[0]["input"]
+    assert len(inputs) == 1
+    assert inputs[0]["role"] == "Tool Configuration"
+    assert inputs[0]["url"] == str(config_path)
