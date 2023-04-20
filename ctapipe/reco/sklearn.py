@@ -848,6 +848,9 @@ class CrossValidator(Component):
             )
 
     def __call__(self, telescope_type, table):
+        if self.n_cross_validations == 0:
+            return
+
         if len(table) <= self.n_cross_validations:
             raise TooFewEvents(f"Too few events for {telescope_type}.")
 
@@ -941,6 +944,9 @@ class CrossValidator(Component):
         return prediction, truth, {"R^2": r2, "accuracy": accuracy}
 
     def write(self, overwrite=False):
+        if self.n_cross_validations == 0:
+            return 0
+
         if self.output_path.exists() and not overwrite:
             raise IOError(f"Path {self.output_path} exists and overwrite=False")
 
