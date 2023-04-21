@@ -691,6 +691,9 @@ class CameraGeometry:
         diagonal: bool
             If rectangular geometry, also add diagonal neighbors
         """
+        if self.n_pixels <= 1:
+            return csr_matrix(np.ones((self.n_pixels, self.n_pixels), dtype=bool))
+
         # assume circle pixels are also on a hex grid
         if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
             max_neighbors = 6
