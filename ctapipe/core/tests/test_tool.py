@@ -432,6 +432,7 @@ def test_activity(tmp_path):
     """check that the config is correctly in the provenance"""
 
     class MyTool(Tool):
+        name = "test_prov_log"
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
@@ -450,8 +451,13 @@ def test_activity(tmp_path):
         ],
     )
 
-    provlog = json.loads(tool.provenance_log.read_text())
-    inputs = provlog[0]["input"]
+    activities = json.loads(tool.provenance_log.read_text())
+    # provlog contains all activities from all tests, last one is the tool we just ran
+    provlog = activities[-1]
+    assert provlog["activity_name"] == MyTool.name
+
+    # test config file is in inputs, regression test for #2313
+    inputs = provlog["input"]
     assert len(inputs) == 1
     assert inputs[0]["role"] == "Tool Configuration"
     assert inputs[0]["url"] == str(config_path)
