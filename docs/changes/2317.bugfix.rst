@@ -1,0 +1,1 @@
+Fix calculation of the neighbor matrix of ``CameraGeometry`` for empty and single-pixel geometries.
