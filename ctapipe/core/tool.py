@@ -405,11 +405,14 @@ class Tool(Application):
 
         with self._exit_stack:
             try:
-                self.initialize(argv)
                 self.log.info(f"Starting: {self.name}")
                 Provenance().start_activity(self.name)
+
+                self.initialize(argv)
+
                 self.setup()
                 self.is_setup = True
+
                 self.log.debug(f"CONFIG: {self.get_current_config()}")
                 Provenance().add_config(self.get_current_config())
 
