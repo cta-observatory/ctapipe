@@ -224,7 +224,7 @@ class IrfTool(IrfToolBase, DataBinning):
                 s["reco_energy_center"]
             )
 
-    def finalise(self):
+    def finish(self):
 
         masks = {
             "": self.signal["selected"],
