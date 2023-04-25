@@ -76,7 +76,7 @@ class IrfToolBase(Tool):
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
     initial_gh_cut_efficency = Float(
-        default_value=0.4, help="Start value of gamma purity before optimisatoin"
+        default_value=0.4, help="Start value of gamma purity before optimisation"
     ).tag(config=True)
 
     energy_reconstructor = Unicode(
