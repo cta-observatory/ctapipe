@@ -413,7 +413,7 @@ class SkewedLaplace(ImageModel):
     @u.quantity_input
     def __init__(self, x, y, length, width, psi, skewness, amplitude=None):
         """Create 2D function with a Skewed Gaussian in the longitudinal direction
-        and a Laplace function modelling the transverse of the shower in a camera.
+        and a Laplace function modelling the transverse direction of the shower.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution ,
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html , and
         https://en.wikipedia.org/wiki/Laplace_distribution for details.
@@ -480,7 +480,6 @@ class SkewedLaplace(ImageModel):
                 * (self.width.to_value(self.unit))
             )
 
-        # trans_pdf = 1 / (1 + (trans / (self.width.to_value(self.unit) / (2 * np.tan(np.pi*(p-1/2))))) ** 2)
         trans_pdf = np.exp(
             -np.sqrt(trans**2) * np.sqrt(2) / self.width.to_value(self.unit)
         )

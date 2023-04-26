@@ -55,6 +55,7 @@ def create_sample_image(
 
 
 def test_sensible_boundaries(prod5_lst):
+    # Test alternative function for finding boundaries
     geom = prod5_lst.camera.geometry
     image, clean_mask = create_sample_image(geometry=geom)
 
@@ -71,7 +72,7 @@ def test_sensible_boundaries(prod5_lst):
 
 
 def test_boundaries(prod5_lst):
-
+    # Test default functin for finding the boundaries of the fit
     geom = prod5_lst.camera.geometry
     image, clean_mask = create_sample_image(geometry=geom)
 
@@ -80,7 +81,7 @@ def test_boundaries(prod5_lst):
 
     x0 = create_initial_guess(geom, cleaned_image, np.sum(cleaned_image))
     bounds = boundaries(geom, image, clean_mask, x0, pdf=PDFType("gaussian"))
-    print(bounds)
+
     for i in range(len(bounds)):
         assert bounds[i][1] > bounds[i][0]  # upper limit > lower limit
 
@@ -285,7 +286,7 @@ def test_with_toy(prod5_lst):
     for x, y in zip(xs, ys):
         for psi in psis:
 
-            # make a toymodel shower model
+            # make a toy shower model
             model_gaussian = toymodel.Gaussian(
                 x=x, y=y, width=width, length=length, psi=psi
             )

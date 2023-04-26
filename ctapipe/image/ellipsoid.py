@@ -36,7 +36,7 @@ class PDFType(Enum):
 
 def create_initial_guess(geometry, image, size):
     """
-    This function computes the seeds of the fit with Hillas parameters
+    This function computes the seeds of the fit with the Hillas parameters
     Parameters
     ----------
     geometry : ctapipe.instrument.CameraGeometry
@@ -51,7 +51,7 @@ def create_initial_guess(geometry, image, size):
     initial_guess : seed
     """
     unit = geometry.pix_x.unit
-    hillas = hillas_parameters(geometry, image)
+    hillas = hillas_parameters(geometry, image)  # compute Hillas parameters
 
     initial_guess = {}
 
@@ -76,7 +76,7 @@ def create_initial_guess(geometry, image, size):
 
 def extra_rows(n, cleaned_mask, geometry):
     """
-    This function adds n extra rows around the cleaned pixels
+    This function adds n extra rows of pixels around the cleaned image
     Parameters
     ----------
     n : int
@@ -95,7 +95,7 @@ def extra_rows(n, cleaned_mask, geometry):
 
 def sensible_boundaries(geometry, cleaned_image, pdf):
     """
-    Computes boundaries of the fit based on the deviation from Hillas parameters
+    Alternative boundaries of the fit based on the Hillas parameters.
     Parameters
     ----------
     geometry: ctapipe.instrument.CameraGeometry
@@ -218,8 +218,8 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     )
 
     scale = length_min / np.sqrt(1 - 2 / np.pi)
-    skew_min, skew_max = max(-0.99, x0["skewness"] - 0.3), min(
-        0.99, x0["skewness"] + 0.3
+    skew_min, skew_max = min(max(-0.99, x0["skewness"] - 0.3), 0.99), max(
+        -0.99, min(0.99, x0["skewness"] + 0.3)
     )
 
     if pdf == PDFType.gaussian:
@@ -285,20 +285,20 @@ def image_fit_parameters(
         Camera geometry
     image : ndarray
         Charge in each pixel, no cleaning mask should be applied
-    bounds : default format [(low_limx, high_limx), (low_limy, high_limy), ...]
+    bounds : default format [(low_x, high_x), (low_y, high_y), ...]
         Boundary conditions. If bounds == None, boundaries function is applied as a default.
     n : int
       number of extra rows to add after cleaning
     cleaned_mask : boolean
-       The cleaning mask to apply to find Hillas parameters
+       Cleaning mask after cleaning
     pdf: PDFType instance
         e.g. PDFType("gaussian")
     Returns
     -------
     ImageFitParametersContainer:
-        container of image-fitting parameters
+        container of image parameters after fitting
     """
-    # For likelihood calculation we need the with of the
+    # For likelihood calculation we need the width of the
     # pedestal distribution for each pixel
     # currently this is not available from the calibration,
     # so for now lets hard code it in a dict
@@ -307,6 +307,7 @@ def image_fit_parameters(
         "LSTCam": 2.8,
         "NectarCam": 2.3,
         "FlashCam": 2.3,
+        "SST-Camera": 0.5,
         "CHEC": 0.5,
         "DUMMY": 0,
         "testcam": 0,
@@ -344,7 +345,7 @@ def image_fit_parameters(
     dilated_image[dilated_image < 0] = 0.0
     size = np.sum(dilated_image)
 
-    x0 = create_initial_guess(geom, cleaned_image, size)
+    x0 = create_initial_guess(geom, cleaned_image, size)  # seeds
 
     if np.count_nonzero(image) <= len(x0):
         raise ImageFitParameterizationError(
@@ -429,8 +430,8 @@ def image_fit_parameters(
         pars[0] ** 2 / b * errors[0] ** 2 + pars[1] ** 2 / b * errors[1] ** 2
     )
 
-    delta_x = geom.pix_x.value - pars[0]
-    delta_y = geom.pix_y.value - pars[1]
+    delta_x = pix_x.value - pars[0]
+    delta_y = pix_y.value - pars[1]
 
     longitudinal = delta_x * np.cos(pars[2]) + delta_y * np.sin(pars[2])
 
@@ -442,12 +443,14 @@ def image_fit_parameters(
         skewness_uncertainty = errors[5]
         amplitude = pars[6]
         amplitude_uncertainty = errors[6]
+        n_free_pars = 6
     else:
         m3_long = np.average(longitudinal**3, weights=dilated_image)
         skewness_long = m3_long / pars[3] ** 3
         skewness_uncertainty = np.nan
         amplitude = pars[5]
         amplitude_uncertainty = errors[5]
+        n_free_pars = 7
 
     if unit.is_equivalent(u.m):
         return CameraImageFitParametersContainer(
@@ -473,7 +476,7 @@ def image_fit_parameters(
             kurtosis=kurtosis_long,
             likelihood=likelihood,
             n_pix_fit=np.count_nonzero(cleaned_image),
-            n_free_par=len(x0),
+            n_free_par=n_free_pars,
             is_valid=m.valid,
             is_accurate=m.accurate,
         )
@@ -500,7 +503,7 @@ def image_fit_parameters(
         kurtosis=kurtosis_long,
         likelihood=likelihood,
         n_pix_fit=np.count_nonzero(cleaned_image),
-        n_free_par=len(x0),
+        n_free_par=n_free_pars,
         is_valid=m.valid,
         is_accurate=m.accurate,
     )

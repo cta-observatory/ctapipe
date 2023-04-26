@@ -311,7 +311,7 @@ class HillasParametersContainer(BaseHillasParametersContainer):
 class BaseImageFitParametersContainer(Container):
     """
     Base container for hillas parameters after fitting to
-    allow the CameraHillasParametersContainer to
+    allow the CameraImageFitParametersContainer to
     be assigned to an ImageFitParametersContainer as well.
     """
 
@@ -323,9 +323,7 @@ class BaseImageFitParametersContainer(Container):
     likelihood = Field(nan, "measure of likelihood")
     n_pix_fit = Field(nan, "number of pixels used in the fit")
     n_free_par = Field(nan, "number of free parameters")
-    is_valid = Field(
-        False, "returns True if the fit is valid. If False, the fit is not reliable."
-    )
+    is_valid = Field(False, "True if the fit is valid")
     is_accurate = Field(
         False, "returns True if the fit is accurate. If False, the fit is not reliable."
     )
@@ -333,15 +331,15 @@ class BaseImageFitParametersContainer(Container):
 
 class CameraImageFitParametersContainer(BaseImageFitParametersContainer):
     """
-    Hillas Parameters after fit in the camera frame. The cog position
+    Hillas Parameters after fitting. The cog position
     is given in meter from the camera center.
     """
 
     default_prefix = "camera_frame_fit"
     x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
-    x_uncertainty = Field(nan * u.m, "centroid x unceratinty", unit=u.m)
+    x_uncertainty = Field(nan * u.m, "centroid x uncertainty", unit=u.m)
     y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
-    y_uncertainty = Field(nan * u.m, "centroid y unceratinty", unit=u.m)
+    y_uncertainty = Field(nan * u.m, "centroid y uncertainty", unit=u.m)
     r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
     r_uncertainty = Field(nan * u.m, "centroid r uncertainty", unit=u.m)
     phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
@@ -355,9 +353,9 @@ class CameraImageFitParametersContainer(BaseImageFitParametersContainer):
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
     psi_uncertainty = Field(
-        nan * u.deg, "rotation angle of ellipse uncertainty", unit=u.deg
+        nan * u.deg, "Uncertainty in rotation angle of ellipse", unit=u.deg
     )
-    amplitude = Field(nan, "fit amplitude")
+    amplitude = Field(nan, "Amplitude of the fitted model")
     amplitude_uncertainty = Field(nan, "error in amplitude from the fit")
 
 
