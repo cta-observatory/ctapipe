@@ -218,12 +218,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
             mask_dict[tel_id] = mask
 
-        # This is a placeholder for proper energy reconstruction
-        reconstructor_prediction = event.dl2.stereo.geometry
+        reconstructor_geometry_prediction = event.dl2.stereo.geometry
 
         valid_seed = False
-        for reco in reconstructor_prediction:
-            if reconstructor_prediction[reco].is_valid:
+        for reco in reconstructor_geometry_prediction:
+            if reconstructor_geometry_prediction[reco].is_valid:
                 valid_seed = True
 
         if valid_seed is False:
@@ -232,15 +231,26 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             self._store_impact_parameter(event)
             return
 
+        reconstructor_energy_prediction = event.dl2.stereo.energy
+
+        valid_energy_seed = False
+        for reco in reconstructor_energy_prediction:
+            if reconstructor_energy_prediction[reco].is_valid:
+                valid_energy_seed = True
+
+        if not valid_energy_seed:
+            reconstructor_energy_prediction = None
+
         shower_result, energy_result = self.predict(
             hillas_dict=hillas_dict,
             subarray=self.subarray,
+            shower_seed=reconstructor_geometry_prediction,
+            energy_seed=reconstructor_energy_prediction,
             array_pointing=array_pointing,
             telescope_pointings=telescope_pointings,
             image_dict=image_dict,
             mask_dict=mask_dict,
             time_dict=time_dict,
-            shower_seed=reconstructor_prediction,
         )
         event.dl2.stereo.geometry[self.__class__.__name__] = shower_result
         event.dl2.stereo.energy[self.__class__.__name__] = energy_result
@@ -365,7 +375,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # we should convert to height above ground
         # mean_height *= np.cos(zen)
         # Add on the height of the detector above sea level
-        mean_height += 2150 # TODO: Make this depend on telescope array
+        mean_height += 2150  # TODO: Make this depend on telescope array
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
@@ -760,12 +770,12 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         hillas_dict,
         subarray,
         array_pointing,
+        shower_seed,
+        energy_seed,
         telescope_pointings=None,
         image_dict=None,
         mask_dict=None,
         time_dict=None,
-        shower_seed=None,
-        energy_seed=None,
     ):
         """Predict method for the ImPACT reconstructor.
         Used to calculate the reconstructed ImPACT shower geometry and energy.
@@ -829,22 +839,43 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             preminimise = True
             # If we have a seed energy we can skip the minimisation step
             if energy_seed is not None:
-                energy = energy_seed.energy.value
                 preminimise = False
-            seed, step, limits = create_seed(source_x, source_y, tilt_x, tilt_y, energy)
+                for energy_reco in energy_seed:
+                    energy = energy_seed[energy_reco].energy.value
 
-            # Perform maximum likelihood fit
-            fit_params_min, errors, like = self.minimise(
-                params=seed,
-                step=step,
-                limits=limits,
-                energy_preminimisation=preminimise,
-                preminimisation_only=preminimise,
-            )
-            #            fit_params_min, like = self.energy_guess(seed)
-            if like < like_min:
-                fit_params = fit_params_min
-                like_min = like
+                    seed, step, limits = create_seed(
+                        source_x, source_y, tilt_x, tilt_y, energy
+                    )
+
+                    # Perform maximum likelihood fit
+                    fit_params_min, errors, like = self.minimise(
+                        params=seed,
+                        step=step,
+                        limits=limits,
+                        energy_preminimisation=preminimise,
+                        preminimisation_only=preminimise,
+                    )
+                    #            fit_params_min, like = self.energy_guess(seed)
+                    if like < like_min:
+                        fit_params = fit_params_min
+                        like_min = like
+            else:
+                preminimise = True
+                seed, step, limits = create_seed(
+                    source_x, source_y, tilt_x, tilt_y, energy
+                )
+                # Perform maximum likelihood fit
+                fit_params_min, errors, like = self.minimise(
+                    params=seed,
+                    step=step,
+                    limits=limits,
+                    energy_preminimisation=preminimise,
+                    preminimisation_only=preminimise,
+                )
+                #            fit_params_min, like = self.energy_guess(seed)
+                if like < like_min:
+                    fit_params = fit_params_min
+                    like_min = like
 
         if fit_params is None:
             return INVALID_GEOMETRY, INVALID_ENERGY
