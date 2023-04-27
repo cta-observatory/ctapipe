@@ -372,3 +372,19 @@ def test_guess_radius(prod5_lst, prod5_sst):
 
     prod5_chec = prod5_sst.camera.geometry
     assert u.isclose(prod5_chec.guess_radius(), 0.16 * u.m, rtol=0.05)
+
+
+def test_single_pixel(prod5_lst):
+    """Regression test for #2316"""
+    single_pixel = prod5_lst.camera.geometry[[0]]
+
+    assert single_pixel.neighbor_matrix.shape == (1, 1)
+    assert single_pixel.neighbor_matrix[0, 0]
+
+
+def test_empty(prod5_lst):
+    geometry = prod5_lst.camera.geometry
+    mask = np.zeros(len(geometry), dtype=bool)
+    empty = geometry[mask]
+
+    assert empty.neighbor_matrix.shape == (0, 0)
