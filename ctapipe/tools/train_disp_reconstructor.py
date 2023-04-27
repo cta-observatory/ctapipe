@@ -127,7 +127,7 @@ class TrainDispReconstructor(Tool):
                 f"No events after quality query for telescope type {telescope_type}"
             )
 
-        table = self.models.feature_generator(table)
+        table = self.models.feature_generator(table, subarray=self.loader.subarray)
 
         table[self.models.target] = self._get_true_disp(table)
 
