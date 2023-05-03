@@ -6,11 +6,10 @@ import numpy as np
 from astropy.table import QTable
 from pyirf.binning import create_bins_per_decade
 
-from ..core import Component, QualityQuery, Tool, traits
+from ..core import Component, QualityQuery, traits
 from ..core.traits import Bool, Float, Integer, List, Unicode
 
-
-class IrfToolBase(Tool):
+class ToolConfig(Component):
 
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
@@ -61,6 +60,9 @@ class IrfToolBase(Tool):
     alpha = Float(
         default_value=5.0, help="Ratio between size of on and off regions"
     ).tag(config=True)
+    ON_radius = Float(
+        default_value=1.0, help="Radius of ON region in degrees"
+    ).tag(config=True)
 
     max_bg_radius = Float(
         default_value=5.0, help="Radius used to calculate background rate in degrees"
@@ -90,9 +92,10 @@ class IrfToolBase(Tool):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
+class EventPreSelector(Component):
     preselect_criteria = List(
         default_value=[
-            ("multiplicity 4", "np.count_nonzero(tels,axis=1) >= 4"),
+#            ("multiplicity 4", "np.count_nonzero(tels,axis=1) >= 4"),
             ("valid classifier", "valid_classer"),
             ("valid geom reco", "valid_geom"),
             ("valid energy reco", "valid_energy"),
@@ -120,10 +123,10 @@ class IrfToolBase(Tool):
             "true_alt",
         ]
         rename_from = [
-            f"{self.energy_reconstructor}_energy",
-            f"{self.geometry_reconstructor}_az",
-            f"{self.geometry_reconstructor}_alt",
-            f"{self.gammaness_classifier}_prediction",
+            f"{self.tc.energy_reconstructor}_energy",
+            f"{self.tc.geometry_reconstructor}_az",
+            f"{self.tc.geometry_reconstructor}_alt",
+            f"{self.tc.gammaness_classifier}_prediction",
         ]
         rename_to = ["reco_energy", "reco_az", "reco_alt", "gh_score"]
 

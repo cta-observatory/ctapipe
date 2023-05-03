@@ -37,9 +37,9 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
-from ..core import Provenance
+from ..core import Provenance, Tool
 from ..io import TableLoader
-from ..irf import DataBinning, IrfToolBase
+from ..irf import DataBinning, ToolConfig,EventPreSelector
 
 PYIRF_SPECTRA = {
     "CRAB_HEGRA": CRAB_HEGRA,
@@ -48,11 +48,13 @@ PYIRF_SPECTRA = {
 }
 
 
-class IrfTool(IrfToolBase, DataBinning):
+class IrfTool(Tool):
     name = "ctapipe-make-irfs"
     description = "Tool to create IRF files in GAD format"
 
-    def make_derived_columns(self, events, spectrum, target_spectrum):
+    classes = [ DataBinning, ToolConfig,EventPreSelector]
+
+    def make_derived_columns(self,kind, events, spectrum, target_spectrum):
         events["pointing_az"] = 0 * u.deg
         events["pointing_alt"] = 70 * u.deg
 
@@ -68,6 +70,9 @@ class IrfTool(IrfToolBase, DataBinning):
         events["reco_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="reco"
         )
+        # Gamma source is assumed to be pointlike 
+        if kind == "gamma":
+            spectrum = spectrum.integrate_cone(0*u.deg,self.tc.ON_radius*u.deg)
         events["weights"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=target_spectrum,
@@ -79,6 +84,8 @@ class IrfTool(IrfToolBase, DataBinning):
     def get_sim_info_and_spectrum(self, loader):
         sim = loader.read_simulation_configuration()
 
+        # These sims better have the same viewcone!
+        assert( sim["max_viewcone_radius"].std() == 0)
         sim_info = SimulatedEventsInfo(
             n_showers=sum(sim["n_showers"] * sim["shower_reuse"]),
             energy_min=sim["energy_range_min"].quantity[0],
@@ -89,37 +96,43 @@ class IrfTool(IrfToolBase, DataBinning):
         )
 
         return sim_info, PowerLaw.from_simulation(
-            sim_info, obstime=self.obs_time * u.Unit(self.obs_time_unit)
+            sim_info, obstime=self.tc.obs_time * u.Unit(self.tc.obs_time_unit)
         )
 
     def setup(self):
+        self.tc = ToolConfig(parent=self)
+        self.bins = DataBinning(parent=self)
+        self.eps = EventPreSelector(parent=self)
+
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
         reduced_events = dict()
         for kind, file, target_spectrum in [
-            ("gamma", self.gamma_file, PYIRF_SPECTRA[self.gamma_sim_spectrum]),
-            ("proton", self.proton_file, PYIRF_SPECTRA[self.proton_sim_spectrum]),
-            ("electron", self.electron_file, PYIRF_SPECTRA[self.electron_sim_spectrum]),
+            ("gamma", self.tc.gamma_file, PYIRF_SPECTRA[self.tc.gamma_sim_spectrum]),
+            ("proton", self.tc.proton_file, PYIRF_SPECTRA[self.tc.proton_sim_spectrum]),
+            ("electron", self.tc.electron_file, PYIRF_SPECTRA[self.tc.electron_sim_spectrum]),
         ]:
             with TableLoader(file, **opts) as load:
                 Provenance().add_input_file(file)
-                table = self._make_empty_table()
+                table = self.eps._make_empty_table()
                 sim_info, spectrum = self.get_sim_info_and_spectrum(load)
                 if kind == "gamma":
                     self.sim_info = sim_info
                     self.spectrum = spectrum
                 for start, stop, events in load.read_subarray_events_chunked(
-                    self.chunk_size
+                    self.tc.chunk_size
                 ):
-                    selected = self._preselect_events(events)
-                    selected = self.make_derived_columns(
+                    selected = self.eps._preselect_events(events)
+                    selected = self.eps.make_derived_columns(
+                        kind,
                         selected, spectrum, target_spectrum
                     )
-                    table = vstack(table, selected)
+                    table = vstack([table, selected])
 
                 reduced_events[kind] = table
 
-        self.signal = reduced_events["gamma"]
-        self.background = vstack(reduced_events["proton"], reduced_events["electron"])
+        select_ON = reduced_events["gamma"]["theta"] <= self.ON_radius*u.deg
+        self.signal = reduced_events["gamma"][select_ON]
+        self.background = vstack([reduced_events["proton"], reduced_events["electron"]])
 
         self.theta_bins = add_overflow_bins(
             create_bins_per_decade(
@@ -127,16 +140,16 @@ class IrfTool(IrfToolBase, DataBinning):
             )
         )
 
-        self.energy_reco_bins = self.reco_energy_bins()
-        self.energy_true_bins = self.true_energy_bins()
-        self.source_offset_bins = self.source_offset_bins()
-        self.fov_offset_bins = self.fov_offset_bins()
-        self.energy_migration_bins = self.energy_migration_bins()
+        self.reco_energy_bins = self.bins.reco_energy_bins()
+        self.true_energy_bins = self.bins.true_energy_bins()
+        self.source_offset_bins = self.bins.source_offset_bins()
+        self.fov_offset_bins = self.bins.fov_offset_bins()
+        self.energy_migration_bins = self.bins.energy_migration_bins()
 
     def start(self):
-
+        breakpoint()
         INITIAL_GH_CUT = np.quantile(
-            self.signal["gh_score"], (1 - self.initial_gh_cut_efficency)
+            self.signal["gh_score"], (1 - self.tc.initial_gh_cut_efficency)
         )
         self.log.info(
             f"Using fixed G/H cut of {INITIAL_GH_CUT} to calculate theta cuts"
@@ -148,29 +161,29 @@ class IrfTool(IrfToolBase, DataBinning):
             self.signal["theta"][mask_theta_cuts],
             self.signal["reco_energy"][mask_theta_cuts],
             bins=self.theta_bins,
-            min_value=self.theta_min_angle * u.deg,
-            max_value=self.theta_max_angle * u.deg,
-            fill_value=self.theta_fill_value * u.deg,
-            min_events=self.theta_min_counts,
+            min_value=self.bins.theta_min_angle * u.deg,
+            max_value=self.bins.theta_max_angle * u.deg,
+            fill_value=self.bins.theta_fill_value * u.deg,
+            min_events=self.bins.theta_min_counts,
             percentile=68,
         )
 
         self.log.info("Optimizing G/H separation cut for best sensitivity")
         gh_cut_efficiencies = np.arange(
-            self.gh_cut_efficiency_step,
-            self.max_gh_cut_efficiency + self.gh_cut_efficiency_step / 2,
-            self.gh_cut_efficiency_step,
+            self.tc.gh_cut_efficiency_step,
+            self.tc.max_gh_cut_efficiency + self.tc.gh_cut_efficiency_step / 2,
+            self.tc.gh_cut_efficiency_step,
         )
 
         sens2, self.gh_cuts = optimize_gh_cut(
             self.signal,
             self.background,
-            reco_energy_bins=self.energy_reco_bins,
+            reco_energy_bins=self.bins.reco_energy_bins,
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
             theta_cuts=theta_cuts,
-            alpha=self.alpha,
-            background_radius=self.max_bg_radius * u.deg,
+            alpha=self.tc.alpha,
+            background_radius=self.tc.max_bg_radius * u.deg,
         )
 
         # now that we have the optimized gh cuts, we recalculate the theta
@@ -186,10 +199,10 @@ class IrfTool(IrfToolBase, DataBinning):
             self.signal[self.signal["selected_gh"]]["reco_energy"],
             self.theta_bins,
             percentile=68,
-            min_value=self.theta_min_angle * u.deg,
-            max_value=self.theta_max_angle * u.deg,
-            fill_value=self.theta_fill_value * u.deg,
-            min_events=self.theta_min_counts,
+            min_value=self.bins.theta_min_angle * u.deg,
+            max_value=self.bins.theta_max_angle * u.deg,
+            fill_value=self.bins.theta_fill_value * u.deg,
+            min_events=self.bins.theta_min_counts,
         )
         self.signal["selected_theta"] = evaluate_binned_cut(
             self.signal["theta"],
@@ -201,20 +214,21 @@ class IrfTool(IrfToolBase, DataBinning):
             self.signal["selected_theta"] & self.signal["selected_gh"]
         )
 
+        breakpoint()
         # calculate sensitivity
         signal_hist = create_histogram_table(
-            self.signal[self.signal["selected"]], bins=self.energy_reco_bins
+            self.signal[self.signal["selected"]], bins=self.reco_energy_bins
         )
         background_hist = estimate_background(
             self.background[self.background["selected_gh"]],
-            reco_energy_bins=self.energy_reco_bins,
+            reco_energy_bins=self.reco_energy_bins,
             theta_cuts=self.theta_cuts_opt,
-            alpha=self.alpha,
-            fov_offset_min=self.fov_offset_min,
-            fov_offset_max=self.fov_offset_max,
+            alpha=self.tc.alpha,
+            fov_offset_min=self.bins.fov_offset_min,
+            fov_offset_max=self.bins.fov_offset_max,
         )
         self.sensitivity = calculate_sensitivity(
-            signal_hist, background_hist, alpha=self.alpha
+            signal_hist, background_hist, alpha=self.tc.alpha
         )
 
         # scale relative sensitivity by Crab flux to get the flux sensitivity
@@ -224,7 +238,6 @@ class IrfTool(IrfToolBase, DataBinning):
             )
 
     def finish(self):
-
         masks = {
             "": self.signal["selected"],
             "_NO_CUTS": slice(None),
