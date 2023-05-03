@@ -41,14 +41,12 @@ class IrfToolBase(Tool):
     ).tag(config=True)
 
     output_path = traits.Path(
-        default_value=None,
+        default_value="./IRF.fits.gz",
         allow_none=False,
         directory_ok=False,
         help="Output file",
     ).tag(config=True)
-    output_file = Unicode(
-        default_value=None, allow_none=False, help="Name for the output file"
-    ).tag(config=True)
+
     overwrite = Bool(
         False,
         help="Overwrite the output file if it exists",
@@ -133,7 +131,7 @@ class IrfToolBase(Tool):
             rename_from.append(old)
             rename_to.append(new)
 
-        keep_columns.append(rename_from)
+        keep_columns.extend(rename_from)
         events = QTable(events[keep_columns], copy=False)
         events.rename_columns(rename_from, rename_to)
         keep = QualityQuery(quality_criteria=self.preselect_criteria).get_table_mask(
