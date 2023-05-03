@@ -25,6 +25,7 @@ dependencies:
   - pandas
   - pre-commit
   - psutil
+  - pyirf
   - pytables
   - pytest
   - pytest-cov

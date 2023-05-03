@@ -1,6 +1,5 @@
 """Tool to generate IRFs"""
 import operator
-from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -326,9 +325,9 @@ class IrfTool(IrfToolBase, DataBinning):
         hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
         hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
 
-        self.log.info("Writing outputfile")
+        self.log.info("Writing outputfile '%s'" % self.output_path)
         fits.HDUList(hdus).writeto(
-            self.output_path / Path(self.output_file + ".fits.gz"),
+            self.output_path,
             overwrite=self.overwrite,
         )
 
