@@ -262,6 +262,8 @@ class IrfTool(Tool):
                 self.sim_info,
                 true_energy_bins=self.true_energy_bins,
             )
+            self.log.debug(self.true_energy_bins)
+            self.log.debug(self.fov_offset_bins)
             hdus.append(
                 create_aeff2d_hdu(
                     effective_area[..., np.newaxis],  # +1 dimension for FOV offset
