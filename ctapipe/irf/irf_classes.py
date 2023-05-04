@@ -72,13 +72,15 @@ class ToolConfig(Component):
         default_value=0.8, help="Maximum gamma purity requested"
     ).tag(config=True)
     gh_cut_efficiency_step = Float(
-        default_value=0.01,
+        default_value=0.1,
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
     initial_gh_cut_efficency = Float(
         default_value=0.4, help="Start value of gamma purity before optimisation"
     ).tag(config=True)
 
+
+class EventPreProcessor(Component):
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
         help="Prefix of the reco `_energy` column",
@@ -92,7 +94,6 @@ class ToolConfig(Component):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-class EventPreSelector(Component):
     preselect_criteria = List(
         default_value=[
 #            ("multiplicity 4", "np.count_nonzero(tels,axis=1) >= 4"),
@@ -115,6 +116,7 @@ class EventPreSelector(Component):
     )
 
     def _preselect_events(self, events):
+        tc = self.parent.tc
         keep_columns = [
             "obs_id",
             "event_id",
@@ -123,10 +125,10 @@ class EventPreSelector(Component):
             "true_alt",
         ]
         rename_from = [
-            f"{self.tc.energy_reconstructor}_energy",
-            f"{self.tc.geometry_reconstructor}_az",
-            f"{self.tc.geometry_reconstructor}_alt",
-            f"{self.tc.gammaness_classifier}_prediction",
+            f"{self.energy_reconstructor}_energy",
+            f"{self.geometry_reconstructor}_az",
+            f"{self.geometry_reconstructor}_alt",
+            f"{self.gammaness_classifier}_prediction",
         ]
         rename_to = ["reco_energy", "reco_az", "reco_alt", "gh_score"]
 
@@ -268,12 +270,12 @@ class DataBinning(Component):
     ).tag(config=True)
 
     fov_offset_min = Float(
-        help="Minimum value for FoV Offset bins",
+        help="Minimum value for FoV Offset bins in degrees",
         default_value=0.1,
     ).tag(config=True)
 
     fov_offset_max = Float(
-        help="Maximum value for FoV offset bins",
+        help="Maximum value for FoV offset bins in degrees",
         default_value=1.1,
     ).tag(config=True)
 
