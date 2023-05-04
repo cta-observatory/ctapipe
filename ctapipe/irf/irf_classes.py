@@ -281,7 +281,7 @@ class DataBinning(Component):
 
     fov_offset_n_edges = Integer(
         help="Number of edges for FoV offset bins",
-        default_value=9,
+        default_value=2,
     ).tag(config=True)
 
     bkg_fov_offset_min = Float(
