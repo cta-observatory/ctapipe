@@ -39,7 +39,7 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
 from ..core import Provenance, Tool
 from ..io import TableLoader
-from ..irf import DataBinning, ToolConfig, EventPreProcessor
+from ..irf import DataBinning, EventPreProcessor, ToolConfig
 
 PYIRF_SPECTRA = {
     "CRAB_HEGRA": CRAB_HEGRA,
@@ -52,9 +52,9 @@ class IrfTool(Tool):
     name = "ctapipe-make-irfs"
     description = "Tool to create IRF files in GAD format"
 
-    classes = [ DataBinning, ToolConfig,EventPreProcessor]
+    classes = [DataBinning, ToolConfig, EventPreProcessor]
 
-    def make_derived_columns(self,kind, events, spectrum, target_spectrum):
+    def make_derived_columns(self, kind, events, spectrum, target_spectrum):
         events["pointing_az"] = 0 * u.deg
         events["pointing_alt"] = 70 * u.deg
 
@@ -70,9 +70,9 @@ class IrfTool(Tool):
         events["reco_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="reco"
         )
-        # Gamma source is assumed to be pointlike 
+        # Gamma source is assumed to be pointlike
         if kind == "gamma":
-            spectrum = spectrum.integrate_cone(0*u.deg,self.tc.ON_radius*u.deg)
+            spectrum = spectrum.integrate_cone(0 * u.deg, self.tc.ON_radius * u.deg)
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=target_spectrum,
@@ -85,7 +85,7 @@ class IrfTool(Tool):
         sim = loader.read_simulation_configuration()
 
         # These sims better have the same viewcone!
-        assert( sim["max_viewcone_radius"].std() == 0)
+        assert sim["max_viewcone_radius"].std() == 0
         sim_info = SimulatedEventsInfo(
             n_showers=sum(sim["n_showers"] * sim["shower_reuse"]),
             energy_min=sim["energy_range_min"].quantity[0],
@@ -109,7 +109,11 @@ class IrfTool(Tool):
         for kind, file, target_spectrum in [
             ("gamma", self.tc.gamma_file, PYIRF_SPECTRA[self.tc.gamma_sim_spectrum]),
             ("proton", self.tc.proton_file, PYIRF_SPECTRA[self.tc.proton_sim_spectrum]),
-            ("electron", self.tc.electron_file, PYIRF_SPECTRA[self.tc.electron_sim_spectrum]),
+            (
+                "electron",
+                self.tc.electron_file,
+                PYIRF_SPECTRA[self.tc.electron_sim_spectrum],
+            ),
         ]:
             with TableLoader(file, **opts) as load:
                 Provenance().add_input_file(file)
@@ -123,14 +127,13 @@ class IrfTool(Tool):
                 ):
                     selected = self.eps._preselect_events(events)
                     selected = self.make_derived_columns(
-                        kind,
-                        selected, spectrum, target_spectrum
+                        kind, selected, spectrum, target_spectrum
                     )
                     table = vstack([table, selected])
 
                 reduced_events[kind] = table
 
-        select_ON = reduced_events["gamma"]["theta"] <= self.tc.ON_radius*u.deg
+        select_ON = reduced_events["gamma"]["theta"] <= self.tc.ON_radius * u.deg
         self.signal = reduced_events["gamma"][select_ON]
         self.background = vstack([reduced_events["proton"], reduced_events["electron"]])
 
@@ -224,8 +227,8 @@ class IrfTool(Tool):
             reco_energy_bins=self.reco_energy_bins,
             theta_cuts=self.theta_cuts_opt,
             alpha=self.tc.alpha,
-            fov_offset_min=self.bins.fov_offset_min*u.deg,
-            fov_offset_max=self.bins.fov_offset_max*u.deg,
+            fov_offset_min=self.bins.fov_offset_min * u.deg,
+            fov_offset_max=self.bins.fov_offset_max * u.deg,
         )
         self.sensitivity = calculate_sensitivity(
             signal_hist, background_hist, alpha=self.tc.alpha
