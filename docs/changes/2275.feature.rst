@@ -1,1 +1,1 @@
-Add image fitting algorithm for image parametrization
+Add parametric model fitting algorithm for image parametrization

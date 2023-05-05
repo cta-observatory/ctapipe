@@ -38,7 +38,7 @@ __all__ = [
     "WaveformModel",
     "Gaussian",
     "SkewedGaussian",
-    "SkewedLaplace",
+    "SkewedGaussianLaplace",
     "ImageModel",
     "obtain_time_image",
 ]
@@ -260,15 +260,15 @@ class Gaussian(ImageModel):
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
-        amplitude : normalization amplitude
+        amplitude : float
+            normalization amplitude
 
         Returns
         -------
-        a `scipy.stats` object
-
+        model : ndarray
+            2D Gaussian distribution
         """
 
-        self.unit = x.unit
         self.x = x
         self.y = y
         self.width = width
@@ -324,11 +324,13 @@ class SkewedGaussian(ImageModel):
             rotation angle about the centroid (0=x-axis)
         skewness: float
             skewness of the shower in longitudinal direction
-        amplitude : normalization amplitude
+        amplitude : float
+            normalization amplitude
 
         Returns
         -------
-        a `scipy.stats` object
+        model : ndarray
+            2D Skewed Gaussian distribution
 
         """
         self.unit = x.unit
@@ -406,7 +408,7 @@ class RingGaussian(ImageModel):
         return self.dist.pdf(r)
 
 
-class SkewedLaplace(ImageModel):
+class SkewedGaussianLaplace(ImageModel):
     """A shower image that has a skewness along the major axis and follows the Laplace distribution along the
     transverse axis"""
 
@@ -432,11 +434,13 @@ class SkewedLaplace(ImageModel):
             rotation angle about the centroid (0=x-axis)
         skewness: float
             skewness of the shower in longitudinal direction
-        amplitude : normalization amplitude
+        amplitude : float
+            normalization amplitude
 
         Returns
         -------
-        a `scipy.stats` object
+        model : ndarray
+            Skewed Gaussian * Laplace distribution
 
         """
         self.x = x
