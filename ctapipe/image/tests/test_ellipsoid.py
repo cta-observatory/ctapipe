@@ -111,13 +111,13 @@ def test_fit_selected(prod5_lst):
     results = image_fit_parameters(
         geom,
         image_zeros,
-        n=2,
+        n_row=2,
         cleaned_mask=clean_mask,
     )
     results_selected = image_fit_parameters(
         geom,
         image_selected,
-        n=2,
+        n_row=2,
         cleaned_mask=clean_mask,
     )
     compare_fit_params(results, results_selected)
@@ -130,7 +130,7 @@ def test_dilation(prod5_lst):
     results = image_fit_parameters(
         geom,
         image,
-        n=0,
+        n_row=0,
         cleaned_mask=clean_mask,
     )
 
@@ -139,7 +139,7 @@ def test_dilation(prod5_lst):
     results = image_fit_parameters(
         geom,
         image,
-        n=2,
+        n_row=2,
         cleaned_mask=clean_mask,
     )
 
@@ -154,7 +154,7 @@ def test_imagefit_failure(prod5_lst):
         image_fit_parameters(
             geom,
             blank_image,
-            n=2,
+            n_row=2,
             cleaned_mask=(blank_image == 1),
         )
 
@@ -166,7 +166,7 @@ def test_fit_container(prod5_lst):
     params = image_fit_parameters(
         geom,
         image,
-        n=2,
+        n_row=2,
         cleaned_mask=clean_mask,
     )
     assert isinstance(params, ImageFitParametersContainer)
@@ -190,7 +190,7 @@ def test_truncated(prod5_lst):
 
         # Gaussian
         result = image_fit_parameters(
-            geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
+            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
         )
 
         hillas = hillas_parameters(geom, cleaned_image)
@@ -205,7 +205,7 @@ def test_truncated(prod5_lst):
 
         # Skewed
         result = image_fit_parameters(
-            geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("skewed")
+            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("skewed")
         )
 
         assert result.length.value > hillas.length.value
@@ -217,7 +217,7 @@ def test_truncated(prod5_lst):
 
         # Laplace
         result = image_fit_parameters(
-            geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("laplace")
+            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("laplace")
         )
 
         assert result.length.value > hillas.length.value
@@ -245,7 +245,7 @@ def test_percentage(prod5_lst):
             image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
             fit = image_fit_parameters(
-                geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
+                geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
             )
 
             cleaned_image = image.copy()
@@ -280,7 +280,7 @@ def test_with_toy(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
-            model_laplace = toymodel.SkewedLaplace(
+            model_laplace = toymodel.SkewedGaussianLaplace(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
 
@@ -292,7 +292,7 @@ def test_with_toy(prod5_lst):
             result = image_fit_parameters(
                 geom,
                 signal,
-                n=0,
+                n_row=0,
                 cleaned_mask=clean_mask,
                 pdf=PDFType("gaussian"),
             )
@@ -313,7 +313,7 @@ def test_with_toy(prod5_lst):
 
             clean_mask = np.array(signal) > 0
             result = image_fit_parameters(
-                geom, signal, n=0, cleaned_mask=clean_mask, pdf=PDFType("skewed")
+                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("skewed")
             )
 
             if result.is_valid or result.is_accurate:
@@ -331,7 +331,7 @@ def test_with_toy(prod5_lst):
             )
             clean_mask = np.array(signal) > 0
             result = image_fit_parameters(
-                geom, signal, n=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
+                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
             )
 
             if result.is_valid or result.is_accurate:
@@ -368,7 +368,7 @@ def test_with_toy_alternative_bounds(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
-            model_laplace = toymodel.SkewedLaplace(
+            model_laplace = toymodel.SkewedGaussianLaplace(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
 
@@ -381,7 +381,7 @@ def test_with_toy_alternative_bounds(prod5_lst):
             result = image_fit_parameters(
                 geom,
                 signal,
-                n=0,
+                n_row=0,
                 cleaned_mask=clean_mask,
                 pdf=PDFType("gaussian"),
                 bounds=bounds,
@@ -406,7 +406,7 @@ def test_with_toy_alternative_bounds(prod5_lst):
             result = image_fit_parameters(
                 geom,
                 signal,
-                n=0,
+                n_row=0,
                 cleaned_mask=clean_mask,
                 pdf=PDFType("skewed"),
                 bounds=bounds,
@@ -430,7 +430,7 @@ def test_with_toy_alternative_bounds(prod5_lst):
             result = image_fit_parameters(
                 geom,
                 signal,
-                n=0,
+                n_row=0,
                 cleaned_mask=clean_mask,
                 pdf=PDFType("laplace"),
                 bounds=bounds,
@@ -469,7 +469,7 @@ def test_skewness(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=skew
             )
-            model_laplace = toymodel.SkewedLaplace(
+            model_laplace = toymodel.SkewedGaussianLaplace(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=skew
             )
 
@@ -479,7 +479,7 @@ def test_skewness(prod5_lst):
 
             clean_mask = np.array(signal) > 0
             result = image_fit_parameters(
-                geom, signal, n=0, cleaned_mask=clean_mask, pdf=PDFType("skewed")
+                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("skewed")
             )
 
             if result.is_valid or result.is_accurate:
@@ -507,7 +507,7 @@ def test_skewness(prod5_lst):
             )
             clean_mask = np.array(signal) > 0
             result = image_fit_parameters(
-                geom, signal, n=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
+                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
             )
 
             if result.is_valid or result.is_accurate:
@@ -529,6 +529,29 @@ def test_skewness(prod5_lst):
                     assert result.skewness == approx(-skew, abs=0.3)
 
                 assert signal.sum() == result.intensity
+
+
+def test_gaussian_skewness(prod5_lst):
+    rng = np.random.default_rng(42)
+    geom = prod5_lst.camera.geometry
+
+    model_gaussian = toymodel.Gaussian(
+        x=0 * u.m,
+        y=0 * u.m,
+        width=0.02 * u.m,
+        length=0.1 * u.m,
+        psi=20 * u.deg,
+    )
+
+    image, signal, noise = model_gaussian.generate_image(
+        geom, intensity=1500, nsb_level_pe=0, rng=rng
+    )
+
+    clean_mask = np.array(signal) > 0
+    result = image_fit_parameters(
+        geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
+    )
+    assert result.skewness == 0
 
 
 @pytest.mark.filterwarnings("error")
@@ -553,15 +576,15 @@ def test_single_pixel():
 
     with pytest.raises(ImageFitParameterizationError):
         image_fit_parameters(
-            geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("laplace")
+            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("laplace")
         )
 
     with pytest.raises(ImageFitParameterizationError):
         image_fit_parameters(
-            geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("skewed")
+            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("skewed")
         )
 
     with pytest.raises(ImageFitParameterizationError):
         image_fit_parameters(
-            geom, image, n=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
+            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
         )
