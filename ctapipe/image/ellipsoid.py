@@ -14,14 +14,22 @@ from iminuit import Minuit
 from ctapipe.image.cleaning import dilate
 from ctapipe.image.hillas import hillas_parameters
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
-from ctapipe.image.toymodel import Gaussian, SkewedGaussian, SkewedLaplace
+from ctapipe.image.toymodel import SkewedGaussian, SkewedGaussianLaplace
 
 from ..containers import ImageFitParametersContainer
 
+PED_TABLE = {
+    "LSTCam": 2.8,
+    "NectarCam": 2.3,
+    "FlashCam": 2.3,
+    "SST-Camera": 0.5,
+    "CHEC": 0.5,
+    "DUMMY": 0,
+    "testcam": 0,
+}
+SPE_WIDTH = 0.5
+
 __all__ = [
-    "create_initial_guess",
-    "sensible_boundaries",
-    "boundaries",
     "image_fit_parameters",
     "ImageFitParameterizationError",
     "PDFType",
@@ -39,16 +47,17 @@ def create_initial_guess(geometry, image, size):
     This function computes the seeds of the fit with the Hillas parameters
     Parameters
     ----------
-    geometry : ctapipe.instrument.CameraGeometry
+    geometry: ctapipe.instrument.CameraGeometry
         Camera geometry, the cleaning mask should be applied to improve performance
-    image : ndarray
+    image: ndarray
         Charge in each pixel, the cleaning mask should already be applied to
         improve performance.
-    size : float/int
+    size: float/int
         Total charge after cleaning and dilation
     Returns
     -------
-    initial_guess : seed
+    initial_guess: dict
+    Seed parameters of the fit.
     """
     unit = geometry.pix_x.unit
     hillas = hillas_parameters(geometry, image)  # compute Hillas parameters
@@ -56,15 +65,16 @@ def create_initial_guess(geometry, image, size):
     initial_guess = {}
 
     if unit.is_equivalent(u.m):
-        initial_guess["x"] = hillas.x
-        initial_guess["y"] = hillas.y
+        initial_guess["cog_x"] = hillas.x.to_value(unit)
+        initial_guess["cog_y"] = hillas.y.to_value(unit)
     else:
-        initial_guess["x"] = hillas.fov_lon
-        initial_guess["y"] = hillas.fov_lat
+        initial_guess["x"] = hillas.fov_lon.to_value(unit)
+        initial_guess["y"] = hillas.fov_lat.to_value(unit)
 
-    initial_guess["length"] = hillas.length
-    initial_guess["width"] = hillas.width
-    initial_guess["psi"] = hillas.psi
+    initial_guess["length"] = hillas.length.to_value(unit)
+    initial_guess["width"] = hillas.width.to_value(unit)
+    initial_guess["psi"] = hillas.psi.value
+
     initial_guess["skewness"] = hillas.skewness
 
     if (hillas.width.to_value(unit) == 0) or (hillas.length.to_value(unit) == 0):
@@ -74,23 +84,27 @@ def create_initial_guess(geometry, image, size):
     return initial_guess
 
 
-def extra_rows(n, cleaned_mask, geometry):
+def dilation(n, cleaned_mask, geometry):
     """
     This function adds n extra rows of pixels around the cleaned image
     Parameters
     ----------
     n : int
        number of extra rows to add after cleaning
-    cleaned_mask : boolean
-       The cleaning mask applied for Hillas parametrization
+    cleaned_mask : ndarray
+       Cleaning mask (array of booleans) applied for Hillas parametrization
     geometry : ctapipe.instrument.CameraGeometry
         Camera geometry
+    Returns
+    -------
+    dilated_mask: ndarray of booleans
+    Cleaning mask after dilation
     """
-    mask = cleaned_mask.copy()
+    dilated_mask = cleaned_mask.copy()
     for row in range(n):
-        mask = dilate(geometry, mask)
+        dilated_mask = dilate(geometry, dilated_mask)
 
-    return mask
+    return dilated_mask
 
 
 def sensible_boundaries(geometry, cleaned_image, pdf):
@@ -126,23 +140,13 @@ def sensible_boundaries(geometry, cleaned_image, pdf):
     skew_min, skew_max = -0.99, 0.99
     ampl_min, ampl_max = 0, np.inf
 
-    if pdf != PDFType.gaussian:
-        return [
-            (cogx_min.to_value(unit), cogx_max.to_value(unit)),
-            (cogy_min.to_value(unit), cogy_max.to_value(unit)),
-            (psi_min, psi_max),
-            (length_min.to_value(unit), length_max.to_value(unit)),
-            (width_min.to_value(unit), width_max.to_value(unit)),
-            (skew_min, skew_max),
-            (ampl_min, ampl_max),
-        ]
-
     return [
         (cogx_min.to_value(unit), cogx_max.to_value(unit)),
         (cogy_min.to_value(unit), cogy_max.to_value(unit)),
         (psi_min, psi_max),
         (length_min.to_value(unit), length_max.to_value(unit)),
         (width_min.to_value(unit), width_max.to_value(unit)),
+        (skew_min, skew_max),
         (ampl_min, ampl_max),
     ]
 
@@ -156,8 +160,8 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         Camera geometry
     image : ndarray
         Charge in each pixel, no cleaning mask should be applied
-    dilated_mask : boolean
-        mask after image cleaning and dilation
+    dilated_mask : ndarray
+        mask (array of booleans) after image cleaning and dilation
     x0 : dict
        seeds of the fit
     pdf: PDFType instance
@@ -181,9 +185,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     max_y = np.max(y[dilated_mask])
     min_y = np.min(y[dilated_mask])
 
-    psi_min, psi_max = max(x0["psi"].value - 0.2, -np.pi / 2), min(
-        x0["psi"].value + 0.2, np.pi / 2
-    )
+    psi_min, psi_max = max(x0["psi"] - 0.2, -np.pi / 2), min(x0["psi"] + 0.2, np.pi / 2)
 
     cogx_min, cogx_max = np.sign(min_x) * min(np.abs(min_x), camera_radius), np.sign(
         max_x
@@ -193,29 +195,25 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         max_y
     ) * min(np.abs(max_y), camera_radius)
 
-    if (
-        np.sqrt(x0["x"].value ** 2 + x0["y"].value ** 2) > 0.8 * camera_radius
-    ):  # truncated
-        if (x0["x"] > 0) & (x0["y"] > 0):
+    if np.sqrt(x0["cog_x"] ** 2 + x0["cog_y"] ** 2) > 0.8 * camera_radius:  # truncated
+        if (x0["cog_x"] > 0) & (x0["cog_y"] > 0):
             max_x = 2 * max_x
             max_y = 2 * max_y
-        if (x0["x"] < 0) & (x0["y"] > 0):
+        if (x0["cog_x"] < 0) & (x0["cog_y"] > 0):
             min_x = 2 * min_x
             max_y = 2 * max_y
-        if (x0["x"] < 0) & (x0["y"] < 0):
+        if (x0["cog_x"] < 0) & (x0["cog_y"] < 0):
             min_x = 2 * min_x
             min_y = 2 * min_y
-        if (x0["x"] > 0) & (x0["y"] < 0):
+        if (x0["cog_x"] > 0) & (x0["cog_y"] < 0):
             max_x = 2 * max_x
             min_y = 2 * min_y
 
     long_dis = np.sqrt((max_x - min_x) ** 2 + (max_y - min_y) ** 2)
 
-    width_unc = u.Quantity(0.05, unit)
-    length_min, length_max = x0["length"].value, long_dis
-    width_min, width_max = x0["width"].value, x0["width"].value + width_unc.to_value(
-        unit
-    )
+    width_unc = 0.05
+    length_min, length_max = x0["length"], long_dis
+    width_min, width_max = x0["width"], x0["width"] + width_unc
 
     scale = length_min / np.sqrt(1 - 2 / np.pi)
     skew_min, skew_max = min(max(-0.99, x0["skewness"] - 0.3), 0.99), max(
@@ -228,23 +226,19 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         (psi_min, psi_max),
         (length_min, length_max),
         (width_min, width_max),
+        (skew_min, skew_max),
     ]
 
     if pdf == PDFType.gaussian:
         amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
-        bounds.append((0, amplitude))
-
     elif pdf == PDFType.skewed:
         amplitude = np.sum(row_image) / scale / (2 * np.pi * width_min)
-        bounds.append((skew_min, skew_max))
-        bounds.append((0, amplitude))
-
     else:
         amplitude = (
             np.sum(row_image) / scale / (np.sqrt(2 * np.pi) * np.sqrt(2) * width_min)
         )
-        bounds.append((skew_min, skew_max))
-        bounds.append((0, amplitude))
+
+    bounds.append((0, amplitude))
 
     return bounds
 
@@ -256,7 +250,7 @@ class ImageFitParameterizationError(RuntimeError):
 def image_fit_parameters(
     geom,
     image,
-    n,
+    n_row,
     cleaned_mask,
     pdf=PDFType("skewed"),
     bounds=None,
@@ -270,12 +264,13 @@ def image_fit_parameters(
         Camera geometry
     image : ndarray
         Charge in each pixel, no cleaning mask should be applied
-    bounds : default format [(low_x, high_x), (low_y, high_y), ...]
+    bounds : list
+        default format: [(low_x, high_x), (low_y, high_y), ...]
         Boundary conditions. If bounds == None, boundaries function is applied as a default.
-    n : int
-      number of extra rows to add after cleaning
-    cleaned_mask : boolean
-       Cleaning mask after cleaning
+    n_row : int
+      number of extra rows of neighbors added to the cleaning mask
+    cleaned_mask : ndarray
+       Cleaning mask (array of booleans) after cleaning
     pdf: PDFType instance
         e.g. PDFType("gaussian")
     Returns
@@ -288,22 +283,12 @@ def image_fit_parameters(
     # currently this is not available from the calibration,
     # so for now lets hard code it in a dict
 
-    ped_table = {
-        "LSTCam": 2.8,
-        "NectarCam": 2.3,
-        "FlashCam": 2.3,
-        "SST-Camera": 0.5,
-        "CHEC": 0.5,
-        "DUMMY": 0,
-        "testcam": 0,
-    }
-    spe_width = 0.5
-    pedestal = ped_table[geom.name]
+    pedestal = PED_TABLE[geom.name]
     pdf = PDFType(pdf)
     pdf_dict = {
-        PDFType.gaussian: Gaussian,
+        PDFType.gaussian: SkewedGaussian,
         PDFType.skewed: SkewedGaussian,
-        PDFType.laplace: SkewedLaplace,
+        PDFType.laplace: SkewedGaussianLaplace,
     }
 
     unit = geom.pix_x.unit
@@ -324,7 +309,7 @@ def image_fit_parameters(
     cleaned_image[~cleaned_mask] = 0.0
     cleaned_image[cleaned_image < 0] = 0.0
 
-    dilated_mask = extra_rows(n, cleaned_mask, geom)
+    dilated_mask = dilation(n_row, cleaned_mask, geom)
     dilated_image = image.copy()
     dilated_image[~dilated_mask] = 0.0
     dilated_image[dilated_image < 0] = 0.0
@@ -337,8 +322,8 @@ def image_fit_parameters(
             "The number of free parameters is higher than the number of pixels to fit, cannot perform fit"
         )
 
-    def fit(cog_x, cog_y, psi, length, width, skewness, amplitude):
-        prediction = pdf_dict[pdf](
+    def likelihood(cog_x, cog_y, psi, length, width, skewness, amplitude):
+        parameters = [
             cog_x * unit,
             cog_y * unit,
             length * unit,
@@ -346,49 +331,27 @@ def image_fit_parameters(
             psi * u.rad,
             skewness,
             amplitude,
-        ).pdf(geom.pix_x, geom.pix_y)
+        ]
+
+        prediction = pdf_dict[pdf](*parameters).pdf(geom.pix_x, geom.pix_y)
+
         prediction[np.isnan(prediction)] = 1e9
-        like = neg_log_likelihood_approx(dilated_image, prediction, spe_width, pedestal)
+        like = neg_log_likelihood_approx(dilated_image, prediction, SPE_WIDTH, pedestal)
         if np.isnan(like):
             like = 1e9
         return like
 
-    def fit_gauss(cog_x, cog_y, psi, length, width, amplitude):
-        prediction = pdf_dict[pdf](
-            cog_x * unit,
-            cog_y * unit,
-            length * unit,
-            width * unit,
-            psi * u.rad,
-            amplitude,
-        ).pdf(geom.pix_x, geom.pix_y)
-        prediction[np.isnan(prediction)] = 1e9
-        like = neg_log_likelihood_approx(dilated_image, prediction, spe_width, pedestal)
-        if np.isnan(like):
-            like = 1e9
-        return like
+    if pdf == PDFType.gaussian:
+        x0["skewness"] = 0
 
-    if pdf != PDFType.gaussian:
-        m = Minuit(
-            fit,
-            cog_x=x0["x"].to_value(unit),
-            cog_y=x0["y"].to_value(unit),
-            length=x0["length"].to_value(unit),
-            width=x0["width"].to_value(unit),
-            psi=x0["psi"].value,
-            skewness=x0["skewness"],
-            amplitude=x0["amplitude"],
-        )
-    else:
-        m = Minuit(
-            fit_gauss,
-            cog_x=x0["x"].to_value(unit),
-            cog_y=x0["y"].to_value(unit),
-            length=x0["length"].to_value(unit),
-            width=x0["width"].to_value(unit),
-            psi=x0["psi"].value,
-            amplitude=x0["amplitude"],
-        )
+    m = Minuit(
+        likelihood,
+        **x0,
+    )
+
+    if pdf == PDFType.gaussian:
+        m.fixed = np.zeros(len(x0.values()))
+        m.fixed[-2] = True
 
     if bounds is None:
         bounds = boundaries(geom, image, dilated_mask, x0, pdf)
@@ -423,17 +386,10 @@ def image_fit_parameters(
     m4_long = np.average(longitudinal**4, weights=dilated_image)
     kurtosis_long = m4_long / pars[3] ** 4
 
-    if pdf != PDFType.gaussian:
-        skewness_long = pars[5]
-        skewness_uncertainty = errors[5]
-        amplitude = pars[6]
-        amplitude_uncertainty = errors[6]
-    else:
-        m3_long = np.average(longitudinal**3, weights=dilated_image)
-        skewness_long = m3_long / pars[3] ** 3
-        skewness_uncertainty = np.nan
-        amplitude = pars[5]
-        amplitude_uncertainty = errors[5]
+    skewness_long = pars[5]
+    skewness_uncertainty = errors[5]
+    amplitude = pars[6]
+    amplitude_uncertainty = errors[6]
 
     return ImageFitParametersContainer(
         x=u.Quantity(pars[0], unit),

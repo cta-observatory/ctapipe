@@ -5,7 +5,6 @@ from ..containers import (
     CameraHillasParametersContainer,
     ConcentrationContainer,
     HillasParametersContainer,
-    ImageFitParametersContainer,
 )
 from ..instrument import CameraGeometry
 from ..utils.quantities import all_to_value
@@ -25,7 +24,7 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     """
 
     h = hillas_parameters
-    if isinstance(h, (CameraHillasParametersContainer, ImageFitParametersContainer)):
+    if isinstance(h, CameraHillasParametersContainer):
         unit = h.x.unit
         pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
             geom.pix_x,
@@ -37,7 +36,7 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
             geom.pixel_width,
             unit=unit,
         )
-    elif isinstance(h, (HillasParametersContainer, ImageFitParametersContainer)):
+    elif isinstance(h, HillasParametersContainer):
         unit = h.fov_lon.unit
         pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
             geom.pix_x,
