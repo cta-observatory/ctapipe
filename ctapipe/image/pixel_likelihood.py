@@ -86,10 +86,6 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
         Width of single p.e. peak (:math:`σ_γ`).
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
-    goodness_of_fit: boolean
-        If True, it returns goodness of fit
-    dof: int
-        Number of degrees of freedom
 
     Returns
     -------

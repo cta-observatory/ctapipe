@@ -16,7 +16,7 @@ from ctapipe.image.hillas import hillas_parameters
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
 from ctapipe.image.toymodel import Gaussian, SkewedGaussian, SkewedLaplace
 
-from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
+from ..containers import ImageFitParametersContainer
 
 __all__ = [
     "create_initial_guess",
@@ -222,46 +222,31 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         -0.99, min(0.99, x0["skewness"] + 0.3)
     )
 
+    bounds = [
+        (cogx_min, cogx_max),
+        (cogy_min, cogy_max),
+        (psi_min, psi_max),
+        (length_min, length_max),
+        (width_min, width_max),
+    ]
+
     if pdf == PDFType.gaussian:
         amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
+        bounds.append((0, amplitude))
 
-        return [
-            (cogx_min, cogx_max),
-            (cogy_min, cogy_max),
-            (psi_min, psi_max),
-            (length_min, length_max),
-            (width_min, width_max),
-            (0, amplitude),
-        ]
-    if pdf == PDFType.skewed:
-        amplitude = np.sum(row_image) / scale * 1 / (2 * np.pi * width_min)
+    elif pdf == PDFType.skewed:
+        amplitude = np.sum(row_image) / scale / (2 * np.pi * width_min)
+        bounds.append((skew_min, skew_max))
+        bounds.append((0, amplitude))
 
-        return [
-            (cogx_min, cogx_max),
-            (cogy_min, cogy_max),
-            (psi_min, psi_max),
-            (length_min, length_max),
-            (width_min, width_max),
-            (skew_min, skew_max),
-            (0, amplitude),
-        ]
-    if pdf == PDFType.laplace:
+    else:
         amplitude = (
-            np.sum(row_image)
-            / scale
-            * 1
-            / (np.sqrt(2 * np.pi) * np.sqrt(2) * width_min)
+            np.sum(row_image) / scale / (np.sqrt(2 * np.pi) * np.sqrt(2) * width_min)
         )
+        bounds.append((skew_min, skew_max))
+        bounds.append((0, amplitude))
 
-        return [
-            (cogx_min, cogx_max),
-            (cogy_min, cogy_max),
-            (psi_min, psi_max),
-            (length_min, length_max),
-            (width_min, width_max),
-            (skew_min, skew_max),
-            (0, amplitude),
-        ]
+    return bounds
 
 
 class ImageFitParameterizationError(RuntimeError):
@@ -443,48 +428,18 @@ def image_fit_parameters(
         skewness_uncertainty = errors[5]
         amplitude = pars[6]
         amplitude_uncertainty = errors[6]
-        n_free_pars = 6
     else:
         m3_long = np.average(longitudinal**3, weights=dilated_image)
         skewness_long = m3_long / pars[3] ** 3
         skewness_uncertainty = np.nan
         amplitude = pars[5]
         amplitude_uncertainty = errors[5]
-        n_free_pars = 7
 
-    if unit.is_equivalent(u.m):
-        return CameraImageFitParametersContainer(
-            x=u.Quantity(pars[0], unit),
-            x_uncertainty=u.Quantity(errors[0], unit),
-            y=u.Quantity(pars[1], unit),
-            y_uncertainty=u.Quantity(errors[1], unit),
-            r=u.Quantity(fit_rcog, unit),
-            r_uncertainty=u.Quantity(fit_rcog_err, unit),
-            phi=Angle(fit_phi, unit=u.rad),
-            phi_uncertainty=Angle(fit_phi_err, unit=u.rad),
-            intensity=size,
-            amplitude=amplitude,
-            amplitude_uncertainty=amplitude_uncertainty,
-            length=u.Quantity(pars[3], unit),
-            length_uncertainty=u.Quantity(errors[3], unit),
-            width=u.Quantity(pars[4], unit),
-            width_uncertainty=u.Quantity(errors[4], unit),
-            psi=Angle(pars[2], unit=u.rad),
-            psi_uncertainty=Angle(errors[2], unit=u.rad),
-            skewness=skewness_long,
-            skewness_uncertainty=skewness_uncertainty,
-            kurtosis=kurtosis_long,
-            likelihood=likelihood,
-            n_pix_fit=np.count_nonzero(cleaned_image),
-            n_free_par=n_free_pars,
-            is_valid=m.valid,
-            is_accurate=m.accurate,
-        )
     return ImageFitParametersContainer(
-        fov_lon=u.Quantity(pars[0], unit),
-        fov_lon_uncertainty=u.Quantity(errors[0], unit),
-        fov_lat=u.Quantity(pars[1], unit),
-        fov_lat_uncertainty=u.Quantity(errors[1], unit),
+        x=u.Quantity(pars[0], unit),
+        x_uncertainty=u.Quantity(errors[0], unit),
+        y=u.Quantity(pars[1], unit),
+        y_uncertainty=u.Quantity(errors[1], unit),
         r=u.Quantity(fit_rcog, unit),
         r_uncertainty=u.Quantity(fit_rcog_err, unit),
         phi=Angle(fit_phi, unit=u.rad),
@@ -503,7 +458,7 @@ def image_fit_parameters(
         kurtosis=kurtosis_long,
         likelihood=likelihood,
         n_pix_fit=np.count_nonzero(cleaned_image),
-        n_free_par=n_free_pars,
+        n_free_par=m.nfit,
         is_valid=m.valid,
         is_accurate=m.accurate,
     )

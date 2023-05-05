@@ -3,7 +3,6 @@ import numpy as np
 
 from ..containers import (
     CameraHillasParametersContainer,
-    CameraImageFitParametersContainer,
     ConcentrationContainer,
     HillasParametersContainer,
     ImageFitParametersContainer,
@@ -26,9 +25,7 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     """
 
     h = hillas_parameters
-    if isinstance(
-        h, (CameraHillasParametersContainer, CameraImageFitParametersContainer)
-    ):
+    if isinstance(h, (CameraHillasParametersContainer, ImageFitParametersContainer)):
         unit = h.x.unit
         pix_x, pix_y, x, y, length, width, pixel_width = all_to_value(
             geom.pix_x,

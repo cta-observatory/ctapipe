@@ -7,11 +7,7 @@ from numpy import isclose
 from numpy.testing import assert_allclose
 from pytest import approx
 
-from ctapipe.containers import (
-    CameraImageFitParametersContainer,
-    ImageFitParametersContainer,
-)
-from ctapipe.coordinates import TelescopeFrame
+from ctapipe.containers import ImageFitParametersContainer
 from ctapipe.image import hillas_parameters, tailcuts_clean, toymodel
 from ctapipe.image.concentration import concentration_parameters
 from ctapipe.image.ellipsoid import (
@@ -169,15 +165,6 @@ def test_fit_container(prod5_lst):
 
     params = image_fit_parameters(
         geom,
-        image,
-        n=2,
-        cleaned_mask=clean_mask,
-    )
-    assert isinstance(params, CameraImageFitParametersContainer)
-
-    geom_telescope_frame = geom.transform_to(TelescopeFrame())
-    params = image_fit_parameters(
-        geom_telescope_frame,
         image,
         n=2,
         cleaned_mask=clean_mask,
