@@ -255,6 +255,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         event.dl2.stereo.geometry[self.__class__.__name__] = shower_result
         event.dl2.stereo.energy[self.__class__.__name__] = energy_result
 
+        self._store_impact_parameter(event)
+
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
         and if not do it and add to the dictionary
