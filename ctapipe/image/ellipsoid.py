@@ -13,7 +13,10 @@ from iminuit import Minuit
 
 from ctapipe.image.cleaning import dilate
 from ctapipe.image.hillas import hillas_parameters
-from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
+from ctapipe.image.pixel_likelihood import (
+    mean_poisson_likelihood_gaussian,
+    neg_log_likelihood_approx,
+)
 from ctapipe.image.toymodel import SkewedGaussian, SkewedGaussianLaplace
 
 from ..containers import ImageFitParametersContainer
@@ -367,6 +370,25 @@ def image_fit_parameters(
     pars = m.values
     errors = m.errors
 
+    like_array = likelihood
+    like_array *= dilated_mask
+    goodness_of_fit = np.sum(
+        like_array[like_array > 0]
+        - mean_poisson_likelihood_gaussian(
+            pdf_dict[pdf](
+                pars[0] * unit,
+                pars[1] * unit,
+                pars[3] * unit,
+                pars[4] * unit,
+                pars[2] * u.rad,
+                pars[5],
+                pars[6],
+            ).pdf(geom.pix_x, geom.pix_y),
+            SPE_WIDTH,
+            pedestal,
+        )
+    )
+
     fit_rcog = np.linalg.norm([pars[0], pars[1]])
     fit_phi = np.arctan2(pars[1], pars[0])
 
@@ -413,6 +435,7 @@ def image_fit_parameters(
         skewness_uncertainty=skewness_uncertainty,
         kurtosis=kurtosis_long,
         likelihood=likelihood,
+        goodness_of_fit=goodness_of_fit,
         n_pix_fit=np.count_nonzero(cleaned_image),
         n_free_par=m.nfit,
         is_valid=m.valid,

@@ -289,6 +289,9 @@ class ImageFitParametersContainer(CameraHillasParametersContainer):
 
     skewness_uncertainty = Field(nan, "measure of skewness uncertainty")
     likelihood = Field(nan, "measure of likelihood")
+    goodness_of_fit = Field(
+        nan, "measure of goodness of fit, mean likelihood subtracted to the likelihood"
+    )
     n_pix_fit = Field(nan, "number of pixels used in the fit")
     n_free_par = Field(nan, "number of free parameters")
     is_valid = Field(False, "True if the fit is valid")
