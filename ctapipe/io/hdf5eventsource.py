@@ -333,8 +333,19 @@ class HDF5EventSource(EventSource):
         """
         return self._simulation_configs
 
+    @lazyproperty
+    def _n_events_with_allowed_tels(self):
+        if self.allowed_tels is None:
+            return len(self.file_.root.dl1.event.subarray.trigger)
+
+        triggered_tels = self.file_.root.dl1.event.subarray.trigger.col(
+            "tels_with_trigger"
+        )
+        tel_idx = self.subarray.tel_ids_to_indices(self.allowed_tels)
+        return np.count_nonzero(np.any(triggered_tels[:, tel_idx], axis=1))
+
     def __len__(self):
-        n_events = len(self.file_.root.dl1.event.subarray.trigger)
+        n_events = self._n_events_with_allowed_tels
         if self.max_events is not None:
             return min(n_events, self.max_events)
         return n_events

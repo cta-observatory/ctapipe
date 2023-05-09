@@ -91,7 +91,15 @@ def test_tel_indexing(example_subarray):
         assert sub.tel_index_array[tel_id] == sub.tel_indices[tel_id]
 
     assert sub.tel_ids_to_indices(1) == 0
+    assert sub.tel_ids_to_indices(np.uint16(2)) == 1
     assert np.all(sub.tel_ids_to_indices([1, 2, 3]) == np.array([0, 1, 2]))
+
+    # test it also works with sets
+    assert np.all(sub.tel_ids_to_indices({1, 2, 3}) == np.array([0, 1, 2]))
+
+    # and dict-keys
+    tel_data = {1: "foo", 2: "bar", 3: "baz"}
+    assert np.all(sub.tel_ids_to_indices(tel_data.keys()) == np.array([0, 1, 2]))
 
 
 def test_tel_ids_to_mask(prod5_lst, reference_location):

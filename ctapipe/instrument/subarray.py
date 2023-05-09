@@ -206,7 +206,13 @@ class SubarrayDescription:
         np.array:
             array of corresponding tel indices
         """
-        tel_ids = np.array(tel_ids, dtype=int, copy=False).ravel()
+        if isinstance(tel_ids, (int, np.integer)):
+            pass
+        elif not isinstance(tel_ids, np.ndarray):
+            tel_ids = np.fromiter(tel_ids, dtype=int, count=len(tel_ids))
+        else:
+            tel_ids = np.array(tel_ids, dtype=int, copy=False).ravel()
+
         return self.tel_index_array[tel_ids]
 
     def tel_ids_to_mask(self, tel_ids):
