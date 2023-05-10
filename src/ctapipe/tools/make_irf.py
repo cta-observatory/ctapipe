@@ -287,6 +287,7 @@ class IrfTool(Tool):
             self.reco_energy_bins,
             energy_type="reco",
         )
+        hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
 
         # Here we use reconstructed energy instead of true energy for the sake of
         # current pipelines comparisons
@@ -295,13 +296,7 @@ class IrfTool(Tool):
             self.reco_energy_bins,
             energy_type="reco",
         )
-
-        psf = psf_table(
-            self.signal[self.signal["selected_gh"]],
-            self.true_energy_bins,
-            fov_offset_bins=self.fov_offset_bins,
-            source_offset_bins=self.source_offset_bins,
-        )
+        hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
 
         background_rate = background_2d(
             self.background[self.background["selected_gh"]],
@@ -309,7 +304,6 @@ class IrfTool(Tool):
             fov_offset_bins=self.bkg_fov_offset_bins,
             t_obs=self.tc.obs_time * u.Unit(self.tc.obs_time_unit),
         )
-
         hdus.append(
             create_background_2d_hdu(
                 background_rate,
@@ -318,6 +312,12 @@ class IrfTool(Tool):
             )
         )
 
+        psf = psf_table(
+            self.signal[self.signal["selected_gh"]],
+            self.true_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+            source_offset_bins=self.source_offset_bins,
+        )
         hdus.append(
             create_psf_table_hdu(
                 psf,
@@ -334,8 +334,6 @@ class IrfTool(Tool):
                 self.fov_offset_bins,
             )
         )
-        hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
-        hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
 
         self.log.info("Writing outputfile '%s'" % self.tc.output_path)
         fits.HDUList(hdus).writeto(
