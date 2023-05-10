@@ -6,11 +6,7 @@ import numpy as np
 from astropy.io import fits
 from astropy.table import vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
-from pyirf.binning import (
-    add_overflow_bins,
-    create_bins_per_decade,
-    create_histogram_table,
-)
+from pyirf.binning import create_histogram_table
 from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 from pyirf.io import (
@@ -138,12 +134,6 @@ class IrfTool(Tool):
         self.bins = DataBinning(parent=self)
         self.eps = EventPreProcessor(parent=self)
 
-        self.theta_bins = add_overflow_bins(
-            create_bins_per_decade(
-                self.sim_info.energy_min, self.sim_info.energy_max, 50
-            )
-        )
-
         self.reco_energy_bins = self.bins.reco_energy_bins()
         self.true_energy_bins = self.bins.true_energy_bins()
         self.source_offset_bins = self.bins.source_offset_bins()
@@ -166,7 +156,7 @@ class IrfTool(Tool):
         theta_cuts = calculate_percentile_cut(
             self.signal["theta"][mask_theta_cuts],
             self.signal["reco_energy"][mask_theta_cuts],
-            bins=self.theta_bins,
+            bins=self.true_energy_bins,
             min_value=self.bins.theta_min_angle * u.deg,
             max_value=self.bins.theta_max_angle * u.deg,
             fill_value=self.bins.theta_fill_value * u.deg,
