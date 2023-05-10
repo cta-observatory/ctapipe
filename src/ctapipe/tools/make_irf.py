@@ -193,7 +193,7 @@ class IrfTool(Tool):
         self.theta_cuts_opt = calculate_percentile_cut(
             self.signal[self.signal["selected_gh"]]["theta"],
             self.signal[self.signal["selected_gh"]]["reco_energy"],
-            self.theta_bins,
+            self.true_energy_bins,
             percentile=68,
             min_value=self.bins.theta_min_angle * u.deg,
             max_value=self.bins.theta_max_angle * u.deg,
