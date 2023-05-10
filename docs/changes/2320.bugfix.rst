@@ -1,0 +1,2 @@
+Fix StereoTrigger assuming the wrong data type for ``tels_with_trigger``, resulting in
+it not working for actual events read from an EventSource.
