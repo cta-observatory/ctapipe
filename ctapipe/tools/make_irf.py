@@ -99,11 +99,7 @@ class IrfTool(Tool):
             sim_info, obstime=self.tc.obs_time * u.Unit(self.tc.obs_time_unit)
         )
 
-    def setup(self):
-        self.tc = ToolConfig(parent=self)
-        self.bins = DataBinning(parent=self)
-        self.eps = EventPreProcessor(parent=self)
-
+    def load_preselected_events(self):
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
         reduced_events = dict()
         for kind, file, target_spectrum in [
@@ -137,6 +133,11 @@ class IrfTool(Tool):
         self.signal = reduced_events["gamma"][select_ON]
         self.background = vstack([reduced_events["proton"], reduced_events["electron"]])
 
+    def setup(self):
+        self.tc = ToolConfig(parent=self)
+        self.bins = DataBinning(parent=self)
+        self.eps = EventPreProcessor(parent=self)
+
         self.theta_bins = add_overflow_bins(
             create_bins_per_decade(
                 self.sim_info.energy_min, self.sim_info.energy_max, 50
@@ -151,6 +152,8 @@ class IrfTool(Tool):
         self.energy_migration_bins = self.bins.energy_migration_bins()
 
     def start(self):
+        self.load_preselected_events()
+
         INITIAL_GH_CUT = np.quantile(
             self.signal["gh_score"], (1 - self.tc.initial_gh_cut_efficency)
         )
