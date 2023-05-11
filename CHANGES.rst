@@ -1,3 +1,47 @@
+ctapipe v0.19.1 (2023-05-11)
+============================
+
+This release is a small bugfix release for v0.19.0, that also includes a new feature enabling computing different
+telescope multiplicities in the machine learning feature generation.
+
+Thanks to the release of numba 0.57 and some minor fixes, ctapipe is now also compatible with Python 3.11.
+
+Bug Fixes
+---------
+
+- Fix ``ApplyModels.overwrite``. [`#2311 <https://github.com/cta-observatory/ctapipe/pull/2311>`__]
+
+- Fix for config files not being included as inputs in provenance log. [`#2312 <https://github.com/cta-observatory/ctapipe/pull/2312>`__]
+
+- Fix calculation of the neighbor matrix of ``CameraGeometry`` for empty and single-pixel geometries. [`#2317 <https://github.com/cta-observatory/ctapipe/pull/2317>`__]
+
+- Fix HDF5Writer not working on windows due to using pathlib for hdf5 dataset names. [`#2319 <https://github.com/cta-observatory/ctapipe/pull/2319>`__]
+
+- Fix StereoTrigger assuming the wrong data type for ``tels_with_trigger``, resulting in
+  it not working for actual events read from an EventSource. [`#2320 <https://github.com/cta-observatory/ctapipe/pull/2320>`__]
+
+- Allow disabling the cross validation (by setting ``CrossValidator.n_cross_validations = 0``)
+  for the train tools. [`#2310 <https://github.com/cta-observatory/ctapipe/pull/2310>`__]
+
+
+New Features
+------------
+
+- Add ``SubarrayDescription.mulitplicity`` method that can compute
+  telescope multiplicity for a given telescope boolean mask, either for
+  all telescope or a given telescope type.
+
+  Enable adding additional keyword arguments to ``FeatureGenerator``.
+
+  Pass the ``SubarrayDescription`` to ``FeatureGenerator`` in sklearn classes. [`#2308 <https://github.com/cta-observatory/ctapipe/pull/2308>`__]
+
+
+Maintenance
+-----------
+
+- Add support for python 3.11. [`#2107 <https://github.com/cta-observatory/ctapipe/pull/2107>`__]
+
+
 ctapipe v0.19.0 (2023-03-30)
 ============================
 
