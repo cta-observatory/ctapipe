@@ -177,7 +177,7 @@ class Tool(Application):
         default_value=False,
         help="Control if provenance information"
         "is printed in log in addition to the"
-        "provenance file."
+        "provenance file.",
     ).tag(config=True)
 
     quiet = Bool(default_value=False).tag(config=True)
