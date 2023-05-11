@@ -1,2 +1,0 @@
-Allow disabling the cross validation (by setting ``CrossValidator.n_cross_validations = 0``)
-for the train tools.

@@ -1,1 +1,0 @@
-Fix HDF5Writer not working on windows due to using pathlib for hdf5 dataset names.
