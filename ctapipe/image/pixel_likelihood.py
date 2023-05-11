@@ -93,9 +93,9 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     -------
     float
     """
-    
-    theta = 2 * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
-    neg_log_l = np.log(np.pi * theta)/2. + (image - prediction) ** 2 / theta
+
+    theta = 2 * (pedestal**2 + prediction * (1 + spe_width**2))
+    neg_log_l = np.log(np.pi * theta) / 2.0 + (image - prediction) ** 2 / theta
 
     return 2 * neg_log_l
 

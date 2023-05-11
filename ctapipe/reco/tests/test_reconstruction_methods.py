@@ -5,8 +5,8 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.io import EventSource
 from ctapipe.reco import HillasIntersection, HillasReconstructor
-from ctapipe.utils import get_dataset_path
 from ctapipe.reco.impact import ImPACTReconstructor
+from ctapipe.utils import get_dataset_path
 
 
 @pytest.fixture
@@ -49,4 +49,3 @@ def test_reconstructors(reconstructors):
             assert event.dl2.stereo.geometry[name].alt.unit.is_equivalent(u.deg)
             assert event.dl2.stereo.geometry[name].az.unit.is_equivalent(u.deg)
             assert event.dl2.stereo.geometry[name].core_x.unit.is_equivalent(u.m)
-

@@ -1,8 +1,9 @@
-import numpy as np
-from scipy.stats import norm
 import gzip
 import pickle
+
 import numba
+import numpy as np
+from scipy.stats import norm
 
 __all__ = [
     "create_seed",

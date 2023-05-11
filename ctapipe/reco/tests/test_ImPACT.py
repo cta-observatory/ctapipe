@@ -1,6 +1,5 @@
 import astropy.units as u
 import numpy as np
-
 from astropy.coordinates import AltAz, Angle, SkyCoord
 from numpy.testing import assert_allclose
 

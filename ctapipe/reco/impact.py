@@ -3,11 +3,11 @@
 
 """
 import copy
-import pytest
 from string import Template
 
 import numpy as np
 import numpy.ma as ma
+import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 from iminuit import Minuit
