@@ -1,1 +1,1 @@
-Make provenance information in log optional by adding new configruation option `log_include_provenance` which defaults to off.
+Make provenance information in log optional by adding new configruation option "log_include_provenance" which defaults to off.
