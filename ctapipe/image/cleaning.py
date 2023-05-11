@@ -44,6 +44,7 @@ def tailcuts_clean(
     boundary_thresh=5,
     keep_isolated_pixels=False,
     min_number_picture_neighbors=0,
+    max_iter=1,
 ):
 
     """Clean an image by selection pixels that pass a two-threshold
@@ -74,6 +75,9 @@ def tailcuts_clean(
     min_number_picture_neighbors: int
         A picture pixel survives cleaning only if it has at least this number
         of picture neighbors. This has no effect in case keep_isolated_pixels is True
+    max_iter: int
+        Maximum number of iterations
+        Only one iteration by default = Standard Tailcuts cleaning
 
     Returns
     -------
@@ -97,18 +101,31 @@ def tailcuts_clean(
     # matrix (2d), we find all pixels that are above the boundary threshold
     # AND have any neighbor that is in the picture
     pixels_above_boundary = image >= boundary_thresh
-    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(pixels_in_picture)
-    if keep_isolated_pixels:
-        return (
-            pixels_above_boundary & pixels_with_picture_neighbors
-        ) | pixels_in_picture
-    else:
-        pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(
-            pixels_above_boundary
+    iteration = True
+    count = 0
+    while iteration:
+        pixels_in_picture_previous = pixels_in_picture.copy()
+        pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(
+            pixels_in_picture
         )
-        return (pixels_above_boundary & pixels_with_picture_neighbors) | (
-            pixels_in_picture & pixels_with_boundary_neighbors
-        )
+        if keep_isolated_pixels:
+            pixels_in_picture = (
+                pixels_above_boundary & pixels_with_picture_neighbors
+            ) | pixels_in_picture
+        else:
+            pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(
+                pixels_above_boundary
+            )
+            pixels_in_picture = (
+                pixels_above_boundary & pixels_with_picture_neighbors
+            ) | (pixels_in_picture & pixels_with_boundary_neighbors)
+
+        iteration = ~np.all(pixels_in_picture == pixels_in_picture_previous)
+        count += 1
+        if count >= max_iter:
+            iteration = False
+
+    return pixels_in_picture
 
 
 def mars_cleaning_1st_pass(
