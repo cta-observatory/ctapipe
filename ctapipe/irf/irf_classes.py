@@ -81,7 +81,7 @@ class ToolConfig(Component):
     ).tag(config=True)
 
 
-class EventPreProcessor(Component):
+class EventPreProcessor(QualityQuery):
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
         help="Prefix of the reco `_energy` column",
@@ -97,26 +97,22 @@ class EventPreProcessor(Component):
 
     preselect_criteria = List(
         default_value=[
-            #            ("multiplicity 4", "np.count_nonzero(tels,axis=1) >= 4"),
-            ("valid classifier", "valid_classer"),
-            ("valid geom reco", "valid_geom"),
-            ("valid energy reco", "valid_energy"),
+            ("multiplicity 4", "subarray.multiplicity(tels_with_trigger) >= 4"),
+            ("valid classifier", "RandomForestClassifier_is_valid"),
+            ("valid geom reco", "HillasReconstructor_is_valid"),
+            ("valid energy reco", "RandomForestRegressor_is_valid"),
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
     rename_columns = List(
-        help="List containing translation pairs of quality columns"
-        "used for quality filters and their names as given in the input file used."
+        help="List containing translation pairs new and old column names"
+        "used when processing input with names differing from the CTA prod5b format"
         "Ex: [('valid_geom','HillasReconstructor_is_valid')]",
-        default_value=[
-            ("valid_geom", "HillasReconstructor_is_valid"),
-            ("valid_energy", "RandomForestRegressor_is_valid"),
-            ("valid_classer", "RandomForestClassifier_is_valid"),
-        ],
+        default_value=[],
     )
 
-    def _preselect_events(self, events):
+    def normalise_column_names(self, events):
         keep_columns = [
             "obs_id",
             "event_id",
@@ -132,6 +128,7 @@ class EventPreProcessor(Component):
         ]
         rename_to = ["reco_energy", "reco_az", "reco_alt", "gh_score"]
 
+        # We never enter the loop if rename_columns is empty
         for new, old in self.rename_columns:
             rename_from.append(old)
             rename_to.append(new)
@@ -139,13 +136,10 @@ class EventPreProcessor(Component):
         keep_columns.extend(rename_from)
         events = QTable(events[keep_columns], copy=False)
         events.rename_columns(rename_from, rename_to)
-        keep = QualityQuery(quality_criteria=self.preselect_criteria).get_table_mask(
-            events
-        )
+        return events
 
-        return events[keep]
-
-    def _make_empty_table(self):
+    def make_empty_table(self):
+        """This function defines the columns later functions expect to be present in the event table"""
         columns = [
             "obs_id",
             "event_id",
