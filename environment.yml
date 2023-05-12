@@ -9,7 +9,7 @@ dependencies:
   - astropy=5
   - black
   - bokeh=2
-  - nbsphinx
+  - nbsphinx >=0.8.12,<0.9
   - cython
   - graphviz
   - h5py
@@ -48,3 +48,4 @@ dependencies:
   - zstandard
   - eventio>=1.9.1
   - jinja2=3.0 # for sphinx 3.5, remove when updating to 4.x
+  - ffmpeg # for making movies in the documentation

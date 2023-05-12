@@ -18,6 +18,8 @@ from sklearn.utils import all_estimators
 from tqdm import tqdm
 from traitlets import TraitError
 
+from ctapipe.exceptions import TooFewEvents
+
 from ..containers import (
     ArrayEventContainer,
     DispContainer,
@@ -368,7 +370,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table)
+            table = self.feature_generator(table, subarray=self.subarray)
 
             # get_table_mask returns a table with a single row
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
@@ -395,7 +397,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
-        table = self.feature_generator(table)
+        table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
         energy = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
@@ -437,7 +439,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table)
+            table = self.feature_generator(table, subarray=self.subarray)
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
@@ -462,7 +464,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
-        table = self.feature_generator(table)
+        table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
         score = np.full(n_rows, np.nan)
@@ -679,7 +681,7 @@ class DispReconstructor(Reconstructor):
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.feature_generator(table)
+            table = self.feature_generator(table, subarray=self.subarray)
 
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
@@ -749,7 +751,7 @@ class DispReconstructor(Reconstructor):
         altaz_table : `~astropy.table.Table`
             Table with resulting predictions of horizontal coordinates
         """
-        table = self.feature_generator(table)
+        table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
         disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
@@ -846,8 +848,11 @@ class CrossValidator(Component):
             )
 
     def __call__(self, telescope_type, table):
+        if self.n_cross_validations == 0:
+            return
+
         if len(table) <= self.n_cross_validations:
-            raise ValueError(f"Too few events for {telescope_type}.")
+            raise TooFewEvents(f"Too few events for {telescope_type}.")
 
         self.log.info(
             "Starting cross-validation with %d folds for type %s.",
@@ -939,6 +944,9 @@ class CrossValidator(Component):
         return prediction, truth, {"R^2": r2, "accuracy": accuracy}
 
     def write(self, overwrite=False):
+        if self.n_cross_validations == 0:
+            return 0
+
         if self.output_path.exists() and not overwrite:
             raise IOError(f"Path {self.output_path} exists and overwrite=False")
 

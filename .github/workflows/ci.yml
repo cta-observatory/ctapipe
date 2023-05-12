@@ -47,6 +47,10 @@ jobs:
             extra-args: ["codecov"]
 
           - os: ubuntu-latest
+            python-version: "3.11"
+            install-method: pip
+
+          - os: ubuntu-latest
             python-version: "3.10"
             install-method: pip
 
@@ -106,7 +110,7 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install codecov pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
+          pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
           pip freeze
@@ -147,7 +151,7 @@ jobs:
 
       - name: Install doc dependencies
         run: |
-          sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
+          sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz ffmpeg
           pip install -U pip towncrier
           pip install -e .[docs]
           pip install ./test_plugin

@@ -20,7 +20,7 @@ from .tableio import (
     TimeColumnTransform,
 )
 
-__all__ = ["HDF5TableWriter", "HDF5TableReader"]
+__all__ = ["HDF5TableWriter", "HDF5TableReader", "split_h5path"]
 
 PYTABLES_TYPE_MAP = {
     "float": tables.Float64Col,
@@ -46,6 +46,20 @@ DEFAULT_FILTERS = tables.Filters(
     complib="blosc:zstd",  # use modern zstd algorithm
     fletcher32=True,  # add checksums to data chunks
 )
+
+
+def split_h5path(path):
+    """
+    Split a path inside an hdf5 file into parent / child
+    """
+    if not path.startswith("/"):
+        raise ValueError("Path must start with /")
+
+    head, _, tail = path.rstrip("/").rpartition("/")
+    if head == "":
+        head = "/"
+
+    return head, tail
 
 
 def get_hdf5_attr(attrs, name, default=None):
@@ -390,10 +404,8 @@ class HDF5TableWriter(TableWriter):
         if table_name.startswith("/"):
             raise ValueError("Table name must not start with '/'")
 
-        table_path = PurePath(self._group) / PurePath(table_name)
-        table_group = str(table_path.parent)
-        table_basename = table_path.stem
-        table_path = str(table_path)
+        table_path = f"{self._group.rstrip('/')}/{table_name}"
+        table_group, table_basename = split_h5path(table_path)
 
         for container in containers:
             meta.update(container.meta)  # copy metadata from container

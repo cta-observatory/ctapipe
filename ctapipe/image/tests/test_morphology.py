@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 from ctapipe.instrument import CameraGeometry
@@ -124,3 +125,19 @@ def test_brightest_island():
     no_island_mask = brightest_island(0, island_labels, image)
     assert len(no_island_mask) == 3
     assert np.all(no_island_mask == False)
+
+
+def test_number_of_islands_masked(prod3_lst):
+    from ctapipe.image import number_of_islands
+
+    geom = prod3_lst.camera.geometry
+
+    # create 18 triggered pixels grouped to 5 clusters
+    mask = np.zeros(geom.n_pixels).astype("bool")
+    triggered_pixels = np.array(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 37, 38, 111, 222]
+    )
+    mask[triggered_pixels] = True
+
+    with pytest.raises(ValueError, match="needs the full CameraGeometry"):
+        number_of_islands(geom[mask], mask)

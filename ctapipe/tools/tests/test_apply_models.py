@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ctapipe.containers import (
     EventIndexContainer,
@@ -7,6 +8,7 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
 )
 from ctapipe.core import run_tool
+from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import TableLoader, read_table
 from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
@@ -72,6 +74,29 @@ def test_apply_energy_regressor(
     energy = read_table(output_path, "/dl2/event/subarray/energy/ExtraTreesRegressor")
 
     check_equal_array_event_order(trigger, energy)
+
+    # test "overwrite" works
+    with pytest.raises(ToolConfigurationError, match="exists, but overwrite=False"):
+        run_tool(
+            ApplyModels(),
+            argv=[
+                f"--input={input_path}",
+                f"--output={output_path}",
+                f"--reconstructor={energy_regressor_path}",
+            ],
+            raises=True,
+        )
+
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={input_path}",
+            f"--output={output_path}",
+            f"--reconstructor={energy_regressor_path}",
+            "--overwrite",
+        ],
+        raises=True,
+    )
 
 
 def test_apply_all(

@@ -13,7 +13,7 @@ from ..instrument.optics import FocalLengthKind
 from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
-from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta
+from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
 
 
 class NodeType(enum.Enum):
@@ -76,20 +76,6 @@ def _get_required_nodes(h5file):
 
 class CannotMerge(IOError):
     """Raised when trying to merge incompatible files"""
-
-
-def split_h5path(path):
-    """
-    Split a path inside an hdf5 file into parent / child
-    """
-    if not path.startswith("/"):
-        raise ValueError("Path must start with /")
-
-    head, _, tail = path.rstrip("/").rpartition("/")
-    if head == "":
-        head = "/"
-
-    return head, tail
 
 
 class HDF5Merger(Component):

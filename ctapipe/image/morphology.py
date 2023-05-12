@@ -57,20 +57,26 @@ def number_of_islands(geom, mask):
 
     Parameters
     ----------
-    geom: `~ctapipe.instrument.CameraGeometry`
-        Camera geometry information
-    mask: ndarray
-        input mask (array of booleans)
+    geom : `~ctapipe.instrument.CameraGeometry`
+        Camera geometry information, needs to be the full camrea geometry,
+        not already masked with ``mask``
+    mask : ndarray
+        input mask (array of booleans) of pixels surviving the cleaning
 
     Returns
     -------
-    n_islands: int
+    n_islands : int
         Total number of clusters
-    island_labels: ndarray
+    island_labels : ndarray
         Contains cluster membership of each pixel.
         Dimension equals input geometry.
         Entries range from 0 (not in the pixel mask) to n_islands.
     """
+    if geom.n_pixels != len(mask):
+        raise ValueError(
+            "CameraGeometry has less pixels than mask"
+            ", number_of_islands needs the full CameraGeometry"
+        )
     neighbors = geom.neighbor_matrix_sparse
     n_islands, island_labels = _n_islands_sparse_indices(
         neighbors.indices, neighbors.indptr, mask

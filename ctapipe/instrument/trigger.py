@@ -1,3 +1,5 @@
+import numpy as np
+
 from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import Integer, IntTelescopeParameter
@@ -76,6 +78,7 @@ class SoftwareTrigger(TelescopeComponent):
             Whether or not this event would have triggered the stereo trigger
         """
 
+        tels_removed = set()
         for tel_type in self.subarray.telescope_types:
             tel_type_str = str(tel_type)
             min_tels = self.min_telescopes_of_type.tel[tel_type_str]
@@ -87,6 +90,7 @@ class SoftwareTrigger(TelescopeComponent):
             tels_with_trigger = set(event.trigger.tels_with_trigger)
             tel_ids = self._ids_by_type[tel_type_str]
             tels_in_event = tels_with_trigger.intersection(tel_ids)
+
             if len(tels_in_event) < min_tels:
                 for tel_id in tels_in_event:
                     self.log.debug(
@@ -96,13 +100,20 @@ class SoftwareTrigger(TelescopeComponent):
                     )
 
                     # remove from tels_with_trigger
-                    event.trigger.tels_with_trigger.remove(tel_id)
+                    tels_removed.add(tel_id)
 
                     # remove any related data
                     for container in ("trigger", "r0", "r1", "dl0", "dl1", "dl2"):
                         tel_map = getattr(event, container).tel
                         if tel_id in tel_map:
                             del tel_map[tel_id]
+
+        if len(tels_removed) > 0:
+            # convert to array with correct dtype to have setdiff1d work correctly
+            tels_removed = np.fromiter(tels_removed, np.uint16, len(tels_removed))
+            event.trigger.tels_with_trigger = np.setdiff1d(
+                event.trigger.tels_with_trigger, tels_removed, assume_unique=True
+            )
 
         if len(event.trigger.tels_with_trigger) < self.min_telescopes:
             event.trigger.tels_with_trigger = []
