@@ -25,7 +25,7 @@ What is ctapipe?
    the 1.0 release.
 
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
-* Docs: https://cta-observatory.github.io/ctapipe/
+* Docs: https://ctapipe.readthedocs.io/
 * License: BSD-3
 * Python: |python_requires|
 

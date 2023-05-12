@@ -4,17 +4,17 @@
 Getting Started For Developers
 ******************************
 
+We strongly recommend using the `mambaforge conda distribution <https://github.com/conda-forge/miniforge#mambaforge>`_.
+
 .. warning::
 
    the following guide is used only if you want to *develop* the
    ``ctapipe`` package, if you just want to write code that uses it
    externally, you can install ``ctapipe`` as a conda package
-   with ``conda install -c conda-forge ctapipe``.
+   with ``mamba install -c conda-forge ctapipe``.
 
-This guide assumes you are using the *Anaconda* python distribution,
-installed locally (*miniconda* should also work).
 
-You can use *python 3.7* or above (we currently test on 3.7 and 3.8)
+You can use |python_requires| or above.
 
 ------------------------
 Get the ctapipe software
