@@ -10,6 +10,7 @@ from traitlets.config.loader import Config
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.reco import ShowerProcessor
+from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
 
 @pytest.mark.parametrize(
@@ -19,7 +20,7 @@ from ctapipe.reco import ShowerProcessor
         ["HillasReconstructor"],
         pytest.param("ImPACTReconstructor", marks=pytest.mark.xfail),
     ],
-    ids=["HillasIntersection", "HillasReconstructor", "ImPACTReconstructor"]
+    ids=["HillasIntersection", "HillasReconstructor", "ImPACTReconstructor"],
 )
 def test_shower_processor_geometry(
     example_event, example_subarray, reconstructor_types
@@ -34,9 +35,10 @@ def test_shower_processor_geometry(
         subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
     )
 
-    process_shower = ShowerProcessor(
-        subarray=example_subarray, reconstructor_types=reconstructor_types
-    )
+    with pytest.warns(CTAPipeDeprecationWarning):
+        process_shower = ShowerProcessor(
+            subarray=example_subarray, reconstructor_types=reconstructor_types
+        )
 
     calibrate(example_event)
     process_images(example_event)

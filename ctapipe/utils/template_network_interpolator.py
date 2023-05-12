@@ -377,8 +377,6 @@ class TimeGradientInterpolator(BaseTemplate):
                 zenith, azimuth, array, None
             )
 
-        interpolated_value = interpolated_value
-
         return interpolated_value
 
 

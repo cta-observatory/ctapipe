@@ -3,11 +3,11 @@
 
 """
 import copy
+import warnings
 from string import Template
 
 import numpy as np
 import numpy.ma as ma
-import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 from iminuit import Minuit
@@ -146,7 +146,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
 
-        with pytest.warns(CTAPipeDeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", CTAPipeDeprecationWarning)
             _ = get_atmosphere_profile_functions(
                 self.atmosphere_profile_name, with_units=False
             )

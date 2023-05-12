@@ -7,6 +7,7 @@ from ctapipe.io import EventSource
 from ctapipe.reco import HillasIntersection, HillasReconstructor
 from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.utils import get_dataset_path
+from ctapipe.utils.deprecation import CTAPipeDeprecationWarning
 
 
 @pytest.fixture
@@ -38,7 +39,9 @@ def test_reconstructors(reconstructors):
         image_processor(event)
 
         for ReconstructorType in reconstructors:
-            reconstructor = ReconstructorType(subarray)
+
+            with pytest.warns(CTAPipeDeprecationWarning):
+                reconstructor = ReconstructorType(subarray)
             if ReconstructorType is ImPACTReconstructor:
                 reconstructor.root_dir = str(template_file.parents[0])
             reconstructor(event)
