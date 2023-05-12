@@ -64,15 +64,11 @@ class TestImPACT:
         x = np.array([[1]])
         y = np.array([[0]])
 
-        xt, yt = rotate_translate(
-            x, y, np.array([0]), np.array([[0]]), np.deg2rad(np.array([90]))
-        )
+        xt, yt = rotate_translate(x, y, 0, 0, np.deg2rad(np.array([90])))
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = rotate_translate(
-            x, y, np.array([0]), np.array([0]), np.deg2rad(np.array([180]))
-        )
+        xt, yt = rotate_translate(x, y, 0, 0, np.deg2rad(np.array([180])))
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -81,7 +77,7 @@ class TestImPACT:
         x = np.array([[0]])
         y = np.array([[0]])
 
-        xt, yt = rotate_translate(x, y, np.array([1]), np.array([1]), np.array([0]))
+        xt, yt = rotate_translate(x, y, 1, 1, np.array([0]))
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 

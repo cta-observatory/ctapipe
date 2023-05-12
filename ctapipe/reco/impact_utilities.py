@@ -39,7 +39,7 @@ def guess_shower_depth(energy):
     return x_max_exp
 
 
-@numba.jit
+@numba.njit
 def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     """
     Function to perform rotation and translation of pixel lists. Array
