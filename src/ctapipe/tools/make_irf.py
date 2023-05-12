@@ -109,7 +109,7 @@ class IrfTool(Tool):
         ]:
             with TableLoader(file, **opts) as load:
                 Provenance().add_input_file(file)
-                table = self.eps._make_empty_table()
+                table = self.eps.make_empty_table()
                 sim_info, spectrum = self.get_sim_info_and_spectrum(load)
                 if kind == "gamma":
                     self.sim_info = sim_info
@@ -117,7 +117,8 @@ class IrfTool(Tool):
                 for start, stop, events in load.read_subarray_events_chunked(
                     self.tc.chunk_size
                 ):
-                    selected = self.eps._preselect_events(events)
+                    selected = self.eps.normalise_column_names(events)
+                    selected = selected[self.eps.get_table_mask(selected)]
                     selected = self.make_derived_columns(
                         kind, selected, spectrum, target_spectrum
                     )
