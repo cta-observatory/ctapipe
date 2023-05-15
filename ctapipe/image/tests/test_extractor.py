@@ -780,7 +780,7 @@ def test_upsampling(toymodel_mst_fc):
     )
 
 
-def test_FC_timing(toymodel_mst_fc_time):
+def test_FC_time(toymodel_mst_fc_time):
     # Test time on toy model with time gradient (other toy not sensitive to timing bugs!!)
     (
         waveforms,
