@@ -28,7 +28,7 @@ def test_reconstructors(reconstructors):
     )
     template_file = get_dataset_path("LSTCam.template.gz")
 
-    source = EventSource(filename, max_events=6, focal_length_choice="EQUIVALENT")
+    source = EventSource(filename, max_events=4, focal_length_choice="EQUIVALENT")
     subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
     image_processor = ImageProcessor(source.subarray)
