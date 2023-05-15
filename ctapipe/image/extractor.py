@@ -1681,7 +1681,9 @@ class FlashCamExtractor(ImageExtractor):
             d_waveforms = deconvolve(waveforms, 0.0, upsampling, 1)
             peak_time = adaptive_centroid(
                 d_waveforms,
-                max(0, min(np.round(peak_index - pz2d).astype(int))),
+                np.clip(
+                    np.round(peak_index - pz2d).astype(int), 0, np.shape(d_waveforms)[1]
+                ),
                 leading_edge_rel_descend_limit,
             )
 
