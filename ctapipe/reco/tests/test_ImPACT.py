@@ -61,14 +61,14 @@ class TestImPACT:
 
     def test_rotation(self):
         """Test pixel rotation function"""
-        x = np.array([[1]])
-        y = np.array([[0]])
+        x = np.array([[[1]]])
+        y = np.array([[[0]]])
 
-        xt, yt = rotate_translate(x, y, 0, 0, np.deg2rad(np.array([90])))
+        xt, yt = rotate_translate(x, y, np.array([0]), np.array([0]), np.deg2rad(np.array([[90]])))
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = rotate_translate(x, y, 0, 0, np.deg2rad(np.array([180])))
+        xt, yt = rotate_translate(x, y, np.array([0]), np.array([0]), np.deg2rad(np.array([[180]])))
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -77,7 +77,7 @@ class TestImPACT:
         x = np.array([[0]])
         y = np.array([[0]])
 
-        xt, yt = rotate_translate(x, y, 1, 1, np.array([0]))
+        xt, yt = rotate_translate(x, y, np.array([1]), np.array([1]), np.array([[0]]))
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
@@ -95,7 +95,8 @@ class TestImPACT:
 
         self.impact_reco.get_hillas_mean()
 
-        shower_max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
+        shower_max = self.impact_reco.get_shower_max(np.array([0]), np.array([0]), 
+                                                     np.array([0]), np.array([100]), 0)
         assert_allclose(shower_max, 484.2442217190515, rtol=0.01)
 
     def test_interpolation(self, tmp_path):
@@ -112,11 +113,11 @@ class TestImPACT:
             "dummy",
             0,
             0,
-            np.array([1]),
-            np.array([100]),
-            np.array([-150]),
-            x.ravel(),
-            y.ravel(),
+            np.array([[1]]),
+            np.array([[100]]),
+            np.array([[-150]]),
+            np.array([[x.ravel()]]),
+            np.array([[y.ravel()]]),
         )
 
         assert_allclose(template.ravel() - pred, np.zeros_like(pred), atol=0.1)

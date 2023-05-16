@@ -63,20 +63,22 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
         ndarray,ndarray: Transformed pixel x and y coordinates
 
     """
-    shape = pixel_pos_x.shape
+    shape = x_trans.shape + pixel_pos_x.shape
     pixel_pos_trans_x, pixel_pos_trans_y = np.zeros(shape), np.zeros(shape)
 
-    for i in range(shape[0]):
-        cosine_angle = np.cos(phi[i])
-        sin_angle = np.sin(phi[i])
+    for k in range(shape[0]):
 
-        for j in range(shape[1]):
-            pixel_pos_trans_x[i][j] = (x_trans - pixel_pos_x[i][j]) * cosine_angle - (
-                y_trans - pixel_pos_y[i][j]
-            ) * sin_angle
-            pixel_pos_trans_y[i][j] = (pixel_pos_x[i][j] - x_trans) * sin_angle + (
-                pixel_pos_y[i][j] - y_trans
-            ) * cosine_angle
+        for i in range(shape[1]):
+            cosine_angle = np.cos(phi[k][i])
+            sin_angle = np.sin(phi[k][i])
+
+            for j in range(shape[2]):
+                pixel_pos_trans_x[k][i][j] = (x_trans[k] - pixel_pos_x[i][j]) * cosine_angle - (
+                    y_trans[k] - pixel_pos_y[i][j]
+                ) * sin_angle
+                pixel_pos_trans_y[k][i][j] = (pixel_pos_x[i][j] - x_trans[k]) * sin_angle + (
+                    pixel_pos_y[i][j] - y_trans[k]
+                ) * cosine_angle
 
     return pixel_pos_trans_x, pixel_pos_trans_y
 

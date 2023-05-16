@@ -50,6 +50,7 @@ from .reconstructor import (
     ReconstructionProperty,
     TooFewTelescopesException,
 )
+import time
 
 PROV = Provenance()
 
@@ -360,11 +361,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         """
         # Calculate displacement of image centroid from source position (in
         # rad)
-        disp = np.sqrt((self.peak_x - source_x) ** 2 + (self.peak_y - source_y) ** 2)
-
+        disp = np.sqrt((self.peak_x - source_x[..., np.newaxis]) ** 2 + (self.peak_y - source_y[..., np.newaxis]) ** 2)
         # Calculate impact parameter of the shower
         impact = np.sqrt(
-            (self.tel_pos_x - core_x) ** 2 + (self.tel_pos_y - core_y) ** 2
+            (self.tel_pos_x - core_x[..., np.newaxis]) ** 2 + (self.tel_pos_y - core_y[..., np.newaxis]) ** 2
         )
         # Distance above telescope is ratio of these two (small angle)
 
@@ -373,21 +373,21 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # sqrt may not be the best option...
 
         # Take weighted mean of estimates
-        mean_height = np.sum(height * np.cos(zen) * weight) / np.sum(weight)
+        mean_height = np.sum(height * np.cos(zen) * weight, axis=1) / np.repeat(np.sum(weight), disp.shape[0])
+
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
         # mean_height *= np.cos(zen)
         # Add on the height of the detector above sea level
         mean_height += 2150  # TODO: Make this depend on telescope array
 
-        if mean_height > 100000 or np.isnan(mean_height):
-            mean_height = 100000
+        mean_height[mean_height>100000] = 100000
+        mean_height[np.isnan(mean_height)] = 100000
 
         # Lookup this height in the depth tables, the convert Hmax to Xmax
         x_max = self.thickness_profile(mean_height)
         # Convert to slant depth
         x_max /= np.cos(zen)
-
         return x_max
 
     def image_prediction(
@@ -416,9 +416,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         ndarray: predicted amplitude for all pixels
 
         """
+        shape = pix_x.shape
         return self.prediction[tel_type](
-            zenith, azimuth, energy, impact, x_max, pix_x, pix_y
-        )
+            zenith, azimuth, energy.ravel(), impact.ravel(), x_max.ravel(), 
+            pix_x.reshape(shape[0]*shape[1], shape[2]), pix_y.reshape(shape[0]*shape[1], shape[2])
+        ).reshape(shape)
 
     def predict_time(self, tel_type, zenith, azimuth, energy, impact, x_max):
         """Creates predicted image for the specified pixels, interpolated
@@ -477,8 +479,17 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         float: Likelihood the model represents the camera image at this position
 
         """
-        if np.isnan(source_x) or np.isnan(source_y):
-            return 1e8
+
+        # Make sure we really have an array
+        source_x = np.array(source_x).ravel()
+        source_y = np.array(source_y).ravel()
+        core_x = np.array(core_x).ravel()
+        core_y = np.array(core_y).ravel()
+        energy = np.array(energy).ravel()
+        x_max_scale = np.array(x_max_scale).ravel()
+
+        if np.isnan(source_x).any() or np.isnan(source_y).any():
+            return np.ones_like(source_x) * 1e8
 
         # First we add units back onto everything.  Currently not
         # handled very well, maybe in future we could just put
@@ -499,28 +510,30 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 200:
-            x_max_bin = 200
-        if x_max_bin < -150:
-            x_max_bin = -150
-
+        x_max_bin[x_max_bin>200] = 200
+        x_max_bin[x_max_bin<-150] = 150
+        
         # Calculate impact distance for all telescopes
         impact = np.sqrt(
-            (self.tel_pos_x - core_x) ** 2 + (self.tel_pos_y - core_y) ** 2
+            (self.tel_pos_x - core_x[..., np.newaxis]) ** 2 + (self.tel_pos_y - core_y[..., np.newaxis]) ** 2
         )
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_y - core_y), (self.tel_pos_x - core_x)) * u.rad
+        phi = np.arctan2((self.tel_pos_y - core_y[..., np.newaxis]), (self.tel_pos_x - core_x[..., np.newaxis])) * u.rad
 
         # Rotate and translate all pixels such that they match the
         # template orientation
         pix_x_rot, pix_y_rot = rotate_translate(
             self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi.value
         )
-
+        
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked
-        prediction = ma.zeros(self.image.shape)
-        prediction.mask = ma.getmask(self.image)
+        prediction = ma.zeros(pix_x_rot.shape)
+        mask = ma.getmask(self.image)
+        if len(mask.shape)>0:
+            mask = np.repeat(mask, source_x.shape[0]) ## this mask needs fixing!!! - Dan
+            mask = mask.reshape(pix_x_rot.shape)
+        prediction.mask = mask
 
         time_gradients, time_gradients_uncertainty = np.zeros(
             self.image.shape[0]
@@ -529,15 +542,21 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
 
-            prediction[type_mask] = self.image_prediction(
+            shape_used = impact[:, type_mask].shape
+            er = energy.repeat(impact[:, type_mask].shape[1], axis=0)
+            er = er.reshape(shape_used)
+            xr = x_max_bin.repeat(impact[:, type_mask].shape[1], axis=0)
+            xr = xr.reshape(shape_used)
+
+            prediction[:, type_mask] = self.image_prediction(
                 tel_type,
                 np.rad2deg(zenith),
                 azimuth,
-                energy * np.ones_like(impact[type_mask]),
-                impact[type_mask],
-                x_max_bin * np.ones_like(impact[type_mask]),
-                np.rad2deg(pix_x_rot[type_mask]),
-                np.rad2deg(pix_y_rot[type_mask]),
+                er,
+                impact[:, type_mask],
+                xr,
+                np.rad2deg(pix_x_rot[:, type_mask]),
+                np.rad2deg(pix_y_rot[:, type_mask]),
             )
 
             if self.use_time_gradient:
@@ -583,10 +602,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # prediction *= self.scale_factor[:, np.newaxis]
 
         # Get likelihood that the prediction matched the camera image
-        mask = ma.getmask(self.image)
+        mask = ma.getmask(prediction)
 
         like = neg_log_likelihood_approx(self.image, prediction, self.spe, self.ped)
-        like[mask] = 0
+        like[mask] = 0 # fix this too!!!
 
         if goodness_of_fit:
             like_expectation_gaus = mean_poisson_likelihood_gaussian(
@@ -599,7 +618,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             )
             return goodness
 
-        like = np.sum(like)
+        like = np.sum(np.sum(like, axis=-1), -1)
 
         final_sum = like
         if self.use_time_gradient:
@@ -607,7 +626,14 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         return final_sum
 
-    def get_likelihood_min(self, x):
+    def get_likelihood_min(self, 
+                            source_x,
+                            source_y,
+                            core_x,
+                            core_y,
+                            energy,
+                            x_max_scale,
+                            goodness_of_fit=False):
         """Wrapper class around likelihood function for use with scipy
         minimisers
 
@@ -621,7 +647,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         float: Likelihood value of test position
 
         """
-        val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
+
+        val = self.get_likelihood(np.repeat(source_x, 1),
+                            np.repeat(source_y,1),
+                            np.repeat(core_x,1),
+                            np.repeat(core_y,1),
+                            np.repeat(energy,1),
+                            np.repeat(x_max_scale,1), goodness_of_fit)
 
         return val
 
@@ -935,12 +967,12 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         x_max = (
             fit_params[5]
             * self.get_shower_max(
-                fit_params[0],
-                fit_params[1],
-                fit_params[2],
-                fit_params[3],
+                np.array([fit_params[0]]),
+                np.array([fit_params[1]]),
+                np.array([fit_params[2]]),
+                np.array([fit_params[3]]),
                 zenith.to(u.rad).value,
-            )
+            )[0]
             * np.cos(zenith)
         )
         h_max = self.altitude_profile(x_max)
@@ -1011,7 +1043,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             # Try a few different seed energies to be sure we get the right one
             for seed_energy in [0.5, 20]:
                 self.min = Minuit(
-                    self.get_likelihood,
+                    self.get_likelihood_min,
                     source_x=params[0],
                     source_y=params[1],
                     core_x=params[2],
@@ -1073,7 +1105,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         # Now do the minimisation proper
         self.min = Minuit(
-            self.get_likelihood,
+            self.get_likelihood_min,
             source_x=params[0],
             source_y=params[1],
             core_x=params[2],
