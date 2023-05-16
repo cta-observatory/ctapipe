@@ -1679,8 +1679,9 @@ class FlashCamExtractor(ImageExtractor):
 
         if leading_edge_timing:
             d_waveforms = deconvolve(waveforms, 0.0, upsampling, 1)
+
             # correct the offset between leading edge peak and deconvolved peak
-            peak_index = np.round(peak_index - pz2d).astype(int)  
+            peak_index = np.round(peak_index - pz2d).astype(int)
             n_samples = d_waveforms.shape[-1]
             np.clip(peak_index, 0, n_samples - 1, out=peak_index)
             peak_time = adaptive_centroid(
