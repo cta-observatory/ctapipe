@@ -1,3 +1,15 @@
+ctapipe v0.19.2 (2023-05-17)
+============================
+
+This release contains a critical bugfix for the ``FlashCamExtractor`` that resulted
+in non-sensical peak time values in DL1, see below.
+
+Bug Fixes
+---------
+
+- Fix a bug in the peak_time estimation of ``FlashCamExtractor`` (See issue `#2332 <https://github.com/cta-observatory/ctapipe/issues/2332>`_) [`#2333 <https://github.com/cta-observatory/ctapipe/pull/2333>`__]
+
+
 ctapipe v0.19.1 (2023-05-11)
 ============================
 
