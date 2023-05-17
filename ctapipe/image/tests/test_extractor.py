@@ -10,6 +10,7 @@ from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
 
 from ctapipe.core import non_abstract_children
+from ctapipe.image.cleaning import dilate
 from ctapipe.image.extractor import (
     FixedWindowSum,
     FlashCamExtractor,
@@ -107,6 +108,44 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 @pytest.fixture(scope="module")
 def toymodel(subarray):
     return get_test_toymodel(subarray)
+
+
+def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
+    tel_id = list(subarray.tel.keys())[0]
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
+    geometry = subarray.tel[tel_id].camera.geometry
+    n_samples = 96
+    readout = subarray.tel[tel_id].camera.readout
+
+    random = np.random.RandomState(1)
+    charge = random.uniform(minCharge, maxCharge, n_pixels)
+    tmid = (n_samples // 2) / readout.sampling_rate.to_value(u.GHz)
+    tmax = (n_samples - 1) / readout.sampling_rate.to_value(u.GHz)
+    time = random.uniform(0, tmax, n_pixels)
+    pix_id = 1
+    mask = geometry.pix_id == pix_id
+
+    dilated_mask = mask.copy()
+    for row in range(4):
+        dilated_mask = dilate(geometry, dilated_mask)
+
+    x_d = subarray.tel[tel_id].camera.geometry.pix_x.value
+    min_xd = np.min(x_d[dilated_mask])
+    diff_xd = x_d[dilated_mask] - min_xd
+    slope = 15  # ns
+    intercept = 0  # ns
+    time[dilated_mask] = tmid + (slope * diff_xd + intercept)
+    waveform_model = WaveformModel.from_camera_readout(readout)
+    waveform = waveform_model.get_waveform(charge, time, n_samples)
+
+    selected_gain_channel = np.zeros(charge.size, dtype=np.int64)
+
+    return waveform, subarray, tel_id, selected_gain_channel, charge, time, dilated_mask
+
+
+@pytest.fixture(scope="module")
+def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
+    return get_test_toymodel_gradient(subarray_mst_fc)
 
 
 @pytest.fixture(scope="module")
@@ -741,8 +780,33 @@ def test_upsampling(toymodel_mst_fc):
     )
 
 
+def test_FC_time(toymodel_mst_fc_time):
+    # Test time on toy model with time gradient (other toy not sensitive to timing bugs!!)
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+        mask,
+    ) = toymodel_mst_fc_time
+
+    extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=True)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
+    assert dl1.is_valid == True
+
+    extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=False)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
+    assert dl1.is_valid == True
+
+
 def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
-    # Test on toy model
+    # Test charge on standard toy model
     (
         waveforms,
         subarray,
@@ -751,11 +815,10 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
         true_charge,
         true_time,
     ) = toymodel_mst_fc
-    extractor = FlashCamExtractor(subarray=subarray)
+    extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=True)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
-    assert_allclose(dl1.image, true_charge, rtol=0.15)
-    assert_allclose(dl1.peak_time, true_time, atol=1.0)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert dl1.is_valid == True
 
     # Test on prod5 simulations
