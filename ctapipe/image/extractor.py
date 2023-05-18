@@ -1694,4 +1694,5 @@ class FlashCamExtractor(ImageExtractor):
         if shift != 0:
             peak_time -= shift
 
+        peak_time = peak_time / (self.sampling_rate_ghz[tel_id] * upsampling)
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
