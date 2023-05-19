@@ -191,8 +191,11 @@ def test_tot(toymodel):
     baseline = max_wv  # threshold is always above the pulse
 
     tot_scp = time_over_threshold(waveforms, baseline, thr=200)
-
     assert np.array(tot_scp).all() == 0
+
+    waveforms = np.atleast_2d(np.heaviside([-4, -3, -2, -1, 0, 1, 2, 3, 4, 5], 1))
+    tot_scp = time_over_threshold(waveforms, np.array([0]), thr=0.5)
+    assert np.array(tot_scp)[0] == 6
 
 
 def test_extract_around_peak(toymodel):
