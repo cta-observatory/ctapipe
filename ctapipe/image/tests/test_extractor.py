@@ -4,7 +4,6 @@ import astropy.units as u
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
-from scipy import signal
 from scipy.signal import filtfilt, peak_widths
 from scipy.stats import norm
 from traitlets.config.loader import Config
@@ -28,6 +27,7 @@ from ctapipe.image.extractor import (
     integration_correction,
     neighbor_average_maximum,
     subtract_baseline,
+    time_over_threshold,
     time_parameters,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
@@ -158,7 +158,7 @@ def toymodel_mst_fc(subarray_mst_fc: object) -> object:
 
 def test_fwhm(toymodel):
     waveforms, _, _, _, true_charge, _ = toymodel
-    peak = np.argmax(waveforms, axis=-1)
+    waveforms = waveforms[true_charge > 5]
     fwhm_scp = np.array([])
 
     for i in range(0, len(waveforms)):
@@ -173,57 +173,26 @@ def test_fwhm(toymodel):
 
         fwhm_scp = np.append(fwhm_scp, width)
 
-    fwhm, _, _, _ = time_parameters(
+    fwhm, _, _ = time_parameters(
         waveforms,
-        upper_limit=0.9,
-        lower_limit=0.1,
-        upsampling=100,
-        baseline_start=19,
-        baseline_end=24,
-        thr=2500,
     )
-
     assert_allclose(
-        np.array(fwhm)[(peak > 5) & (peak < (len(waveforms[0]) - 5))],
-        fwhm_scp[(peak > 5) & (peak < (len(waveforms[0]) - 5))],
-        atol=1e-2,
-        rtol=1e-2,
+        np.array(fwhm),
+        fwhm_scp,
+        atol=1e-3,
+        rtol=1e-3,
     )
 
 
 def test_tot(toymodel):
     waveforms, _, _, _, true_charge, _ = toymodel
-    max_wv = np.max(np.max(waveforms, axis=-1))
+    max_wv = np.max(waveforms, axis=-1)
 
-    thr = max_wv + 100  # threshold is always above the pulse
+    baseline = max_wv  # threshold is always above the pulse
 
-    _, _, _, tot_scp = time_parameters(
-        waveforms,
-        upper_limit=0.9,
-        lower_limit=0.1,
-        upsampling=1,
-        baseline_start=19,
-        baseline_end=24,
-        thr=thr,
-    )
+    tot_scp = time_over_threshold(waveforms, baseline, thr=200)
 
     assert np.array(tot_scp).all() == 0
-
-
-def test_rise_time(toymodel):
-    waveforms = np.array([list(signal.unit_impulse(7, 2))])
-    _, rise_time, fall_time, _ = time_parameters(
-        waveforms,
-        upper_limit=0.9,
-        lower_limit=0.1,
-        upsampling=1,
-        baseline_start=19,
-        baseline_end=24,
-        thr=2000,
-    )
-
-    assert np.array(rise_time).all() == 0.0
-    assert np.array(fall_time).all() == 0.0
 
 
 def test_extract_around_peak(toymodel):

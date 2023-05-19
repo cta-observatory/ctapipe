@@ -353,12 +353,6 @@ def integration_correction(
 
 def time_parameters(
     waveforms,
-    upper_limit,
-    lower_limit,
-    upsampling,
-    baseline_start,
-    baseline_end,
-    thr,
     peak_index=None,
 ):
     """
@@ -367,24 +361,11 @@ def time_parameters(
     Parameters
     ----------
     waveforms : ndarray
-        Waveforms stored in a numpy array.
+        r1 waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
     peak_index : ndarray
         Peak index
         Shape: (n_pix, )
-    upper_limit : float
-        Upper fraction of peak maximum
-    lower_limit : float
-        Lower fraction of peak maximum
-    upsampling : int
-        Upsampling factor to use (>= 1); if > 1, the input waveforms are resampled
-        at upsampling times their original sampling rate.
-    baseline_start : int
-        Sample where the baseline window starts
-    baseline_end : int
-        Sample where the baseline window ends
-    thr : int
-        Threshold to find the time over thr
 
     Returns
     -------
@@ -397,79 +378,104 @@ def time_parameters(
     fall_time : list of int
         Fall time of the pulse
         Shape : (n_pix)
+
+    """
+
+    n_pixels = np.shape(waveforms)[0]
+    fwhm_arr = np.zeros(n_pixels)
+    rise_time_arr = np.zeros(n_pixels)
+    fall_time_arr = np.zeros(n_pixels)
+
+    for pixel in range(0, n_pixels):
+        waveform = waveforms[pixel]
+        amplitude = np.max(waveform)
+        peak_index = np.argmax(waveform)
+        n_samples = np.shape(waveforms)[-1]
+
+        rt_90 = 0
+        rt_10 = 0
+        ft_90 = 0
+        ft_10 = 0
+        fwhm_left = 0
+        fwhm_right = 0
+
+        half_amplitude = amplitude / 2
+        ampl_10percent = 0.1 * amplitude
+        ampl_90percent = 0.9 * amplitude
+
+        for xi in range(peak_index, n_samples - 1):
+            xj = xi + 1
+            yi = waveform[xi]
+            yj = waveform[xj]
+            if yi >= half_amplitude >= yj:
+                fwhm_right = xi + (half_amplitude - yi) * (xj - xi) / (yj - yi)
+            if yi >= ampl_90percent >= yj:
+                ft_90 = xi + (ampl_90percent - yi) * (xj - xi) / (yj - yi)
+            if yi >= ampl_10percent >= yj:
+                ft_10 = xi + (ampl_10percent - yi) * (xj - xi) / (yj - yi)
+
+        for xi in range(peak_index, 0, -1):
+            xj = xi - 1
+            yi = waveform[xi]
+            yj = waveform[xj]
+            if yi >= half_amplitude >= yj:
+                fwhm_left = xi + (half_amplitude - yi) * (xj - xi) / (yj - yi)
+            if yi >= ampl_90percent >= yj:
+                rt_90 = xi + (ampl_90percent - yi) * (xj - xi) / (yj - yi)
+            if yi >= ampl_10percent >= yj:
+                rt_10 = xi + (ampl_10percent - yi) * (xj - xi) / (yj - yi)
+
+        if fwhm_right and fwhm_left:
+            fwhm = fwhm_right - fwhm_left
+        else:
+            fwhm = np.nan
+
+        if rt_90 and rt_10:
+            rise_time = rt_90 - rt_10
+        else:
+            rise_time = np.nan
+
+        if ft_90 and ft_10:
+            fall_time = ft_10 - ft_90
+        else:
+            fall_time = np.nan
+
+        fwhm_arr[pixel] = fwhm
+        rise_time_arr[pixel] = rise_time
+        fall_time_arr[pixel] = fall_time
+
+    return fwhm_arr, rise_time_arr, fall_time_arr
+
+
+def time_over_threshold(waveforms, baseline, thr):
+    """
+    Calculates the time over threshold
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        r0 waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    baseline : ndarray
+        Pedestal baseline as a threshold, this makes the time over threshold independent of NSB
+        Shape: (n_pix, )
+
+    Returns
+    -------
     time_over_thr : list of int
         Number of samples with amplitude > thr
         Shape : (n_pix)
 
     """
+    n_pixels = np.shape(waveforms)[0]
+    time_over_thr = np.zeros(n_pixels)
 
-    if upsampling > 1:
-        filt = np.ones(upsampling)
-        filt_weighted = filt / upsampling
-        signal = np.repeat(waveforms, upsampling, axis=-1)
-        waveforms = __filtfilt_fast(signal, filt_weighted)
+    for pixel in range(0, n_pixels):
+        waveform = waveforms[pixel]
+        between_ind = np.where(waveform > (thr + baseline[pixel]))[0]
+        time_over_thr[pixel] = max(between_ind, default=0) - min(between_ind, default=0)
 
-    if peak_index is None:  # take the maximum of the waveform as a default
-        peak_index = np.argmax(waveforms, axis=-1)
-    else:
-        peak_index = peak_index * upsampling  # to correct for upsampling
-
-    baseline = np.mean(waveforms[:, 1:5], axis=-1)
-
-    fwhm = []
-    rise_time = []
-    fall_time = []
-    time_over_thr = []
-
-    for i in range(0, len(waveforms)):
-        waveform = waveforms[i]
-        n_samples = waveform.size
-
-        peak_amplitude = waveform[peak_index[i]]
-        upper_amplitude = (
-            peak_amplitude - np.mean(waveform[baseline_start:baseline_end])
-        ) * upper_limit
-        lower_amplitude = (
-            peak_amplitude - np.mean(waveform[baseline_start:baseline_end])
-        ) * lower_limit
-        phalf = (peak_amplitude - np.mean(waveform[baseline_start:baseline_end])) / 2.0
-
-        start = peak_index[i] - 1
-        stop = peak_index[i] + 1
-        while start >= 0 and waveform[start] >= phalf:
-            start -= 1
-        while stop < n_samples and waveform[stop] >= phalf:
-            stop += 1
-        fwhm.append((stop - start) / upsampling)
-
-        indices_high = []
-        indices_low = []
-
-        rise_ind = peak_index[i] - 1
-        fall_ind = peak_index[i] + 1
-        while rise_ind >= 0 and waveform[rise_ind] >= lower_amplitude:
-            if waveform[rise_ind] <= upper_amplitude:
-                indices_low.append(rise_ind)
-            rise_ind -= 1
-        while fall_ind < n_samples and waveform[fall_ind] >= lower_amplitude:
-            if waveform[fall_ind] <= upper_amplitude:
-                indices_high.append(fall_ind)
-            fall_ind += 1
-        rise_time.append(
-            max(indices_low, default=0) / upsampling
-            - min(indices_low, default=0) / upsampling
-        )
-        fall_time.append(
-            max(indices_high, default=0) / upsampling
-            - min(indices_high, default=0) / upsampling
-        )
-
-        between_ind = np.where(waveform > (2500 + baseline[i]))[
-            0
-        ]  # count number of samples with amplitude > thr
-        time_over_thr.append(max(between_ind, default=0) - min(between_ind, default=0))
-
-    return fwhm, rise_time, fall_time, time_over_thr
+    return time_over_thr
 
 
 class ImageExtractor(TelescopeComponent):
