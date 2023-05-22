@@ -1687,6 +1687,7 @@ class FlashCamExtractor(ImageExtractor):
             peak_time = adaptive_centroid(
                 d_waveforms, peak_index, leading_edge_rel_descend_limit
             )
+            peak_time = peak_time / (self.sampling_rate_ghz[tel_id] * upsampling)
 
         if gain != 0:
             charge /= gain

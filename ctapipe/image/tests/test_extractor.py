@@ -798,6 +798,22 @@ def test_FC_time(toymodel_mst_fc_time):
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
     assert dl1.is_valid == True
 
+    extractor = FlashCamExtractor(
+        subarray=subarray, upsampling=1, leading_edge_timing=True
+    )
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
+    assert dl1.is_valid == True
+
+    extractor = FlashCamExtractor(
+        subarray=subarray, upsampling=1, leading_edge_timing=False
+    )
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
+    assert dl1.is_valid == True
+
     extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=False)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
