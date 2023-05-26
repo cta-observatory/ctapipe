@@ -165,6 +165,70 @@ class EventType(enum.Enum):
     UNKNOWN = 255
 
 
+class PixelStatus(enum.IntFlag):
+    """
+    Pixel status information
+
+    See DL0 Data Model specification:
+    https://redmine.cta-observatory.org/dmsf/files/17552/view
+    """
+
+    DVR_STORED_AS_SIGNAL = enum.auto()
+    DVR_STORED_NO_SIGNAL = enum.auto()
+    HIGH_GAIN_STORED = enum.auto()
+    LOW_GAIN_STORED = enum.auto()
+    SATURATED = enum.auto()
+    PIXEL_TRIGGER_0 = enum.auto()
+    PIXEL_TRIGGER_1 = enum.auto()
+    PIXEL_TRIGGER_2 = enum.auto()
+
+    #: DVR status uses two bits
+    #: 0 = not stored, 1 = identified as signal, 2 = stored, not identified as signal
+    DVR_STATUS = DVR_STORED_AS_SIGNAL | DVR_STORED_NO_SIGNAL
+
+    #: Pixel trigger information, TBD
+    PIXEL_TRIGGER = PIXEL_TRIGGER_0 | PIXEL_TRIGGER_1 | PIXEL_TRIGGER_2
+
+    @staticmethod
+    def get_dvr_status(pixel_status):
+        """
+        Return only the bits corresponding to the DVR_STATUS
+
+        Returns
+        -------
+        dvr_status: int or array[uint8]
+            0 = pixel not stored
+            1 = pixel was identified as signal pixel and stored
+            2 = pixel was stored, but not identified as signal
+        """
+        return pixel_status & PixelStatus.DVR_STATUS
+
+    @staticmethod
+    def get_channel_info(pixel_status):
+        """
+        Return only the bits corresponding to the channel info (high/low gain stored)
+
+        Returns
+        -------
+        channel_info: int or array[uint8]
+            0 = pixel broken / disabled
+            1 = only high gain read out
+            2 = only low gain read out
+            3 = both gains read out
+        """
+        gain_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
+        return (pixel_status & gain_bits) >> 2
+
+    @staticmethod
+    def is_invalid(pixel_status):
+        """Return if pixel values are marked as invalid
+
+        This is encoded in the data model as neither high gain nor low gain marked as stored
+        """
+        gain_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
+        return (pixel_status & gain_bits) == 0
+
+
 class EventIndexContainer(Container):
     """index columns to include in event lists, common to all data levels"""
 
@@ -503,6 +567,9 @@ class R1CameraContainer(Container):
     Storage of r1 calibrated data from a single telescope
     """
 
+    event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
+    event_time = Field(NAN_TIME, "event timestamp")
+
     waveform = Field(
         None,
         (
@@ -510,10 +577,42 @@ class R1CameraContainer(Container):
             "Shape: (n_pixels, n_samples)"
         ),
     )
+
+    pixel_status = Field(
+        None,
+        "Array of pixel status values, see PixelStatus for definition of the values",
+        ndim=1,
+        dtype=np.uint8,
+    )
+
+    first_cell_id = Field(
+        None,
+        "Array of first cell ids of the readout chips. Only used by LST and SST.",
+        dtype=np.uint32,
+    )
+
+    module_hires_local_clock_counter = Field(
+        None,
+        "Counter values of the camera modules",
+        dtype=np.uint64,
+    )
+
+    pedestal_intensity = Field(
+        None,
+        "Pedestal intensity in each pixel in DC",
+        dtype=np.float32,
+    )
+
+    calibration_monitoring_id = Field(
+        None,
+        "ID of the CalibrationMonitoringSet containing the applied pre-calibration parameters",
+    )
+
     selected_gain_channel = Field(
         None,
         (
             "Numpy array containing the gain channel chosen for each pixel. "
+            "Note: should be replaced by using ``pixel_status`` "
             "Shape: (n_pixels)"
         ),
     )
@@ -532,8 +631,14 @@ class R1Container(Container):
 
 class DL0CameraContainer(Container):
     """
-    Storage of data volume reduced dl0 data from a single telescope
+    Storage of data volume reduced dl0 data from a single telescope.
+
+    See DL0 Data Model specification:
+    https://redmine.cta-observatory.org/dmsf/files/17552/view
     """
+
+    event_type = Field(EventType.UNKNOWN, "type of event", type=EventType)
+    event_time = Field(NAN_TIME, "event timestamp")
 
     waveform = Field(
         None,
@@ -545,10 +650,29 @@ class DL0CameraContainer(Container):
         ),
     )
 
+    pixel_status = Field(
+        None,
+        "Array of pixel status values, see PixelStatus for definition of the values",
+        dtype=np.uint8,
+        ndim=1,
+    )
+
+    first_cell_id = Field(
+        None,
+        "Array of first cell ids of the readout chips. Only used by LST and SST.",
+        dtype=np.uint32,
+    )
+
+    calibration_monitoring_id = Field(
+        None,
+        "ID of the CalibrationMonitoringSet containing the applied pre-calibration parameters",
+    )
+
     selected_gain_channel = Field(
         None,
         (
             "Numpy array containing the gain channel chosen for each pixel. "
+            "Note: this should be replaced by only using ``pixel_status`` "
             "Shape: (n_pixels)"
         ),
     )
