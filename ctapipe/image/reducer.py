@@ -99,8 +99,8 @@ class NullDataVolumeReducer(DataVolumeReducer):
     """
 
     def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
-        mask = waveforms != 0
-        return mask
+        n_pixels = waveforms.shape[-2]
+        return np.ones(n_pixels, dtype=bool)
 
 
 class TailCutsDataVolumeReducer(DataVolumeReducer):
