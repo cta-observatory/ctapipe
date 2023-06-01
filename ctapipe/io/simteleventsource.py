@@ -829,6 +829,7 @@ class SimTelEventSource(EventSource):
                     selected_gain_channel=selected_gain_channel,
                 )
                 data.r1.tel[tel_id] = R1CameraContainer(
+                    event_type=trigger.event_type,
                     waveform=r1_waveform,
                     selected_gain_channel=selected_gain_channel,
                     pixel_status=pixel_status,
