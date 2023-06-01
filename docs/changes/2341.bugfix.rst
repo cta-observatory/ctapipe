@@ -1,0 +1,1 @@
+Fix definition of the ``--dl2-subarray`` flag of ``ctapipe-merge``.
