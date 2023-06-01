@@ -312,7 +312,8 @@ def test_units(tmp_path):
     with tables.open_file(path, "r") as f:
         assert f.root.data.units.attrs["CTAFIELD_0_UNIT"] == "m**-1"
         assert f.root.data.units.attrs["CTAFIELD_1_UNIT"] == "s"
-        assert f.root.data.units.attrs["CTAFIELD_2_UNIT"] == "cm**-2.g"
+        # order of the units does not matter
+        assert f.root.data.units.attrs["CTAFIELD_2_UNIT"] in {"cm**-2.g", "g.cm**-2"}
 
 
 def test_write_containers(tmp_path):
