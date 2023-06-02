@@ -4,6 +4,7 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 # pylint: disable=W0201
 import sys
 
+import numpy as np
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
@@ -287,7 +288,8 @@ class ProcessorTool(Tool):
         self.log.info(
             "compute muon parameters: %s", self.should_compute_muon_parameters
         )
-        self.event_source.subarray.info(printer=self.log.info)
+        subarray = self.event_source.subarray
+        subarray.info(printer=self.log.info)
 
         for event in tqdm(
             self.event_source,
@@ -298,6 +300,11 @@ class ProcessorTool(Tool):
         ):
 
             self.log.debug("Processessing event_id=%s", event.index.event_id)
+
+            for tel_id, sim in event.simulation.tel.items():
+                if sim.true_image is None:
+                    self.log.warning("Found telscope event with missing true image, filling zeros")
+                    sim.true_image = np.zeros(subarray.tel[tel_id].camera.geometry.n_pixels, dtype=np.int32)
 
             if not self.event_type_filter(event):
                 continue
