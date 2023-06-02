@@ -86,16 +86,24 @@ In the current scheme (simplified from ctapipe-process) it looks like this:
 
    for array_event in source:
        calibrator(array_event)
+       # calibrator internally has two hidden loops like this:
+       # for tel_id, r1 in array_event.r1.tel.items():
+       #     calibrate r1 to dl0
+       # for tel_id, dl0 in array_event.dl0.tel.items():
+       #     calibrate dl0 to dl1
+       
        image_processor(array_event)
+       # image processor also has an internal loop over the telescope events
+       # for tel_id, dl1 in array_event.dl1.tel.items():
+       #     image cleaning and parametrization
+       
        shower_processor(array_event)
 
 This looks simple, but there are hidden loops over the telescopes in both the ``CameraCalibrator``
 and the ``ImageProcessor`` here, although both of these do not access any subarray-wide data at all.
 
 Using the new structure, these classes will get a single ``TelescopeEventContainer`` and the loop
-can to be moved outside those classes to a single place, which then also makes it possible
-to distribute over multiple threads without having to add threading to each and every
-individual class.
+can to be moved outside those classes to a single place:
 
 .. code-block:: python
 
