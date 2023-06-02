@@ -53,7 +53,7 @@ The main structure after the change will look like this (Container-suffix left o
    - dl1: DL1Subarray
    - dl2: DL2Subarray
    - dl3: DL3Subarray
-   - tel: Map[int, TelescopeEvent] # or just a list? TelescopeEvent stores the tel_id
+   - tel: Map[tel_id -> TelescopeEvent]
 
    TelescopeEvent
    - index: TelescopeEventIndex
@@ -149,6 +149,7 @@ Before:
     hillas_dicts = {
         tel_id: dl1.parameters.hillas
         for tel_id, dl1 in event.dl1.items()
+        if all(self.quality_query(parameters=dl1.parameters))
     }
 
 After:
@@ -158,6 +159,7 @@ After:
     hillas_dicts = {
         tel_id: tel_event.dl1.parameters.hillas
         for tel_id, tel_event in event.tel.items()
+        if all(self.quality_query(parameters=tel_event.dl1.parameters))
     }
 
 Or in our loops, code like this:
