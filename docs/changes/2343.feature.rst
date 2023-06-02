@@ -1,0 +1,5 @@
+Remove the ``injection_height`` field from the ``SimulationConfigContainer``,
+this field was always empty and is never filled by ``sim_telarray``.
+
+Add the corresponding ``starting_grammage`` field to the ``SimulatedShowerContainer``,
+where it is actually available.
