@@ -3,6 +3,8 @@ Traitlet implementations for ctapipe
 """
 import os
 import pathlib
+import re
+import sys
 from urllib.parse import urlparse
 
 import traitlets
@@ -164,11 +166,7 @@ class Path(TraitType):
             except ValueError:
                 return self.error(obj, value)
 
-            if len(url.scheme) == 1:
-                # looks like a windows drive letter, so assume it is
-                value = pathlib.Path(value)
-
-            elif url.scheme in ("http", "https"):
+            if url.scheme in ("http", "https"):
                 # here to avoid circular import, since every module imports
                 # from ctapipe.core
                 from ctapipe.utils.download import download_cached
@@ -182,6 +180,9 @@ class Path(TraitType):
                 value = get_dataset_path(value.partition("dataset://")[2])
             elif url.scheme in ("", "file"):
                 value = pathlib.Path(url.netloc, url.path)
+            elif sys.platform == "win32" and re.match(r"^[A-Z]:\\", value):
+                # looks like a windows drive letter, so assume it is
+                value = pathlib.Path(value)
             else:
                 return self.error(obj, value)
 
