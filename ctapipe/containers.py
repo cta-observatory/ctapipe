@@ -593,7 +593,7 @@ class R1CameraContainer(Container):
 
     module_hires_local_clock_counter = Field(
         None,
-        "Counter values of the camera modules",
+        "Clock counter values of the camera modules. See R1 data model for details.",
         dtype=np.uint64,
     )
 

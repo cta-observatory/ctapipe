@@ -1,8 +1,10 @@
+"""Tests for the data structures defined in ctapipe.containers"""
 import numpy as np
 from numpy.testing import assert_equal
 
 
 def test_pixel_status():
+    """Test methods of the PixelStatus enum on numpy arrays"""
     from ctapipe.containers import PixelStatus
 
     pixel_status = np.array([0b1101, 0b1000, 0b1110, 0b1101, 0b0000], dtype=np.uint8)
