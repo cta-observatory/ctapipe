@@ -586,8 +586,11 @@ class SimulatedShowerContainer(Container):
     core_x = Field(nan * u.m, "Simulated core position (x)", unit=u.m)
     core_y = Field(nan * u.m, "Simulated core position (y)", unit=u.m)
     h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
-    x_max = Field(
-        nan * u.g / (u.cm**2), "Simulated Xmax value", unit=u.g / (u.cm**2)
+    x_max = Field(nan * u.g / u.cm**2, "Simulated Xmax value", unit=u.g / u.cm**2)
+    starting_grammage = Field(
+        nan * u.g / u.cm**2,
+        "Grammage (mass overburden) where the particle was injected into the atmosphere",
+        unit=u.g / u.cm**2,
     )
     shower_primary_id = Field(
         np.int16(np.iinfo(np.int16).max),
@@ -691,9 +694,6 @@ class SimulationConfigContainer(Container):
     min_scatter_range = Field(nan * u.m, description="Minimum scatter range", unit=u.m)
     core_pos_mode = Field(
         nan, description="Core Position Mode (0=Circular, 1=Rectangular)"
-    )
-    injection_height = Field(
-        nan * u.m, description="Height of particle injection", unit=u.m
     )
     atmosphere = Field(nan * u.m, description="Atmospheric model number")
     corsika_iact_options = Field(
