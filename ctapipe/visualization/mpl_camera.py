@@ -12,6 +12,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.patches import Circle, Ellipse, RegularPolygon
 
+from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 from ..coordinates import get_representation_component_names
 from ..instrument import PixelShape
 
@@ -459,7 +460,7 @@ class CameraDisplay:
         self._axes_overlays.append(plot)
 
     def overlay_moments(
-        self, hillas_parameters, with_label=True, keep_old=False, **kwargs
+        self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
         """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
@@ -471,6 +472,8 @@ class CameraDisplay:
             If True, show coordinates of centroid and width and length
         keep_old: bool
             If True, to not remove old overlays
+        n_sigma: float
+            How many sigmas to use for the ellipse
         kwargs: key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
@@ -478,16 +481,29 @@ class CameraDisplay:
         if not keep_old:
             self.clear_overlays()
 
+        try:
+            length = hillas_parameters.length.to_value(self.unit)
+            width = hillas_parameters.width.to_value(self.unit)
+        except u.UnitsError:
+            raise ValueError("hillas_parameters must be in same frame as geometry")
+
         # strip off any units
-        cen_x = u.Quantity(hillas_parameters.x).to_value(self.unit)
-        cen_y = u.Quantity(hillas_parameters.y).to_value(self.unit)
-        length = u.Quantity(hillas_parameters.length).to_value(self.unit)
-        width = u.Quantity(hillas_parameters.width).to_value(self.unit)
+        if isinstance(hillas_parameters, HillasParametersContainer):
+            cen_x = hillas_parameters.fov_lon.to_value(self.unit)
+            cen_y = hillas_parameters.fov_lat.to_value(self.unit)
+        elif isinstance(hillas_parameters, CameraHillasParametersContainer):
+            cen_x = hillas_parameters.x.to_value(self.unit)
+            cen_y = hillas_parameters.y.to_value(self.unit)
+        else:
+            raise TypeError(
+                "hillas_parameters must be a (Camera)HillasParametersContainer"
+                f", got: {hillas_parameters} "
+            )
 
         el = self.add_ellipse(
             centroid=(cen_x, cen_y),
-            length=length * 2,
-            width=width * 2,
+            length=n_sigma * length * 2,
+            width=n_sigma * width * 2,
             angle=hillas_parameters.psi.to_value(u.rad),
             **kwargs,
         )
