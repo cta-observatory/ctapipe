@@ -145,7 +145,7 @@ class ToyEventSource(TelescopeComponent, EventSource):
                 y=y,
                 length=length * u.m,
                 width=width * u.m,
-                psi=f"{psi}d",
+                psi=psi * u.deg,
                 skewness=skewness,
             )
             image, _, _ = model.generate_image(cam, intensity)
