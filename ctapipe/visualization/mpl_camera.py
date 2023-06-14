@@ -7,15 +7,14 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.patches import Circle, Ellipse, RegularPolygon
 
-from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 from ..coordinates import get_representation_component_names
 from ..instrument import PixelShape
+from .utils import build_hillas_overlay
 
 __all__ = ["CameraDisplay"]
 
@@ -482,77 +481,32 @@ class CameraDisplay:
         if not keep_old:
             self.clear_overlays()
 
-        try:
-            length = hillas_parameters.length.to_value(self.unit)
-            width = hillas_parameters.width.to_value(self.unit)
-        except u.UnitsError:
-            raise ValueError("hillas_parameters must be in same frame as geometry")
+        params = build_hillas_overlay(
+            hillas_parameters,
+            self.unit,
+            n_sigma=n_sigma,
+            with_label=with_label,
+        )
 
-        # strip off any units
-        if isinstance(hillas_parameters, HillasParametersContainer):
-            cen_x = hillas_parameters.fov_lon.to_value(self.unit)
-            cen_y = hillas_parameters.fov_lat.to_value(self.unit)
-        elif isinstance(hillas_parameters, CameraHillasParametersContainer):
-            cen_x = hillas_parameters.x.to_value(self.unit)
-            cen_y = hillas_parameters.y.to_value(self.unit)
-        else:
-            raise TypeError(
-                "hillas_parameters must be a (Camera)HillasParametersContainer"
-                f", got: {hillas_parameters} "
-            )
-
-        psi_rad = hillas_parameters.psi.to_value(u.rad)
         el = self.add_ellipse(
-            centroid=(cen_x, cen_y),
-            length=n_sigma * length * 2,
-            width=n_sigma * width * 2,
-            angle=psi_rad,
+            centroid=(params["cog_x"], params["cog_y"]),
+            length=n_sigma * params["length"] * 2,
+            width=n_sigma * params["width"] * 2,
+            angle=params["psi_rad"],
             **kwargs,
         )
 
         self._axes_overlays.append(el)
 
         if with_label:
-            # the following code dealing with x, y, angle
-            # results in the minimal rotation of the text and puts the
-            # label just outside the ellipse
-            psi_deg = Angle(hillas_parameters.psi).wrap_at(180 * u.deg).to_value(u.deg)
-            if psi_deg < -135:
-                psi_deg += 180
-                psi_rad += np.pi
-            elif psi_deg > 135:
-                psi_deg -= 180
-                psi_rad -= np.pi
-
-            if -45 < psi_deg <= 45:
-                r = 1.2 * n_sigma * width
-                label_x = cen_x + r * np.cos(psi_rad + 0.5 * np.pi)
-                label_y = cen_y + r * np.sin(psi_rad + 0.5 * np.pi)
-                rotation = psi_deg
-            elif 45 < psi_deg <= 135:
-                r = 1.2 * n_sigma * length
-                label_x = cen_x + r * np.cos(psi_rad)
-                label_y = cen_y + r * np.sin(psi_rad)
-                rotation = psi_deg - 90
-            else:
-                r = 1.2 * n_sigma * length
-                label_x = cen_x - r * np.cos(psi_rad)
-                label_y = cen_y - r * np.sin(psi_rad)
-                rotation = psi_deg + 90
-
             text = self.axes.text(
-                label_x,
-                label_y,
-                "({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
-                    cen_x * self.unit,
-                    cen_y * self.unit,
-                    hillas_parameters.width.to(self.unit),
-                    hillas_parameters.length.to(self.unit),
-                ),
+                params["label_x"],
+                params["label_y"],
+                params["text"],
                 color=el.get_edgecolor(),
                 va="bottom",
                 ha="center",
-                rotation=rotation,
+                rotation=params["rotation"],
                 rotation_mode="anchor",
             )
 
