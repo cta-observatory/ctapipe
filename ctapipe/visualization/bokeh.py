@@ -1,31 +1,30 @@
 import sys
 import tempfile
 from abc import ABCMeta
+
+import astropy.units as u
 import matplotlib.pyplot as plt
-from matplotlib.colors import to_hex
-
 import numpy as np
-
-from bokeh.io import output_notebook, push_notebook, show, output_file
-from bokeh.plotting import figure
+from bokeh.io import output_file, output_notebook, push_notebook, show
 from bokeh.models import (
-    ColumnDataSource,
-    TapTool,
+    BoxZoomTool,
+    CategoricalColorMapper,
     ColorBar,
+    ColumnDataSource,
+    ContinuousColorMapper,
+    Ellipse,
+    HoverTool,
+    Label,
     LinearColorMapper,
     LogColorMapper,
-    ContinuousColorMapper,
-    CategoricalColorMapper,
-    HoverTool,
-    BoxZoomTool,
-    Ellipse,
-    Label,
+    TapTool,
 )
-from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
-import astropy.units as u
+from bokeh.palettes import Greys256, Inferno256, Magma256, Viridis256, d3
+from bokeh.plotting import figure
+from matplotlib.colors import to_hex
 
 from ..instrument import CameraGeometry, PixelShape
-
+from .utils import build_hillas_overlay
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
@@ -66,10 +65,11 @@ def generate_hex_vertices(geom):
     phi += geom.pix_rotation.rad + np.deg2rad(30)
 
     # we need the circumcircle radius, pixel_width is incircle diameter
-    r = 2 / np.sqrt(3) * geom.pixel_width.value / 2
+    unit = geom.pix_x.unit
+    r = 2 / np.sqrt(3) * geom.pixel_width.to_value(unit) / 2
 
-    x = geom.pix_x.value
-    y = geom.pix_y.value
+    x = geom.pix_x.to_value(unit)
+    y = geom.pix_y.to_value(unit)
 
     return (
         x[:, np.newaxis] + r[:, np.newaxis] * np.cos(phi)[np.newaxis],
@@ -79,9 +79,10 @@ def generate_hex_vertices(geom):
 
 def generate_square_vertices(geom):
     """Generate vertices of pixels for a square grid camera geometry"""
-    width = geom.pixel_width.value / 2
-    x = geom.pix_x.value
-    y = geom.pix_y.value
+    unit = geom.pix_x.unit
+    width = geom.pixel_width.to_value(unit) / 2
+    x = geom.pix_x.to_value(unit)
+    y = geom.pix_y.to_value(unit)
 
     x_offset = width[:, np.newaxis] * np.array([-1, -1, 1, 1])
     y_offset = width[:, np.newaxis] * np.array([1, -1, -1, 1])
@@ -327,6 +328,8 @@ class CameraDisplay(BokehPlot):
             line_alpha=np.zeros(self._geometry.n_pixels),
         )
 
+        self._unit = self._geometry.pix_x.unit
+
         if self._geometry.pix_type == PixelShape.HEXAGON:
             x, y = generate_hex_vertices(self._geometry)
 
@@ -334,8 +337,9 @@ class CameraDisplay(BokehPlot):
             x, y = generate_square_vertices(self._geometry)
 
         elif self._geometry.pix_type == PixelShape.CIRCLE:
-            x, y = self._geometry.pix_x.value, self._geometry.pix_y.value
-            data["radius"] = self._geometry.pixel_width / 2
+            x = self._geometry.pix_x.to_value(self._unit)
+            y = self._geometry.pix_y.to_value(self._unit)
+            data["radius"] = self._geometry.pixel_width.to_value(self._unit) / 2
         else:
             raise NotImplementedError(
                 f"Unsupported pixel shape {self._geometry.pix_type}"
@@ -464,7 +468,7 @@ class CameraDisplay(BokehPlot):
         return ellipse
 
     def overlay_moments(
-        self, hillas_parameters, with_label=True, keep_old=False, **kwargs
+        self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
         """helper to overlay ellipse from a `HillasParametersContainer` structure
 
@@ -483,30 +487,29 @@ class CameraDisplay(BokehPlot):
         if not keep_old:
             self.clear_overlays()
 
-        # strip off any units
-        cen_x = u.Quantity(hillas_parameters.x).value
-        cen_y = u.Quantity(hillas_parameters.y).value
-        length = u.Quantity(hillas_parameters.length).value
-        width = u.Quantity(hillas_parameters.width).value
+        params = build_hillas_overlay(
+            hillas_parameters,
+            self._unit,
+            n_sigma=n_sigma,
+            with_label=with_label,
+        )
 
         el = self.add_ellipse(
-            centroid=(cen_x, cen_y),
-            length=length * 2,
-            width=width * 2,
-            angle=hillas_parameters.psi.to_value(u.rad),
+            centroid=(params["cog_x"], params["cog_y"]),
+            length=2 * n_sigma * params["length"],
+            width=2 * n_sigma * params["width"],
+            angle=params["psi_rad"],
             **kwargs,
         )
 
         if with_label:
             label = Label(
-                x=cen_x,
-                y=cen_y,
-                text="({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
-                    hillas_parameters.x,
-                    hillas_parameters.y,
-                    hillas_parameters.width,
-                    hillas_parameters.length,
-                ),
+                x=params["label_x"],
+                y=params["label_y"],
+                text=params["text"],
+                angle=params["rotation"],
+                angle_units="deg",
+                text_align="center",
                 text_color=el.line_color,
             )
             self.figure.add_layout(label, "center")
@@ -644,7 +647,7 @@ class ArrayDisplay(BokehPlot):
         for i, telescope_id in enumerate(telescope_ids):
             telescope = subarray.tel[telescope_id]
             tel_types.append(str(telescope))
-            mirror_area = telescope.optics.mirror_area.to_value(u.m ** 2)
+            mirror_area = telescope.optics.mirror_area.to_value(u.m**2)
             mirror_radii[i] = np.sqrt(mirror_area) / np.pi
 
         if values is None:
