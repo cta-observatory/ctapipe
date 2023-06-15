@@ -37,14 +37,16 @@ class ExpressionEngine:
                 ) from err
 
     def __call__(self, locals):
-        for expr in self.compiled:
+        for compiled, expression in zip(self.compiled, self.expressions):
             try:
-                yield eval(expr, ALLOWED_GLOBALS, locals)
+                yield eval(compiled, ALLOWED_GLOBALS, locals)
             except NameError as err:
-                raise ExpressionError(f"Error evaluating expression '{expr}': {err}")
+                raise ExpressionError(
+                    f"Error evaluating expression '{expression}': {err}"
+                ) from None
             except Exception as err:
                 raise ExpressionError(
-                    f"Error evaluating expression '{expr}': {err}"
+                    f"Error evaluating expression '{expression}': {err}"
                 ) from err
 
     def __getstate__(self):
