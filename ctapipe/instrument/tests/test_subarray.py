@@ -15,6 +15,8 @@ from ctapipe.instrument import (
     TelescopeDescription,
 )
 
+LOCATION = EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
+
 
 def create_subarray(tel_type, n_tels=10):
     """generate a simple subarray for testing purposes"""
@@ -31,11 +33,7 @@ def create_subarray(tel_type, n_tels=10):
         "test array",
         tel_positions=pos,
         tel_descriptions=tel,
-        reference_location=EarthLocation(
-            lon=-17 * u.deg,
-            lat=28 * u.deg,
-            height=2200 * u.m,
-        ),
+        reference_location=LOCATION,
     )
 
 
@@ -64,6 +62,8 @@ def test_subarray_description(prod5_mst_nectarcam):
     assert u.isclose(sub.optics_types[0].effective_focal_length, 16.445 * u.m)
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
+
+    assert sub.tel_coords.reference_location == LOCATION
 
     subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
     assert subsub.n_tels == 4
