@@ -48,15 +48,15 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
     Parameters
     ----------
-    x : u.Quantity[angle|length]
+    x : u.Quantity[length]
         X camera coordinate to evaluate the time at.
         Usually the array of pixel X positions
-    y : u.Quantity[angle|length]
+    y : u.Quantity[length]
         Y camera coordinate to evaluate the time at.
         Usually the array of pixel Y positions
-    centroid_x : u.Quantity[angle|length]
+    centroid_x : u.Quantity[length]
         X camera coordinate for the centroid of the shower
-    centroid_y : u.Quantity[angle|length]
+    centroid_y : u.Quantity[length]
         Y camera coordinate for the centroid of the shower
     psi : convertible to `astropy.coordinates.Angle`
         rotation angle about the centroid (0=x-axis)
@@ -245,11 +245,11 @@ class Gaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[angle|length, shape=(2, )]
+        centroid : u.Quantity[length, shape=(2, )]
             position of the centroid of the shower in camera coordinates
-        width: u.Quantity[angle|length]
+        width: u.Quantity[length]
             width of shower (minor axis)
-        length: u.Quantity[angle|length]
+        length: u.Quantity[length]
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
@@ -298,11 +298,11 @@ class SkewedGaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[angle|length, shape=(2, )]
+        centroid : u.Quantity[length, shape=(2, )]
             position of the centroid of the shower in camera coordinates
-        width: u.Quantity[angle|length]
+        width: u.Quantity[length]
             width of shower (minor axis)
-        length: u.Quantity[angle|length]
+        length: u.Quantity[length]
             length of shower (major axis)
         psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
