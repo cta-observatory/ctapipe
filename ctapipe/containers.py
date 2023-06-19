@@ -588,19 +588,22 @@ class R1CameraContainer(Container):
     first_cell_id = Field(
         None,
         "Array of first cell ids of the readout chips. Only used by LST and SST.",
-        dtype=np.uint32,
+        dtype=np.uint16,
+        ndim=1,
     )
 
     module_hires_local_clock_counter = Field(
         None,
         "Clock counter values of the camera modules. See R1 data model for details.",
         dtype=np.uint64,
+        ndim=1,
     )
 
     pedestal_intensity = Field(
         None,
         "Pedestal intensity in each pixel in DC",
         dtype=np.float32,
+        ndim=1,
     )
 
     calibration_monitoring_id = Field(
@@ -660,7 +663,8 @@ class DL0CameraContainer(Container):
     first_cell_id = Field(
         None,
         "Array of first cell ids of the readout chips. Only used by LST and SST.",
-        dtype=np.uint32,
+        dtype=np.uint16,
+        ndim=1,
     )
 
     calibration_monitoring_id = Field(
