@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - default
 dependencies:
-  - python=3.9
+  - python=3.11
   - pip
   - astropy=5
   - black
@@ -19,8 +19,8 @@ dependencies:
   - joblib
   - jupyter
   - matplotlib
-  - numba=0.56
-  - numpy>=1.17
+  - numba>=0.56
+  - numpy>=1.22
   - numpydoc
   - pandas
   - pre-commit
