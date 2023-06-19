@@ -55,15 +55,15 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
     Parameters
     ----------
-    x : u.Quantity[angle]
+    x : u.Quantity[angle|length]
         X camera coordinate to evaluate the time at.
         Usually the array of pixel X positions
-    y : u.Quantity[angle]
+    y : u.Quantity[angle|length]
         Y camera coordinate to evaluate the time at.
         Usually the array of pixel Y positions
-    centroid_x : u.Quantity[angle]
+    centroid_x : u.Quantity[angle|length]
         X camera coordinate for the centroid of the shower
-    centroid_y : u.Quantity[angle]
+    centroid_y : u.Quantity[angle|length]
         Y camera coordinate for the centroid of the shower
     psi : convertible to `astropy.coordinates.Angle`
         rotation angle about the centroid (0=x-axis)
@@ -79,7 +79,6 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
     """
     unit = x.unit
-    # camera frame
     return _obtain_image_no_units(
         x=x.to_value(unit),
         y=y.to_value(unit),
@@ -252,13 +251,13 @@ class Gaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
+        centroid : u.Quantity[angle|length, shape=(2, )]
             position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
+        width: u.Quantity[angle|length]
             width of shower (minor axis)
-        length: u.Quantity[length]
+        length: u.Quantity[angle|length]
             length of shower (major axis)
-        psi : convertable to `astropy.coordinates.Angle`
+        psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
 
         Returns
@@ -305,13 +304,13 @@ class SkewedGaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
+        centroid : u.Quantity[angle|length, shape=(2, )]
             position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
+        width: u.Quantity[angle|length]
             width of shower (minor axis)
-        length: u.Quantity[length]
+        length: u.Quantity[angle|length]
             length of shower (major axis)
-        psi : convertable to `astropy.coordinates.Angle`
+        psi : u.Quantity[angle]
             rotation angle about the centroid (0=x-axis)
 
         Returns
@@ -355,8 +354,8 @@ class SkewedGaussian(ImageModel):
 
 class RingGaussian(ImageModel):
     """A shower image consisting of a ring with gaussian radial profile.
-    Simplified model for a muon ring.
 
+    Simplified model for a muon ring.
     """
 
     def __init__(self, x, y, radius, sigma):
