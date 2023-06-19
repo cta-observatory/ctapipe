@@ -1,0 +1,1 @@
+Fix ``ctapipe-train-disp-reconstructor --help`` raising an exception.
