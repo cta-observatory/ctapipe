@@ -41,13 +41,6 @@ __all__ = [
 TOYMODEL_RNG = default_rng(0)
 
 
-def _obtain_image_no_units(
-    x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept
-):
-    longitudinal, _ = camera_to_shower_coordinates(x, y, centroid_x, centroid_y, psi)
-    return longitudinal * time_gradient + time_intercept
-
-
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
     """Create a pulse time image for a toymodel shower. Assumes the time development
     occurs only along the longitudinal (major) axis of the shower, and scales
@@ -79,15 +72,16 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
     """
     unit = x.unit
-    return _obtain_image_no_units(
-        x=x.to_value(unit),
-        y=y.to_value(unit),
-        centroid_x=centroid_x.to_value(unit),
-        centroid_y=centroid_y.to_value(unit),
-        psi=psi.to_value(u.rad),
-        time_gradient=time_gradient.to_value(u.ns / unit),
-        time_intercept=time_intercept.to_value(u.ns),
-    )
+    x = x.to_value(unit)
+    y = y.to_value(unit)
+    centroid_x = centroid_x.to_value(unit)
+    centroid_y = centroid_y.to_value(unit)
+    psi = psi.to_value(u.rad)
+    time_gradient = time_gradient.to_value(u.ns / unit)
+    time_intercept = time_intercept.to_value(u.ns)
+
+    longitudinal, _ = camera_to_shower_coordinates(x, y, centroid_x, centroid_y, psi)
+    return longitudinal * time_gradient + time_intercept
 
 
 class WaveformModel:
