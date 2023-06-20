@@ -520,6 +520,11 @@ class CameraDisplay:
 
     def _on_pick(self, event):
         """handler for when a pixel is clicked"""
+        if event.artist is not self.pixels:
+            # do nothing if the event was triggered by something
+            # other than this displays pixels artist
+            return
+
         pix_id = event.ind[-1]
         x = self.geom.pix_x[pix_id].to_value(self.unit)
         y = self.geom.pix_y[pix_id].to_value(self.unit)
