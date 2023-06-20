@@ -8,12 +8,15 @@ from ctapipe.containers import ArrayEventContainer
 from ctapipe.io import EventSource
 
 
-def assert_all_tel_keys(event, expected):
+def assert_all_tel_keys(event, expected, ignore=None):
+    if ignore is None:
+        ignore = set()
+
     expected = tuple(expected)
     for name, container in event.items():
         if hasattr(container, "tel"):
             actual = tuple(container.tel.keys())
-            if len(actual) > 0 and actual != expected:
+            if name not in ignore and actual != expected:
                 raise AssertionError(
                     f"Unexpected tel_ids in container {name}:" f"{actual} != {expected}"
                 )
@@ -115,7 +118,7 @@ def test_software_trigger_simtel(allowed_tels):
         for e, expected_tels in zip(source, expected):
             trigger(e)
             assert_equal(e.trigger.tels_with_trigger, expected_tels)
-            assert_all_tel_keys(e, expected_tels)
+            assert_all_tel_keys(e, expected_tels, ignore={"dl0", "dl1", "dl2", "muon"})
 
 
 def test_software_trigger_simtel_single_lsts():
@@ -164,7 +167,7 @@ def test_software_trigger_simtel_single_lsts():
             trigger(e)
             print(e.trigger.tels_with_trigger, expected_tels)
             assert_equal(e.trigger.tels_with_trigger, expected_tels)
-            assert_all_tel_keys(e, expected_tels)
+            assert_all_tel_keys(e, expected_tels, ignore={"dl0", "dl1", "dl2", "muon"})
 
 
 def test_software_trigger_simtel_process(tmp_path):
