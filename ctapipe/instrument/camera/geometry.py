@@ -166,7 +166,7 @@ class CameraGeometry:
                 pix_type = PixelShape.from_string(pix_type)
             elif not isinstance(pix_type, PixelShape):
                 raise TypeError(
-                    f"pix_type most be a PixelShape or the name of a PixelShape, got {pix_type}"
+                    f"pix_type must be a PixelShape or the name of a PixelShape, got {pix_type}"
                 )
 
             if not isinstance(pix_rotation, Angle):
