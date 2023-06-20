@@ -75,15 +75,21 @@ def test_position_to_pix_index(prod5_lst):
 
 def test_find_neighbor_pixels():
     """test basic neighbor functionality"""
-    n_pixels = 5
+    n_pixels_grid = 5
     x, y = u.Quantity(
-        np.meshgrid(np.linspace(-5, 5, n_pixels), np.linspace(-5, 5, n_pixels)), u.cm
+        np.meshgrid(
+            np.linspace(-5, 5, n_pixels_grid), np.linspace(-5, 5, n_pixels_grid)
+        ),
+        u.cm,
     )
+    x = x.ravel()
+    y = y.ravel()
+    n_pixels = len(x)
 
     geom = CameraGeometry(
         "test",
         pix_id=np.arange(n_pixels),
-        pix_area=u.Quantity(4, u.cm**2),
+        pix_area=u.Quantity(np.full(n_pixels, 4), u.cm**2),
         pix_x=x.ravel(),
         pix_y=y.ravel(),
         pix_type="rectangular",
@@ -238,12 +244,13 @@ def test_rectangle_patch_neighbors():
     """ " test that a simple rectangular camera has the expected neighbors"""
     pix_x = np.array([-1.1, 0.1, 0.9, -1, 0, 1, -0.9, -0.1, 1.1]) * u.m
     pix_y = np.array([1.1, 1, 0.9, -0.1, 0, 0.1, -0.9, -1, -1.1]) * u.m
+    pix_area = np.full(len(pix_x), 0.01) * u.m**2
     cam = CameraGeometry(
         name="testcam",
         pix_id=np.arange(pix_x.size),
         pix_x=pix_x,
         pix_y=pix_y,
-        pix_area=None,
+        pix_area=pix_area,
         pix_type="rectangular",
     )
 
