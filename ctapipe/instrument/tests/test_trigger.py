@@ -118,6 +118,55 @@ def test_software_trigger_simtel(allowed_tels):
             assert_all_tel_keys(e, expected_tels)
 
 
+def test_software_trigger_simtel_single_lsts():
+    from ctapipe.instrument.trigger import SoftwareTrigger
+
+    path = "dataset://gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+
+    # remove 3 LSTs, so that we trigger the 1-LST condition
+    allowed_tels = [1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    expected = [
+        [12, 16],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [5, 6, 7, 12, 15, 16, 17, 18],
+        [13, 14],
+        [],
+        [7, 12],
+        [5, 17],
+        [13, 19],
+        [],
+        [],
+        [5, 11, 18],
+        [17, 18],
+        [7, 12],
+        [],
+    ]
+
+    with EventSource(
+        path, focal_length_choice="EQUIVALENT", allowed_tels=allowed_tels
+    ) as source:
+
+        trigger = SoftwareTrigger(
+            subarray=source.subarray,
+            min_telescopes=2,
+            min_telescopes_of_type=[
+                ("type", "*", 0),
+                ("type", "LST*", 2),
+            ],
+        )
+
+        for e, expected_tels in zip(source, expected):
+            print(e.trigger.tels_with_trigger)
+            trigger(e)
+            print(e.trigger.tels_with_trigger, expected_tels)
+            assert_equal(e.trigger.tels_with_trigger, expected_tels)
+            assert_all_tel_keys(e, expected_tels)
+
+
 def test_software_trigger_simtel_process(tmp_path):
     from ctapipe.core import run_tool
     from ctapipe.io import TableLoader
