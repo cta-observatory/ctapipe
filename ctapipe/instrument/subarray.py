@@ -154,7 +154,9 @@ class SubarrayDescription:
         pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
         pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
 
-        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=GroundFrame())
+        frame = GroundFrame(reference_location=self.reference_location)
+
+        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=frame)
 
     @lazyproperty
     def tel_ids(self):
