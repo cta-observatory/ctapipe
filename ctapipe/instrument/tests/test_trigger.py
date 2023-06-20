@@ -128,6 +128,8 @@ def test_software_trigger_simtel_process(tmp_path):
         ProcessorTool=dict(
             EventSource=dict(
                 focal_length_choice="EQUIVALENT",
+                # remove 3 LSTs, so that we trigger the 1-LST condition
+                allowed_tels=(1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
             ),
             SoftwareTrigger=dict(
                 min_telescopes=2,
@@ -148,10 +150,34 @@ def test_software_trigger_simtel_process(tmp_path):
         [f"--input={path}", f"--output={output_path}", f"--config={config_path}"],
     )
 
+    del config["ProcessorTool"]["SoftwareTrigger"]
+    output_path_no_software_trigger = tmp_path / "no_software_trigger.dl1.h5"
+    config_path = tmp_path / "config_no_software_trigger.json"
+    config_path.write_text(json.dumps(config))
+
+    run_tool(
+        ProcessorTool(),
+        [
+            f"--input={path}",
+            f"--output={output_path_no_software_trigger}",
+            f"--config={config_path}",
+        ],
+    )
+
     with TableLoader(
         output_path,
         load_simulated=True,
         load_dl1_parameters=True,
         focal_length_choice="EQUIVALENT",
     ) as loader:
-        loader.read_telescope_events("LST_LST_LSTCam")
+        events_trigger = loader.read_telescope_events("LST_LST_LSTCam")
+
+    with TableLoader(
+        output_path_no_software_trigger,
+        load_simulated=True,
+        load_dl1_parameters=True,
+        focal_length_choice="EQUIVALENT",
+    ) as loader:
+        events_no_trigger = loader.read_telescope_events("LST_LST_LSTCam")
+
+    assert len(events_no_trigger) > len(events_trigger)
