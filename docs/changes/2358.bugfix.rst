@@ -1,0 +1,2 @@
+Fix that the pixel picker of the matplotlib ``CameraDisplay`` triggers
+also for clicks on other ``CameraDisplay`` instances in the same figure.
