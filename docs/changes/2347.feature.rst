@@ -1,3 +1,0 @@
-Add support for Hillas parameters in ``TelescopeFrame`` to
-``CameraDisplay.overlay_moments`` and make sure that the
-label text does not overlap with the ellipse.

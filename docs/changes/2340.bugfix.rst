@@ -1,1 +1,0 @@
-Fix shape of mask returned by ``NullDataVolumeReducer``.

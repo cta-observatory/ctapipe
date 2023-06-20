@@ -1,3 +1,47 @@
+ctapipe 0.19.3 (2023-06-20)
+===========================
+
+This is a bugfix release fixing a number of bugs, mainly one preventing the processing of divergent pointing
+prod6 data due to a bug in ``SoftwareTrigger``, see below for details.
+
+
+Bug Fixes
+---------
+
+- Fix peak time units of FlashCamExtractor (See https://github.com/cta-observatory/ctapipe/issues/2336) [`#2337 <https://github.com/cta-observatory/ctapipe/pull/2337>`__]
+
+- Fix shape of mask returned by ``NullDataVolumeReducer``. [`#2340 <https://github.com/cta-observatory/ctapipe/pull/2340>`__]
+
+- Fix definition of the ``--dl2-subarray`` flag of ``ctapipe-merge``. [`#2341 <https://github.com/cta-observatory/ctapipe/pull/2341>`__]
+
+- Fix ``ctapipe-train-disp-reconstructor --help`` raising an exception. [`#2352 <https://github.com/cta-observatory/ctapipe/pull/2352>`__]
+
+- Correctly fill ``reference_location`` for ``SubarrayDescription.tel_coords``. [`#2354 <https://github.com/cta-observatory/ctapipe/pull/2354>`__]
+
+- Fix ``SoftwareTrigger`` not removing all parts of a removed telescope event
+  from the array event leading to invalid files produced by ``DataWriter``. [`#2357 <https://github.com/cta-observatory/ctapipe/pull/2357>`__]
+
+- Fix that the pixel picker of the matplotlib ``CameraDisplay`` triggers
+  also for clicks on other ``CameraDisplay`` instances in the same figure. [`#2358 <https://github.com/cta-observatory/ctapipe/pull/2358>`__]
+
+
+New Features
+------------
+
+- Add support for Hillas parameters in ``TelescopeFrame`` to
+  ``CameraDisplay.overlay_moments`` and make sure that the
+  label text does not overlap with the ellipse. [`#2347 <https://github.com/cta-observatory/ctapipe/pull/2347>`__]
+
+- Add support for using ``ctapipe.image.toymodel`` features in ``TelescopeFrame``. [`#2349 <https://github.com/cta-observatory/ctapipe/pull/2349>`__]
+
+
+Maintenance
+-----------
+
+- Improve docstring and validation of parameters of ``CameraGeometry``. [`#2361 <https://github.com/cta-observatory/ctapipe/pull/2361>`__]
+
+
+
 ctapipe v0.19.2 (2023-05-17)
 ============================
 
