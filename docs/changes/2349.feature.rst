@@ -1,1 +1,0 @@
-Add support for using ``ctapipe.image.toymodel`` features in ``TelescopeFrame``.
