@@ -647,6 +647,11 @@ class DataWriter(Component):
         """
 
         # write the telescope tables
+        # trigger info
+        for tel_id, trigger in event.trigger.tel.items():
+            writer.write(
+                "dl1/event/telescope/trigger", [_get_tel_index(event, tel_id), trigger]
+            )
 
         # pointing info
         for tel_id, pnt in event.pointing.tel.items():
@@ -658,12 +663,6 @@ class DataWriter(Component):
                     [event.trigger.tel[tel_id], pnt],
                 )
                 self._last_pointing_tel[tel_id] = current_pointing
-
-        # trigger info
-        for tel_id, trigger in event.trigger.tel.items():
-            writer.write(
-                "dl1/event/telescope/trigger", [_get_tel_index(event, tel_id), trigger]
-            )
 
         for tel_id, dl1_camera in event.dl1.tel.items():
             tel_index = _get_tel_index(event, tel_id)
