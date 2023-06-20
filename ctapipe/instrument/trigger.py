@@ -103,10 +103,11 @@ class SoftwareTrigger(TelescopeComponent):
                     tels_removed.add(tel_id)
 
                     # remove any related data
-                    for container in ("trigger", "r0", "r1", "dl0", "dl1", "dl2"):
-                        tel_map = getattr(event, container).tel
-                        if tel_id in tel_map:
-                            del tel_map[tel_id]
+                    for container in event.values():
+                        if hasattr(container, "tel"):
+                            tel_map = container.tel
+                            if tel_id in tel_map:
+                                del tel_map[tel_id]
 
         if len(tels_removed) > 0:
             # convert to array with correct dtype to have setdiff1d work correctly
@@ -117,8 +118,9 @@ class SoftwareTrigger(TelescopeComponent):
 
         if len(event.trigger.tels_with_trigger) < self.min_telescopes:
             event.trigger.tels_with_trigger = []
-            for container in ("trigger", "r0", "r1", "dl0", "dl1", "dl2"):
-                tel_map = getattr(event, container).tel
-                tel_map.clear()
+            # remove any related data
+            for container in event.values():
+                if hasattr(container, "tel"):
+                    container.tel.clear()
             return False
         return True
