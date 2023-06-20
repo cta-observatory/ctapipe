@@ -1,0 +1,2 @@
+Fix ``SoftwareTrigger`` not removing all parts of a removed telescope event
+from the array event leading to invalid files produced by ``DataWriter``.
