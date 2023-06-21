@@ -1,1 +1,0 @@
-Improve docstring and validation of parameters of ``CameraGeometry``.
