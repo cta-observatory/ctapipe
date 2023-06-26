@@ -377,3 +377,14 @@ def test_overlay_coord(tmp_path, subarray_and_event_gamma_off_axis_500_gev):
     )
 
     fig.savefig(tmp_path / "coord_overlay.png", dpi=300)
+
+
+@pytest.mark.parametrize("layout", (None, "constrained"))
+def test_array_display_axes(tmp_path, subarray_prod5_paranal, layout):
+    """Test passing axes to peek"""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), layout=layout)
+
+    subarray_prod5_paranal.peek(ax=ax1)
+    subarray_prod5_paranal.peek(ax=ax2)
+
+    fig.savefig(tmp_path / "double_peek.png")
