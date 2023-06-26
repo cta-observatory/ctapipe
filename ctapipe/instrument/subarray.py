@@ -392,20 +392,39 @@ class SubarrayDescription:
         )
         return newsub
 
-    def peek(self):
+    def peek(self, ax=None):
         """
         Draw a quick matplotlib plot of the array
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes or None
+            If given, the subarray will be plotted into this ax.
         """
         from matplotlib import pyplot as plt
 
         from ctapipe.coordinates.ground_frames import EastingNorthingFrame
         from ctapipe.visualization import ArrayDisplay
 
-        plt.figure(figsize=(8, 8))
-        ad = ArrayDisplay(subarray=self, frame=EastingNorthingFrame(), tel_scale=0.75)
+        if ax is None:
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(1, 1, 1)
+        else:
+            fig = ax.figure
+
+        ad = ArrayDisplay(
+            subarray=self, frame=EastingNorthingFrame(), tel_scale=0.75, axes=ax
+        )
         ad.add_labels()
-        plt.title(self.name)
-        plt.tight_layout()
+        ax.set_title(self.name)
+
+        # This avoids a warning if users have e.g. "figure.constrained_layout"
+        # enabled through their matplotlib config. Only call tight layout here
+        # if the layout engine has not been set already
+        if fig.get_layout_engine() is None:
+            fig.tight_layout()
+
+        return ad
 
     @lazyproperty
     def telescope_types(self) -> Tuple[TelescopeDescription]:
