@@ -33,6 +33,9 @@ _NODES_TO_CHECK = {
     "/configuration/observation/observation_block": NodeType.TABLE,
     "/configuration/simulation/run": NodeType.TABLE,
     "/simulation/service/shower_distribution": NodeType.TABLE,
+    "/simulation/service/telescope/pixel_monitoring": NodeType.TEL_GROUP,
+    "/simulation/service/telescope/camera_monitoring": NodeType.TEL_GROUP,
+    "/simulation/service/telescope/laser_calibration": NodeType.TEL_GROUP,
     "/simulation/event/subarray/shower": NodeType.TABLE,
     "/simulation/event/telescope/impact": NodeType.TEL_GROUP,
     "/simulation/event/telescope/images": NodeType.TEL_GROUP,
@@ -277,6 +280,18 @@ class HDF5Merger(Component):
         for key in simulation_table_keys:
             if self.simulation and key in other.root:
                 self._append_table(other, other.root[key])
+
+        key = "/simulation/service/telescope/pixel_monitoring"
+        if self.telescope_events and self.simulation and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        key = "/simulation/service/telescope/laser_calibration"
+        if self.telescope_events and self.simulation and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        key = "/simulation/service/telescope/camera_monitoring"
+        if self.telescope_events and self.simulation and key in other.root:
+            self._append_table_group(other, other.root[key])
 
         key = "/simulation/event/telescope/impact"
         if self.telescope_events and self.simulation and key in other.root:

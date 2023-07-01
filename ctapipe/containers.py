@@ -47,6 +47,10 @@ __all__ = [
     "ReconstructedGeometryContainer",
     "DispContainer",
     "SimulatedCameraContainer",
+    "PixelMonitoringContainer",
+    "TelescopeSimulationConfigContainer",
+    "CameraMonitoringContainer",
+    "LaserCalibrationContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
@@ -578,6 +582,73 @@ class TelescopeImpactParameterContainer(Container):
     distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
 
 
+class PixelMonitoringContainer(Container):
+    """
+    True information about nsb rate, quantum efficiency, high voltage, current and amplification settings for each pixel and telescope.
+    """
+
+    nsb_pe_rate = Field(np.int32(-1), "NSB pixel p.e. rate in units of p.e./ns")
+
+    qe_rel = Field(None, "Quantum efficiency w.r.t nominal")
+
+    high_voltage = Field(None, "High voltage w.r.t. nominal")
+    current = Field(None, "Current at pixel")
+    fadc_amp = Field(None, "FADC amplitude per mean per p.e.")
+    gain = Field(None, "Assumed (PMT/common) gain w.r.t. nominal")
+
+
+class LaserCalibrationContainer(Container):
+    """
+    Laser calibartion information computed
+    """
+
+    calib = Field(None, "ADC to laser/LED p.e.")
+    max_integ_frac = Field(
+        None,
+        "Maximum fraction of the signal which can be in the fixed integration window",
+    )
+    tm_calib = Field(nan * u.ns, "Transit time calibration")
+    flat_fielding = Field(None, "Flat-field correction")
+
+
+class CameraMonitoringContainer(Container):
+    """
+    Camera monitoring
+    """
+
+    monitor_id = Field(-1, "Monitoring id incremented with each update")
+    trigger_rate = Field(
+        None, "Camera average local trigger rate in s^-1", unit=u.s**-1
+    )
+    sector_rate = Field(None, "Sector trigger rate in s^-1", unit=u.s**-1)
+    event_rate = Field(None, "Average event rate in events per sec", unit=u.s**-1)
+    data_rate = Field(
+        None, "Average rate of packed data in MB per sec", unit=u.Mbyte / u.s
+    )
+    pedestal = Field(None, "Average pedestal on ADC sums")
+    noise = Field(None, "Average noise on ADC sums")
+    drawer_temp = Field(None, "Drawer temperature", unit=u.deg_C)
+    camera_temp = Field(None, "ADC values", unit=u.deg_C)
+    hv_voltage_monitor = Field(None, "ADC values of HV voltage monitor")
+    hv_current_monitor = Field(None, "ADC values of HV current monitor")
+    hv_stat = Field(None, "Set if HV switched off for pixel")
+
+
+class TelescopeSimulationConfigContainer(Container):
+    pixel_monitoring = Field(
+        default_factory=PixelMonitoringContainer,
+        description="True pixel monitoring information",
+    )
+    laser_calibration = Field(
+        default_factory=LaserCalibrationContainer,
+        description="True laser calibration information",
+    )
+    camera_monitoring = Field(
+        default_factory=CameraMonitoringContainer,
+        description="True camera monitoring information",
+    )
+
+
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -719,6 +790,11 @@ class SimulationConfigContainer(Container):
     )
     corsika_high_E_detail = Field(
         nan, description="More details on high E interaction model (version etc.)"
+    )
+
+    tel = Field(
+        default_factory=partial(Map, TelescopeSimulationConfigContainer),
+        description="map of tel_id to TelescopeSimulationConfigContainer",
     )
 
 

@@ -14,6 +14,7 @@ from ctapipe.instrument.optics import FocalLengthKind
 from ..containers import (
     ArrayEventContainer,
     CameraHillasParametersContainer,
+    CameraMonitoringContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
     DL1CameraContainer,
@@ -21,6 +22,7 @@ from ..containers import (
     HillasParametersContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
+    LaserCalibrationContainer,
     LeakageContainer,
     MorphologyContainer,
     MuonEfficiencyContainer,
@@ -30,6 +32,7 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
+    PixelMonitoringContainer,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -38,6 +41,7 @@ from ..containers import (
     SimulatedShowerContainer,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
+    TelescopeSimulationConfigContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
     TimingParametersContainer,
@@ -321,7 +325,7 @@ class HDF5EventSource(EventSource):
     def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
         """
         Returns the simulation config(s) as
-        a dict mapping obs_id to the respective config.
+        a dict mapping obs_id to respective config.
         """
         return self._simulation_configs
 
@@ -337,6 +341,7 @@ class HDF5EventSource(EventSource):
         self.file_.root.configuration.simulation.run.
         These are used to match the correct header to each event
         """
+
         # Just returning next(reader) would work as long as there are no merged files
         # The reader ignores obs_id making the setup somewhat tricky
         # This is ugly but supports multiple headers so each event can have
@@ -351,8 +356,52 @@ class HDF5EventSource(EventSource):
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
                 containers=(SimulationConfigContainer, ObsIdContainer),
+                ignore_columns={"tel"},
             )
-            return {index.obs_id: config for (config, index) in reader}
+
+        if self.is_simulation:
+            camera_reader = {
+                table.name: HDF5TableReader(self.file_).read(
+                    f"/simulation/service/telescope/camera_monitoring/{table.name}",
+                    containers=CameraMonitoringContainer,
+                )
+                for table in self.file_.root.simulation.service.telescope.camera_monitoring
+            }
+            pixel_reader = {
+                table.name: HDF5TableReader(self.file_).read(
+                    f"/simulation/service/telescope/pixel_monitoring/{table.name}",
+                    PixelMonitoringContainer,
+                )
+                for table in self.file_.root.simulation.service.telescope.pixel_monitoring
+            }
+            laser_reader = {
+                table.name: HDF5TableReader(self.file_).read(
+                    f"/simulation/service/telescope/laser_calibration/{table.name}",
+                    LaserCalibrationContainer,
+                )
+                for table in self.file_.root.simulation.service.telescope.laser_calibration
+            }
+
+            for config, index in reader:
+                for key in laser_reader:
+                    tel_id = int(key[5:7])
+                    for pp in pixel_reader[key]:
+                        pixel_container = pp
+                    for cc in camera_reader[key]:
+                        camera_container = cc
+                    for ll in laser_reader[key]:
+                        laser_container = ll
+
+                    config.tel[tel_id] = TelescopeSimulationConfigContainer(
+                        pixel_monitoring=pixel_container,
+                        laser_calibration=laser_container,
+                        camera_monitoring=camera_container,
+                    )
+
+                output_config = {index.obs_id: config}
+
+                return output_config
+
         else:
             return {}
 
@@ -499,7 +548,6 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
 
             for kind, group in dl2_group._v_children.items():
-
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:

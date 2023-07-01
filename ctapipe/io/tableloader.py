@@ -9,7 +9,7 @@ from typing import Dict
 
 import numpy as np
 import tables
-from astropy.table import Table, hstack, vstack
+from astropy.table import Table, hstack, join, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ctapipe.instrument.optics import FocalLengthKind
@@ -28,6 +28,9 @@ SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
+PIXEL_CONFIG_GROUP = "/simulation/service/telescope/pixel_monitoring"
+CAMERA_CONFIG_GROUP = "/simulation/service/telescope/camera_monitoring"
+LASER_GROUP = "/simulation/service/telescope/laser_calibration"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
@@ -82,7 +85,6 @@ class ChunkIterator:
         return self.n_chunks
 
     def __getitem__(self, chunk):
-
         if chunk < 0:
             chunk = self.n_chunks - chunk
 
@@ -328,11 +330,37 @@ class TableLoader(Component):
             return True
         return False
 
+    def read_simulation_tel_config(self, tel_id):
+        """
+        Read the simulation configuration table group
+        """
+        if PIXEL_CONFIG_GROUP in self.h5file.root:
+            pixel_conf = self._read_telescope_table(
+                PIXEL_CONFIG_GROUP,
+                tel_id,
+            )
+        if CAMERA_CONFIG_GROUP in self.h5file.root:
+            camera_conf = self._read_telescope_table(
+                CAMERA_CONFIG_GROUP,
+                tel_id,
+            )
+            table = join(pixel_conf, camera_conf, keys=("obs_id", "tel_id"))
+
+        if LASER_GROUP in self.h5file.root:
+            laser_conf = self._read_telescope_table(
+                LASER_GROUP,
+                tel_id,
+            )
+            table = join(table, laser_conf, keys=("obs_id", "tel_id"))
+
+        return table
+
     def read_simulation_configuration(self):
         """
         Read the simulation configuration table
         """
-        return read_table(self.h5file, SIMULATION_CONFIG_TABLE)
+        config = read_table(self.h5file, SIMULATION_CONFIG_TABLE)
+        return config
 
     def read_shower_distribution(self):
         """

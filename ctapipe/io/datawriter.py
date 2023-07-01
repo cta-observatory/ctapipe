@@ -307,19 +307,20 @@ class DataWriter(Component):
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],
         )
-        if event.simulation is not None and event.simulation.shower is not None:
-            self._writer.write(
-                table_name="simulation/event/subarray/shower",
-                containers=[event.index, event.simulation.shower],
-            )
-
-            for tel_id, sim in event.simulation.tel.items():
-                table_name = self.table_name(tel_id)
-                tel_index = _get_tel_index(event, tel_id)
+        if event.simulation is not None:
+            if event.simulation.shower is not None:
                 self._writer.write(
-                    f"simulation/event/telescope/impact/{table_name}",
-                    [tel_index, sim.impact],
+                    table_name="simulation/event/subarray/shower",
+                    containers=[event.index, event.simulation.shower],
                 )
+
+                for tel_id, sim in event.simulation.tel.items():
+                    table_name = self.table_name(tel_id)
+                    tel_index = _get_tel_index(event, tel_id)
+                    self._writer.write(
+                        f"simulation/event/telescope/impact/{table_name}",
+                        [tel_index, sim.impact],
+                    )
 
         if self.write_waveforms:
             self._write_r1_telescope_events(self._writer, event)
@@ -531,7 +532,7 @@ class DataWriter(Component):
         for ob in self.event_source.observation_blocks.values():
             self._writer.write("configuration/observation/observation_block", ob)
 
-    def _write_simulation_configuration(self):
+    def _write_simulation_configuration(self):  # , event: ArrayEventContainer):
         """
         Write the simulation headers to a single row of a table. Later
         if this file is merged with others, that table will grow.
@@ -546,11 +547,33 @@ class DataWriter(Component):
             default_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
-        for obs_id, config in self.event_source.simulation_config.items():
-            extramc = ExtraSimInfo(obs_id=obs_id)
-            config.prefix = ""
+        class ExtraSimInfoTel(Container):
+            """just to contain obs_id and tel_id"""
 
-            self._writer.write("configuration/simulation/run", [extramc, config])
+            default_prefix = ""
+            obs_id = Field(0, "Simulation Run Identifier")
+            tel_id = Field(1, "Simulation tel_id Identifier")
+
+        for obs_id, config in self.event_source.simulation_config.items():
+            config.prefix = ""
+            mcextra = ExtraSimInfo(obs_id=obs_id)
+            self._writer.write("configuration/simulation/run", [mcextra, config])
+            for tel_id, sim_config in config.tel.items():
+                table_name = self.table_name(tel_id)
+                tel_index = ExtraSimInfoTel(obs_id=obs_id, tel_id=tel_id)
+                # self._writer.write("configuration/simulation/run", [tel_index, config])
+                self._writer.write(
+                    f"simulation/service/telescope/pixel_monitoring/{table_name}",
+                    [tel_index, sim_config.pixel_monitoring],
+                )
+                self._writer.write(
+                    f"simulation/service/telescope/camera_monitoring/{table_name}",
+                    [tel_index, sim_config.camera_monitoring],
+                )
+                self._writer.write(
+                    f"simulation/service/telescope/laser_calibration/{table_name}",
+                    [tel_index, sim_config.laser_calibration],
+                )
 
     def write_simulation_histograms(self, event_source):
         """Write the distribution of thrown showers
@@ -620,7 +643,6 @@ class DataWriter(Component):
         self, writer: TableWriter, event: ArrayEventContainer
     ):
         for tel_id, r1_tel in event.r1.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -631,7 +653,6 @@ class DataWriter(Component):
         self, writer: TableWriter, event: ArrayEventContainer
     ):
         for tel_id, r0_tel in event.r0.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -720,7 +741,6 @@ class DataWriter(Component):
     def _write_muon_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
     ):
-
         for tel_id, muon in event.muon.tel.items():
             table_name = self.table_name(tel_id)
             tel_index = _get_tel_index(event, tel_id)
