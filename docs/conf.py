@@ -29,12 +29,14 @@ import os
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
 
+import pydata_sphinx_theme
 import ctapipe
 
 setup_cfg = ConfigParser()
 setup_cfg.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
 setup_metadata = dict(setup_cfg.items("metadata"))
 setup_options = dict(setup_cfg.items("options"))
+
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -52,10 +54,13 @@ extensions = [
     "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
+    "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+
 numpydoc_show_class_members = False
+# numpydoc_class_members_toctree = False
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
@@ -66,6 +71,8 @@ templates_path = ["_templates"]
 def setup(app):
     # fix trait aliases generating doc warnings
     from ctapipe.core import traits
+
+    app.add_css_file("_static/ctapipe.css")
 
     aliases = [
         "flag",
@@ -119,7 +126,8 @@ nitpick_ignore = [
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
     ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
-    ("py:class", "ctapipe.compat.StrEnum"),
+    ("py:obj", "ctapipe.calib.CameraCalibrator"), # temporary fix to ignore warning
+    ("py:obj", "ctapipe.calib.GainSelector"), # temporary fix to ignore warning
 ]
 
 # The suffix(es) of source filenames.
@@ -182,32 +190,86 @@ pygments_style = "sphinx"
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+
+# -- Version switcher -----------------------------------------------------
+
+# Define the json_url for our version switcher.
+json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
+
+# Define the version we use for matching in the version switcher.
+version_match = os.environ.get("READTHEDOCS_VERSION")
+# If READTHEDOCS_VERSION doesn't exist, we're not on RTD
+# If it is an integer, we're in a PR build and the version isn't correct.
+if not version_match or version_match.isdigit():
+    # For local development, infer the version to match from the package.
+    release = ctapipe.__version__
+    if "dev" in release or "rc" in release:
+        version_match = "latest"
+        # We want to keep the relative reference if we are in dev mode
+        # but we want the whole url if we are effectively in a released version
+        json_url = "_static/switcher.json"
+    else:
+        version_match = release
+
+
 # -- Options for HTML output ----------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = "default"
+# on_rtd is whether we are on readthedocs.org
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+
+html_theme = "pydata_sphinx_theme"
+# html_theme_path = [pydata_sphinx_theme.__path__]
+
+
+html_favicon = "_static/favicon.ico"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    "logo": {
+        "image_light": "ctapipe_logo.webp",
+        "image_dark": "ctapipe_logo_dark.webp",
+        "alt_text": "ctapipe",
+    },
+    "github_url": "https://github.com/cta-observatory/ctapipe",
+    "header_links_before_dropdown": 6,
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "switcher": {
+      "version_match": version_match,
+      "json_url": json_url,
+    },
+    "use_edit_page_button": True,
+    "icon_links": [
+        {
+            "name": "CTA Observatory",
+            "url": "https://www.cta-observatory.org/",
+            "type": "url",
+            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico"
+        },
+    ],
+}
+
+html_sidebars = {
+    "**": ["sidebar-nav-bs.html", "sidebar-ethical-ads.html"],
+}
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
 html_static_path = ["_static"]
-
 html_context = {
-    "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
+    "default_mode": "light",
+    "github_user": "cta-observatory",
+    "github_repo": "ctapipe",
+    "github_version": "main",
+    "doc_path": "docs",
 }
-
-html_favicon = "_static/favicon.ico"
-# -- Options for HTMLHelp output ------------------------------------------
-
+html_css_files = ["ctapipe.css"]
+html_file_suffix = ".html"
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -215,6 +277,7 @@ html_title = f"{project} v{release}"
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + "doc"
+
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -277,19 +340,3 @@ intersphinx_mapping = {
     "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
-
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    try:
-        import sphinx_rtd_theme
-    except ImportError:
-        raise ImportError(
-            "It looks like you don't have the sphinx_rtd_theme "
-            "package installed. This documentation "
-            "uses the Read The Docs theme, so you must install this "
-            "first. For example, pip install sphinx_rtd_theme"
-        )
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]

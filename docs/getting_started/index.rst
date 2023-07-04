@@ -1,3 +1,4 @@
+
 .. _getting_started:
 
 ******************************
@@ -76,7 +77,6 @@ Step 4: Set up your package environment
 Change to the directory where you cloned ``ctapipe``, and type:
 
 .. code-block:: console
-
 
     $ conda env create -n cta-dev -f environment.yml
 
@@ -238,11 +238,11 @@ You can do this at any time and more than once. It just moves the changes
 from your local branch on your development machine to your fork on github.
 
 
-++++++++++++++++++++++++
-4. make a *Pull Request*
-++++++++++++++++++++++++
+++++++++++++++++++++++++++
+4. Create a *Pull Request*
+++++++++++++++++++++++++++
 
-When you're happy, you make PR on on your github fork page by clicking
+When you're happy, you create PR on on your github fork page by clicking
 "pull request".  You can also do this via *GitHub Desktop* if you have
 that installed, by pushing the pull-request button in the
 upper-right-hand corner.
@@ -279,7 +279,7 @@ When the PR is accepted, the reviewer will merge your branch into the
 *master* repo on cta-observatory's account.
 
 +++++++++++++++++++++++++++++
-6. delete your feature branch
+6. Delete your feature branch
 +++++++++++++++++++++++++++++
 
 since it is no longer needed (assuming it was accepted and merged in):
