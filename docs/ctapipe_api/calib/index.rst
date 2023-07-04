@@ -46,3 +46,4 @@ Reference/API
 
 .. automodapi:: ctapipe.calib
     :no-inheritance-diagram:
+    :noindex:
