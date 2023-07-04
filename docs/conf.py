@@ -126,8 +126,9 @@ nitpick_ignore = [
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
     ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
-    ("py:obj", "ctapipe.calib.CameraCalibrator"), # temporary fix to ignore warning
-    ("py:obj", "ctapipe.calib.GainSelector"), # temporary fix to ignore warning
+    ("py:class", "ctapipe.compat.StrEnum"),
+    ("py:obj", "ctapipe.calib.CameraCalibrator"),  # temporary fix to ignore warning
+    ("py:obj", "ctapipe.calib.GainSelector"),  # temporary fix to ignore warning
 ]
 
 # The suffix(es) of source filenames.
@@ -237,8 +238,8 @@ html_theme_options = {
     "header_links_before_dropdown": 6,
     "navbar_start": ["navbar-logo", "version-switcher"],
     "switcher": {
-      "version_match": version_match,
-      "json_url": json_url,
+        "version_match": version_match,
+        "json_url": json_url,
     },
     "use_edit_page_button": True,
     "icon_links": [
@@ -246,7 +247,7 @@ html_theme_options = {
             "name": "CTA Observatory",
             "url": "https://www.cta-observatory.org/",
             "type": "url",
-            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico"
+            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",
         },
     ],
 }
