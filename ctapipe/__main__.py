@@ -52,5 +52,9 @@ class MainTool(Application):
         """This tool should not write any provenance log"""
 
 
-if __name__ == "__main__":
+def main():
     MainTool.launch_instance()
+
+
+if __name__ == "__main__":
+    main()
