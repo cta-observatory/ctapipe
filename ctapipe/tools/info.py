@@ -5,10 +5,16 @@ import os
 import sys
 from importlib.resources import files
 
-from ..core import Provenance, get_module_version
+from ctapipe.core.traits import Bool
+
+from ..core import Provenance, Tool, get_module_version
 from ..core.plugins import detect_and_import_plugins
 from ..utils import datasets
-from .utils import get_parser
+
+if sys.version_info < (3, 9):
+    from importlib_resources import files
+else:
+    from importlib.resources import files
 
 __all__ = ["info"]
 
@@ -34,48 +40,85 @@ _optional_dependencies = sorted(
 )
 
 
-def main(args=None):
-    parser = get_parser(info)
-    parser.add_argument("--version", action="store_true", help="Print version number")
-    parser.add_argument(
-        "--tools", action="store_true", help="Print available command line tools"
-    )
-    parser.add_argument(
-        "--dependencies",
-        action="store_true",
-        help="Print available versions of dependencies",
-    )
-    parser.add_argument(
-        "--resources",
-        action="store_true",
-        help="Print available versions of dependencies",
-    )
-    parser.add_argument("--system", action="store_true", help="Print system info")
-    parser.add_argument(
-        "--all", dest="show_all", action="store_true", help="show all info"
-    )
-    parser.add_argument("--plugins", action="store_true", help="Print plugin info")
-    parser.add_argument(
-        "--datamodel", action="store_true", help="Print data model info"
-    )
-    parser.add_argument(
-        "--event-sources",
-        action="store_true",
-        help="Print available EventSource implementations",
-    )
-    parser.add_argument(
-        "--reconstructors",
-        action="store_true",
-        help="Print available Reconstructor implementations",
-    )
+class InfoTool(Tool):
+    """
+    Print information about ctapipe and the current installation
+    """
 
-    args = parser.parse_args(args)
+    name = "ctapipe-info"
 
-    if len(sys.argv) <= 1:
-        parser.print_help()
-        sys.exit(1)
+    tools = Bool(False, help="Print available command line tools").tag(config=True)
+    dependencies = Bool(False, help="Print available versions of dependencies").tag(
+        config=True
+    )
+    resources = Bool(False, help="Print available versions of dependencies").tag(
+        config=True
+    )
+    system = Bool(False, help="Print system info").tag(config=True)
+    plugins = Bool(False, help="Print plugin info").tag(config=True)
+    datamodel = Bool(False, help="Print data model info").tag(config=True)
+    event_sources = Bool(False, help="Print available EventSource implementations")
+    reconstructors = Bool(
+        False, help="Print available Reconstructor implementations"
+    ).tag(config=True)
 
-    info(**vars(args))
+    all = Bool(False, help="show all info").tag(config=True)
+
+    flags = {
+        "tools": ({"InfoTool": {"tools": True}}, "show available command-line tools"),
+        "dependencies": (
+            {"InfoTool": {"dependencies": True}},
+            "Show installed versions of main dependencies",
+        ),
+        "resources": (
+            {"InfoTool": {"resources": True}},
+            "Show locally available resource files",
+        ),
+        "system": ({"InfoTool": {"system": True}}, "Show system information"),
+        "plugins": ({"InfoTool": {"plugins": True}}, "List available ctapipe plugins"),
+        "datamodel": (
+            {"InfoTool": {"datamodel": True}},
+            "Show data model version and changelog",
+        ),
+        "event_sources": (
+            {"InfoTool": {"event_sources": True}},
+            "Show available EventSource implementations",
+        ),
+        "reconstructors": (
+            {"InfoTool": {"reconstructors": True}},
+            "Show available Reconstructor implementations",
+        ),
+        "all": ({"InfoTool": {"all": True}}, "Show everything"),
+    }
+
+    def run(self):
+        if not any(
+            (
+                self.tools,
+                self.dependencies,
+                self.resources,
+                self.system,
+                self.plugins,
+                self.datamodel,
+                self.event_sources,
+                self.reconstructors,
+                self.all,
+            )
+        ):
+            self.print_help()
+            self.exit(1)
+
+        info(
+            tools=self.tools,
+            dependencies=self.dependencies,
+            resources=self.resources,
+            system=self.system,
+            plugins=self.plugins,
+            datamodel=self.datamodel,
+            event_sources=self.event_sources,
+            reconstructors=self.reconstructors,
+            show_all=self.all,
+        )
 
 
 def info(
@@ -177,6 +220,8 @@ def _info_resources():
     """display all known resources"""
 
     print("\n*** ctapipe resources ***\n")
+    print("Note that this only shows the *locally* available resources,")
+    print(" more are likely available on the test data server")
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
     if os.getenv("CTAPIPE_SVC_PATH") is not None:
         for directory in datasets.get_searchpath_dirs():
@@ -270,6 +315,10 @@ def _info_datamodel():
     print(f"compatible input versions: {', '.join(COMPATIBLE_DATA_MODEL_VERSIONS)}")
     print("change history:")
     print(DATA_MODEL_CHANGE_HISTORY)
+
+
+def main():
+    InfoTool.launch_instance()
 
 
 if __name__ == "__main__":

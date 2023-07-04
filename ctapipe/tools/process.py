@@ -1,5 +1,8 @@
 """
-Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
+Tool for event-wise data processing.
+
+Reads events from an event source, applies configured processing steps
+and stores output in hdf5 files using the `ctapipe.io.DataWriter`.
 """
 # pylint: disable=W0201
 import sys
