@@ -57,7 +57,9 @@ class InfoTool(Tool):
     system = Bool(False, help="Print system info").tag(config=True)
     plugins = Bool(False, help="Print plugin info").tag(config=True)
     datamodel = Bool(False, help="Print data model info").tag(config=True)
-    event_sources = Bool(False, help="Print available EventSource implementations")
+    event_sources = Bool(False, help="Print available EventSource implementations").tag(
+        config=True
+    )
     reconstructors = Bool(
         False, help="Print available Reconstructor implementations"
     ).tag(config=True)
