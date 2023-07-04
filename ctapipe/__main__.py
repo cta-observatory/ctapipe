@@ -1,5 +1,7 @@
 from traitlets.config import Application
 
+from .version import __version__
+
 
 class MainTool(Application):
     """
@@ -7,6 +9,7 @@ class MainTool(Application):
     """
 
     name = "ctapipe"
+    version = __version__
 
     subcommands = {
         "process": (
