@@ -29,7 +29,6 @@ import os
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
 
-import pydata_sphinx_theme
 import ctapipe
 
 setup_cfg = ConfigParser()
@@ -127,8 +126,12 @@ nitpick_ignore = [
     ("py:class", "astropy.table.table.Table"),
     ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
     ("py:class", "ctapipe.compat.StrEnum"),
-    ("py:obj", "ctapipe.calib.CameraCalibrator"),  # temporary fix to ignore warning
-    ("py:obj", "ctapipe.calib.GainSelector"),  # temporary fix to ignore warning
+]
+
+# temporary fixes to ignore reference warnings and ensure build
+nitpick_ignore += [
+    ("py:obj", "ctapipe.calib.CameraCalibrator"),
+    ("py:obj", "ctapipe.calib.GainSelector"),
 ]
 
 # The suffix(es) of source filenames.
@@ -219,7 +222,6 @@ if not version_match or version_match.isdigit():
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 html_theme = "pydata_sphinx_theme"
-# html_theme_path = [pydata_sphinx_theme.__path__]
 
 
 html_favicon = "_static/favicon.ico"

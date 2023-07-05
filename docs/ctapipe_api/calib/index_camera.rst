@@ -38,7 +38,6 @@ Reference/API
 *************
 
 .. automodapi:: ctapipe.calib.camera
-    :no-main-docstr:
 
 ------------------------------
 

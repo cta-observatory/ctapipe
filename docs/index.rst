@@ -52,8 +52,8 @@ What is ctapipe?
 
   User Guide <getting_started_users/index>
   Developer Guide <getting_started/index>
-  ctapipe_api/index
   development/index
+  ctapipe_api/index
   tutorials/index
   examples/index
   tools/index
