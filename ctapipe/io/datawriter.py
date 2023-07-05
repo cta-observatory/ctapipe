@@ -298,15 +298,11 @@ class DataWriter(Component):
         Write a single event to the output file.
         """
         self._at_least_one_event = True
-
-        # Write subarray event data
-        self._write_subarray_pointing(event, writer=self._writer)
-
         self.log.debug("WRITING EVENT %s", event.index)
-        self._writer.write(
-            table_name="dl1/event/subarray/trigger",
-            containers=[event.index, event.trigger],
-        )
+
+        self._write_subarray_pointing(event, writer=self._writer)
+        self._write_trigger(self._writer, event)
+
         if event.simulation is not None and event.simulation.shower is not None:
             self._writer.write(
                 table_name="simulation/event/subarray/shower",
@@ -415,8 +411,9 @@ class DataWriter(Component):
             self.write_muon_parameters,
         ]
         if not any(writable_things):
-            raise ToolConfigurationError(
-                "DataWriter configured to write no information"
+            self.log.warning(
+                "No processing results were selected for writing"
+                ", only writing trigger and simulation information"
             )
 
     def _setup_writer(self):
@@ -616,6 +613,20 @@ class DataWriter(Component):
         """construct dataset table names depending on chosen split method"""
         return f"tel_{tel_id:03d}"
 
+    def _write_trigger(self, writer: TableWriter, event: ArrayEventContainer):
+        """
+        Write trigger information
+        """
+        self._writer.write(
+            table_name="dl1/event/subarray/trigger",
+            containers=[event.index, event.trigger],
+        )
+
+        for tel_id, trigger in event.trigger.tel.items():
+            writer.write(
+                "dl1/event/telescope/trigger", (_get_tel_index(event, tel_id), trigger)
+            )
+
     def _write_r1_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
     ):
@@ -645,13 +656,6 @@ class DataWriter(Component):
         add entries to the event/telescope tables for each telescope in a single
         event
         """
-
-        # write the telescope tables
-        # trigger info
-        for tel_id, trigger in event.trigger.tel.items():
-            writer.write(
-                "dl1/event/telescope/trigger", [_get_tel_index(event, tel_id), trigger]
-            )
 
         # pointing info
         for tel_id, pnt in event.pointing.tel.items():
