@@ -25,3 +25,4 @@ Reference/API
 
 .. automodapi:: ctapipe.instrument.camera.description
     :no-inheritance-diagram:
+    :noindex:
