@@ -92,3 +92,4 @@ Reference/API
 
 .. automodapi:: ctapipe.instrument.camera.geometry
     :no-inheritance-diagram:
+    :noindex:
