@@ -22,5 +22,6 @@ Reference/API
 
 .. automodapi:: ctapipe.instrument.camera
     :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.instrument.camera.description
     :no-inheritance-diagram:
