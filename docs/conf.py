@@ -59,7 +59,7 @@ extensions = [
 
 
 numpydoc_show_class_members = False
-# numpydoc_class_members_toctree = False
+numpydoc_class_members_toctree = False
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
@@ -128,10 +128,15 @@ nitpick_ignore = [
     ("py:class", "ctapipe.compat.StrEnum"),
 ]
 
-# temporary fixes to ignore reference warnings and ensure build
+# temporary workaround to ignore reference warnings and ensure build
 nitpick_ignore += [
     ("py:obj", "ctapipe.calib.CameraCalibrator"),
     ("py:obj", "ctapipe.calib.GainSelector"),
+    ("py:obj", "CameraGeometry"),
+    ("py:obj", "ctapipe.instrument.camera.CameraGeometry"),
+    ("py:obj", "ctapipe.instrument.camera.CameraDescription"),
+    ("py:obj", "ctapipe.instrument.camera.PixelShape"),
+    ("py:obj", "ctapipe.instrument.camera.CameraReadout"),
 ]
 
 # The suffix(es) of source filenames.
@@ -256,6 +261,7 @@ html_theme_options = {
 
 html_sidebars = {
     "**": ["sidebar-nav-bs.html", "sidebar-ethical-ads.html"],
+    "index.rst": [],
 }
 
 
