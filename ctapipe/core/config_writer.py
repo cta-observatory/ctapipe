@@ -18,7 +18,7 @@ def trait_dict_to_yaml(conf, conf_repr="", indent_level=0):
 
     for k, v in conf.items():
         if isinstance(v, dict):
-            conf_repr += f"{indent_str * indent_level}{k}:\n"
+            conf_repr += f"\n{indent_str * indent_level}{k}:\n"
             conf_repr = trait_dict_to_yaml(v, conf_repr, indent_level=indent_level + 1)
         else:
             conf_repr += _trait_to_str(v, indent_level=indent_level)
