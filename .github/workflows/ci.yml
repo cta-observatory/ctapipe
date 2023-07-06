@@ -151,7 +151,7 @@ jobs:
       - name: Install doc dependencies
         run: |
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz ffmpeg
-          pip install -U pip towncrier sphinx-gallery
+          pip install -U pip towncrier
           pip install -e .[docs]
           pip install ./test_plugin
           git describe --tags
