@@ -65,6 +65,11 @@ def _trait_to_str(trait, help=True, indent_level=0):
     if isinstance(trait, traitlets.Unicode):
         trait_value = f"'{trait_value}'"
 
-    trait_repr += f"{indent_str*indent_level}{trait.name}: {trait_value}\n"
+    # Automatically comment all parameters that are unvalid
+    commented = ""
+    if trait_value == traitlets.Undefined:
+        commented = "#"
+
+    trait_repr += f"{indent_str*indent_level}{commented}{trait.name}: {trait_value}\n"
 
     return trait_repr
