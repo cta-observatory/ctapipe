@@ -47,7 +47,6 @@ The main structure after the change will look like this (Container-suffix left o
 
    SubarrayEvent
    - index: SubarrayEventIndex
-   - trigger: SubarrayTrigger
    - simulation: SimulatedShower
    - dl0: DL0Subarray
    - dl1: DL1Subarray
@@ -57,7 +56,6 @@ The main structure after the change will look like this (Container-suffix left o
 
    TelescopeEvent
    - index: TelescopeEventIndex
-   - trigger: TelescopeTrigger
    - simulation: TelescopeSimulation
    - r0: R0Telescope
    - r1: R1Telescope
