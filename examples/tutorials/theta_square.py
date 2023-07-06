@@ -1,4 +1,4 @@
-"""
+r"""
 Make a theta-square plot
 ========================
 
@@ -12,7 +12,6 @@ This is a basic example to analyze some events and make a
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import AltAz, SkyCoord
 from astropy.coordinates.angle_utilities import angular_separation
 from tqdm.auto import tqdm
 

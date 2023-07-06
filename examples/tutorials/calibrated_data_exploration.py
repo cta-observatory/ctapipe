@@ -9,10 +9,11 @@ from astropy import units as u
 from matplotlib import pyplot as plt
 
 import ctapipe
-from ctapipe.instrument import CameraGeometry
-from ctapipe.io import EventSeeker, EventSource
+from ctapipe.calib import CameraCalibrator
+from ctapipe.image import hillas_parameters, tailcuts_clean
+from ctapipe.io import EventSource
 from ctapipe.utils.datasets import get_dataset_path
-from ctapipe.visualization import CameraDisplay
+from ctapipe.visualization import ArrayDisplay, CameraDisplay
 
 # %matplotlib inline
 plt.style.use("ggplot")
@@ -58,7 +59,6 @@ print(event.r1)
 # near future that will be automatic).
 #
 
-from ctapipe.calib import CameraCalibrator
 
 calib = CameraCalibrator(subarray=source.subarray)
 calib(event)
@@ -91,7 +91,6 @@ for tel_id in event.dl1.tel:
 # Let’s look at the image
 #
 
-from ctapipe.visualization import CameraDisplay
 
 tel_id = sorted(event.r1.tel.keys())[1]
 sub = source.subarray
@@ -100,7 +99,6 @@ image = event.dl1.tel[tel_id].image
 
 disp = CameraDisplay(geometry, image=image)
 
-from ctapipe.image import hillas_parameters, tailcuts_clean
 
 mask = tailcuts_clean(
     geometry,
@@ -191,7 +189,6 @@ plt.title("Sum of {}x {}".format(len(cams_in_event), tel))
 # version to be more user-friendly)
 #
 
-from ctapipe.visualization import ArrayDisplay
 
 nectarcam_subarray = sub.select_subarray(cam_ids, name="NectarCam")
 

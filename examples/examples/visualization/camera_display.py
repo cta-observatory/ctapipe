@@ -6,12 +6,16 @@ Displaying Camera Images
 
 import astropy.coordinates as c
 import astropy.units as u
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import numpy as np
+from IPython import display
+from matplotlib.animation import FuncAnimation
+from matplotlib.colors import PowerNorm
 
 from ctapipe.coordinates import CameraFrame, EngineeringCameraFrame, TelescopeFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean, toymodel
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 ######################################################################
@@ -154,7 +158,6 @@ for ii, pct in enumerate([30, 50, 90]):
 # also provide a custom normalization, for example a ``PowerNorm``:
 #
 
-from matplotlib.colors import PowerNorm
 
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 norms = ["lin", "log", "symlog", PowerNorm(0.5)]
@@ -255,8 +258,6 @@ disp.overlay_coordinate(
 # display (much faster than generating a new one each time)
 #
 
-from IPython import display
-from matplotlib.animation import FuncAnimation
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
 geom = subarray.tel[1].camera.geometry
@@ -330,11 +331,6 @@ display.display(display.HTML(video))
 # First we load some real data so we have a nice image to view:
 #
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-from ctapipe.io import EventSource
-from ctapipe.visualization import CameraDisplay
 
 DATA = "dataset://gamma_20deg_0deg_run1___cta-prod5-lapalma_desert-2158m-LaPalma-dark_100evts.simtel.zst"
 

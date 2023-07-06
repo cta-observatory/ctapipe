@@ -39,30 +39,40 @@ Analyzing Events Using ctapipe
 #       </p>
 #
 
+import tempfile
+from copy import deepcopy
+
+import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy.coordinates import AltAz
+from astropy.coordinates.angle_utilities import angular_separation
+from matplotlib.colors import ListedColormap
+from scipy.sparse.csgraph import connected_components
+from traitlets.config import Config
+
+from ctapipe.calib import CameraCalibrator
+from ctapipe.image import (
+    ImageProcessor,
+    camera_to_shower_coordinates,
+    concentration_parameters,
+    hillas_parameters,
+    leakage_parameters,
+    number_of_islands,
+    timing_parameters,
+    toymodel,
+)
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.io import DataWriter, EventSource, TableLoader
+from ctapipe.reco import ShowerProcessor
+from ctapipe.utils.datasets import get_dataset_path
+from ctapipe.visualization import ArrayDisplay, CameraDisplay
 
 # %matplotlib inline
 
 plt.rcParams["figure.figsize"] = (12, 8)
 plt.rcParams["font.size"] = 14
 plt.rcParams["figure.figsize"]
-
-
-######################################################################
-# .. raw:: html
-#
-#    <h1 id="tocheading">
-#
-# Table of Contents
-#
-# .. raw:: html
-#
-#    </h1>
-#
-# .. container::
-#    :name: toc
-#
 
 
 ######################################################################
@@ -159,8 +169,6 @@ plt.rcParams["figure.figsize"]
 # ~~~~~~~~~~~~~~~~~~~~~~~
 #
 
-from ctapipe.io import EventSource
-from ctapipe.utils.datasets import get_dataset_path
 
 input_url = get_dataset_path("gamma_prod5.simtel.zst")
 
@@ -198,7 +206,6 @@ len(event.r0.tel), len(event.r1.tel)
 # images).
 #
 
-from ctapipe.calib import CameraCalibrator
 
 calibrator = CameraCalibrator(subarray=source.subarray)
 
@@ -223,7 +230,6 @@ geometry, dl1
 
 dl1.image
 
-from ctapipe.visualization import CameraDisplay
 
 display = CameraDisplay(geometry)
 
@@ -238,7 +244,6 @@ display.add_colorbar()
 # ~~~~~~~~~~~~~~
 #
 
-from ctapipe.image.cleaning import tailcuts_clean
 
 # unoptimized cleaning levels
 cleaning_level = {
@@ -281,14 +286,6 @@ d1.highlight_pixels(clean, color="red", linewidth=1)
 # ~~~~~~~~~~~~~~~~
 #
 
-from ctapipe.image import (
-    camera_to_shower_coordinates,
-    concentration_parameters,
-    hillas_parameters,
-    leakage_parameters,
-    number_of_islands,
-    timing_parameters,
-)
 
 hillas = hillas_parameters(geometry[clean], dl1.image[clean])
 
@@ -316,8 +313,8 @@ long, trans = camera_to_shower_coordinates(
 plt.plot(long[clean], dl1.peak_time[clean], "o")
 plt.plot(long[clean], timing.slope * long[clean] + timing.intercept)
 
-l = leakage_parameters(geometry, dl1.image, clean)
-print(l)
+leakage = leakage_parameters(geometry, dl1.image, clean)
+print(leakage)
 
 disp = CameraDisplay(geometry)
 disp.image = dl1.image
@@ -347,19 +344,6 @@ print(conc)
 # format is available as ``ctapipe-process``
 #
 
-import tempfile
-from copy import deepcopy
-
-import astropy.units as u
-from astropy.coordinates import AltAz, SkyCoord
-from traitlets.config import Config
-
-from ctapipe.calib import CameraCalibrator
-from ctapipe.containers import ImageParametersContainer
-from ctapipe.image import ImageProcessor
-from ctapipe.io import DataWriter, EventSource
-from ctapipe.reco import ShowerProcessor
-from ctapipe.utils.datasets import get_dataset_path
 
 image_processor_config = Config(
     {
@@ -424,10 +408,6 @@ with DataWriter(
 
         writer(event)
 
-import pandas as pd
-from astropy.coordinates.angle_utilities import angular_separation
-
-from ctapipe.io import TableLoader
 
 loader = TableLoader(f.name, load_dl2=True, load_simulated=True)
 
@@ -450,7 +430,6 @@ None
 # ------------
 #
 
-from ctapipe.visualization import ArrayDisplay
 
 angle_offset = plotting_event.pointing.array_azimuth
 
@@ -539,8 +518,6 @@ None
 # Find all groups of pixels, that survived the cleaning
 #
 
-from ctapipe.image import toymodel
-from ctapipe.instrument import SubarrayDescription
 
 geometry = loader.subarray.tel[1].camera.geometry
 
@@ -623,7 +600,6 @@ def num_islands_python(camera, clean):
 
 n_islands, island_ids = num_islands_python(geometry, clean)
 
-from matplotlib.colors import ListedColormap
 
 cmap = plt.get_cmap("Paired")
 cmap = ListedColormap(cmap.colors[:n_islands])
@@ -636,8 +612,6 @@ disp.set_limits_minmax(0.5, n_islands + 0.5)
 disp.add_colorbar()
 
 # %timeit num_islands_python(geometry, clean)
-
-from scipy.sparse.csgraph import connected_components
 
 
 def num_islands_scipy(geometry, clean):

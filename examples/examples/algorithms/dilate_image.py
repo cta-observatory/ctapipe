@@ -49,8 +49,6 @@ disp.highlight_pixels(cleanmask, color="red")
 # Now dialte the mask a few times:
 #
 
-from ctapipe.image.cleaning import dilate
-
 
 def show_dilate(mask, times=1):
     m = mask.copy()
