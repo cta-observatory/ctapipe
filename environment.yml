@@ -34,6 +34,7 @@ dependencies:
   - scipy
   - setuptools
   - sphinx
+  - sphinx-gallery
   - sphinx-automodapi
   - pydata-sphinx-theme
   - sphinx-design

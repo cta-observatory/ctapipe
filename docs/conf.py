@@ -55,6 +55,7 @@ extensions = [
     "numpydoc",
     "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_gallery.gen_gallery",
 ]
 
 
@@ -142,6 +143,20 @@ nitpick_ignore = [
     ("py:class", "ctapipe.compat.StrEnum"),
 ]
 
+# Sphinx gallery config
+sphinx_gallery_conf = {
+    "examples_dirs": [
+        "../examples/examples",
+        "../examples/tutorials",
+    ],  # path to your example scripts
+    "gallery_dirs": [
+        "examples",
+        "tutorials",
+    ],  # path to where to save gallery generated output
+    "nested_sections": True,
+    "copyfile_regex": r"index.rst",
+}
+
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -195,6 +210,10 @@ exclude_patterns = [
     ".DS_Store",
     "**.ipynb_checkpoints",
     "changes",
+    "examples/*/*.ipynb",
+    "examples/*/*.py",
+    "tutorials/*.ipynb",
+    "tutorials/*.py",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
