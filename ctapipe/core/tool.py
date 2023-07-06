@@ -28,7 +28,7 @@ from traitlets import List, default
 from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
-from . import Provenance
+from . import Provenance, config_writer
 from .component import Component
 from .logging import ColoredFormatter, create_logging_config
 from .traits import Bool, Dict, Enum, Path
@@ -484,6 +484,36 @@ class Tool(Application):
                 conf[self.__class__.__name__].update(val.get_current_config())
 
         return conf
+
+    @classmethod
+    def _get_default_config(cls):
+        """
+
+        :return:
+        """
+        conf = {cls.__name__: cls.traits(cls, config=True)}
+
+        # Get default configuration for all sub-classes defined
+        for val in cls.classes:
+            conf[cls.__name__].update(val._get_default_config())
+
+        return conf
+
+    @classmethod
+    def write_default_config(cls, outname=None):
+        """return the current configuration as a dict (e.g. the values
+        of all traits, even if they were not set during configuration)
+        """
+
+        if outname is None:
+            outname = f"{cls.__name__}.yml"
+
+        conf = cls._get_default_config()
+
+        conf_repr = config_writer.trait_dict_to_yaml(conf)
+
+        with open(outname, "w") as obj:
+            obj.write(conf_repr)
 
     def _repr_html_(self):
         """nice HTML rep, with blue for non-default values"""

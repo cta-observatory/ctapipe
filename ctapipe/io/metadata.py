@@ -93,6 +93,16 @@ class Contact(Configurable):
     def __repr__(self):
         return f"{self.__class__.__name__}(name={self.name}, email={self.email}, organization={self.organization})"
 
+    @classmethod
+    def _get_default_config(cls):
+        """
+
+        :return:
+        """
+        conf = {cls.__name__: cls.traits(cls, config=True)}
+
+        return conf
+
 
 class Product(HasTraits):
     """Data product information"""
@@ -217,6 +227,16 @@ class Instrument(Configurable):
             f", subtype={self.subtype}, version={self.version}, id_={self.id_}"
             ")"
         )
+
+    @classmethod
+    def _get_default_config(cls):
+        """
+
+        :return:
+        """
+        conf = {cls.__name__: cls.traits(cls, config=True)}
+
+        return conf
 
 
 def _to_dict(hastraits_instance, prefix=""):

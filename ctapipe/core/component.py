@@ -10,6 +10,7 @@ from docutils.core import publish_parts
 from traitlets import TraitError
 from traitlets.config import Configurable
 
+from . import config_writer
 from .plugins import detect_and_import_plugins
 
 __all__ = ["non_abstract_children", "Component"]
@@ -276,3 +277,29 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         state["_trait_values"]["parent"] = None
         state["_trait_notifiers"] = {}
         return state
+
+    @classmethod
+    def _get_default_config(cls):
+        """
+
+        :return:
+        """
+        conf = {cls.__name__: cls.traits(cls, config=True)}
+
+        return conf
+
+    @classmethod
+    def write_default_config(cls, outname=None):
+        """return the current configuration as a dict (e.g. the values
+        of all traits, even if they were not set during configuration)
+        """
+
+        if outname is None:
+            outname = f"{cls.__name__}.yml"
+
+        conf = cls._get_default_config()
+
+        conf_repr = config_writer.trait_dict_to_yaml(conf)
+
+        with open(outname, "w") as obj:
+            obj.write(conf_repr)
