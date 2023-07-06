@@ -119,7 +119,7 @@ plt.pcolormesh(
 )
 plt.title("Raw table, uninterpolated {0}".format(energy_table.hist.T.shape))
 cb = plt.colorbar()
-cb.set_label("$\log_{10}(E/\mathrm{TeV})$")
+cb.set_label(r"$\log_{10}(E/\mathrm{TeV})$")
 
 # the interpolated table
 plt.subplot(1, 2, 2)
@@ -130,7 +130,7 @@ plt.xlabel("log10(SIZE)")
 plt.ylabel("Impact Dist(m)")
 plt.title("Interpolated to a ({0}, {0}) grid".format(N))
 cb = plt.colorbar()
-cb.set_label("$\log_{10}(E/\mathrm{TeV})$")
+cb.set_label(r"$\log_{10}(E/\mathrm{TeV})$")
 
 plt.tight_layout()
 plt.show()

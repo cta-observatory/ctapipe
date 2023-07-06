@@ -4,23 +4,17 @@ Creating command-line Tools
 
 """
 
-import logging
 from time import sleep
-
-from astropy import units as u
 
 from ctapipe.core import Component, TelescopeComponent, Tool
 from ctapipe.core.traits import (
-    Dict,
-    Float,
     FloatTelescopeParameter,
     Integer,
-    List,
     Path,
     TraitError,
-    Unicode,
     observe,
 )
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.utils import get_dataset_path
 
 GAMMA_FILE = get_dataset_path("gamma_prod5.simtel.zst")
@@ -51,8 +45,6 @@ class MyComponent(Component):
 # in order to have 2 of the same components at once
 class SecondaryMyComponent(MyComponent):
     """A second component"""
-
-    pass
 
 
 class AdvancedComponent(Component):
@@ -100,7 +92,6 @@ AdvancedComponent(infile="test.foo", outfile="out.foo")
 # one:
 #
 
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 subarray = SubarrayDescription.read(GAMMA_FILE)
 subarray.info()

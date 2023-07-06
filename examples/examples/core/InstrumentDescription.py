@@ -8,10 +8,11 @@ which is the ``SubarrayDescription``
 
 """
 
-import numpy as np
+from astropy.coordinates import SkyCoord
 
 from ctapipe.io import EventSource
 from ctapipe.utils.datasets import get_dataset_path
+from ctapipe.visualization import CameraDisplay
 
 filename = get_dataset_path("gamma_prod5.simtel.zst")
 
@@ -71,7 +72,6 @@ tel.camera
 tel.camera.geometry.pix_x
 
 # %matplotlib inline
-from ctapipe.visualization import CameraDisplay
 
 CameraDisplay(tel.camera.geometry)
 
@@ -106,9 +106,6 @@ subarray.camera_types
 
 subarray.optics_types
 
-from astropy.coordinates import SkyCoord
-
-from ctapipe.coordinates import GroundFrame
 
 center = SkyCoord("10.0 m", "2.0 m", "0.0 m", frame="groundframe")
 coords = subarray.tel_coords  # a flat list of coordinates by tel_index

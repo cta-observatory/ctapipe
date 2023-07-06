@@ -8,20 +8,14 @@ import copy
 
 import astropy.units as u
 import matplotlib.pyplot as plt
-import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.time import Time
 
-from ctapipe.calib import CameraCalibrator
-from ctapipe.coordinates import (
-    CameraFrame,
-    GroundFrame,
-    NominalFrame,
-    TelescopeFrame,
-    TiltedGroundFrame,
-)
+from ctapipe.coordinates import CameraFrame, NominalFrame, TelescopeFrame
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
-from ctapipe.visualization import ArrayDisplay
+from ctapipe.visualization import CameraDisplay
 
 # %matplotlib inline
 
@@ -75,8 +69,6 @@ tel_id = 3
 # oriented East of North (i.e., N=0°, E=90°).
 #
 
-from astropy.coordinates import EarthLocation
-from astropy.time import Time
 
 obstime = Time("2013-11-01T03:00")
 location = EarthLocation.of_site("Roque de los Muchachos")
@@ -149,8 +141,6 @@ plt.axis("square")
 # and how they might be visible in the camera.
 #
 
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.visualization import CameraDisplay
 
 location = EarthLocation.of_site("Roque de los Muchachos")
 obstime = Time("2018-11-01T04:00")
@@ -330,8 +320,8 @@ for i, name in enumerate(["Crab", "o tau", "zet tau"]):
     )
 
 
-ax.set_xlabel(f"fov_lon / deg")
-ax.set_ylabel(f"fov_lat / deg")
+ax.set_xlabel("fov_lon / deg")
+ax.set_ylabel("fov_lat / deg")
 
 ax.legend()
 plt.show()

@@ -12,9 +12,12 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from ctapipe.containers import HillasParametersContainer
-from ctapipe.coordinates import EastingNorthingFrame, GroundFrame
+from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import EastingNorthingFrame
+from ctapipe.image import ImageProcessor
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import EventSource
+from ctapipe.reco import ShowerProcessor
 from ctapipe.visualization import ArrayDisplay
 
 plt.rcParams["figure.figsize"] = (8, 6)
@@ -134,17 +137,6 @@ ad.set_vector_rho_phi(rho=rhos, phi=phis)
 # following example shows its use:
 #
 
-import matplotlib.pyplot as plt
-from astropy.coordinates import SkyCoord
-from IPython import display
-from matplotlib.animation import FuncAnimation
-
-from ctapipe.calib import CameraCalibrator
-from ctapipe.image import ImageProcessor
-from ctapipe.io import EventSource
-from ctapipe.reco import ShowerProcessor
-from ctapipe.utils import get_dataset_path
-from ctapipe.visualization import ArrayDisplay
 
 input_url = "dataset://gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
 
@@ -161,13 +153,7 @@ def plot_event(event, subarray, ax):
     true and reconstructed impact position overlaid
     """
 
-    array_pointing = SkyCoord(
-        az=event.pointing.array_azimuth,
-        alt=event.pointing.array_altitude,
-        frame="altaz",
-    )
-
-    angle_offset = event.pointing.array_azimuth
+    event.pointing.array_azimuth
     disp = ArrayDisplay(subarray, axes=ax)
 
     hillas_dict = {tid: tel.parameters.hillas for tid, tel in event.dl1.tel.items()}

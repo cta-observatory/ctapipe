@@ -154,7 +154,7 @@ sphinx_gallery_conf = {
         "tutorials",
     ],  # path to where to save gallery generated output
     "nested_sections": True,
-    "copyfile_regex": r"index.rst",
+    "copyfile_regex": r"index.rst|.*\.png",
 }
 
 

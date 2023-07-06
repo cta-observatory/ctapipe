@@ -15,11 +15,13 @@ from functools import partial
 import numpy as np
 from astropy import units as u
 
+from ctapipe.containers import SimulatedShowerContainer
 from ctapipe.core import Container, Field, Map
 
 ######################################################################
 # Let’s define a few example containers with some dummy fields in them:
-# 
+#
+
 
 class SubContainer(Container):
     junk = Field(-1, "Some junk")
@@ -59,14 +61,14 @@ class EventContainer(Container):
 ######################################################################
 # Basic features
 # --------------
-# 
+#
 
 ev = EventContainer()
 
 
 ######################################################################
 # Check that default values are automatically filled in
-# 
+#
 
 print(ev.event_id)
 print(ev.sub)
@@ -79,23 +81,21 @@ print(ev.tel[1])
 
 ######################################################################
 # print the dict representation
-# 
+#
 
 print(ev)
 
 
 ######################################################################
 # We also get docstrings “for free”
-# 
+#
+help(EventContainer)
 
-?EventContainer
-
-?SubContainer
-
+help(SubContainer)
 
 ######################################################################
 # values can be set as normal for a class:
-# 
+#
 
 ev.event_id = 100
 ev.event_id
@@ -108,7 +108,7 @@ ev.as_dict(recursive=True)
 ######################################################################
 # and we can add a few of these to the parent container inside the tel
 # dict:
-# 
+#
 
 ev.tel[10] = TelContainer()
 ev.tel[5] = TelContainer()
@@ -121,12 +121,15 @@ ev.tel[42].image is ev.tel[32]
 ######################################################################
 # Be careful to use the ``default_factory`` mechanism for mutable fields,
 # see this **negative** example:
-# 
+#
+
 
 class DangerousContainer(Container):
     image = Field(
         np.zeros(10),
-        description="Attention!!!! Globally mutable shared state. Use default_factory instead",
+        description=(
+            "Attention!!!! Globally mutable shared state. Use default_factory instead"
+        ),
     )
 
 
@@ -145,7 +148,7 @@ ev.tel
 ######################################################################
 # Converion to dictionaries
 # -------------------------
-# 
+#
 
 ev.as_dict()
 
@@ -155,7 +158,7 @@ ev.as_dict(recursive=True, flatten=False)
 ######################################################################
 # for serialization to a table, we can even flatten the output into a
 # single set of columns
-# 
+#
 
 ev.as_dict(recursive=True, flatten=True)
 
@@ -163,7 +166,7 @@ ev.as_dict(recursive=True, flatten=True)
 ######################################################################
 # Setting and clearing values
 # ---------------------------
-# 
+#
 
 ev.tel[5].image[:] = 9
 print(ev)
@@ -175,11 +178,10 @@ ev.as_dict(recursive=True)
 ######################################################################
 # look at a pre-defined Container
 # -------------------------------
-# 
+#
 
-from ctapipe.containers import SimulatedShowerContainer
 
-?SimulatedShowerContainer
+help(SimulatedShowerContainer)
 
 shower = SimulatedShowerContainer()
 shower
@@ -188,10 +190,10 @@ shower
 ######################################################################
 # Container prefixes
 # ------------------
-# 
+#
 # To store the same container in the same table in a file or give more
 # information, containers support setting a custom prefix:
-# 
+#
 
 c1 = SubContainer(junk=5, value=3, prefix="foo")
 c2 = SubContainer(junk=10, value=9001, prefix="bar")

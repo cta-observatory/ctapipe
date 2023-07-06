@@ -15,10 +15,10 @@ Camera or off-line)
 # Setup:
 #
 
-from astropy import units as u
+import numpy as np
 from matplotlib import pyplot as plt
+from scipy import signal
 
-from ctapipe.instrument import CameraGeometry
 from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
@@ -278,8 +278,6 @@ for tel in event.r0.tel.keys():
 # https://docs.scipy.org/doc/scipy/reference/signal.html
 #
 
-import numpy as np
-from scipy import signal
 
 pix_ids = np.arange(len(data))
 has_signal = sums > 300

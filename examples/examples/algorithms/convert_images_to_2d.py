@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 
 from ctapipe.image.toymodel import Gaussian
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import EventSource
-from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
 # get the subarray from an example file
