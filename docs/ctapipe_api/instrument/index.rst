@@ -6,10 +6,11 @@ Instrument (`~ctapipe.instrument`)
 
 .. currentmodule:: ctapipe.instrument
 
+
 Introduction
 ============
 
-The `ctapipe.instrument` module contains classes and methods for
+The `~ctapipe.instrument` module contains classes and methods for
 describing the instrumental layout and configuration.
 
 This module is under heavy restructuring and should not be considered

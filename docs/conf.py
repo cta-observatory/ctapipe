@@ -128,16 +128,6 @@ nitpick_ignore = [
     ("py:class", "ctapipe.compat.StrEnum"),
 ]
 
-# temporary workaround to ignore reference warnings and ensure build
-nitpick_ignore += [
-    ("py:obj", "ctapipe.calib.CameraCalibrator"),
-    ("py:obj", "ctapipe.calib.GainSelector"),
-    ("py:obj", "CameraGeometry"),
-    ("py:obj", "ctapipe.instrument.camera.CameraGeometry"),
-    ("py:obj", "ctapipe.instrument.camera.CameraDescription"),
-    ("py:obj", "ctapipe.instrument.camera.PixelShape"),
-    ("py:obj", "ctapipe.instrument.camera.CameraReadout"),
-]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
