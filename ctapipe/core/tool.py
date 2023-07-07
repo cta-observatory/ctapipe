@@ -493,6 +493,9 @@ class Tool(Application):
         """
         conf = {cls.__name__: cls.traits(cls, config=True)}
 
+        # Add class doc for later use
+        conf[cls.__name__]["__doc__"] = config_writer.get_summary_doc(cls)
+
         # Get default configuration for all sub-classes defined
         for val in cls.classes:
             conf[cls.__name__].update(val._get_default_config())

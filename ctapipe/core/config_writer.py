@@ -1,4 +1,5 @@
 import logging
+import re
 import textwrap
 
 import traitlets
@@ -21,7 +22,16 @@ def trait_dict_to_yaml(conf, conf_repr="", indent_level=0):
 
     for k, v in conf.items():
         if isinstance(v, dict):
-            conf_repr += f"\n{indent_str * indent_level}{k}:\n"
+            # Separate this new block from previous content
+            conf_repr += "\n"
+
+            # Add summary line from class docstring
+            class_help = v.pop(
+                "__doc__"
+            )  # Pop to avoid treating this key:value as a parameter later on.
+            conf_repr += f"{wrap_comment(class_help, indent_level=indent_level)}\n"
+
+            conf_repr += f"{indent_str * indent_level}{k}:\n"
             conf_repr = trait_dict_to_yaml(v, conf_repr, indent_level=indent_level + 1)
         else:
             conf_repr += _trait_to_str(v, indent_level=indent_level)
@@ -43,22 +53,17 @@ def _trait_to_str(trait, help=True, indent_level=0):
     """
     indent_str = "  "
 
-    def commented(text, indent_level=indent_level, width=144):
-        """return a commented, wrapped block."""
-        return textwrap.fill(
-            text,
-            width=width,
-            initial_indent=indent_str * indent_level + "# ",
-            subsequent_indent=indent_str * indent_level + "# ",
-        )
-
     trait_repr = "\n"
 
-    if help:
-        h_msg = trait.help
+    h_msg = ""
 
-        if h_msg:
-            trait_repr += f"{commented(h_msg, indent_level=indent_level)}\n"
+    if help:
+        h_msg += trait.help
+
+    # Get rid of unnecessary formatting because we'll redo that
+    h_msg = clean_help_msg(h_msg)
+
+    trait_repr += f"{wrap_comment(h_msg, indent_level=indent_level)}\n"
 
     trait_value = trait.get_default_value()
     # add quotes for strings
@@ -73,3 +78,63 @@ def _trait_to_str(trait, help=True, indent_level=0):
     trait_repr += f"{indent_str*indent_level}{commented}{trait.name}: {trait_value}\n"
 
     return trait_repr
+
+
+def get_summary_doc(cls):
+    """
+    Applied on a class object, will retrieve the first line of the docstring.
+
+    :param obj cls:
+
+    :return: Summary line from input docstring
+    :rtype: str
+    """
+    first_line = cls.__doc__.split("\n\n")[0]
+
+    first_line = clean_help_msg(first_line)
+
+    return first_line
+
+
+def clean_help_msg(msg):
+    """
+    Clean and merge lines in a string to have only one line, get rid of tabulation and extra spaces.
+
+    :param str msg:
+    :return: cleaned string
+    """
+    # Merge all lines, including tabulation if need be
+    msg = re.sub("\n *", " ", msg)
+
+    # clean extra spaces (regexp tend to leave a starting space because there's usually a newline at the start)
+    msg = msg.strip()
+
+    return msg
+
+
+def get_default_config(cls):
+    """
+    Get list of all traits from that class.
+
+    This is intented to me used as a class methods for all included class a Tool might have. Since the method is
+    always the same, for the sake of maintainability, We'll just use that function.
+
+    :param cls:
+    :return:
+    """
+    conf = {cls.__name__: cls.traits(cls, config=True)}
+
+    # Add class doc for later use
+    conf[cls.__name__]["__doc__"] = get_summary_doc(cls)
+
+    return conf
+
+
+def wrap_comment(text, indent_level=0, width=144, indent_str="  "):
+    """return a commented, wrapped block."""
+    return textwrap.fill(
+        text,
+        width=width,
+        initial_indent=indent_str * indent_level + "# ",
+        subsequent_indent=indent_str * indent_level + "# ",
+    )
