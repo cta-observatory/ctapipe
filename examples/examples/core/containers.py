@@ -91,6 +91,7 @@ print(ev)
 #
 help(EventContainer)
 
+######################################################################
 help(SubContainer)
 
 ######################################################################
@@ -100,8 +101,10 @@ help(SubContainer)
 ev.event_id = 100
 ev.event_id
 
+######################################################################
 ev.as_dict()  # by default only shows the bare items, not sub-containers (See later)
 
+######################################################################
 ev.as_dict(recursive=True)
 
 
@@ -114,6 +117,7 @@ ev.tel[10] = TelContainer()
 ev.tel[5] = TelContainer()
 ev.tel[42] = TelContainer()
 
+######################################################################
 # because we are using a default_factory to handle mutable defaults, the images are actually different:
 ev.tel[42].image is ev.tel[32]
 
@@ -142,6 +146,7 @@ print(c1.image)
 print(c2.image)
 print(c1.image is c2.image)
 
+######################################################################
 ev.tel
 
 
@@ -152,6 +157,7 @@ ev.tel
 
 ev.as_dict()
 
+######################################################################
 ev.as_dict(recursive=True, flatten=False)
 
 
@@ -171,6 +177,7 @@ ev.as_dict(recursive=True, flatten=True)
 ev.tel[5].image[:] = 9
 print(ev)
 
+######################################################################
 ev.reset()
 ev.as_dict(recursive=True)
 
@@ -183,6 +190,7 @@ ev.as_dict(recursive=True)
 
 help(SimulatedShowerContainer)
 
+######################################################################
 shower = SimulatedShowerContainer()
 shower
 

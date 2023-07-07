@@ -32,12 +32,16 @@ source = EventSource(filename, max_events=2)
 for event in source:
     print(event.index.event_id)
 
+######################################################################
 filename
 
+######################################################################
 source
 
+######################################################################
 event
 
+######################################################################
 print(event.r1)
 
 
@@ -97,9 +101,10 @@ sub = source.subarray
 geometry = sub.tel[tel_id].camera.geometry
 image = event.dl1.tel[tel_id].image
 
+######################################################################
 disp = CameraDisplay(geometry, image=image)
 
-
+######################################################################
 mask = tailcuts_clean(
     geometry,
     image,
@@ -111,10 +116,12 @@ cleaned = image.copy()
 cleaned[~mask] = 0
 disp = CameraDisplay(geometry, image=cleaned)
 
+######################################################################
 params = hillas_parameters(geometry, cleaned)
 print(params)
 params
 
+######################################################################
 params = hillas_parameters(geometry, cleaned)
 
 plt.figure(figsize=(10, 10))
@@ -126,6 +133,7 @@ disp.highlight_pixels(mask, color="white", alpha=0.3, linewidth=2)
 plt.xlim(params.x.to_value(u.m) - 0.5, params.x.to_value(u.m) + 0.5)
 plt.ylim(params.y.to_value(u.m) - 0.5, params.y.to_value(u.m) + 0.5)
 
+######################################################################
 source.metadata
 
 
@@ -150,9 +158,11 @@ tels_in_event = set(
 )  # use a set here, so we can intersect it later
 tels_in_event
 
+######################################################################
 cam_ids = set(sub.get_tel_ids_for_type("MST_MST_NectarCam"))
 cam_ids
 
+######################################################################
 cams_in_event = tels_in_event.intersection(cam_ids)
 first_tel_id = list(cams_in_event)[0]
 tel = sub.tel[first_tel_id]

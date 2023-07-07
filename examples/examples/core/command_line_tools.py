@@ -17,6 +17,7 @@ from ctapipe.core.traits import (
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.utils import get_dataset_path
 
+######################################################################
 GAMMA_FILE = get_dataset_path("gamma_prod5.simtel.zst")
 
 
@@ -80,8 +81,10 @@ class TelescopeWiseComponent(TelescopeComponent):
     ).tag(config=True)
 
 
+######################################################################
 MyComponent()
 
+######################################################################
 AdvancedComponent(infile="test.foo", outfile="out.foo")
 
 
@@ -96,24 +99,19 @@ AdvancedComponent(infile="test.foo", outfile="out.foo")
 subarray = SubarrayDescription.read(GAMMA_FILE)
 subarray.info()
 
+######################################################################
 TelescopeWiseComponent(subarray=subarray)
 
 
 ######################################################################
 # This TelescopeParameters can then be set using a list of patterns like:
 #
-# .. code:: python
 #
-#    component.param = [
-#        ("type", "LST*",3.0),
-#        ("type", "MST*", 2.0),
-#        (id, 25, 4.0)
-#    ]
+#    component.param = [("type", "LST*",3.0),("type", "MST*", 2.0),(id, 25, 4.0)]
 #
 # These get translated into per-telescope-id values once the subarray is
 # registered. After that one acccess the per-telescope id values via:
 #
-# .. code:: python
 #
 #    component.param.tel[tel_id]
 #
@@ -184,6 +182,7 @@ class MyTool(Tool):
 tool = MyTool()
 tool
 
+######################################################################
 tool.print_help()
 
 
@@ -202,7 +201,6 @@ tool.print_help(classes=True)
 # specified it’s read from ``sys.argv``, so the following is the same as
 # running:
 #
-# .. code:: sh
 #
 #    mytool --log_level=INFO --infile gamma_test.simtel.gz --iterations=3
 #
@@ -219,6 +217,7 @@ except SystemExit as e:
 tool.log_format = "%(asctime)s : %(levelname)s [%(name)s %(funcName)s] %(message)s"
 
 
+######################################################################
 try:
     tool.run(
         argv=[
@@ -302,30 +301,41 @@ tool.advanced.outfile = "Another.txt"
 
 tool2 = MyTool()
 
+######################################################################
 try:
-    tool2.run(argv=["--config", "Tools.json"])
+    tool2.run(argv=["--config", "config.json"])
 except SystemExit as e:
     assert e.code == 0, f"Tool returned with error status {e}"
 
+######################################################################
 print(tool2.advanced.infile)
 
+######################################################################
 print(tool2.config)
 
+######################################################################
 tool2.is_setup
 
+######################################################################
 tool3 = MyTool()
 
+######################################################################
 tool3.is_setup
 
+######################################################################
 tool3.initialize(argv=[])
 
+######################################################################
 tool3.is_setup
 
+######################################################################
 tool3
 
+######################################################################
 tool.setup()
 tool
 
+######################################################################
 tool.comp2
 
 
@@ -336,6 +346,7 @@ tool.comp2
 
 tool.get_current_config()
 
+######################################################################
 tool.iterations = 12
 tool.get_current_config()
 

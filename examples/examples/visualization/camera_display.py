@@ -8,7 +8,6 @@ import astropy.coordinates as c
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from IPython import display
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import PowerNorm
 
@@ -39,6 +38,7 @@ model = toymodel.Gaussian(
 image, sig, bg = model.generate_image(geom, intensity=1500, nsb_level_pe=10)
 mask = tailcuts_clean(geom, image, picture_thresh=15, boundary_thresh=5)
 
+######################################################################
 geom
 
 
@@ -297,10 +297,7 @@ def update(frame):
 
 # Create the animation and convert to a displayable video:
 anim = FuncAnimation(fig, func=update, frames=10, interval=200)
-plt.close(fig)  # so it doesn't display here
-video = anim.to_html5_video()
-display.display(display.HTML(video))
-
+plt.show()
 
 ######################################################################
 # Using CameraDisplays interactively
@@ -308,19 +305,22 @@ display.display(display.HTML(video))
 #
 # ``CameraDisplays`` can be used interactivly whe displayed in a window,
 # and also when using Jupyter notebooks/lab with appropriate backends.
-#
+
+######################################################################
 # When this is the case, the same ``CameraDisplay`` object can be re-used.
 # We can’t show this here in the documentation, but creating an animation
 # when in a matplotlib window is quite easy! Try this in an interactive
 # ipython session:
 #
+
+######################################################################
 # Running interactive displays in a matplotlib window
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# .. code:: sh
-#
-#    ipython -i --maplotlib=auto
-#
+# ipython -i --maplotlib=auto
+
+
+######################################################################
 # That will open an ipython session with matplotlib graphics in a separate
 # thread, meaning that you can type code and interact with plots
 # simultaneneously.
@@ -332,6 +332,7 @@ display.display(display.HTML(video))
 #
 
 
+######################################################################
 DATA = "dataset://gamma_20deg_0deg_run1___cta-prod5-lapalma_desert-2158m-LaPalma-dark_100evts.simtel.zst"
 
 with EventSource(
@@ -376,10 +377,7 @@ def draw_sample(frame):
 
 
 anim = FuncAnimation(fig, func=draw_sample, frames=n_samp, interval=100)
-plt.close(fig)  # so it doesn't display here
-video = anim.to_html5_video()
-display.display(display.HTML(video))
-
+plt.show()
 
 ######################################################################
 # Making it clickable

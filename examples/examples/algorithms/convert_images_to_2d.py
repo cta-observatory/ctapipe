@@ -11,6 +11,7 @@ from ctapipe.image.toymodel import Gaussian
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.visualization import CameraDisplay
 
+######################################################################
 # get the subarray from an example file
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
 
@@ -32,6 +33,7 @@ model = Gaussian(
 )
 _, image, _ = model.generate_image(geom, intensity=500, nsb_level_pe=3)
 
+######################################################################
 CameraDisplay(geom, image)
 
 
@@ -42,10 +44,13 @@ CameraDisplay(geom, image)
 
 image_square = geom.image_to_cartesian_representation(image)
 
+######################################################################
 plt.imshow(image_square)
 
+######################################################################
 image_1d = geom.image_from_cartesian_representation(image_square)
 
+######################################################################
 CameraDisplay(geom, image_1d)
 
 
@@ -66,8 +71,10 @@ model = Gaussian(
 )
 _, image, _ = model.generate_image(geom, intensity=5000)
 
+######################################################################
 CameraDisplay(geom, image)
 
+######################################################################
 image_square = geom.image_to_cartesian_representation(image)
 
 
@@ -82,6 +89,8 @@ image_square = geom.image_to_cartesian_representation(image)
 
 plt.imshow(image_square)
 
+######################################################################
 image_1d = geom.image_from_cartesian_representation(image_square)
 
+######################################################################
 disp = CameraDisplay(geom, image_1d)

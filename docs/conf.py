@@ -154,7 +154,13 @@ sphinx_gallery_conf = {
         "tutorials",
     ],  # path to where to save gallery generated output
     "nested_sections": True,
-    "copyfile_regex": r"index.rst|.*\.png",
+    "copyfile_regex": r"index.rst|.*\.png|.*\.json",
+    "filename_pattern": r".*\.py",
+    "promote_jupyter_magic": True,
+    "line_numbers": True,
+    "default_thumb_file": "ctapipe_logo.png",
+    "pypandoc": True,
+    "matplotlib_animations": True,
 }
 
 

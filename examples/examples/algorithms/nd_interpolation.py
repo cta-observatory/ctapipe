@@ -139,8 +139,6 @@ plt.show()
 ######################################################################
 # In the high-stats central region, we get a nice smooth interpolation
 # function. Of course we can see that there are a few more steps to take
-# before using this table: \* need to deal with cases where the table had
-# low stats near the edges (smooth or extrapolate, or set bounds) \* may
-# need to smooth the table even where there are sufficient stats, to avoid
-# wiggles
-#
+# before using this table: \*
+# - need to deal with cases where the table had low stats near the edges (smooth or extrapolate, or set bounds)
+# - may need to smooth the table even where there are sufficient stats, to avoid wiggles

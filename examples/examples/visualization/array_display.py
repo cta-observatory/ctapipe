@@ -22,6 +22,7 @@ from ctapipe.visualization import ArrayDisplay
 
 plt.rcParams["figure.figsize"] = (8, 6)
 
+######################################################################
 tel_ids = list(range(1, 5)) + list(range(5, 20))  # just LSTs  + one set of MSTs
 
 subarray = SubarrayDescription.read(

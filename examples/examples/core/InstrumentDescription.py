@@ -27,6 +27,7 @@ with EventSource(filename, max_events=1) as source:
 
 subarray.info()
 
+######################################################################
 subarray.to_table()
 
 
@@ -61,20 +62,27 @@ newsub.info()
 tel = subarray.tel[1]
 tel
 
+######################################################################
 tel.optics.mirror_area
 
+######################################################################
 tel.optics.n_mirror_tiles
 
+######################################################################
 tel.optics.equivalent_focal_length
 
+######################################################################
 tel.camera
 
+######################################################################
 tel.camera.geometry.pix_x
 
+######################################################################
 # %matplotlib inline
 
 CameraDisplay(tel.camera.geometry)
 
+######################################################################
 CameraDisplay(subarray.tel[98].camera.geometry)
 
 
@@ -92,6 +100,7 @@ CameraDisplay(subarray.tel[98].camera.geometry)
 
 subarray.peek()
 
+######################################################################
 subarray.footprint
 
 
@@ -102,11 +111,14 @@ subarray.footprint
 
 subarray.telescope_types
 
+######################################################################
 subarray.camera_types
 
+######################################################################
 subarray.optics_types
 
 
+######################################################################
 center = SkyCoord("10.0 m", "2.0 m", "0.0 m", frame="groundframe")
 coords = subarray.tel_coords  # a flat list of coordinates by tel_index
 coords.separation(center)
@@ -134,8 +146,10 @@ subarray.tel_ids_to_indices([1, 5, 23])
 
 subarray.tel_index_array
 
+######################################################################
 subarray.tel_index_array[[1, 5, 23]]
 
+######################################################################
 subarray.tel_indices[
     1
 ]  # this is a dict of tel_id -> tel_index, so we can only do one at once
@@ -143,9 +157,11 @@ subarray.tel_indices[
 ids = subarray.get_tel_ids_for_type(subarray.telescope_types[0])
 ids
 
+######################################################################
 idx = subarray.tel_ids_to_indices(ids)
 idx
 
+######################################################################
 subarray.tel_coords[idx]
 
 
