@@ -111,6 +111,7 @@ pix_x = geometry.pix_x
 pix_y = geometry.pix_y
 focal_length = source.subarray.tel[tel_id].optics.equivalent_focal_length
 
+######################################################################
 telescope_pointing = SkyCoord(
     alt=event.pointing.tel[tel_id].altitude,
     az=event.pointing.tel[tel_id].azimuth,
@@ -127,6 +128,7 @@ cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
 
 print(cam_coords)
 
+######################################################################
 plt.scatter(cam_coords.x, cam_coords.y)
 plt.title(f"Camera type: {geometry.name}")
 plt.xlabel(f"x / {cam_coords.x.unit}")
@@ -212,6 +214,7 @@ telescope_frame = TelescopeFrame(
 )
 telescope_coords = cam_coords.transform_to(telescope_frame)
 
+######################################################################
 wrap_angle = telescope_pointing.az + 180 * u.deg
 
 plt.axis("equal")
@@ -286,6 +289,7 @@ camera_frames = CameraFrame(
 
 nom_frame = NominalFrame(origin=array_pointing, obstime=obstime, location=location)
 
+######################################################################
 fig, ax = plt.subplots(figsize=(15, 10))
 ax.set_aspect(1)
 
@@ -356,7 +360,6 @@ source.subarray.select_subarray(layout, name="Prod3b layout").peek()
 #    :alt: Ground Frame
 #
 #    Ground Frame
-#
 
 
 ######################################################################
@@ -389,7 +392,6 @@ source.subarray.select_subarray(layout, name="Prod3b layout").peek()
 #    :alt: Tilted Ground Frame
 #
 #    Tilted Ground Frame
-#
 
 
 ######################################################################

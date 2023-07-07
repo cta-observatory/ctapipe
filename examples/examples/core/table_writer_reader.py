@@ -41,6 +41,7 @@ from ctapipe.core import Container, Field
 from ctapipe.io import HDF5TableReader, HDF5TableWriter, read_table
 
 
+######################################################################
 class VariousTypesContainer(Container):
 
     a_int = Field(int, "some int value")
@@ -72,6 +73,7 @@ def create_stream(n_event):
         yield data
 
 
+######################################################################
 for data in create_stream(2):
 
     for key, val in data.items():
@@ -103,6 +105,7 @@ print("Done")
 
 h5_table.h5file.isopen == False
 
+######################################################################
 print(os.listdir())
 
 ######################################################################
@@ -129,6 +132,7 @@ for i in range(2):
 
         print(h5_table.h5file)
 
+######################################################################
 os.remove("container.h5")
 
 ######################################################################
@@ -204,6 +208,7 @@ print(bool(h5_table.h5file.isopen))
 table = read_table("container.h5", "/data_0/table")
 table[:5]
 
+######################################################################
 table.meta
 
 
@@ -271,10 +276,14 @@ def read(mode):
                 print(data.as_dict())
 
 
+######################################################################
 read("r")
 
+######################################################################
 read("r+")
 
+######################################################################
 read("a")
 
+######################################################################
 read("w")

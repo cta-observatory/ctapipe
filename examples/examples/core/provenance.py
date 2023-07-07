@@ -43,6 +43,7 @@ p.finish_activity("sub2")
 
 p.finish_activity()
 
+######################################################################
 p.finished_activity_names
 
 
@@ -110,6 +111,8 @@ def flatten_dict(y):
     return out
 
 
+######################################################################
 d = dict(activity=p.provenance)
 
+######################################################################
 pprint(flatten_dict(d))

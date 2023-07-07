@@ -6,40 +6,13 @@ Analyzing Events Using ctapipe
 
 
 ######################################################################
-# .. container::
-#
-#    .. raw:: html
-#
-#       <p style="text-align: center;">
-#
-#    Initially presented @ LST Analysis Bootcamp
-#
-#    .. raw:: html
-#
-#       </p>
-#
-#    .. raw:: html
-#
-#       <p style="text-align: center">
-#
-#    Padova, 26.11.2018
-#
-#    .. raw:: html
-#
-#       </p>
-#
-#    .. raw:: html
-#
-#       <p style="text-align: center">
-#
-#    Maximilian Nöthe (@maxnoe) & Kai A. Brügge (@mackaiver)
-#
-#    .. raw:: html
-#
-#       </p>
-#
+# Initially presented @ LST Analysis Bootcamp
+# in Padova, 26.11.2018
+# by Maximilian Nöthe (@maxnoe) & Kai A. Brügge (@mackaiver)
+
 
 import tempfile
+import timeit
 from copy import deepcopy
 
 import astropy.units as u
@@ -70,6 +43,7 @@ from ctapipe.visualization import ArrayDisplay, CameraDisplay
 
 # %matplotlib inline
 
+######################################################################
 plt.rcParams["figure.figsize"] = (12, 8)
 plt.rcParams["font.size"] = 14
 plt.rcParams["figure.figsize"]
@@ -178,6 +152,7 @@ source = EventSource(input_url, max_events=5)
 
 print(type(source))
 
+######################################################################
 for event in source:
     print(
         "Id: {}, E = {:1.3f}, Telescopes: {}".format(
@@ -193,8 +168,10 @@ for event in source:
 
 event
 
+######################################################################
 source.subarray.camera_types
 
+######################################################################
 len(event.r0.tel), len(event.r1.tel)
 
 
@@ -209,6 +186,7 @@ len(event.r0.tel), len(event.r1.tel)
 
 calibrator = CameraCalibrator(subarray=source.subarray)
 
+######################################################################
 calibrator(event)
 
 
@@ -221,16 +199,20 @@ calibrator(event)
 
 event.dl1.tel.keys()
 
+######################################################################
 tel_id = 130
 
+######################################################################
 geometry = source.subarray.tel[tel_id].camera.geometry
 dl1 = event.dl1.tel[tel_id]
 
 geometry, dl1
 
+######################################################################
 dl1.image
 
 
+######################################################################
 display = CameraDisplay(geometry)
 
 # right now, there might be one image per gain channel.
@@ -253,6 +235,7 @@ cleaning_level = {
     "NectarCam": (4, 8, 2),
 }
 
+######################################################################
 boundary, picture, min_neighbors = cleaning_level[geometry.name]
 
 clean = tailcuts_clean(
@@ -263,6 +246,7 @@ clean = tailcuts_clean(
     min_number_picture_neighbors=min_neighbors,
 )
 
+######################################################################
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
 
 d1 = CameraDisplay(geometry, ax=ax1)
@@ -291,6 +275,7 @@ hillas = hillas_parameters(geometry[clean], dl1.image[clean])
 
 print(hillas)
 
+######################################################################
 display = CameraDisplay(geometry)
 
 # set "unclean" pixels to 0
@@ -302,10 +287,12 @@ display.add_colorbar()
 
 display.overlay_moments(hillas, color="xkcd:red")
 
+######################################################################
 timing = timing_parameters(geometry, dl1.image, dl1.peak_time, hillas, clean)
 
 print(timing)
 
+######################################################################
 long, trans = camera_to_shower_coordinates(
     geometry.pix_x, geometry.pix_y, hillas.x, hillas.y, hillas.psi
 )
@@ -313,17 +300,21 @@ long, trans = camera_to_shower_coordinates(
 plt.plot(long[clean], dl1.peak_time[clean], "o")
 plt.plot(long[clean], timing.slope * long[clean] + timing.intercept)
 
+######################################################################
 leakage = leakage_parameters(geometry, dl1.image, clean)
 print(leakage)
 
+######################################################################
 disp = CameraDisplay(geometry)
 disp.image = dl1.image
 disp.highlight_pixels(geometry.get_border_pixel_mask(1), linewidth=2, color="xkcd:red")
 
+######################################################################
 n_islands, island_id = number_of_islands(geometry, clean)
 
 print(n_islands)
 
+######################################################################
 conc = concentration_parameters(geometry, dl1.image, hillas)
 print(conc)
 
@@ -409,10 +400,12 @@ with DataWriter(
         writer(event)
 
 
+######################################################################
 loader = TableLoader(f.name, load_dl2=True, load_simulated=True)
 
 events = loader.read_subarray_events()
 
+######################################################################
 theta = angular_separation(
     events["HillasReconstructor_az"].quantity,
     events["HillasReconstructor_alt"].quantity,
@@ -477,6 +470,7 @@ loader = TableLoader(f.name, load_simulated=True, load_dl1_parameters=True)
 
 dl1_table = loader.read_telescope_events(["LST_LST_LSTCam"])
 
+######################################################################
 plt.scatter(
     np.log10(dl1_table["true_energy"].quantity / u.TeV),
     np.log10(dl1_table["hillas_intensity"]),
@@ -546,6 +540,7 @@ for i in range(9):
     )
     image += new_image
 
+######################################################################
 clean = tailcuts_clean(
     geometry,
     image,
@@ -554,12 +549,14 @@ clean = tailcuts_clean(
     min_number_picture_neighbors=2,
 )
 
+######################################################################
 disp = CameraDisplay(geometry)
 disp.image = image
 disp.highlight_pixels(clean, color="xkcd:red", linewidth=1.5)
 disp.add_colorbar()
 
 
+######################################################################
 def num_islands_python(camera, clean):
     """A breadth first search to find connected islands of neighboring pixels in the cleaning set"""
 
@@ -598,9 +595,11 @@ def num_islands_python(camera, clean):
     return n_islands, island_ids
 
 
+######################################################################
 n_islands, island_ids = num_islands_python(geometry, clean)
 
 
+######################################################################
 cmap = plt.get_cmap("Paired")
 cmap = ListedColormap(cmap.colors[:n_islands])
 cmap.set_under("k")
@@ -611,9 +610,11 @@ disp.cmap = cmap
 disp.set_limits_minmax(0.5, n_islands + 0.5)
 disp.add_colorbar()
 
-# %timeit num_islands_python(geometry, clean)
+######################################################################
+timeit.timeit(lambda: num_islands_python(geometry, clean), number=1000) / 1000
 
 
+######################################################################
 def num_islands_scipy(geometry, clean):
     neighbors = geometry.neighbor_matrix_sparse
 
@@ -626,16 +627,18 @@ def num_islands_scipy(geometry, clean):
     return num_islands, island_ids
 
 
+######################################################################
 n_islands_s, island_ids_s = num_islands_scipy(geometry, clean)
 
+######################################################################
 disp = CameraDisplay(geometry)
 disp.image = island_ids_s
 disp.cmap = cmap
 disp.set_limits_minmax(0.5, n_islands_s + 0.5)
 disp.add_colorbar()
 
-# %timeit num_islands_scipy(geometry, clean)
-
+######################################################################
+timeit.timeit(lambda: num_islands_scipy(geometry, clean), number=10000) / 10000
 
 ######################################################################
 # **A lot less code, and a factor 3 speed improvement**
@@ -646,4 +649,5 @@ disp.add_colorbar()
 # Finally, current ctapipe implementation is using numba:
 #
 
-# %timeit number_of_islands(geometry, clean)
+######################################################################
+timeit.timeit(lambda: number_of_islands(geometry, clean), number=100000) / 100000

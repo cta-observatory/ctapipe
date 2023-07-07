@@ -73,6 +73,7 @@ event.r0
 
 print(event.simulation.shower)
 
+######################################################################
 print(event.r0.tel.keys())
 
 
@@ -102,12 +103,16 @@ teldata
 
 event.simulation.shower.energy
 
+######################################################################
 event.simulation.shower.energy.to("GeV")
 
+######################################################################
 event.simulation.shower.energy.to("J")
 
+######################################################################
 event.simulation.shower.alt
 
+######################################################################
 print("Altitude in degrees:", event.simulation.shower.alt.deg)
 
 
@@ -198,6 +203,7 @@ data = teldata.waveform[0]
 peds = data[:, 19:24].mean(axis=1)  # mean of samples 20 to 29 for all pixels
 sums = data[:, 5:9].sum(axis=1) / (13 - 8)  # simple sum integration
 
+######################################################################
 phist = plt.hist(peds, bins=50, range=[0, 150])
 plt.title("Pedestal Distribution of all pixels for a single event")
 
@@ -239,6 +245,7 @@ plt.legend()
 
 camgeom = source.subarray.tel[24].camera.geometry
 
+######################################################################
 title = "CT24, run {} event {} ped-sub".format(event.index.obs_id, event.index.event_id)
 disp = CameraDisplay(camgeom, title=title)
 disp.image = sums - peds
