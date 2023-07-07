@@ -42,6 +42,6 @@
 }
 
 html[data-theme="dark"] .sd-shadow-sm {
-  --sd-color-shadow: #6e6e6e
+  --sd-color-shadow: #6e6e6e;
 }
 

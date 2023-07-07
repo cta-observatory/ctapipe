@@ -57,9 +57,8 @@ ctapipe.calib Package
 
 Calibration
 
-.. raw:: html
-
-    <h3>Classes</h3>
+Classes
+^^^^^^^
 
 .. autosummary::
     ~camera.CameraCalibrator
