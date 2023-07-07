@@ -26,10 +26,9 @@ Reference/API
 ctapipe.instrument.camera Package
 ---------------------------------
 
-.. raw:: html
 
-    <h3>Classes</h3>
-
+Classes
+^^^^^^^
 
 .. autosummary::
 
