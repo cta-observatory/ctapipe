@@ -1,12 +1,9 @@
 .. _calib:
 
-.. temporary worakaround to at least have calib in the title,
-   the reason is the usage of autosummary in the Reference/API
-   section below
 
-========================================
-Calibration (``calib``)
-========================================
+==============================
+Calibration (`~ctapipe.calib`)
+==============================
 
 .. currentmodule:: ctapipe.calib
 
@@ -48,18 +45,5 @@ Submodules
 Reference/API
 =============
 
-.. What follows is a *temporary* workaround to circumvent
-   various warnings of duplicate references caused by
-   calling automodapi on the camera package.
-
-ctapipe.calib Package
----------------------
-
-Calibration
-
-Classes
-^^^^^^^
-
-.. autosummary::
-    ~camera.CameraCalibrator
-    ~camera.GainSelector
+.. automodapi:: ctapipe.calib
+    :no-inheritance-diagram:

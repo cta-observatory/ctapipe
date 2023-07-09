@@ -1,6 +1,7 @@
 .. include:: references.txt
 
 :html_theme.sidebar_secondary.remove: true
+:html_theme.sidebar_primary.remove: true
 
 .. _ctapipe:
 
@@ -10,7 +11,7 @@ Prototype CTA Pipeline Framework (``ctapipe``)
 
 .. currentmodule:: ctapipe
 
-**Version**:  |version|
+|
 
 .. image:: ctapipe_logo.webp
    :class: only-light
@@ -24,8 +25,18 @@ Prototype CTA Pipeline Framework (``ctapipe``)
    :width: 90%
    :alt: The ctapipe logo.
 
-What is ctapipe?
-================
+|
+
+**Date**: |today| **Version**: |version|
+
+**Useful links**:
+`Source Repository <https://github.com/cta-observatory/ctapipe>`__ |
+`Issue Tracker <https://github.com/cta-observatory/ctapipe/issues>`__ |
+`Discussions <https://github.com/cta-observatory/ctapipe/discussions>`__
+
+**License**: BSD-3 **Python**: |python_requires|
+
+|
 
 ``ctapipe`` is a framework for prototyping the low-level data processing algorithms for the Cherenkov Telescope Array.
 
@@ -34,17 +45,8 @@ What is ctapipe?
    structure and functionality as we explore various design choices before
    the 1.0 release.
 
-* Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
-* Docs: https://ctapipe.readthedocs.io/
-* License: BSD-3
-* Python: |python_requires|
-
-
 
 .. _ctapipe_docs:
-
-.. General documentation
-.. =====================
 
 .. toctree::
   :maxdepth: 1
@@ -64,7 +66,7 @@ What is ctapipe?
 
 
 
-.. grid:: 3
+.. grid:: 1 2 2 3
 
     .. grid-item-card::
 
@@ -111,8 +113,8 @@ What is ctapipe?
 
         :octicon:`git-pull-request;40px`
 
-        Development Guidelines
-        ^^^^^^^^^^^^^^^^^^^^^^
+        Coding Guidelines
+        ^^^^^^^^^^^^^^^^^
 
         These guidelines explain the coding style and the workflow. The ctapipe
         enhancement proposals (CEPs) can also be found here.
@@ -185,22 +187,4 @@ What is ctapipe?
             :click-parent:
 
             To the examples
-
-
-Module API Status (relative to next release)
-============================================
-
-ctapipe is under activate developement and we will make breaking changes from release to release until
-we reach version 1.0.
-
-
-Development Help
-================
-
-* Development workflow examples from AstroPy: https://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
-* GIT tutorial: https://www.atlassian.com/git/tutorials/syncing/git-pull
-* Code distribution and Packaging https://packaging.python.org/en/latest/
-
-
-
 
