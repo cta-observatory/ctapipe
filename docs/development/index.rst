@@ -1,7 +1,7 @@
 .. _guidelines:
 
-Development Guidelines
-======================
+Coding Guidelines
+=================
 
 .. toctree::
 
