@@ -72,7 +72,7 @@ def _trait_to_str(trait, help=True, indent_level=0):
 
     trait_repr += f"{wrap_comment(h_msg, indent_level=indent_level)}\n"
 
-    trait_value = trait.get_default_value()
+    trait_value = trait.default()
     # add quotes for strings
     if isinstance(trait, traitlets.Unicode):
         trait_value = f"'{trait_value}'"
@@ -170,7 +170,7 @@ def get_default_config(cls):
     """
     Get list of all traits from that class.
 
-    This is intented to me used as a class methods for all included class a Tool might have. Since the method is
+    This is intented to be used as a class methods for all included class a Tool might have. Since the method is
     always the same, for the sake of maintainability, We'll just use that function.
 
     :param cls:
