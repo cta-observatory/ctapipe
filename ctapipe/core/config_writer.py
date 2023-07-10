@@ -55,7 +55,9 @@ def _trait_to_str(trait, help=True, indent_level=0):
 
     trait_repr = "\n"
 
-    h_msg = ""
+    trait_type = get_trait_type(trait)
+    # By default, help message only have info about parameter type
+    h_msg = f"[{trait_type}] "
 
     if help:
         h_msg += trait.help
@@ -78,6 +80,23 @@ def _trait_to_str(trait, help=True, indent_level=0):
     trait_repr += f"{indent_str*indent_level}{commented}{trait.name}: {trait_value}\n"
 
     return trait_repr
+
+
+def get_trait_type(trait):
+    """
+    Get trait type (if needed, use recursion for sub-types in case of list, set...
+
+    :param traitlets.trait trait: Input trait
+
+    :return: str representation of the trait type
+    :rtype: str
+    """
+    _repr = f"{trait.__class__.__name__}"
+
+    if hasattr(trait, "_trait"):
+        _repr += f"({get_trait_type(trait._trait)})"
+
+    return _repr
 
 
 def get_summary_doc(cls):
