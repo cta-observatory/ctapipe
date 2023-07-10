@@ -56,8 +56,13 @@ def _trait_to_str(trait, help=True, indent_level=0):
     trait_repr = "\n"
 
     trait_type = get_trait_type(trait)
+
     # By default, help message only have info about parameter type
     h_msg = f"[{trait_type}] "
+
+    if "Enum" in trait_type:
+        enum_values = get_enum_values(trait)
+        h_msg += f"(Possible values: {enum_values}) "
 
     if help:
         h_msg += trait.help
@@ -84,7 +89,7 @@ def _trait_to_str(trait, help=True, indent_level=0):
 
 def get_trait_type(trait):
     """
-    Get trait type (if needed, use recursion for sub-types in case of list, set...
+    Get trait type. If needed, use recursion for sub-types in case of list, set...
 
     :param traitlets.trait trait: Input trait
 
@@ -97,6 +102,36 @@ def get_trait_type(trait):
         _repr += f"({get_trait_type(trait._trait)})"
 
     return _repr
+
+
+def get_enum_values(trait):
+    """
+    Get possible values for a trait with Enum. Note that this can also be a list of enum.
+
+    We do not test the trait, we assume that 'trait' is either Enum or has a sub-trait with Enum in it.
+    If needed, use recursion for sub-types in case of list, set...
+
+    :param traitlets.trait trait: Input trait
+
+    :return: List of possible values for the Enum in this trait
+    :rtype: str
+    """
+    trait_type = trait.__class__.__name__
+
+    if trait_type in ["Enum", "CaselessStrEnum"]:
+        values = list(
+            trait.values
+        )  # Sometimes, the output is not a list (e.g. norm_cls)
+    elif trait_type == "UseEnum":
+        values = trait.enum_class._member_names_
+    else:
+        try:
+            values = get_enum_values(trait._trait)
+        except AttributeError:
+            log.error(f"Can't find an Enum type in trait '{trait.name}'")
+            raise
+
+    return values
 
 
 def get_summary_doc(cls):
