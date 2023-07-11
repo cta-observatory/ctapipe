@@ -535,9 +535,6 @@ class MuonIntensityFitter(TelescopeComponent):
 
         # Perform minimisation
         minuit.migrad()
-
-        # Check for convergence
-        validation = minuit.valid
         
         # Get fitted values
         result = minuit.values
