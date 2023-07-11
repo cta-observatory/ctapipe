@@ -536,6 +536,9 @@ class MuonIntensityFitter(TelescopeComponent):
         # Perform minimisation
         minuit.migrad()
 
+        # Check for convergence
+        validation = minuit.valid
+        
         # Get fitted values
         result = minuit.values
 
@@ -545,4 +548,5 @@ class MuonIntensityFitter(TelescopeComponent):
             impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
             width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
             optical_efficiency=result["optical_efficiency_muon"],
+            fit_convergence=validation
         )
