@@ -984,6 +984,7 @@ class MuonEfficiencyContainer(Container):
     impact_x = Field(nan * u.m, "impact parameter x position")
     impact_y = Field(nan * u.m, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
+    fit_convergence = Field(nan, "convergence of the fit")
 
 
 class MuonParametersContainer(Container):
