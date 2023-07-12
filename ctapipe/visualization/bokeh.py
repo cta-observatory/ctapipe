@@ -1,31 +1,29 @@
 import sys
 import tempfile
 from abc import ABCMeta
+
+import astropy.units as u
 import matplotlib.pyplot as plt
-from matplotlib.colors import to_hex
-
 import numpy as np
-
-from bokeh.io import output_notebook, push_notebook, show, output_file
-from bokeh.plotting import figure
+from bokeh.io import output_file, output_notebook, push_notebook, show
 from bokeh.models import (
-    ColumnDataSource,
-    TapTool,
+    BoxZoomTool,
+    CategoricalColorMapper,
     ColorBar,
+    ColumnDataSource,
+    ContinuousColorMapper,
+    Ellipse,
+    HoverTool,
+    Label,
     LinearColorMapper,
     LogColorMapper,
-    ContinuousColorMapper,
-    CategoricalColorMapper,
-    HoverTool,
-    BoxZoomTool,
-    Ellipse,
-    Label,
+    TapTool,
 )
-from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
-import astropy.units as u
+from bokeh.palettes import Greys256, Inferno256, Magma256, Viridis256, d3
+from bokeh.plotting import figure
+from matplotlib.colors import to_hex
 
 from ..instrument import CameraGeometry, PixelShape
-
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
@@ -644,7 +642,7 @@ class ArrayDisplay(BokehPlot):
         for i, telescope_id in enumerate(telescope_ids):
             telescope = subarray.tel[telescope_id]
             tel_types.append(str(telescope))
-            mirror_area = telescope.optics.mirror_area.to_value(u.m ** 2)
+            mirror_area = telescope.optics.mirror_area.to_value(u.m**2)
             mirror_radii[i] = np.sqrt(mirror_area) / np.pi
 
         if values is None:
