@@ -535,7 +535,7 @@ class MuonIntensityFitter(TelescopeComponent):
 
         # Perform minimisation
         minuit.migrad()
-        
+
         # Get fitted values
         result = minuit.values
 
@@ -547,5 +547,5 @@ class MuonIntensityFitter(TelescopeComponent):
             optical_efficiency=result["optical_efficiency_muon"],
             is_valid=minuit.valid,
             parameters_at_limit=minuit.fmin.has_parameters_at_limit,
-            likelihood_value=minuit.fval
+            likelihood_value=minuit.fval,
         )

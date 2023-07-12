@@ -985,7 +985,9 @@ class MuonEfficiencyContainer(Container):
     impact_y = Field(nan * u.m, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
     is_valid = Field(False, "True if the fit converged successfully")
-    parameters_at_limit = Field(False, "True if any bounded parameter was fitted close to a bound")
+    parameters_at_limit = Field(
+        False, "True if any bounded parameter was fitted close to a bound"
+    )
     likelihood_value = Field(nan, "cost function value at the minimum")
 
 

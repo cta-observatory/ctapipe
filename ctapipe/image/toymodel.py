@@ -18,15 +18,17 @@ Examples:
     >>> print(image.shape)
     (400,)
 """
-import numpy as np
-from ctapipe.utils import linalg
-from ctapipe.image.hillas import camera_to_shower_coordinates
-import astropy.units as u
-from astropy.coordinates import Angle
-from scipy.stats import multivariate_normal, skewnorm, norm
-from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
+
+import astropy.units as u
+import numpy as np
+from astropy.coordinates import Angle
 from numpy.random import default_rng
+from scipy.ndimage import convolve1d
+from scipy.stats import multivariate_normal, norm, skewnorm
+
+from ctapipe.image.hillas import camera_to_shower_coordinates
+from ctapipe.utils import linalg
 
 __all__ = [
     "WaveformModel",
@@ -186,8 +188,7 @@ class ImageModel(metaclass=ABCMeta):
     @u.quantity_input(x=u.m, y=u.m)
     @abstractmethod
     def pdf(self, x, y):
-        """Probability density function.
-        """
+        """Probability density function."""
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
@@ -286,8 +287,7 @@ class Gaussian(ImageModel):
 
 
 class SkewedGaussian(ImageModel):
-    """A shower image that has a skewness along the major axis.
-    """
+    """A shower image that has a skewness along the major axis."""
 
     @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
     def __init__(self, x, y, length, width, psi, skewness):
@@ -327,8 +327,8 @@ class SkewedGaussian(ImageModel):
         delta = np.sign(self.skewness) * np.sqrt(
             (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
         )
-        a = delta / np.sqrt(1 - delta ** 2)
-        scale = self.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
+        a = delta / np.sqrt(1 - delta**2)
+        scale = self.length.to_value(u.m) / np.sqrt(1 - 2 * delta**2 / np.pi)
         loc = -scale * delta * np.sqrt(2 / np.pi)
 
         return a, loc, scale
