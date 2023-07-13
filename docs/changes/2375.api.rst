@@ -1,0 +1,5 @@
+The ``ctapipe-dump-triggers`` tool was removed, since it wrote a custom data format
+not compatble with e.g. the output of the ``DataWriter`` and ``ctapipe-process``.
+If you only want to store trigger and simulation information from simulated / DL0
+input files into the ctapipe format HDF5 files, you can now use
+``ctapipe-process -i <input> -o <output> --no-write-parameters``.

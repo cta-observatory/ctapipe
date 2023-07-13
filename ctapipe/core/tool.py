@@ -456,7 +456,9 @@ class Tool(Application):
             output_str = " ".join([x["url"] for x in activity.output])
             self.log.info("Output: %s", output_str)
 
-        self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
+        self.log.debug(
+            "PROVENANCE: 'Details about provenance is found in %s'", self.provenance_log
+        )
         self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
         with open(self.provenance_log, mode="a+") as provlog:
             provlog.write(Provenance().as_json(indent=3))

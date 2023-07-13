@@ -1,0 +1,1 @@
+Remove writing the full provenance information to the log  and instead simply refer the reader to the actual provenance file.
