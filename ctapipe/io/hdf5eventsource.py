@@ -9,6 +9,7 @@ import tables
 from astropy.utils.decorators import lazyproperty
 
 from ctapipe.atmosphere import AtmosphereDensityProfile
+from ctapipe.core.container import Map
 from ctapipe.instrument.optics import FocalLengthKind
 
 from ..containers import (
@@ -30,6 +31,7 @@ from ..containers import (
     ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
+    PointingContainer,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
@@ -38,6 +40,7 @@ from ..containers import (
     SimulatedShowerContainer,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
+    TelescopePointingContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
     TimingParametersContainer,
@@ -555,25 +558,41 @@ class HDF5EventSource(EventSource):
                 }
 
         # Setup iterators for the array events
-        events = HDF5TableReader(self.file_).read(
+        events = self.reader.read(
             "/dl1/event/subarray/trigger",
             [TriggerContainer, EventIndexContainer],
             ignore_columns={"tel"},
         )
-        telescope_trigger_reader = HDF5TableReader(self.file_).read(
+        telescope_trigger_reader = self.reader.read(
             "/dl1/event/telescope/trigger",
             [TelEventIndexContainer, TelescopeTriggerContainer],
             ignore_columns={"trigger_pixels"},
         )
 
-        array_pointing_finder = IndexFinder(
-            self.file_.root.dl1.monitoring.subarray.pointing.col("time")
-        )
+        if "/dl1/event/subarray/pointing" in self.file_.root:
+            self.subarray_pointing_reader = self.reader.read(
+                "/dl1/event/subarray/pointing",
+                PointingContainer,
+            )
+            self.telescope_pointing_readers = {
+                table.name: self.reader.read(
+                    table._v_pathname,
+                    TelescopePointingContainer,
+                )
+                for table in self.file_.root.dl1.event.telescope.pointing
+            }
+        else:
+            self.subarray_pointing_reader = None
+            self.telescope_pointing_readers = None
 
-        tel_pointing_finder = {
-            table.name: IndexFinder(table.col("time"))
-            for table in self.file_.root.dl1.monitoring.telescope.pointing
-        }
+            self.array_pointing_finder = IndexFinder(
+                self.file_.root.dl1.monitoring.subarray.pointing.col("time")
+            )
+
+            self.tel_pointing_finder = {
+                table.name: IndexFinder(table.col("time"))
+                for table in self.file_.root.dl1.monitoring.telescope.pointing
+            }
 
         counter = 0
         for trigger, index in events:
@@ -623,8 +642,8 @@ class HDF5EventSource(EventSource):
             if len(data.trigger.tels_with_trigger) == 0:
                 continue
 
-            self._fill_array_pointing(data, array_pointing_finder)
-            self._fill_telescope_pointing(data, tel_pointing_finder)
+            self._fill_array_pointing(data)
+            self._fill_telescope_pointing(data)
 
             for tel_id in data.trigger.tel.keys():
                 key = f"tel_{tel_id:03d}"
@@ -703,13 +722,18 @@ class HDF5EventSource(EventSource):
         pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
         return get_column_attrs(pointing_group[f"tel_{tel_id:03d}"])
 
-    def _fill_array_pointing(self, data, array_pointing_finder):
+    def _fill_array_pointing(self, data):
         """
         Fill the array pointing information of a given event
         """
+        if self.subarray_pointing_reader is not None:
+            data.pointing = next(self.subarray_pointing_reader)
+            data.pointing.tel = Map(TelescopePointingContainer)
+            return
+
         # Only unique pointings are stored, so reader.read() wont work as easily
         # Thats why we match the pointings based on trigger time
-        closest_time_index = array_pointing_finder.closest(data.trigger.time.mjd)
+        closest_time_index = self.array_pointing_finder.closest(data.trigger.time.mjd)
         table = self.file_.root.dl1.monitoring.subarray.pointing
         array_pointing = table[closest_time_index]
 
@@ -730,20 +754,28 @@ class HDF5EventSource(EventSource):
             self._subarray_pointing_attrs["array_dec"]["UNIT"],
         )
 
-    def _fill_telescope_pointing(self, data, tel_pointing_finder):
+    def _fill_telescope_pointing(self, data):
         """
         Fill the telescope pointing information of a given event
         """
+        if self.telescope_pointing_readers is not None:
+            for tel_id in data.trigger.tel:
+                key = f"tel_{tel_id:03d}"
+                data.pointing.tel[tel_id] = next(self.telescope_pointing_readers[key])
+
+            return
+
         # Same comments as to _fill_array_pointing apply
         pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
         for tel_id in data.trigger.tel.keys():
+
             key = f"tel_{tel_id:03d}"
 
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
             tel_pointing_table = pointing_group[key]
-            closest_time_index = tel_pointing_finder[key].closest(
+            closest_time_index = self.tel_pointing_finder[key].closest(
                 data.trigger.tel[tel_id].time.mjd
             )
 

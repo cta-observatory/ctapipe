@@ -223,6 +223,11 @@ class DataWriter(Component):
         default_value=False,
     ).tag(config=True)
 
+    write_event_pointing = Bool(
+        default_value=False,
+        help="If True, store event-wise pointing information in the output file",
+    ).tag(config=True)
+
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
 
     transform_waveform = Bool(default_value=False).tag(config=True)
@@ -300,8 +305,8 @@ class DataWriter(Component):
         self._at_least_one_event = True
         self.log.debug("WRITING EVENT %s", event.index)
 
-        self._write_subarray_pointing(event)
         self._write_trigger(event)
+        self._write_pointing(event)
 
         if event.simulation is not None and event.simulation.shower is not None:
             self._writer.write(
@@ -441,11 +446,10 @@ class DataWriter(Component):
         # montitoring containers
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
-        writer.exclude("dl1/monitoring/subarray/pointing", "n_trigger_pixels")
-        writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "n_trigger_pixels")
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
-        writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
+
+        writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
         writer.exclude("/dl1/event/telescope/images/.*", "parameters")
         writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
 
@@ -502,15 +506,6 @@ class DataWriter(Component):
         # final initialization
         self._writer = writer
         self.log.debug("Writer initialized: %s", self._writer)
-
-    def _write_subarray_pointing(self, event: ArrayEventContainer):
-        """store subarray pointing info in a monitoring table"""
-        pnt = event.pointing
-        current_pointing = (pnt.array_azimuth, pnt.array_altitude)
-        if current_pointing != self._last_pointing:
-            pnt.prefix = ""
-            self._writer.write("dl1/monitoring/subarray/pointing", [event.trigger, pnt])
-            self._last_pointing = current_pointing
 
     def _write_scheduling_and_observation_blocks(self):
         """write out SB and OB info"""
@@ -644,23 +639,44 @@ class DataWriter(Component):
             r0_tel.prefix = ""
             self._writer.write(f"r0/event/telescope/{table_name}", [tel_index, r0_tel])
 
+    def _write_pointing(self, event):
+        pnt = event.pointing
+        pnt.prefix = ""
+
+        if self.write_event_pointing:
+            self._writer.write("dl1/event/subarray/pointing", [event.index, pnt])
+        else:
+            current_pointing = (pnt.array_azimuth, pnt.array_altitude)
+            if current_pointing != self._last_pointing:
+                self._writer.write(
+                    "dl1/monitoring/subarray/pointing", [event.trigger, pnt]
+                )
+                self._last_pointing = current_pointing
+
+        # pointing info
+        for tel_id, pnt in pnt.tel.items():
+
+            if self.write_event_pointing:
+                tel_index = _get_tel_index(event, tel_id)
+                self._writer.write(
+                    f"dl1/event/telescope/pointing/tel_{tel_id:03d}",
+                    [tel_index, pnt],
+                )
+            else:
+                current_pointing = (pnt.azimuth, pnt.altitude)
+                if current_pointing != self._last_pointing_tel[tel_id]:
+                    pnt.prefix = ""
+                    self._writer.write(
+                        f"dl1/monitoring/telescope/pointing/tel_{tel_id:03d}",
+                        [event.trigger.tel[tel_id], pnt],
+                    )
+                    self._last_pointing_tel[tel_id] = current_pointing
+
     def _write_dl1_telescope_events(self, event: ArrayEventContainer):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
         """
-
-        # pointing info
-        for tel_id, pnt in event.pointing.tel.items():
-            current_pointing = (pnt.azimuth, pnt.altitude)
-            if current_pointing != self._last_pointing_tel[tel_id]:
-                pnt.prefix = ""
-                self._writer.write(
-                    f"dl1/monitoring/telescope/pointing/tel_{tel_id:03d}",
-                    [event.trigger.tel[tel_id], pnt],
-                )
-                self._last_pointing_tel[tel_id] = current_pointing
-
         for tel_id, dl1_camera in event.dl1.tel.items():
             tel_index = _get_tel_index(event, tel_id)
 
