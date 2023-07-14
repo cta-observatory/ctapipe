@@ -7,21 +7,18 @@ To do:
     - create container class for output
 
 """
-from functools import lru_cache
 from math import erf
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 from iminuit import Minuit
-from numba import double, vectorize
+from numba import double, njit, vectorize
 from scipy.constants import alpha
-from scipy.ndimage import correlate1d
 
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
 
 from ...containers import MuonEfficiencyContainer
-from ...coordinates import CameraFrame, TelescopeFrame
+from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
@@ -70,6 +67,7 @@ def chord_length(radius, rho, phi):
     return chord
 
 
+@njit(cache=True)
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
     """Perform line integration along a given axis in the mirror frame
     given an impact point on the mirror
@@ -102,11 +100,25 @@ def pixels_on_ring(radius, pixel_diameter):
     return int(n_pixels.to_value(u.dimensionless_unscaled))
 
 
-@lru_cache(maxsize=1000)
+@njit(cache=True)
 def linspace_two_pi(n_points):
     return np.linspace(-np.pi, np.pi, n_points)
 
 
+@njit(cache=True)
+def correlate1d_numba(values, weights):
+    if len(weights) % 2 != 1:
+        raise ValueError("Weights must be of uneven length")
+
+    n = len(weights) // 2
+    out = np.zeros_like(values)
+    for i, val in enumerate(values):
+        for delta in range(-n, n + 1):
+            out[i] += values[(len(values) + i + delta) % len(values)]
+    return out
+
+
+@njit(cache=True)
 def create_profile(
     mirror_radius,
     hole_radius,
@@ -139,7 +151,7 @@ def create_profile(
     ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
-    length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
+    length = correlate1d_numba(length, np.ones(oversampling))
     length /= oversampling
 
     return ang, length
@@ -224,6 +236,7 @@ def gaussian_cdf(x, mu, sig):
     return 0.5 * (1 + erf((x - mu) / (SQRT2 * sig)))
 
 
+@njit(cache=True)
 def image_prediction_no_units(
     mirror_radius_m,
     hole_radius_m,
@@ -270,10 +283,9 @@ def image_prediction_no_units(
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
-    cdfs = gaussian_cdf(
-        [radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad
-    )
-    gauss = cdfs[0] - cdfs[1]
+    lower = gaussian_cdf(radial_dist - delta, radius_rad, ring_width_rad)
+    upper = gaussian_cdf(radial_dist + delta, radius_rad, ring_width_rad)
+    gauss = upper - lower
 
     # interpolate profile to find prediction for each pixel
     pred = np.interp(ang, ang_prof, profile)
@@ -309,7 +321,8 @@ def image_prediction_no_units(
 
 def build_negative_log_likelihood(
     image,
-    telescope_description,
+    optics,
+    camera_geometry,
     mask,
     oversampling,
     min_lambda,
@@ -330,20 +343,12 @@ def build_negative_log_likelihood(
     """
 
     # get all the neeed values and transform them into appropriate units
-    optics = telescope_description.optics
     mirror_area = optics.mirror_area.to_value(u.m**2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
 
-    focal_length = optics.equivalent_focal_length
-
-    cam = telescope_description.camera.geometry
-    camera_frame = CameraFrame(focal_length=focal_length, rotation=cam.cam_rotation)
-    cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
-    tel_coords = cam_coords.transform_to(TelescopeFrame())
-
     # Use only a subset of pixels, indicated by mask:
-    pixel_x = tel_coords.fov_lon.to_value(u.rad)
-    pixel_y = tel_coords.fov_lat.to_value(u.rad)
+    pixel_x = camera_geometry.pix_x.to_value(u.rad)
+    pixel_y = camera_geometry.pix_y.to_value(u.rad)
 
     if mask is not None:
         pixel_x = pixel_x[mask]
@@ -351,9 +356,7 @@ def build_negative_log_likelihood(
         image = image[mask]
         pedestal = pedestal[mask]
 
-    pixel_diameter = 2 * (
-        np.sqrt(cam.pix_area[0] / np.pi) / focal_length * u.rad
-    ).to_value(u.rad)
+    pixel_diameter = camera_geometry.pixel_width.to_value(u.rad)[0]
 
     min_lambda = min_lambda.to_value(u.m)
     max_lambda = max_lambda.to_value(u.m)
@@ -418,13 +421,8 @@ def build_negative_log_likelihood(
     return negative_log_likelihood
 
 
-def create_initial_guess(center_x, center_y, radius, telescope_description):
-    geometry = telescope_description.camera.geometry
-    optics = telescope_description.optics
-
-    focal_length = optics.equivalent_focal_length.to_value(u.m)
-    pixel_area = geometry.pix_area[0].to_value(u.m**2)
-    pixel_radius = np.sqrt(pixel_area / np.pi) / focal_length
+def create_initial_guess(center_x, center_y, radius, optics, geometry):
+    pixel_diameter = geometry.pixel_width[0].to_value(u.deg)
 
     mirror_radius = np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi)
 
@@ -434,7 +432,7 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     initial_guess["radius"] = radius.to_value(u.rad)
     initial_guess["center_x"] = center_x.to_value(u.rad)
     initial_guess["center_y"] = center_y.to_value(u.rad)
-    initial_guess["ring_width"] = 3 * pixel_radius
+    initial_guess["ring_width"] = 1.5 * pixel_diameter
     initial_guess["optical_efficiency_muon"] = 0.1
 
     return initial_guess
@@ -465,6 +463,39 @@ class MuonIntensityFitter(TelescopeComponent):
     oversampling = IntTelescopeParameter(
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
+        self.camera_geometries_tel_frame = {}
+
+    def image_prediction(
+        self, tel_id, center_x, center_y, phi, impact_parameter, radius, ring_width
+    ):
+        if tel_id not in self.camera_geometries_tel_frame:
+            cam = self.subarray.tel[tel_id].camera.geometry
+            cam = cam.transform_to(TelescopeFrame())
+            self.camera_geometries_tel_frame[tel_id] = cam
+        else:
+            cam = self.camera_geometries_tel_frame[tel_id]
+
+        telescope = self.subarray.tel[tel_id]
+        mirror_area = telescope.optics.mirror_area
+        mirror_radius = np.sqrt(mirror_area / np.pi)
+        hole_radius = self.hole_radius_m.tel[tel_id]
+
+        return image_prediction_no_units(
+            mirror_radius_m=mirror_radius.to_value(u.m),
+            hole_radius_m=hole_radius,
+            impact_parameter_m=impact_parameter.to_value(u.m),
+            phi_rad=phi.to_value(u.rad),
+            center_x_rad=center_x.to_value(u.rad),
+            center_y_rad=center_y.to_value(u.rad),
+            radius_rad=radius.to_value(u.rad),
+            ring_width_rad=ring_width.to_value(u.rad),
+            pixel_x_rad=cam.pix_x.to_value(u.rad),
+            pixel_y_rad=cam.pix_y.to_value(u.rad),
+            pixel_diameter_rad=cam.pixel_width.to_value(u.rad)[0],
+        )
 
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
@@ -497,9 +528,17 @@ class MuonIntensityFitter(TelescopeComponent):
                 f" are supported in {self.__class__.__name__}"
             )
 
+        if tel_id not in self.camera_geometries_tel_frame:
+            cam = self.subarray.tel[tel_id].camera.geometry
+            cam = cam.transform_to(TelescopeFrame())
+            self.camera_geometries_tel_frame[tel_id] = cam
+        else:
+            cam = self.camera_geometries_tel_frame[tel_id]
+
         negative_log_likelihood = build_negative_log_likelihood(
             image,
-            telescope,
+            telescope.optics,
+            cam,
             mask,
             oversampling=self.oversampling.tel[tel_id],
             min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
@@ -510,7 +549,13 @@ class MuonIntensityFitter(TelescopeComponent):
         )
         negative_log_likelihood.errordef = Minuit.LIKELIHOOD
 
-        initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
+        initial_guess = create_initial_guess(
+            center_x,
+            center_y,
+            radius,
+            telescope.optics,
+            cam,
+        )
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
@@ -545,4 +590,7 @@ class MuonIntensityFitter(TelescopeComponent):
             impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
             width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
             optical_efficiency=result["optical_efficiency_muon"],
+            is_valid=minuit.valid,
+            parameters_at_limit=minuit.fmin.has_parameters_at_limit,
+            likelihood_value=minuit.fval,
         )

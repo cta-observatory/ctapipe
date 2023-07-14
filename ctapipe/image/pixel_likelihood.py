@@ -28,6 +28,7 @@ TODO:
 """
 
 import numpy as np
+from numba import njit
 from scipy.integrate import quad
 from scipy.stats import poisson
 
@@ -48,6 +49,7 @@ class PixelLikelihoodError(RuntimeError):
     pass
 
 
+@njit(cache=True)
 def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     """Calculate negative log likelihood for telescope.
 
