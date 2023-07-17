@@ -17,6 +17,28 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
 
 You can use |python_requires| or above.
 
+
+------------------------------------------
+Forking vs. Working in the Main Repository
+------------------------------------------
+If you are a member of CTA (Consortium or Observatory), or
+otherwise a regular contributor to ctapipe, the maintainers can give you
+access too the main repository at ``cta-observatory/ctapipe``.
+Working directly in the main repository has two main advantages over working
+using a personal fork:
+
+- No need for synchronisation between the fork and the main repository
+- Easier collaboration on the same branch with other developers
+
+If you are an external contributor and don't plan to contribute regularly,
+you need to go for the fork.
+
+The instructions below include the forking step.
+You can leave out the additional steps of forking and setting up the ``upstream``
+repository, if you have direct access to the main repository.
+If working on the main repository, replace all occurrences of ``upstream`` in the
+instructions below with ``origin``.
+
 ------------------------
 Get the ctapipe software
 ------------------------
@@ -58,16 +80,35 @@ ctapipe repo (make sure you put in your own username there):
     $ cd ctapipe
 
 
-You now need to tell Git that this repo where the master CTA version is:
+You now need to tell Git that this repo where the main ctapipe repository is:
 
 .. code-block:: console
 
     $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
 If that worked, then you should see a *upstream* target in
-addition to *origin* when typing ``git remote -v``.  Later if you want
-to pull in any changes from the master repo, you just need to type
-``git pull upstream master``.
+addition to *origin* when typing ``git remote -v``.
+
+To get changes from the main repository, run:
+
+.. code-block:: console
+
+   $ git fetch upstream
+
+Then, update a local branch using
+
+.. code-block:: console
+
+   $ git merge upstream/main
+
+or
+
+.. code-block:: console
+
+   $ git rebase upstream/main
+
+For differences between rebasing and merging and when to use which, see `this tutorial <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>`_.
+
 
 
 +++++++++++++++++++++++++++++++++++++++
@@ -78,42 +119,36 @@ Change to the directory where you cloned ``ctapipe``, and type:
 
 .. code-block:: console
 
-    $ conda env create -n cta-dev -f environment.yml
+    $ mamba env create -f environment.yml
 
 
-This will create a conda virtual environment called ``cta-dev`` with all
+This will create a conda environment called ``cta-dev`` with all
 the ctapipe dependencies and a few useful packages for development and
 interaction. Next, switch to this new virtual environment:
 
 .. code-block:: console
 
-    $ source activate cta-dev
-
+    $ mamba activate cta-dev
 
 You will need to type that last command any time you open a new
-terminal to actiavate the virtual environment (you can of course
-install everything into the base Anaconda environment without creating
-a virtual environment, but then you may have trouble if you want to
-install other packages with different requirements on the
-dependencies)
+terminal to activate the  conda environment.
+
 
 +++++++++++++++++++++++++++++++++++++
 Step 5: Setup ctapipe for development
 +++++++++++++++++++++++++++++++++++++
 
 Now setup this cloned version for development. The following command
-will make symlinks in your python library directory to your ctapipe
-installation (it creates a ``.pth`` file, there is no need to set
-PYTHONPATH, in fact it should be blank to avoid other problems). From
-then on, all the ctapipe binaries and the library itself will be
+will make use the editable installation feature of python packages.
+From then on, all the ctapipe executables and the library itself will be
 usable from anywhere.
 
 .. code-block:: console
 
     $ pip install -e .
 
-ctapipe supports adding so-called event sources and reconstructors 
-through plugins. In order for the respective tests to pass you have 
+ctapipe supports adding so-called event sources and reconstructors
+through plugins. In order for the respective tests to pass you have
 to install the test plugin via
 
 .. code-block:: console
@@ -144,31 +179,34 @@ try running some command line tools:
 .. code-block:: console
 
     $ ctapipe-info --all
-    $ ctapipe-camdemo --camera=NectarCam  # try --help for more info
+    $ ctapipe-process -i dataset://gamma_prod5.simtel.zst -o test.h5  # try --help for more info
 
 To update to the latest development version (merging in remote changes
 to your local working copy):
 
 .. code-block:: console
 
-   $ git pull upstream master
+   $ git fetch upstream
+   $ git merge upstream/main # or rebase, see above
 
 ---------------------------------------
 Developing a new feature or code change
 ---------------------------------------
 
-We adhere to the PEP8 coding style (see our :doc:`/development/style-guide`).
-To enforce this, setup the
+We are using the ``black`` and ``isort`` auto-formatters for automatic 
+adherence to the code style (see our :doc:`/development/style-guide`).
+To enforce running these tools whenever you make a commit, setup the
 `pre-commit hook <https://pre-commit.com/>`_::
 
     $ pre-commit install
 
-You should always create a branch when developing some new code (unless it is
-a very small change).  Generally make a new branch for each new feature, so
-that you can make pull-requests for each one separately and not mix code
-from each.  Remember that ``git switch <name>`` switches between branches,
+You should always create a new branch when developing some new code.
+Make a new branch for each new feature, so that you can make pull-requests
+for each one separately and not mix code from each.
+Remember that ``git switch <name>`` switches between branches,
 ``git switch -c <name>`` creates a new branch, and ``git branch`` on it's own
 will tell you which branches are available and which one you are currently on.
+
 
 First think of a name for your code change, here we'll use
 *implement_feature_1* as an example.
@@ -177,9 +215,14 @@ First think of a name for your code change, here we'll use
 1. Create a feature branch:
 +++++++++++++++++++++++++++
 
-.. code-block:: sh
+To ensure you are starting your work from an up-to-date ``main`` branch,
+we recommend starting a new branch like this:
 
-    $ git checkout -b implement_feature_1
+.. code-block:: console
+
+   $ git fetch upstream  # get latest changes from main repository
+   $ git switch -c <new branch name> upstream/main # start new branch at upstream/main
+
 
 ++++++++++++++++
 2. Edit the code
@@ -227,12 +270,19 @@ sub-module), check the style, and make sure the docs render correctly
 3. Push your branch to your fork on github
 ++++++++++++++++++++++++++++++++++++++++++
 
-(sometimes refered to as
-"publishing" since it becomes public, but only in your fork) by running
+The first time you push a new branch, you need to specify to which remote the branch
+should be pushed. Normally this will be ``origin``:
 
-.. code-block:: sh
+.. code-block:: console
 
-    git push
+   $ git push -u origin implement_feature_1
+
+After that first setup, you can push new changes using a simple
+
+.. code-block:: console
+
+   $ git push
+
 
 You can do this at any time and more than once. It just moves the changes
 from your local branch on your development machine to your fork on github.
@@ -286,14 +336,15 @@ since it is no longer needed (assuming it was accepted and merged in):
 
 .. code-block:: sh
 
-    git checkout master   # switch back to your master branch
+    git switch main   # switch back to your master branch
 
 pull in the upstream changes, which should include your new features, and
 remove the branch from the local and remote (github).
 
 .. code-block:: sh
 
-    git pull upstream master
+    git fetch upstream
+    git rebase upstream/main
     git branch --delete --remotes implement_feature_1
 
 Note the last step can also be done on the GitHub website.
@@ -307,7 +358,7 @@ show strange behaviour. **Debugging** is one of the power tools each
 developer should know. Since using ``print`` statements is **not** debugging and does
 not give you access to runtime variables at the point where your code fails, we recommend
 using ``pdb`` or ``ipdb`` for an IPython shell. 
-A nice introdcution can be found `here <https://hasil-sharma.github.io/2017-05-13-python-ipdb/>`_.
+A nice introduction can be found `here <https://hasil-sharma.github.io/2017-05-13-python-ipdb/>`_.
 
 ---------------------
 More Development help
