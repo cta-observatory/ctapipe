@@ -417,30 +417,6 @@ class EventSource(Component):
 
         return input_url
 
-    @classmethod
-    def from_config(cls, config=None, parent=None, **kwargs):
-        """
-        Find compatible EventSource for the EventSource.input_url traitlet
-        specified via the config.
-
-        This method is typically used in Tools, where the input_url is chosen via
-        the command line using the traitlet configuration system.
-
-        Parameters
-        ----------
-        config : traitlets.config.loader.Config
-            Configuration created in the Tool
-        kwargs
-            Named arguments for the EventSource
-
-        Returns
-        -------
-        instance
-            Instance of a compatible EventSource subclass
-        """
-        input_url = cls._find_input_url_in_config(config=config, parent=parent)
-        return cls.from_url(input_url, config=config, parent=parent, **kwargs)
-
     def close(self):
         """Close this event source.
 
