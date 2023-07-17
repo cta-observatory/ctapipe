@@ -68,10 +68,10 @@ templates_path = ["_templates"]
 
 
 def setup(app):
+    app.add_css_file("ctapipe.css")
+
     # fix trait aliases generating doc warnings
     from ctapipe.core import traits
-
-    app.add_css_file("_static/ctapipe.css")
 
     aliases = [
         "flag",
