@@ -233,7 +233,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             or "Undocumented"
         )
         lines = [
-            "<div style='border:1px solid black; max-width: 700px; padding:2em'; word-wrap:break-word;>",
+            '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',
             f"<b>{name}</b>",
             f"<p> {docstring} </p>",
             "<table>",
