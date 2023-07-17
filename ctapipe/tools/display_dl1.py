@@ -173,7 +173,7 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.enter_context(EventSource.from_config(parent=self))
+        self.eventsource = self.enter_context(EventSource(parent=self))
         self.quality_query = QualityQuery(parent=self)
 
         compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
