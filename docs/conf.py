@@ -190,31 +190,7 @@ pygments_style = "sphinx"
 todo_include_todos = True
 
 
-# -- Version switcher -----------------------------------------------------
-
-# Define the json_url for our version switcher.
-json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
-
-# Define the version we use for matching in the version switcher.
-version_match = os.environ.get("READTHEDOCS_VERSION")
-# If READTHEDOCS_VERSION doesn't exist, we're not on RTD
-# If it is an integer, we're in a PR build and the version isn't correct.
-if not version_match or version_match.isdigit():
-    # For local development, infer the version to match from the package.
-    release = ctapipe.__version__
-    if "dev" in release or "rc" in release:
-        version_match = "latest"
-        # We want to keep the relative reference if we are in dev mode
-        # but we want the whole url if we are effectively in a released version
-        json_url = "_static/switcher.json"
-    else:
-        version_match = release
-
-
 # -- Options for HTML output ----------------------------------------------
-
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 html_theme = "pydata_sphinx_theme"
 
@@ -224,7 +200,6 @@ html_favicon = "_static/favicon.ico"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
 html_theme_options = {
     "logo": {
         "image_light": "ctapipe_logo.webp",
@@ -233,11 +208,7 @@ html_theme_options = {
     },
     "github_url": "https://github.com/cta-observatory/ctapipe",
     "header_links_before_dropdown": 6,
-    "navbar_start": ["navbar-logo", "version-switcher"],
-    "switcher": {
-        "version_match": version_match,
-        "json_url": json_url,
-    },
+    "navbar_start": ["navbar-logo"],
     "use_edit_page_button": True,
     "icon_links": [
         {
@@ -253,7 +224,6 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
 html_static_path = ["_static"]
 html_context = {
     "default_mode": "light",
