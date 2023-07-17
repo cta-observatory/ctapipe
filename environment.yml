@@ -48,5 +48,4 @@ dependencies:
   - zlib
   - zstandard
   - eventio>=1.9.1
-  - jinja2
   - ffmpeg # for making movies in the documentation
