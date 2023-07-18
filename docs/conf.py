@@ -210,6 +210,7 @@ html_theme_options = {
     "header_links_before_dropdown": 6,
     "navbar_start": ["navbar-logo"],
     "use_edit_page_button": True,
+    "icon_links_label": "Quick Links",
     "icon_links": [
         {
             "name": "CTA Observatory",
@@ -218,10 +219,12 @@ html_theme_options = {
             "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",
         },
     ],
+    "announcement": """
+        <p>ctapipe is not stable yet, so expect large and rapid
+        changes to structure and functionality as we explore various
+        design choices before the 1.0 release.</p>
+    """,
 }
-
-html_sidebars = {"**": ["sidebar-nav-bs.html", "sidebar-ethical-ads.html"]}
-
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -40,12 +40,6 @@ Prototype CTA Pipeline Framework (``ctapipe``)
 
 ``ctapipe`` is a framework for prototyping the low-level data processing algorithms for the Cherenkov Telescope Array.
 
-.. CAUTION::
-   This is not yet stable code, so expect large and rapid changes to
-   structure and functionality as we explore various design choices before
-   the 1.0 release.
-
-
 .. _ctapipe_docs:
 
 .. toctree::
