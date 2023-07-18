@@ -88,6 +88,7 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 
 _half_pi = 0.5 * np.pi
 _half_pi_maxval = (1 + 1e-6) * _half_pi
+_float32_nan = np.float32(np.nan)
 
 
 def _clip_altitude_if_close(altitude):
@@ -117,7 +118,7 @@ class MirrorClass(enum.Enum):
     DUAL_MIRROR = 2
 
 
-X_MAX_UNIT = u.g / (u.cm**2)
+GRAMMAGE_UNIT = u.g / (u.cm**2)
 NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
@@ -990,7 +991,6 @@ class SimTelEventSource(EventSource):
             max_scatter_range=mc_run_head["core_range"][1] * u.m,
             min_scatter_range=mc_run_head["core_range"][0] * u.m,
             core_pos_mode=mc_run_head["core_pos_mode"],
-            injection_height=mc_run_head["injection_height"] * u.m,
             atmosphere=mc_run_head["atmosphere"],
             corsika_iact_options=mc_run_head["corsika_iact_options"],
             corsika_low_E_model=mc_run_head["corsika_low_E_model"],
@@ -1053,6 +1053,9 @@ class SimTelEventSource(EventSource):
             core_x=u.Quantity(mc_event["xcore"], u.m),
             core_y=u.Quantity(mc_event["ycore"], u.m),
             h_first_int=u.Quantity(mc_shower["h_first_int"], u.m),
-            x_max=u.Quantity(mc_shower["xmax"], X_MAX_UNIT),
+            x_max=u.Quantity(mc_shower["xmax"], GRAMMAGE_UNIT),
             shower_primary_id=mc_shower["primary_id"],
+            starting_grammage=u.Quantity(
+                mc_shower.get("depth_start", _float32_nan), GRAMMAGE_UNIT
+            ),
         )
