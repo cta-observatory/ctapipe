@@ -23,9 +23,9 @@ Forking vs. Working in the Main Repository
 ------------------------------------------
 If you are a member of CTA (Consortium or Observatory), or
 otherwise a regular contributor to ctapipe, the maintainers can give you
-access too the main repository at ``cta-observatory/ctapipe``.
-Working directly in the main repository has two main advantages over working
-using a personal fork:
+access to the main repository at ``cta-observatory/ctapipe``.
+Working directly in the main repository has two main advantages
+over using a personal fork:
 
 - No need for synchronisation between the fork and the main repository
 - Easier collaboration on the same branch with other developers
@@ -80,13 +80,15 @@ ctapipe repo (make sure you put in your own username there):
     $ cd ctapipe
 
 
-You now need to tell Git that this repo where the main ctapipe repository is:
+If you are using a fork, the default remote repository will be the one in your user account on GitHub.
+To be able to synchronize with the official copy in the cta-observatory account,
+you need to add an upstream remote as follows:
 
 .. code-block:: console
 
     $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
-If that worked, then you should see a *upstream* target in
+If that worked, you should see an *upstream* remote in
 addition to *origin* when typing ``git remote -v``.
 
 To get changes from the main repository, run:
@@ -138,14 +140,19 @@ terminal to activate the  conda environment.
 Step 5: Setup ctapipe for development
 +++++++++++++++++++++++++++++++++++++
 
-Now setup this cloned version for development. The following command
-will make use the editable installation feature of python packages.
+Now setup this cloned version for development.
+The following command will use editable installation feature of python packages.
 From then on, all the ctapipe executables and the library itself will be
-usable from anywhere.
+usable from anywhere, given you have activated the ``cta-dev`` conda environment.
 
 .. code-block:: console
 
     $ pip install -e .
+
+Using the editable installation means you won't have to rerun the installation for
+simple code changes to take effect.
+However, for things like adding new submodules or new entry points, rerunning the above
+step might still be needed.
 
 ctapipe supports adding so-called event sources and reconstructors
 through plugins. In order for the respective tests to pass you have
@@ -203,7 +210,7 @@ To enforce running these tools whenever you make a commit, setup the
 You should always create a new branch when developing some new code.
 Make a new branch for each new feature, so that you can make pull-requests
 for each one separately and not mix code from each.
-Remember that ``git switch <name>`` switches between branches,
+Remember that ``git switch <name>`` [#switch]_ switches between branches,
 ``git switch -c <name>`` creates a new branch, and ``git branch`` on it's own
 will tell you which branches are available and which one you are currently on.
 
@@ -374,3 +381,7 @@ automatically. It provides a graphical view of your fork and the
 upstream cta-observatory repository, so you can see easily what
 version you are working on. It will handle the forking, syncing, and
 even allow you to issue pull-requests.
+
+.. rubric:: Footnotes
+
+.. [#switch] ``git switch`` is a relatively new addition to git. If your version of git does not have it, update or use ``git checkout`` instead. The equivalent old command to ``git switch -c`` is ``git checkout -b``.
