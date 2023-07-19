@@ -190,6 +190,26 @@ pygments_style = "sphinx"
 todo_include_todos = True
 
 
+# -- Version switcher -----------------------------------------------------
+
+# Define the json_url for our version switcher.
+json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
+
+# Define the version we use for matching in the version switcher.
+version_match = os.environ.get("READTHEDOCS_VERSION")
+# If READTHEDOCS_VERSION doesn't exist, we're not on RTD
+# If it is an integer, we're in a PR build and the version isn't correct.
+if not version_match or version_match.isdigit():
+    # For local development, infer the version to match from the package.
+    if "dev" in release or "rc" in release:
+        version_match = "latest"
+        # We want to keep the relative reference if we are in dev mode
+        # but we want the whole url if we are effectively in a released version
+        json_url = "_static/switcher.json"
+    else:
+        version_match = release
+
+
 # -- Options for HTML output ----------------------------------------------
 
 html_theme = "pydata_sphinx_theme"
@@ -208,7 +228,11 @@ html_theme_options = {
     },
     "github_url": "https://github.com/cta-observatory/ctapipe",
     "header_links_before_dropdown": 6,
-    "navbar_start": ["navbar-logo"],
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "switcher": {
+        "version_match": version_match,
+        "json_url": json_url,
+    },
     "use_edit_page_button": True,
     "icon_links_label": "Quick Links",
     "icon_links": [
@@ -225,8 +249,6 @@ html_theme_options = {
         design choices before the 1.0 release.</p>
     """,
 }
-
-html_sidebars = {"**": ["sidebar-nav-bs.html", "sidebar-ethical-ads.html"]}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
