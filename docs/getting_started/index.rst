@@ -154,9 +154,9 @@ simple code changes to take effect.
 However, for things like adding new submodules or new entry points, rerunning the above
 step might still be needed.
 
-ctapipe supports adding so-called event sources and reconstructors
-through plugins. In order for the respective tests to pass you have
-to install the test plugin via
+ctapipe supports adding new ``EventSource`` and ``Reconstructor`` implementations
+through plugins. In order for the respective tests to pass you have to install the
+test plugin via
 
 .. code-block:: console
 
@@ -278,7 +278,7 @@ sub-module), check the style, and make sure the docs render correctly
 ++++++++++++++++++++++++++++++++++++++++++
 
 The first time you push a new branch, you need to specify to which remote the branch
-should be pushed. Normally this will be ``origin``:
+should be pushed [#push]_. Normally this will be ``origin``:
 
 .. code-block:: console
 
@@ -385,3 +385,11 @@ even allow you to issue pull-requests.
 .. rubric:: Footnotes
 
 .. [#switch] ``git switch`` is a relatively new addition to git. If your version of git does not have it, update or use ``git checkout`` instead. The equivalent old command to ``git switch -c`` is ``git checkout -b``.
+
+.. [#push] As of git version 2.37, you can set these options so that ``git push`` will just work,
+also for the first push:
+
+.. code-block:: console
+
+   $ git config --global branch.autoSetupMerge simple
+   $ git config --global push.autoSetupRemote true
