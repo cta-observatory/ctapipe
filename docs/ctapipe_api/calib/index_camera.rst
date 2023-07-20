@@ -19,7 +19,7 @@ CTA Cameras (MC, prototypes and final camera calibration algorithms).
 CameraCalibrator
 ****************
 
-The primary class in this module is the `CameraCalibrator`. This class handles
+The primary class in this module is the `~ctapipe.calib.camera.calibrator.CameraCalibrator`. This class handles
 two data level transition stages for the event:
 
 * R1 -> DL0 (:ref:`image_reducers`)
