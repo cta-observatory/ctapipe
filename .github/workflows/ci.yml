@@ -13,6 +13,7 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
+  CTAPIPE_CACHE: 
 
 jobs:
   lint:
@@ -73,6 +74,10 @@ jobs:
         with:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data
+
+      - name: Check cache
+        run: |
+          find ~/.cache/ctapipe -type f
 
       - name: Prepare mamba installation
         if: matrix.install-method == 'mamba'
