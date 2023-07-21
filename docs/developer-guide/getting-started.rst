@@ -1,9 +1,8 @@
 
 .. _getting_started_dev:
 
-******************************
 Getting Started For Developers
-******************************
+==============================
 
 We strongly recommend using the `mambaforge conda distribution <https://github.com/conda-forge/miniforge#mambaforge>`_.
 
@@ -15,10 +14,6 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
    See :ref:`getting_started_users`
 
 
-You can use |python_requires| or above.
-
-
-------------------------------------------
 Forking vs. Working in the Main Repository
 ------------------------------------------
 If you are a member of CTA (Consortium or Observatory), or
@@ -33,115 +28,72 @@ over using a personal fork:
 If you are an external contributor and don't plan to contribute regularly,
 you need to go for the fork.
 
-The instructions below include the forking step.
-You can leave out the additional steps of forking and setting up the ``upstream``
-repository, if you have direct access to the main repository.
-If working on the main repository, replace all occurrences of ``upstream`` in the
-instructions below with ``origin``.
-
-------------------------
-Get the ctapipe software
-------------------------
-
-In order to checkout the software in such a way that you can read *and
-commit* changes, you need to `Fork and Clone
-<https://help.github.com/articles/fork-a-repo/>`_ the main ctapipe
-repository (cta-observatory/ctapipe).
-
-First, it's useful to make a directory where you have can check out
-cta GIT repos (this is optinal - you can put it anywhere)
-
-.. code-block:: console
-
-    $ mkdir ctasoft
-    $ cd ctasoft
-
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Step 1: Fork the Master CTA-Observatory ctapipe repository
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-Follow the instructions in the link above to make a *fork* of the
-ctapipe repo in your own GitHub userspace. That fork will be then
-called *yourusername*/ctapipe (it's as simple as clicking the fork button on `main ctapipe github page <https://github.com/cta-observatory/ctapipe>`_.
-
-You only need to make this fork once, when you first start developing, and
-you can use it from then on.
-
-+++++++++++++++++++++++++++++++++++++++++
-Step 2: clone your forked version locally
-+++++++++++++++++++++++++++++++++++++++++
-
-Next, you need to clone (copy to your local machine) the newly forked
-ctapipe repo (make sure you put in your own username there):
-
-.. code-block:: console
-
-    $ git clone https://github.com/[YOUR-GITHUB-USERNAME]/ctapipe.git
-    $ cd ctapipe
+The instructions below have versions for both approaches, select the tab that applies to your
+setup.
 
 
-If you are using a fork, the default remote repository will be the one in your user account on GitHub.
-To be able to synchronize with the official copy in the cta-observatory account,
-you need to add an upstream remote as follows:
+Cloning the repository
+----------------------
 
-.. code-block:: console
+The examples below use ssh, assuming you setup an ssh key to access GitHub.
+See `the GitHub documentation <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account>`_ if you haven't done so already.
 
-    $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
+.. tab-set::
 
-If that worked, you should see an *upstream* remote in
-addition to *origin* when typing ``git remote -v``.
+   .. tab-item:: Working in the main repository
+      :sync: main
 
-To get changes from the main repository, run:
+      Clone the repository:
 
-.. code-block:: console
+      .. code-block:: console
 
-   $ git fetch upstream
+          $ git clone git@github.com:cta-observatory/ctapipe.git
+          $ cd ctapipe
 
-Then, update a local branch using
 
-.. code-block:: console
+   .. tab-item:: Working a fork
+      :sync: fork
 
-   $ git merge upstream/main
+      In order to checkout the software so that you can push changes to GitHub without
+      having write access to the main repository at ``cta-observatory/ctapipe``, you
+      `need to fork <https://help.github.com/articles/fork-a-repo/>`_ it.
 
-or
+      After that, clone your fork of the repository and add the main reposiory as a second
+      remote called ``upstream``, so that you can keep your fork synchronized with the main repository.
 
-.. code-block:: console
+      .. code-block:: console
 
-   $ git rebase upstream/main
-
-For differences between rebasing and merging and when to use which, see `this tutorial <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>`_.
+          $ git clone https://github.com/[YOUR-GITHUB-USERNAME]/ctapipe.git
+          $ cd ctapipe
+          $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
 
 
-+++++++++++++++++++++++++++++++++++++++
-Step 4: Set up your package environment
-+++++++++++++++++++++++++++++++++++++++
+Setting up the development environment
+--------------------------------------
 
-Change to the directory where you cloned ``ctapipe``, and type:
+We provide a conda environment with all packages needed for development of ctapipe and a couple of additonal helpful pacakages (like ipython, jupyter and vitables):
 
 .. code-block:: console
 
     $ mamba env create -f environment.yml
 
 
-This will create a conda environment called ``cta-dev`` with all
-the ctapipe dependencies and a few useful packages for development and
-interaction. Next, switch to this new virtual environment:
+Next, switch to this new virtual environment:
 
 .. code-block:: console
 
     $ mamba activate cta-dev
 
-You will need to type that last command any time you open a new
-terminal to activate the  conda environment.
+You will need to run that last command any time you open a new
+terminal to activate the conda environment.
 
 
-+++++++++++++++++++++++++++++++++++++
-Step 5: Setup ctapipe for development
-+++++++++++++++++++++++++++++++++++++
+Installing ctapipe in development mode
+--------------------------------------
 
 Now setup this cloned version for development.
-The following command will use editable installation feature of python packages.
+The following command will use the editable installation feature of python packages.
 From then on, all the ctapipe executables and the library itself will be
 usable from anywhere, given you have activated the ``cta-dev`` conda environment.
 
@@ -162,6 +114,16 @@ test plugin via
 
     $ pip install -e ./test_plugin
 
+
+We are using the ``black`` and ``isort`` auto-formatters for automatic 
+adherence to the code style (see our :doc:`/developer-guide/style-guide`).
+To enforce running these tools whenever you make a commit, setup the
+`pre-commit hook <https://pre-commit.com/>`_:
+
+.. code-block:: console
+
+    $ pre-commit install
+
 Run the tests to make sure everything is OK:
 
 .. code-block:: console
@@ -181,7 +143,7 @@ Run the example Python scripts:
     $ cd examples
     $ python xxx_example.py
 
-try running some command line tools:
+Try running some command line tools:
 
 .. code-block:: console
 
@@ -191,49 +153,81 @@ try running some command line tools:
 To update to the latest development version (merging in remote changes
 to your local working copy):
 
-.. code-block:: console
 
-   $ git fetch upstream
-   $ git merge upstream/main # or rebase, see above
+.. tab-set::
 
----------------------------------------
+   .. tab-item:: Working in the main repository
+      :sync: main
+
+      .. code-block:: console
+
+         $ git pull
+
+   .. tab-item:: Working a fork
+      :sync: fork
+
+      .. code-block:: console
+
+         $ git fetch upstream
+         $ git merge upstream/main --ff-only
+         $ git push
+
+      Note: you can also press the "Sync fork" button on the main page of your fork on the github
+      and then just use ``git pull``.
+
 Developing a new feature or code change
 ---------------------------------------
-
-We are using the ``black`` and ``isort`` auto-formatters for automatic 
-adherence to the code style (see our :doc:`/developer-guide/style-guide`).
-To enforce running these tools whenever you make a commit, setup the
-`pre-commit hook <https://pre-commit.com/>`_::
-
-    $ pre-commit install
 
 You should always create a new branch when developing some new code.
 Make a new branch for each new feature, so that you can make pull-requests
 for each one separately and not mix code from each.
-Remember that ``git switch <name>`` [#switch]_ switches between branches,
-``git switch -c <name>`` creates a new branch, and ``git branch`` on it's own
-will tell you which branches are available and which one you are currently on.
+It is much easier to review and merge small, well-defined contributions than
+a collection of multiple, unrelated changes.
 
+Most importantly, you should *never* add commits to the ``main`` branch of your fork,
+as the main branch will often be updated in the main ``cta-observatory`` repository
+and having a diverging history in the main branch of a fork will create issues when trying
+to keep forks in sync.
+
+Remember that ``git switch <name>`` [#switch]_ switches between branches,
+``git switch -c <name>`` creates a new branch and switches to it,
+and ``git branch`` on it's own will tell you which branches are available
+and which one you are currently on.
+
+
+Create a feature branch
+^^^^^^^^^^^^^^^^^^^^^^^
 
 First think of a name for your code change, here we'll use
 *implement_feature_1* as an example.
 
-+++++++++++++++++++++++++++
-1. Create a feature branch:
-+++++++++++++++++++++++++++
 
 To ensure you are starting your work from an up-to-date ``main`` branch,
 we recommend starting a new branch like this:
 
-.. code-block:: console
 
-   $ git fetch upstream  # get latest changes from main repository
-   $ git switch -c <new branch name> upstream/main # start new branch at upstream/main
+.. tab-set::
+
+   .. tab-item:: Working in the main repository
+      :sync: main
+
+      .. code-block:: console
+
+         $ git fetch  # get the latest changes
+         $ git switch -c <new branch name> origin/main  # start a new branch from main
+
+   .. tab-item:: Working a fork
+      :sync: fork
+
+      .. code-block:: console
+
+         $ git fetch upstream  # get latest changes from main repository
+         $ git switch -c <new branch name> upstream/main # start new branch from upstream/main
 
 
-++++++++++++++++
-2. Edit the code
-++++++++++++++++
+
+Edit the code
+^^^^^^^^^^^^^
 
 and make as many commits as you want (more than one is generally
 better for large changes!).
@@ -244,13 +238,13 @@ better for large changes!).
     $ git commit
       [type descriptive message in window that pops up]
 
-and repeat. The commit message should follow the *GIT conventions*:
-the first line is a short description, followed by a blank line,
+and repeat. The commit message should follow the *Git conventions*:
+use the imperative, the first line is a short description, followed by a blank line,
 followed by details if needed (in a bullet list if applicable). You
 may even refer to GitHub issue ids, and they will be automatically
 linked to the commit in the issue tracker.  An example commit message::
 
-  fixed bug #245
+  fix bug #245
 
   - changed the order of if statements to avoid logical error
   - added unit test to check for regression
@@ -262,8 +256,8 @@ sub-module), check the style, and make sure the docs render correctly
 .. note::
 
    A git commit should ideally contain one and only one feature change
-   (e.g it should not mix changes that are logically different
-   together). Therefore it's best to group related changes with ``git
+   (e.g it should not mix changes that are logically different).
+   Therefore it's best to group related changes with ``git
    add <files>``. You may even commit only *parts* of a changed file
    using and ``git add -p``.  If you want to keep your git commit
    history clean, learn to use commands like ``git commit --ammend``
@@ -273,9 +267,8 @@ sub-module), check the style, and make sure the docs render correctly
    A clean history and a chain of well-written commit messages will
    make it easier on code reviews to see what you did.
 
-++++++++++++++++++++++++++++++++++++++++++
-3. Push your branch to your fork on github
-++++++++++++++++++++++++++++++++++++++++++
+Push your changes
+^^^^^^^^^^^^^^^^^
 
 The first time you push a new branch, you need to specify to which remote the branch
 should be pushed [#push]_. Normally this will be ``origin``:
@@ -295,9 +288,67 @@ You can do this at any time and more than once. It just moves the changes
 from your local branch on your development machine to your fork on github.
 
 
-++++++++++++++++++++++++++
-4. Create a *Pull Request*
-++++++++++++++++++++++++++
+Integrating changes from the ``main`` branch.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In case of updates to the ``main`` branch during your development,
+it might be necessary to update your branch to integrate those changes,
+especially in case of conflicts.
+
+To get the latest changes, run:
+
+.. tab-set::
+
+   .. tab-item:: Working in the main repository
+      :sync: main
+
+      .. code-block:: console
+
+         $ git fetch
+
+   .. tab-item:: Working a fork
+      :sync: fork
+
+      .. code-block:: console
+
+         $ git fetch upstream
+
+Then, update a local branch using:
+
+.. tab-set::
+
+   .. tab-item:: Working in the main repository
+      :sync: main
+
+      .. code-block:: console
+
+         $ git rebase origin/main
+
+      or
+
+      .. code-block:: console
+
+         $ git merge origin/main
+
+   .. tab-item:: Working a fork
+      :sync: fork
+
+      .. code-block:: console
+
+         $ git rebase upstream/main
+
+      or
+
+      .. code-block:: console
+
+         $ git merge upstream/main
+
+For differences between rebasing and merging and when to use which, see `this tutorial <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>`_.
+
+
+
+Create a *Pull Request*
+^^^^^^^^^^^^^^^^^^^^^^^
 
 When you're happy, you create PR on on your github fork page by clicking
 "pull request".  You can also do this via *GitHub Desktop* if you have
@@ -308,9 +359,8 @@ Make sure to describe all the changes and give examples and use cases!
 
 See the :ref:`pullrequests` section for more info.
 
-+++++++++++++++++++++++++
-5. Wait for a code review
-+++++++++++++++++++++++++
+Wait for a code review
+^^^^^^^^^^^^^^^^^^^^^^
 
 Keep in mind the following:
 
@@ -335,28 +385,42 @@ commit`` them and then run ``git push`` and the reviewer will see the changes.
 When the PR is accepted, the reviewer will merge your branch into the
 *master* repo on cta-observatory's account.
 
-+++++++++++++++++++++++++++++
-6. Delete your feature branch
-+++++++++++++++++++++++++++++
+Delete your feature branch
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 since it is no longer needed (assuming it was accepted and merged in):
 
-.. code-block:: sh
+.. code-block:: console
 
-    git switch main   # switch back to your master branch
+    $ git switch main  # switch back to your master branch
 
 pull in the upstream changes, which should include your new features, and
 remove the branch from the local and remote (github).
 
-.. code-block:: sh
+.. tab-set::
 
-    git fetch upstream
-    git rebase upstream/main
-    git branch --delete --remotes implement_feature_1
+   .. tab-item:: Working in the main repository
+      :sync: main
 
-Note the last step can also be done on the GitHub website.
+      .. code-block:: console
 
--------------------
+         $ git pull
+
+   .. tab-item:: Working a fork
+      :sync: fork
+
+      .. code-block:: console
+
+         $ git fetch upstream
+         $ git merge upstream/main --ff-only
+
+And then delete your branch:
+
+.. code-block:: console
+
+   $ git branch --delete --remotes implement_feature_1
+
+
 Debugging Your Code
 -------------------
 
@@ -393,3 +457,5 @@ even allow you to issue pull-requests.
 
        $ git config --global branch.autoSetupMerge simple
        $ git config --global push.autoSetupRemote true
+
+
