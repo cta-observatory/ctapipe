@@ -387,9 +387,9 @@ even allow you to issue pull-requests.
 .. [#switch] ``git switch`` is a relatively new addition to git. If your version of git does not have it, update or use ``git checkout`` instead. The equivalent old command to ``git switch -c`` is ``git checkout -b``.
 
 .. [#push] As of git version 2.37, you can set these options so that ``git push`` will just work,
-also for the first push:
+    also for the first push:
 
-.. code-block:: console
+    .. code-block:: console
 
-   $ git config --global branch.autoSetupMerge simple
-   $ git config --global push.autoSetupRemote true
+       $ git config --global branch.autoSetupMerge simple
+       $ git config --global push.autoSetupRemote true

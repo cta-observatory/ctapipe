@@ -101,6 +101,19 @@ def setup(app):
 # These links are ignored in the checks, necessary due to broken intersphinx for
 # these
 nitpick_ignore = [
+    # needed for building the docs with python 3.11 locally.
+    # we use the lowest supported version on readthedocs, so that is what we use the intersphinx
+    # link above
+    ("py:class", "enum.StrEnum"),
+    # these are coming from traitlets:
+    ("py:class", "t.Union"),
+    ("py:class", "t.Any"),
+    ("py:class", "t.Dict"),
+    ("py:class", "t.Optional"),
+    ("py:class", "t.Type"),
+    ("py:class", "t.List"),
+    ("py:class", "t.Tuple"),
+    ("py:class", "Config"),
     ("py:class", "traitlets.config.configurable.Configurable"),
     ("py:class", "traitlets.traitlets.HasTraits"),
     ("py:class", "traitlets.traitlets.HasDescriptors"),
@@ -125,6 +138,7 @@ nitpick_ignore = [
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
     ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
+    ("py:class", "ctapipe.compat.StrEnum"),
     ("py:class", "ctapipe.compat.StrEnum"),
 ]
 
