@@ -1,5 +1,5 @@
 
-.. _getting_started:
+.. _getting_started_dev:
 
 ******************************
 Getting Started For Developers
@@ -9,10 +9,10 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
 
 .. warning::
 
-   the following guide is used only if you want to *develop* the
+   The following guide is used only if you want to *develop* the
    ``ctapipe`` package, if you just want to write code that uses it
-   externally, you can install ``ctapipe`` as a conda package
-   with ``mamba install -c conda-forge ctapipe``.
+   as a depdency, you can install ``ctapipe`` from PyPI or conda-forge.
+   See :ref:`getting_started_users`
 
 
 You can use |python_requires| or above.
@@ -201,7 +201,7 @@ Developing a new feature or code change
 ---------------------------------------
 
 We are using the ``black`` and ``isort`` auto-formatters for automatic 
-adherence to the code style (see our :doc:`/development/style-guide`).
+adherence to the code style (see our :doc:`/developer-guide/style-guide`).
 To enforce running these tools whenever you make a commit, setup the
 `pre-commit hook <https://pre-commit.com/>`_::
 

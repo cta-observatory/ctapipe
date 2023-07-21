@@ -22,14 +22,13 @@ CameraCalibrator
 The primary class in this module is the `~ctapipe.calib.camera.calibrator.CameraCalibrator`. This class handles
 two data level transition stages for the event:
 
-* R1 -> DL0 (:ref:`image_reducers`)
-* DL0 -> DL1 (:ref:`image_charge_extractors`)
+* R1 → DL0 (:ref:`image_reducers`)
+* DL0 → DL1 (:ref:`image_charge_extractors`)
 
 The class takes a ctapipe event container, and fills the
 next data level containers with the calibrated information.
 
-See the `CTA High-Level Data Model Definitions SYS-QA/160517
-<https://jama.cta-observatory.org/perspective.req?projectId=6&docId=26528>`_ document (CTA internal) for information about the
+See the `CTA Top-Level Data Model Definitions <https://redmine.cta-observatory.org/dmsf/files/16325/view>`_ document (CTA internal) for information about the
 different data levels.
 
 

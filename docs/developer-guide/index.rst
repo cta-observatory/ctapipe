@@ -1,14 +1,16 @@
-.. _guidelines:
+.. _dev-guide:
 
-Coding Guidelines
-=================
+Developer Guide
+===============
 
 .. toctree::
+   :maxdepth: 2
 
+   getting-started
    style-guide
    code-guidelines
-   support-libraries
    pullrequests
+   support-libraries
    maintainer-info
    ceps/index
    rootmigration
