@@ -73,16 +73,29 @@ def _trait_to_str(trait, help=True, indent_level=0):
     trait_repr += f"{wrap_comment(h_msg, indent_level=indent_level)}\n"
 
     trait_value = trait.default()
+
     # add quotes for strings
     if isinstance(trait, traitlets.Unicode):
         trait_value = f"'{trait_value}'"
+
+    # Make sure that list of values end up on multiple lines (In particular quality criteria)
+    value_repr = ""
+    if isinstance(trait_value, list):
+        for v in trait_value:
+            # tuples are not correctly handled by yaml, so we convert them to list here. They'll be converted to tuple
+            # when reading again.
+            if isinstance(v, tuple):
+                v = list(v)
+            value_repr += f"\n{indent_str * indent_level}- {v}"
+    else:
+        value_repr += f"{trait_value}"
 
     # Automatically comment all parameters that are unvalid
     commented = ""
     if trait_value == traitlets.Undefined:
         commented = "#"
 
-    trait_repr += f"{indent_str*indent_level}{commented}{trait.name}: {trait_value}\n"
+    trait_repr += f"{indent_str*indent_level}{commented}{trait.name}: {value_repr}\n"
 
     return trait_repr
 
