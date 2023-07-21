@@ -56,42 +56,25 @@ with the request and they will automatically appear (no new pull
 request needed).  The following guidelines should be used to
 facilitate the review procedure:
 
-* Perform a Scientific or Conceptual Review if the request introduces
+* Perform a scientific or conceptual Review if the request introduces
   new features, algorithms, or design changes
 
- - Look at the use case for the proposed change.
+* Look at the use case for the proposed change.
 
-  + if the use case is missing, ask for one
-  + does it make sense? Is it connected to a goal, requirement, or specification?
+  - if the use case is missing, ask for one
+  - does it make sense? Is it connected to a goal, requirement, or specification?
 
-* Perform a Code Review in 2 passes
+* Perform a Code Review
 
+  - Check that all automatic checks succeeded, if not notify the author and give
+    guidance how to fix the identified issues.
   - Check that all functions and classes have API documentation in the
-    correct format (and check that there are no warnings generated
-    whenbuilding the docs)
-  - Check that there are at least basic unit tests for each function and class.
-  - Run all unit tests
-
-   + If any unit tests included in the pull request fail, ask the
-     developer if that is normal (sometimes there are tests intended
-     to fail until a feature is available or implemented)
-   + If any other unit tests that previously suceeded now fail,
-     **stop** and ask the developer to find out what was broken by
-     their change
-
-  - Read through the new code being contributed, and see that it
-    follows the style guidelines and that the API
-
-   + no lines over 90 cols (prefer 80, but some can go a bit over)
-   + functions and variables are lower case, classes CamelCase, etc.
-   + variable names give clear meaning
-   + follows all other PEP8 conventions (run ``pylint`` or ``flake8`` to
-     check for example), if there are obvious style problems, ask for
-     them to be fixed.
-
-  * Check for common coding mistakes
-  * Check that the API (function and class definitions) is clear and
-    easy to understand. If not, ask for it to be cleaned up
-  * Check that the code uses the existing features of the ctapipe framework
-  * Check that the code doesn't introduce new features that are
-    already present in another form in the framework
+    correct format.
+  - Check that there are at least basic unit tests for the added functionality / fixed bug.
+  - Check that the API (function and class definitions) is clear and
+    easy to understand.
+  - Check for common coding mistakes.
+  - Check for obvious performance issues.
+  - Check that the code uses the existing features of ctapipe.
+  - Check that the code doesn't introduce new features that are
+    already present in another form.
