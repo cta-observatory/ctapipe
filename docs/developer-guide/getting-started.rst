@@ -431,7 +431,6 @@ not give you access to runtime variables at the point where your code fails, we 
 using ``pdb`` or ``ipdb`` for an IPython shell. 
 A nice introduction can be found `here <https://hasil-sharma.github.io/2017-05-13-python-ipdb/>`_.
 
----------------------
 More Development help
 ---------------------
 
@@ -457,5 +456,3 @@ even allow you to issue pull-requests.
 
        $ git config --global branch.autoSetupMerge simple
        $ git config --global push.autoSetupRemote true
-
-
