@@ -236,8 +236,8 @@ html_favicon = "_static/favicon.ico"
 # documentation.
 html_theme_options = {
     "logo": {
-        "image_light": "ctapipe_logo.webp",
-        "image_dark": "ctapipe_logo_dark.webp",
+        "image_light": "_static/ctapipe_logo.webp",
+        "image_dark": "_static/ctapipe_logo_dark.webp",
         "alt_text": "ctapipe",
     },
     "github_url": "https://github.com/cta-observatory/ctapipe",

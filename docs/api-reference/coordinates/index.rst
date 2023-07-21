@@ -38,7 +38,7 @@ they can be transformed to and from any other `astropy.coordinates` frame, like
 
 The three different coordinate frames are shown here:
 
-.. plot:: ctapipe_api/coordinates/plot_camera_frames.py
+.. plot:: api-reference/coordinates/plot_camera_frames.py
 
 
 The `CameraFrame` is used internally in ``ctapipe`` and comes from ``sim_telarray``.

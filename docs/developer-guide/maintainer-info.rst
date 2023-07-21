@@ -26,44 +26,19 @@ of numpy. E.g. for the astropy quantity interoperability, we required 1.17 earli
 How to update the online docs?
 ------------------------------
 
-The docs are automatically build by travis and uploaded to github pages.
+The docs are automatically using readthedocs and deployed there.
 
-To do it manually, follow these instructions:
-
-First install `ghp-import <https://github.com/davisp/ghp-import>`__
-
-.. code-block:: bash
-
-    pip install ghp-import
-
-Then build the docs:
-
-.. code-block:: bash
-
-    python setup.py build_docs --clean-docs
-
-If there's no warnings, you can publish the docs with this command
-
-.. code-block:: bash
-
-    ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
-
-which is equivalent to this make target so that you don't have to remember it:
-
-.. code-block:: bash
-
-    make doc-publish
-
-Only ctapipe maintainers can do this, because you need write permission to the main repo.
 
 How to make a release?
 ----------------------
-1. Open a new PR to generate a meaningfull changelog. Run ``towncrier`` in order to 
-   do this:
+1. Open a new pull request to prepare the release.
+   This should be the last pull request to be merged before making the actual release.
 
-.. code-block:: bash
+   Run ``towncrier`` in order to do this:
 
-    towncrier build --version=<VERSION NUMBER>
+   .. code-block:: bash
+
+      towncrier build --version=<VERSION NUMBER>
 
 
 2. Create a new github release, a good starting point should already be made by the
