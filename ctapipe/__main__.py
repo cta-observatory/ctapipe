@@ -20,18 +20,9 @@ class MainTool(Application):
             "ctapipe.tools.apply_models.ApplyModels",
             "Apply trained machine learning models",
         ),
-        "train-energy-regressor": (
-            "ctapipe.tools.train_energy_regressor.TrainEnergyRegressor",
-            "Train telescope-type-wise energy regression models",
-        ),
-        "train-particle-classifier": (
-            "ctapipe.tools.train_particle_classifier.TrainParticleClassifier",
-            "Train telescope-type-wise binary classficiation models",
-        ),
-        "train-disp-regressor": (
-            "ctapipe.tools.train_disp_regressor.TrainDispRegressor",
-            "Train telescope-type-wise disp regression models\n"
-            "for direction reconstruction",
+        "train": (
+            "ctapipe.tools.train.TrainTool",
+            "train various reconstruction models",
         ),
         "merge": (
             "ctapipe.tools.merge.MergeTool",
