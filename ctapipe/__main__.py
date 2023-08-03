@@ -32,6 +32,10 @@ class MainTool(Application):
             "ctapipe.tools.train_disp_regressor.TrainDispRegressor",
             "Train telescope-type-wise disp regression models for direction reconstruction",
         ),
+        "fileinfo": (
+            "ctapipe.tools.fileinfo.FileInfoTool",
+            "Obtain metadata and other information from ctapipe output files",
+        ),
         "info": (
             "ctapipe.tools.info.InfoTool",
             "Print information about ctapipe and the current installation",
