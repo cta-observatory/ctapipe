@@ -1,3 +1,9 @@
+"""
+Train models for monoscopic reconstruction using the DISP (displacement from
+centroid) method. This generates a model that predicts the displacement of the
+point-of-origin along the image axis as well as a model to break the sign
+degeneracy.
+"""
 import astropy.units as u
 import numpy as np
 
