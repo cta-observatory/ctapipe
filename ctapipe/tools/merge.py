@@ -3,6 +3,7 @@ Merge multiple ctapipe HDF5 files into one
 """
 import sys
 from argparse import ArgumentParser
+from inspect import cleandoc
 from pathlib import Path
 
 from tqdm.auto import tqdm
@@ -25,18 +26,23 @@ class MergeTool(Tool):
     name = "ctapipe-merge"
     description = "Merge multiple ctapipe HDF5 files into one"
 
-    examples = """
-    To merge several files in the current directory:
+    examples = cleandoc(
+        """
+        To merge several files in the current directory:
 
-    > ctapipe-merge file1.h5 file2.h5 file3.h5 --output=/path/output_file.h5 --progress
+        > ctapipe-merge file1.h5 file2.h5 file3.h5 \\
+             --output=/path/output_file.h5 --progress
 
-    For merging files from a specific directory with a specific pattern, use:
+        For merging files from a specific directory with a specific pattern,
+        use:
 
-    > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5 --progress
-    --pattern='*.dl1.h5'
+        > ctapipe-merge --input-dir=/input/dir/ \\
+            --output=/path/output_file.h5 --progress \\
+            --pattern='*.dl1.h5'
 
-    If no pattern is given, all .h5 files in the given directory will be taken as input.
-    """
+        If no pattern is given, all .h5 files in the given directory will be
+        taken as input. """
+    )
     input_dir = traits.Path(
         default_value=None,
         help="Input directory",

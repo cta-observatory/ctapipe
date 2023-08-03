@@ -2,6 +2,7 @@
 Display information about ctapipe output files (DL1 or DL2)
 """
 
+from inspect import cleandoc
 from pathlib import Path
 
 import tables
@@ -31,16 +32,18 @@ class FileInfoTool(Tool):
 
     name = "ctapipe-fileinfo"
     description = __doc__
-    examples = """To get YAML output of all metadata in HDF5 files in the
-    current directory
+    examples = cleandoc(
+        """To get YAML output of all metadata in HDF5 files in the
+        current directory
 
-    > ctapipe fileinfo *.h5
+        > ctapipe fileinfo *.h5
 
-    Generate an index table of all metadata: Note that you can
-    use any table format allowed by astropy.table. However, formats
-    with metadata like fits or ecsv are recommended.
+        Generate an index table of all metadata: Note that you can
+        use any table format allowed by astropy.table. However, formats
+        with metadata like fits or ecsv are recommended.
 
-    > ctapipe fileinfo --output-table index.fits *.h5"""
+        > ctapipe fileinfo --output-table index.fits *.h5"""
+    )
 
     input_files = traits.List(
         traits.Path(exists=True, directory_ok=False),

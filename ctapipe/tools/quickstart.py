@@ -7,6 +7,7 @@ try:
 except ImportError:
     from importlib_resources import files
 
+from inspect import cleandoc
 from pathlib import Path
 
 from ..core import Provenance, Tool, traits
@@ -103,15 +104,19 @@ class QuickStartTool(Tool):
 
     name = "ctapipe-quickstart"
     description = __doc__
-    examples = """
-    To be prompted for contact info:
+    examples = cleandoc(
+        """
+        To be prompted for contact info:
 
-        ctapipe-quickstart --workdir MyProduction
+        > ctapipe-quickstart --workdir MyProduction
 
-    Or specify it all in the command-line:
+        Or specify it all in the command-line:
 
-        ctapipe-quickstart --name "my name" --email "me@thing.com" --org "My Organization" --workdir Work
-    """
+        > ctapipe-quickstart --name "my name" \\
+            --email "me@thing.com" --org "My Organization" \\
+            --workdir Work
+        """
+    )
 
     workdir = traits.Path(
         default_value="./Work",

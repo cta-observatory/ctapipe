@@ -6,6 +6,7 @@ and stores output in hdf5 files using the `ctapipe.io.DataWriter`.
 """
 # pylint: disable=W0201
 import sys
+from inspect import cleandoc
 
 from tqdm.auto import tqdm
 
@@ -54,16 +55,21 @@ class ProcessorTool(Tool):
     description = (
         __doc__ + f" This currently uses data model version {DATA_MODEL_VERSION}"
     )
-    examples = """
-    To process data with all default values:
-    > ctapipe-process --input events.simtel.gz --output events.dl1.h5 --progress
+    examples = cleandoc(
+        """
+        To process data with all default values:
 
-    Or use an external configuration file, where you can specify all options:
-    > ctapipe-process --config stage1_config.json --progress
+        > ctapipe-process --input events.simtel.gz --output events.dl1.h5 --progress
 
-    The config file should be in JSON or python format (see traitlets docs). For an
-    example, see ctapipe/examples/stage1_config.json in the main code repo.
-    """
+        Or use an external configuration file, where you can specify all
+        options:
+
+        > ctapipe-process --config stage1_config.json --progress
+
+        The config file should be in JSON or python format (see traitlets docs).
+        For an example, see ctapipe/examples/stage1_config.json in the main code
+        repo. """
+    )
 
     progress_bar = Bool(
         help="show progress bar during processing", default_value=False
