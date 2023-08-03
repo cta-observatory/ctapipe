@@ -30,7 +30,8 @@ class MainTool(Application):
         ),
         "train-disp-regressor": (
             "ctapipe.tools.train_disp_regressor.TrainDispRegressor",
-            "Train telescope-type-wise disp regression models for direction reconstruction",
+            "Train telescope-type-wise disp regression models\n"
+            "for direction reconstruction",
         ),
         "merge": (
             "ctapipe.tools.merge.MergeTool",
@@ -47,6 +48,11 @@ class MainTool(Application):
         "quickstart": (
             "ctapipe.tools.quickstart.QuickStartTool",
             "Create a directory with example configuration files",
+        ),
+        "dump-instrument": (
+            "ctapipe.tools.dump_instrument.DumpInstrumentTool",
+            "read the subarray description from any file with an EventSource\nand write "
+            "it to a set of output files.",
         ),
     }
 
