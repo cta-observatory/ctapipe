@@ -92,7 +92,7 @@ class InfoTool(Tool):
         "all": ({"InfoTool": {"all": True}}, "Show everything"),
     }
 
-    def run(self):
+    def start(self):
         if not any(
             (
                 self.tools,
@@ -120,6 +120,9 @@ class InfoTool(Tool):
             reconstructors=self.reconstructors,
             show_all=self.all,
         )
+
+    def write_provenance(self):
+        pass  # this tool should not write provenance info
 
 
 def info(
@@ -318,7 +321,8 @@ def _info_datamodel():
 
 
 def main():
-    InfoTool.launch_instance()
+    tool = InfoTool()
+    tool.run()
 
 
 if __name__ == "__main__":
