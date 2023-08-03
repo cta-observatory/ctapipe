@@ -1,0 +1,11 @@
+create a common CLI for all ctapipe tools. From now on, there is one ``ctapipe``
+tool that has sub-functions for all the existing tools.
+
+For example:
+
+.. code-block:: sh
+
+    ctapipe process --config myconf.conf
+    ctapipe fileinfo *.h5
+    ctapipe merge --output=/tmp/merged.h5 *.h5
+    ctapipe info --all
