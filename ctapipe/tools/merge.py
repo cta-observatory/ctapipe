@@ -96,6 +96,18 @@ class MergeTool(Tool):
             "Exclude telescope-wise data",
         ),
         **flag(
+            "r0-waveforms",
+            "HDF5Merger.r0_waveforms",
+            "Include r0 waveforms",
+            "Exclude r0 waveforms",
+        ),
+        **flag(
+            "r1-waveforms",
+            "HDF5Merger.r1_waveforms",
+            "Include r1 waveforms",
+            "Exclude r1 waveforms",
+        ),
+        **flag(
             "dl1-images",
             "HDF5Merger.dl1_images",
             "Include dl1 images",
