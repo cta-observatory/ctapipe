@@ -861,7 +861,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         )
 
         fit_params, errors, like = self.minimise(
-            params=seed[0], step=seed[1], limits=seed[2], energy_preminimisation=False
+            params=seed[0],
+            step=seed[1],
+            limits=seed[2],
         )
 
         # Create a container class for reconstructed shower
