@@ -846,8 +846,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                     params=seed,
                     step=step,
                     limits=limits,
-                    energy_preminimisation=preminimise,
-                    preminimisation_only=preminimise,
                 )
                 #            fit_params_min, like = self.energy_guess(seed)
                 if like < like_min:
