@@ -226,12 +226,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             if reconstructor_geometry_prediction[reco].is_valid:
                 valid_seed = True
 
-        if valid_seed is False:
-            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
-            event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
-            self._store_impact_parameter(event)
-            return
-
         reconstructor_energy_prediction = event.dl2.stereo.energy
 
         valid_energy_seed = False
@@ -239,8 +233,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             if reconstructor_energy_prediction[reco].is_valid:
                 valid_energy_seed = True
 
-        if not valid_energy_seed:
-            reconstructor_energy_prediction = None
+        if valid_seed is False or valid_energy_seed is False:
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
+            event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
+            self._store_impact_parameter(event)
+            return
 
         shower_result, energy_result = self.predict(
             hillas_dict=hillas_dict,
@@ -699,7 +696,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         # So here we must loop over the telescopes
         for tel_id, i in zip(hillas_dict, range(len(hillas_dict))):
-
             geometry = subarray.tel[tel_id].camera.geometry
             type = subarray.tel[tel_id].camera.name
             type_tel[tel_id] = type
@@ -838,35 +834,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             tilt_y = tilted.y.to(u.m).value
             zenith = 90 * u.deg - self.array_direction.alt
 
-            energy = 0
-            preminimise = True
-            # If we have a seed energy we can skip the minimisation step
-            if energy_seed is not None:
-                preminimise = False
-                for energy_reco in energy_seed:
-                    energy = energy_seed[energy_reco].energy.value
+            for energy_reco in energy_seed:
+                energy = energy_seed[energy_reco].energy.value
 
-                    seed, step, limits = create_seed(
-                        source_x, source_y, tilt_x, tilt_y, energy
-                    )
-
-                    # Perform maximum likelihood fit
-                    fit_params_min, errors, like = self.minimise(
-                        params=seed,
-                        step=step,
-                        limits=limits,
-                        energy_preminimisation=preminimise,
-                        preminimisation_only=preminimise,
-                    )
-                    #            fit_params_min, like = self.energy_guess(seed)
-                    if like < like_min:
-                        fit_params = fit_params_min
-                        like_min = like
-            else:
-                preminimise = True
                 seed, step, limits = create_seed(
                     source_x, source_y, tilt_x, tilt_y, energy
                 )
+
                 # Perform maximum likelihood fit
                 fit_params_min, errors, like = self.minimise(
                     params=seed,
@@ -977,8 +951,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         params,
         step,
         limits,
-        energy_preminimisation=True,
-        preminimisation_only=False,
     ):
         """
 
@@ -990,10 +962,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             Initial step size in the fit
         limits: ndarray
             Fit bounds
-        minimiser_name: str
-            Name of minimisation method
-        max_calls: int
-            Maximum number of calls to minimiser
         Returns
         -------
         tuple: best fit parameters and errors
@@ -1002,74 +970,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         energy = params[4]
         xmax_scale = 1
-
-        # In this case we perform a pre minimisation on the energy in the case that we have no seed
-        # it takes a little extra time, but not too much
-
-        if energy_preminimisation:
-            likelihood = 1e9
-            # Try a few different seed energies to be sure we get the right one
-            for seed_energy in [0.5, 20]:
-                self.min = Minuit(
-                    self.get_likelihood,
-                    source_x=params[0],
-                    source_y=params[1],
-                    core_x=params[2],
-                    core_y=params[3],
-                    energy=seed_energy,
-                    x_max_scale=params[5],
-                    goodness_of_fit=False,
-                )
-
-                # Fix everything but the energy
-                self.min.fixed = [True, True, True, True, False, True, True]
-                self.min.errors = [
-                    0.01,
-                    0.01,
-                    0.01,
-                    0.01,
-                    seed_energy * 0.1,
-                    0.01,
-                    0.01,
-                ]
-                self.min.limits = [
-                    [-1, 1],
-                    [-1, 1],
-                    [-1000, 1000],
-                    [-1000, 1000],
-                    [0.01, 500],
-                    [0.5, 1.5],
-                    [False, False],
-                ]
-
-                # Set loose limits as we only need rough numbers
-                self.min.errordef = 1.0
-                self.min.tol *= 1000
-                self.min.strategy = 1
-
-                fit_params = self.min.values
-                migrad = self.min.migrad(20)
-
-                # Only use if our value is better that the previous ones
-                if migrad.fval < likelihood and self.min.values["energy"] > 0.01:
-                    fit_params = self.min.values
-                    energy = fit_params["energy"]
-                    limits[4] = [energy * 0.1, energy * 2.0]
-                    step[4] = energy * 0.1
-                    likelihood = migrad.fval
-        if preminimisation_only:
-            return (
-                (
-                    fit_params["source_x"],
-                    fit_params["source_y"],
-                    fit_params["core_x"],
-                    fit_params["core_y"],
-                    fit_params["energy"],
-                    fit_params["x_max_scale"],
-                ),
-                None,
-                likelihood,
-            )
 
         # Now do the minimisation proper
         self.min = Minuit(
