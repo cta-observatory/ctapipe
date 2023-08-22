@@ -219,6 +219,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
             mask_dict[tel_id] = mask
 
+        # Next, we look for geometry and energy seeds from previously applied reconstructors.
+        # Both need to be present at elast once for ImPACT to run.
+
         reconstructor_geometry_prediction = event.dl2.stereo.geometry
 
         valid_seed = False
@@ -369,11 +372,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         weight = np.power(self.peak_amp, 0.0)  # weight average by sqrt amplitude
         # sqrt may not be the best option...
 
-        # Take weighted mean of estimates
+        # Take weighted mean of estimates, converted to height above ground
         mean_height = np.sum(height * np.cos(zen) * weight) / np.sum(weight)
-        # This value is height above telescope in the tilted system,
-        # we should convert to height above ground
-        # mean_height *= np.cos(zen)
+
         # Add on the height of the detector above sea level
         mean_height += 2150  # TODO: Make this depend on telescope array
 
