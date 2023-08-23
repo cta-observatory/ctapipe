@@ -53,10 +53,10 @@ class IrfTool(Tool):
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
 
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert  obs_conf["subarray_pointing_frame"] == 0
+            assert all( obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
-            events["pointing_alt"] = obs["subarray_pointing_lat"][0]
-            events["pointing_az"] = obs["subarray_pointing_lon"][0]
+            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0]*u.deg
+            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0]*u.deg
         else:
             raise NotImplemented("No support for making irfs from varying pointings yet")
 
