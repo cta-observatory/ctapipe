@@ -50,16 +50,21 @@ class IrfTool(Tool):
 
     classes = [DataBinning, ToolConfig, EventPreProcessor]
 
-    def make_derived_columns(self, kind, events, spectrum, target_spectrum):
-        events["pointing_az"] = 0 * u.deg
-        events["pointing_alt"] = 70 * u.deg
+    def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
+
+        if obs_conf["subarray_pointing_lat"].std() < 1e-3:
+            assert  obs_conf["subarray_pointing_frame"] == 0
+            # Lets suppose 0 means ALTAZ
+            events["pointing_alt"] = obs["subarray_pointing_lat"][0]
+            events["pointing_az"] = obs["subarray_pointing_lon"][0]
+        else:
+            raise NotImplemented("No support for making irfs from varying pointings yet")
 
         events["theta"] = calculate_theta(
             events,
             assumed_source_az=events["true_az"],
             assumed_source_alt=events["true_alt"],
         )
-
         events["true_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="true"
         )
@@ -77,7 +82,8 @@ class IrfTool(Tool):
 
         return events
 
-    def get_sim_info_and_spectrum(self, loader):
+    def get_metadata(self, loader):
+        obs = loader.read_observation_information()
         sim = loader.read_simulation_configuration()
 
         # These sims better have the same viewcone!
@@ -93,7 +99,7 @@ class IrfTool(Tool):
 
         return sim_info, PowerLaw.from_simulation(
             sim_info, obstime=self.tc.obs_time * u.Unit(self.tc.obs_time_unit)
-        )
+        ), obs
 
     def load_preselected_events(self):
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
@@ -109,21 +115,23 @@ class IrfTool(Tool):
         ]:
             with TableLoader(file, **opts) as load:
                 Provenance().add_input_file(file)
-                table = self.eps.make_empty_table()
-                sim_info, spectrum = self.get_sim_info_and_spectrum(load)
+                header = self.eps.make_empty_table()
+                sim_info, spectrum, obs_conf = self.get_metadata(load)
                 if kind == "gamma":
                     self.sim_info = sim_info
                     self.spectrum = spectrum
+                bits = [header]
                 for start, stop, events in load.read_subarray_events_chunked(
                     self.tc.chunk_size
                 ):
                     selected = self.eps.normalise_column_names(events)
                     selected = selected[self.eps.get_table_mask(selected)]
                     selected = self.make_derived_columns(
-                        kind, selected, spectrum, target_spectrum
+                        kind, selected, spectrum, target_spectrum, obs_conf
                     )
-                    table = vstack([table, selected])
+                    bits.append(selected)
 
+                table = vstack(bits,join_type="exact")
                 reduced_events[kind] = table
 
         select_ON = reduced_events["gamma"]["theta"] <= self.tc.ON_radius * u.deg

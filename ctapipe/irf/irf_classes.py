@@ -152,9 +152,10 @@ class EventPreProcessor(QualityQuery):
             "gh_score",
             "pointing_az",
             "pointing_alt",
+            "theta",
             "true_source_fov_offset",
             "reco_source_fov_offset",
-            "weights",
+            "weight",
         ]
         units = [
             None,
@@ -166,6 +167,7 @@ class EventPreProcessor(QualityQuery):
             u.deg,
             u.deg,
             None,
+            u.deg,
             u.deg,
             u.deg,
             u.deg,
@@ -265,7 +267,7 @@ class DataBinning(Component):
 
     fov_offset_min = Float(
         help="Minimum value for FoV Offset bins in degrees",
-        default_value=0.1,
+        default_value=0.0,
     ).tag(config=True)
 
     fov_offset_max = Float(
