@@ -20,14 +20,14 @@ class ToolConfig(Component):
         help="Name of the pyrif spectra used for the simulated gamma spectrum",
     ).tag(config=True)
     proton_file = traits.Path(
-        default_value=None, directory_ok=False, help="Gamma input filename and path"
+        default_value=None, directory_ok=False, help="Proton input filename and path"
     ).tag(config=True)
     proton_sim_spectrum = traits.Unicode(
         default_value="IRFDOC_PROTON_SPECTRUM",
         help="Name of the pyrif spectra used for the simulated proton spectrum",
     ).tag(config=True)
     electron_file = traits.Path(
-        default_value=None, directory_ok=False, help="Gamma input filename and path"
+        default_value=None, directory_ok=False, help="Electron input filename and path"
     ).tag(config=True)
     electron_sim_spectrum = traits.Unicode(
         default_value="IRFDOC_ELECTRON_SPECTRUM",
@@ -59,7 +59,7 @@ class ToolConfig(Component):
     ).tag(config=True)
 
     alpha = Float(
-        default_value=5.0, help="Ratio between size of on and off regions"
+        default_value=0.2, help="Ratio between size of on and off regions"
     ).tag(config=True)
     ON_radius = Float(default_value=1.0, help="Radius of ON region in degrees").tag(
         config=True
@@ -215,7 +215,7 @@ class DataBinning(Component):
 
     true_energy_n_bins_per_decade = Float(
         help="Number of edges per decade for True Energy bins",
-        default_value=5,
+        default_value=10,
     ).tag(config=True)
 
     reco_energy_min = Float(
