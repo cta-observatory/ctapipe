@@ -53,12 +53,14 @@ class IrfTool(Tool):
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
 
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert all( obs_conf["subarray_pointing_frame"] == 0)
+            assert all(obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
-            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0]*u.deg
-            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0]*u.deg
+            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
+            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
         else:
-            raise NotImplemented("No support for making irfs from varying pointings yet")
+            raise NotImplementedError(
+                "No support for making irfs from varying pointings yet"
+            )
 
         events["theta"] = calculate_theta(
             events,
@@ -97,9 +99,13 @@ class IrfTool(Tool):
             viewcone=sim["max_viewcone_radius"].quantity[0],
         )
 
-        return sim_info, PowerLaw.from_simulation(
-            sim_info, obstime=self.tc.obs_time * u.Unit(self.tc.obs_time_unit)
-        ), obs
+        return (
+            sim_info,
+            PowerLaw.from_simulation(
+                sim_info, obstime=self.tc.obs_time * u.Unit(self.tc.obs_time_unit)
+            ),
+            obs,
+        )
 
     def load_preselected_events(self):
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
@@ -131,7 +137,7 @@ class IrfTool(Tool):
                     )
                     bits.append(selected)
 
-                table = vstack(bits,join_type="exact")
+                table = vstack(bits, join_type="exact")
                 reduced_events[kind] = table
 
         select_ON = reduced_events["gamma"]["theta"] <= self.tc.ON_radius * u.deg
@@ -280,6 +286,7 @@ class IrfTool(Tool):
                 fov_offset_bins=self.fov_offset_bins,
                 migration_bins=self.energy_migration_bins,
             )
+            breakpoint()
             hdus.append(
                 create_energy_dispersion_hdu(
                     edisp,
@@ -338,7 +345,7 @@ class IrfTool(Tool):
 
         hdus.append(
             create_rad_max_hdu(
-                self.theta_cuts_opt["cut"][:, np.newaxis],
+                self.theta_cuts_opt["cut"].reshape(-1, 1),
                 self.true_energy_bins,
                 self.fov_offset_bins,
             )
