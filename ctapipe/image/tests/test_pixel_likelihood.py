@@ -1,11 +1,11 @@
 import numpy as np
 from ctapipe.image import (
+    chi_squared,
+    mean_poisson_likelihood_full,
+    mean_poisson_likelihood_gaussian,
     neg_log_likelihood,
     neg_log_likelihood_approx,
     neg_log_likelihood_numeric,
-    mean_poisson_likelihood_gaussian,
-    chi_squared,
-    mean_poisson_likelihood_full,
 )
 
 
