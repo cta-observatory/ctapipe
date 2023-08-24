@@ -32,7 +32,6 @@ from scipy.integrate import quad
 from scipy.special import factorial
 from scipy.stats import poisson
 
-
 __all__ = [
     "neg_log_likelihood_approx",
     "neg_log_likelihood_numeric",
