@@ -30,6 +30,7 @@ TODO:
 import numpy as np
 from scipy.integrate import quad
 from scipy.stats import poisson
+from scipy.special import factorial
 
 __all__ = [
     "neg_log_likelihood_approx",
@@ -95,13 +96,14 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     """
     theta = pedestal**2 + prediction * (1 + spe_width**2)
 
-    neg_log_l = np.log(theta + EPSILON) + (image - prediction) ** 2 / theta
+    # This is really 2 times the full log likelihood
+    neg_log_l = np.log(2 * np.pi * theta + EPSILON) + (image - prediction) ** 2 / theta
 
     return np.sum(neg_log_l)
 
 
 def neg_log_likelihood_numeric(
-    image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)
+    image, prediction, spe_width, pedestal, confidence=0.999
 ):
     """
     Calculate likelihood of prediction given the measured signal,
@@ -131,7 +133,7 @@ def neg_log_likelihood_numeric(
 
     likelihood = epsilon
 
-    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
+    ns = np.arange(poisson(np.max(prediction)).ppf(confidence) + 1)
 
     ns = ns[ns >= 0]
 
@@ -140,7 +142,8 @@ def neg_log_likelihood_numeric(
         _l = (
             prediction**n
             * np.exp(-prediction)
-            / theta
+            / np.sqrt(2 * np.pi * theta)
+            / factorial(n)
             * np.exp(-((image - n) ** 2) / (2 * theta))
         )
         likelihood += _l
