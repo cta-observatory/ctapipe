@@ -121,8 +121,9 @@ def neg_log_likelihood_numeric(
         Width of single p.e. peak (:math:`σ_γ`).
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
-    confidence: tuple(float, float), 0 < x < 1
-        Confidence interval of poisson integration.
+    confidence: loat, 0 < x < 1
+        Upper end of Poisson confidence interval of maximum prediction.
+        Determines upper end of poisson integration.
 
     Returns
     -------
