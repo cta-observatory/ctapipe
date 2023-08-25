@@ -135,11 +135,11 @@ def neg_log_likelihood_numeric(
 
     likelihood = epsilon
 
-    ns = np.arange(poisson(np.max(prediction)).ppf(confidence) + 1)
+    n_signal = np.arange(poisson(np.max(prediction)).ppf(confidence) + 1)
 
-    ns = ns[ns >= 0]
+    n_signal = n_signal[n_signal >= 0]
 
-    for n in ns:
+    for n in n_signal:
         theta = pedestal**2 + n * spe_width**2
         _l = (
             prediction**n
