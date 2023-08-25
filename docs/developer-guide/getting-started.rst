@@ -124,6 +124,12 @@ To enforce running these tools whenever you make a commit, setup the
 
     $ pre-commit install
 
+The pre-commit hook will then execute the tools with the same settings as when the a pull request is checked on github,
+and if any problems are reported the commit will be rejected.
+You then have to fix the reported issues before tying to commit again.
+Note that a common problem is code not complying with the style guide, and that whenever this was the only problem found,
+simply adding the changes resulting from the pre-commit hook to the commit will result in your changes being accepted.
+
 Run the tests to make sure everything is OK:
 
 .. code-block:: console
