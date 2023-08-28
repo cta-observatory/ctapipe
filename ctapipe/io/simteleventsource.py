@@ -20,7 +20,7 @@ from ..atmosphere import (
     FiveLayerAtmosphereDensityProfile,
     TableAtmosphereDensityProfile,
 )
-from ..calib.camera.gainselection import GainSelector
+from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..containers import (
     ArrayEventContainer,
     CoordinateFrameType,
@@ -29,6 +29,7 @@ from ..containers import (
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
+    PixelStatus,
     PixelStatusContainer,
     PointingContainer,
     PointingMode,
@@ -274,17 +275,20 @@ def apply_simtel_r1_calibration(
         The gain channel selected for each pixel
         Shape: (n_pixels)
     """
-    n_channels, n_pixels, n_samples = r0_waveforms.shape
+    n_channels, n_pixels, _ = r0_waveforms.shape
     ped = pedestal[..., np.newaxis]
     DC_to_PHE = dc_to_pe[..., np.newaxis]
     gain = DC_to_PHE * calib_scale
+
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
+
     if n_channels == 1:
         selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
         r1_waveforms = r1_waveforms[0]
     else:
         selected_gain_channel = gain_selector(r0_waveforms)
         r1_waveforms = r1_waveforms[selected_gain_channel, np.arange(n_pixels)]
+
     return r1_waveforms, selected_gain_channel
 
 
@@ -809,7 +813,7 @@ class SimTelEventSource(EventSource):
                 mon = data.mon.tel[tel_id]
                 mon.calibration.dc_to_pe = dc_to_pe
                 mon.calibration.pedestal_per_sample = pedestal
-                mon.pixel_status = self._get_pixels_status(tel_id)
+                mon.pixel_status = self._fill_mon_pixels_status(tel_id)
 
                 r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples,
@@ -819,9 +823,16 @@ class SimTelEventSource(EventSource):
                     self.calib_scale,
                     self.calib_shift,
                 )
+
+                pixel_status = self._get_r1_pixel_status(
+                    tel_id=tel_id,
+                    selected_gain_channel=selected_gain_channel,
+                )
                 data.r1.tel[tel_id] = R1CameraContainer(
+                    event_type=trigger.event_type,
                     waveform=r1_waveform,
                     selected_gain_channel=selected_gain_channel,
+                    pixel_status=pixel_status,
                 )
 
                 # get time_shift from laser calibration
@@ -833,7 +844,26 @@ class SimTelEventSource(EventSource):
 
             yield data
 
-    def _get_pixels_status(self, tel_id):
+    def _get_r1_pixel_status(self, tel_id, selected_gain_channel):
+        tel_desc = self.file_.telescope_descriptions[tel_id]
+        n_pixels = tel_desc["camera_organization"]["n_pixels"]
+        pixel_status = np.zeros(n_pixels, dtype=np.uint8)
+
+        high_gain_stored = selected_gain_channel == GainChannel.HIGH
+        low_gain_stored = selected_gain_channel == GainChannel.LOW
+
+        # set gain bits
+        pixel_status[high_gain_stored] |= PixelStatus.HIGH_GAIN_STORED
+        pixel_status[low_gain_stored] |= PixelStatus.LOW_GAIN_STORED
+
+        # reset gain bits for completely disabled pixels
+        disabled = tel_desc["disabled_pixels"]["HV_disabled"]
+        channel_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
+        pixel_status[disabled] &= ~np.uint8(channel_bits)
+
+        return pixel_status
+
+    def _fill_mon_pixels_status(self, tel_id):
         tel = self.file_.telescope_descriptions[tel_id]
         n_pixels = tel["camera_organization"]["n_pixels"]
         n_gains = tel["camera_organization"]["n_gains"]
