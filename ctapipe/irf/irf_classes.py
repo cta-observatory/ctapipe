@@ -110,7 +110,7 @@ class EventPreProcessor(QualityQuery):
         "used when processing input with names differing from the CTA prod5b format"
         "Ex: [('valid_geom','HillasReconstructor_is_valid')]",
         default_value=[],
-    )
+    ).tag(config=True)
 
     def normalise_column_names(self, events):
         keep_columns = [
