@@ -376,7 +376,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         mean_height = np.sum(height * np.cos(zen) * weight) / np.sum(weight)
 
         # Add on the height of the detector above sea level
-        mean_height += 2150  # TODO: Make this depend on telescope array
+        mean_height += self.subarray.reference_location.height.to_value(u.m)
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
