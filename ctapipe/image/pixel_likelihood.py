@@ -29,6 +29,7 @@ TODO:
 
 import numpy as np
 from scipy.integrate import quad
+from scipy.special import factorial
 from scipy.stats import poisson
 
 __all__ = [
@@ -91,17 +92,17 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
     Returns
     -------
-    float
+    ndarray
     """
 
     theta = 2 * (pedestal**2 + prediction * (1 + spe_width**2))
     neg_log_l = np.log(np.pi * theta) / 2.0 + (image - prediction) ** 2 / theta
 
-    return 2 * neg_log_l
+    return neg_log_l
 
 
 def neg_log_likelihood_numeric(
-    image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)
+    image, prediction, spe_width, pedestal, confidence=0.999
 ):
     """
     Calculate likelihood of prediction given the measured signal,
@@ -117,30 +118,32 @@ def neg_log_likelihood_numeric(
         Width of single p.e. peak (:math:`σ_γ`).
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
-    confidence: tuple(float, float), 0 < x < 1
-        Confidence interval of poisson integration.
+    confidence: float, 0 < x < 1
+        Upper end of Poisson confidence interval of maximum prediction.
+        Determines upper end of poisson integration.
 
     Returns
     -------
-    float
+    ndarray
     """
 
     epsilon = np.finfo(np.float64).eps
 
     prediction = prediction + epsilon
 
-    likelihood = epsilon
+    likelihood = epsilon * np.ones_like(prediction)
 
-    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
+    n_signal = np.arange(poisson(np.max(prediction)).ppf(confidence) + 1)
 
-    ns = ns[ns >= 0]
+    n_signal = n_signal[n_signal >= 0]
 
-    for n in ns:
+    for n in n_signal:
         theta = pedestal**2 + n * spe_width**2
         _l = (
             prediction**n
             * np.exp(-prediction)
-            / theta
+            / np.sqrt(2 * np.pi * theta)
+            / factorial(n)
             * np.exp(-((image - n) ** 2) / (2 * theta))
         )
         likelihood += _l
@@ -171,19 +174,19 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
 
     Returns
     -------
-    float
+    ndarray
     """
 
     approx_mask = prediction > prediction_safety
 
-    neg_log_l = 0
+    neg_log_l = np.zeros_like(image)
     if np.any(approx_mask):
-        neg_log_l += neg_log_likelihood_approx(
+        neg_log_l[approx_mask] += neg_log_likelihood_approx(
             image[approx_mask], prediction[approx_mask], spe_width, pedestal
         )
 
     if not np.all(approx_mask):
-        neg_log_l += neg_log_likelihood_numeric(
+        neg_log_l[~approx_mask] += neg_log_likelihood_numeric(
             image[~approx_mask], prediction[~approx_mask], spe_width, pedestal
         )
 
@@ -206,7 +209,7 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
 
     Returns
     -------
-    float
+    ndarray
     """
     theta = pedestal**2 + prediction * (1 + spe_width**2)
     mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta + EPSILON)
@@ -222,7 +225,7 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     image = np.asarray(image)
     prediction = np.asarray(prediction)
     like = neg_log_likelihood(image, prediction, spe_width, ped)
-    return like * np.exp(-0.5 * like)
+    return -like * np.exp(-like)
 
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
@@ -244,7 +247,7 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
 
     Returns
     -------
-    float
+    ndarray
     """
 
     if len(spe_width) == 1:
@@ -253,12 +256,12 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     if len(ped) == 1:
         ped = np.full_like(prediction, ped)
 
-    mean_like = 0
+    mean_like = np.zeros_like(prediction)
 
     width = ped**2 + prediction * spe_width**2
     width = np.sqrt(width)
 
-    for pred, w, spe, p in zip(prediction, width, spe_width, ped):
+    for i, (pred, w, spe, p) in enumerate(zip(prediction, width, spe_width, ped)):
         lower_integration_bound = pred - 10 * w
         upper_integration_bound = pred + 10 * w
 
@@ -270,7 +273,7 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
             epsrel=0.05,
         )
 
-        mean_like += integral
+        mean_like[i] = integral
 
     return mean_like
 
@@ -292,7 +295,7 @@ def chi_squared(image, prediction, pedestal, error_factor=2.9):
 
     Returns
     -------
-    float
+    ndarray
     """
 
     chi_square = (image - prediction) ** 2 / (pedestal + 0.5 * (image - prediction))
