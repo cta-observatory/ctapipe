@@ -120,7 +120,7 @@ def neg_log_likelihood_numeric(
         Width of single p.e. peak (:math:`σ_γ`).
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
-    confidence: loat, 0 < x < 1
+    confidence: float, 0 < x < 1
         Upper end of Poisson confidence interval of maximum prediction.
         Determines upper end of poisson integration.
 
@@ -227,7 +227,7 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     image = np.asarray(image)
     prediction = np.asarray(prediction)
     like = neg_log_likelihood(image, prediction, spe_width, ped)
-    return like * np.exp(-0.5 * like)
+    return 2 * like * np.exp(-like)
 
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
