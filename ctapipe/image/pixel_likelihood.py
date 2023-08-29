@@ -131,7 +131,7 @@ def neg_log_likelihood_numeric(
 
     prediction = prediction + epsilon
 
-    likelihood = epsilon * np.ones_like(prediction)
+    likelihood = np.full_like(prediction, epsilon, dtype=np.float64)
 
     n_signal = np.arange(poisson(np.max(prediction)).ppf(confidence) + 1)
 
@@ -179,7 +179,7 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
 
     approx_mask = prediction > prediction_safety
 
-    neg_log_l = np.zeros_like(image)
+    neg_log_l = np.zeros_like(image, dtype=np.float64)
     if np.any(approx_mask):
         neg_log_l[approx_mask] += neg_log_likelihood_approx(
             image[approx_mask], prediction[approx_mask], spe_width, pedestal
@@ -194,7 +194,7 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
 
 
 def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
-    """Calculation of the mean likelihood for a give expectation
+    """Calculation of the mean negative log likelihood for a give expectation
     value of pixel intensity in the gaussian approximation.
     This is useful in the calculation of the goodness of fit.
 
@@ -225,12 +225,12 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     image = np.asarray(image)
     prediction = np.asarray(prediction)
     like = neg_log_likelihood(image, prediction, spe_width, ped)
-    return -like * np.exp(-like)
+    return 2 * like * np.exp(-like)
 
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
     """
-    Calculation of the mean  likelihood for a give expectation value
+    Calculation of the mean negative log likelihood for a give expectation value
     of pixel intensity using the full numerical integration.
     This is useful in the calculation of the goodness of fit.
     This numerical integration is very slow and really doesn't
@@ -251,12 +251,12 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     """
 
     if len(spe_width) == 1:
-        spe_width = np.full_like(prediction, spe_width)
+        spe_width = np.full_like(prediction, spe_width, dtype=np.float64)
 
     if len(ped) == 1:
-        ped = np.full_like(prediction, ped)
+        ped = np.full_like(prediction, ped, dtype=np.float64)
 
-    mean_like = np.zeros_like(prediction)
+    mean_like = np.zeros_like(prediction, dtype=np.float64)
 
     width = ped**2 + prediction * spe_width**2
     width = np.sqrt(width)
