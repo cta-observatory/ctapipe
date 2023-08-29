@@ -592,7 +592,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             )
             like_expectation_gaus[mask] = 0
             mask_shower = np.invert(mask)
-            goodness = np.sum(like - like_expectation_gaus, axis=-1) / np.sqrt(
+            goodness = np.sum(2 * like - like_expectation_gaus, axis=-1) / np.sqrt(
                 2 * (np.sum(mask_shower, axis=-1) - 6)
             )
             return goodness
@@ -994,7 +994,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self.min.strategy = 1
 
         # Fit and output parameters and errors
-        migrad = self.min.migrad(iterate=1)
+        _ = self.min.migrad(iterate=1)
         fit_params = self.min.values
         errors = self.min.errors
 
