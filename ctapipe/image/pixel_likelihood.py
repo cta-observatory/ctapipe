@@ -72,11 +72,8 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
         - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
 
-    and since we can remove constants and factors in the minimization:
-
-    .. math::
-
-        - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}
+        We keep the constants in this because the actual value of the likelihood
+        can be used to calculate a goodness-of-fit value
 
 
     Parameters
