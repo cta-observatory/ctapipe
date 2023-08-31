@@ -1,0 +1,3 @@
+* Switched to ``PyData`` theme for docs
+* Updated ``Sphinx`` to version 6.2.1
+* Updated front page of docs

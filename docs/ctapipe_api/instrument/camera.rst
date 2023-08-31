@@ -5,8 +5,8 @@
 Camera Description
 ==================
 
-The `CameraDescription` contains classes holding information about the
-Cherenkov camera, namely the `CameraGeometry` and `CameraReadout` classes.
+The `~camera.description.CameraDescription` contains classes holding information about the
+Cherenkov camera, namely the `~camera.geometry.CameraGeometry` and `~camera.readout.CameraReadout` classes.
 
 
 .. toctree::
@@ -17,10 +17,10 @@ Cherenkov camera, namely the `CameraGeometry` and `CameraReadout` classes.
 
 
 Reference/API
--------------
-
+=============
 
 .. automodapi:: ctapipe.instrument.camera
     :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.instrument.camera.description
     :no-inheritance-diagram:

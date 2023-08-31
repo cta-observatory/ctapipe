@@ -89,6 +89,9 @@ def test_muon_efficiency_fit(prod5_lst):
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
     assert u.isclose(result.width, ring_width, rtol=0.05)
     assert u.isclose(result.optical_efficiency, efficiency, rtol=0.05)
+    assert result.is_valid
+    assert not result.parameters_at_limit
+    assert np.isfinite(result.likelihood_value)
 
 
 def test_scts(prod5_sst):

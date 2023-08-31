@@ -130,13 +130,11 @@ class TrainParticleClassifier(Tool):
         if self.signal_loader.subarray != self.background_loader.subarray:
             raise ValueError("Signal and background subarrays do not match")
 
-        self.n_signal.attach_subarray(self.signal_loader.subarray)
-        self.n_background.attach_subarray(self.signal_loader.subarray)
+        self.subarray = self.signal_loader.subarray
+        self.n_signal.attach_subarray(self.subarray)
+        self.n_background.attach_subarray(self.subarray)
 
-        self.classifier = ParticleClassifier(
-            subarray=self.signal_loader.subarray,
-            parent=self,
-        )
+        self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
@@ -179,7 +177,7 @@ class TrainParticleClassifier(Tool):
                 f"No events after quality query for telescope type {telescope_type}"
             )
 
-        table = self.classifier.feature_generator(table)
+        table = self.classifier.feature_generator(table, subarray=self.subarray)
 
         # Add true energy for energy-dependent performance plots
         columns = self.classifier.features + [self.classifier.target, "true_energy"]

@@ -154,7 +154,9 @@ class SubarrayDescription:
         pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
         pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
 
-        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=GroundFrame())
+        frame = GroundFrame(reference_location=self.reference_location)
+
+        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=frame)
 
     @lazyproperty
     def tel_ids(self):
@@ -427,7 +429,7 @@ class SubarrayDescription:
 
     def get_tel_ids_for_type(self, tel_type) -> Tuple[int]:
         """
-        return list of tel_ids that have the given tel_type
+        return tuple of tel_ids that have the given tel_type
 
         Parameters
         ----------
@@ -447,6 +449,43 @@ class SubarrayDescription:
             return tuple(
                 tel_id for tel_id, descr in self.tels.items() if str(descr) == tel_type
             )
+
+    def get_tel_indices_for_type(self, tel_type):
+        """
+        return tuple of telescope indices that have the given tel_type
+
+        Parameters
+        ----------
+        tel_type: str or TelescopeDescription
+           telescope type string (e.g. 'MST_MST_NectarCam')
+        """
+        return self.tel_ids_to_indices(self.get_tel_ids_for_type(tel_type))
+
+    def multiplicity(self, tel_mask, tel_type=None):
+        """
+        Compute multiplicity from a telescope mask
+
+        Parameters
+        ----------
+        tel_mask : np.ndarray
+            Boolean array with last dimension of size n_telescopes
+        tel_type : None, str or TelescopeDescription
+            If not given, compute multiplicity from all telescopes.
+            If given, the multiplicity of the given telescope type will
+            be computed.
+
+        Returns
+        -------
+        multiplicity : int or np.ndarray
+            Number of true values for given telescope mask and telescope type
+        """
+
+        if tel_type is None:
+            return np.count_nonzero(tel_mask, axis=-1)
+
+        return np.count_nonzero(
+            tel_mask[..., self.get_tel_indices_for_type(tel_type)], axis=-1
+        )
 
     def get_tel_ids(
         self, telescopes: Iterable[Union[int, str, TelescopeDescription]]

@@ -29,6 +29,7 @@ TODO:
 
 import numpy as np
 from scipy.integrate import quad
+from scipy.special import factorial
 from scipy.stats import poisson
 
 __all__ = [
@@ -71,11 +72,8 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
         - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
 
-    and since we can remove constants and factors in the minimization:
-
-    .. math::
-
-        - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}
+        We keep the constants in this because the actual value of the likelihood
+        can be used to calculate a goodness-of-fit value
 
 
     Parameters
@@ -95,13 +93,15 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     """
     theta = pedestal**2 + prediction * (1 + spe_width**2)
 
-    neg_log_l = np.log(theta + EPSILON) + (image - prediction) ** 2 / theta
+    neg_log_l = 0.5 * (
+        np.log(2 * np.pi * theta + EPSILON) + (image - prediction) ** 2 / theta
+    )
 
     return np.sum(neg_log_l)
 
 
 def neg_log_likelihood_numeric(
-    image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)
+    image, prediction, spe_width, pedestal, confidence=0.999
 ):
     """
     Calculate likelihood of prediction given the measured signal,
@@ -117,8 +117,9 @@ def neg_log_likelihood_numeric(
         Width of single p.e. peak (:math:`σ_γ`).
     pedestal: ndarray
         Width of pedestal (:math:`σ_p`).
-    confidence: tuple(float, float), 0 < x < 1
-        Confidence interval of poisson integration.
+    confidence: float, 0 < x < 1
+        Upper end of Poisson confidence interval of maximum prediction.
+        Determines upper end of poisson integration.
 
     Returns
     -------
@@ -131,16 +132,17 @@ def neg_log_likelihood_numeric(
 
     likelihood = epsilon
 
-    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
+    n_signal = np.arange(poisson(np.max(prediction)).ppf(confidence) + 1)
 
-    ns = ns[ns >= 0]
+    n_signal = n_signal[n_signal >= 0]
 
-    for n in ns:
+    for n in n_signal:
         theta = pedestal**2 + n * spe_width**2
         _l = (
             prediction**n
             * np.exp(-prediction)
-            / theta
+            / np.sqrt(2 * np.pi * theta)
+            / factorial(n)
             * np.exp(-((image - n) ** 2) / (2 * theta))
         )
         likelihood += _l
@@ -222,7 +224,7 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     image = np.asarray(image)
     prediction = np.asarray(prediction)
     like = neg_log_likelihood(image, prediction, spe_width, ped)
-    return like * np.exp(-0.5 * like)
+    return 2 * like * np.exp(-like)
 
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):

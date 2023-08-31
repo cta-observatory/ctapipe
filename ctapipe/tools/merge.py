@@ -127,7 +127,7 @@ class MergeTool(Tool):
         ),
         **flag(
             "dl2-subarray",
-            "HDF5Merger.dl2-subarray",
+            "HDF5Merger.dl2_subarray",
             "Include dl2 subarray-wise data",
             "Exclude dl2 subarray-wise data",
         ),

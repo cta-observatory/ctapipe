@@ -14,3 +14,4 @@ Reference/API
 -------------
 
 .. automodapi:: ctapipe.instrument.telescope
+    :no-inheritance-diagram:

@@ -223,7 +223,7 @@ def test_straight_line_width_0():
                     pix_x=x * u.m,
                     pix_y=y * u.m,
                     pix_type="hexagonal",
-                    pix_area=1 * u.m**2,
+                    pix_area=np.full(len(pix_id), 1.0) * u.m**2,
                 )
 
                 img = rng.poisson(5, size=len(long))
@@ -243,7 +243,7 @@ def test_single_pixel():
         pix_x=x.ravel() * u.cm,
         pix_y=y.ravel() * u.cm,
         pix_type="rectangular",
-        pix_area=1 * u.cm**2,
+        pix_area=np.full(9, 1.0) * u.cm**2,
     )
 
     image = np.zeros((3, 3))

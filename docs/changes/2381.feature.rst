@@ -1,0 +1,1 @@
+Added new fields to the ``MuonEfficiencyContainer`` - ``is_valid`` to check if fit converged successfully, ``parameters_at_limit`` to check if parameters were fitted close to a bound and ``likelihood_value`` which represents cost function value atthe minimum. These fields were added to the output of the ``MuonIntensityFitter``.

@@ -478,3 +478,25 @@ def test_plugin_help(capsys):
     assert (
         "PluginReconstructor.foo" in captured.out
     ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
+
+
+def test_only_trigger_and_simulation(tmp_path):
+    output = tmp_path / "only_trigger_and_simulation.h5"
+
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            "--input=dataset://gamma_prod5.simtel.zst",
+            f"--output={output}",
+            "--no-write-parameters",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output, load_simulated=True) as loader:
+        events = loader.read_subarray_events()
+        assert len(events) == 7
+        assert "tels_with_trigger" in events.colnames
+        assert "true_energy" in events.colnames

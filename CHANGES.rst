@@ -1,3 +1,103 @@
+ctapipe 0.19.3 (2023-06-20)
+===========================
+
+This is a bugfix release fixing a number of bugs, mainly one preventing the processing of divergent pointing
+prod6 data due to a bug in ``SoftwareTrigger``, see below for details.
+
+
+Bug Fixes
+---------
+
+- Fix peak time units of FlashCamExtractor (See https://github.com/cta-observatory/ctapipe/issues/2336) [`#2337 <https://github.com/cta-observatory/ctapipe/pull/2337>`__]
+
+- Fix shape of mask returned by ``NullDataVolumeReducer``. [`#2340 <https://github.com/cta-observatory/ctapipe/pull/2340>`__]
+
+- Fix definition of the ``--dl2-subarray`` flag of ``ctapipe-merge``. [`#2341 <https://github.com/cta-observatory/ctapipe/pull/2341>`__]
+
+- Fix ``ctapipe-train-disp-reconstructor --help`` raising an exception. [`#2352 <https://github.com/cta-observatory/ctapipe/pull/2352>`__]
+
+- Correctly fill ``reference_location`` for ``SubarrayDescription.tel_coords``. [`#2354 <https://github.com/cta-observatory/ctapipe/pull/2354>`__]
+
+- Fix ``SoftwareTrigger`` not removing all parts of a removed telescope event
+  from the array event leading to invalid files produced by ``DataWriter``. [`#2357 <https://github.com/cta-observatory/ctapipe/pull/2357>`__]
+
+- Fix that the pixel picker of the matplotlib ``CameraDisplay`` triggers
+  also for clicks on other ``CameraDisplay`` instances in the same figure. [`#2358 <https://github.com/cta-observatory/ctapipe/pull/2358>`__]
+
+
+New Features
+------------
+
+- Add support for Hillas parameters in ``TelescopeFrame`` to
+  ``CameraDisplay.overlay_moments`` and make sure that the
+  label text does not overlap with the ellipse. [`#2347 <https://github.com/cta-observatory/ctapipe/pull/2347>`__]
+
+- Add support for using ``ctapipe.image.toymodel`` features in ``TelescopeFrame``. [`#2349 <https://github.com/cta-observatory/ctapipe/pull/2349>`__]
+
+
+Maintenance
+-----------
+
+- Improve docstring and validation of parameters of ``CameraGeometry``. [`#2361 <https://github.com/cta-observatory/ctapipe/pull/2361>`__]
+
+
+
+ctapipe v0.19.2 (2023-05-17)
+============================
+
+This release contains a critical bugfix for the ``FlashCamExtractor`` that resulted
+in non-sensical peak time values in DL1, see below.
+
+Bug Fixes
+---------
+
+- Fix a bug in the peak_time estimation of ``FlashCamExtractor`` (See issue `#2332 <https://github.com/cta-observatory/ctapipe/issues/2332>`_) [`#2333 <https://github.com/cta-observatory/ctapipe/pull/2333>`__]
+
+
+ctapipe v0.19.1 (2023-05-11)
+============================
+
+This release is a small bugfix release for v0.19.0, that also includes a new feature enabling computing different
+telescope multiplicities in the machine learning feature generation.
+
+Thanks to the release of numba 0.57 and some minor fixes, ctapipe is now also compatible with Python 3.11.
+
+Bug Fixes
+---------
+
+- Fix ``ApplyModels.overwrite``. [`#2311 <https://github.com/cta-observatory/ctapipe/pull/2311>`__]
+
+- Fix for config files not being included as inputs in provenance log. [`#2312 <https://github.com/cta-observatory/ctapipe/pull/2312>`__]
+
+- Fix calculation of the neighbor matrix of ``CameraGeometry`` for empty and single-pixel geometries. [`#2317 <https://github.com/cta-observatory/ctapipe/pull/2317>`__]
+
+- Fix HDF5Writer not working on windows due to using pathlib for hdf5 dataset names. [`#2319 <https://github.com/cta-observatory/ctapipe/pull/2319>`__]
+
+- Fix StereoTrigger assuming the wrong data type for ``tels_with_trigger``, resulting in
+  it not working for actual events read from an EventSource. [`#2320 <https://github.com/cta-observatory/ctapipe/pull/2320>`__]
+
+- Allow disabling the cross validation (by setting ``CrossValidator.n_cross_validations = 0``)
+  for the train tools. [`#2310 <https://github.com/cta-observatory/ctapipe/pull/2310>`__]
+
+
+New Features
+------------
+
+- Add ``SubarrayDescription.mulitplicity`` method that can compute
+  telescope multiplicity for a given telescope boolean mask, either for
+  all telescope or a given telescope type.
+
+  Enable adding additional keyword arguments to ``FeatureGenerator``.
+
+  Pass the ``SubarrayDescription`` to ``FeatureGenerator`` in sklearn classes. [`#2308 <https://github.com/cta-observatory/ctapipe/pull/2308>`__]
+
+
+Maintenance
+-----------
+
+- Add support for python 3.11. [`#2107 <https://github.com/cta-observatory/ctapipe/pull/2107>`__]
+
+
 ctapipe v0.19.0 (2023-03-30)
 ============================
 

@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.9"
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --files $(git diff origin/main --name-only)
@@ -34,10 +34,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python-version: "3.8"
-            install-method: mamba
-
-          - os: ubuntu-latest
             python-version: "3.9"
             install-method: mamba
 
@@ -47,15 +43,19 @@ jobs:
             extra-args: ["codecov"]
 
           - os: ubuntu-latest
-            python-version: "3.10"
+            python-version: "3.11"
+            install-method: mamba
+
+          - os: ubuntu-latest
+            python-version: "3.11"
             install-method: pip
 
           - os: macos-latest
-            python-version: "3.10"
+            python-version: "3.11"
             install-method: mamba
 
           - os: macos-latest
-            python-version: "3.8"
+            python-version: "3.9"
             install-method: pip
 
     defaults:
@@ -84,7 +84,10 @@ jobs:
 
       - name: mamba setup
         if: matrix.install-method == 'mamba'
-        uses: mamba-org/provision-with-micromamba@v14
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: environment.yml
+          cache-downloads: true
 
       - name: Python setup
         if: matrix.install-method == 'pip'
@@ -106,7 +109,7 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install codecov pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
+          pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
           pip freeze
@@ -143,7 +146,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.9"
 
       - name: Install doc dependencies
         run: |

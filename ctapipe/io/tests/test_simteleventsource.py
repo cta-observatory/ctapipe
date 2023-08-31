@@ -591,3 +591,11 @@ def test_float32_pihalf(sign):
     assert shower.alt.value == sign * np.pi / 2
     # check we cana create a Latitude:
     Latitude(shower.alt.value, u.rad)
+
+
+def test_starting_grammage():
+    path = "dataset://lst_muons.simtel.zst"
+
+    with SimTelEventSource(path, focal_length_choice="EQUIVALENT") as source:
+        e = next(iter(source))
+        assert e.simulation.shower.starting_grammage == 580 * u.g / u.cm**2

@@ -4,7 +4,6 @@ Provenance-related functionality
 TODO: have this register whenever ctapipe is loaded
 
 """
-
 import json
 import logging
 import os
@@ -14,20 +13,15 @@ import uuid
 from collections import UserList
 from contextlib import contextmanager
 from importlib import import_module
+from importlib.metadata import distributions, version
 from os.path import abspath
 from pathlib import Path
 
 import psutil
 from astropy.time import Time
 
-import ctapipe
-
+from ..version import __version__
 from .support import Singleton
-
-if sys.version_info < (3, 9):
-    from importlib_metadata import distributions, version
-else:
-    from importlib.metadata import distributions, version
 
 log = logging.getLogger(__name__)
 
@@ -318,7 +312,7 @@ def _get_system_provenance():
     bits, linkage = platform.architecture()
 
     return dict(
-        ctapipe_version=ctapipe.__version__,
+        ctapipe_version=__version__,
         ctapipe_resources_version=get_module_version("ctapipe_resources"),
         eventio_version=get_module_version("eventio"),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),

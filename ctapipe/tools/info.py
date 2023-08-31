@@ -5,16 +5,12 @@ import os
 import re
 import sys
 from importlib.metadata import metadata, requires
+from importlib.resources import files
 
 from ..core import Provenance, get_module_version
 from ..core.plugins import detect_and_import_plugins
 from ..utils import datasets
 from .utils import get_parser
-
-if sys.version_info < (3, 9):
-    from importlib_resources import files
-else:
-    from importlib.resources import files
 
 __all__ = ["info"]
 
