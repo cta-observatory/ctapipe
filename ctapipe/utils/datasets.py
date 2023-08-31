@@ -19,11 +19,7 @@ try:
 except ImportError:
     has_resources = False
 
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
-
+from importlib.resources import files
 
 from ..core import Provenance
 
