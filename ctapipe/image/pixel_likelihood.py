@@ -179,19 +179,25 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
     neg_log_l = np.zeros_like(image, dtype=np.float64)
     if np.any(approx_mask):
         neg_log_l[approx_mask] += neg_log_likelihood_approx(
-            image[approx_mask], prediction[approx_mask], spe_width, pedestal
+            image[approx_mask],
+            prediction[approx_mask],
+            spe_width[approx_mask],
+            pedestal[approx_mask],
         )
 
     if not np.all(approx_mask):
         neg_log_l[~approx_mask] += neg_log_likelihood_numeric(
-            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal
+            image[~approx_mask],
+            prediction[~approx_mask],
+            spe_width[~approx_mask],
+            pedestal[~approx_mask],
         )
 
     return neg_log_l
 
 
 def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
-    """Calculation of the mean negative log likelihood for a give expectation
+    """Calculation of the mean of twice the negative log likelihood for a give expectation
     value of pixel intensity in the gaussian approximation.
     This is useful in the calculation of the goodness of fit.
 
@@ -227,7 +233,7 @@ def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
     """
-    Calculation of the mean negative log likelihood for a give expectation value
+    Calculation of the mean of twice the negative log likelihood for a give expectation value
     of pixel intensity using the full numerical integration.
     This is useful in the calculation of the goodness of fit.
     This numerical integration is very slow and really doesn't
