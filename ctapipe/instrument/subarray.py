@@ -173,13 +173,17 @@ class SubarrayDescription:
     @lazyproperty
     def tel_index_array(self):
         """
-        returns an expanded array that maps tel_id to tel_index. I.e. for a given
-        telescope, this array maps the tel_id to a flat index starting at 0 for
-        the first telescope. ``tel_index = tel_id_to_index_array[tel_id]``
-        If the tel_ids are not contiguous, gaps will be filled in by -1.
+        Array of telescope indices that can be indexed by telescope id
+
+        I.e. for a given telescope, this array maps the tel_id to a flat index
+        starting at 0 for the first telescope.
+        ``tel_index = subarray.tel_index_array[tel_id]``
+
+        If the tel_ids are not contiguous, gaps will be filled in by int minval.
         For a more compact representation use the `tel_indices`
         """
-        idx = np.zeros(np.max(self.tel_ids) + 1, dtype=int) - 1  # start with -1
+        invalid = np.iinfo(int).min
+        idx = np.full(np.max(self.tel_ids) + 1, invalid, dtype=int)
         for key, val in self.tel_indices.items():
             idx[key] = val
         return idx
