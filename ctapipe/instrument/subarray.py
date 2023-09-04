@@ -56,13 +56,15 @@ class SubarrayDescription:
     ----------
     name: str
        name of subarray
-    tel_coords: astropy.coordinates.SkyCoord
+    tel_coords: ctapipe.coordinates.GroundFrame
        coordinates of all telescopes
     tels:
        dict of TelescopeDescription for each telescope in the subarray
     """
 
+    #: Current version number of the format written by `SubarrayDescription.to_hdf`
     CURRENT_TAB_VERSION = "2.0"
+    #: Version numbers supported by `SubarrayDescription.from_hdf`
     COMPATIBLE_VERSIONS = {"2.0"}
 
     def __init__(
@@ -148,7 +150,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_coords(self):
-        """returns telescope positions as astropy.coordinates.SkyCoord"""
+        """Telescope positions in `~ctapipe.coordinates.GroundFrame`"""
 
         pos_x = [p[0].to_value(u.m) for p in self.positions.values()]
         pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
@@ -160,13 +162,12 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_ids(self):
-        """telescope IDs as an array"""
+        """Array of telescope ids in order of telescope indices"""
         return np.array(list(self.tel.keys()))
 
     @lazyproperty
     def tel_indices(self):
-        """returns dict mapping tel_id to tel_index, useful for unpacking
-        lists based on tel_ids into fixed-length arrays"""
+        """dictionary mapping telescope ids to telescope index"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
     @lazyproperty
