@@ -41,19 +41,12 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
     with SimTelEventSource(
         input_url=gamma_test_large_path,
-        back_seekable=True,
         focal_length_choice="EQUIVALENT",
     ) as reader:
-        assert not reader.is_stream
+        assert reader.is_stream
 
         for event in reader:
             if event.count > 1:
-                break
-
-        with pytest.warns(UserWarning):
-            for event in reader:
-                # Check generator has restarted from beginning
-                assert event.count == 0
                 break
 
 
@@ -599,3 +592,26 @@ def test_starting_grammage():
     with SimTelEventSource(path, focal_length_choice="EQUIVALENT") as source:
         e = next(iter(source))
         assert e.simulation.shower.starting_grammage == 580 * u.g / u.cm**2
+
+
+def test_all_events():
+    path = "dataset://gamma_prod5.simtel.zst"
+
+    with SimTelEventSource(path, skip_non_triggered_events=False) as source:
+        reuse = source.simulation_config[1].shower_reuse
+        n_showers = source.simulation_config[1].n_showers
+
+        shower = 0
+        event = 0
+        total = 0
+        for e in source:
+            if total % reuse == 0:
+                event = 0
+                shower += 1
+            else:
+                event += 1
+
+            assert e.index.event_id == shower * 100 + event
+            total += 1
+
+        assert total == n_showers * reuse

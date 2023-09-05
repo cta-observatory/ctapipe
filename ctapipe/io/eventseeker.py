@@ -38,7 +38,7 @@ class EventSeeker(Component):
     To obtain a particular event in a simtel file from its event_id:
 
     >>> from ctapipe.io import SimTelEventSource
-    >>> event_source = SimTelEventSource(input_url="dataset://gamma_test_large.simtel.gz", back_seekable=True, focal_length_choice="EQUIVALENT")
+    >>> event_source = SimTelEventSource(input_url="dataset://gamma_test_large.simtel.gz", focal_length_choice="EQUIVALENT")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker.get_event_id(31007)
     >>> print(event.count)

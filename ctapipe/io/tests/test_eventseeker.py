@@ -1,29 +1,24 @@
 import pytest
 
-from ctapipe.io import SimTelEventSource
+from ctapipe.io import EventSource, SimTelEventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.utils import get_dataset_path
 
 dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
 
-def test_eventseeker():
+def test_eventseeker(dl1_file):
 
-    with SimTelEventSource(
-        input_url=dataset,
-        back_seekable=True,
-        focal_length_choice="EQUIVALENT",
-    ) as reader:
-
-        seeker = EventSeeker(event_source=reader)
+    with EventSource(dl1_file) as source:
+        seeker = EventSeeker(event_source=source)
 
         event = seeker.get_event_index(1)
         assert event.count == 1
         event = seeker.get_event_index(0)
         assert event.count == 0
 
-        event = seeker.get_event_id(31007)
-        assert event.index.event_id == 31007
+        event = seeker.get_event_id(5103)
+        assert event.index.event_id == 5103
 
         with pytest.raises(IndexError):
             seeker.get_event_index(200)
@@ -37,24 +32,15 @@ def test_eventseeker():
         with pytest.raises(TypeError):
             seeker.get_event_index(dict())
 
-    with SimTelEventSource(
-        input_url=dataset,
-        max_events=5,
-        back_seekable=True,
-        focal_length_choice="EQUIVALENT",
-    ) as reader:
-        seeker = EventSeeker(event_source=reader)
+    with EventSource(input_url=dl1_file, max_events=5) as source:
+        seeker = EventSeeker(event_source=source)
         with pytest.raises(IndexError):
             event = seeker.get_event_index(5)
             assert event is not None
 
 
-def test_eventseeker_edit():
-    with SimTelEventSource(
-        input_url=dataset,
-        back_seekable=True,
-        focal_length_choice="EQUIVALENT",
-    ) as reader:
+def test_eventseeker_edit(dl1_file):
+    with EventSource(input_url=dl1_file) as reader:
         seeker = EventSeeker(event_source=reader)
         event = seeker.get_event_index(1)
         assert event.count == 1
@@ -68,7 +54,6 @@ def test_eventseeker_simtel():
     # Ensure the EventSeeker can forward seek even if back-seeking is not possible
     with SimTelEventSource(
         input_url=dataset,
-        back_seekable=False,
         focal_length_choice="EQUIVALENT",
     ) as reader:
         seeker = EventSeeker(event_source=reader)

@@ -2,8 +2,6 @@ import enum
 import warnings
 from contextlib import nullcontext
 from enum import Enum, auto, unique
-from gzip import GzipFile
-from io import BufferedReader
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -12,8 +10,8 @@ from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
 from astropy.table import Table
 from astropy.time import Time
+from eventio import SimTelFile
 from eventio.file_types import is_eventio
-from eventio.simtel.simtelfile import SimTelFile
 
 from ..atmosphere import (
     AtmosphereDensityProfile,
@@ -430,12 +428,12 @@ class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
     )
-    back_seekable = Bool(
-        False,
+
+    skip_non_triggered_events = Bool(
+        True,
         help=(
-            "Require the event source to be backwards seekable."
-            " This will reduce in slower read speed for gzipped files"
-            " and is not possible for zstd compressed files"
+            "If False, also yield events where no telescope has triggered"
+            " meaning only shower information will be available."
         ),
     ).tag(config=True)
 
@@ -509,10 +507,8 @@ class SimTelEventSource(EventSource):
             self.input_url.expanduser(),
             allowed_telescopes=self.allowed_tels,
             skip_calibration=self.skip_calibration_events,
-            zcat=not self.back_seekable,
+            skip_non_triggered=self.skip_non_triggered_events,
         )
-        if self.back_seekable and self.is_stream:
-            raise IOError("back seekable was required but not possible for inputfile")
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
@@ -572,7 +568,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def is_stream(self):
-        return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
+        return True
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
@@ -721,15 +717,15 @@ class SimTelEventSource(EventSource):
 
         for counter, array_event in enumerate(self.file_):
 
-            event_id = array_event.get("event_id", 0)
-            if event_id == 0:
+            event_id = array_event.get("event_id", -1)
+            if event_id == -1:
                 pseudo_event_id -= 1
                 event_id = pseudo_event_id
 
             obs_id = self.file_.header["run"]
 
             trigger = self._fill_trigger_info(array_event)
-            if trigger.event_type == EventType.SUBARRAY:
+            if "mc_shower" in array_event:
                 shower = self._fill_simulated_event_information(array_event)
             else:
                 shower = None
@@ -745,8 +741,9 @@ class SimTelEventSource(EventSource):
             data.meta["input_url"] = self.input_url
             data.meta["max_events"] = self.max_events
 
-            telescope_events = array_event["telescope_events"]
-            tracking_positions = array_event["tracking_positions"]
+            if trigger is None:
+                yield data
+                continue
 
             photoelectron_sums = array_event.get("photoelectron_sums")
             if photoelectron_sums is not None:
@@ -763,6 +760,9 @@ class SimTelEventSource(EventSource):
                 )
             else:
                 impact_distances = np.full(len(self.subarray), np.nan) * u.m
+
+            telescope_events = array_event["telescope_events"]
+            tracking_positions = array_event["tracking_positions"]
 
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
@@ -904,7 +904,9 @@ class SimTelEventSource(EventSource):
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
     def _fill_trigger_info(self, array_event):
-        trigger = array_event["trigger_information"]
+        trigger = array_event.get("trigger_information")
+        if trigger is None:
+            return None
 
         if array_event["type"] == "data":
             event_type = EventType.SUBARRAY
