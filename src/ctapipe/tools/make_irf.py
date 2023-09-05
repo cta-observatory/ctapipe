@@ -7,7 +7,6 @@ from astropy.io import fits
 from astropy.table import vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import create_histogram_table
-from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 from pyirf.io import (
     create_aeff2d_hdu,
@@ -217,43 +216,14 @@ class IrfTool(Tool):
 
     def start(self):
         self.load_preselected_events()
-
-        INITIAL_GH_CUT = np.quantile(
-            self.signal["gh_score"], (1 - self.co.initial_gh_cut_efficency)
-        )
-        self.log.info(
-            f"Using fixed G/H cut of {INITIAL_GH_CUT} to calculate theta cuts"
-        )
-
-        mask_theta_cuts = self.signal["gh_score"] >= INITIAL_GH_CUT
-
-        theta_cuts = calculate_percentile_cut(
-            self.signal["theta"][mask_theta_cuts],
-            self.signal["reco_energy"][mask_theta_cuts],
-            bins=self.true_energy_bins,
-            min_value=self.bins.theta_min_angle * u.deg,
-            max_value=self.bins.theta_max_angle * u.deg,
-            fill_value=self.bins.theta_fill_value * u.deg,
-            min_events=self.bins.theta_min_counts,
-            percentile=68,
-        )
-
-        self.log.info("Optimizing G/H separation cut for best sensitivity")
-        gh_cut_efficiencies = np.arange(
-            self.co.gh_cut_efficiency_step,
-            self.co.max_gh_cut_efficiency + self.co.gh_cut_efficiency_step / 2,
-            self.co.gh_cut_efficiency_step,
-        )
-
-        sens2, self.gh_cuts = optimize_gh_cut(
+        self.gh_cuts, sens2 = self.co.optimise_gh_cut(
             self.signal,
             self.background,
-            reco_energy_bins=self.reco_energy_bins,
-            gh_cut_efficiencies=gh_cut_efficiencies,
-            op=operator.ge,
-            theta_cuts=theta_cuts,
-            alpha=self.alpha,
-            fov_offset_max=self.max_bg_radius * u.deg,
+            self.true_energy_bins,
+            self.reco_energy_bins,
+            self.bins,
+            self.alpha,
+            self.max_bg_radius,
         )
 
         # now that we have the optimized gh cuts, we recalculate the theta
