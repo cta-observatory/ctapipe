@@ -33,9 +33,10 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
-from ..core import Provenance, Tool
+from ..core import Provenance, Tool, traits
+from ..core.traits import Bool, Float, Integer, Unicode
 from ..io import TableLoader
-from ..irf import DataBinning, EventPreProcessor, ToolConfig
+from ..irf import CutOptimising, DataBinning, EnergyBinning, EventPreProcessor
 
 PYIRF_SPECTRA = {
     "CRAB_HEGRA": CRAB_HEGRA,
@@ -48,7 +49,63 @@ class IrfTool(Tool):
     name = "ctapipe-make-irfs"
     description = "Tool to create IRF files in GAD format"
 
-    classes = [DataBinning, ToolConfig, EventPreProcessor]
+    gamma_file = traits.Path(
+        default_value=None, directory_ok=False, help="Gamma input filename and path"
+    ).tag(config=True)
+    gamma_sim_spectrum = traits.Unicode(
+        default_value="CRAB_HEGRA",
+        help="Name of the pyrif spectra used for the simulated gamma spectrum",
+    ).tag(config=True)
+    proton_file = traits.Path(
+        default_value=None, directory_ok=False, help="Proton input filename and path"
+    ).tag(config=True)
+    proton_sim_spectrum = traits.Unicode(
+        default_value="IRFDOC_PROTON_SPECTRUM",
+        help="Name of the pyrif spectra used for the simulated proton spectrum",
+    ).tag(config=True)
+    electron_file = traits.Path(
+        default_value=None, directory_ok=False, help="Electron input filename and path"
+    ).tag(config=True)
+    electron_sim_spectrum = traits.Unicode(
+        default_value="IRFDOC_ELECTRON_SPECTRUM",
+        help="Name of the pyrif spectra used for the simulated electron spectrum",
+    ).tag(config=True)
+
+    chunk_size = Integer(
+        default_value=100000,
+        allow_none=True,
+        help="How many subarray events to load at once for making predictions.",
+    ).tag(config=True)
+
+    output_path = traits.Path(
+        default_value="./IRF.fits.gz",
+        allow_none=False,
+        directory_ok=False,
+        help="Output file",
+    ).tag(config=True)
+
+    overwrite = Bool(
+        False,
+        help="Overwrite the output file if it exists",
+    ).tag(config=True)
+
+    obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)
+    obs_time_unit = Unicode(
+        default_value="hour",
+        help="Unit used to specify observation time as an astropy unit string.",
+    ).tag(config=True)
+
+    alpha = Float(
+        default_value=0.2, help="Ratio between size of on and off regions"
+    ).tag(config=True)
+    ON_radius = Float(default_value=1.0, help="Radius of ON region in degrees").tag(
+        config=True
+    )
+    max_bg_radius = Float(
+        default_value=3.0, help="Radius used to calculate background rate in degrees"
+    ).tag(config=True)
+
+    classes = [CutOptimising, DataBinning, EnergyBinning, EventPreProcessor]
 
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
 
@@ -75,7 +132,7 @@ class IrfTool(Tool):
         )
         # Gamma source is assumed to be pointlike
         if kind == "gamma":
-            spectrum = spectrum.integrate_cone(0 * u.deg, self.tc.ON_radius * u.deg)
+            spectrum = spectrum.integrate_cone(0 * u.deg, self.ON_radius * u.deg)
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=target_spectrum,
@@ -102,7 +159,7 @@ class IrfTool(Tool):
         return (
             sim_info,
             PowerLaw.from_simulation(
-                sim_info, obstime=self.tc.obs_time * u.Unit(self.tc.obs_time_unit)
+                sim_info, obstime=self.obs_time * u.Unit(self.obs_time_unit)
             ),
             obs,
         )
@@ -111,27 +168,27 @@ class IrfTool(Tool):
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
         reduced_events = dict()
         for kind, file, target_spectrum in [
-            ("gamma", self.tc.gamma_file, PYIRF_SPECTRA[self.tc.gamma_sim_spectrum]),
-            ("proton", self.tc.proton_file, PYIRF_SPECTRA[self.tc.proton_sim_spectrum]),
+            ("gamma", self.gamma_file, PYIRF_SPECTRA[self.gamma_sim_spectrum]),
+            ("proton", self.proton_file, PYIRF_SPECTRA[self.proton_sim_spectrum]),
             (
                 "electron",
-                self.tc.electron_file,
-                PYIRF_SPECTRA[self.tc.electron_sim_spectrum],
+                self.electron_file,
+                PYIRF_SPECTRA[self.electron_sim_spectrum],
             ),
         ]:
             with TableLoader(file, **opts) as load:
                 Provenance().add_input_file(file)
-                header = self.eps.make_empty_table()
+                header = self.epp.make_empty_table()
                 sim_info, spectrum, obs_conf = self.get_metadata(load)
                 if kind == "gamma":
                     self.sim_info = sim_info
                     self.spectrum = spectrum
                 bits = [header]
                 for start, stop, events in load.read_subarray_events_chunked(
-                    self.tc.chunk_size
+                    self.chunk_size
                 ):
-                    selected = self.eps.normalise_column_names(events)
-                    selected = selected[self.eps.get_table_mask(selected)]
+                    selected = self.epp.normalise_column_names(events)
+                    selected = selected[self.epp.get_table_mask(selected)]
                     selected = self.make_derived_columns(
                         kind, selected, spectrum, target_spectrum, obs_conf
                     )
@@ -140,27 +197,29 @@ class IrfTool(Tool):
                 table = vstack(bits, join_type="exact")
                 reduced_events[kind] = table
 
-        select_ON = reduced_events["gamma"]["theta"] <= self.tc.ON_radius * u.deg
+        select_ON = reduced_events["gamma"]["theta"] <= self.ON_radius * u.deg
         self.signal = reduced_events["gamma"][select_ON]
         self.background = vstack([reduced_events["proton"], reduced_events["electron"]])
 
     def setup(self):
-        self.tc = ToolConfig(parent=self)
+        self.co = CutOptimising(parent=self)
+        self.e_bins = EnergyBinning(parent=self)
         self.bins = DataBinning(parent=self)
-        self.eps = EventPreProcessor(parent=self)
+        self.epp = EventPreProcessor(parent=self)
 
-        self.reco_energy_bins = self.bins.reco_energy_bins()
-        self.true_energy_bins = self.bins.true_energy_bins()
+        self.reco_energy_bins = self.e_bins.reco_energy_bins()
+        self.true_energy_bins = self.e_bins.true_energy_bins()
+        self.energy_migration_bins = self.e_bins.energy_migration_bins()
+
         self.source_offset_bins = self.bins.source_offset_bins()
         self.fov_offset_bins = self.bins.fov_offset_bins()
         self.bkg_fov_offset_bins = self.bins.bkg_fov_offset_bins()
-        self.energy_migration_bins = self.bins.energy_migration_bins()
 
     def start(self):
         self.load_preselected_events()
 
         INITIAL_GH_CUT = np.quantile(
-            self.signal["gh_score"], (1 - self.tc.initial_gh_cut_efficency)
+            self.signal["gh_score"], (1 - self.co.initial_gh_cut_efficency)
         )
         self.log.info(
             f"Using fixed G/H cut of {INITIAL_GH_CUT} to calculate theta cuts"
@@ -181,9 +240,9 @@ class IrfTool(Tool):
 
         self.log.info("Optimizing G/H separation cut for best sensitivity")
         gh_cut_efficiencies = np.arange(
-            self.tc.gh_cut_efficiency_step,
-            self.tc.max_gh_cut_efficiency + self.tc.gh_cut_efficiency_step / 2,
-            self.tc.gh_cut_efficiency_step,
+            self.co.gh_cut_efficiency_step,
+            self.co.max_gh_cut_efficiency + self.co.gh_cut_efficiency_step / 2,
+            self.co.gh_cut_efficiency_step,
         )
 
         sens2, self.gh_cuts = optimize_gh_cut(
@@ -193,8 +252,8 @@ class IrfTool(Tool):
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
             theta_cuts=theta_cuts,
-            alpha=self.tc.alpha,
-            fov_offset_max=self.tc.max_bg_radius * u.deg,
+            alpha=self.alpha,
+            fov_offset_max=self.max_bg_radius * u.deg,
         )
 
         # now that we have the optimized gh cuts, we recalculate the theta
@@ -234,12 +293,12 @@ class IrfTool(Tool):
             self.background[self.background["selected_gh"]],
             reco_energy_bins=self.reco_energy_bins,
             theta_cuts=self.theta_cuts_opt,
-            alpha=self.tc.alpha,
+            alpha=self.alpha,
             fov_offset_min=self.bins.fov_offset_min * u.deg,
             fov_offset_max=self.bins.fov_offset_max * u.deg,
         )
         self.sensitivity = calculate_sensitivity(
-            signal_hist, background_hist, alpha=self.tc.alpha
+            signal_hist, background_hist, alpha=self.alpha
         )
 
         # scale relative sensitivity by Crab flux to get the flux sensitivity
@@ -318,7 +377,7 @@ class IrfTool(Tool):
             self.background[self.background["selected_gh"]],
             self.reco_energy_bins,
             fov_offset_bins=self.bkg_fov_offset_bins,
-            t_obs=self.tc.obs_time * u.Unit(self.tc.obs_time_unit),
+            t_obs=self.obs_time * u.Unit(self.obs_time_unit),
         )
         hdus.append(
             create_background_2d_hdu(
@@ -351,9 +410,9 @@ class IrfTool(Tool):
             )
         )
 
-        self.log.info("Writing outputfile '%s'" % self.tc.output_path)
+        self.log.info("Writing outputfile '%s'" % self.output_path)
         fits.HDUList(hdus).writeto(
-            self.tc.output_path,
+            self.output_path,
             overwrite=self.overwrite,
         )
 
