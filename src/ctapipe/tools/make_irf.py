@@ -1,5 +1,6 @@
 """Tool to generate IRFs"""
 import operator
+from enum import Enum
 
 import astropy.units as u
 import numpy as np
@@ -37,10 +38,17 @@ from ..core.traits import Bool, Float, Integer, Unicode
 from ..io import TableLoader
 from ..irf import CutOptimising, DataBinning, EnergyBinning, EventPreProcessor
 
+
+class Spectra(Enum):
+    CRAB_HEGRA = 1
+    IRFDOC_ELECTRON_SPECTRUM = 2
+    IRFDOC_PROTON_SPECTRUM = 3
+
+
 PYIRF_SPECTRA = {
-    "CRAB_HEGRA": CRAB_HEGRA,
-    "IRFDOC_ELECTRON_SPECTRUM": IRFDOC_ELECTRON_SPECTRUM,
-    "IRFDOC_PROTON_SPECTRUM": IRFDOC_PROTON_SPECTRUM,
+    Spectra.CRAB_HEGRA: CRAB_HEGRA,
+    Spectra.IRFDOC_ELECTRON_SPECTRUM: IRFDOC_ELECTRON_SPECTRUM,
+    Spectra.IRFDOC_PROTON_SPECTRUM: IRFDOC_PROTON_SPECTRUM,
 }
 
 
@@ -51,22 +59,25 @@ class IrfTool(Tool):
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
     ).tag(config=True)
-    gamma_sim_spectrum = traits.Unicode(
-        default_value="CRAB_HEGRA",
+    gamma_sim_spectrum = traits.UseEnum(
+        Spectra,
+        default_value=Spectra.CRAB_HEGRA,
         help="Name of the pyrif spectra used for the simulated gamma spectrum",
     ).tag(config=True)
     proton_file = traits.Path(
         default_value=None, directory_ok=False, help="Proton input filename and path"
     ).tag(config=True)
-    proton_sim_spectrum = traits.Unicode(
-        default_value="IRFDOC_PROTON_SPECTRUM",
+    proton_sim_spectrum = traits.UseEnum(
+        Spectra,
+        default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
         help="Name of the pyrif spectra used for the simulated proton spectrum",
     ).tag(config=True)
     electron_file = traits.Path(
         default_value=None, directory_ok=False, help="Electron input filename and path"
     ).tag(config=True)
-    electron_sim_spectrum = traits.Unicode(
-        default_value="IRFDOC_ELECTRON_SPECTRUM",
+    electron_sim_spectrum = traits.UseEnum(
+        Spectra,
+        default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
         help="Name of the pyrif spectra used for the simulated electron spectrum",
     ).tag(config=True)
 
@@ -315,7 +326,6 @@ class IrfTool(Tool):
                 fov_offset_bins=self.fov_offset_bins,
                 migration_bins=self.energy_migration_bins,
             )
-            breakpoint()
             hdus.append(
                 create_energy_dispersion_hdu(
                     edisp,
