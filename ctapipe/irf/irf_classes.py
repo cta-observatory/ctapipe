@@ -1,10 +1,14 @@
 """
 Define a parent IrfTool class to hold all the options
 """
+import operator
+
 import astropy.units as u
 import numpy as np
 from astropy.table import QTable
 from pyirf.binning import create_bins_per_decade
+from pyirf.cut_optimization import optimize_gh_cut
+from pyirf.cuts import calculate_percentile_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import Float, Integer, List, Unicode
@@ -23,6 +27,48 @@ class CutOptimising(Component):
     initial_gh_cut_efficency = Float(
         default_value=0.4, help="Start value of gamma efficiency before optimisation"
     ).tag(config=True)
+
+    def optimise_gh_cut(
+        self, signal, background, Et_bins, Er_bins, bins, alpha, max_bg_radius
+    ):
+        INITIAL_GH_CUT = np.quantile(
+            signal["gh_score"], (1 - self.initial_gh_cut_efficency)
+        )
+        self.log.info(
+            f"Using fixed G/H cut of {INITIAL_GH_CUT} to calculate theta cuts"
+        )
+
+        mask_theta_cuts = signal["gh_score"] >= INITIAL_GH_CUT
+
+        theta_cuts = calculate_percentile_cut(
+            signal["theta"][mask_theta_cuts],
+            signal["reco_energy"][mask_theta_cuts],
+            bins=Et_bins,
+            min_value=bins.theta_min_angle * u.deg,
+            max_value=bins.theta_max_angle * u.deg,
+            fill_value=bins.theta_fill_value * u.deg,
+            min_events=bins.theta_min_counts,
+            percentile=68,
+        )
+
+        self.log.info("Optimizing G/H separation cut for best sensitivity")
+        gh_cut_efficiencies = np.arange(
+            self.gh_cut_efficiency_step,
+            self.max_gh_cut_efficiency + self.gh_cut_efficiency_step / 2,
+            self.gh_cut_efficiency_step,
+        )
+
+        sens2, gh_cuts = optimize_gh_cut(
+            signal,
+            background,
+            reco_energy_bins=Er_bins,
+            gh_cut_efficiencies=gh_cut_efficiencies,
+            op=operator.ge,
+            theta_cuts=theta_cuts,
+            alpha=alpha,
+            fov_offset_max=max_bg_radius * u.deg,
+        )
+        return gh_cuts, sens2
 
 
 class EventPreProcessor(QualityQuery):
