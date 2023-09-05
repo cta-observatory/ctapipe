@@ -166,23 +166,6 @@ class EventPreProcessor(QualityQuery):
         return QTable(names=columns, units=units)
 
 
-class ThetaSettings(Component):
-
-    min_angle = Float(
-        default_value=0.05, help="Smallest angular cut value allowed"
-    ).tag(config=True)
-    max_angle = Float(default_value=0.32, help="Largest angular cut value allowed").tag(
-        config=True
-    )
-    min_counts = Integer(
-        default_value=10,
-        help="Minimum number of events in a bin to attempt to find a cut value",
-    ).tag(config=True)
-    fill_value = Float(
-        default_value=0.32, help="Angular cut value used for bins with too few events"
-    ).tag(config=True)
-
-
 class EnergyBinning(Component):
     """Collects energy binning settings"""
 
