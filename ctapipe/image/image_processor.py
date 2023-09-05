@@ -4,6 +4,7 @@ High level image processing  (ImageProcessor Component)
 from copy import deepcopy
 
 import numpy as np
+from traitlets import Instance
 
 from ctapipe.coordinates import TelescopeFrame
 
@@ -19,6 +20,7 @@ from ..containers import (
 from ..core import QualityQuery, TelescopeComponent
 from ..core.traits import Bool, BoolTelescopeParameter, ComponentName, List
 from ..instrument import SubarrayDescription
+from ..random import RNG
 from .cleaning import ImageCleaner
 from .concentration import concentration_parameters
 from .hillas import hillas_parameters
@@ -77,6 +79,8 @@ class ImageProcessor(TelescopeComponent):
         default_value=False, help="If true, apply ImageModifier to dl1 images"
     ).tag(config=True)
 
+    rng = Instance(np.random.Generator, default_value=RNG).tag(config=True)
+
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
@@ -101,7 +105,7 @@ class ImageProcessor(TelescopeComponent):
         self.clean = ImageCleaner.from_name(
             self.image_cleaner_type, subarray=subarray, parent=self
         )
-        self.modify = ImageModifier(subarray=subarray, parent=self)
+        self.modify = ImageModifier(subarray=subarray, parent=self, rng=self.rng)
 
         self.check_image = ImageQualityQuery(parent=self)
 
@@ -182,6 +186,7 @@ class ImageProcessor(TelescopeComponent):
                     image=image_selected,
                     peak_time=peak_time[signal_pixels],
                     hillas_parameters=hillas,
+                    rng=self.rng,
                 )
                 peak_time_statistics = descriptive_statistics(
                     peak_time[signal_pixels],

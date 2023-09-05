@@ -12,7 +12,7 @@ def test_design_matrix():
 
 
 def test_linear_regression():
-    from ctapipe.fitting import linear_regression, design_matrix
+    from ctapipe.fitting import design_matrix, linear_regression
 
     # test without noise, should give exact result
     true_beta = np.array([5.0, 2.0])
@@ -26,7 +26,7 @@ def test_linear_regression():
 
 
 def test_linear_regression_singular():
-    from ctapipe.fitting import linear_regression, design_matrix
+    from ctapipe.fitting import design_matrix, linear_regression
 
     # test under-determined input
     x = np.zeros(2, dtype=float)
@@ -66,7 +66,7 @@ def test_lts_regression():
     rng = np.random.default_rng(1337)
     y += rng.normal(0, 0.1, len(y))
 
-    beta, error = lts_linear_regression(x, y)
+    beta, error = lts_linear_regression(x, y, rng=rng)
 
     # larger rtol since we added noise
     assert np.allclose(true_beta, beta, rtol=0.05)
@@ -77,7 +77,7 @@ def test_lts_regression_singular_pair():
     Test the lts regression with data that contains a pair
     of points creating a singular matrix
     """
-    from ctapipe.fitting import lts_linear_regression, design_matrix, EPS
+    from ctapipe.fitting import EPS, design_matrix, lts_linear_regression
 
     true_beta = np.array([5.0, 2.0])
 
@@ -92,7 +92,8 @@ def test_lts_regression_singular_pair():
     X = design_matrix(x[:2])
     assert np.linalg.det(X.T @ X) < EPS
 
-    beta, error = lts_linear_regression(x, y, samples=100)
+    rng = np.random.default_rng(5)
+    beta, error = lts_linear_regression(x, y, rng=rng, samples=100)
 
     assert np.allclose(true_beta, beta)
     assert np.isclose(error, 0)

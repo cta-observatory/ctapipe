@@ -2,20 +2,20 @@
 Image timing-based shower image parametrization.
 """
 
-import numpy as np
 import astropy.units as u
-from ..containers import (
-    CameraTimingParametersContainer,
-    TimingParametersContainer,
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
-from .hillas import camera_to_shower_coordinates
-from ..utils.quantities import all_to_value
-from ..fitting import lts_linear_regression
-
+import numpy as np
 from numba import njit
 
+from ..containers import (
+    CameraHillasParametersContainer,
+    CameraTimingParametersContainer,
+    HillasParametersContainer,
+    TimingParametersContainer,
+)
+from ..fitting import lts_linear_regression
+from ..random import RNG
+from ..utils.quantities import all_to_value
+from .hillas import camera_to_shower_coordinates
 
 __all__ = ["timing_parameters"]
 
@@ -26,7 +26,9 @@ def rmse(truth, prediction):
     return np.sqrt(np.mean((truth - prediction) ** 2))
 
 
-def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=None):
+def timing_parameters(
+    geom, image, peak_time, hillas_parameters, cleaning_mask=None, rng=RNG
+):
     """
     Function to extract timing parameters from a cleaned image.
 
@@ -79,7 +81,7 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     )
 
     # re-fit using a robust-to-outlier algorithm
-    beta, error = lts_linear_regression(x=longi, y=peak_time, samples=5)
+    beta, error = lts_linear_regression(x=longi, y=peak_time, rng=rng, samples=5)
 
     # error from lts_linear_regression is only for the used points,
     # recalculate for all points

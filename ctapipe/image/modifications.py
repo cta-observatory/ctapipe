@@ -4,13 +4,14 @@ from numba import njit
 from ..core import TelescopeComponent
 from ..core.traits import BoolTelescopeParameter, FloatTelescopeParameter, Int
 from ..instrument import SubarrayDescription
+from ..random import RNG
 
 __all__ = [
     "ImageModifier",
 ]
 
 
-def _add_noise(image, noise_level, rng=None, correct_bias=True):
+def _add_noise(image, noise_level, rng, correct_bias=True):
     """
     Create a new image with added poissonian noise
     """
@@ -29,7 +30,12 @@ def _add_noise(image, noise_level, rng=None, correct_bias=True):
 
 @njit(cache=True)
 def _smear_psf_randomly(
-    image, fraction, indices, indptr, smear_probabilities, seed=None
+    image,
+    fraction,
+    indices,
+    indptr,
+    smear_probabilities,
+    rng,
 ):
     """
     Create a new image with values smeared across the
@@ -59,9 +65,8 @@ def _smear_psf_randomly(
         shape: (n_neighbors, )
         A priori distribution of the charge amongst neighbors.
         In most cases probably of the form np.full(n_neighbors, 1/n_neighbors)
-    seed: int
-        Random seed for the numpy rng.
-        Because this is numba optimized, a rng instance can not be used here
+    rng: np.random.Generator
+        The random generator instance to be used
 
     Returns:
     --------
@@ -69,15 +74,13 @@ def _smear_psf_randomly(
         1d array with smeared values
     """
     new_image = image.copy()
-    if seed is not None:
-        np.random.seed(seed)
 
     for pixel in range(len(image)):
 
         if image[pixel] <= 0:
             continue
 
-        to_smear = np.random.poisson(image[pixel] * fraction)
+        to_smear = rng.poisson(image[pixel] * fraction)
         if to_smear == 0:
             continue
 
@@ -91,7 +94,7 @@ def _smear_psf_randomly(
         # we always distribute the charge as if the maximum number
         # of neighbors of a geoemtry is present, so that charge
         # on the edges of the camera is lost
-        neighbor_charges = np.random.multinomial(to_smear, smear_probabilities)
+        neighbor_charges = rng.multinomial(to_smear, smear_probabilities)
 
         for n in range(n_neighbors):
             neighbor = neighbors[n]
@@ -133,9 +136,11 @@ class ImageModifier(TelescopeComponent):
     noise_correct_bias = BoolTelescopeParameter(
         default_value=True, help="If True subtract the expected noise from the image."
     ).tag(config=True)
-    rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
-        config=True
-    )
+
+    rng_seed = Int(
+        default_value=None,
+        help="Seed for the random number generator. If None, the ctapipe global generator will be used.",
+    ).tag(config=True)
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -157,7 +162,10 @@ class ImageModifier(TelescopeComponent):
         """
 
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self.rng = np.random.default_rng(self.rng_seed)
+        if self.rng_seed is not None:
+            self.rng = np.random.default_rng(self.rng_seed)
+        else:
+            self.rng = RNG
 
     def __call__(self, tel_id, image, rng=None):
         dtype = image.dtype
@@ -170,7 +178,7 @@ class ImageModifier(TelescopeComponent):
                 indices=geom.neighbor_matrix_sparse.indices,
                 indptr=geom.neighbor_matrix_sparse.indptr,
                 smear_probabilities=np.full(geom.max_neighbors, 1 / geom.max_neighbors),
-                seed=self.rng.integers(0, np.iinfo(np.int64).max),
+                rng=self.rng,
             )
 
         if (

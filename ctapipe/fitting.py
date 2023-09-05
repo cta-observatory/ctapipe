@@ -1,6 +1,5 @@
-from numba import njit
 import numpy as np
-
+from numba import njit
 
 EPS = 2 * np.finfo(np.float64).eps
 
@@ -73,10 +72,13 @@ def residuals(X, y, beta):
 
 
 @njit(cache=True)
-def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
+def _lts_single_sample(X, y, sample_size, max_iterations, rng, eps=1e-12):
 
     # randomly draw 2 points for the initial fit
-    sample = np.random.choice(len(y), 2, replace=False)
+    # unfortunately, numba rng does not support choice yet
+    idx = np.arange(len(y))
+    rng.shuffle(idx)
+    sample = idx[:2]
 
     # perform the initial fit
     beta = linear_regression(X[sample], y[sample])
@@ -107,7 +109,13 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
 
 @njit()
 def lts_linear_regression(
-    x, y, samples=20, relative_sample_size=0.85, max_iterations=20, eps=1e-12
+    x,
+    y,
+    rng,
+    samples=20,
+    relative_sample_size=0.85,
+    max_iterations=20,
+    eps=1e-12,
 ):
     """
     Perform a Least Trimmed Squares regression based on algorithm (2) described in [lts_regression]_
@@ -155,7 +163,9 @@ def lts_linear_regression(
     best_error = np.inf
 
     for _ in range(samples):
-        beta, error = _lts_single_sample(X, y, sample_size, max_iterations, eps)
+        beta, error = _lts_single_sample(
+            X, y, sample_size, max_iterations=max_iterations, rng=rng, eps=eps
+        )
         if error < best_error:
             best_error = error
             best_beta[:] = beta
