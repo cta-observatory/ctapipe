@@ -6,82 +6,28 @@ import numpy as np
 from astropy.table import QTable
 from pyirf.binning import create_bins_per_decade
 
-from ..core import Component, QualityQuery, traits
-from ..core.traits import Bool, Float, Integer, List, Unicode
+from ..core import Component, QualityQuery
+from ..core.traits import Float, Integer, List, Unicode
 
 
-class ToolConfig(Component):
-
-    gamma_file = traits.Path(
-        default_value=None, directory_ok=False, help="Gamma input filename and path"
-    ).tag(config=True)
-    gamma_sim_spectrum = traits.Unicode(
-        default_value="CRAB_HEGRA",
-        help="Name of the pyrif spectra used for the simulated gamma spectrum",
-    ).tag(config=True)
-    proton_file = traits.Path(
-        default_value=None, directory_ok=False, help="Proton input filename and path"
-    ).tag(config=True)
-    proton_sim_spectrum = traits.Unicode(
-        default_value="IRFDOC_PROTON_SPECTRUM",
-        help="Name of the pyrif spectra used for the simulated proton spectrum",
-    ).tag(config=True)
-    electron_file = traits.Path(
-        default_value=None, directory_ok=False, help="Electron input filename and path"
-    ).tag(config=True)
-    electron_sim_spectrum = traits.Unicode(
-        default_value="IRFDOC_ELECTRON_SPECTRUM",
-        help="Name of the pyrif spectra used for the simulated electron spectrum",
-    ).tag(config=True)
-
-    chunk_size = Integer(
-        default_value=100000,
-        allow_none=True,
-        help="How many subarray events to load at once for making predictions.",
-    ).tag(config=True)
-
-    output_path = traits.Path(
-        default_value="./IRF.fits.gz",
-        allow_none=False,
-        directory_ok=False,
-        help="Output file",
-    ).tag(config=True)
-
-    overwrite = Bool(
-        False,
-        help="Overwrite the output file if it exists",
-    ).tag(config=True)
-
-    obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)
-    obs_time_unit = Unicode(
-        default_value="hour",
-        help="Unit used to specify observation time as an astropy unit string.",
-    ).tag(config=True)
-
-    alpha = Float(
-        default_value=0.2, help="Ratio between size of on and off regions"
-    ).tag(config=True)
-    ON_radius = Float(default_value=1.0, help="Radius of ON region in degrees").tag(
-        config=True
-    )
-
-    max_bg_radius = Float(
-        default_value=5.0, help="Radius used to calculate background rate in degrees"
-    ).tag(config=True)
+class CutOptimising(Component):
+    """Collects settings related to the cut configuration"""
 
     max_gh_cut_efficiency = Float(
-        default_value=0.8, help="Maximum gamma purity requested"
+        default_value=0.8, help="Maximum gamma efficiency requested"
     ).tag(config=True)
     gh_cut_efficiency_step = Float(
         default_value=0.1,
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
     initial_gh_cut_efficency = Float(
-        default_value=0.4, help="Start value of gamma purity before optimisation"
+        default_value=0.4, help="Start value of gamma efficiency before optimisation"
     ).tag(config=True)
 
 
 class EventPreProcessor(QualityQuery):
+    """Defines preselection cuts and the necessary renaming of columns"""
+
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
         help="Prefix of the reco `_energy` column",
@@ -157,23 +103,19 @@ class EventPreProcessor(QualityQuery):
             "reco_source_fov_offset",
             "weight",
         ]
-        units = [
-            None,
-            None,
-            u.TeV,
-            u.deg,
-            u.deg,
-            u.TeV,
-            u.deg,
-            u.deg,
-            None,
-            u.deg,
-            u.deg,
-            u.deg,
-            u.deg,
-            u.deg,
-            None,
-        ]
+        units = {
+            "true_energy": u.TeV,
+            "true_az": u.deg,
+            "true_alt": u.deg,
+            "reco_energy": u.TeV,
+            "reco_az": u.deg,
+            "reco_alt": u.deg,
+            "pointing_az": u.deg,
+            "pointing_alt": u.deg,
+            "theta": u.deg,
+            "true_source_fov_offset": u.deg,
+            "reco_source_fov_offset": u.deg,
+        }
 
         return QTable(names=columns, units=units)
 
@@ -195,13 +137,8 @@ class ThetaSettings(Component):
     ).tag(config=True)
 
 
-class DataBinning(Component):
-    """
-    Collects information on generating energy and angular bins for
-    generating IRFs as per pyIRF requirements.
-
-    Stolen from LSTChain
-    """
+class EnergyBinning(Component):
+    """Collects energy binning settings"""
 
     true_energy_min = Float(
         help="Minimum value for True Energy bins in TeV units",
@@ -247,6 +184,48 @@ class DataBinning(Component):
         help="Number of bins in log scale for Energy Migration matrix",
         default_value=31,
     ).tag(config=True)
+
+    def true_energy_bins(self):
+        """
+        Creates bins per decade for true MC energy using pyirf function.
+        """
+        true_energy = create_bins_per_decade(
+            self.true_energy_min * u.TeV,
+            self.true_energy_max * u.TeV,
+            self.true_energy_n_bins_per_decade,
+        )
+        return true_energy
+
+    def reco_energy_bins(self):
+        """
+        Creates bins per decade for reconstructed MC energy using pyirf function.
+        """
+        reco_energy = create_bins_per_decade(
+            self.reco_energy_min * u.TeV,
+            self.reco_energy_max * u.TeV,
+            self.reco_energy_n_bins_per_decade,
+        )
+        return reco_energy
+
+    def energy_migration_bins(self):
+        """
+        Creates bins for energy migration.
+        """
+        energy_migration = np.geomspace(
+            self.energy_migration_min,
+            self.energy_migration_max,
+            self.energy_migration_n_bins,
+        )
+        return energy_migration
+
+
+class DataBinning(Component):
+    """
+    Collects information on generating energy and angular bins for
+    generating IRFs as per pyIRF requirements.
+
+    Stolen from LSTChain
+    """
 
     theta_min_angle = Float(
         default_value=0.05, help="Smallest angular cut value allowed"
@@ -309,39 +288,6 @@ class DataBinning(Component):
         help="Number of edges for Source offset for PSF IRF",
         default_value=101,
     ).tag(config=True)
-
-    def true_energy_bins(self):
-        """
-        Creates bins per decade for true MC energy using pyirf function.
-        """
-        true_energy = create_bins_per_decade(
-            self.true_energy_min * u.TeV,
-            self.true_energy_max * u.TeV,
-            self.true_energy_n_bins_per_decade,
-        )
-        return true_energy
-
-    def reco_energy_bins(self):
-        """
-        Creates bins per decade for reconstructed MC energy using pyirf function.
-        """
-        reco_energy = create_bins_per_decade(
-            self.reco_energy_min * u.TeV,
-            self.reco_energy_max * u.TeV,
-            self.reco_energy_n_bins_per_decade,
-        )
-        return reco_energy
-
-    def energy_migration_bins(self):
-        """
-        Creates bins for energy migration.
-        """
-        energy_migration = np.geomspace(
-            self.energy_migration_min,
-            self.energy_migration_max,
-            self.energy_migration_n_bins,
-        )
-        return energy_migration
 
     def fov_offset_bins(self):
         """
