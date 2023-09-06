@@ -8,7 +8,7 @@ Code follows the Python
 `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guide.
 This is enforced via the
 `black formatter <https://black.readthedocs.io/en/stable/>`_
-and the pre-commit hook set up in :doc:`/getting_started/index`.
+and the pre-commit hook set up in :ref:`getting_started_dev`.
 
 You can also use ``black \<filename\>`` to reformat your code by hand or install
 editor plugins.

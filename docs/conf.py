@@ -101,6 +101,19 @@ def setup(app):
 # These links are ignored in the checks, necessary due to broken intersphinx for
 # these
 nitpick_ignore = [
+    # needed for building the docs with python 3.11 locally.
+    # we use the lowest supported version on readthedocs, so that is what we use the intersphinx
+    # link above
+    ("py:class", "enum.StrEnum"),
+    # these are coming from traitlets:
+    ("py:class", "t.Union"),
+    ("py:class", "t.Any"),
+    ("py:class", "t.Dict"),
+    ("py:class", "t.Optional"),
+    ("py:class", "t.Type"),
+    ("py:class", "t.List"),
+    ("py:class", "t.Tuple"),
+    ("py:class", "Config"),
     ("py:class", "traitlets.config.configurable.Configurable"),
     ("py:class", "traitlets.traitlets.HasTraits"),
     ("py:class", "traitlets.traitlets.HasDescriptors"),
@@ -125,6 +138,7 @@ nitpick_ignore = [
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
     ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
+    ("py:class", "ctapipe.compat.StrEnum"),
     ("py:class", "ctapipe.compat.StrEnum"),
 ]
 
@@ -196,18 +210,18 @@ todo_include_todos = True
 json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
 
 # Define the version we use for matching in the version switcher.
-version_match = os.environ.get("READTHEDOCS_VERSION")
+version_match = os.getenv("READTHEDOCS_VERSION")
 # If READTHEDOCS_VERSION doesn't exist, we're not on RTD
 # If it is an integer, we're in a PR build and the version isn't correct.
 if not version_match or version_match.isdigit():
     # For local development, infer the version to match from the package.
     if "dev" in release or "rc" in release:
         version_match = "latest"
-        # We want to keep the relative reference if we are in dev mode
-        # but we want the whole url if we are effectively in a released version
-        json_url = "_static/switcher.json"
     else:
         version_match = release
+
+    # We want to keep the relative reference when on a pull request or locally
+    json_url = "_static/switcher.json"
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -222,8 +236,8 @@ html_favicon = "_static/favicon.ico"
 # documentation.
 html_theme_options = {
     "logo": {
-        "image_light": "ctapipe_logo.webp",
-        "image_dark": "ctapipe_logo_dark.webp",
+        "image_light": "_static/ctapipe_logo.webp",
+        "image_dark": "_static/ctapipe_logo_dark.webp",
         "alt_text": "ctapipe",
     },
     "github_url": "https://github.com/cta-observatory/ctapipe",

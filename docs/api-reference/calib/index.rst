@@ -13,23 +13,10 @@ Introduction
 
 This module include all the functions and classes needed for the Calibration of CTA data.
 
-It consists in four main sub-modules:
-
-* :ref:`calib_camera`
-
-* Array Calibration
-
-* Atmosphere Calibration
-
-* Pointing Calibration
+Currently, only code related to :ref:`calib_camera` is implemented here.
 
 For more information on where you should implement your code, please have a look to the README.rst files inside each directory.
 
-
-Getting Started
-===============
-
-TODO: add examples.
 
 Submodules
 ==========
@@ -38,7 +25,7 @@ Submodules
   :maxdepth: 1
   :glob:
 
-  index_*
+  camera
 
 
 
