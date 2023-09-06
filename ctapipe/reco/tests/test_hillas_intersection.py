@@ -1,10 +1,11 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from numpy.testing import assert_allclose
 
 from ctapipe.containers import HillasParametersContainer
-from ctapipe.coordinates import AltAz, CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.reco.hillas_intersection import HillasIntersection
 
 
@@ -214,6 +215,52 @@ def test_intersection_nominal_reconstruction(example_subarray):
     np.testing.assert_allclose(
         nominal_pos.altaz.alt.to_value(u.deg), altitude.to_value(u.deg), atol=1e-8
     )
+
+
+def test_badly_reconstructed_event(prod5_mst_flashcam):
+    """
+    Test that events reconstructed at large angular distance
+    from FoV center return INVALID. Event and array loosely follow an
+    actual simulation event.
+    """
+    tel_pos = {1: np.array([150, 75, 0]) * u.m, 2: np.array([150, -240, 0]) * u.m}
+    tel_desc = {1: prod5_mst_flashcam, 2: prod5_mst_flashcam}
+    reference_location = EarthLocation(
+        lon=-70.32 * u.deg,
+        lat=-24.68 * u.deg,
+        height=2147 * u.m,
+    )
+    two_tel_subarray = SubarrayDescription(
+        "two_tel_subarray",
+        tel_positions=tel_pos,
+        tel_descriptions=tel_desc,
+        reference_location=reference_location,
+    )
+    hill_inter = HillasIntersection(two_tel_subarray)
+
+    hillas_tel_1 = HillasParametersContainer(
+        fov_lon=0.6 * u.deg,
+        fov_lat=-0.3 * u.deg,
+        intensity=95,
+        psi=85.3 * u.deg,
+        length=0.09 * u.deg,
+        width=0.05 * u.deg,
+    )
+
+    hillas_tel_2 = HillasParametersContainer(
+        fov_lon=-0.1 * u.deg,
+        fov_lat=-0.4 * u.deg,
+        intensity=119,
+        psi=85.0 * u.deg,
+        length=0.15 * u.deg,
+        width=0.04 * u.deg,
+    )
+
+    hillas_dir = {1: hillas_tel_1, 2: hillas_tel_2}
+    pointing = AltAz(alt=70 * u.deg, az=0 * u.deg)
+    reco_event = hill_inter._predict(hillas_dict=hillas_dir, array_pointing=pointing)
+
+    assert not reco_event.is_valid
 
 
 def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
