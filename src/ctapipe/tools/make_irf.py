@@ -8,7 +8,7 @@ from astropy.io import fits
 from astropy.table import vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import create_histogram_table
-from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
+from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import (
     create_aeff2d_hdu,
     create_background_2d_hdu,
@@ -36,7 +36,7 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
 from ..io import TableLoader
-from ..irf import CutOptimising, DataBinning, EnergyBinning, EventPreProcessor
+from ..irf import CutOptimising, DataBinning, EventPreProcessor, OutputEnergyBinning
 
 
 class Spectra(Enum):
@@ -115,7 +115,7 @@ class IrfTool(Tool):
         default_value=3.0, help="Radius used to calculate background rate in degrees"
     ).tag(config=True)
 
-    classes = [CutOptimising, DataBinning, EnergyBinning, EventPreProcessor]
+    classes = [CutOptimising, DataBinning, OutputEnergyBinning, EventPreProcessor]
 
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
 
@@ -213,7 +213,7 @@ class IrfTool(Tool):
 
     def setup(self):
         self.co = CutOptimising(parent=self)
-        self.e_bins = EnergyBinning(parent=self)
+        self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = DataBinning(parent=self)
         self.epp = EventPreProcessor(parent=self)
 
@@ -227,34 +227,13 @@ class IrfTool(Tool):
 
     def start(self):
         self.load_preselected_events()
-        self.gh_cuts, sens2 = self.co.optimise_gh_cut(
+        self.gh_cuts, self.theta_cuts_opt, sens2 = self.co.optimise_gh_cut(
             self.signal,
             self.background,
-            self.true_energy_bins,
-            self.reco_energy_bins,
-            self.bins,
             self.alpha,
             self.max_bg_radius,
         )
 
-        # now that we have the optimized gh cuts, we recalculate the theta
-        # cut as 68 percent containment on the events surviving these cuts.
-        self.log.info("Recalculating theta cut for optimized GH Cuts")
-        for tab in (self.signal, self.background):
-            tab["selected_gh"] = evaluate_binned_cut(
-                tab["gh_score"], tab["reco_energy"], self.gh_cuts, operator.ge
-            )
-
-        self.theta_cuts_opt = calculate_percentile_cut(
-            self.signal[self.signal["selected_gh"]]["theta"],
-            self.signal[self.signal["selected_gh"]]["reco_energy"],
-            self.true_energy_bins,
-            percentile=68,
-            min_value=self.bins.theta_min_angle * u.deg,
-            max_value=self.bins.theta_max_angle * u.deg,
-            fill_value=self.bins.theta_fill_value * u.deg,
-            min_events=self.bins.theta_min_counts,
-        )
         self.signal["selected_theta"] = evaluate_binned_cut(
             self.signal["theta"],
             self.signal["reco_energy"],
