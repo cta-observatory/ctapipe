@@ -1,3 +1,8 @@
-from .irf_classes import CutOptimising, DataBinning, EnergyBinning, EventPreProcessor
+from .irf_classes import (
+    CutOptimising,
+    DataBinning,
+    EventPreProcessor,
+    OutputEnergyBinning,
+)
 
-__all__ = ["CutOptimising", "DataBinning", "EnergyBinning", "EventPreProcessor"]
+__all__ = ["CutOptimising", "DataBinning", "OutputEnergyBinning", "EventPreProcessor"]
