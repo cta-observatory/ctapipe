@@ -8,29 +8,72 @@ import numpy as np
 from astropy.table import QTable
 from pyirf.binning import create_bins_per_decade
 from pyirf.cut_optimization import optimize_gh_cut
-from pyirf.cuts import calculate_percentile_cut
+from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import Float, Integer, List, Unicode
 
 
 class CutOptimising(Component):
-    """Collects settings related to the cut configuration"""
+    """Performs cut optimisation"""
 
     max_gh_cut_efficiency = Float(
         default_value=0.8, help="Maximum gamma efficiency requested"
     ).tag(config=True)
+
     gh_cut_efficiency_step = Float(
         default_value=0.1,
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
+
     initial_gh_cut_efficency = Float(
         default_value=0.4, help="Start value of gamma efficiency before optimisation"
     ).tag(config=True)
 
-    def optimise_gh_cut(
-        self, signal, background, Et_bins, Er_bins, bins, alpha, max_bg_radius
-    ):
+    reco_energy_min = Float(
+        help="Minimum value for Reco Energy bins in TeV units",
+        default_value=0.005,
+    ).tag(config=True)
+
+    reco_energy_max = Float(
+        help="Maximum value for Reco Energy bins in TeV units",
+        default_value=200,
+    ).tag(config=True)
+
+    reco_energy_n_bins_per_decade = Float(
+        help="Number of edges per decade for Reco Energy bins",
+        default_value=5,
+    ).tag(config=True)
+
+    theta_min_angle = Float(
+        default_value=0.05, help="Smallest angular cut value allowed"
+    ).tag(config=True)
+
+    theta_max_angle = Float(
+        default_value=0.32, help="Largest angular cut value allowed"
+    ).tag(config=True)
+
+    theta_min_counts = Integer(
+        default_value=10,
+        help="Minimum number of events in a bin to attempt to find a cut value",
+    ).tag(config=True)
+
+    theta_fill_value = Float(
+        default_value=0.32, help="Angular cut value used for bins with too few events"
+    ).tag(config=True)
+
+    def reco_energy_bins(self):
+        """
+        Creates bins per decade for reconstructed MC energy using pyirf function.
+        """
+        reco_energy = create_bins_per_decade(
+            self.reco_energy_min * u.TeV,
+            self.reco_energy_max * u.TeV,
+            self.reco_energy_n_bins_per_decade,
+        )
+        return reco_energy
+
+    def optimise_gh_cut(self, signal, background, alpha, max_bg_radius):
         INITIAL_GH_CUT = np.quantile(
             signal["gh_score"], (1 - self.initial_gh_cut_efficency)
         )
@@ -43,11 +86,11 @@ class CutOptimising(Component):
         theta_cuts = calculate_percentile_cut(
             signal["theta"][mask_theta_cuts],
             signal["reco_energy"][mask_theta_cuts],
-            bins=Et_bins,
-            min_value=bins.theta_min_angle * u.deg,
-            max_value=bins.theta_max_angle * u.deg,
-            fill_value=bins.theta_fill_value * u.deg,
-            min_events=bins.theta_min_counts,
+            bins=self.reco_energy_bins(),
+            min_value=self.theta_min_angle * u.deg,
+            max_value=self.theta_max_angle * u.deg,
+            fill_value=self.theta_fill_value * u.deg,
+            min_events=self.theta_min_counts,
             percentile=68,
         )
 
@@ -61,14 +104,33 @@ class CutOptimising(Component):
         sens2, gh_cuts = optimize_gh_cut(
             signal,
             background,
-            reco_energy_bins=Er_bins,
+            reco_energy_bins=self.reco_energy_bins(),
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
             theta_cuts=theta_cuts,
             alpha=alpha,
             fov_offset_max=max_bg_radius * u.deg,
         )
-        return gh_cuts, sens2
+
+        # now that we have the optimized gh cuts, we recalculate the theta
+        # cut as 68 percent containment on the events surviving these cuts.
+        self.log.info("Recalculating theta cut for optimized GH Cuts")
+        for tab in (signal, background):
+            tab["selected_gh"] = evaluate_binned_cut(
+                tab["gh_score"], tab["reco_energy"], gh_cuts, operator.ge
+            )
+
+        theta_cuts = calculate_percentile_cut(
+            signal[signal["selected_gh"]]["theta"],
+            signal[signal["selected_gh"]]["reco_energy"],
+            self.reco_energy_bins(),
+            percentile=68,
+            min_value=self.theta_min_angle * u.deg,
+            max_value=self.theta_max_angle * u.deg,
+            fill_value=self.theta_fill_value * u.deg,
+            min_events=self.theta_min_counts,
+        )
+        return gh_cuts, theta_cuts, sens2
 
 
 class EventPreProcessor(QualityQuery):
@@ -166,7 +228,7 @@ class EventPreProcessor(QualityQuery):
         return QTable(names=columns, units=units)
 
 
-class EnergyBinning(Component):
+class OutputEnergyBinning(Component):
     """Collects energy binning settings"""
 
     true_energy_min = Float(
@@ -186,12 +248,12 @@ class EnergyBinning(Component):
 
     reco_energy_min = Float(
         help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.005,
+        default_value=0.006,
     ).tag(config=True)
 
     reco_energy_max = Float(
         help="Maximum value for Reco Energy bins in TeV units",
-        default_value=200,
+        default_value=190,
     ).tag(config=True)
 
     reco_energy_n_bins_per_decade = Float(
@@ -255,23 +317,6 @@ class DataBinning(Component):
 
     Stolen from LSTChain
     """
-
-    theta_min_angle = Float(
-        default_value=0.05, help="Smallest angular cut value allowed"
-    ).tag(config=True)
-
-    theta_max_angle = Float(
-        default_value=0.32, help="Largest angular cut value allowed"
-    ).tag(config=True)
-
-    theta_min_counts = Integer(
-        default_value=10,
-        help="Minimum number of events in a bin to attempt to find a cut value",
-    ).tag(config=True)
-
-    theta_fill_value = Float(
-        default_value=0.32, help="Angular cut value used for bins with too few events"
-    ).tag(config=True)
 
     fov_offset_min = Float(
         help="Minimum value for FoV Offset bins in degrees",
