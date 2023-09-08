@@ -150,22 +150,22 @@ nitpick_ignore = [
 
 sphinx_gallery_conf = {
     "examples_dirs": [
-        "../examples/examples",
+        "user-guide/examples",
     ],  # path to your example scripts
     "gallery_dirs": [
         "user-guide/examples",
     ],  # path to where to save gallery generated output
     "subsection_order": ExplicitOrder(
         [
-            "../examples/examples/algorithms",
-            "../examples/examples/core",
-            "../examples/examples/visualization",
-            "../examples/examples/tutorials",
+            "user-guide/examples/tutorials",
+            "user-guide/examples/algorithms",
+            "user-guide/examples/core",
+            "user-guide/examples/visualization",
         ]
     ),
     "within_subsection_order": FileNameSortKey,
     "nested_sections": False,
-    "copyfile_regex": r"index.rst|.*\.png|.*\.json",
+    # "copyfile_regex": r".*\.rst|.*\.png|.*\.json",
     "filename_pattern": r".*\.py",
     "promote_jupyter_magic": True,
     "line_numbers": True,
@@ -229,8 +229,7 @@ exclude_patterns = [
     "changes",
     "user-guide/examples/*/*.ipynb",
     "user-guide/examples/*/*.py",
-    "user-guide/tutorials/*.ipynb",
-    "user-guide/tutorials/*.py",
+    "user-guide/examples/*/README.rst",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -245,7 +244,7 @@ todo_include_todos = True
 # Define the json_url for our version switcher.
 json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
 
-# Define the version we use for matching in the version switcher.
+# Define the version we use for matching in the version switcher.,
 version_match = os.getenv("READTHEDOCS_VERSION")
 # If READTHEDOCS_VERSION doesn't exist, we're not on RTD
 # If it is an integer, we're in a PR build and the version isn't correct.

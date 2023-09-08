@@ -15,15 +15,18 @@ help:
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile examples
+%: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-examples:
-	mkdir -p user-guide/examples
 
 clean:
 	rm -rf api
-	rm -rf user-guide/examples
+	rm -rf user-guide/examples/*.zip
+	rm -rf user-guide/examples/*.rst
+	rm -rf user-guide/examples/*/*.ipynb
+	rm -rf user-guide/examples/*/*.py.md5
+	rm -rf user-guide/examples/*/*.pickle
+	rm -rf user-guide/examples/*/*.rst
+	rm -rf user-guide/examples/*/images
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 
