@@ -36,7 +36,7 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
 from ..io import TableLoader
-from ..irf import CutOptimising, DataBinning, EventPreProcessor, OutputEnergyBinning
+from ..irf import CutOptimizer, DataBinning, EventPreProcessor, OutputEnergyBinning
 
 
 class Spectra(Enum):
@@ -115,7 +115,7 @@ class IrfTool(Tool):
         default_value=3.0, help="Radius used to calculate background rate in degrees"
     ).tag(config=True)
 
-    classes = [CutOptimising, DataBinning, OutputEnergyBinning, EventPreProcessor]
+    classes = [CutOptimizer, DataBinning, OutputEnergyBinning, EventPreProcessor]
 
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
 
@@ -154,11 +154,25 @@ class IrfTool(Tool):
     def get_metadata(self, loader):
         obs = loader.read_observation_information()
         sim = loader.read_simulation_configuration()
+        show = loader.read_shower_distribution()
 
         # These sims better have the same viewcone!
+        if not np.diff(sim["energy_range_max"]).sum() == 0:
+            raise NotImplementedError(
+                "Unsupported: 'energy_range_max' differs across simulation runs"
+            )
+        if not np.diff(sim["energy_range_min"]).sum() == 0:
+            raise NotImplementedError(
+                "Unsupported: 'energy_range_min' differs across simulation runs"
+            )
+        if not np.diff(sim["spectral_index"]).sum() == 0:
+            raise NotImplementedError(
+                "Unsupported: 'spectral_index' differs across simulation runs"
+            )
+
         assert sim["max_viewcone_radius"].std() == 0
         sim_info = SimulatedEventsInfo(
-            n_showers=sum(sim["n_showers"] * sim["shower_reuse"]),
+            n_showers=show["n_entries"].sum(),
             energy_min=sim["energy_range_min"].quantity[0],
             energy_max=sim["energy_range_max"].quantity[0],
             max_impact=sim["max_scatter_range"].quantity[0],
@@ -208,11 +222,13 @@ class IrfTool(Tool):
                 reduced_events[kind] = table
 
         select_ON = reduced_events["gamma"]["theta"] <= self.ON_radius * u.deg
-        self.signal = reduced_events["gamma"][select_ON]
-        self.background = vstack([reduced_events["proton"], reduced_events["electron"]])
+        self.signal_events = reduced_events["gamma"][select_ON]
+        self.background_events = vstack(
+            [reduced_events["proton"], reduced_events["electron"]]
+        )
 
     def setup(self):
-        self.co = CutOptimising(parent=self)
+        self.co = CutOptimizer(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = DataBinning(parent=self)
         self.epp = EventPreProcessor(parent=self)
@@ -227,30 +243,31 @@ class IrfTool(Tool):
 
     def start(self):
         self.load_preselected_events()
-        self.gh_cuts, self.theta_cuts_opt, sens2 = self.co.optimise_gh_cut(
-            self.signal,
-            self.background,
+        self.gh_cuts, self.theta_cuts_opt, self.sens2 = self.co.optimise_gh_cut(
+            self.signal_events,
+            self.background_events,
             self.alpha,
             self.max_bg_radius,
         )
 
-        self.signal["selected_theta"] = evaluate_binned_cut(
-            self.signal["theta"],
-            self.signal["reco_energy"],
+        self.signal_events["selected_theta"] = evaluate_binned_cut(
+            self.signal_events["theta"],
+            self.signal_events["reco_energy"],
             self.theta_cuts_opt,
             operator.le,
         )
-        self.signal["selected"] = (
-            self.signal["selected_theta"] & self.signal["selected_gh"]
+        self.signal_events["selected"] = (
+            self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
         )
 
         # calculate sensitivity
         signal_hist = create_histogram_table(
-            self.signal[self.signal["selected"]], bins=self.reco_energy_bins
+            self.signal_events[self.signal_events["selected"]],
+            bins=self.reco_energy_bins,
         )
 
         background_hist = estimate_background(
-            self.background[self.background["selected_gh"]],
+            self.background_events[self.background_events["selected_gh"]],
             reco_energy_bins=self.reco_energy_bins,
             theta_cuts=self.theta_cuts_opt,
             alpha=self.alpha,
@@ -262,30 +279,30 @@ class IrfTool(Tool):
         )
 
         # scale relative sensitivity by Crab flux to get the flux sensitivity
-        for s in (sens2, self.sensitivity):
+        for s in (self.sens2, self.sensitivity):
             s["flux_sensitivity"] = s["relative_sensitivity"] * self.spectrum(
                 s["reco_energy_center"]
             )
 
     def finish(self):
         masks = {
-            "": self.signal["selected"],
+            "": self.signal_events["selected"],
             "_NO_CUTS": slice(None),
-            "_ONLY_GH": self.signal["selected_gh"],
-            "_ONLY_THETA": self.signal["selected_theta"],
+            "_ONLY_GH": self.signal_events["selected_gh"],
+            "_ONLY_THETA": self.signal_events["selected_theta"],
         }
         hdus = [
             fits.PrimaryHDU(),
             fits.BinTableHDU(self.sensitivity, name="SENSITIVITY"),
-            #            fits.BinTableHDU(sensitivity_step_2, name="SENSITIVITY_STEP_2"),
-            #            fits.BinTableHDU(self.theta_cuts, name="THETA_CUTS"),
+            fits.BinTableHDU(self.sens2, name="SENSITIVITY_STEP_2"),
+            fits.BinTableHDU(self.theta_cuts, name="THETA_CUTS"),
             fits.BinTableHDU(self.theta_cuts_opt, name="THETA_CUTS_OPT"),
             fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
         ]
 
         for label, mask in masks.items():
             effective_area = effective_area_per_energy(
-                self.signal[mask],
+                self.signal_events[mask],
                 self.sim_info,
                 true_energy_bins=self.true_energy_bins,
             )
@@ -300,7 +317,7 @@ class IrfTool(Tool):
                 )
             )
             edisp = energy_dispersion(
-                self.signal[mask],
+                self.signal_events[mask],
                 true_energy_bins=self.true_energy_bins,
                 fov_offset_bins=self.fov_offset_bins,
                 migration_bins=self.energy_migration_bins,
@@ -317,7 +334,7 @@ class IrfTool(Tool):
         # Here we use reconstructed energy instead of true energy for the sake of
         # current pipelines comparisons
         bias_resolution = energy_bias_resolution(
-            self.signal[self.signal["selected"]],
+            self.signal_events[self.signal_events["selected"]],
             self.reco_energy_bins,
             energy_type="reco",
         )
@@ -326,14 +343,14 @@ class IrfTool(Tool):
         # Here we use reconstructed energy instead of true energy for the sake of
         # current pipelines comparisons
         ang_res = angular_resolution(
-            self.signal[self.signal["selected_gh"]],
+            self.signal_events[self.signal_events["selected_gh"]],
             self.reco_energy_bins,
             energy_type="reco",
         )
         hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
 
         background_rate = background_2d(
-            self.background[self.background["selected_gh"]],
+            self.background_events[self.background_events["selected_gh"]],
             self.reco_energy_bins,
             fov_offset_bins=self.bkg_fov_offset_bins,
             t_obs=self.obs_time * u.Unit(self.obs_time_unit),
@@ -347,7 +364,7 @@ class IrfTool(Tool):
         )
 
         psf = psf_table(
-            self.signal[self.signal["selected_gh"]],
+            self.signal_events[self.signal_events["selected_gh"]],
             self.true_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
             source_offset_bins=self.source_offset_bins,
@@ -374,6 +391,7 @@ class IrfTool(Tool):
             self.output_path,
             overwrite=self.overwrite,
         )
+        Provenance().add_output_file(self.output_path, role="IRF")
 
 
 def main():

@@ -14,7 +14,7 @@ from ..core import Component, QualityQuery
 from ..core.traits import Float, Integer, List, Unicode
 
 
-class CutOptimising(Component):
+class CutOptimizer(Component):
     """Performs cut optimisation"""
 
     max_gh_cut_efficiency = Float(
