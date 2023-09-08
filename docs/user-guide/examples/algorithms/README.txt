@@ -1,4 +1,4 @@
+.. _algorithms-examples-gallery:
+
 Algorithms
 ----------
-
-.. _algorithms-examples-gallery:

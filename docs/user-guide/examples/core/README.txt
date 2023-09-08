@@ -1,4 +1,4 @@
+.. _core-examples-gallery:
+
 Core Functionality
 ------------------
-
-.. _core-examples-gallery:

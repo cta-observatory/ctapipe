@@ -1,4 +1,4 @@
+.. _visualization-examples-gallery:
+
 Visualization
 -------------
-
-.. _visualization-examples-gallery:
