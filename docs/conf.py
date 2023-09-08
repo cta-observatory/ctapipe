@@ -150,15 +150,15 @@ sphinx_gallery_conf = {
         "../examples/tutorials",
     ],  # path to your example scripts
     "gallery_dirs": [
-        "examples",
-        "tutorials",
+        "user-guide/examples",
+        "user-guide/tutorials",
     ],  # path to where to save gallery generated output
     "nested_sections": True,
     "copyfile_regex": r"index.rst|.*\.png|.*\.json",
     "filename_pattern": r".*\.py",
     "promote_jupyter_magic": True,
     "line_numbers": True,
-    "default_thumb_file": "ctapipe_logo.png",
+    "default_thumb_file": "_static/ctapipe_logo.png",
     "pypandoc": True,
     "matplotlib_animations": True,
 }
@@ -216,10 +216,10 @@ exclude_patterns = [
     ".DS_Store",
     "**.ipynb_checkpoints",
     "changes",
-    "examples/*/*.ipynb",
-    "examples/*/*.py",
-    "tutorials/*.ipynb",
-    "tutorials/*.py",
+    "user-guide/examples/*/*.ipynb",
+    "user-guide/examples/*/*.py",
+    "user-guide/tutorials/*.ipynb",
+    "user-guide/tutorials/*.py",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
