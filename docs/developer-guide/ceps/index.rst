@@ -14,11 +14,11 @@ can be found on GitHub as `pull requests with the "CEP" label`_ .
 Accepted CEPs
 =============
 
-.. .. toctree::
-..    :maxdepth: 1
-..    :glob:
+.. toctree::
+   :maxdepth: 1
+   :glob:
 
-..    accepted/*
+   accepted/*
 
 Proposed CEPs
 =============
@@ -32,12 +32,11 @@ Proposed CEPs
 Rejected CEPs
 =============
 
-..
-   toctree::
-   :maxdepth: 1
-   :glob:
+.. .. toctree::
+..    :maxdepth: 1
+..    :glob:
 
-   rejected/*
+..    rejected/*
 
 
 .. _pull requests with the "cep" label: https://github.com/cta-observatory/ctapipe/issues?q=label%3ACEP
