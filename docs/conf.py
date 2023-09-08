@@ -29,6 +29,9 @@ import os
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
 
+# Sphinx gallery
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+
 import ctapipe
 
 setup_cfg = ConfigParser()
@@ -144,16 +147,24 @@ nitpick_ignore = [
 ]
 
 # Sphinx gallery config
+
 sphinx_gallery_conf = {
     "examples_dirs": [
         "../examples/examples",
-        "../examples/tutorials",
     ],  # path to your example scripts
     "gallery_dirs": [
         "user-guide/examples",
-        "user-guide/tutorials",
     ],  # path to where to save gallery generated output
-    "nested_sections": True,
+    "subsection_order": ExplicitOrder(
+        [
+            "../examples/examples/algorithms",
+            "../examples/examples/core",
+            "../examples/examples/visualization",
+            "../examples/examples/tutorials",
+        ]
+    ),
+    "within_subsection_order": FileNameSortKey,
+    "nested_sections": False,
     "copyfile_regex": r"index.rst|.*\.png|.*\.json",
     "filename_pattern": r".*\.py",
     "promote_jupyter_magic": True,
