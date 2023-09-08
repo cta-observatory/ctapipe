@@ -25,6 +25,7 @@ Proposed CEPs
 
 .. toctree::
    :maxdepth: 1
+   :glob:
 
    proposed/*
 
