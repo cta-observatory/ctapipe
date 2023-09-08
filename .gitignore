@@ -1,3 +1,4 @@
+
 .pytest_cache
 *.log
 
@@ -11,6 +12,15 @@ __pycache__
 # ignore version cache file (generated automatically when setup.py is run)
 ctapipe/_version_cache.py
 ctapipe/_version.py
+
+# created by sphinx gallery
+docs/user-guide/examples/**/*.ipynb
+docs/user-guide/examples/**/*.py.md5
+docs/user-guide/examples/**/*.rst
+docs/user-guide/examples/**/*_codeobj.pickle
+docs/user-guide/examples/**/images
+docs/user-guide/examples/examples_jupyter.zip
+docs/user-guide/examples/examples_python.zip
 
 # Ignore .c files by default to avoid including generated code. If you want to
 # add a non-generated .c extension, use `git add -f filename.c`.
