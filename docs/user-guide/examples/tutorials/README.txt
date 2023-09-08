@@ -1,6 +1,6 @@
-.. _tutorials_gallery:
+.. _tutorials:
 
-Tutorials gallery
+Tutorials
 =================
 
 This gallery contains different tutorials of different use cases for ctapipe.
