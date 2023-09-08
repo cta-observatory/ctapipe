@@ -118,7 +118,6 @@ class IrfTool(Tool):
     classes = [CutOptimizer, DataBinning, OutputEnergyBinning, EventPreProcessor]
 
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
-
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
             assert all(obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
@@ -156,19 +155,11 @@ class IrfTool(Tool):
         sim = loader.read_simulation_configuration()
         show = loader.read_shower_distribution()
 
-        # These sims better have the same viewcone!
-        if not np.diff(sim["energy_range_max"]).sum() == 0:
-            raise NotImplementedError(
-                "Unsupported: 'energy_range_max' differs across simulation runs"
-            )
-        if not np.diff(sim["energy_range_min"]).sum() == 0:
-            raise NotImplementedError(
-                "Unsupported: 'energy_range_min' differs across simulation runs"
-            )
-        if not np.diff(sim["spectral_index"]).sum() == 0:
-            raise NotImplementedError(
-                "Unsupported: 'spectral_index' differs across simulation runs"
-            )
+        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
+            if len(np.unique(sim[itm])) > 1:
+                raise NotImplementedError(
+                    f"Unsupported: '{itm}' differs across simulation runs"
+                )
 
         assert sim["max_viewcone_radius"].std() == 0
         sim_info = SimulatedEventsInfo(
