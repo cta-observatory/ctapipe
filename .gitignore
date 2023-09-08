@@ -86,7 +86,4 @@ distribute-*.tar.gz
 target
 .mypy_cache
 
-examples/notebooks/*.html
-examples/notebooks/*.png
-
 provenance.log
