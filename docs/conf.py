@@ -4,7 +4,7 @@
 # ctapipe documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  6 10:22:58 2017.
 #
-# This file is execfile()d with the current directory set to its
+# Thi file is execfile()d with the current directory set to its
 # containing dir.
 #
 # Note that not all possible configuration values are present in this
@@ -152,9 +152,6 @@ sphinx_gallery_conf = {
     "examples_dirs": [
         "user-guide/examples",
     ],  # path to your example scripts
-    "gallery_dirs": [
-        "user-guide/examples",
-    ],  # path to where to save gallery generated output
     "subsection_order": ExplicitOrder(
         [
             "user-guide/examples/tutorials",
@@ -165,8 +162,8 @@ sphinx_gallery_conf = {
     ),
     "within_subsection_order": FileNameSortKey,
     "nested_sections": False,
-    # "copyfile_regex": r".*\.rst|.*\.png|.*\.json",
     "filename_pattern": r".*\.py",
+    "copyfile_regex": r".*\.png",
     "promote_jupyter_magic": True,
     "line_numbers": True,
     "default_thumb_file": "_static/ctapipe_logo.png",
@@ -227,9 +224,12 @@ exclude_patterns = [
     ".DS_Store",
     "**.ipynb_checkpoints",
     "changes",
-    "user-guide/examples/*/*.ipynb",
-    "user-guide/examples/*/*.py",
     "user-guide/examples/*/README.rst",
+    "user-guide/examples/README.rst",
+    "auto_examples/index.rst",
+    "auto_examples/*/*.py.md5",
+    "auto_examples/*/*.py",
+    "auto_examples/*/*.ipynb",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
