@@ -19,14 +19,7 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 clean:
-	rm -rf api
-	rm -rf user-guide/examples/*.zip
-	rm -rf user-guide/examples/*.rst
-	rm -rf user-guide/examples/*/*.ipynb
-	rm -rf user-guide/examples/*/*.py.md5
-	rm -rf user-guide/examples/*/*.pickle
-	rm -rf user-guide/examples/*/*.rst
-	rm -rf user-guide/examples/*/images
+	rm -rf api auto_examples
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 
