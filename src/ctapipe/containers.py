@@ -38,9 +38,6 @@ __all__ = [
     "MuonParametersContainer",
     "MuonTelescopeContainer",
     "MuonContainer",
-    "BaseHillasParametersContainer",
-    "CameraHillasParametersContainer",
-    "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
     "PedestalContainer",
     "PixelStatusContainer",
@@ -57,7 +54,6 @@ __all__ = [
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
     "TelEventIndexContainer",
-    "BaseTimingParametersContainer",
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
@@ -281,44 +277,7 @@ class TelEventIndexContainer(Container):
     tel_id = tel_id_field()
 
 
-class BaseHillasParametersContainer(Container):
-    """
-    Base container for hillas parameters to
-    allow the CameraHillasParametersContainer to
-    be assigned to an ImageParametersContainer as well.
-    """
-
-    intensity = Field(nan, "total intensity (size)")
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
-
-
-class CameraHillasParametersContainer(BaseHillasParametersContainer):
-    """
-    Hillas Parameters in the camera frame. The cog position
-    is given in meter from the camera center.
-    """
-
-    default_prefix = "camera_frame_hillas"
-    x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
-    y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
-    r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
-    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
-
-    length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
-    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
-    width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
-    width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
-    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
-    psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
-    transverse_cog_uncertainty = Field(
-        nan * u.m,
-        "uncertainty on the center of gravity along the transverse axis of the image",
-        unit=u.m,
-    )
-
-
-class HillasParametersContainer(BaseHillasParametersContainer):
+class HillasParametersContainer(Container):
     """
     Hillas Parameters in a spherical system centered on the pointing position
     (TelescopeFrame). The cog position is given as offset in
@@ -326,6 +285,11 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     """
 
     default_prefix = "hillas"
+
+    intensity = Field(nan, "total intensity (size)")
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
+
     fov_lon = Field(
         nan * u.deg,
         "longitude angle in a spherical system centered on the pointing position",
@@ -392,43 +356,25 @@ class ConcentrationContainer(Container):
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
 
 
-class BaseTimingParametersContainer(Container):
+class TimingParametersContainer(Container):
     """
-    Base container for timing parameters to
-    allow the CameraTimingParametersContainer to
-    be assigned to an ImageParametersContainer as well.
+    Image timing parameters.
+
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis in a spherical system centered
+    on the pointing position (TelescopeFrame)
     """
 
+    default_prefix = "timing"
+
+    slope = Field(
+        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
+    )
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
         "with respect to the predicted time",
-    )
-
-
-class CameraTimingParametersContainer(BaseTimingParametersContainer):
-    """
-    Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis in the camera frame.
-    """
-
-    default_prefix = "camera_frame_timing"
-    slope = Field(
-        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
-    )
-
-
-class TimingParametersContainer(BaseTimingParametersContainer):
-    """
-    Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis in a
-    spherical system centered on the pointing position (TelescopeFrame)
-    """
-
-    default_prefix = "timing"
-    slope = Field(
-        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
     )
 
 
@@ -496,12 +442,11 @@ class ImageParametersContainer(Container):
     hillas = Field(
         default_factory=HillasParametersContainer,
         description="Hillas Parameters",
-        type=BaseHillasParametersContainer,
     )
     timing = Field(
         default_factory=TimingParametersContainer,
         description="Timing Parameters",
-        type=BaseTimingParametersContainer,
+        type=TimingParametersContainer,
     )
     leakage = Field(
         default_factory=LeakageContainer,

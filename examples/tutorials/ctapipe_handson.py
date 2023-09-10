@@ -22,6 +22,7 @@ from matplotlib import pyplot as plt
 
 from ctapipe import utils
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean
 from ctapipe.io import EventSource, HDF5TableWriter
 from ctapipe.visualization import CameraDisplay
@@ -129,20 +130,21 @@ tel.camera
 tel.optics
 
 ######################################################################
-tel.camera.geometry.pix_x
+geom = tel.camera.geometry.transform_to(TelescopeFrame())
+geom.pix_x
 
 ######################################################################
-tel.camera.geometry.to_table()
+geom.to_table()
 
 ######################################################################
 tel.optics.mirror_area
 
 
 ######################################################################
-disp = CameraDisplay(tel.camera.geometry)
+disp = CameraDisplay(geom)
 
 ######################################################################
-disp = CameraDisplay(tel.camera.geometry)
+disp = CameraDisplay(geom)
 disp.image = r0tel.waveform[
     0, :, 10
 ]  # display channel 0, sample 0 (try others like 10)
@@ -180,10 +182,10 @@ dl1tel.image.shape  # note this will be gain-selected in next version, so will b
 dl1tel.peak_time
 
 ######################################################################
-CameraDisplay(tel.camera.geometry, image=dl1tel.image)
+CameraDisplay(geom, image=dl1tel.image)
 
 ######################################################################
-CameraDisplay(tel.camera.geometry, image=dl1tel.peak_time)
+CameraDisplay(geom, image=dl1tel.peak_time)
 
 
 ######################################################################
@@ -192,33 +194,33 @@ CameraDisplay(tel.camera.geometry, image=dl1tel.peak_time)
 
 
 image = dl1tel.image
-mask = tailcuts_clean(tel.camera.geometry, image, picture_thresh=10, boundary_thresh=5)
+mask = tailcuts_clean(geom, image, picture_thresh=10, boundary_thresh=5)
 mask
 
 ######################################################################
-CameraDisplay(tel.camera.geometry, image=mask)
+CameraDisplay(geom, image=mask)
 
 ######################################################################
 cleaned = image.copy()
 cleaned[~mask] = 0
 
 ######################################################################
-disp = CameraDisplay(tel.camera.geometry, image=cleaned)
+disp = CameraDisplay(geom, image=cleaned)
 disp.cmap = plt.cm.coolwarm
 disp.add_colorbar()
-plt.xlim(0.5, 1.0)
-plt.ylim(-1.0, 0.0)
+plt.xlim(1.0, 2.0)
+plt.ylim(-2.0, -1.0)
 
 ######################################################################
-params = hillas_parameters(tel.camera.geometry, cleaned)
+params = hillas_parameters(geom, cleaned)
 print(params)
 
 ######################################################################
-disp = CameraDisplay(tel.camera.geometry, image=cleaned)
+disp = CameraDisplay(geom, image=cleaned)
 disp.cmap = plt.cm.coolwarm
 disp.add_colorbar()
-plt.xlim(0.5, 1.0)
-plt.ylim(-1.0, 0.0)
+plt.xlim(1.0, 2.0)
+plt.ylim(-2.0, 1.0)
 disp.overlay_moments(params, color="white", lw=2)
 
 
@@ -258,9 +260,10 @@ for event in source:
 
     for tel_id, tel_data in event.dl1.tel.items():
         tel = source.subarray.tel[tel_id]
-        mask = tailcuts_clean(tel.camera.geometry, tel_data.image)
+        geom = tel.camera.geometry.transform_to(TelescopeFrame())
+        mask = tailcuts_clean(geom, tel_data.image)
         if np.count_nonzero(mask) > 0:
-            params = hillas_parameters(tel.camera.geometry[mask], tel_data.image[mask])
+            params = hillas_parameters(geom[mask], tel_data.image[mask])
 
 
 ######################################################################
@@ -271,8 +274,9 @@ with HDF5TableWriter(filename="hillas.h5", group_name="dl1", overwrite=True) as 
 
         for tel_id, tel_data in event.dl1.tel.items():
             tel = source.subarray.tel[tel_id]
-            mask = tailcuts_clean(tel.camera.geometry, tel_data.image)
-            params = hillas_parameters(tel.camera.geometry[mask], tel_data.image[mask])
+            geom = tel.camera.geometry.transform_to(TelescopeFrame())
+            mask = tailcuts_clean(geom, tel_data.image)
+            params = hillas_parameters(geom[mask], tel_data.image[mask])
             writer.write("hillas", params)
 
 
