@@ -2,7 +2,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 
-from ..containers import CameraHillasParametersContainer, HillasParametersContainer
+from ..containers import HillasParametersContainer
 
 
 def build_hillas_overlay(hillas, unit, with_label=True, n_sigma=1):
@@ -15,17 +15,11 @@ def build_hillas_overlay(hillas, unit, with_label=True, n_sigma=1):
     except u.UnitsError:
         raise ValueError("hillas must be in same frame as geometry")
 
-    # strip off any units
     if isinstance(hillas, HillasParametersContainer):
         cog_x = hillas.fov_lon.to_value(unit)
         cog_y = hillas.fov_lat.to_value(unit)
-    elif isinstance(hillas, CameraHillasParametersContainer):
-        cog_x = hillas.x.to_value(unit)
-        cog_y = hillas.y.to_value(unit)
     else:
-        raise TypeError(
-            f"hillas must be a (Camera)HillasParametersContainer, got: {hillas} "
-        )
+        raise TypeError(f"hillas must be a HillasParametersContainer, got: {hillas} ")
 
     psi_rad = hillas.psi.to_value(u.rad)
     psi_deg = Angle(hillas.psi).wrap_at(180 * u.deg).to_value(u.deg)
