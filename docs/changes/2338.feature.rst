@@ -1,1 +1,0 @@
-Added missing fields defined in the CTAO R1 and DL0 data models to the corresponding containers.

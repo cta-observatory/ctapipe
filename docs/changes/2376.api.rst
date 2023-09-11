@@ -1,2 +1,0 @@
-Change the fill value for invalid telescope ids in ``SubarrayDescription.tel_index_array``
-from ``-1`` to ``np.iinfo(int).minval`` to prevent ``-1`` being used as an index resulting in the last element being used for invalid telescope ids. 

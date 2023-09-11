@@ -1,2 +1,0 @@
-Remove ``EventSource.from_config``, simply use ``EventSource(config=config)`` or 
-``EventSource(parent=parent)``.
