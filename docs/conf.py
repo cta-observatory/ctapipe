@@ -150,14 +150,14 @@ nitpick_ignore = [
 
 sphinx_gallery_conf = {
     "examples_dirs": [
-        "user-guide/examples",
+        "../examples",
     ],  # path to your example scripts
     "subsection_order": ExplicitOrder(
         [
-            "user-guide/examples/tutorials",
-            "user-guide/examples/algorithms",
-            "user-guide/examples/core",
-            "user-guide/examples/visualization",
+            "../examples/tutorials",
+            "../examples/algorithms",
+            "../examples/core",
+            "../examples/visualization",
         ]
     ),
     "within_subsection_order": FileNameSortKey,
