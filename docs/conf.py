@@ -4,7 +4,7 @@
 # ctapipe documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  6 10:22:58 2017.
 #
-# This file is execfile()d with the current directory set to its
+# Thi file is execfile()d with the current directory set to its
 # containing dir.
 #
 # Note that not all possible configuration values are present in this
@@ -28,6 +28,9 @@ import os
 
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
+
+# Sphinx gallery
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import ctapipe
 
@@ -55,6 +58,7 @@ extensions = [
     "numpydoc",
     "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_gallery.gen_gallery",
 ]
 
 
@@ -142,6 +146,31 @@ nitpick_ignore = [
     ("py:class", "ctapipe.compat.StrEnum"),
 ]
 
+# Sphinx gallery config
+
+sphinx_gallery_conf = {
+    "examples_dirs": [
+        "../examples",
+    ],  # path to your example scripts
+    "subsection_order": ExplicitOrder(
+        [
+            "../examples/tutorials",
+            "../examples/algorithms",
+            "../examples/core",
+            "../examples/visualization",
+        ]
+    ),
+    "within_subsection_order": FileNameSortKey,
+    "nested_sections": False,
+    "filename_pattern": r".*\.py",
+    "copyfile_regex": r".*\.png",
+    "promote_jupyter_magic": True,
+    "line_numbers": True,
+    "default_thumb_file": "_static/ctapipe_logo.png",
+    "pypandoc": True,
+    "matplotlib_animations": True,
+}
+
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -195,6 +224,12 @@ exclude_patterns = [
     ".DS_Store",
     "**.ipynb_checkpoints",
     "changes",
+    "user-guide/examples/*/README.rst",
+    "user-guide/examples/README.rst",
+    "auto_examples/index.rst",
+    "auto_examples/*/*.py.md5",
+    "auto_examples/*/*.py",
+    "auto_examples/*/*.ipynb",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -209,7 +244,7 @@ todo_include_todos = True
 # Define the json_url for our version switcher.
 json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
 
-# Define the version we use for matching in the version switcher.
+# Define the version we use for matching in the version switcher.,
 version_match = os.getenv("READTHEDOCS_VERSION")
 # If READTHEDOCS_VERSION doesn't exist, we're not on RTD
 # If it is an integer, we're in a PR build and the version isn't correct.

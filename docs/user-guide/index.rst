@@ -9,6 +9,5 @@ User Guide
    getting-started
    tools
    data_models/index
-   tutorials/index
-   examples/index
+   examples_tutorials
    FAQ
