@@ -18,7 +18,7 @@ from pyirf.io import (
 )
 from pyirf.irf import (
     background_2d,
-    effective_area_per_energy,
+    effective_area_per_energy_and_fov,
     energy_dispersion,
     psf_table,
 )
@@ -108,9 +108,9 @@ class IrfTool(Tool):
     alpha = Float(
         default_value=0.2, help="Ratio between size of on and off regions"
     ).tag(config=True)
-    ON_radius = Float(default_value=1.0, help="Radius of ON region in degrees").tag(
-        config=True
-    )
+    # ON_radius = Float(default_value=1.0, help="Radius of ON region in degrees").tag(
+    #    config=True
+    # )
     max_bg_radius = Float(
         default_value=3.0, help="Radius used to calculate background rate in degrees"
     ).tag(config=True)
@@ -139,9 +139,12 @@ class IrfTool(Tool):
         events["reco_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="reco"
         )
-        # Gamma source is assumed to be pointlike
+        # TODO: Honestly not sure why this integral is needed, nor what
+        # are correct bounds
         if kind == "gamma":
-            spectrum = spectrum.integrate_cone(0 * u.deg, self.ON_radius * u.deg)
+            spectrum = spectrum.integrate_cone(
+                self.bins.fov_offset_min * u.deg, self.bins.fov_offset_max * u.deg
+            )
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=target_spectrum,
@@ -161,7 +164,6 @@ class IrfTool(Tool):
                     f"Unsupported: '{itm}' differs across simulation runs"
                 )
 
-        assert sim["max_viewcone_radius"].std() == 0
         sim_info = SimulatedEventsInfo(
             n_showers=show["n_entries"].sum(),
             energy_min=sim["energy_range_min"].quantity[0],
@@ -199,21 +201,44 @@ class IrfTool(Tool):
                     self.sim_info = sim_info
                     self.spectrum = spectrum
                 bits = [header]
+                n_raw_events = 0
                 for start, stop, events in load.read_subarray_events_chunked(
                     self.chunk_size
                 ):
-                    selected = self.epp.normalise_column_names(events)
-                    selected = selected[self.epp.get_table_mask(selected)]
+                    selected = events[self.epp.get_table_mask(events)]
+                    selected = self.epp.normalise_column_names(selected)
                     selected = self.make_derived_columns(
                         kind, selected, spectrum, target_spectrum, obs_conf
                     )
                     bits.append(selected)
+                    n_raw_events += len(events)
 
                 table = vstack(bits, join_type="exact")
                 reduced_events[kind] = table
+                reduced_events[f"{kind}_count"] = n_raw_events
 
-        select_ON = reduced_events["gamma"]["theta"] <= self.ON_radius * u.deg
-        self.signal_events = reduced_events["gamma"][select_ON]
+        self.log.debug(
+            "Loaded %d gammas, %d protons, %d electrons"
+            % (
+                reduced_events["gamma_count"],
+                reduced_events["proton_count"],
+                reduced_events["electron_count"],
+            )
+        )
+        self.log.debug(
+            "Keeping %d gammas, %d protons, %d electrons"
+            % (
+                len(reduced_events["gamma"]),
+                len(reduced_events["proton"]),
+                len(reduced_events["electron"]),
+            )
+        )
+        self.log.debug(self.epp.to_table())
+        select_fov = (
+            reduced_events["gamma"]["true_source_fov_offset"]
+            <= self.bins.fov_offset_max * u.deg
+        )
+        self.signal_events = reduced_events["gamma"][select_fov]
         self.background_events = vstack(
             [reduced_events["proton"], reduced_events["electron"]]
         )
@@ -234,6 +259,10 @@ class IrfTool(Tool):
 
     def start(self):
         self.load_preselected_events()
+        self.log.info(
+            "Optimising cuts using %d signal and %d background events"
+            % (len(self.signal_events), len(self.background_events)),
+        )
         self.gh_cuts, self.theta_cuts_opt, self.sens2 = self.co.optimise_gh_cut(
             self.signal_events,
             self.background_events,
@@ -286,16 +315,16 @@ class IrfTool(Tool):
             fits.PrimaryHDU(),
             fits.BinTableHDU(self.sensitivity, name="SENSITIVITY"),
             fits.BinTableHDU(self.sens2, name="SENSITIVITY_STEP_2"),
-            fits.BinTableHDU(self.theta_cuts, name="THETA_CUTS"),
             fits.BinTableHDU(self.theta_cuts_opt, name="THETA_CUTS_OPT"),
             fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
         ]
 
         for label, mask in masks.items():
-            effective_area = effective_area_per_energy(
+            effective_area = effective_area_per_energy_and_fov(
                 self.signal_events[mask],
                 self.sim_info,
                 true_energy_bins=self.true_energy_bins,
+                fov_offset_bins=self.fov_offset_bins,
             )
             self.log.debug(self.true_energy_bins)
             self.log.debug(self.fov_offset_bins)

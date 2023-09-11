@@ -149,9 +149,9 @@ class EventPreProcessor(QualityQuery):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-    preselect_criteria = List(
+    quality_criteria = List(
         default_value=[
-            ("multiplicity 4", "subarray.multiplicity(tels_with_trigger) >= 4"),
+            ("multiplicity 4", "np.count_nonzero(tels_with_trigger,axis=1) >= 4"),
             ("valid classifier", "RandomForestClassifier_is_valid"),
             ("valid geom reco", "HillasReconstructor_is_valid"),
             ("valid energy reco", "RandomForestRegressor_is_valid"),
@@ -325,7 +325,7 @@ class DataBinning(Component):
 
     fov_offset_max = Float(
         help="Maximum value for FoV offset bins in degrees",
-        default_value=1.1,
+        default_value=2.0,
     ).tag(config=True)
 
     fov_offset_n_edges = Integer(
