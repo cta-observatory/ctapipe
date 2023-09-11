@@ -1,2 +1,0 @@
-The ```HillasIntersection``` method used to fail when individual events were reconstructed to originate from a FoV offset of more than 90 degrees.
-This is now fixed by returning an INVALID container for a reconstructed offset of larger than 45 degrees.

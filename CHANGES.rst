@@ -1,3 +1,63 @@
+ctapipe v0.20.0 (2023-09-11)
+============================
+
+
+API Changes
+-----------
+
+- The ``ctapipe-dump-triggers`` tool was removed, since it wrote a custom data format
+  not compatble with e.g. the output of the ``DataWriter`` and ``ctapipe-process``.
+  If you only want to store trigger and simulation information from simulated / DL0
+  input files into the ctapipe format HDF5 files, you can now use
+  ``ctapipe-process -i <input> -o <output> --no-write-parameters``. [`#2375 <https://github.com/cta-observatory/ctapipe/pull/2375>`__]
+
+- Change the fill value for invalid telescope ids in ``SubarrayDescription.tel_index_array``
+  from ``-1`` to ``np.iinfo(int).minval`` to prevent ``-1`` being used as an index resulting in the last element being used for invalid telescope ids. [`#2376 <https://github.com/cta-observatory/ctapipe/pull/2376>`__]
+
+- Remove ``EventSource.from_config``, simply use ``EventSource(config=config)`` or 
+  ``EventSource(parent=parent)``. [`#2384 <https://github.com/cta-observatory/ctapipe/pull/2384>`__]
+
+
+Data Model Changes
+------------------
+
+- Added missing fields defined in the CTAO R1 and DL0 data models to the corresponding containers. [`#2338 <https://github.com/cta-observatory/ctapipe/pull/2338>`__]
+
+- Remove the ``injection_height`` field from the ``SimulationConfigContainer``,
+  this field was always empty and is never filled by ``sim_telarray``.
+
+  Add the corresponding ``starting_grammage`` field to the ``SimulatedShowerContainer``,
+  where it is actually available. [`#2343 <https://github.com/cta-observatory/ctapipe/pull/2343>`__]
+
+- Added new fields to the ``MuonEfficiencyContainer`` - ``is_valid`` to check if fit converged successfully, ``parameters_at_limit`` to check if parameters were fitted close to a bound and ``likelihood_value`` which represents cost function value atthe minimum. These fields were added to the output of the ``MuonIntensityFitter``. [`#2381 <https://github.com/cta-observatory/ctapipe/pull/2381>`__]
+
+
+New Features
+------------
+
+- Remove writing the full provenance information to the log  and instead simply refer the reader to the actual provenance file. [`#2328 <https://github.com/cta-observatory/ctapipe/pull/2328>`__]
+
+- Add support for including r1 and r0 waveforms in the ``ctapipe-merge`` tool. [`#2386 <https://github.com/cta-observatory/ctapipe/pull/2386>`__]
+
+
+Bug Fixes
+---------
+
+- The ```HillasIntersection``` method used to fail when individual events were reconstructed to originate from a FoV offset of more than 90 degrees.
+  This is now fixed by returning an INVALID container for a reconstructed offset of larger than 45 degrees. [`#2265 <https://github.com/cta-observatory/ctapipe/pull/2265>`__]
+
+
+Maintenance
+-----------
+
+- Drop support for python 3.8 in accordance with the NEP 29 schedule. [`#2342 <https://github.com/cta-observatory/ctapipe/pull/2342>`__]
+
+- * Switched to ``PyData`` theme for docs
+  * Updated ``Sphinx`` to version 6.2.1
+  * Updated front page of docs [`#2373 <https://github.com/cta-observatory/ctapipe/pull/2373>`__]
+
+
+
 ctapipe 0.19.3 (2023-06-20)
 ===========================
 
