@@ -14,9 +14,7 @@ from ctapipe.image.ellipsoid import (
     ImageFitParameterizationError,
     PDFType,
     boundaries,
-    create_initial_guess,
     image_fit_parameters,
-    sensible_boundaries,
 )
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
 
@@ -50,23 +48,6 @@ def create_sample_image(
     return image, clean_mask
 
 
-def test_sensible_boundaries(prod5_lst):
-    # Test alternative function for finding boundaries
-    geom = prod5_lst.camera.geometry
-    image, clean_mask = create_sample_image(geometry=geom)
-
-    unit = geom.pix_x.unit
-    cleaned_image = image.copy()
-    cleaned_image[~clean_mask] = 0.0
-
-    bounds = sensible_boundaries(geom, cleaned_image, pdf=PDFType("gaussian"))
-    hillas = hillas_parameters(geom, cleaned_image)
-
-    assert bounds[3][0] == hillas.length.to_value(unit)
-    for i in range(len(bounds)):
-        assert bounds[i][1] > bounds[i][0]
-
-
 def test_boundaries(prod5_lst):
     # Test default functin for finding the boundaries of the fit
     geom = prod5_lst.camera.geometry
@@ -75,8 +56,8 @@ def test_boundaries(prod5_lst):
     cleaned_image = image.copy()
     cleaned_image[~clean_mask] = 0.0
 
-    x0 = create_initial_guess(geom, cleaned_image, np.sum(cleaned_image))
-    bounds = boundaries(geom, image, clean_mask, x0, pdf=PDFType("gaussian"))
+    hillas = hillas_parameters(geom, cleaned_image)
+    bounds = boundaries(geom, image, clean_mask, hillas, pdf=PDFType("gaussian"))
 
     for i in range(len(bounds)):
         assert bounds[i][1] > bounds[i][0]  # upper limit > lower limit
@@ -257,10 +238,10 @@ def test_percentage(prod5_lst):
                 assert signal_inside_ellipse > 0.3
 
 
-def test_with_toy(prod5_lst):
+def test_with_toy_mst(prod5_mst_flashcam):
     rng = np.random.default_rng(42)
 
-    geom = prod5_lst.camera.geometry
+    geom = prod5_mst_flashcam.camera.geometry
 
     width = 0.03 * u.m
     length = 0.15 * u.m
@@ -345,8 +326,9 @@ def test_with_toy(prod5_lst):
                 ) == approx(180.0, abs=2)
 
 
-def test_with_toy_alternative_bounds(prod5_lst):
+def test_with_toy_lst(prod5_lst):
     rng = np.random.default_rng(42)
+
     geom = prod5_lst.camera.geometry
 
     width = 0.03 * u.m
@@ -360,11 +342,10 @@ def test_with_toy_alternative_bounds(prod5_lst):
     for x, y in zip(xs, ys):
         for psi in psis:
 
-            # make a toymodel shower model
+            # make a toy shower model
             model_gaussian = toymodel.Gaussian(
                 x=x, y=y, width=width, length=length, psi=psi
             )
-
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
@@ -377,14 +358,12 @@ def test_with_toy_alternative_bounds(prod5_lst):
             )
 
             clean_mask = np.array(signal) > 0
-            bounds = sensible_boundaries(geom, signal, pdf=PDFType("gaussian"))
             result = image_fit_parameters(
                 geom,
                 signal,
                 n_row=0,
                 cleaned_mask=clean_mask,
                 pdf=PDFType("gaussian"),
-                bounds=bounds,
             )
 
             if result.is_valid or result.is_accurate:
@@ -402,14 +381,8 @@ def test_with_toy_alternative_bounds(prod5_lst):
             )
 
             clean_mask = np.array(signal) > 0
-            bounds = sensible_boundaries(geom, signal, pdf=PDFType("skewed"))
             result = image_fit_parameters(
-                geom,
-                signal,
-                n_row=0,
-                cleaned_mask=clean_mask,
-                pdf=PDFType("skewed"),
-                bounds=bounds,
+                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("skewed")
             )
 
             if result.is_valid or result.is_accurate:
@@ -426,14 +399,8 @@ def test_with_toy_alternative_bounds(prod5_lst):
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
             )
             clean_mask = np.array(signal) > 0
-            bounds = sensible_boundaries(geom, signal, pdf=PDFType("laplace"))
             result = image_fit_parameters(
-                geom,
-                signal,
-                n_row=0,
-                cleaned_mask=clean_mask,
-                pdf=PDFType("laplace"),
-                bounds=bounds,
+                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
             )
 
             if result.is_valid or result.is_accurate:
