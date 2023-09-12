@@ -232,6 +232,10 @@ class CameraGeometry:
             (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
+    @lazyproperty
+    def radius(self):
+        return self.guess_radius()
+
     def transform_to(self, frame: BaseCoordinateFrame):
         """Transform the pixel coordinates stored in this geometry and the pixel
         and camera rotations to another camera coordinate frame.

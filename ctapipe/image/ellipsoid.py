@@ -25,7 +25,7 @@ PED_TABLE = {
     "LSTCam": 2.8,
     "NectarCam": 2.3,
     "FlashCam": 2.3,
-    "SST-Camera": 0.5,
+    "SSTCam": 0.5,
     "CHEC": 0.5,
     "DUMMY": 0,
     "testcam": 0,
@@ -45,9 +45,11 @@ class PDFType(Enum):
     skewed = "skewed"
 
 
-def create_initial_guess(geometry, image, size):
+def create_initial_guess(geometry, hillas, size):
     """
+
     This function computes the seeds of the fit with the Hillas parameters
+
     Parameters
     ----------
     geometry: ctapipe.instrument.CameraGeometry
@@ -57,14 +59,13 @@ def create_initial_guess(geometry, image, size):
         improve performance.
     size: float/int
         Total charge after cleaning and dilation
+
     Returns
     -------
     initial_guess: dict
     Seed parameters of the fit.
     """
     unit = geometry.pix_x.unit
-    hillas = hillas_parameters(geometry, image)  # compute Hillas parameters
-
     initial_guess = {}
 
     if unit.is_equivalent(u.m):
@@ -89,7 +90,9 @@ def create_initial_guess(geometry, image, size):
 
 def dilation(n, cleaned_mask, geometry):
     """
+
     This function adds n extra rows of pixels around the cleaned image
+
     Parameters
     ----------
     n : int
@@ -98,6 +101,7 @@ def dilation(n, cleaned_mask, geometry):
        Cleaning mask (array of booleans) applied for Hillas parametrization
     geometry : ctapipe.instrument.CameraGeometry
         Camera geometry
+
     Returns
     -------
     dilated_mask: ndarray of booleans
@@ -110,53 +114,11 @@ def dilation(n, cleaned_mask, geometry):
     return dilated_mask
 
 
-def sensible_boundaries(geometry, cleaned_image, pdf):
+def boundaries(geometry, image, dilated_mask, hillas, pdf):
     """
-    Alternative boundaries of the fit based on the Hillas parameters.
-    Parameters
-    ----------
-    geometry: ctapipe.instrument.CameraGeometry
-        Camera geometry
-    cleaned_image: ndarray
-        Charge for each pixel, cleaning mask should be applied
-    pdf: PDFType instance
-        e.g. PDFType("gaussian")
-    Returns
-    -------
-    list of boundaries
-    """
-    hillas = hillas_parameters(geometry, cleaned_image)
 
-    unit = geometry.pix_x.unit
-    camera_radius = geometry.guess_radius()
-
-    cogx_min, cogx_max = np.sign(hillas.x) * min(
-        np.abs(hillas.x - u.Quantity(0.2, unit)), camera_radius
-    ), np.sign(hillas.x) * min(np.abs(hillas.x + u.Quantity(0.2, unit)), camera_radius)
-    cogy_min, cogy_max = np.sign(hillas.y) * min(
-        np.abs(hillas.y - u.Quantity(0.2, unit)), camera_radius
-    ), np.sign(hillas.y) * min(np.abs(hillas.y + u.Quantity(0.2, unit)), camera_radius)
-
-    psi_min, psi_max = -np.pi / 2, np.pi / 2
-    length_min, length_max = hillas.length, hillas.length + u.Quantity(0.3, unit)
-    width_min, width_max = hillas.width, hillas.width + u.Quantity(0.1, unit)
-    skew_min, skew_max = -0.99, 0.99
-    ampl_min, ampl_max = 0, np.inf
-
-    return [
-        (cogx_min.to_value(unit), cogx_max.to_value(unit)),
-        (cogy_min.to_value(unit), cogy_max.to_value(unit)),
-        (psi_min, psi_max),
-        (length_min.to_value(unit), length_max.to_value(unit)),
-        (width_min.to_value(unit), width_max.to_value(unit)),
-        (skew_min, skew_max),
-        (ampl_min, ampl_max),
-    ]
-
-
-def boundaries(geometry, image, dilated_mask, x0, pdf):
-    """
     Computes the boundaries of the fit.
+
     Parameters
     ----------
     geometry : ctapipe.instrument.CameraGeometry
@@ -169,6 +131,7 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
        seeds of the fit
     pdf: PDFType instance
         e.g. PDFType("gaussian")
+
     Returns
     -------
     list of boundaries
@@ -176,9 +139,9 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     x = geometry.pix_x.value
     y = geometry.pix_y.value
     unit = geometry.pix_x.unit
-    camera_radius = geometry.guess_radius().to_value(unit)
+    camera_radius = geometry.radius.to_value(unit)
 
-    # Dilated image
+    # Using dilated image
     row_image = image.copy()
     row_image[~dilated_mask] = 0.0
     row_image[row_image < 0] = 0.0
@@ -188,7 +151,11 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
     max_y = np.max(y[dilated_mask])
     min_y = np.min(y[dilated_mask])
 
-    psi_min, psi_max = max(x0["psi"] - 0.2, -np.pi / 2), min(x0["psi"] + 0.2, np.pi / 2)
+    ang_unit = hillas.psi.unit
+    psi_unc = 10 * u.deg
+    psi_min, psi_max = max(
+        hillas.psi.value - psi_unc.to_value(ang_unit), -np.pi / 2
+    ), min(hillas.psi.value + psi_unc.to_value(ang_unit), np.pi / 2)
 
     cogx_min, cogx_max = np.sign(min_x) * min(np.abs(min_x), camera_radius), np.sign(
         max_x
@@ -198,30 +165,37 @@ def boundaries(geometry, image, dilated_mask, x0, pdf):
         max_y
     ) * min(np.abs(max_y), camera_radius)
 
-    if np.sqrt(x0["cog_x"] ** 2 + x0["cog_y"] ** 2) > 0.8 * camera_radius:  # truncated
-        if (x0["cog_x"] > 0) & (x0["cog_y"] > 0):
+    if (
+        np.sqrt(hillas.x.to_value(unit) ** 2 + hillas.y.to_value(unit) ** 2)
+        > 0.8 * camera_radius
+    ):  # truncated
+        if (hillas.x.to_value(unit) > 0) & (hillas.y.to_value(unit) > 0):
             max_x = 2 * max_x
             max_y = 2 * max_y
-        if (x0["cog_x"] < 0) & (x0["cog_y"] > 0):
+        if (hillas.x.to_value(unit) < 0) & (hillas.y.to_value(unit) > 0):
             min_x = 2 * min_x
             max_y = 2 * max_y
-        if (x0["cog_x"] < 0) & (x0["cog_y"] < 0):
+        if (hillas.x.to_value(unit) < 0) & (hillas.y.to_value(unit) < 0):
             min_x = 2 * min_x
             min_y = 2 * min_y
-        if (x0["cog_x"] > 0) & (x0["cog_y"] < 0):
+        if (hillas.x.to_value(unit) > 0) & (hillas.y.to_value(unit) < 0):
             max_x = 2 * max_x
             min_y = 2 * min_y
 
-    long_dis = np.sqrt((max_x - min_x) ** 2 + (max_y - min_y) ** 2)
+    long_dis = np.sqrt(
+        (max_x - min_x) ** 2 + (max_y - min_y) ** 2
+    )  # maximum distance of the shower in the longitudinal direction
 
-    width_unc = 0.05
-    length_min, length_max = x0["length"], long_dis
-    width_min, width_max = x0["width"], x0["width"] + width_unc
+    width_unc = 0.05 * u.m
+    length_min, length_max = hillas.length.to_value(unit), long_dis
+    width_min, width_max = hillas.width.to_value(unit), hillas.width.to_value(
+        unit
+    ) + width_unc.to_value(unit)
 
     scale = length_min / np.sqrt(1 - 2 / np.pi)
-    skew_min, skew_max = min(max(-0.99, x0["skewness"] - 0.3), 0.99), max(
-        -0.99, min(0.99, x0["skewness"] + 0.3)
-    )
+    skew_min, skew_max = min(max(-0.99, hillas.skewness - 0.3), 0.99), max(
+        -0.99, min(0.99, hillas.skewness + 0.3)
+    )  # Guess from Hillas unit tests
 
     bounds = [
         (cogx_min, cogx_max),
@@ -259,8 +233,10 @@ def image_fit_parameters(
     bounds=None,
 ):
     """
+
     Computes image parameters for a given shower image.
     Implementation based on https://arxiv.org/pdf/1211.0254.pdf
+
     Parameters
     ----------
     geom : ctapipe.instrument.CameraGeometry
@@ -276,6 +252,7 @@ def image_fit_parameters(
        Cleaning mask (array of booleans) after cleaning
     pdf: PDFType instance
         e.g. PDFType("gaussian")
+
     Returns
     -------
     ImageFitParametersContainer:
@@ -318,7 +295,9 @@ def image_fit_parameters(
     dilated_image[dilated_image < 0] = 0.0
     size = np.sum(dilated_image)
 
-    x0 = create_initial_guess(geom, cleaned_image, size)  # seeds
+    hillas = hillas_parameters(geom, cleaned_image)
+
+    x0 = create_initial_guess(geom, hillas, size)  # seeds
 
     if np.count_nonzero(image) <= len(x0):
         raise ImageFitParameterizationError(
@@ -357,7 +336,7 @@ def image_fit_parameters(
         m.fixed[-2] = True
 
     if bounds is None:
-        bounds = boundaries(geom, image, dilated_mask, x0, pdf)
+        bounds = boundaries(geom, image, dilated_mask, hillas, pdf)
         m.limits = bounds
     else:
         m.limits = bounds
