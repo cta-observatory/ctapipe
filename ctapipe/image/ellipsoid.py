@@ -88,32 +88,6 @@ def create_initial_guess(geometry, hillas, size):
     return initial_guess
 
 
-def dilation(n, cleaned_mask, geometry):
-    """
-
-    This function adds n extra rows of pixels around the cleaned image
-
-    Parameters
-    ----------
-    n : int
-       number of extra rows to add after cleaning
-    cleaned_mask : ndarray
-       Cleaning mask (array of booleans) applied for Hillas parametrization
-    geometry : ctapipe.instrument.CameraGeometry
-        Camera geometry
-
-    Returns
-    -------
-    dilated_mask: ndarray of booleans
-    Cleaning mask after dilation
-    """
-    dilated_mask = cleaned_mask.copy()
-    for row in range(n):
-        dilated_mask = dilate(geometry, dilated_mask)
-
-    return dilated_mask
-
-
 def boundaries(geometry, image, dilated_mask, hillas, pdf):
     """
 
@@ -289,7 +263,10 @@ def image_fit_parameters(
     cleaned_image[~cleaned_mask] = 0.0
     cleaned_image[cleaned_image < 0] = 0.0
 
-    dilated_mask = dilation(n_row, cleaned_mask, geom)
+    dilated_mask = cleaned_mask.copy()
+    for row in range(n_row):
+        dilated_mask = dilate(geom, dilated_mask)
+
     dilated_image = image.copy()
     dilated_image[~dilated_mask] = 0.0
     dilated_image[dilated_image < 0] = 0.0

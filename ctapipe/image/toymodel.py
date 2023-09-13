@@ -23,13 +23,11 @@ from abc import ABCMeta, abstractmethod
 
 import astropy.units as u
 import numpy as np
-
-from scipy.stats import skewnorm
 import scipy
 from astropy.coordinates import Angle
 from numpy.random import default_rng
 from scipy.ndimage import convolve1d
-from scipy.stats import norm
+from scipy.stats import norm, skewnorm
 
 from ctapipe.image.hillas import camera_to_shower_coordinates
 from ctapipe.utils import linalg
