@@ -292,8 +292,8 @@ class CameraImageFitParametersContainer(CameraHillasParametersContainer):
     goodness_of_fit = Field(
         nan, "measure of goodness of fit, mean likelihood subtracted to the likelihood"
     )
-    n_pix_fit = Field(nan, "number of pixels used in the fit")
-    n_free_par = Field(nan, "number of free parameters")
+    n_pixels = Field(nan, "number of pixels used in the fit")
+    free_parameters = Field(nan, "number of free parameters")
     is_valid = Field(False, "True if the fit is valid")
     is_accurate = Field(
         False, "returns True if the fit is accurate. If False, the fit is not reliable."
@@ -351,8 +351,8 @@ class ImageFitParametersContainer(HillasParametersContainer):
     goodness_of_fit = Field(
         nan, "measure of goodness of fit, mean likelihood subtracted to the likelihood"
     )
-    n_pix_fit = Field(nan, "number of pixels used in the fit")
-    n_free_par = Field(nan, "number of free parameters")
+    n_pixels = Field(nan, "number of pixels used in the fit")
+    free_parameters = Field(nan, "number of free parameters")
     is_valid = Field(False, "True if the fit is valid")
     is_accurate = Field(
         False, "returns True if the fit is accurate. If False, the fit is not reliable."

@@ -378,8 +378,8 @@ def image_fit_parameters(
             kurtosis=kurtosis_long,
             likelihood=likelihood,
             goodness_of_fit=goodness_of_fit,
-            n_pix_fit=np.count_nonzero(cleaned_image),
-            n_free_par=m.nfit,
+            n_pixels=np.count_nonzero(cleaned_image),
+            free_parameters=m.nfit,
             is_valid=m.valid,
             is_accurate=m.accurate,
         )
@@ -407,8 +407,8 @@ def image_fit_parameters(
         kurtosis=kurtosis_long,
         likelihood=likelihood,
         goodness_of_fit=goodness_of_fit,
-        n_pix_fit=np.count_nonzero(cleaned_image),
-        n_free_par=m.nfit,
+        n_pixels=np.count_nonzero(cleaned_image),
+        free_parameters=m.nfit,
         is_valid=m.valid,
         is_accurate=m.accurate,
     )
