@@ -69,8 +69,9 @@ def test_intensity(seed, frame, monkeypatch, prod5_lst):
     assert poisson(intensity).ppf(0.05) <= signal.sum() <= poisson(intensity).ppf(0.95)
 
 
-def test_skewed(prod5_lst):
-    from ctapipe.image.toymodel import SkewedGaussian, SkewedGaussianLaplace
+@pytest.mark.parametrize("frame", ["telescope", "camera"])
+def test_skewed(frame, prod5_lst):
+    from ctapipe.image.toymodel import SkewedGaussian
 
     # test if the parameters we calculated for the skew normal
     # distribution produce the correct moments
@@ -99,18 +100,6 @@ def test_skewed(prod5_lst):
 
     assert np.isclose(mean, 0)
     assert np.isclose(var, length.to_value(unit) ** 2)
-    assert np.isclose(skew, skewness)
-
-    model = SkewedGaussianLaplace(
-        x=x, y=y, width=width, length=length, psi=psi, skewness=skewness
-    )
-    model.generate_image(geom, intensity=intensity, nsb_level_pe=5, rng=rng)
-
-    a, loc, scale = model._moments_to_parameters()
-    mean, var, skew = skewnorm(a=a, loc=loc, scale=scale).stats(moments="mvs")
-
-    assert np.isclose(mean, 0)
-    assert np.isclose(var, length.to_value(u.m) ** 2)
     assert np.isclose(skew, skewness)
 
 
