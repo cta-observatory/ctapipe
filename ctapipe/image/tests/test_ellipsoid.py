@@ -532,7 +532,7 @@ def test_single_pixel():
         pix_x=x.ravel() * u.cm,
         pix_y=y.ravel() * u.cm,
         pix_type="rectangular",
-        pix_area=1 * u.cm**2,
+        pix_area=np.full(9, 1.0) * u.cm**2,
     )
 
     image = np.zeros((3, 3))
