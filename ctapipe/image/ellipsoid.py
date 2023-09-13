@@ -19,7 +19,7 @@ from ctapipe.image.pixel_likelihood import (
 )
 from ctapipe.image.toymodel import SkewedGaussian, SkewedGaussianLaplace
 
-from ..containers import ImageFitParametersContainer
+from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
 
 PED_TABLE = {
     "LSTCam": 2.8,
@@ -72,8 +72,8 @@ def create_initial_guess(geometry, hillas, size):
         initial_guess["cog_x"] = hillas.x.to_value(unit)
         initial_guess["cog_y"] = hillas.y.to_value(unit)
     else:
-        initial_guess["x"] = hillas.fov_lon.to_value(unit)
-        initial_guess["y"] = hillas.fov_lat.to_value(unit)
+        initial_guess["cog_x"] = hillas.fov_lon.to_value(unit)
+        initial_guess["cog_y"] = hillas.fov_lat.to_value(unit)
 
     initial_guess["length"] = hillas.length.to_value(unit)
     initial_guess["width"] = hillas.width.to_value(unit)
@@ -139,28 +139,14 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
         max_y
     ) * min(np.abs(max_y), camera_radius)
 
-    if (
-        np.sqrt(hillas.x.to_value(unit) ** 2 + hillas.y.to_value(unit) ** 2)
-        > 0.8 * camera_radius
-    ):  # truncated
-        if (hillas.x.to_value(unit) > 0) & (hillas.y.to_value(unit) > 0):
-            max_x = 2 * max_x
-            max_y = 2 * max_y
-        if (hillas.x.to_value(unit) < 0) & (hillas.y.to_value(unit) > 0):
-            min_x = 2 * min_x
-            max_y = 2 * max_y
-        if (hillas.x.to_value(unit) < 0) & (hillas.y.to_value(unit) < 0):
-            min_x = 2 * min_x
-            min_y = 2 * min_y
-        if (hillas.x.to_value(unit) > 0) & (hillas.y.to_value(unit) < 0):
-            max_x = 2 * max_x
-            min_y = 2 * min_y
-
-    long_dis = np.sqrt(
+    long_dis = 2 * np.sqrt(
         (max_x - min_x) ** 2 + (max_y - min_y) ** 2
     )  # maximum distance of the shower in the longitudinal direction
 
-    width_unc = 0.05 * u.m
+    if unit.is_equivalent(u.m):
+        width_unc = 0.05 * u.m
+    else:
+        width_unc = 0.1 * u.deg
     length_min, length_max = hillas.length.to_value(unit), long_dis
     width_min, width_max = hillas.width.to_value(unit), hillas.width.to_value(
         unit
@@ -190,7 +176,6 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
         )
 
     bounds.append((0, amplitude))
-
     return bounds
 
 
@@ -369,11 +354,41 @@ def image_fit_parameters(
     amplitude = pars[6]
     amplitude_uncertainty = errors[6]
 
+    if unit.is_equivalent(u.m):
+        return CameraImageFitParametersContainer(
+            x=u.Quantity(pars[0], unit),
+            x_uncertainty=u.Quantity(errors[0], unit),
+            y=u.Quantity(pars[1], unit),
+            y_uncertainty=u.Quantity(errors[1], unit),
+            r=u.Quantity(fit_rcog, unit),
+            r_uncertainty=u.Quantity(fit_rcog_err, unit),
+            phi=Angle(fit_phi, unit=u.rad),
+            phi_uncertainty=Angle(fit_phi_err, unit=u.rad),
+            intensity=size,
+            amplitude=amplitude,
+            amplitude_uncertainty=amplitude_uncertainty,
+            length=u.Quantity(pars[3], unit),
+            length_uncertainty=u.Quantity(errors[3], unit),
+            width=u.Quantity(pars[4], unit),
+            width_uncertainty=u.Quantity(errors[4], unit),
+            psi=Angle(pars[2], unit=u.rad),
+            psi_uncertainty=Angle(errors[2], unit=u.rad),
+            skewness=skewness_long,
+            skewness_uncertainty=skewness_uncertainty,
+            kurtosis=kurtosis_long,
+            likelihood=likelihood,
+            goodness_of_fit=goodness_of_fit,
+            n_pix_fit=np.count_nonzero(cleaned_image),
+            n_free_par=m.nfit,
+            is_valid=m.valid,
+            is_accurate=m.accurate,
+        )
+
     return ImageFitParametersContainer(
-        x=u.Quantity(pars[0], unit),
-        x_uncertainty=u.Quantity(errors[0], unit),
-        y=u.Quantity(pars[1], unit),
-        y_uncertainty=u.Quantity(errors[1], unit),
+        fov_lon=u.Quantity(pars[0], unit),
+        fov_lon_uncertainty=u.Quantity(errors[0], unit),
+        fov_lat=u.Quantity(pars[1], unit),
+        fov_lat_uncertainty=u.Quantity(errors[1], unit),
         r=u.Quantity(fit_rcog, unit),
         r_uncertainty=u.Quantity(fit_rcog_err, unit),
         phi=Angle(fit_phi, unit=u.rad),

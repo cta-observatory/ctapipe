@@ -281,7 +281,7 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
 
-class ImageFitParametersContainer(CameraHillasParametersContainer):
+class CameraImageFitParametersContainer(CameraHillasParametersContainer):
     """
     Hillas Parameters after fitting. The cog position
     is given in meter from the camera center.
@@ -338,6 +338,37 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
     width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+
+
+class ImageFitParametersContainer(HillasParametersContainer):
+    """
+    Hillas Parameters after fitting. The cog position
+    is given in meter from the camera center.
+    """
+
+    skewness_uncertainty = Field(nan, "measure of skewness uncertainty")
+    likelihood = Field(nan, "measure of likelihood")
+    goodness_of_fit = Field(
+        nan, "measure of goodness of fit, mean likelihood subtracted to the likelihood"
+    )
+    n_pix_fit = Field(nan, "number of pixels used in the fit")
+    n_free_par = Field(nan, "number of free parameters")
+    is_valid = Field(False, "True if the fit is valid")
+    is_accurate = Field(
+        False, "returns True if the fit is accurate. If False, the fit is not reliable."
+    )
+
+    fov_lon_uncertainty = Field(nan * u.deg, "centroid x uncertainty", unit=u.deg)
+    fov_lat_uncertainty = Field(nan * u.deg, "centroid y uncertainty", unit=u.deg)
+    r_uncertainty = Field(nan * u.deg, "centroid r uncertainty", unit=u.deg)
+    phi_uncertainty = Field(
+        nan * u.deg, "polar coordinate of centroid uncertainty", unit=u.deg
+    )
+    psi_uncertainty = Field(
+        nan * u.deg, "Uncertainty in rotation angle of ellipse", unit=u.deg
+    )
+    amplitude = Field(nan, "Amplitude of the fitted model")
+    amplitude_uncertainty = Field(nan, "error in amplitude from the fit")
 
 
 class LeakageContainer(Container):
