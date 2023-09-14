@@ -209,18 +209,6 @@ def test_truncated(prod5_lst):
         assert conc_fit > conc_hillas
         assert conc_fit > 0.4
 
-        # Laplace
-        result = image_fit_parameters(
-            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("laplace")
-        )
-
-        assert result.length.value > hillas.length.value
-
-        conc_fit = concentration_parameters(geom, cleaned_image, result).core
-
-        assert conc_fit > conc_hillas
-        assert conc_fit > 0.4
-
 
 def test_percentage(prod5_lst):
     geom = prod5_lst.camera.geometry
@@ -274,9 +262,6 @@ def test_with_toy_mst_tel(prod5_mst_flashcam):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
-            model_laplace = toymodel.SkewedGaussianLaplace(
-                x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
-            )
 
             image, signal, noise = model_gaussian.generate_image(
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
@@ -315,24 +300,6 @@ def test_with_toy_mst_tel(prod5_mst_flashcam):
                 assert u.isclose(result.y, y, rtol=0.1)
 
                 assert u.isclose(result.width, width, rtol=0.1)
-                assert u.isclose(result.length, length, rtol=0.1)
-                assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
-                    result.psi.to_value(u.deg) - psi.deg
-                ) == approx(180.0, abs=2)
-
-            image, signal, noise = model_laplace.generate_image(
-                geom, intensity=intensity, nsb_level_pe=0, rng=rng
-            )
-            clean_mask = np.array(signal) > 0
-            result = image_fit_parameters(
-                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
-            )
-
-            if result.is_valid or result.is_accurate:
-                assert u.isclose(result.x, x, rtol=0.1)
-                assert u.isclose(result.y, y, rtol=0.1)
-
-                assert u.isclose(result.width, width, rtol=0.15)
                 assert u.isclose(result.length, length, rtol=0.1)
                 assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
                     result.psi.to_value(u.deg) - psi.deg
@@ -362,9 +329,6 @@ def test_with_toy_lst(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
             )
-            model_laplace = toymodel.SkewedGaussianLaplace(
-                x=x, y=y, width=width, length=length, psi=psi, skewness=0.5
-            )
 
             image, signal, noise = model_gaussian.generate_image(
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
@@ -408,24 +372,6 @@ def test_with_toy_lst(prod5_lst):
                     result.psi.to_value(u.deg) - psi.deg
                 ) == approx(180.0, abs=2)
 
-            image, signal, noise = model_laplace.generate_image(
-                geom, intensity=intensity, nsb_level_pe=0, rng=rng
-            )
-            clean_mask = np.array(signal) > 0
-            result = image_fit_parameters(
-                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
-            )
-
-            if result.is_valid or result.is_accurate:
-                assert u.isclose(result.x, x, rtol=0.1)
-                assert u.isclose(result.y, y, rtol=0.1)
-
-                assert u.isclose(result.width, width, rtol=0.15)
-                assert u.isclose(result.length, length, rtol=0.1)
-                assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
-                    result.psi.to_value(u.deg) - psi.deg
-                ) == approx(180.0, abs=2)
-
 
 def test_skewness(prod5_lst):
     rng = np.random.default_rng(42)
@@ -449,9 +395,6 @@ def test_skewness(prod5_lst):
             model_skewed = toymodel.SkewedGaussian(
                 x=x, y=y, width=width, length=length, psi=psi, skewness=skew
             )
-            model_laplace = toymodel.SkewedGaussianLaplace(
-                x=x, y=y, width=width, length=length, psi=psi, skewness=skew
-            )
 
             image, signal, noise = model_skewed.generate_image(
                 geom, intensity=intensity, nsb_level_pe=0, rng=rng
@@ -468,34 +411,6 @@ def test_skewness(prod5_lst):
 
                 assert u.isclose(result.width, width, rtol=0.1)
                 assert u.isclose(result.length, length, rtol=0.1)
-
-                psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=1)
-                psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(
-                    180.0, abs=1
-                )
-                assert psi_same or psi_opposite
-
-                if psi_same:
-                    assert result.skewness == approx(skew, abs=0.3)
-                else:
-                    assert result.skewness == approx(-skew, abs=0.3)
-
-                assert signal.sum() == result.intensity
-
-            image, signal, noise = model_laplace.generate_image(
-                geom, intensity=intensity, nsb_level_pe=0, rng=rng
-            )
-            clean_mask = np.array(signal) > 0
-            result = image_fit_parameters(
-                geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("laplace")
-            )
-
-            if result.is_valid or result.is_accurate:
-                assert u.isclose(result.x, x, rtol=0.1)
-                assert u.isclose(result.y, y, rtol=0.1)
-
-                assert u.isclose(result.width, width, rtol=0.1)
-                assert u.isclose(result.length, length, rtol=0.15)
 
                 psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=1)
                 psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(
@@ -553,11 +468,6 @@ def test_single_pixel():
     image = image.ravel()
 
     clean_mask = np.array(image) > 0
-
-    with pytest.raises(ImageFitParameterizationError):
-        image_fit_parameters(
-            geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("laplace")
-        )
 
     with pytest.raises(ImageFitParameterizationError):
         image_fit_parameters(

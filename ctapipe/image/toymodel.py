@@ -36,7 +36,6 @@ __all__ = [
     "WaveformModel",
     "Gaussian",
     "SkewedGaussian",
-    "SkewedGaussianLaplace",
     "ImageModel",
     "obtain_time_image",
 ]
@@ -404,88 +403,3 @@ class RingGaussian(ImageModel):
         """2d probability for photon electrons in the camera plane."""
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
         return self.dist.pdf(r)
-
-
-class SkewedGaussianLaplace(ImageModel):
-    """A shower image that has a skewness along the major axis and follows the Laplace distribution along the
-    transverse axis"""
-
-    @u.quantity_input
-    def __init__(self, x, y, length, width, psi, skewness, amplitude=None):
-        """Create 2D function with a Skewed Gaussian in the longitudinal direction
-        and a Laplace function modelling the transverse direction of the shower.
-        See https://en.wikipedia.org/wiki/Skew_normal_distribution ,
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html , and
-        https://en.wikipedia.org/wiki/Laplace_distribution for details.
-
-        Parameters
-        ----------
-        x : u.Quantity[cx]
-            position of the centroid in x-axis of the shower in camera coordinates
-        y : u.Quantity[cy]
-            position of the centroid in y-axis of the shower in camera coordinates
-        width: u.Quantity[length]
-            width of shower (minor axis)
-        length: u.Quantity[length]
-            length of shower (major axis)
-        psi : convertable to `astropy.coordinates.Angle`
-            rotation angle about the centroid (0=x-axis)
-        skewness: float
-            skewness of the shower in longitudinal direction
-        amplitude : float
-            normalization amplitude
-
-        Returns
-        -------
-        model : ndarray
-            Skewed Gaussian * Laplace distribution
-
-        """
-        self.x = x
-        self.y = y
-        self.width = width
-        self.length = length
-        self.psi = psi
-        self.skewness = skewness
-        self.amplitude = amplitude
-        self.unit = self.x.unit
-
-    def _moments_to_parameters(self):
-        """Returns loc and scale from mean, std and skewness."""
-        # see https://en.wikipedia.org/wiki/Skew_normal_distribution#Estimation
-        skew23 = np.abs(self.skewness) ** (2 / 3)
-        delta = np.sign(self.skewness) * np.sqrt(
-            (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
-        )
-        a = delta / np.sqrt(1 - delta**2)
-        scale = self.length.to_value(self.unit) / np.sqrt(1 - 2 * delta**2 / np.pi)
-        loc = -scale * delta * np.sqrt(2 / np.pi)
-
-        return a, loc, scale
-
-    @u.quantity_input
-    def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane."""
-        mu = u.Quantity([self.x, self.y]).to_value(self.unit)
-
-        rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
-        pos = np.column_stack([x.to_value(self.unit), y.to_value(self.unit)])
-        long, trans = rotation @ (pos - mu).T
-
-        a, loc, scale = self._moments_to_parameters()
-
-        if self.amplitude is None:
-            self.amplitude = 1 / (
-                np.sqrt(2 * np.pi)
-                * np.sqrt(2)
-                * scale
-                * (self.width.to_value(self.unit))
-            )
-
-        trans_pdf = np.exp(
-            -np.sqrt(trans**2) * np.sqrt(2) / self.width.to_value(self.unit)
-        )
-        skew_pdf = np.exp(-1 / 2 * ((long - loc) / scale) ** 2) * (
-            1 + scipy.special.erf(a / np.sqrt(2) * (long - loc) / scale)
-        )
-        return self.amplitude * trans_pdf * skew_pdf

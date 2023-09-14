@@ -17,7 +17,7 @@ from ctapipe.image.pixel_likelihood import (
     mean_poisson_likelihood_gaussian,
     neg_log_likelihood_approx,
 )
-from ctapipe.image.toymodel import SkewedGaussian, SkewedGaussianLaplace
+from ctapipe.image.toymodel import SkewedGaussian
 
 from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
 
@@ -227,7 +227,6 @@ def image_fit_parameters(
     pdf_dict = {
         PDFType.gaussian: SkewedGaussian,
         PDFType.skewed: SkewedGaussian,
-        PDFType.laplace: SkewedGaussianLaplace,
     }
 
     unit = geom.pix_x.unit
