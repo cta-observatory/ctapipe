@@ -368,23 +368,30 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         )
         # Distance above telescope is ratio of these two (small angle)
 
-        height = impact / disp
+        height_tilted = (
+            impact / disp
+        )  # This is in tilted frame along the telescope axis
         weight = np.power(self.peak_amp, 0.0)  # weight average by sqrt amplitude
         # sqrt may not be the best option...
 
         # Take weighted mean of estimates, converted to height above ground
-        mean_height = np.sum(height * np.cos(zen) * weight) / np.sum(weight)
+        mean_height_above_ground = np.sum(
+            height_tilted * np.cos(zen) * weight
+        ) / np.sum(weight)
 
         # Add on the height of the detector above sea level
-        mean_height += self.subarray.reference_location.height.to_value(u.m)
+        mean_height_asl = (
+            mean_height_above_ground
+            + self.subarray.reference_location.height.to_value(u.m)
+        )
 
-        if mean_height > 100000 or np.isnan(mean_height):
-            mean_height = 100000
+        if mean_height_asl > 100000 or np.isnan(mean_height_asl):
+            mean_height_asl = 100000
 
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.thickness_profile(mean_height)
+        column_density = self.thickness_profile(mean_height_asl)
         # Convert to slant depth
-        x_max /= np.cos(zen)
+        x_max = column_density / np.cos(zen)
 
         return x_max
 
@@ -487,20 +494,20 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         azimuth = self.azimuth
 
         # Geometrically calculate the depth of maximum given this test position
-        x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
-        x_max *= x_max_scale
+        x_max_guess = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
+        x_max_guess *= x_max_scale
 
         # Calculate expected Xmax given this energy
         x_max_exp = guess_shower_depth(energy)  # / np.cos(20*u.deg)
 
         # Convert to binning of Xmax
-        x_max_bin = x_max - x_max_exp
+        x_max_diff = x_max_guess - x_max_exp
 
         # Check for range
-        if x_max_bin > 200:
-            x_max_bin = 200
-        if x_max_bin < -150:
-            x_max_bin = -150
+        if x_max_diff > 200:
+            x_max_diff = 200
+        if x_max_diff < -150:
+            x_max_diff = -150
 
         # Calculate impact distance for all telescopes
         impact = np.sqrt(
@@ -533,7 +540,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 azimuth,
                 energy * np.ones_like(impact[type_mask]),
                 impact[type_mask],
-                x_max_bin * np.ones_like(impact[type_mask]),
+                x_max_diff * np.ones_like(impact[type_mask]),
                 np.rad2deg(pix_x_rot[type_mask]),
                 np.rad2deg(pix_y_rot[type_mask]),
             )
@@ -545,7 +552,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                     azimuth,
                     energy * np.ones_like(impact[type_mask]),
                     impact[type_mask],
-                    x_max_bin * np.ones_like(impact[type_mask]),
+                    x_max_diff * np.ones_like(impact[type_mask]),
                 )
                 time_gradients[type_mask] = tg
                 time_gradients_uncertainty[type_mask] = tgu
@@ -907,7 +914,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # shower_result.core_uncert = np.nan
 
         # Copy reconstructed Xmax
-        x_max = (
+        column_density = (
             fit_params[5]
             * self.get_shower_max(
                 fit_params[0],
@@ -918,7 +925,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             )
             * np.cos(zenith)
         )
-        h_max = self.altitude_profile(x_max)
+        # h_max really is the vertical altitude of the maximum above ground
+        h_max = self.altitude_profile(column_density)
         shower_result.h_max = h_max * u.m
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
