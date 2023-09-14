@@ -34,6 +34,7 @@ __all__ = [
     "MorphologyContainer",
     "BaseHillasParametersContainer",
     "CameraHillasParametersContainer",
+    "CameraImageFitParametersContainer",
     "ImageFitParametersContainer",
     "CameraTimingParametersContainer",
     "ParticleClassificationContainer",

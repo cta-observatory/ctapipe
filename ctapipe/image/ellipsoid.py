@@ -41,7 +41,6 @@ __all__ = [
 
 class PDFType(Enum):
     gaussian = "gaussian"
-    laplace = "laplace"
     skewed = "skewed"
 
 
@@ -54,9 +53,8 @@ def create_initial_guess(geometry, hillas, size):
     ----------
     geometry: ctapipe.instrument.CameraGeometry
         Camera geometry, the cleaning mask should be applied to improve performance
-    image: ndarray
-        Charge in each pixel, the cleaning mask should already be applied to
-        improve performance.
+    hillas: HillasParametersContainer
+        Hillas parameters
     size: float/int
         Total charge after cleaning and dilation
 
@@ -101,8 +99,8 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
         Charge in each pixel, no cleaning mask should be applied
     dilated_mask : ndarray
         mask (array of booleans) after image cleaning and dilation
-    x0 : dict
-       seeds of the fit
+    hillas : HillasParametersContainer
+       Hillas parameters
     pdf: PDFType instance
         e.g. PDFType("gaussian")
 
@@ -157,6 +155,11 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
         -0.99, min(0.99, hillas.skewness + 0.3)
     )  # Guess from Hillas unit tests
 
+    if pdf == PDFType.gaussian:
+        amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
+    else:
+        amplitude = np.sum(row_image) / scale / (2 * np.pi * width_min)
+
     bounds = [
         (cogx_min, cogx_max),
         (cogy_min, cogy_max),
@@ -164,18 +167,9 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
         (length_min, length_max),
         (width_min, width_max),
         (skew_min, skew_max),
+        (0, amplitude),
     ]
 
-    if pdf == PDFType.gaussian:
-        amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
-    elif pdf == PDFType.skewed:
-        amplitude = np.sum(row_image) / scale / (2 * np.pi * width_min)
-    else:
-        amplitude = (
-            np.sum(row_image) / scale / (np.sqrt(2 * np.pi) * np.sqrt(2) * width_min)
-        )
-
-    bounds.append((0, amplitude))
     return bounds
 
 
@@ -333,8 +327,8 @@ def image_fit_parameters(
     fit_phi = np.arctan2(pars[1], pars[0])
 
     b = pars[1] ** 2 + pars[0] ** 2
-    A = (-pars[1] / (b)) ** 2
-    B = (pars[0] / (b)) ** 2
+    A = (-pars[1] / b) ** 2
+    B = (pars[0] / b) ** 2
     fit_phi_err = np.sqrt(A * errors[0] ** 2 + B * errors[1] ** 2)
     fit_rcog_err = np.sqrt(
         pars[0] ** 2 / b * errors[0] ** 2 + pars[1] ** 2 / b * errors[1] ** 2

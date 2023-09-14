@@ -213,30 +213,20 @@ def test_truncated(prod5_lst):
 def test_percentage(prod5_lst):
     geom = prod5_lst.camera.geometry
 
-    widths = u.Quantity([0.01, 0.02, 0.03, 0.07], u.m)
-    lengths = u.Quantity([0.1, 0.2, 0.3, 0.4], u.m)
-    intensities = np.array([2000, 5000])
+    # Gaussian
+    image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
-    xs = u.Quantity([0.1, 0.2, -0.1, -0.2], u.m)
-    ys = u.Quantity([-0.2, -0.1, 0.2, 0.1], u.m)
-    psis = Angle([-60, -45, 10, 45, 60], unit="deg")
+    fit = image_fit_parameters(
+        geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
+    )
 
-    for x, y, width, length, intensity in zip(xs, ys, widths, lengths, intensities):
-        for psi in psis:
-            # Gaussian
-            image, clean_mask = create_sample_image(psi="0d", geometry=geom)
+    cleaned_image = image.copy()
+    cleaned_image[~clean_mask] = 0.0
+    conc = concentration_parameters(geom, image, fit)
+    signal_inside_ellipse = conc.core
 
-            fit = image_fit_parameters(
-                geom, image, n_row=2, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
-            )
-
-            cleaned_image = image.copy()
-            cleaned_image[~clean_mask] = 0.0
-            conc = concentration_parameters(geom, image, fit)
-            signal_inside_ellipse = conc.core
-
-            if fit.is_valid and fit.is_accurate:
-                assert signal_inside_ellipse > 0.3
+    if fit.is_valid and fit.is_accurate:
+        assert signal_inside_ellipse > 0.3
 
 
 def test_with_toy_mst_tel(prod5_mst_flashcam):
@@ -499,6 +489,7 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
     psis = Angle([-90, -45, 0, 45, 90], unit="deg")
+    skew = 0.5
 
     def distance(coord):
         return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
@@ -530,7 +521,9 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
     for x, y in zip(xs, ys):
         for psi in psis:
             # generate a toy image
-            model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
+            model = toymodel.SkewedGaussian(
+                x=x, y=y, width=width, length=length, psi=psi, skewness=skew
+            )
             image, signal, noise = model.generate_image(
                 geom, intensity=intensity, nsb_level_pe=5
             )
