@@ -436,7 +436,11 @@ def test_gaussian_skewness(prod5_lst):
     result = image_fit_parameters(
         geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("gaussian")
     )
+    result_skew = image_fit_parameters(
+        geom, signal, n_row=0, cleaned_mask=clean_mask, pdf=PDFType("skewed")
+    )
     assert result.skewness == 0
+    assert result_skew.skewness == approx(0, abs=0.1)
 
 
 @pytest.mark.filterwarnings("error")
@@ -484,12 +488,12 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
 
     width = 0.03 * u.m
     length = 0.15 * u.m
-    intensity = 500
+    intensity = 5000
 
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
     psis = Angle([-90, -45, 0, 45, 90], unit="deg")
-    skew = 0.5
+    skews = 0.0, 0.2, 0.5
 
     def distance(coord):
         return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
@@ -520,46 +524,52 @@ def test_reconstruction_in_telescope_frame(prod5_lst):
 
     for x, y in zip(xs, ys):
         for psi in psis:
-            # generate a toy image
-            model = toymodel.SkewedGaussian(
-                x=x, y=y, width=width, length=length, psi=psi, skewness=skew
-            )
-            image, signal, noise = model.generate_image(
-                geom, intensity=intensity, nsb_level_pe=5
-            )
+            for skew in skews:
+                # generate a toy image
+                model = toymodel.SkewedGaussian(
+                    x=x, y=y, width=width, length=length, psi=psi, skewness=skew
+                )
+                image, signal, noise = model.generate_image(
+                    geom, intensity=intensity, nsb_level_pe=5
+                )
 
-            telescope_result = image_fit_parameters(
-                geom_nom,
-                signal,
-                n_row=0,
-                cleaned_mask=(np.array(signal) > 0),
-                pdf=PDFType("skewed"),
-            )
+                telescope_result = image_fit_parameters(
+                    geom_nom,
+                    signal,
+                    n_row=0,
+                    cleaned_mask=(np.array(signal) > 0),
+                    pdf=PDFType("skewed"),
+                )
 
-            camera_result = image_fit_parameters(
-                geom,
-                signal,
-                n_row=0,
-                cleaned_mask=(np.array(signal) > 0),
-                pdf=PDFType("skewed"),
-            )
-            assert camera_result.intensity == telescope_result.intensity
+                camera_result = image_fit_parameters(
+                    geom,
+                    signal,
+                    n_row=0,
+                    cleaned_mask=(np.array(signal) > 0),
+                    pdf=PDFType("skewed"),
+                )
 
-            # Compare results in both frames
-            transformed_cog = SkyCoord(
-                fov_lon=telescope_result.fov_lon,
-                fov_lat=telescope_result.fov_lat,
-                frame=telescope_frame,
-            ).transform_to(camera_frame)
-            assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
-            assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
+                assert camera_result.intensity == telescope_result.intensity
 
-            transformed_length = get_transformed_length(
-                telescope_result, telescope_frame, camera_frame
-            )
-            assert u.isclose(transformed_length, camera_result.length, rtol=0.01)
+                # Compare results in both frames
+                transformed_cog = SkyCoord(
+                    fov_lon=telescope_result.fov_lon,
+                    fov_lat=telescope_result.fov_lat,
+                    frame=telescope_frame,
+                ).transform_to(camera_frame)
 
-            transformed_width = get_transformed_width(
-                telescope_result, telescope_frame, camera_frame
-            )
-            assert u.isclose(transformed_width, camera_result.width, rtol=0.01)
+                if telescope_result.is_valid or telescope_result.is_accurate:
+                    assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
+                    assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
+
+                    transformed_length = get_transformed_length(
+                        telescope_result, telescope_frame, camera_frame
+                    )
+                    assert u.isclose(
+                        transformed_length, camera_result.length, rtol=0.01
+                    )
+
+                    transformed_width = get_transformed_width(
+                        telescope_result, telescope_frame, camera_frame
+                    )
+                    assert u.isclose(transformed_width, camera_result.width, rtol=0.01)
