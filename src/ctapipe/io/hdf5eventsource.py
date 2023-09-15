@@ -13,8 +13,6 @@ from ctapipe.instrument.optics import FocalLengthKind
 
 from ..containers import (
     ArrayEventContainer,
-    CameraHillasParametersContainer,
-    CameraTimingParametersContainer,
     ConcentrationContainer,
     CoordinateFrameType,
     DispContainer,
@@ -446,10 +444,7 @@ class HDF5EventSource(EventSource):
             timing_prefix = "timing"
 
             if self._is_hillas_in_camera_frame():
-                hillas_cls = CameraHillasParametersContainer
-                timing_cls = CameraTimingParametersContainer
-                hillas_prefix = "camera_frame_hillas"
-                timing_prefix = "camera_frame_timing"
+                raise KeyError("Found DL1 parameters in camera frame. Please reprocess your files with a newer version of ctapipe.")
 
             param_readers = {
                 table.name: self.reader.read(
