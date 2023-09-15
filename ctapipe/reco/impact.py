@@ -63,6 +63,11 @@ INVALID_ENERGY = ReconstructedEnergyContainer(
     telescopes=[],
 )
 
+# These are settings for the iminuit minimizer
+MINUIT_ERRORDEF = 0.5  # 0.5 for a log-likelihood cost function for correct errors
+MINUIT_STRATEGY = 1  # Default minimization strategy, 2 is careful, 0 is fast
+MINUIT_TOLERANCE_FACTOR = 1000  # Tolerance for convergence according to EDM criterion
+
 __all__ = ["ImPACTReconstructor"]
 
 
@@ -994,11 +999,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         minimizer.fixed = [False, False, False, False, False, False, True]
         minimizer.errors = step
         minimizer.limits = limits
-        minimizer.errordef = 1.0
+        minimizer.errordef = MINUIT_ERRORDEF
 
         # Tighter fit tolerances
-        minimizer.tol *= 1000
-        minimizer.strategy = 1
+        minimizer.tol *= MINUIT_TOLERANCE_FACTOR
+        minimizer.strategy = MINUIT_STRATEGY
 
         # Fit and output parameters and errors
         _ = minimizer.migrad(iterate=1)
