@@ -14,6 +14,7 @@ image size and just set unclean pixels to 0 or similar, use
 
 __all__ = [
     "tailcuts_clean",
+    "tailcuts_hysteresis_clean",
     "dilate",
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
@@ -44,7 +45,6 @@ def tailcuts_clean(
     boundary_thresh=5,
     keep_isolated_pixels=False,
     min_number_picture_neighbors=0,
-    max_iter=1,
 ):
 
     """Clean an image by selection pixels that pass a two-threshold
@@ -75,9 +75,6 @@ def tailcuts_clean(
     min_number_picture_neighbors: int
         A picture pixel survives cleaning only if it has at least this number
         of picture neighbors. This has no effect in case keep_isolated_pixels is True
-    max_iter: int
-        Maximum number of iterations
-        Only one iteration by default = Standard Tailcuts cleaning
 
     Returns
     -------
@@ -101,31 +98,18 @@ def tailcuts_clean(
     # matrix (2d), we find all pixels that are above the boundary threshold
     # AND have any neighbor that is in the picture
     pixels_above_boundary = image >= boundary_thresh
-    iteration = True
-    count = 0
-    while iteration:
-        pixels_in_picture_previous = pixels_in_picture.copy()
-        pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(
-            pixels_in_picture
+    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(pixels_in_picture)
+    if keep_isolated_pixels:
+        return (
+            pixels_above_boundary & pixels_with_picture_neighbors
+        ) | pixels_in_picture
+    else:
+        pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(
+            pixels_above_boundary
         )
-        if keep_isolated_pixels:
-            pixels_in_picture = (
-                pixels_above_boundary & pixels_with_picture_neighbors
-            ) | pixels_in_picture
-        else:
-            pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(
-                pixels_above_boundary
-            )
-            pixels_in_picture = (
-                pixels_above_boundary & pixels_with_picture_neighbors
-            ) | (pixels_in_picture & pixels_with_boundary_neighbors)
-
-        iteration = ~np.all(pixels_in_picture == pixels_in_picture_previous)
-        count += 1
-        if count >= max_iter:
-            iteration = False
-
-    return pixels_in_picture
+        return (pixels_above_boundary & pixels_with_picture_neighbors) | (
+            pixels_in_picture & pixels_with_boundary_neighbors
+        )
 
 
 def mars_cleaning_1st_pass(
@@ -391,6 +375,90 @@ def fact_image_cleaning(
     return pixels_to_keep
 
 
+def tailcuts_hysteresis_clean(
+    geom,
+    image,
+    picture_thresh=7,
+    boundary_thresh=5,
+    keep_isolated_pixels=False,
+    min_number_picture_neighbors=0,
+    max_iter=2,
+):
+
+    """Clean an image by Tailcuts image cleaning adding pixels above the boundary threshold if they continuously
+    connect to a pixel above the picture threshold.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel values
+    picture_thresh: float or array
+        threshold above which all pixels are retained
+    boundary_thresh: float or array
+        threshold above which pixels are retained if they have a neighbor
+        already above the picture_thresh
+    keep_isolated_pixels: bool
+        If True, pixels above the picture threshold will be included always,
+        if not they are only included if a neighbor is in the picture or
+        boundary
+    min_number_picture_neighbors: int
+        A picture pixel survives cleaning only if it has at least this number
+        of picture neighbors. This has no effect in case keep_isolated_pixels is True
+    max_iter: int
+        Maximum number of iterations
+        Only one iteration by default = Standard Tailcuts cleaning
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+    """
+    pixels_above_picture = image >= picture_thresh
+
+    if keep_isolated_pixels or min_number_picture_neighbors == 0:
+        pixels_in_picture = pixels_above_picture
+    else:
+        # Require at least min_number_picture_neighbors. Otherwise, the pixel
+        #  is not selected
+        number_of_neighbors_above_picture = geom.neighbor_matrix_sparse.dot(
+            pixels_above_picture.view(np.byte)
+        )
+        pixels_in_picture = pixels_above_picture & (
+            number_of_neighbors_above_picture >= min_number_picture_neighbors
+        )
+
+    # by broadcasting together pixels_in_picture (1d) with the neighbor
+    # matrix (2d), we find all pixels that are above the boundary threshold
+    # AND have any neighbor that is in the picture
+    pixels_above_boundary = image >= boundary_thresh
+    iteration = True
+    count = 0
+    while iteration:
+        pixels_in_picture_previous = pixels_in_picture.copy()
+        pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(
+            pixels_in_picture
+        )
+        if keep_isolated_pixels:
+            pixels_in_picture = (
+                pixels_above_boundary & pixels_with_picture_neighbors
+            ) | pixels_in_picture
+        else:
+            pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(
+                pixels_above_boundary
+            )
+            pixels_in_picture = (
+                pixels_above_boundary & pixels_with_picture_neighbors
+            ) | (pixels_in_picture & pixels_with_boundary_neighbors)
+
+        iteration = ~np.all(pixels_in_picture == pixels_in_picture_previous)
+        count += 1
+        if count >= max_iter:
+            iteration = False
+
+    return pixels_in_picture
+
+
 def time_constrained_clean(
     geom,
     image,
@@ -593,6 +661,34 @@ class FACTImageCleaner(TailcutsImageCleaner):
             boundary_threshold=self.boundary_threshold_pe.tel[tel_id],
             min_number_neighbors=self.min_picture_neighbors.tel[tel_id],
             time_limit=self.time_limit_ns.tel[tel_id],
+        )
+
+
+class HysteresisImageCleaner(TailcutsImageCleaner):
+    """
+    Clean images using the standard picture/boundary technique. See
+    `ctapipe.image.tailcuts_clean`
+    """
+
+    maximum_iterations = IntTelescopeParameter(
+        default_value=2, help="Maximum number of iterations"
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """
+        Apply modified Tailcuts image cleaning. See `ImageCleaner.__call__()`
+        """
+
+        return tailcuts_hysteresis_clean(
+            self.subarray.tel[tel_id].camera.geometry,
+            image,
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
+            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+            max_iter=self.maximum_iterations.tel[tel_id],
         )
 
 

@@ -23,6 +23,82 @@ def test_tailcuts_clean_simple(prod5_lst):
     assert np.count_nonzero(mask) == 4
 
 
+def test_tailcuts_hysteresis(prod5_mst_flashcam):
+    geom = prod5_mst_flashcam.camera.geometry
+    image = np.zeros_like(geom.pix_id, dtype=np.float64)
+
+    n_pix = 40
+    some_neighs = geom.neighbors[n_pix][0:3]  # pick 3 neighbors
+    image[n_pix] = 5.0  # set a single image pixel
+    image[some_neighs] = 5.0  # make some boundaries that are neighbors
+    image[45] = 3.0
+    image[28] = 3.0
+    image[43] = 3.0
+    image[29] = 5.0
+    image[30] = 5.0
+    image[31] = 5.0
+
+    mask = cleaning.tailcuts_hysteresis_clean(
+        geom,
+        image,
+        picture_thresh=4.5,
+        boundary_thresh=2.5,
+        max_iter=10,
+        keep_isolated_pixels=True,
+    )
+
+    mask_tails = cleaning.tailcuts_clean(
+        geom, image, picture_thresh=4.5, boundary_thresh=2.5, keep_isolated_pixels=True
+    )
+    mask_no_iter = cleaning.tailcuts_hysteresis_clean(
+        geom,
+        image,
+        picture_thresh=4.5,
+        boundary_thresh=2.5,
+        max_iter=0,
+        keep_isolated_pixels=True,
+    )
+
+    assert 45 in geom.pix_id[mask]
+    assert np.count_nonzero(mask) == np.count_nonzero(image)
+    assert np.count_nonzero(mask_tails) == np.count_nonzero(mask_no_iter)
+
+    image = np.zeros_like(geom.pix_id, dtype=np.float64)
+
+    n_pix = 40
+    some_neighs = geom.neighbors[n_pix][0:3]  # pick 3 neighbors
+    image[n_pix] = 5.0  # set a single image pixel
+    image[some_neighs] = 5.0  # make some boundaries that are neighbors
+    image[45] = 3.0
+    image[28] = 3.0
+
+    mask = cleaning.tailcuts_hysteresis_clean(
+        geom,
+        image,
+        picture_thresh=4.5,
+        boundary_thresh=2.5,
+        max_iter=2,
+        keep_isolated_pixels=True,
+    )
+
+    mask_tails = cleaning.tailcuts_clean(
+        geom, image, picture_thresh=4.5, boundary_thresh=2.5, keep_isolated_pixels=True
+    )
+    mask_no_iter = cleaning.tailcuts_hysteresis_clean(
+        geom,
+        image,
+        picture_thresh=4.5,
+        boundary_thresh=2.5,
+        max_iter=0,
+        keep_isolated_pixels=True,
+    )
+
+    assert 45 not in geom.pix_id[mask]
+    assert 28 not in geom.pix_id[mask]
+    assert np.count_nonzero(mask) == np.count_nonzero(image) - 2
+    assert np.count_nonzero(mask_tails) == np.count_nonzero(mask_no_iter)
+
+
 def test_dilate(prod5_lst):
     geom = prod5_lst.camera.geometry
     mask = np.zeros_like(geom.pix_id, dtype=bool)
