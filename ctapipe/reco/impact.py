@@ -67,7 +67,7 @@ INVALID_ENERGY = ReconstructedEnergyContainer(
 MINUIT_ERRORDEF = 0.5  # 0.5 for a log-likelihood cost function for correct errors
 MINUIT_STRATEGY = 1  # Default minimization strategy, 2 is careful, 0 is fast
 MINUIT_TOLERANCE_FACTOR = 1000  # Tolerance for convergence according to EDM criterion
-
+MIGRAD_ITERATE = 1  # Do not call migrad again if convergence was not reached
 __all__ = ["ImPACTReconstructor"]
 
 
@@ -1006,7 +1006,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         minimizer.strategy = MINUIT_STRATEGY
 
         # Fit and output parameters and errors
-        _ = minimizer.migrad(iterate=1)
+        _ = minimizer.migrad(iterate=MIGRAD_ITERATE)
         fit_params = minimizer.values
         errors = minimizer.errors
 
