@@ -11,7 +11,6 @@ from ..utils.quantities import all_to_value
 from ..fitting import lts_linear_regression
 
 
-
 __all__ = ["timing_parameters"]
 
 

@@ -1,8 +1,6 @@
 """
 High level image processing  (ImageProcessor Component)
 """
-from copy import deepcopy
-
 import numpy as np
 
 from ctapipe.coordinates import TelescopeFrame
@@ -15,7 +13,7 @@ from ..containers import (
     TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import Bool, BoolTelescopeParameter, ComponentName, List
+from ..core.traits import BoolTelescopeParameter, ComponentName, List
 from ..instrument import SubarrayDescription
 from .cleaning import ImageCleaner
 from .concentration import concentration_parameters

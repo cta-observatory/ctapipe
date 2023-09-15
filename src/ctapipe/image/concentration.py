@@ -1,11 +1,7 @@
 import astropy.units as u
 import numpy as np
 
-from ..containers import (
-    CameraHillasParametersContainer,
-    ConcentrationContainer,
-    HillasParametersContainer,
-)
+from ..containers import ConcentrationContainer
 from ..instrument import CameraGeometry
 from ..utils.quantities import all_to_value
 from .hillas import camera_to_shower_coordinates
