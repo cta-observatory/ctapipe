@@ -174,7 +174,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self.array_direction = None
         self.nominal_frame = None
 
-        self.min = None
         self.dummy_reconstructor = dummy_reconstructor
 
     def __call__(self, event):
@@ -981,7 +980,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         xmax_scale = 1
 
         # Now do the minimisation proper
-        self.min = Minuit(
+        minimizer = Minuit(
             self.get_likelihood,
             source_x=params[0],
             source_y=params[1],
@@ -992,19 +991,19 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             goodness_of_fit=False,
         )
         # This time leave everything free
-        self.min.fixed = [False, False, False, False, False, False, True]
-        self.min.errors = step
-        self.min.limits = limits
-        self.min.errordef = 1.0
+        minimizer.fixed = [False, False, False, False, False, False, True]
+        minimizer.errors = step
+        minimizer.limits = limits
+        minimizer.errordef = 1.0
 
         # Tighter fit tolerances
-        self.min.tol *= 1000
-        self.min.strategy = 1
+        minimizer.tol *= 1000
+        minimizer.strategy = 1
 
         # Fit and output parameters and errors
-        _ = self.min.migrad(iterate=1)
-        fit_params = self.min.values
-        errors = self.min.errors
+        _ = minimizer.migrad(iterate=1)
+        fit_params = minimizer.values
+        errors = minimizer.errors
 
         return (
             (
@@ -1023,7 +1022,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 errors["energy"],
                 errors["x_max_scale"],
             ),
-            self.min.fval,
+            minimizer.fval,
         )
 
     def reset_interpolator(self):
