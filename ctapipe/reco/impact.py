@@ -955,6 +955,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             energy_uncert=errors[4] * u.TeV,
             telescopes=self.tel_id,
             is_valid=True,
+            goodness_of_fit=np.sum(goodness_of_fit),
         )
 
         return shower_result, energy_result
