@@ -74,18 +74,26 @@ class CutOptimizer(Component):
         return reco_energy
 
     def optimise_gh_cut(self, signal, background, alpha, max_bg_radius):
-        INITIAL_GH_CUT = np.quantile(
-            signal["gh_score"], (1 - self.initial_gh_cut_efficency)
-        )
-        self.log.info(
-            f"Using fixed G/H cut of {INITIAL_GH_CUT} to calculate theta cuts"
+        initial_gh_cuts = calculate_percentile_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            bins=self.reco_energy_bins(),
+            fill_value=0.0,
+            percentile=100 * (1 - self.initial_gh_cut_efficency),
+            min_events=25,
+            smoothing=1,
         )
 
-        mask_theta_cuts = signal["gh_score"] >= INITIAL_GH_CUT
+        initial_gh_mask = evaluate_binned_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            initial_gh_cuts,
+            op=operator.gt,
+        )
 
         theta_cuts = calculate_percentile_cut(
-            signal["theta"][mask_theta_cuts],
-            signal["reco_energy"][mask_theta_cuts],
+            signal["theta"][initial_gh_mask],
+            signal["reco_energy"][initial_gh_mask],
             bins=self.reco_energy_bins(),
             min_value=self.theta_min_angle * u.deg,
             max_value=self.theta_max_angle * u.deg,
@@ -325,7 +333,7 @@ class DataBinning(Component):
 
     fov_offset_max = Float(
         help="Maximum value for FoV offset bins in degrees",
-        default_value=2.0,
+        default_value=5.0,
     ).tag(config=True)
 
     fov_offset_n_edges = Integer(
