@@ -610,7 +610,7 @@ class TimeCleaner(ImageCleaner):
     t_scale = FloatTelescopeParameter(
         default_value=4.0, help="Time scale parameter in ns"
     ).tag(config=True)
-    minpts = FloatTelescopeParameter(
+    minpts = IntTelescopeParameter(
         default_value=5, help="minimum number of points to form a cluster"
     ).tag(config=True)
     eps = FloatTelescopeParameter(
