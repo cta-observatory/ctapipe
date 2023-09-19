@@ -233,11 +233,11 @@ class IrfTool(Tool):
                 len(reduced_events["electron"]),
             )
         )
-        self.log.debug(self.epp.to_table())
         select_fov = (
             reduced_events["gamma"]["true_source_fov_offset"]
             <= self.bins.fov_offset_max * u.deg
         )
+        # TODO: verify that this fov cut on only gamma is ok
         self.signal_events = reduced_events["gamma"][select_fov]
         self.background_events = vstack(
             [reduced_events["proton"], reduced_events["electron"]]
@@ -319,6 +319,8 @@ class IrfTool(Tool):
             fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
         ]
 
+        self.log.debug("True Energy bins", self.true_energy_bins)
+        self.log.debug("FoV offset bins", self.fov_offset_bins)
         for label, mask in masks.items():
             effective_area = effective_area_per_energy_and_fov(
                 self.signal_events[mask],
@@ -326,8 +328,6 @@ class IrfTool(Tool):
                 true_energy_bins=self.true_energy_bins,
                 fov_offset_bins=self.fov_offset_bins,
             )
-            self.log.debug(self.true_energy_bins)
-            self.log.debug(self.fov_offset_bins)
             hdus.append(
                 create_aeff2d_hdu(
                     effective_area[..., np.newaxis],  # +1 dimension for FOV offset
