@@ -68,9 +68,19 @@ def test_load_lst_camera(prod5_lst):
 
 def test_position_to_pix_index(prod5_lst):
     """test that we can lookup a pixel from a coordinate"""
+    geometry = prod5_lst.camera.geometry
+
     x, y = (0.80 * u.m, 0.79 * u.m)
-    pix_id = prod5_lst.camera.geometry.position_to_pix_index(x, y)
+
+    pix_id = geometry.position_to_pix_index(x, y)
+
     assert pix_id == 1575
+
+    pix_ids = geometry.position_to_pix_index([0.8, 0.8] * u.m, [0.79, 0.79] * u.m)
+    np.testing.assert_array_equal(pix_ids, [1575, 1575])
+
+    assert len(geometry.position_to_pix_index([] * u.m, [] * u.m)) == 0
+    assert geometry.position_to_pix_index(5 * u.m, 5 * u.m) == np.iinfo(int).min
 
 
 def test_find_neighbor_pixels():
