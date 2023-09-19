@@ -954,12 +954,13 @@ class CameraGeometry:
         pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
                     outside camera
         """
-
         if not self._all_pixel_areas_equal:
             logger.warning(
                 " Method not implemented for cameras with varying pixel sizes"
             )
         unit = x.unit
+        scalar = x.ndim == 0
+
         points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
         circum_rad = self._pixel_circumradius[0].to_value(unit)
         kdtree = self._kdtree
@@ -969,8 +970,9 @@ class CameraGeometry:
         del dist
         pix_indices = pix_indices.flatten()
 
+        invalid = np.iinfo(pix_indices.dtype).min
         # 1. Mark all points outside pixel circumeference as lying outside camera
-        pix_indices[pix_indices == self.n_pixels] = -1
+        pix_indices[pix_indices == self.n_pixels] = invalid
 
         # 2. Accurate check for the remaing cases (within circumference, but still outside
         # camera). It is first checked if any border pixel numbers are returned.
@@ -1006,17 +1008,9 @@ class CameraGeometry:
                 )
                 del dist_check
                 if index_check != insidepix_index:
-                    pix_indices[index] = -1
+                    pix_indices[index] = invalid
 
-        # print warning:
-        for index in np.where(pix_indices == -1)[0]:
-            logger.warning(
-                " Coordinate ({} m, {} m) lies outside camera".format(
-                    points_searched[0][index, 0], points_searched[0][index, 1]
-                )
-            )
-
-        return pix_indices if len(pix_indices) > 1 else pix_indices[0]
+        return np.squeeze(pix_indices) if scalar else pix_indices
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
