@@ -117,15 +117,16 @@ def time_clustering(
     geom,
     image,
     time,
-    pedestal=2.0,
-    n_noise=3.0,
+    pedestal=1.6,
+    n_noise=2.5,
     minpts=5,
     eps=1.0,
     t_scale=4.0,
-    d_scale=0.15,
+    d_scale=0.25,
 ):
     """
-    Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN. Previously used for HESS.
+    Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
+    Previously used for HESS [timecleaning]_.
     Parameters
     ----------
     geom: `ctapipe.instrument.CameraGeometry`
@@ -600,12 +601,12 @@ class TimeCleaner(ImageCleaner):
     """
 
     pedestal = FloatTelescopeParameter(
-        default_value=2.0, help="Pedestal width of each pixel"
+        default_value=1.6, help="Pedestal width of each pixel"
     ).tag(
         config=True
     )  # we should get this from a container once available
     d_scale = FloatTelescopeParameter(
-        default_value=0.15, help="Pixel space scaling parameter in m"
+        default_value=0.25, help="Pixel space scaling parameter in m"
     ).tag(config=True)
     t_scale = FloatTelescopeParameter(
         default_value=4.0, help="Time scale parameter in ns"
@@ -617,7 +618,7 @@ class TimeCleaner(ImageCleaner):
         default_value=1.0, help="minimum distance in DBSCAN"
     ).tag(config=True)
     noise_cut = FloatTelescopeParameter(
-        default_value=3.0, help="Number of sigmas for pre-cleaning the image"
+        default_value=2.5, help="Number of sigmas for pre-cleaning the image"
     ).tag(config=True)
 
     def __call__(
