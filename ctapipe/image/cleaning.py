@@ -15,6 +15,7 @@ image size and just set unclean pixels to 0 or similar, use
 __all__ = [
     "tailcuts_clean",
     "dilate",
+    "time_clustering",
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
@@ -27,6 +28,7 @@ __all__ = [
 from abc import abstractmethod
 
 import numpy as np
+from sklearn.cluster import DBSCAN
 
 from ..core import TelescopeComponent
 from ..core.traits import (
@@ -109,6 +111,66 @@ def tailcuts_clean(
         return (pixels_above_boundary & pixels_with_picture_neighbors) | (
             pixels_in_picture & pixels_with_boundary_neighbors
         )
+
+
+def time_clustering(
+    geom,
+    image,
+    time,
+    pedestal=2.0,
+    n_noise=3.0,
+    minpts=5,
+    eps=1.0,
+    t_scale=4.0,
+    d_scale=0.15,
+):
+    """
+    Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN. Previously used for HESS.
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel values
+    time: array
+        pixel values
+    pedestal: array
+        pedestal width for each pixel. This is just one number for now.
+    n_noise: array
+        Noise cut
+    minpts: int
+        Minimum number of points to consider a cluster
+    eps: float
+        Distance in dbscan
+    t_scale: float
+        Time scale in ns
+    d_scale: float
+        Space scale in m
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+    """
+    precut_mask = image > n_noise * pedestal
+
+    arr = np.zeros(len(image), dtype=float)
+    arr[~precut_mask] = -1
+
+    pix_x = geom.pix_x.value[precut_mask] / d_scale
+    pix_y = geom.pix_y.value[precut_mask] / d_scale
+
+    X = np.column_stack((time[precut_mask] / t_scale, pix_x, pix_y))
+
+    db = DBSCAN(eps=eps, min_samples=minpts).fit(X)
+    labels = db.labels_
+
+    # no_clusters = len(np.unique(labels))-1  # Could be used for gh separation
+
+    y = np.array(arr[(arr == 0)])
+    y[(labels == -1)] = -1
+    arr[arr == 0] = y
+    mask = arr == 0  # we keep these events
+    return mask
 
 
 def mars_cleaning_1st_pass(
@@ -529,6 +591,49 @@ class TailcutsImageCleaner(ImageCleaner):
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+        )
+
+
+class TimeCleaner(ImageCleaner):
+    """
+    Clean images using the time clustering cleaning method
+    """
+
+    pedestal = FloatTelescopeParameter(
+        default_value=2.0, help="Pedestal width of each pixel"
+    ).tag(
+        config=True
+    )  # we should get this from a container once available
+    d_scale = FloatTelescopeParameter(
+        default_value=0.15, help="Pixel space scaling parameter in m"
+    ).tag(config=True)
+    t_scale = FloatTelescopeParameter(
+        default_value=4.0, help="Time scale parameter in ns"
+    ).tag(config=True)
+    minpts = FloatTelescopeParameter(
+        default_value=5, help="minimum number of points to form a cluster"
+    ).tag(config=True)
+    eps = FloatTelescopeParameter(
+        default_value=1.0, help="minimum distance in DBSCAN"
+    ).tag(config=True)
+    noise_cut = FloatTelescopeParameter(
+        default_value=3.0, help="Number of sigmas for pre-cleaning the image"
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
+        return time_clustering(
+            geom=self.subarray.tel[tel_id].camera.geometry,
+            image=image,
+            time=arrival_times,
+            eps=self.eps.tel[tel_id],
+            n_noise=self.noise_cut.tel[tel_id],
+            d_scale=self.d_scale.tel[tel_id],
+            t_scale=self.t_scale.tel[tel_id],
+            pedestal=self.pedestal.tel[tel_id],
+            minpts=self.minpts.tel[tel_id],
         )
 
 
