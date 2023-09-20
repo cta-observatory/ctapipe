@@ -260,16 +260,20 @@ class HillasIntersection(HillasGeometryReconstructor):
         sky_pos = nom.transform_to(array_pointing.frame)
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, z=0 * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
-        x_max = self.reconstruct_xmax(
-            nom.fov_lon,
-            nom.fov_lat,
-            tilt.x,
-            tilt.y,
-            hillas_dict_mod,
-            tel_x,
-            tel_y,
-            90 * u.deg - array_pointing.alt,
-        )
+
+        if self.subarray.reference_location:
+            h_max = self.reconstruct_h_max(
+                nom.fov_lon,
+                nom.fov_lat,
+                tilt.x,
+                tilt.y,
+                hillas_dict_mod,
+                tel_x,
+                tel_y,
+                90 * u.deg - array_pointing.alt,
+            )
+        else:
+            h_max = u.Quantity(np.nan, u.m)
 
         src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
 
@@ -287,8 +291,8 @@ class HillasIntersection(HillasGeometryReconstructor):
             is_valid=True,
             alt_uncert=src_error.to(u.rad),
             az_uncert=src_error.to(u.rad),
-            h_max=x_max,
-            h_max_uncert=u.Quantity(np.nan * x_max.unit),
+            h_max=h_max,
+            h_max_uncert=u.Quantity(np.nan * h_max.unit),
             goodness_of_fit=np.nan,
             prefix=self.__class__.__name__,
         )
@@ -437,7 +441,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
-    def reconstruct_xmax(
+    def reconstruct_h_max(
         self, source_x, source_y, core_x, core_y, hillas_parameters, tel_x, tel_y, zen
     ):
         """
@@ -502,18 +506,12 @@ class HillasIntersection(HillasGeometryReconstructor):
         mean_height *= np.cos(zen)
 
         # Add on the height of the detector above sea level
-        mean_height += 2100  # TODO: replace with instrument info
+        mean_height += self.subarray.reference_location.geodetic.height.to_value(u.m)
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
 
-        mean_height *= u.m
-        # Lookup this height in the depth tables, the convert Hmax to Xmax
-        # x_max = self.thickness_profile(mean_height.to(u.km))
-        # Convert to slant depth
-        # x_max /= np.cos(zen)
-
-        return mean_height
+        return u.Quantity(mean_height, u.m)
 
     @staticmethod
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):
