@@ -107,7 +107,13 @@ nitpick_ignore = [
     ("py:class", "traitlets.traitlets.Int"),
     ("py:class", "traitlets.config.application.Application"),
     ("py:class", "traitlets.utils.sentinel.Sentinel"),
+    ("py:class", "traitlets.traitlets.T"),
+    ("py:class", "re.Pattern[t.Any]"),
+    ("py:class", "Sentinel"),
+    ("py:class", "ObserveHandler"),    
     ("py:class", "traitlets.traitlets.ObserveHandler"),
+    ("py:obj", "traitlets.traitlets.G"),
+    ("py:obj", "traitlets.traitlets.S"),
     ("py:obj", "traitlets.config.boolean_flag"),
     ("py:obj", "traitlets.TraitError"),
     ("py:obj", "-v"),  # fix for wrong syntax in a traitlets docstring
