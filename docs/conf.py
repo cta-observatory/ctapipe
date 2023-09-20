@@ -133,7 +133,7 @@ nitpick_ignore = [
     ("py:class", "traitlets.traitlets.T"),
     ("py:class", "re.Pattern[t.Any]"),
     ("py:class", "Sentinel"),
-    ("py:class", "ObserveHandler"),    
+    ("py:class", "ObserveHandler"),
     ("py:class", "traitlets.traitlets.ObserveHandler"),
     ("py:obj", "traitlets.traitlets.G"),
     ("py:obj", "traitlets.traitlets.S"),
