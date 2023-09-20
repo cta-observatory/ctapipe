@@ -570,6 +570,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                     np.invert(ma.getmask(self.image[telescope_index])),
                     self.time[telescope_index] > 0,
                 )
+                time_mask = np.logical_and(
+                    time_mask, np.isfinite(self.time[telescope_index])
+                )
                 time_mask = np.logical_and(time_mask, self.image[telescope_index] > 5)
                 if np.sum(time_mask) > 3:
                     time_slope = lts_linear_regression(
@@ -578,7 +581,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                         samples=3,
                     )[0][0]
 
-                    time_like = -2 * norm.logpdf(
+                    time_like = -1 * norm.logpdf(
                         time_slope,
                         loc=time_gradients[telescope_index],
                         scale=time_gradients_uncertainty[telescope_index],
