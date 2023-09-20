@@ -83,7 +83,7 @@ def test_intersection_xmax_reco(example_subarray):
         ),
     }
 
-    x_max = hill_inter.reconstruct_xmax(
+    x_max = hill_inter.reconstruct_h_max(
         source_x=nom_pos_reco.fov_lon,
         source_y=nom_pos_reco.fov_lat,
         core_x=0 * u.m,

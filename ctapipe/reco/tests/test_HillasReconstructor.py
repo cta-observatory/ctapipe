@@ -44,12 +44,9 @@ def test_h_max_results():
     )
 
     cog_cart = altaz_to_righthanded_cartesian(cog_alt, cog_az)
-
-    # creating the fit class and setting the the great circle member
-
-    # performing the direction fit with the minimisation algorithm
-    # and a seed that is perpendicular to the up direction
-    h_max_reco = HillasReconstructor.estimate_h_max(cog_cart, positions)
+    h_max_reco = HillasReconstructor.estimate_relative_h_max(
+        cog_vectors=cog_cart, positions=positions
+    )
 
     # the results should be close to the direction straight up
     assert u.isclose(h_max_reco, 1 * u.km)
@@ -210,7 +207,6 @@ def test_reconstruction_against_simulation_camera_frame(
     ],
 )
 def test_CameraFrame_against_TelescopeFrame(filename):
-
     input_file = get_dataset_path(filename)
     # "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
     # )
@@ -243,7 +239,6 @@ def test_CameraFrame_against_TelescopeFrame(filename):
     reconstructed_events = 0
 
     for event_telescope_frame in source:
-
         calib(event_telescope_frame)
         # make a copy of the calibrated event for the camera frame case
         # later we clean and paramretrize the 2 events in the same way
@@ -281,7 +276,6 @@ def test_CameraFrame_against_TelescopeFrame(filename):
                 elif isinstance(cam, list):
                     assert cam == tel
                 else:
-
                     if cam == 0 or tel == 0:
                         kwargs["atol"] = 1e-6
                     assert np.isclose(cam, tel, **kwargs)
