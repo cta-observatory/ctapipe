@@ -125,8 +125,10 @@ def time_clustering(
     d_scale=0.25,
 ):
     """
+
     Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
     Previously used for HESS [timecleaning]_.
+
     Parameters
     ----------
     geom: `ctapipe.instrument.CameraGeometry`
@@ -162,8 +164,7 @@ def time_clustering(
 
     X = np.column_stack((time[precut_mask] / t_scale, pix_x, pix_y))
 
-    db = DBSCAN(eps=eps, min_samples=minpts).fit(X)
-    labels = db.labels_
+    labels = DBSCAN(eps=eps, min_samples=minpts).fit_predict(X)
 
     # no_clusters = len(np.unique(labels))-1  # Could be used for gh separation
 
@@ -624,7 +625,7 @@ class TimeCleaner(ImageCleaner):
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
-        """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
+        """Apply HESS image cleaning. see ImageCleaner.__call__()"""
         return time_clustering(
             geom=self.subarray.tel[tel_id].camera.geometry,
             image=image,
