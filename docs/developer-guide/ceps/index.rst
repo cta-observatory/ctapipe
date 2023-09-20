@@ -34,6 +34,8 @@ Proposed CEPs
 Rejected CEPs
 =============
 
+There are no rejected CEPs currently.
+
 .. .. toctree::
 ..    :maxdepth: 1
 ..    :glob:
