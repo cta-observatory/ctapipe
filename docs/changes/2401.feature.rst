@@ -1,0 +1,2 @@
+Add an image cleaning algorithm that clusters points in a high-density region in a space with one temporal dimension and
+two spatial dimensions
