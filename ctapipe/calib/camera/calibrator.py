@@ -9,7 +9,7 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -178,19 +178,35 @@ class CameraCalibrator(TelescopeComponent):
             return False
 
     def _calibrate_dl0(self, event, tel_id):
-        waveforms = event.r1.tel[tel_id].waveform
-        selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
-        if self._check_r1_empty(waveforms):
+        r1 = event.r1.tel[tel_id]
+
+        if self._check_r1_empty(r1.waveform):
             return
 
-        reduced_waveforms_mask = self.data_volume_reducer(
-            waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
+        signal_pixels = self.data_volume_reducer(
+            r1.waveform,
+            tel_id=tel_id,
+            selected_gain_channel=r1.selected_gain_channel,
         )
 
-        waveforms_copy = waveforms.copy()
-        waveforms_copy[~reduced_waveforms_mask] = 0
-        event.dl0.tel[tel_id].waveform = waveforms_copy
-        event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
+        dl0_waveform = r1.waveform.copy()
+        dl0_waveform[~signal_pixels] = 0
+
+        dl0_pixel_status = r1.pixel_status.copy()
+        # set dvr pixel bit in pixel_status for pixels kept by DVR
+        dl0_pixel_status[signal_pixels] |= PixelStatus.DVR_STORED_AS_SIGNAL
+        # unset dvr bits for removed pixels
+        dl0_pixel_status[~signal_pixels] &= ~np.uint8(PixelStatus.DVR_STATUS)
+
+        event.dl0.tel[tel_id] = DL0CameraContainer(
+            event_type=r1.event_type,
+            event_time=r1.event_time,
+            waveform=dl0_waveform,
+            selected_gain_channel=r1.selected_gain_channel,
+            pixel_status=dl0_pixel_status,
+            first_cell_id=r1.first_cell_id,
+            calibration_monitoring_id=r1.calibration_monitoring_id,
+        )
 
     def _calibrate_dl1(self, event, tel_id):
         waveforms = event.dl0.tel[tel_id].waveform

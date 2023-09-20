@@ -128,7 +128,7 @@ class TrainEnergyRegressor(Tool):
                 f"No events after quality query for telescope type {telescope_type}"
             )
 
-        table = self.regressor.feature_generator(table)
+        table = self.regressor.feature_generator(table, subarray=self.loader.subarray)
 
         feature_names = self.regressor.features + [self.regressor.target]
         table = table[feature_names]

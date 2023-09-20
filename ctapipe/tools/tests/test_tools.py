@@ -81,19 +81,6 @@ def test_fileinfo(tmp_path, dl1_image_file):
     assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
 
-def test_dump_triggers(tmp_path):
-    from ctapipe.tools.dump_triggers import DumpTriggersTool
-
-    sys.argv = ["dump_triggers"]
-    output_path = tmp_path / "triggers.fits"
-    tool = DumpTriggersTool(input_path=PROD5B_PATH, output_path=str(output_path))
-
-    assert run_tool(tool, cwd=tmp_path) == 0
-
-    assert output_path.exists()
-    assert run_tool(tool, ["--help-all"]) == 0
-
-
 def test_dump_instrument(tmp_path):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
 

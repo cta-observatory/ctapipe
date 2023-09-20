@@ -34,7 +34,7 @@ class TrainDispReconstructor(Tool):
         directory_ok=False,
         help=(
             "Ouput path for the trained reconstructor."
-            " At the moment, pickle is the only supported format.",
+            " At the moment, pickle is the only supported format."
         ),
     ).tag(config=True)
 
@@ -127,7 +127,7 @@ class TrainDispReconstructor(Tool):
                 f"No events after quality query for telescope type {telescope_type}"
             )
 
-        table = self.models.feature_generator(table)
+        table = self.models.feature_generator(table, subarray=self.loader.subarray)
 
         table[self.models.target] = self._get_true_disp(table)
 

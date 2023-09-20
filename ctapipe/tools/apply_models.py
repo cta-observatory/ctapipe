@@ -113,7 +113,7 @@ class ApplyModels(Tool):
         ),
         "overwrite": (
             {
-                "H5Merger": {"overwrite": True},
+                "HDF5Merger": {"overwrite": True},
                 "ApplyModels": {"overwrite": True},
             },
             "Overwrite output file if it exists",

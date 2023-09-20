@@ -88,6 +88,8 @@ def collect_features(
     """
     features = {}
 
+    features.update(event.trigger.as_dict(recursive=False, flatten=True))
+
     features.update(
         event.dl1.tel[tel_id].parameters.as_dict(
             add_prefix=True,

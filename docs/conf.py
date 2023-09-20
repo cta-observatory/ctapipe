@@ -4,7 +4,7 @@
 # ctapipe documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  6 10:22:58 2017.
 #
-# This file is execfile()d with the current directory set to its
+# Thi file is execfile()d with the current directory set to its
 # containing dir.
 #
 # Note that not all possible configuration values are present in this
@@ -29,12 +29,16 @@ import os
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
 
+# Sphinx gallery
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+
 import ctapipe
 
 setup_cfg = ConfigParser()
 setup_cfg.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
 setup_metadata = dict(setup_cfg.items("metadata"))
 setup_options = dict(setup_cfg.items("options"))
+
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -52,10 +56,14 @@ extensions = [
     "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
+    "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_gallery.gen_gallery",
 ]
 
+
 numpydoc_show_class_members = False
+numpydoc_class_members_toctree = False
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
@@ -64,6 +72,8 @@ templates_path = ["_templates"]
 
 
 def setup(app):
+    app.add_css_file("ctapipe.css")
+
     # fix trait aliases generating doc warnings
     from ctapipe.core import traits
 
@@ -95,6 +105,19 @@ def setup(app):
 # These links are ignored in the checks, necessary due to broken intersphinx for
 # these
 nitpick_ignore = [
+    # needed for building the docs with python 3.11 locally.
+    # we use the lowest supported version on readthedocs, so that is what we use the intersphinx
+    # link above
+    ("py:class", "enum.StrEnum"),
+    # these are coming from traitlets:
+    ("py:class", "t.Union"),
+    ("py:class", "t.Any"),
+    ("py:class", "t.Dict"),
+    ("py:class", "t.Optional"),
+    ("py:class", "t.Type"),
+    ("py:class", "t.List"),
+    ("py:class", "t.Tuple"),
+    ("py:class", "Config"),
     ("py:class", "traitlets.config.configurable.Configurable"),
     ("py:class", "traitlets.traitlets.HasTraits"),
     ("py:class", "traitlets.traitlets.HasDescriptors"),
@@ -125,7 +148,35 @@ nitpick_ignore = [
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
     ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
+    ("py:class", "ctapipe.compat.StrEnum"),
+    ("py:class", "ctapipe.compat.StrEnum"),
 ]
+
+# Sphinx gallery config
+
+sphinx_gallery_conf = {
+    "examples_dirs": [
+        "../examples",
+    ],  # path to your example scripts
+    "subsection_order": ExplicitOrder(
+        [
+            "../examples/tutorials",
+            "../examples/algorithms",
+            "../examples/core",
+            "../examples/visualization",
+        ]
+    ),
+    "within_subsection_order": FileNameSortKey,
+    "nested_sections": False,
+    "filename_pattern": r".*\.py",
+    "copyfile_regex": r".*\.png",
+    "promote_jupyter_magic": True,
+    "line_numbers": True,
+    "default_thumb_file": "_static/ctapipe_logo.png",
+    "pypandoc": True,
+    "matplotlib_animations": True,
+}
+
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -179,6 +230,12 @@ exclude_patterns = [
     ".DS_Store",
     "**.ipynb_checkpoints",
     "changes",
+    "user-guide/examples/*/README.rst",
+    "user-guide/examples/README.rst",
+    "auto_examples/index.rst",
+    "auto_examples/*/*.py.md5",
+    "auto_examples/*/*.py",
+    "auto_examples/*/*.ipynb",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -187,32 +244,80 @@ pygments_style = "sphinx"
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+
+# -- Version switcher -----------------------------------------------------
+
+# Define the json_url for our version switcher.
+json_url = "https://ctapipe.readthedocs.io/en/latest/_static/switcher.json"
+
+# Define the version we use for matching in the version switcher.,
+version_match = os.getenv("READTHEDOCS_VERSION")
+# If READTHEDOCS_VERSION doesn't exist, we're not on RTD
+# If it is an integer, we're in a PR build and the version isn't correct.
+if not version_match or version_match.isdigit():
+    # For local development, infer the version to match from the package.
+    if "dev" in release or "rc" in release:
+        version_match = "latest"
+    else:
+        version_match = release
+
+    # We want to keep the relative reference when on a pull request or locally
+    json_url = "_static/switcher.json"
+
+
 # -- Options for HTML output ----------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = "default"
+html_theme = "pydata_sphinx_theme"
+
+
+html_favicon = "_static/favicon.ico"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+html_theme_options = {
+    "logo": {
+        "image_light": "_static/ctapipe_logo.webp",
+        "image_dark": "_static/ctapipe_logo_dark.webp",
+        "alt_text": "ctapipe",
+    },
+    "github_url": "https://github.com/cta-observatory/ctapipe",
+    "header_links_before_dropdown": 6,
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "switcher": {
+        "version_match": version_match,
+        "json_url": json_url,
+    },
+    "use_edit_page_button": True,
+    "icon_links_label": "Quick Links",
+    "icon_links": [
+        {
+            "name": "CTA Observatory",
+            "url": "https://www.cta-observatory.org/",
+            "type": "url",
+            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",
+        },
+    ],
+    "announcement": """
+        <p>ctapipe is not stable yet, so expect large and rapid
+        changes to structure and functionality as we explore various
+        design choices before the 1.0 release.</p>
+    """,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
 html_static_path = ["_static"]
-
 html_context = {
-    "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
+    "default_mode": "light",
+    "github_user": "cta-observatory",
+    "github_repo": "ctapipe",
+    "github_version": "main",
+    "doc_path": "docs",
 }
-
-html_favicon = "_static/favicon.ico"
-# -- Options for HTMLHelp output ------------------------------------------
-
+html_css_files = ["ctapipe.css"]
+html_file_suffix = ".html"
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -220,6 +325,7 @@ html_title = f"{project} v{release}"
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + "doc"
+
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -271,7 +377,7 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.8", None),
+    "python": ("https://docs.python.org/3.9", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "astropy": ("https://docs.astropy.org/en/latest/", None),
@@ -282,19 +388,3 @@ intersphinx_mapping = {
     "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
-
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    try:
-        import sphinx_rtd_theme
-    except ImportError:
-        raise ImportError(
-            "It looks like you don't have the sphinx_rtd_theme "
-            "package installed. This documentation "
-            "uses the Read The Docs theme, so you must install this "
-            "first. For example, pip install sphinx_rtd_theme"
-        )
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]

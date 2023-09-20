@@ -28,6 +28,11 @@ filterwarnings = [
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
 ]
+norecursedirs = [
+    ".git",
+    "_build",
+    "auto_examples",
+]
 
 [tool.towncrier]
     package = "ctapipe"

@@ -2,11 +2,7 @@
 Create a working directory for ctapipe-process containing standard
 configuration files.
 """
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
-
+from importlib.resources import files
 from pathlib import Path
 
 from ..core import Provenance, Tool, traits

@@ -14,6 +14,7 @@ from matplotlib.patches import Circle, Ellipse, RegularPolygon
 
 from ..coordinates import get_representation_component_names
 from ..instrument import PixelShape
+from .utils import build_hillas_overlay
 
 __all__ = ["CameraDisplay"]
 
@@ -459,7 +460,7 @@ class CameraDisplay:
         self._axes_overlays.append(plot)
 
     def overlay_moments(
-        self, hillas_parameters, with_label=True, keep_old=False, **kwargs
+        self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
         """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
@@ -471,6 +472,8 @@ class CameraDisplay:
             If True, show coordinates of centroid and width and length
         keep_old: bool
             If True, to not remove old overlays
+        n_sigma: float
+            How many sigmas to use for the ellipse
         kwargs: key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
@@ -478,17 +481,18 @@ class CameraDisplay:
         if not keep_old:
             self.clear_overlays()
 
-        # strip off any units
-        cen_x = u.Quantity(hillas_parameters.x).to_value(self.unit)
-        cen_y = u.Quantity(hillas_parameters.y).to_value(self.unit)
-        length = u.Quantity(hillas_parameters.length).to_value(self.unit)
-        width = u.Quantity(hillas_parameters.width).to_value(self.unit)
+        params = build_hillas_overlay(
+            hillas_parameters,
+            self.unit,
+            n_sigma=n_sigma,
+            with_label=with_label,
+        )
 
         el = self.add_ellipse(
-            centroid=(cen_x, cen_y),
-            length=length * 2,
-            width=width * 2,
-            angle=hillas_parameters.psi.to_value(u.rad),
+            centroid=(params["cog_x"], params["cog_y"]),
+            length=n_sigma * params["length"] * 2,
+            width=n_sigma * params["width"] * 2,
+            angle=params["psi_rad"],
             **kwargs,
         )
 
@@ -496,15 +500,14 @@ class CameraDisplay:
 
         if with_label:
             text = self.axes.text(
-                cen_x,
-                cen_y,
-                "({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
-                    hillas_parameters.x,
-                    hillas_parameters.y,
-                    hillas_parameters.width,
-                    hillas_parameters.length,
-                ),
+                params["label_x"],
+                params["label_y"],
+                params["text"],
                 color=el.get_edgecolor(),
+                va="bottom",
+                ha="center",
+                rotation=params["rotation"],
+                rotation_mode="anchor",
             )
 
             self._axes_overlays.append(text)
@@ -517,6 +520,11 @@ class CameraDisplay:
 
     def _on_pick(self, event):
         """handler for when a pixel is clicked"""
+        if event.artist is not self.pixels:
+            # do nothing if the event was triggered by something
+            # other than this displays pixels artist
+            return
+
         pix_id = event.ind[-1]
         x = self.geom.pix_x[pix_id].to_value(self.unit)
         y = self.geom.pix_y[pix_id].to_value(self.unit)

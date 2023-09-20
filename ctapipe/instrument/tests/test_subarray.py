@@ -15,6 +15,8 @@ from ctapipe.instrument import (
     TelescopeDescription,
 )
 
+LOCATION = EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
+
 
 def create_subarray(tel_type, n_tels=10):
     """generate a simple subarray for testing purposes"""
@@ -31,11 +33,7 @@ def create_subarray(tel_type, n_tels=10):
         "test array",
         tel_positions=pos,
         tel_descriptions=tel,
-        reference_location=EarthLocation(
-            lon=-17 * u.deg,
-            lat=28 * u.deg,
-            height=2200 * u.m,
-        ),
+        reference_location=LOCATION,
     )
 
 
@@ -64,6 +62,8 @@ def test_subarray_description(prod5_mst_nectarcam):
     assert u.isclose(sub.optics_types[0].effective_focal_length, 16.445 * u.m)
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
+
+    assert sub.tel_coords.reference_location == LOCATION
 
     subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
     assert subsub.n_tels == 4
@@ -246,3 +246,27 @@ def test_unknown_telescopes(example_subarray):
 
     with pytest.raises(UnknownTelescopeID):
         example_subarray.select_subarray([300, 201])
+
+
+def test_multiplicity(subarray_prod5_paranal):
+
+    subarray = subarray_prod5_paranal.select_subarray([1, 2, 20, 21, 80, 81])
+
+    mask = np.array([True, False, True, True, False, False])
+
+    assert subarray.multiplicity(mask) == 3
+    assert subarray.multiplicity(mask, "LST_LST_LSTCam") == 1
+    assert subarray.multiplicity(mask, "MST_MST_FlashCam") == 2
+    assert subarray.multiplicity(mask, "SST_ASTRI_CHEC") == 0
+
+    masks = np.array(
+        [
+            [True, False, True, True, False, False],
+            [True, True, False, True, False, True],
+        ]
+    )
+
+    np.testing.assert_equal(subarray.multiplicity(masks), [3, 4])
+    np.testing.assert_equal(subarray.multiplicity(masks, "LST_LST_LSTCam"), [1, 2])
+    np.testing.assert_equal(subarray.multiplicity(masks, "MST_MST_FlashCam"), [2, 1])
+    np.testing.assert_equal(subarray.multiplicity(masks, "SST_ASTRI_CHEC"), [0, 1])

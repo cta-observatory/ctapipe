@@ -13,7 +13,7 @@ from ..instrument.optics import FocalLengthKind
 from ..instrument.subarray import SubarrayDescription
 from ..utils.arrays import recarray_drop_columns
 from . import metadata
-from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta
+from .hdf5tableio import DEFAULT_FILTERS, get_column_attrs, get_node_meta, split_h5path
 
 
 class NodeType(enum.Enum):
@@ -37,6 +37,8 @@ _NODES_TO_CHECK = {
     "/simulation/event/telescope/impact": NodeType.TEL_GROUP,
     "/simulation/event/telescope/images": NodeType.TEL_GROUP,
     "/simulation/event/telescope/parameters": NodeType.TEL_GROUP,
+    "/r0/event/telescope": NodeType.TEL_GROUP,
+    "/r1/event/telescope": NodeType.TEL_GROUP,
     "/dl1/event/subarray/trigger": NodeType.TABLE,
     "/dl1/event/telescope/trigger": NodeType.TABLE,
     "/dl1/event/telescope/images": NodeType.TEL_GROUP,
@@ -78,20 +80,6 @@ class CannotMerge(IOError):
     """Raised when trying to merge incompatible files"""
 
 
-def split_h5path(path):
-    """
-    Split a path inside an hdf5 file into parent / child
-    """
-    if not path.startswith("/"):
-        raise ValueError("Path must start with /")
-
-    head, _, tail = path.rstrip("/").rpartition("/")
-    if head == "":
-        head = "/"
-
-    return head, tail
-
-
 class HDF5Merger(Component):
     """
     Class to copy / append / merge ctapipe hdf5 files
@@ -127,6 +115,16 @@ class HDF5Merger(Component):
     true_parameters = traits.Bool(
         True,
         help="Whether to include parameters calculated on true images in merged output",
+    ).tag(config=True)
+
+    r0_waveforms = traits.Bool(
+        True,
+        help="Whether to include r0 waveforms in merged output",
+    ).tag(config=True)
+
+    r1_waveforms = traits.Bool(
+        True,
+        help="Whether to include r1 waveforms in merged output",
     ).tag(config=True)
 
     dl1_images = traits.Bool(
@@ -308,6 +306,16 @@ class HDF5Merger(Component):
             and self.true_parameters
             and key in other.root
         ):
+            self._append_table_group(other, other.root[key])
+
+        # R0
+        key = "/r0/event/telescope/"
+        if self.telescope_events and self.r0_waveforms and key in other.root:
+            self._append_table_group(other, other.root[key])
+
+        # R1
+        key = "/r1/event/telescope/"
+        if self.telescope_events and self.r1_waveforms and key in other.root:
             self._append_table_group(other, other.root[key])
 
         # DL1

@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from importlib.resources import files
 from io import StringIO
 from pathlib import Path
 
@@ -13,11 +14,6 @@ from ctapipe.io import TableLoader
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
 from ctapipe.tools.process import ProcessorTool
-
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
 
 
 def run_stage1(input_path, cwd, output_path=None):

@@ -12,6 +12,7 @@ __pycache__
 ctapipe/_version_cache.py
 ctapipe/_version.py
 
+
 # Ignore .c files by default to avoid including generated code. If you want to
 # add a non-generated .c extension, use `git add -f filename.c`.
 *.c
@@ -25,6 +26,7 @@ MANIFEST
 # Sphinx
 docs/api
 docs/_build
+docs/auto_examples
 
 # Editors and IDEs
 
@@ -85,8 +87,5 @@ distribute-*.tar.gz
 *.pstats
 target
 .mypy_cache
-
-examples/notebooks/*.html
-examples/notebooks/*.png
 
 provenance.log
