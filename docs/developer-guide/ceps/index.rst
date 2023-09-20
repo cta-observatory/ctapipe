@@ -23,11 +23,11 @@ Accepted CEPs
 Proposed CEPs
 =============
 
-.. toctree::
-   :maxdepth: 1
-   :glob:
+.. .. toctree::
+..    :maxdepth: 1
+..    :glob:
 
-   proposed/*
+..    proposed/*
 
 Rejected CEPs
 =============
