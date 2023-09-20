@@ -19,6 +19,7 @@ from ..coordinates import (
     altaz_to_righthanded_cartesian,
     project_to_ground,
 )
+from ..instrument import SubarrayDescription
 from .reconstructor import (
     HillasGeometryReconstructor,
     InvalidWidthException,
@@ -106,7 +107,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     """
 
-    def __init__(self, subarray, **kwargs):
+    def __init__(self, subarray: SubarrayDescription, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
         _cam_radius_m = {
             cam: cam.geometry.guess_radius().to_value(u.m)
@@ -181,7 +182,15 @@ class HillasReconstructor(HillasGeometryReconstructor):
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        h_max = self.estimate_h_max(cog_cartesian, telescope_positions)
+        if self.subarray.reference_location:
+            h_max = (
+                HillasReconstructor.estimate_relative_h_max(
+                    cog_cartesian, telescope_positions
+                )
+                + self.subarray.reference_location.geodetic.height
+            )
+        else:
+            h_max = u.Quantity(np.nan, u.m)
 
         # az is clockwise, lon counter-clockwise, make sure it stays in [0, 2pi)
         az = Longitude(-lon)
@@ -411,19 +420,22 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         return core_pos_ground, core_pos_tilted
 
-    @staticmethod
-    def estimate_h_max(cog_vectors, positions):
-        """
-        Estimate the max height by intersecting the lines of the cog directions of each telescope.
+    def estimate_relative_h_max(cog_vectors, positions):
+        """Estimate the relative (to the observatory) vertical height of
+        shower-max by intersecting the lines of the cog directions of each
+        telescope.
 
         Returns
         -------
         astropy.unit.Quantity
-            the estimated max height
+            the estimated height above observatory level (not sea level) of the
+            shower-max point
+
         """
         positions = positions.cartesian.xyz.T.to_value(u.m)
-        # not sure if its better to return the length of the vector of the z component
-        return u.Quantity(
-            np.linalg.norm(line_line_intersection_3d(cog_vectors, positions)),
+        shower_max = u.Quantity(
+            line_line_intersection_3d(cog_vectors, positions),
             u.m,
         )
+
+        return shower_max[2]  # the z-coordinate only
