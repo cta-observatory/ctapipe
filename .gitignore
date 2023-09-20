@@ -1,5 +1,6 @@
 .pytest_cache
 *.log
+docs/sg_execution_times.rst
 
 # Compiled files
 *.py[co]
