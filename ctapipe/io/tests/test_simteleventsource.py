@@ -7,7 +7,7 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.coordinates import Angle, Latitude
+from astropy.coordinates import Angle, EarthLocation, Latitude
 from astropy.time import Time
 from traitlets.config import Config
 
@@ -58,7 +58,6 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
 
 def test_that_event_is_not_modified_after_loop():
-
     dataset = prod5b_path
     with SimTelEventSource(input_url=dataset, max_events=2) as source:
         for event in source:
@@ -124,6 +123,7 @@ def test_properties():
     assert source.datalevels == (DataLevel.R0, DataLevel.R1)
     assert source.obs_ids == [7514]
     assert source.simulation_config[7514].corsika_version == 6990
+    assert isinstance(source.subarray.reference_location, EarthLocation)
 
 
 def test_gamma_file_prod2():
@@ -228,7 +228,6 @@ def test_calibration_events():
 
 
 def test_trigger_times():
-
     source = SimTelEventSource(
         input_url=calib_events_path,
         focal_length_choice="EQUIVALENT",
@@ -248,7 +247,6 @@ def test_true_image():
         input_url=calib_events_path,
         focal_length_choice="EQUIVALENT",
     ) as reader:
-
         for event in reader:
             for tel in event.simulation.tel.values():
                 assert np.count_nonzero(tel.true_image) > 0
@@ -379,7 +377,6 @@ def test_only_config():
 
 
 def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
-
     with SimTelEventSource(input_url=prod5_gamma_simtel_path, max_events=1) as source:
         event = next(iter(source))
 

@@ -1,4 +1,6 @@
+import astropy.units as u
 import pytest
+from astropy.coordinates import EarthLocation
 from traitlets import TraitError
 from traitlets.config.loader import Config
 
@@ -50,6 +52,10 @@ class DummyEventSource(EventSource):
     @property
     def datalevels(self):
         return (DataLevel.R0,)
+
+    @property
+    def reference_location(self):
+        return EarthLocation(lat=0, lon=0 * u.deg, height=0 * u.deg)
 
 
 def test_can_be_implemented():
