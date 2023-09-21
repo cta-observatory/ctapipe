@@ -79,11 +79,11 @@ def subarray_prod3_paranal():
 
 
 @pytest.fixture(scope="session")
-def example_subarray(subarray_prod5_paranal):
+def example_subarray(subarray_prod3_paranal):
     """
     Subarray corresponding to the example event
     """
-    return subarray_prod5_paranal
+    return subarray_prod3_paranal
 
 
 @pytest.fixture(scope="function")
