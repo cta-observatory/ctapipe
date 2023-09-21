@@ -131,7 +131,7 @@ def parse_simtel_time(simtel_time):
 
 
 def _location_from_meta(global_meta):
-    """Extract reference location of subarray from metadata"""
+    """Extract reference location of subarray from metadata."""
     lat = global_meta.get(b"*LATITUDE")
     lon = global_meta.get(b"*LONGITUDE")
     height = global_meta.get(b"ALTITUDE")
@@ -350,7 +350,6 @@ def read_atmosphere_profile_from_simtel(
         context_manager = nullcontext(simtelfile)
 
     with context_manager as simtel:
-
         if (
             not hasattr(simtel, "atmospheric_profiles")
             or len(simtel.atmospheric_profiles) == 0
@@ -358,7 +357,6 @@ def read_atmosphere_profile_from_simtel(
             return []
 
         for atmo in simtel.atmospheric_profiles:
-
             metadata = dict(
                 observation_level=atmo["obslevel"] * u.cm,
                 atmosphere_id=atmo["id"],
@@ -513,15 +511,14 @@ class SimTelEventSource(EventSource):
         )
         if self.back_seekable and self.is_stream:
             raise IOError("back seekable was required but not possible for inputfile")
-
-        self._subarray_info = self.prepare_subarray_info(
-            self.file_.telescope_descriptions, self.file_.header
-        )
         (
             self._scheduling_blocks,
             self._observation_blocks,
         ) = self._fill_scheduling_and_observation_blocks()
         self._simulation_config = self._parse_simulation_header()
+        self._subarray_info = self.prepare_subarray_info(
+            self.file_.telescope_descriptions, self.file_.header
+        )
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -676,11 +673,16 @@ class SimTelEventSource(EventSource):
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
         name = self.file_.global_meta.get(b"ARRAY_CONFIG_NAME", b"MonteCarloArray")
+
+        reference_location = (
+            _location_from_meta(self.file_.global_meta) or self._make_dummy_location()
+        )
+
         subarray = SubarrayDescription(
             name=name.decode(),
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
-            reference_location=_location_from_meta(self.file_.global_meta),
+            reference_location=reference_location,
         )
 
         self.n_telescopes_original = len(subarray)
@@ -689,6 +691,22 @@ class SimTelEventSource(EventSource):
             subarray = subarray.select_subarray(self.allowed_tels)
 
         return subarray
+
+    def _make_dummy_location(self):
+        """
+        Returns
+        -------
+        EarthLocation:
+            Dummy earth location that is at the correct height (as given in the
+            SimulationConfigContainer), but with the lat/lon set to (0,0), i.e.
+            on "Null Island"
+        """
+        obs_id = self.file_.header["run"]
+        return EarthLocation(
+            lon=0 * u.deg,
+            lat=0 * u.deg,
+            height=self._simulation_config[obs_id].prod_site_alt,
+        )
 
     @staticmethod
     def is_compatible(file_path):
@@ -720,7 +738,6 @@ class SimTelEventSource(EventSource):
         pseudo_event_id = 0
 
         for counter, array_event in enumerate(self.file_):
-
             event_id = array_event.get("event_id", 0)
             if event_id == 0:
                 pseudo_event_id -= 1
