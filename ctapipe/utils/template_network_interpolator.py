@@ -141,8 +141,10 @@ class BaseTemplate:
         selection = np.logical_and(self.keys.T[0] == zenith, self.keys.T[1] == azimuth)
 
         # Create interpolator using this selection
+        # Currently impact is not set up for offset depndent templates.
+        # Therefore remove offset (last) dimension from interpolator
         self.interpolator[zenith_bin][azimuth_bin] = UnstructuredInterpolator(
-            self.keys[selection].T[2:].T,
+            self.keys[selection].T[2:5].T,
             self.values[selection],
             remember_last=True,
             bounds=self.bounds,
@@ -277,13 +279,15 @@ class TemplateNetworkInterpolator(BaseTemplate):
         self.bounds = bounds
 
         # First check if we even have a zen and azimuth entry
-        if len(keys[0]) > 3:
+        if len(keys[0]) > 4:
             # If we do then for the sake of speed lets
             self._create_table_matrix(keys, values)
         else:
             # If not we work as before
+            # Currently impact is not set up for offset depndent templates.
+            # Therefore remove offset (last) dimension from interpolator
             self.interpolator = UnstructuredInterpolator(
-                keys, values, remember_last=True, bounds=bounds
+                keys[:-1], values, remember_last=True, bounds=bounds
             )
             self.no_zenaz = True
 
@@ -343,13 +347,15 @@ class TimeGradientInterpolator(BaseTemplate):
         self.no_zenaz = False
 
         # First check if we even have a zen and azimuth entry
-        if len(keys[0]) > 3:
+        if len(keys[0]) > 4:
             # If we do then for the sake of speed lets
             self._create_table_matrix(keys, values)
         else:
             # If not we work as before
+            # Currently impact is not set up for offset depndent templates.
+            # Therefore remove offset (last) dimension from interpolator
             self.interpolator = UnstructuredInterpolator(
-                keys, values, remember_last=True
+                keys[:-1], values, remember_last=True
             )
             self.no_zenaz = True
 
