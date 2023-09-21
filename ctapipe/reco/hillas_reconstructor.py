@@ -185,7 +185,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        if self.subarray.reference_location:
+        if self.subarray.reference_location is not None:
             h_max = (
                 HillasReconstructor.estimate_relative_h_max(
                     cog_cartesian, telescope_positions

@@ -264,7 +264,7 @@ class HillasIntersection(HillasGeometryReconstructor):
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, z=0 * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
 
-        if self.subarray.reference_location:
+        if self.subarray.reference_location is not None:
             h_max = self.reconstruct_h_max(
                 nom.fov_lon,
                 nom.fov_lat,
@@ -502,17 +502,25 @@ class HillasIntersection(HillasGeometryReconstructor):
             np.array(ty),
         )
         weight = np.array(amp)
-        mean_height = np.sum(height * weight) / np.sum(weight)
+        mean_distance = np.sum(height * weight) / np.sum(weight)
 
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
-        mean_height *= np.cos(zen)
+        mean_height = mean_distance * np.cos(zen.to_value(u.rad))
 
         # Add on the height of the detector above sea level
-        mean_height += self.subarray.reference_location.geodetic.height.to_value(u.m)
+        if self.subarray.reference_location is not None:
+            mean_height += self.subarray.reference_location.geodetic.height.to_value(
+                u.m
+            )
+        else:
+            # FIXME: Can remoev this check once we ensure the reference_location is always loaded
+            warnings.warn(
+                "Computing h_max with no reference location. Height will be wrong."
+            )
 
         if mean_height > 100000 or np.isnan(mean_height):
-            mean_height = 100000
+            mean_height = np.nan
 
         return u.Quantity(mean_height, u.m)
 
