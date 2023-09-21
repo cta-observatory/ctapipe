@@ -126,6 +126,11 @@ class SubarrayDescription:
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.n_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
+        printer(f"Height   : {self.reference_location.geodetic.height:.2f}")
+        printer(
+            f"Lon/Lat  : {self.reference_location.geodetic.lon}, "
+            f"{self.reference_location.geodetic.lat} "
+        )
         printer("")
 
         # print the per-telescope-type informatino:
