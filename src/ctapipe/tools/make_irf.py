@@ -36,7 +36,13 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
 from ..io import TableLoader
-from ..irf import CutOptimizer, DataBinning, EventPreProcessor, OutputEnergyBinning
+from ..irf import (
+    CutOptimizer,
+    DataBinning,
+    EventPreProcessor,
+    OutputEnergyBinning,
+    PointSpreadFunction,
+)
 
 
 class Spectra(Enum):
@@ -244,10 +250,11 @@ class IrfTool(Tool):
         )
 
     def setup(self):
+        self.epp = EventPreProcessor(parent=self)
         self.co = CutOptimizer(parent=self)
+        self.psf = PointSpreadFunction(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = DataBinning(parent=self)
-        self.epp = EventPreProcessor(parent=self)
 
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()

@@ -45,23 +45,6 @@ class CutOptimizer(Component):
         default_value=5,
     ).tag(config=True)
 
-    theta_min_angle = Float(
-        default_value=0.05, help="Smallest angular cut value allowed"
-    ).tag(config=True)
-
-    theta_max_angle = Float(
-        default_value=0.32, help="Largest angular cut value allowed"
-    ).tag(config=True)
-
-    theta_min_counts = Integer(
-        default_value=10,
-        help="Minimum number of events in a bin to attempt to find a cut value",
-    ).tag(config=True)
-
-    theta_fill_value = Float(
-        default_value=0.32, help="Angular cut value used for bins with too few events"
-    ).tag(config=True)
-
     def reco_energy_bins(self):
         """
         Creates bins per decade for reconstructed MC energy using pyirf function.
@@ -73,7 +56,9 @@ class CutOptimizer(Component):
         )
         return reco_energy
 
-    def optimise_gh_cut(self, signal, background, alpha, max_bg_radius):
+    def optimise_gh_cut(
+        self, signal, background, alpha, min_fov_radius, max_fov_radius, psf
+    ):
         initial_gh_cuts = calculate_percentile_cut(
             signal["gh_score"],
             signal["reco_energy"],
@@ -91,15 +76,10 @@ class CutOptimizer(Component):
             op=operator.gt,
         )
 
-        theta_cuts = calculate_percentile_cut(
+        theta_cuts = psf.calculate_theta_cuts(
             signal["theta"][initial_gh_mask],
             signal["reco_energy"][initial_gh_mask],
-            bins=self.reco_energy_bins(),
-            min_value=self.theta_min_angle * u.deg,
-            max_value=self.theta_max_angle * u.deg,
-            fill_value=self.theta_fill_value * u.deg,
-            min_events=self.theta_min_counts,
-            percentile=68,
+            self.reco_energy_bins(),
         )
 
         self.log.info("Optimizing G/H separation cut for best sensitivity")
@@ -117,28 +97,75 @@ class CutOptimizer(Component):
             op=operator.ge,
             theta_cuts=theta_cuts,
             alpha=alpha,
-            fov_offset_max=max_bg_radius * u.deg,
+            fov_offset_max=max_fov_radius * u.deg,
+            fov_offset_min=min_fov_radius * u.deg,
         )
 
         # now that we have the optimized gh cuts, we recalculate the theta
         # cut as 68 percent containment on the events surviving these cuts.
-        self.log.info("Recalculating theta cut for optimized GH Cuts")
         for tab in (signal, background):
             tab["selected_gh"] = evaluate_binned_cut(
                 tab["gh_score"], tab["reco_energy"], gh_cuts, operator.ge
             )
+        self.log.info("Recalculating theta cut for optimized GH Cuts")
 
-        theta_cuts = calculate_percentile_cut(
+        theta_cuts = psf.calculate_theta_cuts(
             signal[signal["selected_gh"]]["theta"],
             signal[signal["selected_gh"]]["reco_energy"],
             self.reco_energy_bins(),
-            percentile=68,
-            min_value=self.theta_min_angle * u.deg,
-            max_value=self.theta_max_angle * u.deg,
+        )
+
+        return gh_cuts, theta_cuts, sens2
+
+
+class PointSpreadFunction(Component):
+    theta_min_angle = Float(
+        default_value=-1, help="Smallest angular cut value allowed (-1 means no cut)"
+    ).tag(config=True)
+
+    theta_max_angle = Float(
+        default_value=0.32, help="Largest angular cut value allowed"
+    ).tag(config=True)
+
+    theta_min_counts = Integer(
+        default_value=10,
+        help="Minimum number of events in a bin to attempt to find a cut value",
+    ).tag(config=True)
+
+    theta_fill_value = Float(
+        default_value=0.32, help="Angular cut value used for bins with too few events"
+    ).tag(config=True)
+
+    theta_smoothing = Float(
+        default_value=-1,
+        help="When given, the width (in units of bins) of gaussian smoothing applied (-1)",
+    ).tag(config=True)
+
+    target_percentile = Float(
+        default_value=68,
+        help="Percent of events in each energy bin keep after the theta cut",
+    ).tag(config=True)
+
+    def calculate_theta_cuts(self, theta, reco_energy, energy_bins):
+        theta_min_angle = (
+            None if self.theta_min_angle < 0 else self.theta_min_angle * u.deg
+        )
+        theta_max_angle = (
+            None if self.theta_max_angle < 0 else self.theta_max_angle * u.deg
+        )
+        theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
+
+        return calculate_percentile_cut(
+            theta,
+            reco_energy,
+            energy_bins,
+            min_value=theta_min_angle,
+            max_value=theta_max_angle,
+            smoothing=theta_smoothing,
+            percentile=self.target_percentile,
             fill_value=self.theta_fill_value * u.deg,
             min_events=self.theta_min_counts,
         )
-        return gh_cuts, theta_cuts, sens2
 
 
 class EventPreProcessor(QualityQuery):
