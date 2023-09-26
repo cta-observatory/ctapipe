@@ -17,6 +17,10 @@ from ..core.traits import Float, Integer, List, Unicode
 class CutOptimizer(Component):
     """Performs cut optimisation"""
 
+    initial_gh_cut_efficency = Float(
+        default_value=0.4, help="Start value of gamma efficiency before optimisation"
+    ).tag(config=True)
+
     max_gh_cut_efficiency = Float(
         default_value=0.8, help="Maximum gamma efficiency requested"
     ).tag(config=True)
@@ -24,10 +28,6 @@ class CutOptimizer(Component):
     gh_cut_efficiency_step = Float(
         default_value=0.1,
         help="Stepsize used for scanning after optimal gammaness cut",
-    ).tag(config=True)
-
-    initial_gh_cut_efficency = Float(
-        default_value=0.4, help="Start value of gamma efficiency before optimisation"
     ).tag(config=True)
 
     reco_energy_min = Float(
@@ -57,7 +57,7 @@ class CutOptimizer(Component):
         return reco_energy
 
     def optimise_gh_cut(
-        self, signal, background, alpha, min_fov_radius, max_fov_radius, psf
+        self, signal, background, alpha, min_fov_radius, max_fov_radius, theta
     ):
         initial_gh_cuts = calculate_percentile_cut(
             signal["gh_score"],
@@ -76,7 +76,7 @@ class CutOptimizer(Component):
             op=operator.gt,
         )
 
-        theta_cuts = psf.calculate_theta_cuts(
+        theta_cuts = theta.calculate_theta_cuts(
             signal["theta"][initial_gh_mask],
             signal["reco_energy"][initial_gh_mask],
             self.reco_energy_bins(),
@@ -109,7 +109,7 @@ class CutOptimizer(Component):
             )
         self.log.info("Recalculating theta cut for optimized GH Cuts")
 
-        theta_cuts = psf.calculate_theta_cuts(
+        theta_cuts = theta.calculate_theta_cuts(
             signal[signal["selected_gh"]]["theta"],
             signal[signal["selected_gh"]]["reco_energy"],
             self.reco_energy_bins(),
@@ -118,7 +118,7 @@ class CutOptimizer(Component):
         return gh_cuts, theta_cuts, sens2
 
 
-class PointSpreadFunction(Component):
+class ThetaCutsCalculator(Component):
     theta_min_angle = Float(
         default_value=-1, help="Smallest angular cut value allowed (-1 means no cut)"
     ).tag(config=True)
