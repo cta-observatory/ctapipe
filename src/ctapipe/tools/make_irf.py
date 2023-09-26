@@ -41,7 +41,7 @@ from ..irf import (
     DataBinning,
     EventPreProcessor,
     OutputEnergyBinning,
-    PointSpreadFunction,
+    ThetaCutsCalculator,
 )
 
 
@@ -252,7 +252,7 @@ class IrfTool(Tool):
     def setup(self):
         self.epp = EventPreProcessor(parent=self)
         self.co = CutOptimizer(parent=self)
-        self.psf = PointSpreadFunction(parent=self)
+        self.theta = ThetaCutsCalculator(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = DataBinning(parent=self)
 
@@ -274,7 +274,9 @@ class IrfTool(Tool):
             self.signal_events,
             self.background_events,
             self.alpha,
-            self.max_bg_radius,
+            self.bins.fov_offset_min,
+            self.bins.fov_offset_max,
+            self.theta,
         )
 
         self.signal_events["selected_theta"] = evaluate_binned_cut(

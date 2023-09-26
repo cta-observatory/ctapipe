@@ -3,7 +3,7 @@ from .irf_classes import (
     DataBinning,
     EventPreProcessor,
     OutputEnergyBinning,
-    PointSpreadFunction,
+    ThetaCutsCalculator,
 )
 
 __all__ = [
@@ -11,5 +11,5 @@ __all__ = [
     "DataBinning",
     "OutputEnergyBinning",
     "EventPreProcessor",
-    "PointSpreadFunction",
+    "ThetaCutsCalculator",
 ]
