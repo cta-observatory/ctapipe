@@ -3,6 +3,13 @@ from .irf_classes import (
     DataBinning,
     EventPreProcessor,
     OutputEnergyBinning,
+    PointSpreadFunction,
 )
 
-__all__ = ["CutOptimizer", "DataBinning", "OutputEnergyBinning", "EventPreProcessor"]
+__all__ = [
+    "CutOptimizer",
+    "DataBinning",
+    "OutputEnergyBinning",
+    "EventPreProcessor",
+    "PointSpreadFunction",
+]
