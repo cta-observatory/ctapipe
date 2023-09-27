@@ -674,9 +674,9 @@ class SimTelEventSource(EventSource):
 
         name = self.file_.global_meta.get(b"ARRAY_CONFIG_NAME", b"MonteCarloArray")
 
-        reference_location = (
-            _location_from_meta(self.file_.global_meta) or self._make_dummy_location()
-        )
+        reference_location = _location_from_meta(self.file_.global_meta)
+        if reference_location is None:
+            reference_location = self._make_dummy_location()
 
         subarray = SubarrayDescription(
             name=name.decode(),
