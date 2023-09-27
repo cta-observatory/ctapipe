@@ -117,52 +117,64 @@ def time_clustering(
     geom,
     image,
     time,
-    pedestal=1.6,
-    n_noise=2.5,
+    noise=1.6,
+    minimum_signal_sigma=2.5,
     minpts=5,
     eps=1.0,
-    t_scale=4.0,
-    d_scale=0.25,
+    time_scale_ns=4.0,
+    space_scale_m=0.25,
+    hard_cut_pe=0,
 ):
     """
 
     Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
     Previously used for HESS [timecleaning]_.
 
+    As a neighbor-based image extractor algorithm can lead to biases in the time reconstruction of noise pixels,
+    specially those next to the shower, a cut in the minimum signal image with respect to the noise level is
+    firstly applied. The cut is performed relative to the noise to account for, e.g., bright stars. Alternatively,
+    a hard cut could also be performed.
+
+    DBSCAN runs with the reconstructed times and pixel positions after rescaling. The reconstructed times and
+    pixel positions are rescaled because eps is not dimension dependent. If scaling is performed properly, eps
+    can be set to 1. DBSCAN returns the cluster IDs of each point being -1 the label for noise pixels.
+
     Parameters
     ----------
     geom: `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image: array
-        pixel values
+        pixel charge information
     time: array
-        pixel values
-    pedestal: array
-        pedestal width for each pixel. This is just one number for now.
-    n_noise: array
-        Noise cut
+        pixel timing information
+    noise: array
+        Noise fluctuations for each pixel. This is just one number for now.
+    minimum_signal_sigma: float
+        Cut in the minimum significance of the signal
+    hard_cut_pe: float
+        Hard cut in the number of signal pe
     minpts: int
         Minimum number of points to consider a cluster
     eps: float
-        Distance in dbscan
-    t_scale: float
+        Minimum distance in dbscan
+    time_scale_ns: float
         Time scale in ns
-    d_scale: float
+    space_scale_m: float
         Space scale in m
 
     Returns
     -------
     A boolean mask of *clean* pixels.
     """
-    precut_mask = image > n_noise * pedestal
+    precut_mask = (image > minimum_signal_sigma * noise) & (image > hard_cut_pe)
 
     arr = np.zeros(len(image), dtype=float)
     arr[~precut_mask] = -1
 
-    pix_x = geom.pix_x.value[precut_mask] / d_scale
-    pix_y = geom.pix_y.value[precut_mask] / d_scale
+    pix_x = geom.pix_x.value[precut_mask] / space_scale_m
+    pix_y = geom.pix_y.value[precut_mask] / space_scale_m
 
-    X = np.column_stack((time[precut_mask] / t_scale, pix_x, pix_y))
+    X = np.column_stack((time[precut_mask] / time_scale_ns, pix_x, pix_y))
 
     labels = DBSCAN(eps=eps, min_samples=minpts).fit_predict(X)
 
@@ -601,15 +613,15 @@ class TimeCleaner(ImageCleaner):
     Clean images using the time clustering cleaning method
     """
 
-    pedestal = FloatTelescopeParameter(
-        default_value=1.6, help="Pedestal width of each pixel"
+    noise = FloatTelescopeParameter(
+        default_value=1.6, help="Noise width of each pixel"
     ).tag(
         config=True
     )  # we should get this from a container once available
-    d_scale = FloatTelescopeParameter(
+    space_scale_m = FloatTelescopeParameter(
         default_value=0.25, help="Pixel space scaling parameter in m"
     ).tag(config=True)
-    t_scale = FloatTelescopeParameter(
+    time_scale_ns = FloatTelescopeParameter(
         default_value=4.0, help="Time scale parameter in ns"
     ).tag(config=True)
     minpts = IntTelescopeParameter(
@@ -618,8 +630,11 @@ class TimeCleaner(ImageCleaner):
     eps = FloatTelescopeParameter(
         default_value=1.0, help="minimum distance in DBSCAN"
     ).tag(config=True)
-    noise_cut = FloatTelescopeParameter(
-        default_value=2.5, help="Number of sigmas for pre-cleaning the image"
+    minimum_signal_sigma = FloatTelescopeParameter(
+        default_value=2.5, help="Significance cut in the image"
+    ).tag(config=True)
+    hard_cut_pe = FloatTelescopeParameter(
+        default_value=2.5, help="Hard cut in the number of pe"
     ).tag(config=True)
 
     def __call__(
@@ -631,11 +646,12 @@ class TimeCleaner(ImageCleaner):
             image=image,
             time=arrival_times,
             eps=self.eps.tel[tel_id],
-            n_noise=self.noise_cut.tel[tel_id],
-            d_scale=self.d_scale.tel[tel_id],
-            t_scale=self.t_scale.tel[tel_id],
-            pedestal=self.pedestal.tel[tel_id],
+            minimum_signal_sigma=self.minimum_signal_sigma.tel[tel_id],
+            space_scale_m=self.space_scale_m.tel[tel_id],
+            time_scale_ns=self.time_scale_ns.tel[tel_id],
+            noise=self.noise.tel[tel_id],
             minpts=self.minpts.tel[tel_id],
+            hard_cut_pe=self.hard_cut_pe.tel[tel_id],
         )
 
 

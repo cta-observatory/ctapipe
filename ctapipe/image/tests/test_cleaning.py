@@ -350,10 +350,10 @@ def test_time_cleaning():
         charge,
         peak_time,
         eps=1.0,
-        d_scale=0.25,
-        t_scale=4.0,
-        n_noise=10,
-        pedestal=1,
+        space_scale_m=0.25,
+        time_scale_ns=4.0,
+        minimum_signal_sigma=10,
+        noise=1,
         minpts=5,
     )
 
