@@ -133,11 +133,11 @@ def test_gamma_file_prod2():
         with SimTelEventSource(
             input_url=dataset,
             focal_length_choice="EQUIVALENT",
-        ) as reader:
-            assert reader.is_compatible(dataset)
-            assert reader.is_stream  # using gzip subprocess makes it a stream
+        ) as source:
+            assert source.is_compatible(dataset)
+            assert source.is_stream  # using gzip subprocess makes it a stream
 
-            for event in reader:
+            for event in source:
                 if event.count == 0:
                     assert event.r0.tel.keys() == {38, 47}
                 elif event.count == 1:
@@ -145,7 +145,15 @@ def test_gamma_file_prod2():
                 else:
                     break
 
-    # test that max_events works:
+            # check also that for old files with no reference_locatino that we get back
+            # Null Island at the right height:
+            assert source.subarray.reference_location.geodetic.height > 100 * u.m
+            assert np.isclose(
+                source.subarray.reference_location.geodetic.lat, 0 * u.deg
+            )
+            assert np.isclose(
+                source.subarray.reference_location.geodetic.lon, 0 * u.deg
+            )
 
 
 def test_max_events():
