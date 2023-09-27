@@ -249,7 +249,6 @@ def test_unknown_telescopes(example_subarray):
 
 
 def test_multiplicity(subarray_prod5_paranal):
-
     subarray = subarray_prod5_paranal.select_subarray([1, 2, 20, 21, 80, 81])
 
     mask = np.array([True, False, True, True, False, False])
@@ -270,3 +269,14 @@ def test_multiplicity(subarray_prod5_paranal):
     np.testing.assert_equal(subarray.multiplicity(masks, "LST_LST_LSTCam"), [1, 2])
     np.testing.assert_equal(subarray.multiplicity(masks, "MST_MST_FlashCam"), [2, 1])
     np.testing.assert_equal(subarray.multiplicity(masks, "SST_ASTRI_CHEC"), [0, 1])
+
+
+def test_subarrays(subarray_prod5_paranal: SubarrayDescription):
+    """
+    Check that constructing a new SubarrayDescription by using
+    `select_subarray()` works as expected.
+    """
+    subarray = subarray_prod5_paranal.select_subarray([1, 2, 3, 4], name="NewArray")
+    assert subarray.name == "NewArray"
+    assert isinstance(subarray.reference_location, EarthLocation)
+    assert subarray.reference_location == subarray_prod5_paranal.reference_location
