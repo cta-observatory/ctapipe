@@ -1,6 +1,7 @@
 """An example (and test) plugin for ctapipe providing an EventSource and a Reconstructor"""
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import EarthLocation
 
 from ctapipe.containers import (
     ObservationBlockContainer,
@@ -57,17 +58,14 @@ camera = CameraDescription(
 )
 
 
-telescope = TelescopeDescription(
-    "plugin",
-    optics=optics,
-    camera=camera,
-)
+telescope = TelescopeDescription("plugin", optics=optics, camera=camera)
 
 
 subarray = SubarrayDescription(
     name="plugin",
     tel_descriptions={1: telescope},
     tel_positions={1: [0, 0, 0] * u.m},
+    reference_location=EarthLocation(lat=0 * u.deg, lon=0 * u.deg, height=100 * u.m),
 )
 
 

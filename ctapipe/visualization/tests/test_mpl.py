@@ -154,7 +154,7 @@ def test_camera_display_multiple(prod5_lst_cam, tmp_path):
     fig.savefig(tmp_path / "result.png")
 
 
-def test_array_display(prod5_mst_nectarcam):
+def test_array_display(prod5_mst_nectarcam, reference_location):
     """check that we can do basic array display functionality"""
     from ctapipe.containers import (
         ArrayEventContainer,
@@ -174,7 +174,10 @@ def test_array_display(prod5_mst_nectarcam):
         tel_pos[ii + 1] = pos
 
     sub = SubarrayDescription(
-        name="TestSubarray", tel_positions=tel_pos, tel_descriptions=tels
+        name="TestSubarray",
+        tel_positions=tel_pos,
+        tel_descriptions=tels,
+        reference_location=reference_location,
     )
 
     # Create a fake event containing telescope-wise information about

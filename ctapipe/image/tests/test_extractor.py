@@ -39,7 +39,7 @@ extractors.remove(FlashCamExtractor)
 
 
 @pytest.fixture(scope="module")
-def subarray(prod5_sst):
+def subarray(prod5_sst, reference_location):
     subarray = SubarrayDescription(
         "test array",
         tel_positions={1: np.zeros(3) * u.m, 2: np.zeros(3) * u.m},
@@ -47,6 +47,7 @@ def subarray(prod5_sst):
             1: deepcopy(prod5_sst),
             2: deepcopy(prod5_sst),
         },
+        reference_location=reference_location,
     )
 
     # Create reference pulse
@@ -67,21 +68,23 @@ def subarray(prod5_sst):
 
 
 @pytest.fixture(scope="module")
-def subarray_1_LST(prod3_lst):
+def subarray_1_LST(prod3_lst, reference_location):
     subarray = SubarrayDescription(
         "One LST",
         tel_positions={1: np.zeros(3) * u.m},
         tel_descriptions={1: prod3_lst},
+        reference_location=reference_location,
     )
     return subarray
 
 
 @pytest.fixture(scope="module")
-def subarray_mst_fc(prod5_mst_flashcam):
+def subarray_mst_fc(prod5_mst_flashcam, reference_location):
     subarray = SubarrayDescription(
         "One MST with FlashCam",
         tel_positions={1: np.zeros(3) * u.m},
         tel_descriptions={1: prod5_mst_flashcam},
+        reference_location=reference_location,
     )
     return subarray
 
