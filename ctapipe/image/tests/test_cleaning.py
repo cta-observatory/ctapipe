@@ -55,7 +55,7 @@ def test_tailcuts_hysteresis(prod5_mst_flashcam):
         image,
         picture_thresh=4.5,
         boundary_thresh=2.5,
-        max_iter=0,
+        max_iter=1,
         keep_isolated_pixels=True,
     )
 
@@ -89,7 +89,7 @@ def test_tailcuts_hysteresis(prod5_mst_flashcam):
         image,
         picture_thresh=4.5,
         boundary_thresh=2.5,
-        max_iter=0,
+        max_iter=1,
         keep_isolated_pixels=True,
     )
 

@@ -435,7 +435,7 @@ def tailcuts_hysteresis_clean(
     # AND have any neighbor that is in the picture
     pixels_above_boundary = image >= boundary_thresh
 
-    for count in range(max_iter + 1):
+    for count in range(max_iter):
         pixels_in_picture_previous = pixels_in_picture.copy()
         pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(
             pixels_in_picture
