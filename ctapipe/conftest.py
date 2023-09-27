@@ -620,7 +620,7 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
         return out_file
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def reference_location():
     """a dummy EarthLocation to use for SubarrayDescriptions"""
     return EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
