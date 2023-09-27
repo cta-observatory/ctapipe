@@ -800,7 +800,7 @@ class CameraGeometry:
         x = self.pix_x.value
         y = self.pix_y.value
 
-        return np.row_stack(
+        return np.vstack(
             [
                 x,
                 y,
