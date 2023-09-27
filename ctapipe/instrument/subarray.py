@@ -70,9 +70,9 @@ class SubarrayDescription:
     def __init__(
         self,
         name,
-        tel_positions=None,
-        tel_descriptions=None,
-        reference_location=None,
+        tel_positions,
+        tel_descriptions,
+        reference_location,
     ):
         """
         Initialize a new SubarrayDescription
@@ -358,7 +358,7 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, tel_ids, name=None):
+    def select_subarray(self, tel_ids, name=None) -> "SubarrayDescription":
         """
         return a new SubarrayDescription that is a sub-array of this one
 
@@ -385,7 +385,10 @@ class SubarrayDescription:
             name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
-            name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
+            name,
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+            reference_location=self.reference_location,
         )
         return newsub
 
