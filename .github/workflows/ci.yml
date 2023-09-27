@@ -28,7 +28,7 @@ jobs:
         with:
           extra_args: --files $(git diff origin/main --name-only)
   tests:
-    if: ${{ ! contains(github.event.pull_request.labels.*.name, 'documentation') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'documentation') == 'false' }}
     runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
