@@ -385,7 +385,9 @@ def tailcuts_hysteresis_clean(
     max_iter=2,
 ):
 
-    """Clean an image by Tailcuts image cleaning adding pixels above the boundary threshold if they continuously
+    """
+
+    Clean an image by Tailcuts image cleaning adding pixels above the boundary threshold if they continuously
     connect to a pixel above the picture threshold.
 
     Parameters
@@ -432,9 +434,8 @@ def tailcuts_hysteresis_clean(
     # matrix (2d), we find all pixels that are above the boundary threshold
     # AND have any neighbor that is in the picture
     pixels_above_boundary = image >= boundary_thresh
-    iteration = True
-    count = 0
-    while iteration:
+
+    for count in range(max_iter + 1):
         pixels_in_picture_previous = pixels_in_picture.copy()
         pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(
             pixels_in_picture
@@ -451,10 +452,10 @@ def tailcuts_hysteresis_clean(
                 pixels_above_boundary & pixels_with_picture_neighbors
             ) | (pixels_in_picture & pixels_with_boundary_neighbors)
 
-        iteration = ~np.all(pixels_in_picture == pixels_in_picture_previous)
-        count += 1
-        if count >= max_iter:
-            iteration = False
+        iteration = np.all(pixels_in_picture == pixels_in_picture_previous)
+
+        if iteration:
+            break
 
     return pixels_in_picture
 
