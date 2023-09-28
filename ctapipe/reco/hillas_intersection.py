@@ -313,7 +313,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         """
         if len(hillas_parameters) < 2:
-            return None  # Throw away events with < 2 images
+            return (np.nan, np.nan, np.nan, np.nan)  # Throw away events with < 2 images
 
         # Find all pairs of Hillas parameters
         combos = itertools.combinations(list(hillas_parameters.values()), 2)
@@ -385,7 +385,8 @@ class HillasIntersection(HillasGeometryReconstructor):
             core uncertainty X
         """
         if len(hillas_parameters) < 2:
-            return None  # Throw away events with < 2 images
+            return (np.nan, np.nan, np.nan, np.nan)  # Throw away events with < 2 images
+
         hill_list = list()
         tx = list()
         ty = list()
