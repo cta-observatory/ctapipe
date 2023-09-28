@@ -185,15 +185,10 @@ class HillasReconstructor(HillasGeometryReconstructor):
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        if self.subarray.reference_location is not None:
-            h_max = (
-                HillasReconstructor.estimate_relative_h_max(
-                    cog_cartesian, telescope_positions
-                )
-                + self.subarray.reference_location.geodetic.height
-            )
-        else:
-            h_max = u.Quantity(np.nan, u.m)
+        h_max = (
+            self.estimate_relative_h_max(cog_cartesian, telescope_positions)
+            + self.subarray.reference_location.geodetic.height
+        )
 
         # az is clockwise, lon counter-clockwise, make sure it stays in [0, 2pi)
         az = Longitude(-lon)
@@ -423,6 +418,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         return core_pos_ground, core_pos_tilted
 
+    @staticmethod
     def estimate_relative_h_max(cog_vectors, positions):
         """Estimate the relative (to the observatory) vertical height of
         shower-max by intersecting the lines of the cog directions of each
