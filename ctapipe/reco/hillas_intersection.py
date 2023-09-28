@@ -506,15 +506,7 @@ class HillasIntersection(HillasGeometryReconstructor):
         mean_height = mean_distance * np.cos(zen.to_value(u.rad))
 
         # Add on the height of the detector above sea level
-        if self.subarray.reference_location is not None:
-            mean_height += self.subarray.reference_location.geodetic.height.to_value(
-                u.m
-            )
-        else:
-            # FIXME: Can remoev this check once we ensure the reference_location is always loaded
-            warnings.warn(
-                "Computing h_max with no reference location. Height will be wrong."
-            )
+        mean_height += self.subarray.reference_location.geodetic.height.to_value(u.m)
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = np.nan
