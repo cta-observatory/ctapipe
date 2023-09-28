@@ -14,7 +14,7 @@ from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription
 
 
-def test_sw_pulse_lst(prod5_lst):
+def test_sw_pulse_lst(prod5_lst, reference_location):
     """
     Test function of sliding window extractor for LST camera pulse shape with
     the correction for the integration window completeness
@@ -25,6 +25,7 @@ def test_sw_pulse_lst(prod5_lst):
         "LST1",
         tel_positions={1: np.zeros(3) * u.m},
         tel_descriptions={1: prod5_lst},
+        reference_location=reference_location,
     )
 
     tel_id = list(subarray.tel.keys())[0]

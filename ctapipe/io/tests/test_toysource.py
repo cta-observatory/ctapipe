@@ -6,8 +6,7 @@ from ctapipe.utils import get_dataset_path
 
 
 @pytest.fixture(scope="module")
-def subarray(prod5_lst):
-
+def subarray(prod5_lst, reference_location):
     tels = [prod5_lst] * 4
 
     positions = {
@@ -18,7 +17,9 @@ def subarray(prod5_lst):
     }
     descriptions = {i: t for i, t in enumerate(tels, start=1)}
 
-    return SubarrayDescription("test", positions, descriptions)
+    return SubarrayDescription(
+        "test", positions, descriptions, reference_location=reference_location
+    )
 
 
 def test_toyeventsource(subarray):
