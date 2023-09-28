@@ -261,19 +261,16 @@ class HillasIntersection(HillasGeometryReconstructor):
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, z=0 * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
 
-        if self.subarray.reference_location is not None:
-            h_max = self.reconstruct_h_max(
-                nom.fov_lon,
-                nom.fov_lat,
-                tilt.x,
-                tilt.y,
-                hillas_dict_mod,
-                tel_x,
-                tel_y,
-                90 * u.deg - array_pointing.alt,
-            )
-        else:
-            h_max = u.Quantity(np.nan, u.m)
+        h_max = self.reconstruct_h_max(
+            nom.fov_lon,
+            nom.fov_lat,
+            tilt.x,
+            tilt.y,
+            hillas_dict_mod,
+            tel_x,
+            tel_y,
+            90 * u.deg - array_pointing.alt,
+        )
 
         src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
 
