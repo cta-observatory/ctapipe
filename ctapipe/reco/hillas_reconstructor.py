@@ -426,7 +426,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Returns
         -------
-        astropy.unit.Quantity
+        astropy.unit.Quantity:
             the estimated height above observatory level (not sea level) of the
             shower-max point
 
