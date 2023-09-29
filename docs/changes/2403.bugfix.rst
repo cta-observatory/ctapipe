@@ -1,5 +1,5 @@
 Fixed the definition of ``h_max``, which was both inconsistent between
-`ctapipe.reco.HillasReconstructor` and `ctapipe.reco.HillasIntersection`
+`~ctapipe.reco.HillasReconstructor` and `~ctapipe.reco.HillasIntersection`
 implementations, and was also incorrect since it was measured from the
 observatory elevation rather than from sea level.
 
