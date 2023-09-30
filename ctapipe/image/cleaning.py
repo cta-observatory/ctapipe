@@ -117,13 +117,11 @@ def time_clustering(
     geom,
     image,
     time,
-    noise=1.6,
-    minimum_signal_sigma=2.5,
     minpts=5,
     eps=1.0,
     time_scale_ns=4.0,
     space_scale_m=0.25,
-    hard_cut_pe=0,
+    hard_cut_pe=4,
 ):
     """
 
@@ -147,10 +145,6 @@ def time_clustering(
         pixel charge information
     time: array
         pixel timing information
-    noise: array
-        Noise fluctuations for each pixel. This is just one number for now.
-    minimum_signal_sigma: float
-        Cut in the minimum significance of the signal
     hard_cut_pe: float
         Hard cut in the number of signal pe
     minpts: int
@@ -166,7 +160,7 @@ def time_clustering(
     -------
     A boolean mask of *clean* pixels.
     """
-    precut_mask = (image > minimum_signal_sigma * noise) & (image > hard_cut_pe)
+    precut_mask = image > hard_cut_pe
 
     arr = np.zeros(len(image), dtype=float)
     arr[~precut_mask] = -1
@@ -613,11 +607,6 @@ class TimeCleaner(ImageCleaner):
     Clean images using the time clustering cleaning method
     """
 
-    noise = FloatTelescopeParameter(
-        default_value=1.6, help="Noise width of each pixel"
-    ).tag(
-        config=True
-    )  # we should get this from a container once available
     space_scale_m = FloatTelescopeParameter(
         default_value=0.25, help="Pixel space scaling parameter in m"
     ).tag(config=True)
@@ -629,9 +618,6 @@ class TimeCleaner(ImageCleaner):
     ).tag(config=True)
     eps = FloatTelescopeParameter(
         default_value=1.0, help="minimum distance in DBSCAN"
-    ).tag(config=True)
-    minimum_signal_sigma = FloatTelescopeParameter(
-        default_value=2.5, help="Significance cut in the image"
     ).tag(config=True)
     hard_cut_pe = FloatTelescopeParameter(
         default_value=2.5, help="Hard cut in the number of pe"
@@ -646,10 +632,8 @@ class TimeCleaner(ImageCleaner):
             image=image,
             time=arrival_times,
             eps=self.eps.tel[tel_id],
-            minimum_signal_sigma=self.minimum_signal_sigma.tel[tel_id],
             space_scale_m=self.space_scale_m.tel[tel_id],
             time_scale_ns=self.time_scale_ns.tel[tel_id],
-            noise=self.noise.tel[tel_id],
             minpts=self.minpts.tel[tel_id],
             hard_cut_pe=self.hard_cut_pe.tel[tel_id],
         )

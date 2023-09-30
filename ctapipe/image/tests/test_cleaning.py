@@ -352,8 +352,7 @@ def test_time_cleaning():
         eps=1.0,
         space_scale_m=0.25,
         time_scale_ns=4.0,
-        minimum_signal_sigma=10,
-        noise=1,
+        hard_cut_pe=10,
         minpts=5,
     )
 
