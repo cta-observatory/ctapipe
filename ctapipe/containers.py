@@ -922,7 +922,7 @@ class ReconstructedGeometryContainer(Container):
     )
     h_max = Field(
         nan * u.m,
-        "reconstructed vertical height (above sea level) of the shower maximum",
+        "reconstructed vertical height above sea level of the shower maximum",
         unit=u.m,
     )
     h_max_uncert = Field(nan * u.m, "uncertainty of h_max", unit=u.m)
@@ -930,7 +930,7 @@ class ReconstructedGeometryContainer(Container):
     is_valid = Field(
         False,
         (
-            "direction validity flag. True if the shower direction"
+            "Geometry validity flag. True if the shower geometry"
             "was properly reconstructed by the algorithm"
         ),
     )
