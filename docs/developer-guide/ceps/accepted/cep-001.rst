@@ -1,0 +1,261 @@
+.. _cep-001:
+
+
+**********************************
+CEP 1 - Purpose and guidelines
+**********************************
+
+* Status: accepted
+* Discussion: `PR #2256`_
+* Date accepted: 2023-03-06
+* Last revised: 2023-03-06
+* Author: Tomas Bylund
+* Created: 2023-02-10
+
+Abstract
+========
+
+CEP stands for "ctapipe Enhancement Proposal". This is CEP 1, which
+describes the purpose of writing CEPs as well as giving some guidelines
+on how CEPs are authored, discussed and reviewed.
+
+A CEP is a design document that provides information to the community, 
+proposing a major addition or change to ctapipe. It can also describe 
+changes to its processes or environment. The CEP should provide a 
+concise technical specification of the feature and a rationale for 
+the feature.
+
+We intend CEPs to be the primary mechanisms for proposing major new features,
+for collecting community input on an issue, and for documenting the design
+decisions that have gone into ctapipe. The CEP author is responsible for
+building consensus within the community and documenting dissenting opinions.
+
+Because the CEPs are maintained as text files in a versioned repository
+(indirectly since this wiki is versioned within github), their revision
+history is the historical record of the feature proposal
+
+
+What is a CEP?
+==============
+
+ctapipe Enhancment Proposals are short documents proposing a major
+addition or change to ctapipe. CEPs are like `APEs`_, `JEPs`_, `NEPs`_, 
+`PEPs`_, and `PIGs`_, just for ctapipe. Using such enhancement proposals
+is common for large and long-term open-source Python projects.
+
+The primary goal of CEPs is to have an open and structured way of working 
+on ctapipe, forcing the person making the change to think it through and 
+motivate the proposal before taking action, and for others to have a chance
+to review and comment on the proposal. The CEPs will also serve as a record
+of major design decisions taken in ctapipe, which can be useful in the 
+future when things are re-discussed or new proposals to do things 
+differently arrive.
+
+We expect that we will not use CEPs very often, but we think they can be useful
+e.g. in the following cases:
+
+* Outline design for something that requires significant work, e.g. on topics like
+  "implementing ImPACT in ctapipe" or "High-level user interface in ctapipe". These 
+  CEPs can be rather long, i.e. more than one page, explaining the design in detail
+  and even explaining which alternatives were considered and why the proposed 
+  solution was preferred. 
+* Have a conscious decision and make sure all interested parties are aware for things
+  that might be controversial and have long-term effects for ctapipe. These CEPs can
+  usually be very short, a page or less.
+
+Anyone is welcome to write a CEP, and writing a CEP doesn't mean you have to 
+implement all of it.  If you're not sure if you should write a CEP, please don't! 
+Instead bring the topic up in discussions first with other ctapipe developers, or on
+the mailing list, to get some initial feedback. This will let you figure out if writing 
+a CEP will be helpful or not to realise your proposal.
+
+Writing a CEP
+=============
+
+The CEP process begins with a new idea for ctapipe. It is highly recommended
+that a single CEP contains a single key proposal or new idea. Note that small
+enhancements or patches as a rule don't need a CEP and can be injected into the
+ctapipe development workflow via the ctapipe issue
+tracker or opening a pull request. The more focused the CEP, the more successful it tends to be. If in
+doubt, split your CEP into several well-focused ones. 
+
+CEPs are written as RST files in the ``docs/development/ceps`` folder in the
+main ctapipe repository, and submitted as pull requests.
+
+There are two kinds of CEPs:
+
+* A "Standard Track" CEP describes a new feature or implementation for
+  ctapipe. It may also describe an interoperability standard that will be
+  supported  in current ctapipe versions before a subsequent CEP adds the
+  feature in the future.
+
+* A "Process" CEP describes a process surrounding ctapipe, or proposes a change
+  to (or an event in) a process. Process CEPs are like Standard Track CEPs but
+  apply to areas other than the ctapipe package itself. They may propose an
+  implementation, but not to ctapipe's codebase; they often require community
+  consensus. Examples include procedures,
+  guidelines, changes to the decision-making process, and changes to the tools
+  or environment used in ctapipe development. Any meta-CEP is also considered a
+  Process CEP.
+
+Standard Track CEPs consist of two parts, a design document and a reference 
+implementation. It is generally recommended that at least a prototype implementation 
+be included in the first submission of a CEP, as ideas that sound good in principle 
+sometimes turn out to be impractical when subjected to the test of implementation. 
+The best way to provide that code is via a linked github pull request. The requirement
+for a reference implementation can be waived on a case by case basis if there is 
+consensus in the developer community that the changes proposed by particular CEP 
+have a low risk of unexpected costs.
+
+Process CEPs do not require an reference implementation, but in cases where changes
+to governance or decision-making is being proposed it is highly encouraged to give
+examples of the process in use by other organisations.
+
+The CEP format
+--------------
+When starting to write a CEP, we suggest you copy & paste & update the header
+at the top of this file, i.e. the title, bullet list with "Author" etc, up to and 
+including the ``Abstract`` section. 
+
+A CEP will get a number once submitted, before that it is recommended you use 
+the filename ``cep-XXX.rst`` as placeholder.
+
+Please start your proposal with a short abstract clearly explaining the proposal
+in one or a few sentences, followed by a section motivating the change or addition.
+
+Then there should follow a more a detailed description, the structure of which is 
+left to the proposer but the use of subsections as apropriate is encouraged. At the
+end or interspersed in this detailed description there it is often apropriate to 
+provided comments about alternative options that have been discussed and explanation
+why proposed one was favoured. 
+
+If you're not sure how to structure your proposal, you could have a look at at the 
+`APE template`_ or some well-written APEs_ or PEPs_. `APE 5`_, `APE 7`_ and `APE 13`_
+are examples of "design documents", outlining major changes / extensions to existing 
+code in Astropy. `APE 2`_ and `APE 10`_ are examples of "process" proposals, outlining
+a release cycle for Astropy and a timeline for dropping Python 2 support. 
+
+`PEP 389`_ is a good example proposing an improvement in the Python standard library,
+in that case by adding a new module ``argparse``, leaving the existing ``optparse``
+alone for backward-compatibility reasons. 
+
+In ctapipe many CEPs will also be about implementing better solutions and a major 
+question will be whether to change and improve the existing implementation, or whether
+to just put a new one, and in that case what the plan concerning the old code is. 
+`PEP 481`_ is an example of a "process" PEP, proposing to move CPython development 
+to git and Github. 
+
+Submitting a CEP
+================
+Once a complete draft for a CEP is written, it can be submitted for comunity discussion 
+by opening a pull request adding a RST file to the  ``docs/development/ceps`` folder 
+in the main ctapipe repository.
+
+Each CEP must have an advocate -- someone who beyond writing the CEP using the style and 
+format described above, shepherds the discussions in the appropriate forums, and attempts
+to build community consensus around the idea. This sheparding function is usually done by
+the author, but the role can be filled by any interested party.  Most discussions concerning
+ctapipe will happen by talking to each other directly (calls or face-to-face), or online on 
+slack or Github.
+
+CEP review
+==========
+
+CEP review happens on the pull request on Github.
+
+When a CEP is put up, an announcement with a link to the pull request should
+be sent both to the ctapipe mailing list and the ctapipe coordinator list.
+
+Anyone is welcome to review it and is encouraged to share their thoughts
+in the discussion!
+
+Please note that Github hides inline comments after they have been edited,
+so we suggest that you use inline comments for minor points like spelling 
+mistakes only. Put your main feedback as normal comments in the "Conversation"
+tab, so that for someone reading the discussion later they will see your 
+comment directly.
+
+The final decision on any CEP is made by the ctapipe core developer team.
+We expect that in most cases, the people participating in the CEP review will
+reach a consensus and the core developer team will follow the outcome
+of the public discussion. But in unusual cases where disagreement remains,
+the core developers will talk to the people involved in the discussion
+with the goal to reach consensus or compromise, and then make the final decision.
+
+Usually a short "Decision rationale" section will be added at the end of the 
+document after discussion by the reviewers.
+
+CEP status
+==========
+
+CEPs can have a status of:
+
+* "draft" - in draft status, either in the writing or discussion phase
+* "withdrawn" - withdrawn by the author
+* "accepted/accepted-in-progress" - accepted by the core developer team and,
+  in the case of a "standard track" CEP, the work of implementing the code 
+  changes is ongoing
+* "accepted-implemented" - accepted by the core developer team, and the 
+  suggestion has been fully implemented into ctapipe
+* "rejected" - rejected by the core developer team
+
+When a CEP is put up for discussion as a pull request, it should have a status of
+"draft". Then once the discussion and review is done, the status will change to
+one of "withdrawn", "accepted" or "rejected". The reviewers should add a section
+"Decision rationale" with a sentence or paragraph summarising the discussion and
+decision on this CEP. Then in any case, the CEP should be merged, even if it's
+status is "withdrawn" or "rejected".
+
+Final remarks
+=============
+
+This CEP leaves some points open.
+This is intentional. We want to keep the process flexible
+and first gain some experience. The goal of CEPs is to help the ctapipe developer
+team to be more efficient, not to have a rigid or bureaucratic process.
+
+Specifically the following points remain flexible:
+
+* When to merge a CEP? There can be cases where the CEP is merged quickly,
+  as an outline or design document, even if the actual implementation hasn't
+  been done yet. There can be other cases where the CEP pull request remains
+  open for a long time, because the proposal is too vague or requires prototyping
+  to be evaluated properly. Note that this is normal, e.g. Python PEPs_ are usually
+  only accepted once all development is done and a full implementation exists.
+* Allow edits of existing CEPs? We don't say if CEPs are supposed to be fixed
+  or live documents. We expect that some will remain fixed, while others will
+  be edited after being merged. E.g. for this CEP 1 we expect that over the years
+  as we gain experience with the CEP process and see what works well and what
+  doesn't, that edits will be made with clarifications or even changes.
+  Whether to edit an existing CEP or whether to write a new follow-up CEP will
+  be discussed on a case by case basis.
+* What to do if the core developer team doesn't agree on some CEP?
+  For now, we leave this question to the future. We expect that this scenario
+  might arise, it's normal that opinions on technical solutions or importance
+  of use cases or projects to support with ctapipe differ. We also expect
+  that ctapipe the core developers will be friendly people that can collaborate
+  and find a solution or at least compromise that works for everyone.
+
+Acknowledgments
+===============
+The above proposal text borrows heavily from the Gammapy change proposal document,
+having started as a straight copy of it. It also copies and adapts substantial 
+parts of the change proposal document for Astropy, as well as incorporates some 
+advice from Thomas A Caswell.
+
+
+.. _PEPs: https://www.python.org/dev/peps/pep-0001/
+.. _PIGs: https://docs.gammapy.org/dev/development/pigs/index.html
+.. _NEPs: https://docs.scipy.org/doc/numpy-dev/neps/index.html
+.. _APEs: https://github.com/astropy/astropy-APEs
+.. _JEPs: https://github.com/jupyter/enhancement-proposals
+.. _APE template: https://github.com/astropy/astropy-APEs/blob/master/APEtemplate.rst
+.. _APE 2: https://github.com/astropy/astropy-APEs/blob/master/APE2.rst
+.. _APE 5: https://github.com/astropy/astropy-APEs/blob/master/APE5.rst
+.. _APE 7: https://github.com/astropy/astropy-APEs/blob/master/APE7.rst
+.. _APE 10: https://github.com/astropy/astropy-APEs/blob/master/APE10.rst
+.. _APE 13: https://github.com/astropy/astropy-APEs/blob/master/APE13.rst
+.. _PEP 8: https://www.python.org/dev/peps/pep-0008/
+.. _PEP 389: https://www.python.org/dev/peps/pep-0389/
+.. _PEP 481: https://www.python.org/dev/peps/pep-0481/
+.. _PR #2256: https://github.com/cta-observatory/ctapipe/pull/2256/

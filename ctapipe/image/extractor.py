@@ -4,6 +4,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 
 __all__ = [
     "ImageExtractor",
+    "FlashCamExtractor",
     "FullWaveformSum",
     "FixedWindowSum",
     "GlobalPeakWindowSum",
@@ -22,9 +23,12 @@ __all__ = [
 
 from abc import abstractmethod
 from functools import lru_cache
-from typing import Tuple
+from typing import Callable, List, Optional, Tuple
 
+import astropy.units as u
 import numpy as np
+import numpy.typing as npt
+import scipy.stats
 from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from traitlets import Bool, Int
@@ -37,6 +41,7 @@ from ctapipe.core.traits import (
     FloatTelescopeParameter,
     IntTelescopeParameter,
 )
+from ctapipe.instrument import CameraDescription
 
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
@@ -697,7 +702,6 @@ class SlidingWindowMaxSum(ImageExtractor):
         n_channels = len(readout.reference_pulse_shape)
         correction = np.ones(n_channels, dtype=np.float64)
         for ichannel, pulse_shape in enumerate(readout.reference_pulse_shape):
-
             # apply the same method as sliding window to find the highest sum
             cwf = np.cumsum(pulse_shape)
             # add zero at the begining so it is easier to substract the two arrays later
@@ -1285,3 +1289,410 @@ class TwoPassWindowSum(ImageExtractor):
             peak_time=pulse_time2.astype("float32"),
             is_valid=is_valid,
         )
+
+
+def deconvolution_parameters(
+    camera: CameraDescription,
+    upsampling: int,
+    window_width: int,
+    window_shift: int,
+    leading_edge_timing: bool,
+    leading_edge_rel_descend_limit: float,
+    time_profile_pdf: Optional[Callable[[npt.ArrayLike], npt.ArrayLike]] = None,
+) -> Tuple[List[float], List[float], List[float]]:
+    """
+    Estimates deconvolution and recalibration parameters from the camera's reference
+    single-p.e. pulse shape for the given configuration of FlashCamExtractor.
+
+    Parameters
+    ----------
+    camera : CameraDescription
+        Description of the target camera.
+    upsampling : int
+        Upsampling factor (>= 1); see also `deconvolve(...)`.
+    window_width : int
+        Integration window width (>= 1); see also `extract_around_peak(...)`.
+    window_shift : int
+        Shift of the integration window relative to the peak; see also
+        `extract_around_peak(...)`.
+    leading_edge_timing : bool
+        Whether time calculation will be done on the leading edge.
+    leading_edge_rel_descend_limit : float
+        If leading edge timing is used, the fraction of the peak value down to which samples are accumulated in the
+        centroid calculation.
+    time_profile_pdf : callable or None
+        PDF of the assumed effective Cherenkov time profile to assume when
+        calculating the gain loss; takes nanoseconds as arguments and returns
+        probability density (with mode at ~0 ns); default: None (assume
+        instantaneous pulse).
+
+    Returns
+    -------
+    pole_zeros : list of floats
+        Pole-zero parameter for each channel to be passed to `deconvolve(...)`.
+    gain_losses : list of floats
+        Gain loss of each channel that needs to be corrected after deconvolution.
+    time_shifts_nsec : list of floats
+        Timing shift of each channel that needs to be corrected after deconvolution.
+    leading_edge_shifts : list of floats
+        Offset of the leading edge peak w.r.t. the deconvolved peak.
+    """
+    if upsampling < 1:
+        raise ValueError(f"upsampling must be > 0, got {upsampling}")
+    if window_width < 1:
+        raise ValueError(f"window_width must be > 0, got {window_width}")
+
+    ref_pulse_shapes = camera.readout.reference_pulse_shape
+    ref_sample_width_nsec = camera.readout.reference_pulse_sample_width.to_value(u.ns)
+    camera_sample_width_nsec = 1.0 / camera.readout.sampling_rate.to_value(u.GHz)
+
+    if camera_sample_width_nsec < ref_sample_width_nsec:
+        raise ValueError(
+            f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be equal to or shorter than the "
+            f"camera sampling time (got {camera_sample_width_nsec} ns); need a reference single p.e. pulse shape with "
+            "finer sampling!"
+        )
+    avg_step = int(round(camera_sample_width_nsec / ref_sample_width_nsec))
+
+    pole_zeros = []  # avg. pole-zero deconvolution parameters
+    for ref_pulse_shape in ref_pulse_shapes:
+        phase_pzs = []
+        for phase in range(avg_step):
+            x = ref_pulse_shape[phase::avg_step]
+            i_min = np.argmin(np.diff(x)) + 1
+            phase_pzs.append(x[i_min + 1] / x[i_min])
+
+        if len(phase_pzs) == 0:
+            raise ValueError(
+                "ref_pulse_shape is malformed - cannot find deconvolution parameter"
+            )
+        pole_zeros.append(np.mean(phase_pzs))
+
+    gains, shifts, pz2d_shifts = [], [], []  # avg. gains and timing shifts
+    for pz, ref_pulse_shape in zip(pole_zeros, ref_pulse_shapes):
+        if time_profile_pdf:  # convolve ref_pulse_shape with time profile PDF
+            t = (
+                np.arange(ref_pulse_shape.size) - ref_pulse_shape.size / 2
+            ) * ref_sample_width_nsec
+            time_profile = time_profile_pdf(t)
+            ref_pulse_shape = np.convolve(ref_pulse_shape, time_profile, "same")
+
+        integral = (
+            ref_pulse_shape.sum() * ref_sample_width_nsec / camera_sample_width_nsec
+        )
+        phase_gains, phase_shifts, phase_pz2d_shifts = [], [], []
+        for phase in range(avg_step):
+            x = np.atleast_2d(ref_pulse_shape[phase::avg_step])
+            y = deconvolve(x, 0.0, upsampling, pz)[0]
+            i_max = y.argmax()
+            start = i_max - window_shift
+            stop = start + window_width
+            if start >= 0 and stop <= y.size:
+                if leading_edge_timing:
+                    d = deconvolve(x, 0.0, upsampling, 1)[0]
+                    d_pk_idx = d.argmax()
+                    phase_pz2d_shifts.append(i_max - d_pk_idx)
+                    time = adaptive_centroid(
+                        d, d_pk_idx, leading_edge_rel_descend_limit
+                    )
+                else:
+                    time = i_max
+
+                phase_shifts.append(
+                    (time / upsampling * avg_step - ref_pulse_shape.argmax())
+                    * ref_sample_width_nsec
+                )
+                phase_gains.append(y[start:stop].sum() / integral)
+
+        if len(phase_gains) == 0:
+            raise ValueError(
+                "ref_pulse_shape is malformed - peak is not well contained"
+            )
+        gains.append(np.mean(phase_gains))
+        shifts.append(np.mean(phase_shifts))
+        pz2d_shifts.append(np.mean(phase_pz2d_shifts))
+
+    return pole_zeros, gains, shifts, pz2d_shifts
+
+
+def __filtfilt_fast(signal, filt):
+    """
+    Apply a linear filter forward and backward to a signal, based on scipy.signal.filtfilt.
+    filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
+    """
+    forward = convolve1d(signal, filt, axis=-1, mode="nearest")
+    backward = convolve1d(forward[:, ::-1], filt, axis=-1, mode="nearest")
+    return backward[:, ::-1]
+
+
+def deconvolve(
+    waveforms: npt.ArrayLike,
+    baselines: npt.ArrayLike,
+    upsampling: int,
+    pole_zero: float,
+) -> np.ndarray:
+    """
+    Applies pole-zero deconvolution and upsampling to pixel waveforms. Use
+    `deconvolution_parameters(...)` to estimate the required `pole_zero` parameter
+    for the specific camera model.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    baselines : ndarray or float
+        Baseline estimates for each pixel that are subtracted from the waveforms
+        before deconvolution.
+        Shape: (n_pix, ) or scalar
+    upsampling : int
+        Upsampling factor to use (>= 1); if > 1, the input waveforms are resampled
+        at upsampling times their original sampling rate.
+    pole_zero : float
+        Deconvolution parameter obtained from `deconvolution_parameters(...)`.
+
+    Returns
+    -------
+    deconvolved_waveforms : ndarray
+        Deconvolved and upsampled waveforms stored in a numpy array.
+        Shape: (n_pix, upsampling * n_samples)
+    """
+    deconvolved_waveforms = np.atleast_2d(waveforms) - np.atleast_2d(baselines).T
+    deconvolved_waveforms[:, 1:] -= pole_zero * deconvolved_waveforms[:, :-1]
+    deconvolved_waveforms[:, 0] = 0
+
+    if upsampling > 1:
+        filt = np.ones(upsampling)
+        filt_weighted = filt / upsampling
+        signal = np.repeat(deconvolved_waveforms, upsampling, axis=-1)
+        return __filtfilt_fast(signal, filt_weighted)
+
+    return deconvolved_waveforms
+
+
+@guvectorize(
+    [
+        (float32[:], int64, float64, float32[:]),
+        (float64[:], int64, float64, float32[:]),
+    ],
+    "(s),(),()->()",
+    nopython=True,
+    cache=True,
+)
+def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
+    """
+    Calculates the pulse centroid for all samples down to rel_descend_limit * peak_amplitude.
+
+    The ret argument is required by numpy to create the numpy array which is
+    returned. It can be ignored when calling this function.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    peak_index : ndarray or int
+        Peak index for each pixel.
+    rel_descend_limit : ndarray or float
+        Fraction of the peak value down to which samples are accumulated in the centroid calculation.
+    centroids : ndarray
+        Return argument for ufunc (ignore)
+        Returns the peak centroid in units "samples"
+
+    Returns
+    -------
+    centroids : ndarray
+        Peak centroid in units "samples"
+    """
+    centroids[0] = peak_index  # preload in case of errors
+
+    n_samples = waveforms.size
+    if n_samples == 0:
+        return
+
+    if (peak_index > (n_samples - 1)) or (peak_index < 0):
+        raise ValueError("peak_index must be within the waveform limits")
+
+    peak_amplitude = waveforms[peak_index]
+    if peak_amplitude < 0.0:
+        return
+
+    descend_limit = rel_descend_limit * peak_amplitude
+
+    sum_ = float64(0.0)
+    jsum = float64(0.0)
+
+    j = peak_index
+    while j >= 0 and waveforms[j] > descend_limit:
+        sum_ += waveforms[j]
+        jsum += j * waveforms[j]
+        j -= 1
+        if waveforms[j] > peak_amplitude:
+            descend_limit = rel_descend_limit * peak_amplitude
+
+    j = peak_index + 1
+    while j < n_samples and waveforms[j] > descend_limit:
+        sum_ += waveforms[j]
+        jsum += j * waveforms[j]
+        j += 1
+        if waveforms[j] > peak_amplitude:
+            descend_limit = rel_descend_limit * peak_amplitude
+
+    if sum_ != 0.0:
+        centroids[0] = jsum / sum_
+
+
+class FlashCamExtractor(ImageExtractor):
+    """
+    Image extractor applying signal preprocessing for FlashCam
+
+    The waveforms are first upsampled to achieve one nanosecond sampling (as a default, for the FlashCam).
+    A pole-zero deconvolution [1] is then performed to the waveforms to recover the original impulse or narrow
+    the resulting pulse due to convolution with detector response. The modified waveform is integrated in a
+    window around a peak, which is defined by the neighbors of the pixel. The waveforms are clipped in
+    order to reduce the contribution from the afterpulses in the neighbor sum. If leading_edge_timing is
+    set to True, the so-called leading edge time is found (with the adaptive_centroid function) instead of the peak
+    time.
+
+    This extractor has been optimized for the FlashCam [2].
+
+    [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to Digital Signal Processing (California Technical
+    Publishing)
+    [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium.
+    A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
+
+    """
+
+    upsampling = IntTelescopeParameter(
+        default_value=4, help="Define the upsampling factor for waveforms"
+    ).tag(config=True, min=1)
+
+    window_width = IntTelescopeParameter(
+        default_value=7, help="Define the width of the integration window"
+    ).tag(config=True, min=1)
+
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help="Define the shift of the integration window from the peak_index "
+        "(peak_index - shift)",
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
+    local_weight = IntTelescopeParameter(
+        default_value=0,
+        help="Weight of the local pixel (0: peak from neighbors only, "
+        "1: local pixel counts as much as any neighbor)",
+    ).tag(config=True)
+
+    effective_time_profile_std = FloatTelescopeParameter(
+        default_value=2.0,
+        help="Effective Cherenkov time profile std. dev. (in nanoseconds) to "
+        "assume for calculating the gain correction",
+    ).tag(config=True, min=0)
+
+    neighbour_sum_clipping = FloatTelescopeParameter(
+        default_value=5.0,
+        help="(Soft) clipping level of a pixel's contribution to a neighbour sum "
+        "(set to 0 or inf to disable clipping)",
+    ).tag(config=True)
+
+    leading_edge_timing = BoolTelescopeParameter(
+        default_value=True, help="Calculate leading edge time instead of peak time"
+    ).tag(config=True)
+
+    leading_edge_rel_descend_limit = FloatTelescopeParameter(
+        default_value=0.05,
+        help="Fraction of the peak value down to which samples are accumulated "
+        "in the leading edge centroid calculation",
+    ).tag(config=True, min=0.0, max=1.0)
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
+
+        self.sampling_rate_ghz = {
+            tel_id: telescope.camera.readout.sampling_rate.to_value("GHz")
+            for tel_id, telescope in subarray.tel.items()
+        }
+
+        def time_profile_pdf_gen(std_dev: float):
+            if std_dev == 0:
+                return None
+            return scipy.stats.norm(0.0, std_dev).pdf
+
+        self.deconvolution_pars = {
+            tel_id: deconvolution_parameters(
+                tel.camera,
+                self.upsampling.tel[tel_id],
+                self.window_width.tel[tel_id],
+                self.window_shift.tel[tel_id],
+                self.leading_edge_timing.tel[tel_id],
+                self.leading_edge_rel_descend_limit.tel[tel_id],
+                time_profile_pdf_gen(self.effective_time_profile_std.tel[tel_id]),
+            )
+            for tel_id, tel in subarray.tel.items()
+        }
+
+    @staticmethod
+    def clip(x, lo=0.0, hi=np.inf):
+        """Applies soft clipping to ±1 and then hard clipping to (lo, hi)."""
+        return np.clip(x / (1.0 + np.abs(x)), lo, hi)
+
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
+        upsampling = self.upsampling.tel[tel_id]
+        integration_window_width = self.window_width.tel[tel_id]
+        integration_window_shift = self.window_shift.tel[tel_id]
+        neighbour_sum_clipping = self.neighbour_sum_clipping.tel[tel_id]
+        leading_edge_timing = self.leading_edge_timing.tel[tel_id]
+        leading_edge_rel_descend_limit = self.leading_edge_rel_descend_limit.tel[tel_id]
+
+        pole_zeros, gains, shifts, pz2ds = self.deconvolution_pars[tel_id]
+        pz, gain, shift, pz2d = pole_zeros[0], gains[0], shifts[0], pz2ds[0]
+
+        t_waveforms = deconvolve(waveforms, 0.0, upsampling, pz)
+
+        if neighbour_sum_clipping == 0.0 or np.isinf(neighbour_sum_clipping):
+            nn_waveforms = t_waveforms
+        else:
+            nn_waveforms = self.clip(t_waveforms / neighbour_sum_clipping)
+
+        neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+        peak_index = neighbor_average_maximum(
+            nn_waveforms,
+            neighbors_indices=neighbors.indices,
+            neighbors_indptr=neighbors.indptr,
+            local_weight=self.local_weight.tel[tel_id],
+            broken_pixels=broken_pixels,
+        )
+
+        charge, peak_time = extract_around_peak(
+            t_waveforms,
+            peak_index,
+            integration_window_width,
+            integration_window_shift,
+            self.sampling_rate_ghz[tel_id] * upsampling,
+        )
+
+        if leading_edge_timing:
+            d_waveforms = deconvolve(waveforms, 0.0, upsampling, 1)
+
+            # correct the offset between leading edge peak and deconvolved peak
+            peak_index = np.round(peak_index - pz2d).astype(int)
+            n_samples = d_waveforms.shape[-1]
+            np.clip(peak_index, 0, n_samples - 1, out=peak_index)
+            peak_time = adaptive_centroid(
+                d_waveforms, peak_index, leading_edge_rel_descend_limit
+            )
+            peak_time = peak_time / (self.sampling_rate_ghz[tel_id] * upsampling)
+
+        if gain != 0:
+            charge /= gain
+
+        if shift != 0:
+            peak_time -= shift
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)

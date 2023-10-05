@@ -19,7 +19,7 @@ def test_chord_length():
     assert np.isclose(length, 0, atol=1e-15)
 
 
-def test_muon_efficiency_fit(prod5_lst):
+def test_muon_efficiency_fit(prod5_lst, reference_location):
     from ctapipe.coordinates import CameraFrame, TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
         MuonIntensityFitter,
@@ -29,9 +29,10 @@ def test_muon_efficiency_fit(prod5_lst):
 
     telescope = prod5_lst
     subarray = SubarrayDescription(
-        "LSTMono",
-        {0: [0, 0, 0] * u.m},
-        {0: telescope},
+        name="LSTMono",
+        tel_positions={0: [0, 0, 0] * u.m},
+        tel_descriptions={0: telescope},
+        reference_location=reference_location,
     )
 
     center_x = 0.8 * u.deg
@@ -89,17 +90,21 @@ def test_muon_efficiency_fit(prod5_lst):
     assert u.isclose(result.impact, impact_parameter, rtol=0.05)
     assert u.isclose(result.width, ring_width, rtol=0.05)
     assert u.isclose(result.optical_efficiency, efficiency, rtol=0.05)
+    assert result.is_valid
+    assert not result.parameters_at_limit
+    assert np.isfinite(result.likelihood_value)
 
 
-def test_scts(prod5_sst):
+def test_scts(prod5_sst, reference_location):
     from ctapipe.image.muon.intensity_fitter import MuonIntensityFitter
     from ctapipe.instrument import SubarrayDescription
 
     telescope = prod5_sst
     subarray = SubarrayDescription(
-        "ssts",
-        {0: [0, 0, 0] * u.m},
-        {0: telescope},
+        name="ssts",
+        tel_positions={0: [0, 0, 0] * u.m},
+        tel_descriptions={0: telescope},
+        reference_location=reference_location,
     )
 
     fitter = MuonIntensityFitter(subarray=subarray)

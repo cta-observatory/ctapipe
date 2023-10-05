@@ -20,7 +20,7 @@ from ..atmosphere import (
     FiveLayerAtmosphereDensityProfile,
     TableAtmosphereDensityProfile,
 )
-from ..calib.camera.gainselection import GainSelector
+from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..containers import (
     ArrayEventContainer,
     CoordinateFrameType,
@@ -29,6 +29,7 @@ from ..containers import (
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
+    PixelStatus,
     PixelStatusContainer,
     PointingContainer,
     PointingMode,
@@ -88,6 +89,7 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 
 _half_pi = 0.5 * np.pi
 _half_pi_maxval = (1 + 1e-6) * _half_pi
+_float32_nan = np.float32(np.nan)
 
 
 def _clip_altitude_if_close(altitude):
@@ -117,7 +119,7 @@ class MirrorClass(enum.Enum):
     DUAL_MIRROR = 2
 
 
-X_MAX_UNIT = u.g / (u.cm**2)
+GRAMMAGE_UNIT = u.g / (u.cm**2)
 NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
@@ -129,7 +131,7 @@ def parse_simtel_time(simtel_time):
 
 
 def _location_from_meta(global_meta):
-    """Extract reference location of subarray from metadata"""
+    """Extract reference location of subarray from metadata."""
     lat = global_meta.get(b"*LATITUDE")
     lon = global_meta.get(b"*LONGITUDE")
     height = global_meta.get(b"ALTITUDE")
@@ -273,17 +275,20 @@ def apply_simtel_r1_calibration(
         The gain channel selected for each pixel
         Shape: (n_pixels)
     """
-    n_channels, n_pixels, n_samples = r0_waveforms.shape
+    n_channels, n_pixels, _ = r0_waveforms.shape
     ped = pedestal[..., np.newaxis]
     DC_to_PHE = dc_to_pe[..., np.newaxis]
     gain = DC_to_PHE * calib_scale
+
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
+
     if n_channels == 1:
         selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
         r1_waveforms = r1_waveforms[0]
     else:
         selected_gain_channel = gain_selector(r0_waveforms)
         r1_waveforms = r1_waveforms[selected_gain_channel, np.arange(n_pixels)]
+
     return r1_waveforms, selected_gain_channel
 
 
@@ -345,7 +350,6 @@ def read_atmosphere_profile_from_simtel(
         context_manager = nullcontext(simtelfile)
 
     with context_manager as simtel:
-
         if (
             not hasattr(simtel, "atmospheric_profiles")
             or len(simtel.atmospheric_profiles) == 0
@@ -353,7 +357,6 @@ def read_atmosphere_profile_from_simtel(
             return []
 
         for atmo in simtel.atmospheric_profiles:
-
             metadata = dict(
                 observation_level=atmo["obslevel"] * u.cm,
                 atmosphere_id=atmo["id"],
@@ -508,15 +511,14 @@ class SimTelEventSource(EventSource):
         )
         if self.back_seekable and self.is_stream:
             raise IOError("back seekable was required but not possible for inputfile")
-
-        self._subarray_info = self.prepare_subarray_info(
-            self.file_.telescope_descriptions, self.file_.header
-        )
         (
             self._scheduling_blocks,
             self._observation_blocks,
         ) = self._fill_scheduling_and_observation_blocks()
         self._simulation_config = self._parse_simulation_header()
+        self._subarray_info = self.prepare_subarray_info(
+            self.file_.telescope_descriptions, self.file_.header
+        )
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -671,11 +673,16 @@ class SimTelEventSource(EventSource):
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
         name = self.file_.global_meta.get(b"ARRAY_CONFIG_NAME", b"MonteCarloArray")
+
+        reference_location = _location_from_meta(self.file_.global_meta)
+        if reference_location is None:
+            reference_location = self._make_dummy_location()
+
         subarray = SubarrayDescription(
             name=name.decode(),
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
-            reference_location=_location_from_meta(self.file_.global_meta),
+            reference_location=reference_location,
         )
 
         self.n_telescopes_original = len(subarray)
@@ -684,6 +691,22 @@ class SimTelEventSource(EventSource):
             subarray = subarray.select_subarray(self.allowed_tels)
 
         return subarray
+
+    def _make_dummy_location(self):
+        """
+        Returns
+        -------
+        EarthLocation:
+            Dummy earth location that is at the correct height (as given in the
+            SimulationConfigContainer), but with the lat/lon set to (0,0), i.e.
+            on "Null Island"
+        """
+        obs_id = self.file_.header["run"]
+        return EarthLocation(
+            lon=0 * u.deg,
+            lat=0 * u.deg,
+            height=self._simulation_config[obs_id].prod_site_alt,
+        )
 
     @staticmethod
     def is_compatible(file_path):
@@ -715,7 +738,6 @@ class SimTelEventSource(EventSource):
         pseudo_event_id = 0
 
         for counter, array_event in enumerate(self.file_):
-
             event_id = array_event.get("event_id", 0)
             if event_id == 0:
                 pseudo_event_id -= 1
@@ -808,7 +830,7 @@ class SimTelEventSource(EventSource):
                 mon = data.mon.tel[tel_id]
                 mon.calibration.dc_to_pe = dc_to_pe
                 mon.calibration.pedestal_per_sample = pedestal
-                mon.pixel_status = self._get_pixels_status(tel_id)
+                mon.pixel_status = self._fill_mon_pixels_status(tel_id)
 
                 r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples,
@@ -818,9 +840,16 @@ class SimTelEventSource(EventSource):
                     self.calib_scale,
                     self.calib_shift,
                 )
+
+                pixel_status = self._get_r1_pixel_status(
+                    tel_id=tel_id,
+                    selected_gain_channel=selected_gain_channel,
+                )
                 data.r1.tel[tel_id] = R1CameraContainer(
+                    event_type=trigger.event_type,
                     waveform=r1_waveform,
                     selected_gain_channel=selected_gain_channel,
+                    pixel_status=pixel_status,
                 )
 
                 # get time_shift from laser calibration
@@ -832,7 +861,26 @@ class SimTelEventSource(EventSource):
 
             yield data
 
-    def _get_pixels_status(self, tel_id):
+    def _get_r1_pixel_status(self, tel_id, selected_gain_channel):
+        tel_desc = self.file_.telescope_descriptions[tel_id]
+        n_pixels = tel_desc["camera_organization"]["n_pixels"]
+        pixel_status = np.zeros(n_pixels, dtype=np.uint8)
+
+        high_gain_stored = selected_gain_channel == GainChannel.HIGH
+        low_gain_stored = selected_gain_channel == GainChannel.LOW
+
+        # set gain bits
+        pixel_status[high_gain_stored] |= PixelStatus.HIGH_GAIN_STORED
+        pixel_status[low_gain_stored] |= PixelStatus.LOW_GAIN_STORED
+
+        # reset gain bits for completely disabled pixels
+        disabled = tel_desc["disabled_pixels"]["HV_disabled"]
+        channel_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
+        pixel_status[disabled] &= ~np.uint8(channel_bits)
+
+        return pixel_status
+
+    def _fill_mon_pixels_status(self, tel_id):
         tel = self.file_.telescope_descriptions[tel_id]
         n_pixels = tel["camera_organization"]["n_pixels"]
         n_gains = tel["camera_organization"]["n_gains"]
@@ -990,7 +1038,6 @@ class SimTelEventSource(EventSource):
             max_scatter_range=mc_run_head["core_range"][1] * u.m,
             min_scatter_range=mc_run_head["core_range"][0] * u.m,
             core_pos_mode=mc_run_head["core_pos_mode"],
-            injection_height=mc_run_head["injection_height"] * u.m,
             atmosphere=mc_run_head["atmosphere"],
             corsika_iact_options=mc_run_head["corsika_iact_options"],
             corsika_low_E_model=mc_run_head["corsika_low_E_model"],
@@ -1053,6 +1100,9 @@ class SimTelEventSource(EventSource):
             core_x=u.Quantity(mc_event["xcore"], u.m),
             core_y=u.Quantity(mc_event["ycore"], u.m),
             h_first_int=u.Quantity(mc_shower["h_first_int"], u.m),
-            x_max=u.Quantity(mc_shower["xmax"], X_MAX_UNIT),
+            x_max=u.Quantity(mc_shower["xmax"], GRAMMAGE_UNIT),
             shower_primary_id=mc_shower["primary_id"],
+            starting_grammage=u.Quantity(
+                mc_shower.get("depth_start", _float32_nan), GRAMMAGE_UNIT
+            ),
         )

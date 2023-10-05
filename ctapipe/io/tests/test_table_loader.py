@@ -415,13 +415,17 @@ def test_order_merged():
 
     path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
 
+    trigger = read_table(path, "/dl1/event/subarray/trigger")
     tel_trigger = read_table(path, "/dl1/event/telescope/trigger")
     with TableLoader(
         path,
-        load_dl1_parameters=False,
+        load_dl1_parameters=True,
         load_dl2=True,
         load_observation_info=True,
     ) as loader:
+        events = loader.read_subarray_events()
+        check_equal_array_event_order(events, trigger)
+
         tables = loader.read_telescope_events_by_id()
 
         for tel_id, table in tables.items():

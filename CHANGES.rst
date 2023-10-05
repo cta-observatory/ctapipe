@@ -1,3 +1,215 @@
+ctapipe v0.20.0 (2023-09-11)
+============================
+
+
+API Changes
+-----------
+
+- The ``ctapipe-dump-triggers`` tool was removed, since it wrote a custom data format
+  not compatble with e.g. the output of the ``DataWriter`` and ``ctapipe-process``.
+  If you only want to store trigger and simulation information from simulated / DL0
+  input files into the ctapipe format HDF5 files, you can now use
+  ``ctapipe-process -i <input> -o <output> --no-write-parameters``. [`#2375 <https://github.com/cta-observatory/ctapipe/pull/2375>`__]
+
+- Change the fill value for invalid telescope ids in ``SubarrayDescription.tel_index_array``
+  from ``-1`` to ``np.iinfo(int).minval`` to prevent ``-1`` being used as an index resulting in the last element being used for invalid telescope ids. [`#2376 <https://github.com/cta-observatory/ctapipe/pull/2376>`__]
+
+- Remove ``EventSource.from_config``, simply use ``EventSource(config=config)`` or 
+  ``EventSource(parent=parent)``. [`#2384 <https://github.com/cta-observatory/ctapipe/pull/2384>`__]
+
+
+Data Model Changes
+------------------
+
+- Added missing fields defined in the CTAO R1 and DL0 data models to the corresponding containers. [`#2338 <https://github.com/cta-observatory/ctapipe/pull/2338>`__]
+
+- Remove the ``injection_height`` field from the ``SimulationConfigContainer``,
+  this field was always empty and is never filled by ``sim_telarray``.
+
+  Add the corresponding ``starting_grammage`` field to the ``SimulatedShowerContainer``,
+  where it is actually available. [`#2343 <https://github.com/cta-observatory/ctapipe/pull/2343>`__]
+
+- Added new fields to the ``MuonEfficiencyContainer`` - ``is_valid`` to check if fit converged successfully, ``parameters_at_limit`` to check if parameters were fitted close to a bound and ``likelihood_value`` which represents cost function value atthe minimum. These fields were added to the output of the ``MuonIntensityFitter``. [`#2381 <https://github.com/cta-observatory/ctapipe/pull/2381>`__]
+
+
+New Features
+------------
+
+- Remove writing the full provenance information to the log  and instead simply refer the reader to the actual provenance file. [`#2328 <https://github.com/cta-observatory/ctapipe/pull/2328>`__]
+
+- Add support for including r1 and r0 waveforms in the ``ctapipe-merge`` tool. [`#2386 <https://github.com/cta-observatory/ctapipe/pull/2386>`__]
+
+
+Bug Fixes
+---------
+
+- The ```HillasIntersection``` method used to fail when individual events were reconstructed to originate from a FoV offset of more than 90 degrees.
+  This is now fixed by returning an INVALID container for a reconstructed offset of larger than 45 degrees. [`#2265 <https://github.com/cta-observatory/ctapipe/pull/2265>`__]
+
+
+Maintenance
+-----------
+
+- Drop support for python 3.8 in accordance with the NEP 29 schedule. [`#2342 <https://github.com/cta-observatory/ctapipe/pull/2342>`__]
+
+- * Switched to ``PyData`` theme for docs
+  * Updated ``Sphinx`` to version 6.2.1
+  * Updated front page of docs [`#2373 <https://github.com/cta-observatory/ctapipe/pull/2373>`__]
+
+
+
+ctapipe 0.19.3 (2023-06-20)
+===========================
+
+This is a bugfix release fixing a number of bugs, mainly one preventing the processing of divergent pointing
+prod6 data due to a bug in ``SoftwareTrigger``, see below for details.
+
+
+Bug Fixes
+---------
+
+- Fix peak time units of FlashCamExtractor (See https://github.com/cta-observatory/ctapipe/issues/2336) [`#2337 <https://github.com/cta-observatory/ctapipe/pull/2337>`__]
+
+- Fix shape of mask returned by ``NullDataVolumeReducer``. [`#2340 <https://github.com/cta-observatory/ctapipe/pull/2340>`__]
+
+- Fix definition of the ``--dl2-subarray`` flag of ``ctapipe-merge``. [`#2341 <https://github.com/cta-observatory/ctapipe/pull/2341>`__]
+
+- Fix ``ctapipe-train-disp-reconstructor --help`` raising an exception. [`#2352 <https://github.com/cta-observatory/ctapipe/pull/2352>`__]
+
+- Correctly fill ``reference_location`` for ``SubarrayDescription.tel_coords``. [`#2354 <https://github.com/cta-observatory/ctapipe/pull/2354>`__]
+
+- Fix ``SoftwareTrigger`` not removing all parts of a removed telescope event
+  from the array event leading to invalid files produced by ``DataWriter``. [`#2357 <https://github.com/cta-observatory/ctapipe/pull/2357>`__]
+
+- Fix that the pixel picker of the matplotlib ``CameraDisplay`` triggers
+  also for clicks on other ``CameraDisplay`` instances in the same figure. [`#2358 <https://github.com/cta-observatory/ctapipe/pull/2358>`__]
+
+
+New Features
+------------
+
+- Add support for Hillas parameters in ``TelescopeFrame`` to
+  ``CameraDisplay.overlay_moments`` and make sure that the
+  label text does not overlap with the ellipse. [`#2347 <https://github.com/cta-observatory/ctapipe/pull/2347>`__]
+
+- Add support for using ``ctapipe.image.toymodel`` features in ``TelescopeFrame``. [`#2349 <https://github.com/cta-observatory/ctapipe/pull/2349>`__]
+
+
+Maintenance
+-----------
+
+- Improve docstring and validation of parameters of ``CameraGeometry``. [`#2361 <https://github.com/cta-observatory/ctapipe/pull/2361>`__]
+
+
+
+ctapipe v0.19.2 (2023-05-17)
+============================
+
+This release contains a critical bugfix for the ``FlashCamExtractor`` that resulted
+in non-sensical peak time values in DL1, see below.
+
+Bug Fixes
+---------
+
+- Fix a bug in the peak_time estimation of ``FlashCamExtractor`` (See issue `#2332 <https://github.com/cta-observatory/ctapipe/issues/2332>`_) [`#2333 <https://github.com/cta-observatory/ctapipe/pull/2333>`__]
+
+
+ctapipe v0.19.1 (2023-05-11)
+============================
+
+This release is a small bugfix release for v0.19.0, that also includes a new feature enabling computing different
+telescope multiplicities in the machine learning feature generation.
+
+Thanks to the release of numba 0.57 and some minor fixes, ctapipe is now also compatible with Python 3.11.
+
+Bug Fixes
+---------
+
+- Fix ``ApplyModels.overwrite``. [`#2311 <https://github.com/cta-observatory/ctapipe/pull/2311>`__]
+
+- Fix for config files not being included as inputs in provenance log. [`#2312 <https://github.com/cta-observatory/ctapipe/pull/2312>`__]
+
+- Fix calculation of the neighbor matrix of ``CameraGeometry`` for empty and single-pixel geometries. [`#2317 <https://github.com/cta-observatory/ctapipe/pull/2317>`__]
+
+- Fix HDF5Writer not working on windows due to using pathlib for hdf5 dataset names. [`#2319 <https://github.com/cta-observatory/ctapipe/pull/2319>`__]
+
+- Fix StereoTrigger assuming the wrong data type for ``tels_with_trigger``, resulting in
+  it not working for actual events read from an EventSource. [`#2320 <https://github.com/cta-observatory/ctapipe/pull/2320>`__]
+
+- Allow disabling the cross validation (by setting ``CrossValidator.n_cross_validations = 0``)
+  for the train tools. [`#2310 <https://github.com/cta-observatory/ctapipe/pull/2310>`__]
+
+
+New Features
+------------
+
+- Add ``SubarrayDescription.mulitplicity`` method that can compute
+  telescope multiplicity for a given telescope boolean mask, either for
+  all telescope or a given telescope type.
+
+  Enable adding additional keyword arguments to ``FeatureGenerator``.
+
+  Pass the ``SubarrayDescription`` to ``FeatureGenerator`` in sklearn classes. [`#2308 <https://github.com/cta-observatory/ctapipe/pull/2308>`__]
+
+
+Maintenance
+-----------
+
+- Add support for python 3.11. [`#2107 <https://github.com/cta-observatory/ctapipe/pull/2107>`__]
+
+
+ctapipe v0.19.0 (2023-03-30)
+============================
+
+API Changes
+-----------
+
+- Renamed ``GeometryReconstructor`` to ``HillasGeometryReconstructor`` [`#2293 <https://github.com/cta-observatory/ctapipe/pull/2293>`__]
+
+
+Bug Fixes
+---------
+
+
+Data Model Changes
+------------------
+
+
+New Features
+------------
+
+- Add signal extraction algorithm for the FlashCam. [`#2188 <https://github.com/cta-observatory/ctapipe/pull/2188>`__]
+
+
+Maintenance
+-----------
+
+- The ``examples/`` subdirectory was removed as most scripts there were out of date. Useful information in those examples was moved to example notebooks in docs/examples [`#2266 <https://github.com/cta-observatory/ctapipe/pull/2266>`__]
+
+- The tools to train ml models now provide better error messages in case
+  the input files did not contain any events for specific telescope types. [`#2295 <https://github.com/cta-observatory/ctapipe/pull/2295>`__]
+
+
+Refactoring and Optimization
+----------------------------
+
+
+ctapipe v0.18.1 (2023-03-16)
+============================
+
+
+Bug Fixes
+---------
+
+- Ensure the correct activity metadata is written into output files. [`#2261 <https://github.com/cta-observatory/ctapipe/pull/2261>`__]
+
+- Fix ``--overwrite`` option not taking effect for ``ctapipe-apply-models``. [`#2287 <https://github.com/cta-observatory/ctapipe/pull/2287>`__]
+
+- Fix ``TableLoader.read_subarray_events`` raising an exception when
+  ``load_observation_info=True``. [`#2288 <https://github.com/cta-observatory/ctapipe/pull/2288>`__]
+
+
+
 ctapipe v0.18.0 (2023-02-09)
 ============================
 

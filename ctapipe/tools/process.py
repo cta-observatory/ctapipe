@@ -282,6 +282,7 @@ class ProcessorTool(Tool):
         """
         Process events
         """
+        self.log.info("applying calibration: %s", self.should_calibrate)
         self.log.info("(re)compute DL1: %s", self.should_compute_dl1)
         self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
         self.log.info(

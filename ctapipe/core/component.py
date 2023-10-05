@@ -1,4 +1,5 @@
 """ Class to handle configuration for algorithms """
+import html
 import warnings
 import weakref
 from abc import ABCMeta
@@ -233,9 +234,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             or "Undocumented"
         )
         lines = [
-            "<div style='border:1px solid black; max-width: 700px; padding:2em'; word-wrap:break-word;>",
+            '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',
             f"<b>{name}</b>",
-            f"<p> {docstring} </p>",
+            docstring,
             "<table>",
             "    <colgroup>",
             "        <col span='1' style=' '>",
@@ -246,21 +247,23 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         ]
         for key, val in self.get_current_config()[name].items():
             htmlval = (
-                str(val).replace("/", "/<wbr>").replace("_", "_<wbr>")
+                html.escape(str(val)).replace("/", "/<wbr>").replace("_", "_<wbr>")
             )  # allow breaking at boundary
 
             # traits of the current component
             if key in traits:
-                thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
+                thehelp = html.escape(
+                    f"{traits[key].help} (default: {traits[key].default_value})"
+                )
                 lines.append(f"<tr><th>{key}</th>")
                 if val != traits[key].default_value:
                     lines.append(
-                        f"<td style='text-align: left;'><span style='color:blue; max-width:30em;'>{htmlval}</span></td>"
+                        f'<td style="text-align: left;"><span style="color:blue; max-width:30em;">{htmlval}</span></td>'
                     )
                 else:
-                    lines.append(f"<td style='text-align: left;'>{htmlval}</td>")
+                    lines.append(f'<td style="text-align: left;">{htmlval}</td>')
                 lines.append(
-                    f"<td style='text-align: left;'><i>{thehelp}</i></td></tr>"
+                    f'<td style="text-align: left;"><i>{thehelp}</i></td></tr>'
                 )
         lines.append("    </tbody>")
         lines.append("</table>")

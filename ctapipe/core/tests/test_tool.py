@@ -426,3 +426,38 @@ def test_exit_stack():
     assert run_tool(tool, raises=False) == 1
     assert tool.manager.enter_called
     assert tool.manager.exit_called
+
+
+def test_activity(tmp_path):
+    """check that the config is correctly in the provenance"""
+
+    class MyTool(Tool):
+        name = "test_prov_log"
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"MyTool": {"userparam": 10.0}}))
+    provenance_path = tmp_path / "provenance.json"
+
+    run_tool(
+        tool,
+        [
+            "--config",
+            str(config_path),
+            f"--provenance-log={provenance_path}",
+        ],
+    )
+
+    activities = json.loads(tool.provenance_log.read_text())
+    # provlog contains all activities from all tests, last one is the tool we just ran
+    provlog = activities[-1]
+    assert provlog["activity_name"] == MyTool.name
+
+    # test config file is in inputs, regression test for #2313
+    inputs = provlog["input"]
+    assert len(inputs) == 1
+    assert inputs[0]["role"] == "Tool Configuration"
+    assert inputs[0]["url"] == str(config_path)

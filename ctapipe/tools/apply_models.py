@@ -111,6 +111,13 @@ class ApplyModels(Tool):
             "Include true images",
             "Exclude true images",
         ),
+        "overwrite": (
+            {
+                "HDF5Merger": {"overwrite": True},
+                "ApplyModels": {"overwrite": True},
+            },
+            "Overwrite output file if it exists",
+        ),
     }
 
     classes = [TableLoader] + classes_with_traits(Reconstructor)

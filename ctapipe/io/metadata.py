@@ -149,6 +149,7 @@ class Activity(HasTraits):
             type_="software",
             id_=activity["activity_uuid"],
             start_time=activity["start"]["time_utc"],
+            stop_time=activity["stop"].get("time_utc", Time.now()),
             software_name="ctapipe",
             software_version=activity["system"]["ctapipe_version"],
         )
@@ -157,6 +158,7 @@ class Activity(HasTraits):
     type_ = Unicode("software")
     id_ = Unicode()
     start_time = AstroTime()
+    stop_time = AstroTime(allow_none=True, default_value=None)
     software_name = Unicode("unknown")
     software_version = Unicode("unknown")
 

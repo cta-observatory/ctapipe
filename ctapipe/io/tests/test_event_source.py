@@ -1,4 +1,6 @@
+import astropy.units as u
 import pytest
+from astropy.coordinates import EarthLocation
 from traitlets import TraitError
 from traitlets.config.loader import Config
 
@@ -51,6 +53,10 @@ class DummyEventSource(EventSource):
     def datalevels(self):
         return (DataLevel.R0,)
 
+    @property
+    def reference_location(self):
+        return EarthLocation(lat=0, lon=0 * u.deg, height=0 * u.deg)
+
 
 def test_can_be_implemented():
     dataset = get_dataset_path(prod5_path)
@@ -102,14 +108,14 @@ def test_from_config(tmp_path):
     assert reader.input_url == dataset
 
 
-def test_from_config_parent():
+def test_parent():
     dataset = get_dataset_path(prod5_path)
 
     class Parent(Component):
         def __init__(self, config=None, parent=None):
             super().__init__(config=config, parent=parent)
 
-            self.source = EventSource.from_config(parent=self)
+            self.source = EventSource(parent=self)
 
     # test with EventSource in root of config
     config = Config({"EventSource": {"input_url": dataset}})
@@ -132,7 +138,7 @@ def test_from_config_default():
     dataset = get_dataset_path(prod5_path)
     EventSource.input_url.default_value = dataset
     config = Config()
-    reader = EventSource(config=config, parent=None)
+    reader = EventSource(config=config)
     assert isinstance(reader, SimTelEventSource)
     assert reader.input_url == dataset
     EventSource.input_url.default_value = old_default
@@ -143,7 +149,7 @@ def test_from_config_invalid_type():
     EventSource.input_url.default_value = dataset
     config = Config({"EventSource": {"input_url": 124}})
     with pytest.raises(TraitError):
-        EventSource(config=config, parent=None)
+        EventSource(config=config)
 
 
 def test_event_source_input_url_config_override():

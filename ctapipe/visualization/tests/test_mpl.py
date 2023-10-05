@@ -90,13 +90,30 @@ def test_camera_display_single(prod5_lst_cam, tmp_path):
     fig.savefig(tmp_path / "result.png")
 
 
-def test_hillas_overlay(prod5_lst_cam, tmp_path):
+def test_hillas_overlay_camera_frame(prod5_lst_cam, tmp_path):
     from ctapipe.visualization import CameraDisplay
 
     fig, ax = plt.subplots()
     disp = CameraDisplay(prod5_lst_cam, ax=ax)
     hillas = CameraHillasParametersContainer(
         x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
+    )
+
+    disp.overlay_moments(hillas, color="w")
+    fig.savefig(tmp_path / "result.png")
+
+
+def test_hillas_overlay(prod5_lst_cam, tmp_path):
+    from ctapipe.visualization import CameraDisplay
+
+    fig, ax = plt.subplots()
+    disp = CameraDisplay(prod5_lst_cam.transform_to(TelescopeFrame()), ax=ax)
+    hillas = HillasParametersContainer(
+        fov_lon=0.1 * u.deg,
+        fov_lat=-0.1 * u.deg,
+        length=0.5 * u.deg,
+        width=0.2 * u.deg,
+        psi=120 * u.deg,
     )
 
     disp.overlay_moments(hillas, color="w")
@@ -137,7 +154,7 @@ def test_camera_display_multiple(prod5_lst_cam, tmp_path):
     fig.savefig(tmp_path / "result.png")
 
 
-def test_array_display(prod5_mst_nectarcam):
+def test_array_display(prod5_mst_nectarcam, reference_location):
     """check that we can do basic array display functionality"""
     from ctapipe.containers import (
         ArrayEventContainer,
@@ -157,7 +174,10 @@ def test_array_display(prod5_mst_nectarcam):
         tel_pos[ii + 1] = pos
 
     sub = SubarrayDescription(
-        name="TestSubarray", tel_positions=tel_pos, tel_descriptions=tels
+        name="TestSubarray",
+        tel_positions=tel_pos,
+        tel_descriptions=tels,
+        reference_location=reference_location,
     )
 
     # Create a fake event containing telescope-wise information about

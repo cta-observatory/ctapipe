@@ -1,7 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Calibration
+Module for calibration code
 """
 from .camera import CameraCalibrator, GainSelector
 
-__all__ = ["CameraCalibrator", "GainSelector"]
+__all__ = [
+    "CameraCalibrator",
+    "GainSelector",
+]

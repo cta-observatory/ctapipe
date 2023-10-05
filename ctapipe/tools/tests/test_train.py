@@ -1,6 +1,7 @@
 import pytest
 
 from ctapipe.core import run_tool
+from ctapipe.exceptions import TooFewEvents
 from ctapipe.utils.datasets import resource_file
 
 
@@ -29,7 +30,7 @@ def test_too_few_events(tmp_path, dl2_shower_geometry_file):
     config = resource_file("train_energy_regressor.yaml")
     out_file = tmp_path / "energy.pkl"
 
-    with pytest.raises(ValueError, match="Too few events"):
+    with pytest.raises(TooFewEvents, match="No events after quality query"):
         run_tool(
             tool,
             argv=[
@@ -121,3 +122,25 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     )
     assert ret == 0
     assert disp_cv_out_file.exists()
+
+
+def test_no_cross_validation(tmp_path):
+    from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
+
+    out_file = tmp_path / "energy.pkl"
+
+    tool = TrainEnergyRegressor()
+    config = resource_file("train_energy_regressor.yaml")
+    ret = run_tool(
+        tool,
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output={out_file}",
+            f"--config={config}",
+            "--CrossValidator.n_cross_validations=0",
+            "--log-level=INFO",
+            "--overwrite",
+        ],
+    )
+    assert ret == 0
+    return out_file

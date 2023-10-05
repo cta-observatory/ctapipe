@@ -9,6 +9,7 @@ import astropy.units as u
 import numpy as np
 from astropy.table import QTable
 
+from ..compat import StrEnum
 from ..utils import get_table_dataset
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class FocalLengthKind(Enum):
 
 
 @unique
-class SizeType(str, Enum):
+class SizeType(StrEnum):
     """
     Enumeration of different telescope sizes (LST, MST, SST)
     """

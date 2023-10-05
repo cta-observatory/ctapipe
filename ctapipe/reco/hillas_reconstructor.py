@@ -20,7 +20,7 @@ from ..coordinates import (
     project_to_ground,
 )
 from .reconstructor import (
-    GeometryReconstructor,
+    HillasGeometryReconstructor,
     InvalidWidthException,
     TooFewTelescopesException,
 )
@@ -94,7 +94,7 @@ def line_line_intersection_3d(uvw_vectors, origins):
     return np.linalg.inv(S) @ C
 
 
-class HillasReconstructor(GeometryReconstructor):
+class HillasReconstructor(HillasGeometryReconstructor):
     """
     class that reconstructs the direction of an atmospheric shower
     using a simple hillas parametrisation of the camera images it

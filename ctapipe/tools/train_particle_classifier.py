@@ -6,6 +6,7 @@ from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
+from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -102,36 +103,38 @@ class TrainParticleClassifier(Tool):
         Initialize components from config
         """
 
-        self.signal_loader = TableLoader(
-            parent=self,
-            input_url=self.input_url_signal,
-            load_dl1_images=False,
-            load_dl1_parameters=True,
-            load_dl2=True,
-            load_simulated=True,
-            load_instrument=True,
+        self.signal_loader = self.enter_context(
+            TableLoader(
+                parent=self,
+                input_url=self.input_url_signal,
+                load_dl1_images=False,
+                load_dl1_parameters=True,
+                load_dl2=True,
+                load_simulated=True,
+                load_instrument=True,
+            )
         )
 
-        self.background_loader = TableLoader(
-            parent=self,
-            input_url=self.input_url_background,
-            load_dl1_images=False,
-            load_dl1_parameters=True,
-            load_dl2=True,
-            load_simulated=True,
-            load_instrument=True,
+        self.background_loader = self.enter_context(
+            TableLoader(
+                parent=self,
+                input_url=self.input_url_background,
+                load_dl1_images=False,
+                load_dl1_parameters=True,
+                load_dl2=True,
+                load_simulated=True,
+                load_instrument=True,
+            )
         )
 
         if self.signal_loader.subarray != self.background_loader.subarray:
             raise ValueError("Signal and background subarrays do not match")
 
-        self.n_signal.attach_subarray(self.signal_loader.subarray)
-        self.n_background.attach_subarray(self.signal_loader.subarray)
+        self.subarray = self.signal_loader.subarray
+        self.n_signal.attach_subarray(self.subarray)
+        self.n_background.attach_subarray(self.subarray)
 
-        self.classifier = ParticleClassifier(
-            subarray=self.signal_loader.subarray,
-            parent=self,
-        )
+        self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
@@ -160,13 +163,21 @@ class TrainParticleClassifier(Tool):
 
     def _read_table(self, telescope_type, loader, n_events=None):
         table = loader.read_telescope_events([telescope_type])
-
         self.log.info("Events read from input: %d", len(table))
+        if len(table) == 0:
+            raise TooFewEvents(
+                f"Input file does not contain any events for telescope type {telescope_type}"
+            )
+
         mask = self.classifier.quality_query.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
+        if len(table) == 0:
+            raise TooFewEvents(
+                f"No events after quality query for telescope type {telescope_type}"
+            )
 
-        table = self.classifier.feature_generator(table)
+        table = self.classifier.feature_generator(table, subarray=self.subarray)
 
         # Add true energy for energy-dependent performance plots
         columns = self.classifier.features + [self.classifier.target, "true_energy"]

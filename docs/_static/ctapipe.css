@@ -1,0 +1,67 @@
+/* override table width restrictions */
+@media screen and (min-width: 767px) {
+
+   .wy-table-responsive table td {
+      /* !important prevents the common CSS stylesheets from overriding
+         this as on RTD they are loaded after this stylesheet */
+      white-space: normal !important;
+   }
+
+   .wy-table-responsive {
+      overflow: visible !important;
+   }
+}
+
+.version-switcher__container a[data-version-name*="stable"] {
+  background-color: #E9F6EC;
+  color: #28A745;
+}
+
+.version-switcher__container a[data-version-name*="dev"] {
+  background-color: #FDF4EB;
+  color: #EE9040;
+}
+
+html[data-theme="dark"] .version-switcher__container a[data-version-name*="stable"] {
+  background-color: #222924;
+  color: #28A745;
+}
+
+html[data-theme="dark"] .version-switcher__container a[data-version-name*="dev"] {
+  background-color: #332A21;
+  color: #EE9040;
+}
+
+
+/* sphinx-design */
+.sd-card {
+  border-radius: 5px;
+  padding: 30px 10px 20px 10px;
+  margin: 10px 0px;
+}
+
+.sd-card .sd-card-header .sd-card-text {
+  margin: 0px;
+}
+
+.sd-card .sd-card-header {
+  border: none;
+  text-align: center;
+  font-size: var(--pst-font-size-h4);
+  font-weight: bold;
+  padding: 0.5rem 0rem 0.5rem 0rem;
+}
+
+.sd-card .sd-card-footer {
+  border: none;
+}
+
+.sd-card .sd-card-footer .sd-card-text {
+  max-width: 220px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+html[data-theme="dark"] .sd-shadow-sm {
+  --sd-color-shadow: #6e6e6e;
+}

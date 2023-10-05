@@ -15,7 +15,7 @@ from ctapipe.containers import ArrayEventContainer
 from ctapipe.instrument import SubarrayDescription
 
 
-def test_pedestal_integrator(prod5_sst):
+def test_pedestal_integrator(prod5_sst, reference_location):
     """test of PedestalIntegrator"""
 
     tel_id = 0
@@ -28,6 +28,7 @@ def test_pedestal_integrator(prod5_sst):
         "test array",
         tel_positions={0: np.zeros(3) * u.m},
         tel_descriptions={0: deepcopy(prod5_sst)},
+        reference_location=reference_location,
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
     subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)

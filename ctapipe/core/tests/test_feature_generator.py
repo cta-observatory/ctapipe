@@ -67,3 +67,37 @@ def test_to_unit():
     table = generator(table)
     assert table["length_meter"] == 1000
     assert table["log_length_meter"] == 3
+
+
+def test_multiplicity(subarray_prod5_paranal):
+    """Test if generating features works."""
+
+    expressions = [
+        ("n_telescopes", "subarray.multiplicity(tels_with_trigger)"),
+        ("n_lsts", "subarray.multiplicity(tels_with_trigger, 'LST_LST_LSTCam')"),
+        ("n_msts", "subarray.multiplicity(tels_with_trigger, 'MST_MST_FlashCam')"),
+        ("n_ssts", "subarray.multiplicity(tels_with_trigger, 'SST_ASTRI_CHEC')"),
+    ]
+
+    subarray = subarray_prod5_paranal.select_subarray([1, 2, 20, 21, 80, 81])
+
+    masks = np.array(
+        [
+            [True, False, True, True, False, False],
+            [True, True, False, True, False, True],
+        ]
+    )
+
+    table = Table(
+        {
+            "tels_with_trigger": masks,
+        }
+    )
+
+    generator = FeatureGenerator(features=expressions)
+    table = generator(table, subarray=subarray)
+
+    np.testing.assert_equal(table["n_telescopes"], [3, 4])
+    np.testing.assert_equal(table["n_lsts"], [1, 2])
+    np.testing.assert_equal(table["n_msts"], [2, 1])
+    np.testing.assert_equal(table["n_ssts"], [0, 1])

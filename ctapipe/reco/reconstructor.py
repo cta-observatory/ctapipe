@@ -1,6 +1,5 @@
 import weakref
 from abc import abstractmethod
-from enum import Enum
 
 import astropy.units as u
 import joblib
@@ -11,18 +10,19 @@ from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterCont
 from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
 from ctapipe.core.traits import List
 
+from ..compat import StrEnum
 from ..coordinates import shower_impact_distance
 
 __all__ = [
     "Reconstructor",
-    "GeometryReconstructor",
+    "HillasGeometryReconstructor",
     "TooFewTelescopesException",
     "InvalidWidthException",
     "ReconstructionProperty",
 ]
 
 
-class ReconstructionProperty(str, Enum):
+class ReconstructionProperty(StrEnum):
     """
     Primary particle properties estimated by a `Reconstructor`
 
@@ -142,9 +142,9 @@ class Reconstructor(TelescopeComponent):
         return instance
 
 
-class GeometryReconstructor(Reconstructor):
+class HillasGeometryReconstructor(Reconstructor):
     """
-    Base class for algorithms predicting only the shower geometry
+    Base class for algorithms predicting only the shower geometry using Hillas Based methods
     """
 
     def _create_hillas_dict(self, event):

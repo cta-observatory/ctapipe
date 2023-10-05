@@ -4,7 +4,6 @@ Provenance-related functionality
 TODO: have this register whenever ctapipe is loaded
 
 """
-
 import json
 import logging
 import os
@@ -14,20 +13,15 @@ import uuid
 from collections import UserList
 from contextlib import contextmanager
 from importlib import import_module
+from importlib.metadata import distributions, version
 from os.path import abspath
 from pathlib import Path
 
 import psutil
 from astropy.time import Time
 
-import ctapipe
-
+from ..version import __version__
 from .support import Singleton
-
-if sys.version_info < (3, 9):
-    from importlib_metadata import distributions, version
-else:
-    from importlib.metadata import distributions, version
 
 log = logging.getLogger(__name__)
 
@@ -86,6 +80,16 @@ class Provenance(metaclass=Singleton):
         self._activities.append(activity)
         log.debug(f"started activity: {activity_name}")
 
+    def _get_current_or_start_activity(self):
+        if self.current_activity is None:
+            log.info(
+                "No activity has been explicitly started, starting new default activity."
+                " Consider calling Provenance().start_activity(<name>) explicitly."
+            )
+            self.start_activity()
+
+        return self.current_activity
+
     def add_input_file(self, filename, role=None):
         """register an input to the current activity
 
@@ -96,11 +100,12 @@ class Provenance(metaclass=Singleton):
         role: str
             role this input file satisfies (optional)
         """
-        self.current_activity.register_input(abspath(filename), role=role)
+        activity = self._get_current_or_start_activity()
+        activity.register_input(abspath(filename), role=role)
         log.debug(
-            "added input entity '{}' to activity: '{}'".format(
-                filename, self.current_activity.name
-            )
+            "added input entity '%s' to activity: '%s'",
+            filename,
+            activity.name,
         )
 
     def add_output_file(self, filename, role=None):
@@ -115,11 +120,12 @@ class Provenance(metaclass=Singleton):
             role this output file satisfies (optional)
 
         """
-        self.current_activity.register_output(abspath(filename), role=role)
+        activity = self._get_current_or_start_activity()
+        activity.register_output(abspath(filename), role=role)
         log.debug(
-            "added output entity '{}' to activity: '{}'".format(
-                filename, self.current_activity.name
-            )
+            "added output entity '%s' to activity: '%s'",
+            filename,
+            activity.name,
         )
 
     def add_config(self, config):
@@ -131,7 +137,13 @@ class Provenance(metaclass=Singleton):
         config: dict
             configuration parameters
         """
-        self.current_activity.register_config(config)
+        activity = self._get_current_or_start_activity()
+        activity.register_config(config)
+        log.debug(
+            "added config entity '%s' to activity: '%s'",
+            config,
+            activity.name,
+        )
 
     def finish_activity(self, status="completed", activity_name=None):
         """end the current activity"""
@@ -156,9 +168,8 @@ class Provenance(metaclass=Singleton):
     @property
     def current_activity(self):
         if len(self._activities) == 0:
-            log.debug("No activity has been started... starting a default one")
-            self.start_activity()
-        return self._activities[-1]  # current activity as at the top of stack
+            return None
+        return self._activities[-1]  # current activity is at the top of stack
 
     @property
     def finished_activities(self):
@@ -301,7 +312,7 @@ def _get_system_provenance():
     bits, linkage = platform.architecture()
 
     return dict(
-        ctapipe_version=ctapipe.__version__,
+        ctapipe_version=__version__,
         ctapipe_resources_version=get_module_version("ctapipe_resources"),
         eventio_version=get_module_version("eventio"),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
