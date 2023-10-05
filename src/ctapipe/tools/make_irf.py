@@ -176,7 +176,8 @@ class IrfTool(Tool):
             energy_max=sim["energy_range_max"].quantity[0],
             max_impact=sim["max_scatter_range"].quantity[0],
             spectral_index=sim["spectral_index"][0],
-            viewcone=sim["max_viewcone_radius"].quantity[0],
+            viewcone_max=sim["max_viewcone_radius"].quantity[0],
+            viewcone_min=sim["min_viewcone_radius"].quantity[0],
         )
 
         return (
