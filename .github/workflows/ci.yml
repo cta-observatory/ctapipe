@@ -28,7 +28,6 @@ jobs:
         with:
           extra_args: --files $(git diff origin/main --name-only)
   tests:
-    if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
     runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
@@ -79,6 +78,7 @@ jobs:
         if: matrix.install-method == 'mamba'
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
+        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
@@ -104,10 +104,12 @@ jobs:
         # Login shells on macOS prepend system paths, so we need to
         # prepend the python path from actions/setup-python.
         # Micromamba sets up ~/.bash_profile, where we need to set the path now.
+        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
       - name: Install dependencies
+        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           python --version
           pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
@@ -120,10 +122,12 @@ jobs:
           restructuredtext-lint README.rst
 
       - name: ctapipe-info
+        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           ctapipe-info --all
 
       - name: Tests
+        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           cd $(mktemp -d)
           pytest -n auto --dist loadscope \
