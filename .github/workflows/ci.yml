@@ -62,33 +62,31 @@ jobs:
           key: ctapipe-test-data
 
       - name: Prepare mamba installation
-        if: matrix.install-method == 'mamba'
+        if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation') == false
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
-        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           # setup correct python version
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
       - name: mamba setup
-        if: matrix.install-method == 'mamba'
+        if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation') == false
         uses: mamba-org/provision-with-micromamba@v14
 
       - name: Python setup
-        if: matrix.install-method == 'pip'
+        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation') == false
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
 
-      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }}
+      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }} && contains(github.event.pull_request.labels.*.name, 'documentation') == false
         name: Fix Python PATH on macOS
         # See https://github.com/actions/setup-python/issues/132 and
         # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
         # Login shells on macOS prepend system paths, so we need to
         # prepend the python path from actions/setup-python.
         # Micromamba sets up ~/.bash_profile, where we need to set the path now.
-        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
