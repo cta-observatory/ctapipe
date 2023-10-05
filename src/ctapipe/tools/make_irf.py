@@ -329,8 +329,8 @@ class IrfTool(Tool):
             fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
         ]
 
-        self.log.debug("True Energy bins", self.true_energy_bins)
-        self.log.debug("FoV offset bins", self.fov_offset_bins)
+        self.log.debug(f"True Energy bins: {str(self.true_energy_bins.value)}")
+        self.log.debug(f"FoV offset bins: {str(self.fov_offset_bins.value)}")
         for label, mask in masks.items():
             effective_area = effective_area_per_energy_and_fov(
                 self.signal_events[mask],
