@@ -90,7 +90,7 @@ jobs:
           cache-downloads: true
 
       - name: Python setup
-        if: matrix.install-method == 'pip' 
+        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation') == false 
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -107,6 +107,7 @@ jobs:
           tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
       - name: Install dependencies
+        if: contains(github.event.pull_request.labels.*.name, 'documentation') == false
         run: |
           python --version
           pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
