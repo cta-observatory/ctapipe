@@ -12,6 +12,7 @@ from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ctapipe.instrument.optics import FocalLengthKind
+from ctapipe.io.pointing import PointingInterpolator
 
 from ..core import Component, Provenance, traits
 from ..instrument import SubarrayDescription
@@ -31,6 +32,7 @@ SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
 FIXED_POINTING_GROUP = "configuration/telescope/pointing"
+POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -204,7 +206,7 @@ class TableLoader(Component):
 
     pointing = traits.Bool(
         True,
-        help="Load pointing information and join to events",
+        help="Load pointing information and interpolate / join to events",
     ).tag(config=True)
 
     focal_length_choice = traits.UseEnum(
@@ -247,6 +249,11 @@ class TableLoader(Component):
         )
 
         Provenance().add_input_file(self.input_url, role="Event data")
+
+        self._pointing_interpolator = PointingInterpolator(
+            h5file=self.h5file,
+            parent=self,
+        )
 
     def close(self):
         """Close the underlying hdf5 file"""
@@ -595,15 +602,21 @@ class TableLoader(Component):
             )
             table = _join_telescope_events(table, impacts)
 
-        if len(table) > 0 and pointing and FIXED_POINTING_GROUP in self.h5file.root:
-            pointing = read_table(
-                self.h5file, f"{FIXED_POINTING_GROUP}/tel_{tel_id:03d}"
-            )
-            # we know that we only have the tel_id we are looking for, remove optimize joining
-            del pointing["tel_id"]
-            table = join_allow_empty(
-                table, pointing, ["obs_id"], "left", keep_order=True
-            )
+        if len(table) > 0 and pointing:
+            if FIXED_POINTING_GROUP in self.h5file.root:
+                pointing_table = read_table(
+                    self.h5file, f"{FIXED_POINTING_GROUP}/tel_{tel_id:03d}"
+                )
+                # we know that we only have the tel_id we are looking for, remove optimize joining
+                del pointing_table["tel_id"]
+                table = join_allow_empty(
+                    table, pointing_table, ["obs_id"], "left", keep_order=True
+                )
+
+            elif POINTING_GROUP in self.h5file.root:
+                alt, az = self._pointing_interpolator(tel_id, table["time"])
+                table["telescope_pointing_altitude"] = alt
+                table["telescope_pointing_azimuth"] = az
 
         return table
 
