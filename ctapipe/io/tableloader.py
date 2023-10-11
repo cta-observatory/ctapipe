@@ -13,6 +13,7 @@ from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ctapipe.instrument.optics import FocalLengthKind
+from ctapipe.io.pointing import PointingInterpolator
 
 from ..core import Component, Provenance, traits
 from ..instrument import SubarrayDescription
@@ -177,9 +178,11 @@ class TableLoader(Component):
     ).tag(config=True)
 
     load_dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
+
     load_dl1_parameters = traits.Bool(
         True, help="load reconstructed image parameters"
     ).tag(config=True)
+
     load_dl1_muons = traits.Bool(False, help="load muon ring parameters").tag(
         config=True
     )
@@ -204,6 +207,11 @@ class TableLoader(Component):
 
     load_observation_info = traits.Bool(
         False, help="join observation information to each event"
+    ).tag(config=True)
+
+    interpolate_pointing = traits.Bool(
+        False,
+        help="If True, load monitoring pointing information and interpolate for each telescope event",
     ).tag(config=True)
 
     focal_length_choice = traits.UseEnum(
@@ -250,6 +258,11 @@ class TableLoader(Component):
         self.instrument_table = None
         if self.load_instrument:
             self.instrument_table = self.subarray.to_table("joined")
+
+        self._pointing_interpolator = PointingInterpolator(
+            h5file=self.h5file,
+            parent=self,
+        )
 
         groups = {
             "load_dl1_parameters": PARAMETERS_GROUP,
