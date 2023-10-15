@@ -777,13 +777,20 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
-        # FIXME: Assume constant and parallel pointing for each run
-        self.log.warning("Assuming constant and parallel pointing for each run")
+        # prefer to use pointing interpolated to event
+        if "telescope_pointing_altitude" in table.colnames:
+            pointing_alt = table["telescope_pointing_altitude"]
+            pointing_az = table["telescope_pointing_azimuth"]
+        else:
+            # fallback to fixed pointing of ob
+            pointing_alt = table["subarray_pointing_lat"]
+            pointing_az = table["subarray_pointing_lon"]
+
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,
-            pointing_alt=table["subarray_pointing_lat"],
-            pointing_az=table["subarray_pointing_lon"],
+            pointing_alt=pointing_alt,
+            pointing_az=pointing_az,
         )
 
         altaz_result = Table(

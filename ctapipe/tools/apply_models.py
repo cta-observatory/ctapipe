@@ -143,6 +143,7 @@ class ApplyModels(Tool):
                 load_dl1_images=False,
                 load_simulated=False,
                 load_observation_info=True,
+                interpolate_pointing=True,
             )
         )
 
