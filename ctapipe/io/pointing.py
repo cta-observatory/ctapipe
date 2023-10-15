@@ -72,6 +72,9 @@ class PointingInterpolator(Component):
 
 
         """
+        if tel_id not in self._az_interpolators:
+            self._read_pointing_table(tel_id)
+
         mjd = time.tai.mjd
         az = u.Quantity(self._az_interpolators[tel_id](mjd), u.rad, copy=False)
         alt = u.Quantity(self._alt_interpolators[tel_id](mjd), u.rad, copy=False)

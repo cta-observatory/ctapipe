@@ -32,6 +32,7 @@ TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
+POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -541,6 +542,11 @@ class TableLoader(Component):
                 stop=tel_stop,
             )
             table = _join_telescope_events(table, impacts)
+
+        if self.interpolate_pointing and POINTING_GROUP in self.h5file.root:
+            alt, az = self._pointing_interpolator(tel_id, table["time"])
+            table["telescope_pointing_altitude"] = alt
+            table["telescope_pointing_azimuth"] = az
 
         return table
 

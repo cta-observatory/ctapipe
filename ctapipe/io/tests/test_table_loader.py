@@ -1,3 +1,5 @@
+import shutil
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -436,3 +438,37 @@ def test_order_merged():
         for tel, table in tables.items():
             mask = np.isin(tel_trigger["tel_id"], loader.subarray.get_tel_ids(tel))
             check_equal_array_event_order(table, tel_trigger[mask])
+
+
+def test_interpolate_pointing(dl1_file, tmp_path):
+    from ctapipe.io import TableLoader, write_table
+
+    path = tmp_path / dl1_file.name
+    shutil.copy(dl1_file, path)
+
+    with TableLoader(dl1_file) as loader:
+        events = loader.read_telescope_events()
+        subarray = loader.subarray
+
+    # create some dummy monitoring data
+    time = events["time"]
+    start, stop = time[[0, -1]]
+    duration = (stop - start).to_value(u.s)
+
+    # start a bit before, go a bit longer
+    dt = np.arange(-1, duration + 2, 1) * u.s
+    time_mon = start + dt
+
+    alt = (69 + 2 * dt / dt[-1]) * u.deg
+    az = (180 + 5 * dt / dt[-1]) * u.deg
+
+    table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
+
+    for tel_id in subarray.tel:
+        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+
+    with TableLoader(path, interpolate_pointing=True) as loader:
+        events = loader.read_telescope_events([4])
+        assert len(events) > 0
+        assert "telescope_pointing_azimuth" in events.colnames
+        assert "telescope_pointing_altitude" in events.colnames
