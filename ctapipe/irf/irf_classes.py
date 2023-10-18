@@ -368,21 +368,6 @@ class DataBinning(Component):
         default_value=2,
     ).tag(config=True)
 
-    bkg_fov_offset_min = Float(
-        help="Minimum value for FoV offset bins for Background IRF",
-        default_value=0,
-    ).tag(config=True)
-
-    bkg_fov_offset_max = Float(
-        help="Maximum value for FoV offset bins for Background IRF",
-        default_value=10,
-    ).tag(config=True)
-
-    bkg_fov_offset_n_edges = Integer(
-        help="Number of edges for FoV offset bins for Background IRF",
-        default_value=21,
-    ).tag(config=True)
-
     source_offset_min = Float(
         help="Minimum value for Source offset for PSF IRF",
         default_value=0,
@@ -411,21 +396,6 @@ class DataBinning(Component):
             * u.deg
         )
         return fov_offset
-
-    def bkg_fov_offset_bins(self):
-        """
-        Creates bins for FoV offset for Background IRF,
-        Using the same binning as in pyirf example.
-        """
-        background_offset = (
-            np.linspace(
-                self.bkg_fov_offset_min,
-                self.bkg_fov_offset_max,
-                self.bkg_fov_offset_n_edges,
-            )
-            * u.deg
-        )
-        return background_offset
 
     def source_offset_bins(self):
         """

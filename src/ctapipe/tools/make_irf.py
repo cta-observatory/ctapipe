@@ -263,7 +263,6 @@ class IrfTool(Tool):
 
         self.source_offset_bins = self.bins.source_offset_bins()
         self.fov_offset_bins = self.bins.fov_offset_bins()
-        self.bkg_fov_offset_bins = self.bins.bkg_fov_offset_bins()
 
     def start(self):
         self.load_preselected_events()
@@ -382,14 +381,14 @@ class IrfTool(Tool):
         background_rate = background_2d(
             self.background_events[self.background_events["selected_gh"]],
             self.reco_energy_bins,
-            fov_offset_bins=self.bkg_fov_offset_bins,
+            fov_offset_bins=self.fov_offset_bins,
             t_obs=self.obs_time * u.Unit(self.obs_time_unit),
         )
         hdus.append(
             create_background_2d_hdu(
                 background_rate,
                 self.reco_energy_bins,
-                fov_offset_bins=self.bkg_fov_offset_bins,
+                fov_offset_bins=self.fov_offset_bins,
             )
         )
 
