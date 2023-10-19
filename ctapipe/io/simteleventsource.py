@@ -49,7 +49,7 @@ from ..containers import (
 from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
-from ..core.traits import Bool, ComponentName, Float, Undefined, UseEnum
+from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -483,6 +483,12 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
+    override_obs_id = Integer(
+        default_value=None,
+        allow_none=True,
+        help="Use the given obs_id instead of the run number from sim_telarray",
+    ).tag(config=True)
+
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
@@ -701,11 +707,10 @@ class SimTelEventSource(EventSource):
             SimulationConfigContainer), but with the lat/lon set to (0,0), i.e.
             on "Null Island"
         """
-        obs_id = self.file_.header["run"]
         return EarthLocation(
             lon=0 * u.deg,
             lat=0 * u.deg,
-            height=self._simulation_config[obs_id].prod_site_alt,
+            height=self._simulation_config[self.obs_id].prod_site_alt,
         )
 
     @staticmethod
@@ -743,7 +748,7 @@ class SimTelEventSource(EventSource):
                 pseudo_event_id -= 1
                 event_id = pseudo_event_id
 
-            obs_id = self.file_.header["run"]
+            obs_id = self.obs_id
 
             trigger = self._fill_trigger_info(array_event)
             if trigger.event_type == EventType.SUBARRAY:
@@ -1007,12 +1012,14 @@ class SimTelEventSource(EventSource):
         point in time, this dictionary will always have
         length 1.
         """
-        assert len(self.obs_ids) == 1
-        obs_id = self.obs_ids[0]
+        obs_id = self.obs_id
         # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
         simulation_config = SimulationConfigContainer(
+            run_number=self.file_.header["run"],
+            detector_prog_start=mc_run_head["detector_prog_start"],
+            detector_prog_id=mc_run_head["detector_prog_id"],
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
@@ -1024,8 +1031,6 @@ class SimTelEventSource(EventSource):
             spectral_index=mc_run_head["spectral_index"],
             shower_prog_start=mc_run_head["shower_prog_start"],
             shower_prog_id=mc_run_head["shower_prog_id"],
-            detector_prog_start=mc_run_head["detector_prog_start"],
-            detector_prog_id=mc_run_head["detector_prog_id"],
             n_showers=mc_run_head["n_showers"],
             shower_reuse=mc_run_head["n_use"],
             max_alt=_clip_altitude_if_close(mc_run_head["alt_range"][1]) * u.rad,
@@ -1056,11 +1061,20 @@ class SimTelEventSource(EventSource):
         """
 
         az, alt = self.file_.header["direction"]
-        obs_id = self.file_.header["run"]
+
+        # this event source always contains only a single OB, so we can
+        # also assign a single obs_id
+        if self.override_obs_id is not None:
+            self.obs_id = self.override_obs_id
+        else:
+            self.obs_id = self.file_.header["run"]
+
+        # simulations at the moment do not have SBs, use OB id
+        self.sb_id = self.obs_id
 
         sb_dict = {
-            obs_id: SchedulingBlockContainer(
-                sb_id=np.uint64(obs_id),  # simulations have no SBs, use OB id
+            self.sb_id: SchedulingBlockContainer(
+                sb_id=np.uint64(self.sb_id),
                 sb_type=SchedulingBlockType.OBSERVATION,
                 producer_id="simulation",
                 observing_mode=ObservingMode.UNKNOWN,
@@ -1069,9 +1083,9 @@ class SimTelEventSource(EventSource):
         }
 
         ob_dict = {
-            obs_id: ObservationBlockContainer(
-                obs_id=np.uint64(obs_id),
-                sb_id=np.uint64(obs_id),  # see comment above
+            self.obs_id: ObservationBlockContainer(
+                obs_id=np.uint64(self.obs_id),
+                sb_id=np.uint64(self.sb_id),
                 producer_id="simulation",
                 state=ObservationBlockState.COMPLETED_SUCCEDED,
                 subarray_pointing_lat=alt * u.rad,
