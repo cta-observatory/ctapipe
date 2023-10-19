@@ -131,6 +131,8 @@ nitpick_ignore = [
     ("py:class", "traitlets.config.application.Application"),
     ("py:class", "traitlets.utils.sentinel.Sentinel"),
     ("py:class", "traitlets.traitlets.ObserveHandler"),
+    ("py:class", "StrDict"),
+    ("py:class", "ClassesType"),
     ("py:obj", "traitlets.traitlets.G"),
     ("py:obj", "traitlets.traitlets.S"),
     ("py:class", "traitlets.traitlets.T"),
