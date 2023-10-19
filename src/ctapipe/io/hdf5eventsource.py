@@ -52,7 +52,8 @@ from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
-from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP
+from .pointing import PointingInterpolator
+from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
 __all__ = ["HDF5EventSource"]
 
@@ -581,6 +582,13 @@ class HDF5EventSource(EventSource):
             ignore_columns={"trigger_pixels"},
         )
 
+        pointing_interpolator = None
+        if POINTING_GROUP in self.file_.root:
+            pointing_interpolator = PointingInterpolator(
+                h5file=self.file_,
+                parent=self,
+            )
+
         counter = 0
         for trigger, index in events:
             data = ArrayEventContainer(
@@ -630,7 +638,7 @@ class HDF5EventSource(EventSource):
                 continue
 
             self._fill_array_pointing(data)
-            self._fill_telescope_pointing(data)
+            self._fill_telescope_pointing(data, pointing_interpolator)
 
             for tel_id in data.trigger.tel.keys():
                 key = f"tel_{tel_id:03d}"
@@ -715,10 +723,19 @@ class HDF5EventSource(EventSource):
         else:
             raise ValueError(f"Unsupported pointing frame: {frame}")
 
-    def _fill_telescope_pointing(self, event):
+    def _fill_telescope_pointing(self, event, tel_pointing_interpolator=None):
         """
         Fill the telescope pointing information of a given event
         """
+        if tel_pointing_interpolator is not None:
+            for tel_id, trigger in event.trigger.tel.items():
+                alt, az = tel_pointing_interpolator(tel_id, trigger.time)
+                event.pointing.tel[tel_id] = TelescopePointingContainer(
+                    altitude=alt,
+                    azimuth=az,
+                )
+            return
+
         for tel_id in event.trigger.tels_with_trigger:
             tel_pointing = self._constant_telescope_pointing.get(tel_id)
             if tel_pointing is None:

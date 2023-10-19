@@ -11,12 +11,10 @@ import tables
 from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
-from ctapipe.instrument.optics import FocalLengthKind
-from ctapipe.io.pointing import PointingInterpolator
-
 from ..core import Component, Provenance, traits
-from ..instrument import SubarrayDescription
+from ..instrument import FocalLengthKind, SubarrayDescription
 from .astropy_helpers import join_allow_empty, read_table
+from .pointing import PointingInterpolator
 
 __all__ = ["TableLoader"]
 
