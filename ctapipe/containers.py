@@ -772,6 +772,7 @@ class SimulationConfigContainer(Container):
     Configuration parameters of the simulation
     """
 
+    run_number = Field(np.int32(-1), description="Original sim_telarray run number")
     corsika_version = Field(nan, description="CORSIKA version * 1000")
     simtel_version = Field(nan, description="sim_telarray version * 1000")
     energy_range_min = Field(
