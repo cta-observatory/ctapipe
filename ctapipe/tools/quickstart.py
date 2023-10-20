@@ -60,6 +60,8 @@ ctapipe-process --help-all
 
 Included here are also base configurations for training machine learning (ML)
 models for energy regression, gamma/hadron separation and disp origin reconstruction.
+NOTE: As these files are used for unit tests, they are optimized for very fast training
+and will not result in well performing models.
 
 - `train_energy_regressor.yaml`: configuration of energy regression model
 - `train_particle_classifier.yaml`: configuration of particle classification model
