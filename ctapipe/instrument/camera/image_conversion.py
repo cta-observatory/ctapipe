@@ -1,6 +1,5 @@
-import numpy as np
 import astropy.units as u
-
+import numpy as np
 
 __all__ = [
     "unskew_hex_pixel_grid",
@@ -294,8 +293,8 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     # with the maximal extension of the axes and the size of the pixels,
     # determine the number of bins in each direction
-    n_bins_x = int(np.round_(np.abs(np.max(pix_x) - np.min(pix_x)) / d_x) + 2)
-    n_bins_y = int(np.round_(np.abs(np.max(pix_y) - np.min(pix_y)) / d_y) + 2)
+    n_bins_x = int(np.round(np.abs(np.max(pix_x) - np.min(pix_x)) / d_x) + 2)
+    n_bins_y = int(np.round(np.abs(np.max(pix_y) - np.min(pix_y)) / d_y) + 2)
     x_edges = np.linspace(pix_x.min(), pix_x.max(), n_bins_x)
     y_edges = np.linspace(pix_y.min(), pix_y.max(), n_bins_y)
 
