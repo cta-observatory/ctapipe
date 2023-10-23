@@ -501,7 +501,7 @@ class HillasIntersection(HillasGeometryReconstructor):
             np.array(ty),
         )
         weight = np.array(amp)
-        mean_distance = np.sum(height * weight) / np.sum(weight)
+        mean_distance = np.average(height, weights=weight)
 
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
