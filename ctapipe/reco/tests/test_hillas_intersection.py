@@ -30,8 +30,8 @@ def test_intersect():
 
 def test_parallel():
     """
-    Simple test to check the intersection of lines. Try to intersect positions at (0,0) and (0,1)
-    with angles parallel and check the behaviour
+    ?    Simple test to check the intersection of lines. Try to intersect positions at (0,0) and (0,1)
+        with angles parallel and check the behaviour
     """
     x1 = 0
     y1 = 0
@@ -83,7 +83,7 @@ def test_intersection_xmax_reco(example_subarray):
         ),
     }
 
-    x_max = hill_inter.reconstruct_xmax(
+    h_max = hill_inter.reconstruct_h_max(
         source_x=nom_pos_reco.fov_lon,
         source_y=nom_pos_reco.fov_lat,
         core_x=0 * u.m,
@@ -93,7 +93,8 @@ def test_intersection_xmax_reco(example_subarray):
         tel_y={1: (0 * u.m), 2: (150 * u.m)},
         zen=zen_pointing,
     )
-    print(x_max)
+
+    assert h_max > 0 * u.m
 
 
 def test_intersection_reco_impact_point_tilted(example_subarray):
