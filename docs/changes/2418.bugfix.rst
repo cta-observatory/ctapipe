@@ -1,1 +1,1 @@
-Do not use a hidden attribute of `SKLearnReconstructor` in `ctapipe-apply-models`.
+Do not use a hidden attribute of ``SKLearnReconstructor`` in ``ctapipe-apply-models``.
