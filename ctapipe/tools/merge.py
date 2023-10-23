@@ -164,7 +164,8 @@ class MergeTool(Tool):
         self.merger = HDF5Merger(parent=self)
         if self.merger.output_path in self.input_files:
             raise ToolConfigurationError(
-                "Output path contained in input files. Fix your configuration / cli arguments."
+                "Output path contained in input files."
+                " Fix your configuration / cli arguments."
             )
 
     def start(self):

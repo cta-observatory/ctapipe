@@ -126,7 +126,10 @@ NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 def parse_simtel_time(simtel_time):
     """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
     return Time(
-        simtel_time[0], simtel_time[1] * 1e-9, format="unix", scale="utc"  # ns to s
+        simtel_time[0],
+        simtel_time[1] * 1e-9,
+        format="unix",
+        scale="utc",  # ns to s
     )
 
 
@@ -332,7 +335,8 @@ def read_atmosphere_profile_from_simtel(
     """
     if not isinstance(kind, AtmosphereProfileKind):
         raise TypeError(
-            "read_atmosphere_profile_from_simtel: kind should be a AtmosphereProfileKind"
+            "read_atmosphere_profile_from_simtel:"
+            " kind should be a AtmosphereProfileKind"
         )
 
     profiles = []
@@ -442,12 +446,13 @@ class SimTelEventSource(EventSource):
         default_value=FocalLengthKind.EFFECTIVE,
         help=(
             "If both nominal and effective focal lengths are available in the"
-            " SimTelArray file, which one to use for the `~ctapipe.coordinates.CameraFrame`"
-            " attached to the `~ctapipe.instrument.CameraGeometry` instances in"
-            " the `~ctapipe.instrument.SubarrayDescription`, which will be used in"
+            " SimTelArray file, this option selects which one isused for the"
+            "`~ctapipe.coordinates.CameraFrame` attached to the"
+            " `~ctapipe.instrument.CameraGeometry` instances in the"
+            " `~ctapipe.instrument.SubarrayDescription`, which will be used in"
             " CameraFrame to TelescopeFrame coordinate transforms. "
-            " The 'nominal' focal length is the one used during "
-            " the simulation, the 'effective' focal length is computed using specialized "
+            " The 'nominal' focal length is the one used during the simulation"
+            ", the 'effective' focal length is computed using specialized "
             " ray-tracing from a point light source"
         ),
     ).tag(config=True)

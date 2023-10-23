@@ -7,24 +7,24 @@ import math
 import numpy as np
 import numpy.ma as ma
 from astropy import units as u
-from astropy.coordinates import SkyCoord, AltAz
+from astropy.coordinates import AltAz, SkyCoord
 from iminuit import Minuit
-from scipy.optimize import minimize, least_squares
+from scipy.optimize import least_squares, minimize
 from scipy.stats import norm
 
-from ctapipe.core import Component
+from ctapipe.containers import (
+    ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
+)
 from ctapipe.coordinates import (
+    GroundFrame,
     NominalFrame,
     TiltedGroundFrame,
-    GroundFrame,
     project_to_ground,
 )
-from ctapipe.image import neg_log_likelihood, mean_poisson_likelihood_gaussian
+from ctapipe.core import Component
+from ctapipe.image import mean_poisson_likelihood_gaussian, neg_log_likelihood
 from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.containers import (
-    ReconstructedGeometryContainer,
-    ReconstructedEnergyContainer,
-)
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
@@ -605,7 +605,6 @@ class ImPACTReconstructor(Component):
 
         # So here we must loop over the telescopes
         for x, i in zip(tel_x, range(len(tel_x))):
-
             px.append(pixel_x[x].to(u.rad).value)
             if len(px[i]) > max_pix_x:
                 max_pix_x = len(px[i])
@@ -621,9 +620,9 @@ class ImPACTReconstructor(Component):
             self.tel_id.append(x)
             self.hillas_parameters.append(hillas[x])
 
-        # Most interesting stuff is now copied to the class, but to remove our requirement
-        # for loops we must copy the pixel positions to an array with the length of the
-        # largest image
+        # Most interesting stuff is now copied to the class, but to remove our
+        # requirement for loops we must copy the pixel positions to an array
+        # with the length of the largest image
 
         # First allocate everything
         shape = (len(tel_x), max_pix_x)
@@ -793,7 +792,6 @@ class ImPACTReconstructor(Component):
         """
         limits = np.asarray(limits)
         if minimiser_name == "minuit":
-
             self.min = Minuit(
                 self.get_likelihood,
                 print_level=1,

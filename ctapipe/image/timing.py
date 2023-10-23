@@ -2,20 +2,19 @@
 Image timing-based shower image parametrization.
 """
 
-import numpy as np
 import astropy.units as u
-from ..containers import (
-    CameraTimingParametersContainer,
-    TimingParametersContainer,
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
-from .hillas import camera_to_shower_coordinates
-from ..utils.quantities import all_to_value
-from ..fitting import lts_linear_regression
-
+import numpy as np
 from numba import njit
 
+from ..containers import (
+    CameraHillasParametersContainer,
+    CameraTimingParametersContainer,
+    HillasParametersContainer,
+    TimingParametersContainer,
+)
+from ..fitting import lts_linear_regression
+from ..utils.quantities import all_to_value
+from .hillas import camera_to_shower_coordinates
 
 __all__ = ["timing_parameters"]
 

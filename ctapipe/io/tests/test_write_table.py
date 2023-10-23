@@ -1,14 +1,14 @@
 """Tests for the write_table function"""
-from astropy.time import Time
-from astropy.table import Table
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.table import Table
+from astropy.time import Time
 
 
 def test_write_table(tmp_path):
     """Test write_table"""
-    from ctapipe.io.astropy_helpers import write_table, read_table
+    from ctapipe.io.astropy_helpers import read_table, write_table
 
     table = Table(
         {

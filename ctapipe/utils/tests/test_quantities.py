@@ -1,7 +1,7 @@
 """tests for ctapipe.utils.quantities"""
-import pytest
-import numpy as np
 import astropy.units as u
+import numpy as np
+import pytest
 
 from ctapipe.utils.quantities import all_to_value
 

@@ -65,7 +65,6 @@ def read_table(
     """
 
     with ExitStack() as stack:
-
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
@@ -164,7 +163,8 @@ def write_table(
 
             elif not overwrite and not append:
                 raise IOError(
-                    f"Table {path} already exists in output file, use append or overwrite"
+                    f"Table {path} already exists in output file"
+                    ", use append or overwrite"
                 )
 
         attrs = {}

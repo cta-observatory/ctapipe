@@ -2,9 +2,10 @@
 """
 This module contains the utils.astro unit tests
 """
-from ..astro import get_bright_stars
-from astropy.coordinates import SkyCoord
 from astropy import units as u
+from astropy.coordinates import SkyCoord
+
+from ..astro import get_bright_stars
 
 
 def test_get_bright_stars():

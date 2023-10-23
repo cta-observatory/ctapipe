@@ -1,6 +1,6 @@
-from astropy.coordinates import SkyCoord, AltAz
-from pytest import approx
 import astropy.units as u
+from astropy.coordinates import AltAz, SkyCoord
+from pytest import approx
 
 
 def test_roundtrip_camera_horizon():

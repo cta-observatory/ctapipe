@@ -462,19 +462,19 @@ class CameraDisplay:
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
-        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
+        """Add visualization of Hillas parameters to the display.
 
         Parameters
         ----------
-        hillas_parameters: `HillasParametersContainer`
+        hillas_parameters : `~ctapipe.containers.HillasParametersContainer`
             structuring containing Hillas-style parameterization
-        with_label: bool
+        with_label : bool
             If True, show coordinates of centroid and width and length
-        keep_old: bool
+        keep_old : bool
             If True, to not remove old overlays
-        n_sigma: float
+        n_sigma : float
             How many sigmas to use for the ellipse
-        kwargs: key=value
+        kwargs : key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """

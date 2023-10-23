@@ -1,6 +1,5 @@
-from astropy.coordinates import Angle
-
 import numpy as np
+from astropy.coordinates import Angle
 from numpy import cos, sin
 
 __all__ = ["rotation_matrix_2d", "length", "normalise", "angle"]
@@ -16,14 +15,14 @@ def rotation_matrix_2d(angle):
 
 
 def length(vec):
-    """ returns the length/norm of a numpy array
-        as the square root of the inner product with itself
+    """returns the length/norm of a numpy array
+    as the square root of the inner product with itself
     """
     return vec.dot(vec) ** 0.5
 
 
 def normalise(vec):
-    """ Sets the length of the vector to 1
+    """Sets the length of the vector to 1
         without changing its direction
 
     Parameters
@@ -41,7 +40,7 @@ def normalise(vec):
 
 
 def angle(v1, v2):
-    """ computes the angle between two vectors
+    """computes the angle between two vectors
         assuming carthesian coordinates
 
     Parameters

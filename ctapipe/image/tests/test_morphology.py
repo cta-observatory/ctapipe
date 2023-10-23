@@ -124,7 +124,7 @@ def test_brightest_island():
     island_labels = [0, 0, 0]
     no_island_mask = brightest_island(0, island_labels, image)
     assert len(no_island_mask) == 3
-    assert np.all(no_island_mask == False)
+    assert np.all(no_island_mask is False)
 
 
 def test_number_of_islands_masked(prod3_lst):

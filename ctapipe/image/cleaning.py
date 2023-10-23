@@ -45,7 +45,6 @@ def tailcuts_clean(
     keep_isolated_pixels=False,
     min_number_picture_neighbors=0,
 ):
-
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
     defined with respect to the pedestal dispersion. All pixels that
@@ -273,7 +272,6 @@ def apply_time_average_cleaning(
     """
     mask = mask.copy()
     if np.count_nonzero(mask) > 0:
-
         # use main island (maximum charge) for time average calculation
         n_islands, island_labels = number_of_islands(geom, mask)
         mask_main = brightest_island(n_islands, island_labels, image)
@@ -431,7 +429,7 @@ def time_constrained_clean(
         number_of_neighbors_above_picture >= min_number_picture_neighbors
     )
 
-    # keep core pixels whose arrival times are within a certain time limit of the average
+    # keep core pixels whose arrival times are within a certain limit of the average
     mask_core = apply_time_average_cleaning(
         geom, pixels_in_picture, image, arrival_times, picture_thresh, time_limit_core
     )
@@ -443,7 +441,8 @@ def time_constrained_clean(
         mask_core
     )
 
-    # keep boundary pixels whose arrival times are within a certain time limit of the neighboring core pixels
+    # keep boundary pixels whose arrival times are within a
+    # certain limit of the neighboring core pixels
     mask_boundary = mask_boundary.copy()
 
     time_diffs = np.abs(arrival_times[mask_boundary, None] - arrival_times)
@@ -581,7 +580,9 @@ class FACTImageCleaner(TailcutsImageCleaner):
 
 class TimeConstrainedImageCleaner(TailcutsImageCleaner):
     """
-    MAGIC-like Image cleaner with timing information (See `ctapipe.image.time_constrained_clean`)
+    MAGIC-like Image cleaner with timing information.
+
+    For implementation details, see `ctapipe.image.time_constrained_clean`.
     """
 
     time_limit_core_ns = FloatTelescopeParameter(
@@ -597,7 +598,7 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
         """
-        Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
+        Apply MAGIC-like image cleaning with timing information.
         """
 
         return time_constrained_clean(

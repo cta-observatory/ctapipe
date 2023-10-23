@@ -1,5 +1,6 @@
-from ctapipe.utils import IndexFinder
 import numpy as np
+
+from ctapipe.utils import IndexFinder
 
 
 def test_zerolength():

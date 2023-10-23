@@ -131,7 +131,7 @@ class Reconstructor(TelescopeComponent):
         if subarray is not None:
             if instance.subarray.telescope_types != subarray.telescope_types:
                 instance.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
+                    "Supplied subarray differs from subarray of training data"
                 )
             instance.subarray = subarray
 
@@ -144,7 +144,7 @@ class Reconstructor(TelescopeComponent):
 
 class HillasGeometryReconstructor(Reconstructor):
     """
-    Base class for algorithms predicting only the shower geometry using Hillas Based methods
+    Base class for common code between HillasReconstructor and HillasIntersection.
     """
 
     def _create_hillas_dict(self, event):

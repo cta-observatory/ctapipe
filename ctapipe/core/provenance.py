@@ -83,7 +83,7 @@ class Provenance(metaclass=Singleton):
     def _get_current_or_start_activity(self):
         if self.current_activity is None:
             log.info(
-                "No activity has been explicitly started, starting new default activity."
+                "No activity has been explicitly started, starting default activity."
                 " Consider calling Provenance().start_activity(<name>) explicitly."
             )
             self.start_activity()
@@ -150,8 +150,9 @@ class Provenance(metaclass=Singleton):
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError(
-                "Tried to end activity '{}', but '{}' is current "
-                "activity".format(activity_name, activity.name)
+                "Tried to end activity '{}', but '{}' is current activity".format(
+                    activity_name, activity.name
+                )
             )
 
         activity.finish(status)

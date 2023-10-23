@@ -140,7 +140,6 @@ class OpticsDescription:
         n_mirror_tiles,
         reflector_shape,
     ):
-
         self.name = name
         self.size_type = SizeType(size_type)
         self.reflector_shape = ReflectorShape(reflector_shape)

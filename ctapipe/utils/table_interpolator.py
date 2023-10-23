@@ -35,14 +35,13 @@ from scipy import interpolate
 
 class TableInterpolator:
     """
-    This is a simple class for loading lookup tables from a fits file and
-    interpolating between them
+    Interpolate lookup tables from FITS files.
     """
 
     def __init__(self, filename, verbose=1):
         """
-        Initialisation of class to load templates from a file and create the interpolation
-        objects
+        Create a new TableInterpolator.
+
 
         Parameters
         ----------
@@ -153,7 +152,7 @@ class TableInterpolator:
 
     def interpolated_image(self, params):
         """
-        Function for creating a ful interpolated image template from the interpolation library
+        Interpolate image from the interpolation library.
 
         Parameters
         ----------

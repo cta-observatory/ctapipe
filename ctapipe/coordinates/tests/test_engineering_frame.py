@@ -1,8 +1,8 @@
 """
 Tests for the conversion between camera coordinate frames
 """
-from astropy.coordinates import SkyCoord
 import astropy.units as u
+from astropy.coordinates import SkyCoord
 
 
 def test_conversion():

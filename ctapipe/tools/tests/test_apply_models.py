@@ -32,7 +32,8 @@ def test_apply_energy_regressor(
             f"--output={output_path}",
             f"--reconstructor={energy_regressor_path}",
             "--StereoMeanCombiner.weights=konrad",
-            "--chunk-size=5",  # small chunksize so we test multiple chunks for the test file
+            # small chunksize so we test multiple chunks for the test file
+            "--chunk-size=5",
         ],
         raises=True,
     )
@@ -49,7 +50,6 @@ def test_apply_energy_regressor(
         assert table[colname].description == field.description
 
     with TableLoader(output_path, load_dl2=True) as loader:
-
         events = loader.read_subarray_events()
         assert f"{prefix}_energy" in events.colnames
         assert f"{prefix}_energy_uncert" in events.colnames

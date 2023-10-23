@@ -43,7 +43,10 @@ You can modify these to change the output, and run ctapipe by including both the
 base config plus one additional configuration using:
 
 ```
-ctapipe-process --config base_config.yaml --config <CONFIG> --input <EVENTS FILE> --output <OUTPUT FILE>
+ctapipe-process --config base_config.yaml \
+    --config <CONFIG> \
+    --input <EVENTS FILE> \
+    --output <OUTPUT FILE>
 ```
 
 Where <CONFIG> is one of the non-base configs above, <EVENTS FILE> is any
@@ -56,16 +59,16 @@ Details about all configuration options can be found by running:
 ctapipe-process --help-all
 ```
 
-## ctapipe-train-energy-regressor / ctapipe-train-particle-classifier / ctapipe-train-disp-reconstructor configs
+## Configuration files for training machine learning models
 
 Included here are also base configurations for training machine learning (ML)
 models for energy regression, gamma/hadron separation and disp origin reconstruction.
 NOTE: As these files are used for unit tests, they are optimized for very fast training
 and will not result in well performing models.
 
-- `train_energy_regressor.yaml`: configuration of energy regression model
-- `train_particle_classifier.yaml`: configuration of particle classification model
-- `train_disp_reconstructor.yaml`: configuration of disp reconstruction models
+- `train_energy_regressor.yaml`: configuration for ctapipe-train-energy-regressor
+- `train_particle_classifier.yaml`: configuration for ctapipe-train-particle-classifier
+- `train_disp_reconstructor.yaml`: configuration for ctapipe-train-disp-reconstructor
 
 
 This file was generated using ctapipe version {VERSION}
@@ -110,7 +113,11 @@ class QuickStartTool(Tool):
 
     Or specify it all in the command-line:
 
-        ctapipe-quickstart --name "my name" --email "me@thing.com" --org "My Organization" --workdir Work
+        ctapipe-quickstart \
+            --name "my name" \
+            --email "me@thing.com" \
+            --org "My Organization" \
+            --workdir Work
     """
 
     workdir = traits.Path(
@@ -156,7 +163,6 @@ class QuickStartTool(Tool):
         }
 
     def start(self):
-
         for filename in CONFIGS_TO_WRITE:
             config = files("ctapipe").joinpath("resources", filename)
             destination = self.workdir / filename

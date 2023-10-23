@@ -12,7 +12,7 @@ def test_design_matrix():
 
 
 def test_linear_regression():
-    from ctapipe.fitting import linear_regression, design_matrix
+    from ctapipe.fitting import design_matrix, linear_regression
 
     # test without noise, should give exact result
     true_beta = np.array([5.0, 2.0])
@@ -26,7 +26,7 @@ def test_linear_regression():
 
 
 def test_linear_regression_singular():
-    from ctapipe.fitting import linear_regression, design_matrix
+    from ctapipe.fitting import design_matrix, linear_regression
 
     # test under-determined input
     x = np.zeros(2, dtype=float)
@@ -77,7 +77,7 @@ def test_lts_regression_singular_pair():
     Test the lts regression with data that contains a pair
     of points creating a singular matrix
     """
-    from ctapipe.fitting import lts_linear_regression, design_matrix, EPS
+    from ctapipe.fitting import EPS, design_matrix, lts_linear_regression
 
     true_beta = np.array([5.0, 2.0])
 

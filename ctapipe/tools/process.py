@@ -165,14 +165,13 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
-
         # setup components:
         self.event_source = self.enter_context(EventSource(parent=self))
 
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
-                "%s  needs the EventSource to provide at least one of these datalevels: %s"
-                ", %s provides only %s",
+                "%s needs the EventSource to provide at least one"
+                "of these datalevels: %s %s provides only %s",
                 self.name,
                 COMPATIBLE_DATALEVELS,
                 self.event_source,
@@ -297,7 +296,6 @@ class ProcessorTool(Tool):
             unit="ev",
             disable=not self.progress_bar,
         ):
-
             self.log.debug("Processessing event_id=%s", event.index.event_id)
 
             if not self.event_type_filter(event):

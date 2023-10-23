@@ -25,8 +25,10 @@ logger = logging.getLogger(__name__)
 
 class TelescopeComponent(Component):
     """
-    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,
-    and which contains configurable `~ctapipe.core.telescope_component.TelescopeParameter`
+    A component that supports configuring per-telescope trait values.
+
+    Needs the `~ctapipe.instrument.SubarrayDescription` to be constructed,
+    and contains configurable `~ctapipe.core.telescope_component.TelescopeParameter`
     fields that must be configured on construction.
     """
 
@@ -46,8 +48,8 @@ class TelescopeComponent(Component):
             if not isinstance(trait, TelescopeParameter):
                 continue
 
-            # trait is the TelescopeParameter descriptor at the class,
-            # need to get the value at the instance, which will be a TelescopePatternList
+            # trait is the TelescopeParameter descriptor at the class, need to get
+            # the value at the instance, which will be a TelescopePatternList
             pattern_list = getattr(self, attr)
             if pattern_list is not None:
                 pattern_list.attach_subarray(subarray)
@@ -328,7 +330,6 @@ class TelescopeParameter(List):
         return self._trait.validate(obj, value)
 
     def validate(self, obj, value):
-
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, (list, List, UserList, TelescopePatternList)):
             value = [("type", "*", self._validate_entry(obj, value))]
@@ -337,7 +338,6 @@ class TelescopeParameter(List):
         normalized_value = TelescopePatternList()
 
         for pattern in value:
-
             # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
                 raise TraitError(

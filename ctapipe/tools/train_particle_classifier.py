@@ -166,7 +166,8 @@ class TrainParticleClassifier(Tool):
         self.log.info("Events read from input: %d", len(table))
         if len(table) == 0:
             raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
+                "Input file does not contain any events"
+                f" for telescope type {telescope_type}"
             )
 
         mask = self.classifier.quality_query.get_table_mask(table)
@@ -174,7 +175,7 @@ class TrainParticleClassifier(Tool):
         self.log.info("Events after applying quality query: %d", len(table))
         if len(table) == 0:
             raise TooFewEvents(
-                f"No events after quality query for telescope type {telescope_type}"
+                "No events after quality query for" f" telescope type {telescope_type}"
             )
 
         table = self.classifier.feature_generator(table, subarray=self.subarray)
@@ -191,7 +192,8 @@ class TrainParticleClassifier(Tool):
         if n_events is not None:
             if n_events > len(table):
                 self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
+                    "Number of events in table (%d) is less"
+                    "than requested number of events %d",
                     len(table),
                     n_events,
                 )

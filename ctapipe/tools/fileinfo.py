@@ -3,14 +3,16 @@ Display information about ctapipe output files (DL1 or DL2)
 """
 
 from pathlib import Path
+
 import tables
 import yaml
 from astropy.table import Table
+
 from ctapipe.tools.utils import get_parser
 
 
 def unflatten(dictionary, separator=" "):
-    """ turn flattened dict keys into nested """
+    """turn flattened dict keys into nested"""
     hierarch_dict = dict()
     for key, value in dictionary.items():
         parts = key.split(separator)
@@ -73,7 +75,7 @@ def fileinfo(args):
 
 
 def main():
-    """ display info """
+    """display info"""
     parser = get_parser(fileinfo)
     parser.add_argument(
         "files",

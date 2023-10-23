@@ -9,7 +9,7 @@ from .unstructured_interpolator import UnstructuredInterpolator
 
 class TemplateNetworkInterpolator:
     """
-    Class for interpolating between the the predictions
+    Class for interpolating ImPACT templates.
     """
 
     def __init__(self, template_file):
@@ -35,7 +35,7 @@ class TemplateNetworkInterpolator:
 
     def __call__(self, energy, impact, xmax, xb, yb):
         """
-        Evaluate interpolated templates for a set of shower parameters and pixel positions
+        Evaluate interpolated templates at given parameters.
 
         Parameters
         ----------
@@ -83,7 +83,7 @@ class TimeGradientInterpolator:
 
     def __call__(self, energy, impact, xmax):
         """
-        Evaluate expected time gradient for a set of shower parameters and pixel positions
+        Evaluate expected time gradient at given parameters.
 
         Parameters
         ----------

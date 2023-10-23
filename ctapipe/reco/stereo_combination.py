@@ -63,7 +63,7 @@ def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
 
 
 class StereoCombiner(Component):
-    """Base Class for algorithms combining telescope-wise predictions to common prediction"""
+    """Base class for combining telescopee predictions to common subarray prediction."""
 
     prefix = Unicode(
         default_value="",
@@ -113,8 +113,9 @@ class StereoMeanCombiner(StereoCombiner):
             ReconstructionProperty.PARTICLE_TYPE,
         }
         if self.property not in supported:
+            name = self.__class__.__name__
             raise NotImplementedError(
-                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
+                f"Combination of {self.property} not implemented in {name}"
             )
 
     def _calculate_weights(self, data):
@@ -143,7 +144,7 @@ class StereoMeanCombiner(StereoCombiner):
             return np.ones(len(data))
 
         raise TypeError(
-            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+            "DL1 data needs to be provided as container or astropy.table.Table"
         )
 
     def _combine_energy(self, event):

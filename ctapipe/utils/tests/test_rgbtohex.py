@@ -1,5 +1,6 @@
-from ctapipe.utils.rgbtohex import intensity_to_rgb, intensity_to_hex
 import numpy as np
+
+from ctapipe.utils.rgbtohex import intensity_to_hex, intensity_to_rgb
 
 
 def test_rgb():

@@ -85,7 +85,7 @@ class CameraCalibrator(TelescopeComponent):
             "Apply peak time shift corrections."
             " Apply the remaining absolute and fractional time shift corrections"
             " to the peak time after pulse extraction."
-            " If `apply_waveform_time_shift` is False, this will apply the full time shift"
+            " If `apply_waveform_time_shift` is False, the full time shift is applied."
         ),
     ).tag(config=True)
 
@@ -129,7 +129,7 @@ class CameraCalibrator(TelescopeComponent):
         self.image_extractors = {}
 
         if image_extractor is None:
-            for (_, _, name) in self.image_extractor_type:
+            for _, _, name in self.image_extractor_type:
                 self.image_extractors[name] = ImageExtractor.from_name(
                     name, subarray=self.subarray, parent=self
                 )
@@ -245,7 +245,6 @@ class CameraCalibrator(TelescopeComponent):
                 is_valid=True,
             )
         else:
-
             # shift waveforms if time_shift calibration is available
             if time_shift is not None:
                 if self.apply_waveform_time_shift.tel[tel_id]:

@@ -50,7 +50,6 @@ class TelescopeDescription:
         optics: OpticsDescription,
         camera: CameraDescription,
     ):
-
         if not isinstance(name, str):
             raise TypeError("`name` must be a str")
 

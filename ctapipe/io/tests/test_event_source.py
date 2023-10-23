@@ -9,7 +9,7 @@ from ctapipe.core import Component
 from ctapipe.io import DataLevel, EventSource, SimTelEventSource
 from ctapipe.utils import get_dataset_path
 
-prod5_path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+prod5_path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"  # noqa: E501
 
 
 def test_construct():

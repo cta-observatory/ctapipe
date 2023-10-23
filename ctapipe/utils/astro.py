@@ -4,9 +4,8 @@ This module is intended to contain astronomy-related helper tools which are
 not provided by external packages and/or to satisfy particular needs of
 usage within ctapipe.
 """
-from astropy.coordinates import Angle
-from astropy.coordinates import SkyCoord
 from astropy import units as u
+from astropy.coordinates import Angle, SkyCoord
 
 __all__ = ["get_bright_stars"]
 

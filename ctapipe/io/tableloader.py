@@ -82,7 +82,6 @@ class ChunkIterator:
         return self.n_chunks
 
     def __getitem__(self, chunk):
-
         if chunk < 0:
             chunk = self.n_chunks - chunk
 
@@ -154,7 +153,7 @@ class TableLoader(Component):
     Load telescope-event or subarray-event data from ctapipe HDF5 files
 
     This class provides high-level access to data stored in ctapipe HDF5 files,
-    such as created by the ctapipe-process tool (`~ctapipe.tools.process.ProcessorTool`).
+    such as created by ctapipe-process (`~ctapipe.tools.process.ProcessorTool`).
 
     The following `TableLoader` methods load data from all relevant tables,
     depending on the options, and joins them into single tables:
@@ -216,8 +215,8 @@ class TableLoader(Component):
             " `ctapipe.instrument.SubarrayDescription`, which will be used in"
             " CameraFrame to TelescopeFrame coordinate transforms."
             " The 'nominal' focal length is the one used during "
-            " the simulation, the 'effective' focal length is computed using specialized "
-            " ray-tracing from a point light source"
+            " the simulation, the 'effective' focal length is computed using"
+            " specialized ray-tracing from a point light source"
         ),
     ).tag(config=True)
 
@@ -672,8 +671,9 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
-            Any list containing a combination of telescope IDs or telescope_descriptions.
+        telescopes : List[Union[int, str, TelescopeDescription]]
+            The telescopes to include. Elements can be telescope ids,
+            telescope description strings or telescope description instances.
 
         Returns
         -------
@@ -720,6 +720,12 @@ class TableLoader(Component):
             depending on the selected telescopes.
 
         **kwargs are passed to `read_telescope_events`
+
+        Returns
+        -------
+        events: ChunkIterator
+            An iterator that reads chunks of events and yields them
+            as a dict mapping telescope description strings to tables.
         """
         return ChunkIterator(
             self.read_telescope_events_by_type,
@@ -736,8 +742,9 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        telescopes: List[Union[int, str, TelescopeDescription]]
-            Any list containing a combination of telescope IDs or telescope_descriptions.
+        telescopes : List[Union[int, str, TelescopeDescription]]
+            The telescopes to include. Elements can be telescope ids,
+            telescope description strings or telescope description instances.
 
         Returns
         -------
@@ -773,7 +780,7 @@ class TableLoader(Component):
 
     def read_telescope_events_by_id_chunked(self, chunk_size, *args, **kwargs):
         """
-        Iterate over chunks of telescope events and return a dict of one table per telescope id.
+        Iterate over chunks of telescope events as a dict of one table per telescope id.
 
         Parameters
         ----------
@@ -783,6 +790,12 @@ class TableLoader(Component):
             depending on the selected telescopes.
 
         *args, **kwargs are passed to `read_telescope_events_by_id`
+
+        Returns
+        -------
+        events: ChunkIterator
+            An iterator that reads chunks of events and yields them
+            as a dict mapping telescope ids to tables.
         """
         return ChunkIterator(
             self.read_telescope_events_by_id,

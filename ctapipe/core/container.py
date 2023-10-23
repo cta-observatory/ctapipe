@@ -329,7 +329,6 @@ class Container(metaclass=ContainerMeta):
         self.prefix = prefix if prefix is not None else self.default_prefix
 
         for k in set(self.fields).difference(fields):
-
             # deepcopy of None is surprisingly slow
             field = self.fields[k]
             if field.default_factory is not None:

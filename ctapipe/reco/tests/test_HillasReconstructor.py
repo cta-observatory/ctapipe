@@ -210,7 +210,6 @@ def test_reconstruction_against_simulation_camera_frame(
     ],
 )
 def test_CameraFrame_against_TelescopeFrame(filename):
-
     input_file = get_dataset_path(filename)
     # "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
     # )
@@ -243,7 +242,6 @@ def test_CameraFrame_against_TelescopeFrame(filename):
     reconstructed_events = 0
 
     for event_telescope_frame in source:
-
         calib(event_telescope_frame)
         # make a copy of the calibrated event for the camera frame case
         # later we clean and paramretrize the 2 events in the same way
@@ -275,13 +273,15 @@ def test_CameraFrame_against_TelescopeFrame(filename):
                 if hasattr(cam, "unit"):
                     if cam.value == 0 or tel.value == 0:
                         kwargs["atol"] = 1e-6 * cam.unit
-                    assert u.isclose(
-                        cam, tel, **kwargs
-                    ), f"attr {field} not matching, camera: {result_camera_frame!s} telescope: {result_telescope_frame!s}"
+
+                    msg = (
+                        f"attr {field} not matching, camera: {result_camera_frame!s}"
+                        f" telescope: {result_telescope_frame!s}"
+                    )
+                    assert u.isclose(cam, tel, **kwargs), msg
                 elif isinstance(cam, list):
                     assert cam == tel
                 else:
-
                     if cam == 0 or tel == 0:
                         kwargs["atol"] = 1e-6
                     assert np.isclose(cam, tel, **kwargs)

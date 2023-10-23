@@ -70,7 +70,7 @@ class GroundFrame(BaseCoordinateFrame):
     reference_location = EarthLocationAttribute()
 
     def to_earth_location(self):
-        """Convert this GroundFrame coordinate into an `astropy.coordinates.EarthLocation`
+        """Convert to an `astropy.coordinates.EarthLocation`
 
         This requires that the ``reference_location`` is set.
         """

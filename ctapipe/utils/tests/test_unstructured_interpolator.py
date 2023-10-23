@@ -1,7 +1,8 @@
-from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
 import numpy.ma as ma
+from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
+
+from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 
 
 def test_simple_interpolation():
@@ -173,7 +174,6 @@ def test_out_of_bounds():
 
 
 if __name__ == "__main__":
-
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()

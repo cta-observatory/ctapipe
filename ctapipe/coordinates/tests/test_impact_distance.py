@@ -100,7 +100,6 @@ def test_compare_3d_and_frame_impact_distance(
 
     for alt in [90, 0, 50, 60] * u.deg:
         for az in [0, 90, 45, 270, 360] * u.deg:
-
             shower_geom = ReconstructedGeometryContainer(
                 core_x=0 * u.m, core_y=0 * u.m, alt=alt, az=az
             )

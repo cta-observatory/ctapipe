@@ -114,7 +114,10 @@ def get_node_meta(node):
     node : `tables.Node`
         The node for which to parse the metadata attributes
     """
-    ignore_column_descriptions = lambda k: not k.startswith("CTAFIELD_")
+
+    def ignore_column_descriptions(k):
+        return not k.startswith("CTAFIELD_")
+
     meta = {}
     attrs = node._v_attrs
     for key in filter(ignore_column_descriptions, attrs._v_attrnamesuser):
@@ -232,7 +235,6 @@ class HDF5TableWriter(TableWriter):
         config=None,
         **kwargs,
     ):
-
         super().__init__(add_prefix=add_prefix, parent=parent, config=config)
         self._schemas = {}
         self._tables = {}
@@ -368,7 +370,6 @@ class HDF5TableWriter(TableWriter):
 
         # create pytables schema description for the given container
         for container in containers:
-
             container.validate()  # ensure the data are complete
 
             it = zip(
@@ -597,7 +598,8 @@ class HDF5TableReader(TableReader):
                 elif col_name is None or col_name not in column_attrs:
                     missing.append(field_name)
                     self.log.warning(
-                        f"Table {table_name} is missing column {col_name} for field {field_name}"
+                        f"Table {table_name} is missing column {col_name} for"
+                        f" field {field_name}"
                         f" of container {container}. It will be skipped."
                     )
                 else:

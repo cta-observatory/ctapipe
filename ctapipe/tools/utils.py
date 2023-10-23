@@ -53,7 +53,6 @@ def get_installed_tools():
 
 
 def get_all_descriptions():
-
     tools = get_installed_tools()
 
     descriptions = OrderedDict()

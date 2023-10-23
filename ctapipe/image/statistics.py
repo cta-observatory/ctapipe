@@ -3,7 +3,6 @@ from numba import njit
 
 from ..containers import StatisticsContainer
 
-
 __all__ = ["descriptive_statistics", "skewness", "kurtosis"]
 
 
@@ -82,7 +81,7 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 def descriptive_statistics(
     values, container_class=StatisticsContainer
 ) -> StatisticsContainer:
-    """ compute intensity statistics of an image  """
+    """compute intensity statistics of an image"""
     mean = values.mean()
     std = values.std()
     return container_class(

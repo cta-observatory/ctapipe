@@ -496,7 +496,7 @@ class Tool(Application):
             or "Undocumented"
         )
         lines = [
-            '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',
+            '<div style="border:1px solid black; max-width: 700px; padding:2em; word-wrap:break-word;">',  # noqa: E501
             f"<b>{name}</b>",
             docstring,
             "<table>",
@@ -520,7 +520,7 @@ class Tool(Application):
                 lines.append(f"<tr><th>{key}</th>")
                 if val != traits[key].default_value:
                     lines.append(
-                        f"<td style='text-align: left;'><span style='color:blue; max-width:30em;'>{htmlval}</span></td>"
+                        f"<td style='text-align: left;'><span style='color:blue; max-width:30em;'>{htmlval}</span></td>"  # noqa: E501
                     )
                 else:
                     lines.append(f"<td style='text-align: left;'>{htmlval}</td>")

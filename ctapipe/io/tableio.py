@@ -36,7 +36,6 @@ class TableWriter(Component, metaclass=ABCMeta):
         self.add_prefix = add_prefix
 
     def __enter__(self):
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -136,7 +135,6 @@ class TableWriter(Component, metaclass=ABCMeta):
             for column_regexp, transform in column_regexp_dict.items():
                 for container in containers:
                     for col_name, _ in container.items(add_prefix=self.add_prefix):
-
                         if re.fullmatch(column_regexp, col_name):
                             self.log.debug(
                                 "Column '%s' matched pattern '%s'",
@@ -329,7 +327,7 @@ class TimeColumnTransform(ColumnTransform):
 
 
 class QuantityColumnTransform(ColumnTransform):
-    """A Column Transform that transforms quantities to their values in the given unit"""
+    """Transform quantities to values in the given unit."""
 
     def __init__(self, unit):
         self.unit = unit

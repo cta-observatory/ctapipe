@@ -1,8 +1,9 @@
-import pytest
 import os
-from http.server import HTTPServer, SimpleHTTPRequestHandler
-from threading import Thread, Event
 from functools import partial
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from threading import Event, Thread
+
+import pytest
 
 
 class Server(Thread):

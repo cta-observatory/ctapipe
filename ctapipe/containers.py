@@ -221,9 +221,9 @@ class PixelStatus(enum.IntFlag):
 
     @staticmethod
     def is_invalid(pixel_status):
-        """Return if pixel values are marked as invalid
+        """Return boolean mask of pixels marked as invalid.
 
-        This is encoded in the data model as neither high gain nor low gain marked as stored
+        This is encoded in pixel_status as neither high nor low gain marked as stored.
         """
         gain_bits = PixelStatus.HIGH_GAIN_STORED | PixelStatus.LOW_GAIN_STORED
         return (pixel_status & gain_bits) == 0
@@ -525,13 +525,13 @@ class DL1CameraCalibrationContainer(Container):
     )
     absolute_factor = Field(
         1,
-        "Multiplicative coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel",
+        "Multiplicative coefficients for the absolute calibration of extracted charge"
+        " into physical units (e.g. photoelectrons or photons) for each pixel",
     )
     relative_factor = Field(
         1,
-        "Multiplicative Coefficients for the relative correction between pixels to achieve a "
-        "uniform charge response (post absolute calibration) from a "
+        "Multiplicative Coefficients for the relative correction between pixels"
+        " to achieve a uniform charge response (post absolute calibration) from a "
         "uniform illumination.",
     )
     time_shift = Field(
@@ -608,7 +608,8 @@ class R1CameraContainer(Container):
 
     calibration_monitoring_id = Field(
         None,
-        "ID of the CalibrationMonitoringSet containing the applied pre-calibration parameters",
+        "ID of the CalibrationMonitoringSet containing"
+        " the applied pre-calibration parameters",
     )
 
     selected_gain_channel = Field(
@@ -669,7 +670,8 @@ class DL0CameraContainer(Container):
 
     calibration_monitoring_id = Field(
         None,
-        "ID of the CalibrationMonitoringSet containing the applied pre-calibration parameters",
+        "ID of the CalibrationMonitoringSet containing"
+        " the applied pre-calibration parameters",
     )
 
     selected_gain_channel = Field(
@@ -714,17 +716,27 @@ class SimulatedShowerContainer(Container):
     core_x = Field(nan * u.m, "Simulated core position (x)", unit=u.m)
     core_y = Field(nan * u.m, "Simulated core position (y)", unit=u.m)
     h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
-    x_max = Field(nan * u.g / u.cm**2, "Simulated Xmax value", unit=u.g / u.cm**2)
+    x_max = Field(
+        nan * u.g / u.cm**2,
+        description=(
+            "Simulated Xmax value."
+            " Note: it depends on the CORSIKA SLANT compile time setting whether"
+            " this value is the vertical or slant depth. All CTA simulations at"
+            " the moment use vertical depth."
+        ),
+        unit=u.g / u.cm**2,
+    )
     starting_grammage = Field(
         nan * u.g / u.cm**2,
-        "Grammage (mass overburden) where the particle was injected into the atmosphere",
+        "Grammage (mass overburden) where the particle"
+        " was injected into the atmosphere",
         unit=u.g / u.cm**2,
     )
     shower_primary_id = Field(
         np.int16(np.iinfo(np.int16).max),
         "Simulated shower primary ID 0 (gamma), 1(e-),"
-        "2(mu-), 100*A+Z for nucleons and nuclei,"
-        "negative for antimatter.",
+        " 2(mu-), 100*A+Z for nucleons and nuclei,"
+        " negative for antimatter.",
     )
 
 
@@ -1174,43 +1186,48 @@ class FlatFieldContainer(Container):
     )
     n_events = Field(0, "Number of events used for statistics")
 
-    charge_mean = Field(None, "np array of signal charge mean (n_chan, n_pix)")
-    charge_median = Field(None, "np array of signal charge median (n_chan, n_pix)")
+    charge_mean = Field(None, "signal charge mean shape: (n_channels, n_pixels)")
+    charge_median = Field(None, "signal charge median shape: (n_channels, n_pixels)")
     charge_std = Field(
-        None, "np array of signal charge standard deviation (n_chan, n_pix)"
+        None, "signal charge standard deviation shape: (n_channels, n_pixels)"
     )
-    time_mean = Field(None, "np array of signal time mean (n_chan, n_pix)", unit=u.ns)
+    time_mean = Field(None, "signal time mean shape: (n_channels, n_pixels)", unit=u.ns)
     time_median = Field(
-        None, "np array of signal time median (n_chan, n_pix)", unit=u.ns
+        None, "signal time median shape: (n_channels, n_pixels)", unit=u.ns
     )
     time_std = Field(
-        None, "np array of signal time standard deviation (n_chan, n_pix)", unit=u.ns
+        None, "signal time standard deviation shape: (n_channels, n_pixels)", unit=u.ns
     )
     relative_gain_mean = Field(
-        None, "np array of the relative flat-field coefficient mean (n_chan, n_pix)"
+        None,
+        "mean of relative flat-field coefficient, shape: shape: (n_channels, n_pixels)",
     )
     relative_gain_median = Field(
-        None, "np array of the relative flat-field coefficient  median (n_chan, n_pix)"
+        None,
+        "median of relative flat-field coefficient"
+        ", shape: shape: (n_channels, n_pixels)",
     )
     relative_gain_std = Field(
         None,
-        "np array of the relative flat-field coefficient standard deviation (n_chan, n_pix)",
+        "standard deviation of relative flat-field coefficient"
+        ", shape: shape: (n_channels, n_pixels)",
     )
     relative_time_median = Field(
         None,
-        "np array of time (median) - time median averaged over camera (n_chan, n_pix)",
+        "median of time in pixels - median of time averaged over camera"
+        " shape: (n_channels, n_pixels)",
         unit=u.ns,
     )
 
     charge_median_outliers = Field(
-        None, "Boolean np array of charge median outliers (n_chan, n_pix)"
+        None, "Boolean charge median outliers shape: (n_channels, n_pixels)"
     )
     charge_std_outliers = Field(
-        None, "Boolean np array of charge std outliers (n_chan, n_pix)"
+        None, "Boolean charge std outliers shape: (n_channels, n_pixels)"
     )
 
     time_median_outliers = Field(
-        None, "Boolean np array of pixel time (median) outliers (n_chan, n_pix)"
+        None, "Boolean pixel time (median) outliers shape: (n_channels, n_pixels)"
     )
 
 
@@ -1226,16 +1243,16 @@ class PedestalContainer(Container):
     )
     sample_time_min = Field(nan * u.s, "Time of first pedestal event", unit=u.s)
     sample_time_max = Field(nan * u.s, "Time of last pedestal event", unit=u.s)
-    charge_mean = Field(None, "np array of pedestal average (n_chan, n_pix)")
-    charge_median = Field(None, "np array of the pedestal  median (n_chan, n_pix)")
+    charge_mean = Field(None, "pedestal average shape: (n_channels, n_pixels)")
+    charge_median = Field(None, "the pedestal  median shape: (n_channels, n_pixels)")
     charge_std = Field(
-        None, "np array of the pedestal standard deviation (n_chan, n_pix)"
+        None, "the pedestal standard deviation shape: (n_channels, n_pixels)"
     )
     charge_median_outliers = Field(
-        None, "Boolean np array of the pedestal median outliers (n_chan, n_pix)"
+        None, "Boolean the pedestal median outliers shape: (n_channels, n_pixels)"
     )
     charge_std_outliers = Field(
-        None, "Boolean np array of the pedestal std outliers (n_chan, n_pix)"
+        None, "Boolean the pedestal std outliers shape: (n_channels, n_pixels)"
     )
 
 
@@ -1249,19 +1266,19 @@ class PixelStatusContainer(Container):
     hardware_failing_pixels = Field(
         None,
         "Boolean np array (True = failing pixel) from the hardware pixel status data ("
-        "n_chan, n_pix)",
+        "n_channels, n_pixels)",
     )
 
     pedestal_failing_pixels = Field(
         None,
         "Boolean np array (True = failing pixel) from the pedestal data analysis ("
-        "n_chan, n_pix)",
+        "n_channels, n_pixels)",
     )
 
     flatfield_failing_pixels = Field(
         None,
         "Boolean np array (True = failing pixel) from the flat-field data analysis ("
-        "n_chan, n_pix)",
+        "n_channels, n_pixels)",
     )
 
 
@@ -1280,23 +1297,26 @@ class WaveformCalibrationContainer(Container):
 
     dc_to_pe = Field(
         None,
-        "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)",
+        "digital counts to photon electron coefficients"
+        " shape: (n_channels, n_pixels)",
     )
 
     pedestal_per_sample = Field(
         None,
-        "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
+        "average pedestal value per sample, shape: (n_channels, n_pixels)",
     )
 
-    time_correction = Field(None, "np array of time correction values (n_chan, n_pix)")
+    time_correction = Field(None, "time correction, shape: (n_channels, n_pixels)")
 
     n_pe = Field(
-        None, "np array of photo-electrons in calibration signal (n_chan, n_pix)"
+        None, "photo-electrons in calibration signal shape: (n_channels, n_pixels)"
     )
 
     unusable_pixels = Field(
         None,
-        "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)",
+        "Boolean mask of final calibration data analysis."
+        " True means the pixel is unusable."
+        " shape: shape: (n_channels, n_pixels)",
     )
 
 

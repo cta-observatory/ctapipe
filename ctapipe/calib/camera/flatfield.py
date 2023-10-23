@@ -59,28 +59,28 @@ class FlatFieldCalculator(Component):
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
-
         """
-        Parent class for the flat-field calculators.
+        Base class for processing flatfield events to compute calibration coefficients.
+
+        The calculator is supposed to be called in an event loop, and then
+        extracts and collects the event charge to update calibration coefficients.
+
         Fills the MonitoringCameraContainer.FlatfieldContainer on the base of a given
-        flat-field event sample.
-        The sample is defined by a maximal interval of time (sample_duration) or a
-        minimal number of events (sample_duration).
-        The calculator is supposed to be called in an event loop, extract and collect the
-        event charge and fill the PedestalContainer
+        flat-field event sample. The sample is defined by a maximal interval of time
+        (sample_duration) or a minimal number of events (sample_duration).
 
         Parameters
         ----------
         subarray: ctapipe.instrument.SubarrayDescription
             Description of the subarray
         tel_id : int
-              id of the telescope (default 0)
+            id of the telescope (default 0)
         sample_duration : int
-             interval of time (s) used to gather the pedestal statistics
+            interval of time (s) used to gather the pedestal statistics
         sample_size : int
-             number of pedestal events requested for the statistics
+            number of pedestal events requested for the statistics
         n_channels : int
-             number of waveform channel to be considered
+            number of waveform channel to be considered
         charge_product : str
             Name of the charge extractor to be used
         config : traitlets.loader.Config
@@ -91,13 +91,13 @@ class FlatFieldCalculator(Component):
         kwargs
 
         """
-
         super().__init__(**kwargs)
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, parent=self, subarray=subarray
+            self.charge_product,
+            parent=self,
+            subarray=subarray,
         )
-
         self.log.info(f"extractor {self.extractor}")
 
     @abstractmethod
@@ -118,45 +118,25 @@ class FlatFieldCalculator(Component):
 
 class FlasherFlatFieldCalculator(FlatFieldCalculator):
     """Calculates flat-field parameters from flasher data
-      based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
-      Pixels are defined as outliers on the base of a cut on the pixel charge median
-      over the full sample distribution and the pixel signal time inside the
-      waveform time
 
-
-    Parameters
-    ----------
-    charge_cut_outliers : List[2]
-        Interval of accepted charge values (fraction with respect to camera median value)
-    time_cut_outliers : List[2]
-        Interval (in waveform samples) of accepted time values
-
+    Based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
+    Pixels are defined as outliers on the base of a cut on the pixel charge median
+    over the full sample distribution and the pixel signal time inside the
+    waveform time.
     """
 
     charge_cut_outliers = List(
         [-0.3, 0.3],
-        help="Interval of accepted charge values (fraction with respect to camera median value)",
+        help=(
+            "Interval of accepted charge values."
+            "Values are given as fractions of the camera median value.",
+        ),
     ).tag(config=True)
     time_cut_outliers = List(
         [0, 60], help="Interval (in waveform samples) of accepted time values"
     ).tag(config=True)
 
     def __init__(self, **kwargs):
-        """Calculates flat-field parameters from flasher data
-          based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
-          Pixels are defined as outliers on the base of a cut on the pixel charge median
-          over the full sample distribution and the pixel signal time inside the
-          waveform time
-
-
-        Parameters:
-        ----------
-        charge_cut_outliers : List[2]
-            Interval of accepted charge values (fraction with respect to camera median value)
-        time_cut_outliers : List[2]
-            Interval (in waveform samples) of accepted time values
-
-        """
         super().__init__(**kwargs)
 
         self.log.info("Used events statistics : %d", self.sample_size)
@@ -269,7 +249,6 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             return True
 
         else:
-
             return False
 
     def setup_sample_buffers(self, waveform, sample_size):

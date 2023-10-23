@@ -267,7 +267,6 @@ def test_shift_waveforms():
 
 
 def test_invalid_pixels(example_event, example_subarray):
-
     # switching off the corrections makes it easier to test for
     # the exact value of 1.0
     config = Config(

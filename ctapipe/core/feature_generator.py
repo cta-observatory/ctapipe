@@ -41,7 +41,8 @@ class FeatureGenerator(Component):
     features = List(
         Tuple(Unicode(), Unicode()),
         help=(
-            "List of 2-Tuples of Strings: ('new_feature_name', 'expression to generate feature'). "
+            "List of 2-Tuples of Strings of form:"
+            "  ('new_feature_name', 'expression to generate feature'). "
             "You can use ``numpy`` as ``np`` and ``astropy.units`` as ``u``. "
             "Several math functions are usable without the ``np``-prefix. "
             "Use ``feature.quantity.to_value(unit)`` to create features without units."

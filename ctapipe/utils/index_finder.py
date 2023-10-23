@@ -1,7 +1,7 @@
 import bisect
-import numpy as np
 import warnings
 
+import numpy as np
 
 __all__ = ["IndexFinder"]
 

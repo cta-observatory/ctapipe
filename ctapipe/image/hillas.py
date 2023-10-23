@@ -148,8 +148,8 @@ def hillas_parameters(geom, image):
         kurtosis_long = m4_long / length**4
 
     # Compute of the Hillas parameters uncertainties.
-    # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
-    # not generally accessible.
+    # Implementation described in [hillas_uncertainties]_
+    # This is an internal MAGIC document not generally accessible.
 
     # intermediate variables
     cos_2psi = np.cos(2 * psi)
@@ -168,14 +168,14 @@ def hillas_parameters(geom, image):
         length_uncertainty = np.nan
     else:
         length_uncertainty = np.sqrt(
-            np.sum(((((a * A) + (b * B) + (c * C))) ** 2.0) * image)
+            np.sum((((a * A) + (b * B) + (c * C)) ** 2.0) * image)
         ) / (2 * length)
 
     if width == 0:
         width_uncertainty = np.nan
     else:
         width_uncertainty = np.sqrt(
-            np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
+            np.sum((((b * A) + (a * B) + (-c * C)) ** 2.0) * image)
         ) / (2 * width)
 
     if unit.is_equivalent(u.m):

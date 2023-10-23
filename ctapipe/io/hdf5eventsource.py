@@ -170,8 +170,8 @@ class HDF5EventSource(EventSource):
             " `~ctapipe.instrument.SubarrayDescription` which will be used in"
             " CameraFrame to TelescopeFrame coordinate transforms."
             " The 'nominal' focal length is the one used during "
-            " the simulation, the 'effective' focal length is computed using specialized "
-            " ray-tracing from a point light source"
+            " the simulation, the 'effective' focal length is computed using"
+            " specialized ray-tracing from a point light source"
         ),
     ).tag(config=True)
 
@@ -337,6 +337,7 @@ class HDF5EventSource(EventSource):
         self.file_.root.configuration.simulation.run.
         These are used to match the correct header to each event
         """
+
         # Just returning next(reader) would work as long as there are no merged files
         # The reader ignores obs_id making the setup somewhat tricky
         # This is ugly but supports multiple headers so each event can have
@@ -499,7 +500,6 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
 
             for kind, group in dl2_group._v_children.items():
-
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:

@@ -97,7 +97,6 @@ class ToyEventSource(TelescopeComponent, EventSource):
             self.event_id += 1
 
     def generate_event(self):
-
         event = ArrayEventContainer(
             index=EventIndexContainer(obs_id=1, event_id=self.event_id),
             trigger=None,

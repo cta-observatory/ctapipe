@@ -1,8 +1,9 @@
-import numpy as np
-from numpy.testing import assert_allclose
 import astropy.units as u
-from ctapipe.image.toymodel import Gaussian
+import numpy as np
 import pytest
+from numpy.testing import assert_allclose
+
+from ctapipe.image.toymodel import Gaussian
 
 
 def create_mock_image(geom, psi=25 * u.deg):
@@ -10,7 +11,7 @@ def create_mock_image(geom, psi=25 * u.deg):
     creates a mock image, which parameters are adapted to the camera size
     """
 
-    camera_r = np.max(np.sqrt(geom.pix_x ** 2 + geom.pix_y ** 2))
+    camera_r = np.max(np.sqrt(geom.pix_x**2 + geom.pix_y**2))
     model = Gaussian(
         x=0.3 * camera_r,
         y=0 * u.m,

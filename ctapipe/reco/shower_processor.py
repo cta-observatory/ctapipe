@@ -17,9 +17,10 @@ class ShowerProcessor(Component):
     This processor can apply multiple `~ctapipe.reco.Reconstructor` subclasses to
     array events in the event loop.
 
-    This currently includes geometry reconstruction via `~ctapipe.reco.HillasReconstructor`
-    or `~ctapipe.reco.HillasIntersection` and machine learning based reconstruction
-    of energy and particle type via the reconstructor classes in `~ctapipe.reco`.
+    This currently includes geometry reconstruction via
+    `~ctapipe.reco.HillasReconstructor` or `~ctapipe.reco.HillasIntersection`
+    and machine learning based reconstruction of energy, particle and direction
+    via the reconstructor classes in `~ctapipe.reco.sklearn`.
 
     Events must already contain the required inputs. These are dl1 parameters
     for the geometry reconstruction and any feature used by the machine learning

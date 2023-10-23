@@ -472,12 +472,13 @@ def test_muon_reconstruction_simtel(tmp_path):
 def test_plugin_help(capsys):
     ProcessorTool().print_help(classes=True)
     captured = capsys.readouterr()
-    assert (
-        "PluginEventSource.foo" in captured.out
-    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
-    assert (
-        "PluginReconstructor.foo" in captured.out
-    ), "Tool help is missing plugin classes, did you run `pip install -e ./test_plugin`?"
+
+    msg = (
+        "Tool help is missing plugin classes,"
+        " did you run `pip install -e ./test_plugin`?"
+    )
+    assert "PluginEventSource.foo" in captured.out, msg
+    assert "PluginReconstructor.foo" in captured.out, msg
 
 
 def test_only_trigger_and_simulation(tmp_path):

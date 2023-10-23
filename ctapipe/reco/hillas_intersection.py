@@ -90,11 +90,15 @@ class HillasIntersection(HillasGeometryReconstructor):
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
+        ["paranal"],
+        default_value="paranal",
+        help="name of atmosphere profile to use",
     ).tag(config=True)
 
     weighting = traits.CaselessStrEnum(
-        ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
+        ["Konrad", "hess"],
+        default_value="Konrad",
+        help="Weighting Method name",
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
@@ -106,7 +110,8 @@ class HillasIntersection(HillasGeometryReconstructor):
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
 
-        # other weighting schemes can be implemented. just add them as additional methods
+        # other weighting schemes can be implemented.
+        # just add them as additional methods
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
 
@@ -138,11 +143,16 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         telescope_pointings = self._get_telescope_pointings(event)
 
-        event.dl2.stereo.geometry[self.__class__.__name__] = self._predict(
-            hillas_dict, array_pointing, telescope_pointings
-        )
-
-        self._store_impact_parameter(event)
+        # Simulated events have no meaningful obstime, avoid warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                action="ignore",
+                category=MissingFrameAttributeWarning,
+            )
+            event.dl2.stereo.geometry[self.__class__.__name__] = self._predict(
+                hillas_dict, array_pointing, telescope_pointings
+            )
+            self._store_impact_parameter(event)
 
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
@@ -164,9 +174,6 @@ class HillasIntersection(HillasGeometryReconstructor):
         ReconstructedGeometryContainer:
 
         """
-
-        # filter warnings for missing obs time. this is needed because MC data has no obs time
-        warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:

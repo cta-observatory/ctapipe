@@ -1,5 +1,6 @@
 import pytest
-from ctapipe.io import EventSource, DataWriter
+
+from ctapipe.io import DataWriter, EventSource
 
 
 @pytest.fixture(scope="session")

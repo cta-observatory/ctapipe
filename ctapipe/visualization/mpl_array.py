@@ -59,7 +59,6 @@ class ArrayDisplay:
         radius=None,
         frame=GroundFrame(),
     ):
-
         self.frame = frame
         self.subarray = subarray
         self.axes = axes or plt.gca()
@@ -288,7 +287,6 @@ class ArrayDisplay:
         rot_angle_ellipse = np.zeros(self.subarray.n_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
-
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = u.Quantity(length, u.m)
 

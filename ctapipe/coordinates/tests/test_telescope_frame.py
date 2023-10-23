@@ -1,5 +1,5 @@
-from astropy.coordinates import SkyCoord, AltAz
 import astropy.units as u
+from astropy.coordinates import AltAz, SkyCoord
 from pytest import approx
 
 

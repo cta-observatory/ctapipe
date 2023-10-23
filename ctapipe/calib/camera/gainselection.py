@@ -3,7 +3,9 @@ Algorithms to select correct gain channel
 """
 from abc import abstractmethod
 from enum import IntEnum
+
 import numpy as np
+
 from ctapipe.core import Component, traits
 
 __all__ = [

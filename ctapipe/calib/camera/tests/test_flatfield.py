@@ -78,7 +78,6 @@ def test_flasherflatfieldcalculator(prod5_sst, reference_location):
 
     while ff_calculator.n_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
-
             # working pixel have good gain
             assert data.mon.tel[tel_id].flatfield.relative_gain_median[0, 0] == 1
 

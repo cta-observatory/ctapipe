@@ -117,7 +117,8 @@ class TrainEnergyRegressor(Tool):
         self.log.info("Events read from input: %d", len(table))
         if len(table) == 0:
             raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
+                "Input file does not contain any events"
+                f" for telescope type {telescope_type}"
             )
 
         mask = self.regressor.quality_query.get_table_mask(table)
@@ -142,7 +143,8 @@ class TrainEnergyRegressor(Tool):
         if n_events is not None:
             if n_events > len(table):
                 self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
+                    "Number of events in table (%d)"
+                    " is less than requested number of events %d",
                     len(table),
                     n_events,
                 )

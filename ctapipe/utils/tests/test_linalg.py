@@ -1,9 +1,9 @@
+from numpy import allclose, dot, identity
+
 from ..linalg import rotation_matrix_2d
-from numpy import dot, allclose, identity
 
 
 def test_rotation_matrix_2d():
-
     # test that 360 rotation is back to the identity:
     assert allclose(rotation_matrix_2d("360d"), identity(2))
 

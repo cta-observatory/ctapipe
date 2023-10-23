@@ -1,6 +1,6 @@
 import numpy as np
-from iminuit import Minuit
 from astropy.units import Quantity
+from iminuit import Minuit
 
 from ctapipe.utils.quantities import all_to_value
 
@@ -35,8 +35,8 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     b1 = np.sum(weights * (x - mean_x) * y)
     b2 = np.sum(weights * (y - mean_y) * y)
 
-    c1 = 0.5 * np.sum(weights * (x - mean_x) * (x ** 2 + y ** 2))
-    c2 = 0.5 * np.sum(weights * (y - mean_y) * (x ** 2 + y ** 2))
+    c1 = 0.5 * np.sum(weights * (x - mean_x) * (x**2 + y**2))
+    c2 = 0.5 * np.sum(weights * (y - mean_y) * (x**2 + y**2))
 
     center_x = (b2 * c1 - b1 * c2) / (a1 * b2 - a2 * b1)
     center_y = (a2 * c1 - a1 * c2) / (a2 * b1 - a1 * b2)
@@ -109,9 +109,9 @@ def make_taubin_loss_function(x, y):
         """taubin fit formula
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
         """
-        upper_term = (((x - xc) ** 2 + (y - yc) ** 2 - r ** 2) ** 2).sum()
+        upper_term = (((x - xc) ** 2 + (y - yc) ** 2 - r**2) ** 2).sum()
 
-        lower_term = (((x - xc) ** 2 + (y - yc) ** 2)).sum()
+        lower_term = ((x - xc) ** 2 + (y - yc) ** 2).sum()
 
         return np.abs(upper_term) / np.abs(lower_term)
 

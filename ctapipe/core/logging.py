@@ -3,7 +3,6 @@
 import logging
 from collections.abc import Mapping
 
-
 DEFAULT_LOGGING_FORMAT = (
     "%(asctime)s %(levelname)s [%(name)s] (%(module)s.%(funcName)s): %(message)s"
 )

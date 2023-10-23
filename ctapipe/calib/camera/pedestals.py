@@ -18,9 +18,11 @@ __all__ = ["calc_pedestals_from_traces", "PedestalCalculator", "PedestalIntegrat
 
 
 def calc_pedestals_from_traces(traces, start_sample, end_sample):
-    """A very simple algorithm to calculates pedestals and pedestal
+    """Compute pedestal mean and variance from camera waveforms.
+
+    A very simple algorithm to calculates pedestals and pedestal
     variances from camera traces by integrating the samples over a
-    fixed window for all pixels.  This assumes that the data are
+    fixed window for all pixels. This assumes that the data are
     sample-mode (e.g. cameras that return time traces for each pixel).
 
     Parameters
@@ -50,30 +52,17 @@ def calc_pedestals_from_traces(traces, start_sample, end_sample):
 class PedestalCalculator(Component):
     """
     Parent class for the pedestal calculators.
-    Fills the MonitoringCameraContainer.PedestalContainer on the base of a given pedestal sample.
+
+    Fills the MonitoringCameraContainer.PedestalContainer from a given pedestal sample.
     The sample is defined by a maximal interval of time (sample_duration) or a
     minimal number of events (sample_duration).
-    The calculator is supposed to act in an event loop, extract and collect the
+    The calculator is supposed to act in an event loop, to extract and collect the
     event charge and fill the PedestalContainer
 
     Parameters
     ----------
-    tel_id : int
-          id of the telescope (default 0)
-    sample_duration : int
-         interval of time (s) used to gather the pedestal statistics
-    sample_size : int
-         number of pedestal events requested for the statistics
-    n_channels : int
-         number of waveform channel to be considered
-    charge_product : str
-        Name of the charge extractor to be used
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-
-    kwargs
+    subarray: ctapipe.instrument.SubarrayDescription
+        Description of the subarray
     """
 
     tel_id = Int(0, help="id of the telescope to calculate the pedestal values").tag(
@@ -87,37 +76,6 @@ class PedestalCalculator(Component):
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
-        """
-        Parent class for the pedestal calculators.
-        Fills the MonitoringCameraContainer.PedestalContainer on the base of a given pedestal sample.
-        The sample is defined by a maximal interval of time (sample_duration) or a
-        minimal number of events (sample_duration).
-        The calculator is supposed to act in an event loop, extract and collect the
-        event charge and fill the PedestalContainer
-
-        Parameters
-        ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        tel_id : int
-              id of the telescope (default 0)
-        sample_duration : int
-             interval of time (s) used to gather the pedestal statistics
-        sample_size : int
-             number of pedestal events requested for the statistics
-        n_channels : int
-             number of waveform channel to be considered
-        charge_product : str
-            Name of the charge extractor to be used
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-
-        kwargs
-
-        """
-
         super().__init__(**kwargs)
 
         # load the waveform charge extractor
@@ -143,49 +101,32 @@ class PedestalCalculator(Component):
 
 
 class PedestalIntegrator(PedestalCalculator):
-    """Calculates pedestal parameters integrating the charge of pedestal events:
-      the pedestal value corresponds to the charge estimated with the selected
-      charge extractor
-      The pixels are set as outliers on the base of a cut on the pixel charge median
-      over the pedestal sample and the pixel charge standard deviation over
-      the pedestal sample with respect to the camera median values
+    """Calculate pedestal parameters integrating the charge of pedestal events.
 
-
-    Parameters:
-    ----------
-    charge_median_cut_outliers : List[2]
-        Interval (number of std) of accepted charge values around camera median value
-    charge_std_cut_outliers : List[2]
-        Interval (number of std) of accepted charge standard deviation around camera median value
-
+    The pedestal value corresponds to the charge estimated with the selected
+    charge extractor.
+    The pixels are set as outliers on the base of a cut on the pixel charge median
+    over the pedestal sample and the pixel charge standard deviation over
+    the pedestal sample with respect to the camera median values
     """
 
     charge_median_cut_outliers = List(
         [-3, 3],
-        help="Interval (number of std) of accepted charge values around camera median value",
+        help=(
+            "Valid interval of accepted charge values expressed as number of standard"
+            " deviations around camera median value."
+        ),
     ).tag(config=True)
+
     charge_std_cut_outliers = List(
         [-3, 3],
-        help="Interval (number of std) of accepted charge standard deviation around camera median value",
+        help=(
+            "Valid interval of accepted charge std values expressed as number of"
+            " standard deviations around camera median value."
+        ),
     ).tag(config=True)
 
     def __init__(self, **kwargs):
-        """Calculates pedestal parameters integrating the charge of pedestal events:
-          the pedestal value corresponds to the charge estimated with the selected
-          charge extractor
-          The pixels are set as outliers on the base of a cut on the pixel charge median
-          over the pedestal sample and the pixel charge standard deviation over
-          the pedestal sample with respect to the camera median values
-
-
-        Parameters:
-        ----------
-        charge_median_cut_outliers : List[2]
-            Interval (number of std) of accepted charge values around camera median value
-        charge_std_cut_outliers : List[2]
-            Interval (number of std) of accepted charge standard deviation around camera median value
-        """
-
         super().__init__(**kwargs)
 
         self.log.info("Used events statistics : %d", self.sample_size)
@@ -285,7 +226,6 @@ class PedestalIntegrator(PedestalCalculator):
             return True
 
         else:
-
             return False
 
     def setup_sample_buffers(self, waveform, sample_size):

@@ -91,7 +91,13 @@ class Contact(Configurable):
             return ""
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, email={self.email}, organization={self.organization})"
+        return (
+            f"{self.__class__.__name__}("
+            f"name={self.name}"
+            f", email={self.email}"
+            f", organization={self.organization}"
+            ")"
+        )
 
 
 class Product(HasTraits):
@@ -270,7 +276,6 @@ class Reference(HasTraits):
     def from_dict(cls, metadata):
         kwargs = defaultdict(dict)
         for hierarchical_key, value in metadata.items():
-
             components = hierarchical_key.split(" ")
 
             if components[0] != "CTA":

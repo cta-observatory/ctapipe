@@ -73,7 +73,6 @@ def _smear_psf_randomly(
         np.random.seed(seed)
 
     for pixel in range(len(image)):
-
         if image[pixel] <= 0:
             continue
 
@@ -102,12 +101,12 @@ def _smear_psf_randomly(
 
 class ImageModifier(TelescopeComponent):
     """
-    Component to tune simulated background to
-    overserved NSB values.
+    Component to tune simulated background to overserved NSB values.
+
     A differentiation between bright and dim pixels is taking place
     because this happens at DL1a level and in general the integration window
-    would change for peak-searching extraction algorithms with different background levels
-    introducing a bias to the charge in dim pixels.
+    would change for peak-searching extraction algorithms with different background
+    levels introducing a bias to the charge in dim pixels.
 
     The performed steps include:
     - Smearing of the image (simulating a worse PSF)

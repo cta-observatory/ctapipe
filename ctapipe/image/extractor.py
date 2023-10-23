@@ -649,11 +649,11 @@ class LocalPeakWindowSum(ImageExtractor):
 
 class SlidingWindowMaxSum(ImageExtractor):
     """
-    Sliding window extractor that maximizes the signal in window_width consecutive slices.
+    Extractor using a sliding window maximizing the signal in consecutive slices.
     """
 
     window_width = IntTelescopeParameter(
-        default_value=7, help="Define the width of the integration window"
+        default_value=7, help="Width of the sliding integration window"
     ).tag(config=True)
 
     apply_integration_correction = BoolTelescopeParameter(
@@ -1318,8 +1318,8 @@ def deconvolution_parameters(
     leading_edge_timing : bool
         Whether time calculation will be done on the leading edge.
     leading_edge_rel_descend_limit : float
-        If leading edge timing is used, the fraction of the peak value down to which samples are accumulated in the
-        centroid calculation.
+        If leading edge timing is used, the fraction of the peak value down
+        to which samples are accumulated in the centroid calculation.
     time_profile_pdf : callable or None
         PDF of the assumed effective Cherenkov time profile to assume when
         calculating the gain loss; takes nanoseconds as arguments and returns
@@ -1348,9 +1348,10 @@ def deconvolution_parameters(
 
     if camera_sample_width_nsec < ref_sample_width_nsec:
         raise ValueError(
-            f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be equal to or shorter than the "
-            f"camera sampling time (got {camera_sample_width_nsec} ns); need a reference single p.e. pulse shape with "
-            "finer sampling!"
+            f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be"
+            " equal to or shorter than the camera sampling time"
+            f" (got {camera_sample_width_nsec} ns); need a reference single p.e. "
+            " pulse shape with finer sampling!"
         )
     avg_step = int(round(camera_sample_width_nsec / ref_sample_width_nsec))
 
@@ -1415,9 +1416,11 @@ def deconvolution_parameters(
     return pole_zeros, gains, shifts, pz2d_shifts
 
 
-def __filtfilt_fast(signal, filt):
+def _filtfilt_fast(signal, filt):
     """
-    Apply a linear filter forward and backward to a signal, based on scipy.signal.filtfilt.
+    Apply a linear filter forward and backward to a signal.
+
+    Faster version for our limited usecase of `scipy.signal.filtfilt` as
     filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
     """
     forward = convolve1d(signal, filt, axis=-1, mode="nearest")
@@ -1465,7 +1468,7 @@ def deconvolve(
         filt = np.ones(upsampling)
         filt_weighted = filt / upsampling
         signal = np.repeat(deconvolved_waveforms, upsampling, axis=-1)
-        return __filtfilt_fast(signal, filt_weighted)
+        return _filtfilt_fast(signal, filt_weighted)
 
     return deconvolved_waveforms
 
@@ -1481,9 +1484,9 @@ def deconvolve(
 )
 def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
     """
-    Calculates the pulse centroid for all samples down to rel_descend_limit * peak_amplitude.
+    Calculates the pulse centroid for all samples down to a lower limit.
 
-    The ret argument is required by numpy to create the numpy array which is
+    The ``centroids`` argument is required by numba to create the numpy array which is
     returned. It can be ignored when calling this function.
 
     Parameters
@@ -1494,7 +1497,8 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
     peak_index : ndarray or int
         Peak index for each pixel.
     rel_descend_limit : ndarray or float
-        Fraction of the peak value down to which samples are accumulated in the centroid calculation.
+        Fraction of the peak value down to which samples are
+        accumulated in the centroid calculation.
     centroids : ndarray
         Return argument for ufunc (ignore)
         Returns the peak centroid in units "samples"
@@ -1546,21 +1550,25 @@ class FlashCamExtractor(ImageExtractor):
     """
     Image extractor applying signal preprocessing for FlashCam
 
-    The waveforms are first upsampled to achieve one nanosecond sampling (as a default, for the FlashCam).
-    A pole-zero deconvolution [1] is then performed to the waveforms to recover the original impulse or narrow
-    the resulting pulse due to convolution with detector response. The modified waveform is integrated in a
-    window around a peak, which is defined by the neighbors of the pixel. The waveforms are clipped in
-    order to reduce the contribution from the afterpulses in the neighbor sum. If leading_edge_timing is
-    set to True, the so-called leading edge time is found (with the adaptive_centroid function) instead of the peak
-    time.
+    The waveforms are first upsampled by 4, which results in one nanosecond sampling
+    for FlashCam.
+
+    A pole-zero deconvolution [1] is then performed to the waveforms to recover the
+    original impulse or narrow the resulting pulse due to convolution with detector
+    response. The modified waveform is integrated in a window around a peak, which is
+    defined by the neighbors of the pixel. The waveforms are clipped in order to reduce
+    the contribution from the afterpulses in the neighbor sum. If leading_edge_timing
+    is set to True, the so-called leading edge time is found using the
+    `adaptive_centroid` function instead of the peak time.
 
     This extractor has been optimized for the FlashCam [2].
 
-    [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to Digital Signal Processing (California Technical
-    Publishing)
-    [2] FlashCam: a novel Cherenkov telescope camera with continuous signal digitization. CTA Consortium.
-    A. Gadola (Zurich U.) et al. DOI: 10.1088/1748-0221/10/01/C01014. Published in: JINST 10 (2015) 01, C01014
-
+    [1] Smith, S. W. 1997, The Scientist and Engineer’s Guide to
+        Digital Signal Processing (California Technical Publishing)
+    [2] FlashCam: a novel Cherenkov telescope camera with continuous
+        signal digitization. CTA Consortium. A. Gadola (Zurich U.) et al.
+        DOI: 10.1088/1748-0221/10/01/C01014.
+        Published in: JINST 10 (2015) 01, C01014
     """
 
     upsampling = IntTelescopeParameter(

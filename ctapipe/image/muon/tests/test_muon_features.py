@@ -1,12 +1,12 @@
+import math
+
 import astropy.units as u
 import numpy as np
-import math
-from ctapipe.image.muon.features import ring_containment
-from ctapipe.image.muon.features import ring_completeness
+
+from ctapipe.image.muon.features import ring_completeness, ring_containment
 
 
 def test_ring_containment():
-
     ring_radius = 1 * u.deg
     cam_radius = 4 * u.deg
 

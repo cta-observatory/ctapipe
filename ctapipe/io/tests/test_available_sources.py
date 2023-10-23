@@ -1,6 +1,6 @@
 def test_available_sources():
-    from ctapipe.io.eventsource import EventSource
     from ctapipe.core import non_abstract_children
+    from ctapipe.io.eventsource import EventSource
 
     # make this before the explicit imports to make sure
     # all classes are avaialble even if not explicitly imported

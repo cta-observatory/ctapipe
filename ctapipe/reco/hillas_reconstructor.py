@@ -356,7 +356,9 @@ class HillasReconstructor(HillasGeometryReconstructor):
     @staticmethod
     def estimate_core_position(array_pointing, psi, positions):
         """
-        Estimate the core position by intersection the major ellipse lines of each telescope.
+        Estimate the core position.
+
+        Done by finding the intersection of the major ellipse lines of each telescope.
 
         Parameters
         ----------
@@ -377,7 +379,6 @@ class HillasReconstructor(HillasGeometryReconstructor):
         The part of the algorithm taking into account divergent pointing
         mode and the usage of a corrected psi angle is explained in [gasparetto]_
         section 7.1.4.
-
         """
 
         # Since psi has been recalculated in the fake CameraFrame
@@ -414,11 +415,13 @@ class HillasReconstructor(HillasGeometryReconstructor):
     @staticmethod
     def estimate_h_max(cog_vectors, positions):
         """
-        Estimate the max height by intersecting the lines of the cog directions of each telescope.
+        Estimate the height of the shower maximum.
+
+        THe algorithm is intersecting the lines of the cog directions of each telescope.
 
         Returns
         -------
-        astropy.unit.Quantity
+        h_max : astropy.unit.Quantity
             the estimated max height
         """
         positions = positions.cartesian.xyz.T.to_value(u.m)

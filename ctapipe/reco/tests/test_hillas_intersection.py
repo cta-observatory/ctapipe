@@ -11,7 +11,9 @@ from ctapipe.reco.hillas_intersection import HillasIntersection
 
 def test_intersect():
     """
-    Simple test to check the intersection of lines. Try to intersect positions at (0,1) and (1,0)
+    Simple test to check the intersection of lines.
+
+    Try to intersect positions at (0,1) and (1,0)
     with angles perpendicular and test they cross at (0,0)
     """
     x1 = 0
@@ -30,8 +32,10 @@ def test_intersect():
 
 def test_parallel():
     """
-    Simple test to check the intersection of lines. Try to intersect positions at (0,0) and (0,1)
-    with angles parallel and check the behaviour
+    Simple test to check the intersection of lines.
+
+    Try to intersect positions at (0,0) and (0,1)
+    with angles parallel and check the behaviour.
     """
     x1 = 0
     y1 = 0
@@ -49,8 +53,10 @@ def test_parallel():
 def test_intersection_xmax_reco(example_subarray):
     """
     Test the reconstruction of xmax with two LSTs that are pointing at zenith = 0.
-    The telescopes are places along the x and y axis at the same distance from the center.
-    The impact point is hard-coded to be happening in the center of this cartesian system.
+
+    The telescopes are places along the x and y axis at the same distance from
+    the center. The impact point is hard-coded to be happening in the center of
+    this cartesian system.
     """
     hill_inter = HillasIntersection(subarray=example_subarray)
 
@@ -99,8 +105,9 @@ def test_intersection_xmax_reco(example_subarray):
 def test_intersection_reco_impact_point_tilted(example_subarray):
     """
     Function to test the reconstruction of the impact point in the tilted frame.
-    This is done using a squared configuration, of which the impact point occupies a vertex,
-    ad the three telescopes the other three vertices.
+
+    This is done using a squared configuration, of which the impact point
+    occupies a vertex, and the three telescopes the other three vertices.
     """
     hill_inter = HillasIntersection(example_subarray)
 
@@ -124,7 +131,9 @@ def test_intersection_reco_impact_point_tilted(example_subarray):
 
 def test_intersection_weighting_spoiled_parameters(example_subarray):
     """
-    Test that the weighting scheme is useful especially when a telescope is 90 deg with respect to the other two
+    Test that the weighting scheme is useful.
+
+    Especially when a telescope is 90 deg with respect to the other two
     """
     hill_inter = HillasIntersection(example_subarray)
 
@@ -149,9 +158,10 @@ def test_intersection_weighting_spoiled_parameters(example_subarray):
 
 def test_intersection_nominal_reconstruction(example_subarray):
     """
-    Testing the reconstruction of the position in the nominal frame with a three-telescopes system.
-    This is done using a squared configuration, of which the impact point occupies a vertex,
-    ad the three telescopes the other three vertices.
+    Test reconstruction of the position in nominal frame with three telescopes.
+
+    This is done using a squared configuration, of which the impact point
+    occupies a vertex, ad the three telescopes the other three vertices.
     """
     hill_inter = HillasIntersection(example_subarray)
 
@@ -219,9 +229,9 @@ def test_intersection_nominal_reconstruction(example_subarray):
 
 def test_badly_reconstructed_event(prod5_mst_flashcam):
     """
-    Test that events reconstructed at large angular distance
-    from FoV center return INVALID. Event and array loosely follow an
-    actual simulation event.
+    Test that events reconstructed far away from the FoV center return INVALID.
+
+    Event and array loosely follow an actual simulation event.
     """
     tel_pos = {1: np.array([150, 75, 0]) * u.m, 2: np.array([150, -240, 0]) * u.m}
     tel_desc = {1: prod5_mst_flashcam, 2: prod5_mst_flashcam}

@@ -50,7 +50,8 @@ def _get_tel_index(event, tel_id):
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v5.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v5.0.0: - Change DL2 telescope-wise container prefixes from {algorithm}_tel to {algorithm}_tel_{kind}.
+- v5.0.0: - Change DL2 telescope-wise container prefixes from {algorithm}_tel to
+            {algorithm}_tel_{kind}.
             As of now, this only changes 'tel_distance' to 'tel_impact_distance'
 - v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
             This breaks backwards and forwards compatibility for almost everything.
@@ -68,7 +69,8 @@ DATA_MODEL_CHANGE_HISTORY = """
           - include observation configuration
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
-- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
+- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree)
+          as opposed to camera frame (m)
 - v2.0.0: Match optics and camera tables using indices instead of names
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
@@ -628,7 +630,6 @@ class DataWriter(Component):
 
     def _write_r1_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r1_tel in event.r1.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -637,7 +638,6 @@ class DataWriter(Component):
 
     def _write_r0_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r0_tel in event.r0.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -679,7 +679,8 @@ class DataWriter(Component):
             if self.write_images:
                 if dl1_camera.image is None:
                     raise ValueError(
-                        "DataWriter.write_images is True but event does not contain image"
+                        "DataWriter.write_images is True"
+                        " but event does not contain image"
                     )
 
                 self._writer.write(
@@ -715,7 +716,6 @@ class DataWriter(Component):
                     )
 
     def _write_muon_telescope_events(self, event: ArrayEventContainer):
-
         for tel_id, muon in event.muon.tel.items():
             table_name = self.table_name(tel_id)
             tel_index = _get_tel_index(event, tel_id)

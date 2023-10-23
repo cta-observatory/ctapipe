@@ -145,7 +145,7 @@ class SKLearnReconstructor(Reconstructor):
                 and loaded.subarray.telescope_types != subarray.telescope_types
             ):
                 self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
+                    "Supplied subarray differs from subarray of training data"
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
@@ -172,7 +172,8 @@ class SKLearnReconstructor(Reconstructor):
         Parameters
         ----------
         key : Hashable
-            Key of the model. Currently always a `~ctapipe.instrument.TelescopeDescription`
+            Key of the model.
+            Currently always a `~ctapipe.instrument.TelescopeDescription`
             as we train models per telescope type.
         table : `~astropy.table.Table`
             Table of features
@@ -431,7 +432,10 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     positive_class = traits.Integer(
         default_value=0,
-        help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
+        help=(
+            "Particle id (in simtel system) of the positive class."
+            " Default is 0 for gammas."
+        ),
     ).tag(config=True)
 
     property = ReconstructionProperty.PARTICLE_TYPE
@@ -500,12 +504,13 @@ class DispReconstructor(Reconstructor):
 
     log_target = traits.Bool(
         default_value=False,
-        help="If True, the model is trained to predict the natural logarithm of the absolute value.",
+        help="If True, the natural logarithm of the target will be used for training",
     ).tag(config=True)
 
-    norm_config = traits.Dict({}, help="kwargs for the sklearn regressor").tag(
-        config=True
-    )
+    norm_config = traits.Dict(
+        {},
+        help="kwargs for the sklearn regressor",
+    ).tag(config=True)
 
     norm_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
@@ -575,7 +580,7 @@ class DispReconstructor(Reconstructor):
                 and loaded.subarray.telescope_types != subarray.telescope_types
             ):
                 self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded from file"
+                    "Supplied subarray differs from subarray of training data"
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray

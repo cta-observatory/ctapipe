@@ -1,8 +1,8 @@
-import ctapipe
-import pkgutil
 import importlib
+import pkgutil
 from collections import defaultdict
 
+import ctapipe
 from ctapipe.core import Component, Tool
 
 ignore_traits = {

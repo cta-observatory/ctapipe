@@ -21,7 +21,7 @@ class DumpInstrumentTool(Tool):
         directory_ok=True,
         allow_none=True,
         default_value=None,
-        help="Output directory. If not given, the current working directory will be used.",
+        help="Output directory. Default is the current working directory.",
     ).tag(config=True)
 
     format = Enum(

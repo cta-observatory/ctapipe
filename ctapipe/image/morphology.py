@@ -6,7 +6,6 @@ from ..containers import MorphologyContainer
 
 @njit(cache=True)
 def _n_islands_sparse_indices(indices, indptr, mask):
-
     # non-signal pixel get label == 0, we marke the cleaning
     # pixels with -1, so we only have to check labels and not labels and mask
     # from now on.
@@ -132,9 +131,9 @@ def largest_island(island_labels):
     Returns
     -------
     mask : array
-        A boolean mask created from the input labels and filtered for the largest island.
-        If no islands survived the cleaning the array is all False.
-
+        A boolean mask created from the input labels and
+        filtered for the largest island. If no islands
+        survived the cleaning the array is all False.
     """
     if np.count_nonzero(island_labels) == 0:
         return np.zeros(island_labels.shape, dtype="bool")
@@ -161,8 +160,8 @@ def brightest_island(n_islands, island_labels, image):
     Returns
     -------
     mask : array
-        A boolean mask created from the input labels and filtered for the brightest island.
-        If no islands survived the cleaning the array is all False.
+        A boolean mask created from the input labels and filtered for the brightest
+        island. If no islands survived the cleaning the array is all False.
     """
 
     if n_islands == 0:

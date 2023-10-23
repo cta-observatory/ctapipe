@@ -213,7 +213,6 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
         load_true_images=True,
         load_instrument=True,
     ) as table_loader:
-
         table = table_loader.read_telescope_events(["MST_MST_FlashCam"])
 
         assert "HillasReconstructor_alt" in table.colnames
@@ -242,11 +241,9 @@ def test_read_telescope_events_by_type(dl2_shower_geometry_file):
         load_true_images=True,
         load_instrument=True,
     ) as table_loader:
-
         tables = table_loader.read_telescope_events_by_type([25, 130])
 
         for tel_type in ["MST_MST_NectarCam", "MST_MST_FlashCam"]:
-
             table = tables[tel_type]
 
             assert "HillasReconstructor_alt" in table.colnames
@@ -295,7 +292,6 @@ def test_chunked(dl2_shower_geometry_file):
         load_dl2=True,
         load_simulated=True,
     ) as table_loader:
-
         tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
         event_it = table_loader.read_subarray_events_chunked(chunk_size)
         by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size)
@@ -304,7 +300,6 @@ def test_chunked(dl2_shower_geometry_file):
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
         for chunk, (events, tel_events, by_type, by_id) in enumerate(zip(*iters)):
-
             expected_start = chunk * chunk_size
             expected_stop = min(n_events, (chunk + 1) * chunk_size)
 

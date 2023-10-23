@@ -114,9 +114,7 @@ def test_write(tmpdir: Path):
         images = h5file.get_node("/dl1/event/telescope/images/tel_004")
         assert images.col("image").max() > 0.0
         assert (
-            h5file.root._v_attrs[
-                "CTA PRODUCT DATA MODEL VERSION"
-            ]  # pylint: disable=protected-access
+            h5file.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]  # pylint: disable=protected-access
             == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
@@ -200,7 +198,6 @@ def test_roundtrip(tmpdir: Path):
     # make sure it is readable by the event source and matches the images
 
     for event in EventSource(output_path):
-
         for tel_id, dl1 in event.dl1.tel.items():
             original_image = events[event.count].dl1.tel[tel_id].image
             read_image = dl1.image
@@ -252,7 +249,7 @@ def test_dl1writer_no_events(tmpdir: Path):
 def test_metadata(tmpdir: Path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
 
-    dataset = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+    dataset = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"  # noqa
 
     config = Config(
         {

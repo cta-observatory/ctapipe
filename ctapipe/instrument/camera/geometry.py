@@ -166,7 +166,8 @@ class CameraGeometry:
                 pix_type = PixelShape.from_string(pix_type)
             elif not isinstance(pix_type, PixelShape):
                 raise TypeError(
-                    f"pix_type must be a PixelShape or the name of a PixelShape, got {pix_type}"
+                    "pix_type must be a PixelShape or the name of a PixelShape"
+                    f", got {pix_type}"
                 )
 
             if not isinstance(pix_rotation, Angle):
@@ -728,7 +729,6 @@ class CameraGeometry:
             radius = 1.4
             norm = 2  # use L2 norm for hex
         else:
-
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
             # < than 2 * the pixel size, else 4 neigbors with max L1 distance
@@ -946,13 +946,16 @@ class CameraGeometry:
 
         Parameters
         ----------
-        x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame
-        y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame
+        x : astropy.units.Quantity[distance]
+            horizontal position(s) in the camera frame
+        y : astropy.units.Quantity[distance]
+            vertical position(s) in the camera frame
 
         Returns
         -------
-        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
-                    outside camera
+        pix_indices : np.ndarray
+            Pixel index or array of pixel indices. Returns -1 if position falls
+            outside camera
         """
 
         if not self._all_pixel_areas_equal:
@@ -972,14 +975,14 @@ class CameraGeometry:
         # 1. Mark all points outside pixel circumeference as lying outside camera
         pix_indices[pix_indices == self.n_pixels] = -1
 
-        # 2. Accurate check for the remaing cases (within circumference, but still outside
-        # camera). It is first checked if any border pixel numbers are returned.
+        # 2. Accurate check for the remaing cases (within circumference, but still
+        # outside camera). It is first checked if any border pixel numbers are returned.
         # If not, everything is fine. If yes, the distance of the given position to the
-        # the given position to the closest pixel center is translated to the distance to
-        # the center of a non-border pixel', pos -> pos', and it is checked whether pos'
-        # still lies within pixel'. If not, pos lies outside the camera. This approach
-        # does not need to know the particular pixel shape, but as the kdtree itself,
-        # presumes all camera pixels being of equal size.
+        # the given position to the closest pixel center is translated to the distance
+        # to the center of a non-border pixel', pos -> pos', and it is checked whether
+        # pos still lies within pixel'. If not, pos lies outside the camera.
+        # This approach does not need to know the particular pixel shape, but as the
+        # kdtree itself, presumes all camera pixels being of equal size.
         border_mask = self.get_border_pixel_mask()
         # get all pixels at camera border:
         borderpix_indices = np.where(border_mask)[0]
