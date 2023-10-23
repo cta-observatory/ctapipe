@@ -6,7 +6,6 @@ from ..containers import MorphologyContainer
 
 @njit(cache=True)
 def _n_islands_sparse_indices(indices, indptr, mask):
-
     # non-signal pixel get label == 0, we marke the cleaning
     # pixels with -1, so we only have to check labels and not labels and mask
     # from now on.

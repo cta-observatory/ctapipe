@@ -42,7 +42,6 @@ def test_ActivityProvenance():
 
 
 def test_provenence_contextmanager():
-
     prov = Provenance()
 
     with prov.activity("myactivity"):

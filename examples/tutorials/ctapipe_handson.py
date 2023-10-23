@@ -265,7 +265,6 @@ for event in source:
 
 ######################################################################
 with HDF5TableWriter(filename="hillas.h5", group_name="dl1", overwrite=True) as writer:
-
     source = EventSource(data, allowed_tels=[1, 2, 3, 4], max_events=10)
     for event in source:
         calib(event)

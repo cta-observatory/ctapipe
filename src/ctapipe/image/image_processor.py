@@ -214,7 +214,6 @@ class ImageProcessor(TelescopeComponent):
         Loop over telescopes and process the calibrated images into parameters
         """
         for tel_id, dl1_camera in event.dl1.tel.items():
-
             if self.apply_image_modifier.tel[tel_id]:
                 dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
 

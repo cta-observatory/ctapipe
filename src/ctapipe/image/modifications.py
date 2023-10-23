@@ -73,7 +73,6 @@ def _smear_psf_randomly(
         np.random.seed(seed)
 
     for pixel in range(len(image)):
-
         if image[pixel] <= 0:
             continue
 

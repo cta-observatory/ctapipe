@@ -605,7 +605,6 @@ class ImPACTReconstructor(Component):
 
         # So here we must loop over the telescopes
         for x, i in zip(tel_x, range(len(tel_x))):
-
             px.append(pixel_x[x].to(u.rad).value)
             if len(px[i]) > max_pix_x:
                 max_pix_x = len(px[i])
@@ -793,7 +792,6 @@ class ImPACTReconstructor(Component):
         """
         limits = np.asarray(limits)
         if minimiser_name == "minuit":
-
             self.min = Minuit(
                 self.get_likelihood,
                 print_level=1,

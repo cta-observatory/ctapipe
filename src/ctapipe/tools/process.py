@@ -165,7 +165,6 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
-
         # setup components:
         self.event_source = self.enter_context(EventSource(parent=self))
 
@@ -297,7 +296,6 @@ class ProcessorTool(Tool):
             unit="ev",
             disable=not self.progress_bar,
         ):
-
             self.log.debug("Processessing event_id=%s", event.index.event_id)
 
             if not self.event_type_filter(event):

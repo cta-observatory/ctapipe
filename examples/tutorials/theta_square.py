@@ -38,7 +38,6 @@ shower_processor = ShowerProcessor(subarray=subarray)
 off_angles = []
 
 for event in tqdm(source):
-
     # calibrating the event
     calib(event)
     image_processor(event)

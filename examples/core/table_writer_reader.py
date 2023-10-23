@@ -43,7 +43,6 @@ from ctapipe.io import HDF5TableReader, HDF5TableWriter, read_table
 
 ######################################################################
 class VariousTypesContainer(Container):
-
     a_int = Field(int, "some int value")
     a_float = Field(float, "some float value with a unit", unit=u.m)
     a_bool = Field(bool, "some bool value")
@@ -59,10 +58,8 @@ class VariousTypesContainer(Container):
 
 
 def create_stream(n_event):
-
     data = VariousTypesContainer()
     for i in range(n_event):
-
         data.a_int = int(i)
         data.a_float = float(i) * u.cm  # note unit conversion will happen
         data.a_bool = (i % 2) == 0
@@ -75,9 +72,7 @@ def create_stream(n_event):
 
 ######################################################################
 for data in create_stream(2):
-
     for key, val in data.items():
-
         print("{}: {}, type : {}".format(key, val, type(val)))
 
 
@@ -94,16 +89,14 @@ for data in create_stream(2):
 
 try:
     with HDF5TableWriter("container.h5", group_name="data") as h5_table:
-
         for data in create_stream(10):
-
             h5_table.write("table", data)
             0 / 0
 except Exception as err:
     print("FAILED:", err)
 print("Done")
 
-h5_table.h5file.isopen == False
+h5_table.h5file.isopen
 
 ######################################################################
 print(os.listdir())
@@ -121,13 +114,10 @@ print(os.listdir())
 #
 
 for i in range(2):
-
     with HDF5TableWriter(
         "container.h5", mode="w", group_name="data_{}".format(i)
     ) as h5_table:
-
         for data in create_stream(10):
-
             h5_table.write("table", data)
 
         print(h5_table.h5file)
@@ -142,13 +132,10 @@ os.remove("container.h5")
 #
 
 for i in range(2):
-
     with HDF5TableWriter(
         "container.h5", mode="a", group_name="data_{}".format(i)
     ) as h5_table:
-
         for data in create_stream(10):
-
             h5_table.write("table", data)
 
         print(h5_table.h5file)
@@ -261,18 +248,14 @@ table.attrs
 
 
 def read(mode):
-
     print("reading mode {}".format(mode))
 
     with HDF5TableReader("container.h5", mode=mode) as h5_table:
-
         for group_name in ["data_0/", "data_1/"]:
-
             group_name = "/{}table".format(group_name)
             print(group_name)
 
             for data in h5_table.read(group_name, VariousTypesContainer):
-
                 print(data.as_dict())
 
 

@@ -284,6 +284,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 # Here we define some utility functions needed to build the piece-wise 5-layer
 # model.
 
+
 # pylint: disable=invalid-name,unused-argument
 def _exponential(h, a, b, c):
     """exponential atmosphere"""

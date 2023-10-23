@@ -244,7 +244,7 @@ class Histogram:
             general FITS images)
         """
 
-        if type(input_fits) == str:
+        if isinstance(input_fits, str):
             hdu = fits.open(input_fits)[1]
         else:
             hdu = input_fits

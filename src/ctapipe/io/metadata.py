@@ -270,7 +270,6 @@ class Reference(HasTraits):
     def from_dict(cls, metadata):
         kwargs = defaultdict(dict)
         for hierarchical_key, value in metadata.items():
-
             components = hierarchical_key.split(" ")
 
             if components[0] != "CTA":

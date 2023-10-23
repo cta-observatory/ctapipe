@@ -642,7 +642,6 @@ class DataWriter(Component):
 
     def _write_r1_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r1_tel in event.r1.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -651,7 +650,6 @@ class DataWriter(Component):
 
     def _write_r0_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r0_tel in event.r0.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -718,7 +716,6 @@ class DataWriter(Component):
                     )
 
     def _write_muon_telescope_events(self, event: ArrayEventContainer):
-
         for tel_id, muon in event.muon.tel.items():
             table_name = self.table_name(tel_id)
             tel_index = _get_tel_index(event, tel_id)

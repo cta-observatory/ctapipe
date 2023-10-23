@@ -73,7 +73,6 @@ def residuals(X, y, beta):
 
 @njit(cache=True)
 def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
-
     # randomly draw 2 points for the initial fit
     sample = np.random.choice(len(y), 2, replace=False)
 
@@ -85,7 +84,6 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
     error = residual_sum_of_squares(X[sample], y[sample], beta)
 
     for i in range(max_iterations):
-
         squared_residuals = residuals(X, y, beta) ** 2
 
         # select the subset with the smallest squared residuals

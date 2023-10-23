@@ -353,6 +353,7 @@ class HDF5EventSource(EventSource):
         self.file_.root.configuration.simulation.run.
         These are used to match the correct header to each event
         """
+
         # Just returning next(reader) would work as long as there are no merged files
         # The reader ignores obs_id making the setup somewhat tricky
         # This is ugly but supports multiple headers so each event can have
@@ -515,7 +516,6 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
 
             for kind, group in dl2_group._v_children.items():
-
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:

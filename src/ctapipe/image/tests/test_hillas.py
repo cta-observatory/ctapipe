@@ -26,7 +26,6 @@ def create_sample_image(
     intensity=1500,
     geometry=None,
 ):
-
     if geometry is None:
         s = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
         geometry = s.tel[1].camera.geometry
@@ -131,7 +130,6 @@ def test_with_toy(prod5_lst):
 
     for x, y in zip(xs, ys):
         for psi in psis:
-
             # make a toymodel shower model
             model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 

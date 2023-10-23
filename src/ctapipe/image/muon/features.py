@@ -117,7 +117,6 @@ def ring_completeness(
 
 
 def ring_containment(radius, center_x, center_y, camera_radius):
-
     """
     Estimate angular containment of a ring inside the camera
     (camera center is (0,0))

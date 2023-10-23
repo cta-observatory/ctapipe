@@ -111,7 +111,7 @@ def make_taubin_loss_function(x, y):
         """
         upper_term = (((x - xc) ** 2 + (y - yc) ** 2 - r**2) ** 2).sum()
 
-        lower_term = (((x - xc) ** 2 + (y - yc) ** 2)).sum()
+        lower_term = ((x - xc) ** 2 + (y - yc) ** 2).sum()
 
         return np.abs(upper_term) / np.abs(lower_term)
 

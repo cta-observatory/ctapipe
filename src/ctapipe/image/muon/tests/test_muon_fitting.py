@@ -5,7 +5,6 @@ from ctapipe.image.muon import kundu_chaudhuri_circle_fit
 
 
 def test_kundu_chaudhuri():
-
     n_tests = 10
     rng = np.random.default_rng(0)
     center_xs = rng.uniform(-1000, 1000, n_tests)
@@ -13,7 +12,6 @@ def test_kundu_chaudhuri():
     radii = rng.uniform(10, 1000, n_tests)
 
     for center_x, center_y, radius in zip(center_xs, center_ys, radii):
-
         phi = rng.uniform(0, 2 * np.pi, 100)
         x = center_x + radius * np.cos(phi)
         y = center_y + radius * np.sin(phi)
@@ -28,7 +26,6 @@ def test_kundu_chaudhuri():
 
 
 def test_kundu_chaudhuri_with_units():
-
     center_x = 0.5 * u.meter
     center_y = 0.5 * u.meter
     radius = 1 * u.meter

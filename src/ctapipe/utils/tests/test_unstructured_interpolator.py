@@ -174,7 +174,6 @@ def test_out_of_bounds():
 
 
 if __name__ == "__main__":
-
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()

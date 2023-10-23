@@ -31,7 +31,6 @@ class PlanarRepresentation(BaseRepresentation):
     attr_classes = OrderedDict([("x", u.Quantity), ("y", u.Quantity)])
 
     def __init__(self, x, y, copy=True, **kwargs):
-
         if x is None or y is None:
             raise ValueError(
                 "x and y are required to instantiate CartesianRepresentation"
@@ -78,7 +77,6 @@ class PlanarRepresentation(BaseRepresentation):
 
     @classmethod
     def from_cartesian(cls, cartesian):
-
         return cls(x=cartesian.x, y=cartesian.y)
 
     def to_cartesian(self):

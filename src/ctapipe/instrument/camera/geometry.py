@@ -728,7 +728,6 @@ class CameraGeometry:
             radius = 1.4
             norm = 2  # use L2 norm for hex
         else:
-
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
             # < than 2 * the pixel size, else 4 neigbors with max L1 distance
