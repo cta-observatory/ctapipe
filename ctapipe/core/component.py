@@ -202,7 +202,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     def non_abstract_subclasses(cls):
         """
         get dict{name: cls} of non abstract subclasses,
-        subclasses can possibly be definded in plugins
+        subclasses can possibly be defined in plugins
         """
         if hasattr(cls, "plugin_entry_point"):
             detect_and_import_plugins(cls.plugin_entry_point)
