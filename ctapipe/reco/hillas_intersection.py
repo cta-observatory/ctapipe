@@ -45,6 +45,7 @@ INVALID = ReconstructedGeometryContainer(
 )
 
 FOV_ANGULAR_DISTANCE_LIMIT_RAD = (45 * u.deg).to_value(u.rad)
+H_MAX_UPPER_LIMIT_M = 100_000
 
 
 def _far_outside_fov(fov_lat, fov_lon):
@@ -509,7 +510,7 @@ class HillasIntersection(HillasGeometryReconstructor):
         # Add on the height of the detector above sea level
         mean_height += self.subarray.reference_location.geodetic.height.to_value(u.m)
 
-        if mean_height > 100000 or np.isnan(mean_height):
+        if mean_height > H_MAX_UPPER_LIMIT_M:
             mean_height = np.nan
 
         return u.Quantity(mean_height, u.m)
