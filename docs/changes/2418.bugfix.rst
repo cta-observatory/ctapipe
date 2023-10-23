@@ -1,0 +1,2 @@
+Do not use the hidden attribute `SKLearnReconstructor._models` in
+`ctapipe-apply-models`.
