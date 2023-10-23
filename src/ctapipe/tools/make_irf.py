@@ -288,7 +288,12 @@ class IrfTool(Tool):
         self.signal_events["selected"] = (
             self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
         )
-
+        self.background_events["selected_theta"] = evaluate_binned_cut(
+            self.background_events["theta"],
+            self.background_events["reco_energy"],
+            self.theta_cuts_opt,
+            operator.le,
+        )
         # calculate sensitivity
         signal_hist = create_histogram_table(
             self.signal_events[self.signal_events["selected"]],
@@ -328,8 +333,8 @@ class IrfTool(Tool):
             fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
         ]
 
-        self.log.debug(f"True Energy bins: {str(self.true_energy_bins.value)}")
-        self.log.debug(f"FoV offset bins: {str(self.fov_offset_bins.value)}")
+        self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
+        self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins.value))
         for label, mask in masks.items():
             effective_area = effective_area_per_energy_and_fov(
                 self.signal_events[mask],
@@ -364,8 +369,9 @@ class IrfTool(Tool):
         # current pipelines comparisons
         bias_resolution = energy_bias_resolution(
             self.signal_events[self.signal_events["selected"]],
-            self.reco_energy_bins,
-            energy_type="reco",
+            self.true_energy_bins,
+            bias_function=np.mean,
+            energy_type="true",
         )
         hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
 
@@ -378,8 +384,11 @@ class IrfTool(Tool):
         )
         hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
 
+        sel = self.background_events["selected_gh"]
+        self.log.debug("%d background events selected" % sel.sum())
+        self.log.debug("%f obs time" % self.obs_time)
         background_rate = background_2d(
-            self.background_events[self.background_events["selected_gh"]],
+            self.background_events[sel],
             self.reco_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
             t_obs=self.obs_time * u.Unit(self.obs_time_unit),
