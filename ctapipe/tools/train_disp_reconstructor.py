@@ -1,3 +1,6 @@
+"""
+Tool for training the DispReconstructor
+"""
 import astropy.units as u
 import numpy as np
 
