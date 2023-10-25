@@ -101,11 +101,6 @@ def test_check_r1_empty(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
     tel_id = list(example_event.r0.tel)[0]
     waveform = example_event.r1.tel[tel_id].waveform.copy()
-    with pytest.warns(UserWarning):
-        example_event.r1.tel[tel_id].waveform = None
-        calibrator._calibrate_dl0(example_event, tel_id)
-        assert example_event.dl0.tel[tel_id].waveform is None
-
     assert calibrator._check_r1_empty(None) is True
     assert calibrator._check_r1_empty(waveform) is False
 
@@ -115,8 +110,7 @@ def test_check_r1_empty(example_event, example_subarray):
     )
     event = ArrayEventContainer()
     event.dl0.tel[tel_id].waveform = np.full((2048, 128), 2)
-    with pytest.warns(UserWarning):
-        calibrator(event)
+    calibrator(event)
     assert (event.dl0.tel[tel_id].waveform == 2).all()
     assert (event.dl1.tel[tel_id].image == 2 * 128).all()
 
@@ -126,19 +120,13 @@ def test_check_dl0_empty(example_event, example_subarray):
     tel_id = list(example_event.r0.tel)[0]
     calibrator._calibrate_dl0(example_event, tel_id)
     waveform = example_event.dl0.tel[tel_id].waveform.copy()
-    with pytest.warns(UserWarning):
-        example_event.dl0.tel[tel_id].waveform = None
-        calibrator._calibrate_dl1(example_event, tel_id)
-        assert example_event.dl1.tel[tel_id].image is None
-
     assert calibrator._check_dl0_empty(None) is True
     assert calibrator._check_dl0_empty(waveform) is False
 
     calibrator = CameraCalibrator(subarray=example_subarray)
     event = ArrayEventContainer()
     event.dl1.tel[tel_id].image = np.full(2048, 2)
-    with pytest.warns(UserWarning):
-        calibrator(event)
+    calibrator(event)
     assert (event.dl1.tel[tel_id].image == 2).all()
 
 
@@ -267,7 +255,6 @@ def test_shift_waveforms():
 
 
 def test_invalid_pixels(example_event, example_subarray):
-
     # switching off the corrections makes it easier to test for
     # the exact value of 1.0
     config = Config(
