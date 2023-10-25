@@ -3,8 +3,6 @@ Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
 
-import warnings
-
 import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
