@@ -176,7 +176,7 @@ class ApplyModels(Tool):
         prefix = reconstructor.prefix
 
         for tel_id, table in tel_tables.items():
-            tel = self.loader.subarray.tel[tel_id]
+            tel = str(self.loader.subarray.tel[tel_id])
 
             if len(table) == 0:
                 self.log.info("No events for telescope %d", tel_id)

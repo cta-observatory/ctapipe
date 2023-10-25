@@ -103,6 +103,10 @@ class SKLearnReconstructor(Reconstructor):
         help="If given, load serialized model from this path",
     ).tag(config=True)
 
+    def __setstate__(self, state):
+        state["_models"] = {str(k): v for k, v in state["_models"].items()}
+        return super().__setstate__(state)
+
     def __init__(self, subarray=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
@@ -149,6 +153,7 @@ class SKLearnReconstructor(Reconstructor):
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
+            self._models = {str(key): model for key, model in self._models.items()}
 
             if self.prefix is None:
                 self.prefix = self.model_cls
@@ -241,6 +246,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
     ).tag(config=True)
 
     def _predict(self, key, table):
+        key = str(key)
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
@@ -305,6 +311,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     ).tag(config=True)
 
     def _predict(self, key, table):
+        key = str(key)
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
@@ -326,6 +333,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
         return prediction, valid
 
     def _predict_score(self, key, table):
+        key = str(key)
         if key not in self._models:
             raise KeyError(
                 f"No model available for key {key},"
@@ -352,6 +360,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
         return scores, valid
 
     def _get_positive_index(self, key):
+        key = str(key)
         return np.nonzero(self._models[key].classes_ == self.positive_class)[0][0]
 
 
@@ -397,6 +406,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
+        key = str(key)
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -464,6 +474,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
         """Predict on a table of events"""
+        key = str(key)
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -579,6 +590,10 @@ class DispReconstructor(Reconstructor):
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
+
+    def __setstate__(self, state):
+        state["_models"] = {str(k): v for k, v in state["_models"].items()}
+        return super().__setstate__(state)
 
     def _new_models(self):
         norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**self.norm_config)
@@ -751,6 +766,7 @@ class DispReconstructor(Reconstructor):
         altaz_table : `~astropy.table.Table`
             Table with resulting predictions of horizontal coordinates
         """
+        key = str(key)
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
