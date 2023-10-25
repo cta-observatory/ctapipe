@@ -290,6 +290,7 @@ html_theme_options = {
         "version_match": version_match,
         "json_url": json_url,
     },
+    "navigation_with_keys": False,
     "use_edit_page_button": True,
     "icon_links_label": "Quick Links",
     "icon_links": [
