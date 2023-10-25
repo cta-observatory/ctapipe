@@ -58,6 +58,20 @@ class AtmosphereDensityProfile(abc.ABC):
 
         """
 
+    @abc.abstractmethod
+    def height_from_overburden(self, overburden: u.Quantity) -> u.Quantity:
+        r"""Get the height a.s.l. from the mass overburden in the atmosphere.
+            Inverse of the integral function
+
+        ..
+
+        Returns
+        -------
+        u.Quantity["m"]:
+            Height a.s.l. for given overburden
+
+        """
+
     def line_of_sight_integral(
         self, distance: u.Quantity, zenith_angle=0 * u.deg, output_units=u.g / u.cm**2
     ):
@@ -190,6 +204,12 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     ) -> u.Quantity:
         return (
             self.scale_density * self.scale_height * np.exp(-height / self.scale_height)
+        )
+
+    @u.quantity_input(overburden=u.g / (u.cm * u.cm))
+    def height_from_overburden(self, overburden) -> u.Quantity:
+        return -self.scale_height * np.log(
+            overburden / (self.scale_height * self.scale_density)
         )
 
 
