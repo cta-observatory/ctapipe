@@ -604,3 +604,25 @@ def test_starting_grammage():
     with SimTelEventSource(path, focal_length_choice="EQUIVALENT") as source:
         e = next(iter(source))
         assert e.simulation.shower.starting_grammage == 580 * u.g / u.cm**2
+
+
+@pytest.mark.parametrize("override_obs_id,expected_obs_id", [(None, 1), (5, 5)])
+def test_override_obs_id(override_obs_id, expected_obs_id, prod5_gamma_simtel_path):
+    """Test for the override_obs_id option"""
+    original_run_number = 1
+
+    with SimTelEventSource(
+        prod5_gamma_simtel_path, override_obs_id=override_obs_id
+    ) as s:
+        assert s.obs_id == expected_obs_id
+        assert s.obs_ids == [expected_obs_id]
+
+        assert s.simulation_config.keys() == {expected_obs_id}
+        assert s.observation_blocks.keys() == {expected_obs_id}
+        assert s.scheduling_blocks.keys() == {expected_obs_id}
+
+        # this should alway be the original run number
+        assert s.simulation_config[s.obs_id].run_number == original_run_number
+
+        for e in s:
+            assert e.index.obs_id == expected_obs_id
