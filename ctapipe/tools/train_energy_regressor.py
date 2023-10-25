@@ -2,6 +2,8 @@
 Tool for training the EnergyRegressor
 """
 import numpy as np
+from astropy.table import vstack
+from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
@@ -53,6 +55,12 @@ class TrainEnergyRegressor(Tool):
         ),
     ).tag(config=True)
 
+    chunk_size = Int(
+        default_value=100000,
+        allow_none=True,
+        help="How many subarray events to load at once before training on n_events.",
+    ).tag(config=True)
+
     random_seed = Int(
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
@@ -61,6 +69,7 @@ class TrainEnergyRegressor(Tool):
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
         "n-events": "TrainEnergyRegressor.n_events",
+        "chunk-size": "TrainEnergyRegressor.chunk_size",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -113,30 +122,55 @@ class TrainEnergyRegressor(Tool):
             self.log.info("done")
 
     def _read_table(self, telescope_type):
-        table = self.loader.read_telescope_events([telescope_type])
-        self.log.info("Events read from input: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
-            )
+        chunk_iterator = self.loader.read_telescope_events_chunked(
+            self.chunk_size,
+            telescopes=[telescope_type],
+        )
+        bar = tqdm(
+            chunk_iterator,
+            desc=f"Loading training events for {telescope_type}",
+            unit=" Array Events",
+            total=chunk_iterator.n_total,
+        )
+        table = []
+        n_events_in_file = 0
+        n_valid_events_in_file = 0
 
-        mask = self.regressor.quality_query.get_table_mask(table)
-        table = table[mask]
-        self.log.info("Events after applying quality query: %d", len(table))
+        with bar:
+            for chunk, (start, stop, table_chunk) in enumerate(chunk_iterator):
+                self.log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
+                n_events_in_file += len(table_chunk)
+
+                mask = self.regressor.quality_query.get_table_mask(table_chunk)
+                table_chunk = table_chunk[mask]
+                self.log.debug(
+                    "Events in chunk %d after applying quality_query: %d",
+                    chunk,
+                    len(table_chunk),
+                )
+                n_valid_events_in_file += len(table_chunk)
+
+                table_chunk = self.regressor.feature_generator(
+                    table_chunk, subarray=self.loader.subarray
+                )
+                feature_names = self.regressor.features + [self.regressor.target]
+                table_chunk = table_chunk[feature_names]
+
+                valid = check_valid_rows(table_chunk)
+                if np.any(~valid):
+                    self.log.warning("Dropping non-predictable events.")
+                    table_chunk = table_chunk[valid]
+
+                table.append(table_chunk)
+                bar.update(stop - start)
+
+        table = vstack(table)
+        self.log.info("Events read from input: %d", n_events_in_file)
+        self.log.info("Events after applying quality query: %d", n_valid_events_in_file)
         if len(table) == 0:
             raise TooFewEvents(
                 f"No events after quality query for telescope type {telescope_type}"
             )
-
-        table = self.regressor.feature_generator(table, subarray=self.loader.subarray)
-
-        feature_names = self.regressor.features + [self.regressor.target]
-        table = table[feature_names]
-
-        valid = check_valid_rows(table)
-        if np.any(~valid):
-            self.log.warning("Dropping non-predictable events.")
-            table = table[valid]
 
         n_events = self.n_events.tel[telescope_type]
         if n_events is not None:
