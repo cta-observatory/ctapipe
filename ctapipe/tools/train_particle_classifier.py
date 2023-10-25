@@ -184,7 +184,7 @@ class TrainParticleClassifier(Tool):
         table = table[columns]
 
         valid = check_valid_rows(table)
-        if np.any(~valid):
+        if not np.all(valid):
             self.log.warning("Dropping non-predictable events.")
             table = table[valid]
 
