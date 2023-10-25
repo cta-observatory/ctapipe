@@ -287,3 +287,41 @@ def test_subarrays(subarray_prod5_paranal: SubarrayDescription):
     assert subarray.name == "NewArray"
     assert isinstance(subarray.reference_location, EarthLocation)
     assert subarray.reference_location == subarray_prod5_paranal.reference_location
+
+
+def test_tel_pos_from_EarthLocation(prod5_mst_nectarcam):
+    rng = np.random.default_rng(0)
+
+    pos = {}
+    tel = {}
+
+    for tel_id in range(1, 11):
+        tel[tel_id] = prod5_mst_nectarcam
+        pos[tel_id] = rng.uniform(-100, 100, size=3) * u.m
+
+    for tel_id in range(12, 23):
+        tel[tel_id] = prod5_mst_nectarcam
+        rnd_lon = rng.uniform(
+            LOCATION.lon.to_value("deg") - 1e-3, LOCATION.lon.to_value("deg") + 1e-3
+        )
+        rnd_lat = rng.uniform(
+            LOCATION.lat.to_value("deg") - 1e-3, LOCATION.lat.to_value("deg") + 1e-3
+        )
+        rnd_height = rng.uniform(
+            LOCATION.height.to_value("m") - 1e2, LOCATION.height.to_value("m") + 1e2
+        )
+        pos[tel_id] = EarthLocation(
+            lon=rnd_lon * u.deg, lat=rnd_lat * u.deg, height=rnd_height
+        )
+
+    subarray = SubarrayDescription(
+        "test array",
+        tel_positions=pos,
+        tel_descriptions=tel,
+        reference_location=LOCATION,
+    )
+
+    x, y, z = subarray.tel_coords.cartesian.xyz
+    assert all(x.value > -100) and all(x.value < 100)
+    assert all(y.value > -100) and all(y.value < 100)
+    assert all(z.value > -100) and all(z.value < 100)
