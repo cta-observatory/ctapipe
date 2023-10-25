@@ -279,6 +279,12 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             kind="cubic",
         )
 
+        self._height_interp = interp1d(
+            np.log10(self.table["column_density"].to("g cm-2").value),
+            self.table["height"].to("km").value,
+            kind="cubic",
+        )
+
         # ensure it can be read back
         self.table.meta["TAB_TYPE"] = "ctapipe.atmosphere.TableAtmosphereDensityProfile"
         self.table.meta["TAB_VER"] = 1
@@ -294,6 +300,10 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         return u.Quantity(
             10 ** self._col_density_interp(height.to_value(u.km)), u.g / u.cm**2
         )
+
+    @u.quantity_input(overburden=u.g / (u.cm * u.cm))
+    def height_from_overburden(self, overburden) -> u.Quantity:
+        return u.Quantity(self._height_interp(overburden), u.km)
 
     def __repr__(self):
         return (
