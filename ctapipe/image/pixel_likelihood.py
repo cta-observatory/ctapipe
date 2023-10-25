@@ -72,8 +72,8 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
         - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
 
-        We keep the constants in this because the actual value of the likelihood
-        can be used to calculate a goodness-of-fit value
+    We keep the constants in this because the actual value of the likelihood
+    can be used to calculate a goodness-of-fit value
 
 
     Parameters
@@ -93,11 +93,11 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     """
     theta = pedestal**2 + prediction * (1 + spe_width**2)
 
-    neg_log_l = 0.5 * (
-        np.log(2 * np.pi * theta + EPSILON) + (image - prediction) ** 2 / theta
-    )
+    neg_log_l = np.log(theta + EPSILON) + (image - prediction) ** 2 / theta
 
-    return np.sum(neg_log_l)
+    # neg_log_l provides the variable term, add constants here to only
+    # compute them once
+    return 0.5 * (len(neg_log_l) * np.log(2 * np.pi) + np.sum(neg_log_l))
 
 
 def neg_log_likelihood_numeric(
