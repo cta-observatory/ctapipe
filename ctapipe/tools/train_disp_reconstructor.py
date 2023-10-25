@@ -150,7 +150,7 @@ class TrainDispReconstructor(Tool):
         table = table[columns]
 
         valid = check_valid_rows(table)
-        if np.any(~valid):
+        if not np.all(valid):
             self.log.warning("Dropping non-predicable events.")
             table = table[valid]
 

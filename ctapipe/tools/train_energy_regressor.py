@@ -124,7 +124,7 @@ class TrainEnergyRegressor(Tool):
         bar = tqdm(
             chunk_iterator,
             desc=f"Loading training events for {telescope_type}",
-            unit=" Array Events",
+            unit=" Telescope Events",
             total=chunk_iterator.n_total,
         )
         table = []
@@ -151,11 +151,6 @@ class TrainEnergyRegressor(Tool):
                 feature_names = self.regressor.features + [self.regressor.target]
                 table_chunk = table_chunk[feature_names]
 
-                valid = check_valid_rows(table_chunk)
-                if np.any(~valid):
-                    self.log.warning("Dropping non-predictable events.")
-                    table_chunk = table_chunk[valid]
-
                 table.append(table_chunk)
                 bar.update(stop - start)
 
@@ -166,6 +161,11 @@ class TrainEnergyRegressor(Tool):
             raise TooFewEvents(
                 f"No events after quality query for telescope type {telescope_type}"
             )
+
+        valid = check_valid_rows(table)
+        if not np.all(valid):
+            self.log.warning("Dropping non-predictable events.")
+            table = table[valid]
 
         n_events = self.n_events.tel[telescope_type]
         if n_events is not None:
