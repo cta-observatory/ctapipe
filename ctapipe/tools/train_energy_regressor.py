@@ -3,7 +3,6 @@ Tool for training the EnergyRegressor
 """
 import numpy as np
 from astropy.table import vstack
-from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
@@ -121,51 +120,48 @@ class TrainEnergyRegressor(Tool):
             self.chunk_size,
             telescopes=[telescope_type],
         )
-        bar = tqdm(
-            chunk_iterator,
-            desc=f"Loading training events for {telescope_type}",
-            unit=" Telescope Events",
-            total=chunk_iterator.n_total,
-        )
         table = []
         n_events_in_file = 0
         n_valid_events_in_file = 0
+        n_non_predictable = 0
 
-        with bar:
-            for chunk, (start, stop, table_chunk) in enumerate(chunk_iterator):
-                self.log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
-                n_events_in_file += len(table_chunk)
+        for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
+            self.log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
+            n_events_in_file += len(table_chunk)
 
-                mask = self.regressor.quality_query.get_table_mask(table_chunk)
-                table_chunk = table_chunk[mask]
-                self.log.debug(
-                    "Events in chunk %d after applying quality_query: %d",
-                    chunk,
-                    len(table_chunk),
-                )
-                n_valid_events_in_file += len(table_chunk)
+            mask = self.regressor.quality_query.get_table_mask(table_chunk)
+            table_chunk = table_chunk[mask]
+            self.log.debug(
+                "Events in chunk %d after applying quality_query: %d",
+                chunk,
+                len(table_chunk),
+            )
+            n_valid_events_in_file += len(table_chunk)
 
-                table_chunk = self.regressor.feature_generator(
-                    table_chunk, subarray=self.loader.subarray
-                )
-                feature_names = self.regressor.features + [self.regressor.target]
-                table_chunk = table_chunk[feature_names]
+            table_chunk = self.regressor.feature_generator(
+                table_chunk, subarray=self.loader.subarray
+            )
+            feature_names = self.regressor.features + [self.regressor.target]
+            table_chunk = table_chunk[feature_names]
 
-                table.append(table_chunk)
-                bar.update(stop - start)
+            valid = check_valid_rows(table_chunk)
+            if not np.all(valid):
+                n_non_predictable += np.sum(valid)
+                table_chunk = table_chunk[valid]
+
+            table.append(table_chunk)
 
         table = vstack(table)
         self.log.info("Events read from input: %d", n_events_in_file)
         self.log.info("Events after applying quality query: %d", n_valid_events_in_file)
+
         if len(table) == 0:
             raise TooFewEvents(
                 f"No events after quality query for telescope type {telescope_type}"
             )
 
-        valid = check_valid_rows(table)
-        if not np.all(valid):
-            self.log.warning("Dropping non-predictable events.")
-            table = table[valid]
+        if n_non_predictable > 0:
+            self.log.warning("Dropping %d non-predictable events.", n_non_predictable)
 
         n_events = self.n_events.tel[telescope_type]
         if n_events is not None:
