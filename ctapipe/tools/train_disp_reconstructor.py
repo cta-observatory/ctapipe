@@ -66,6 +66,12 @@ class TrainDispReconstructor(Tool):
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
+    n_jobs = Int(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config",
+    ).tag(config=True)
+
     project_disp = Bool(
         default_value=False,
         help=(
@@ -97,6 +103,9 @@ class TrainDispReconstructor(Tool):
         self.n_events.attach_subarray(self.loader.subarray)
 
         self.models = DispReconstructor(self.loader.subarray, parent=self)
+        if self.n_jobs:
+            self.models.set_n_jobs(self.n_jobs)
+
         self.cross_validate = CrossValidator(parent=self, model_component=self.models)
         self.rng = np.random.default_rng(self.random_seed)
         self.check_output(self.output_path, self.cross_validate.output_path)

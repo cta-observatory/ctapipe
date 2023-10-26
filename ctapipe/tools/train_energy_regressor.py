@@ -63,6 +63,12 @@ class TrainEnergyRegressor(Tool):
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
+    n_jobs = Int(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config",
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
@@ -89,6 +95,8 @@ class TrainEnergyRegressor(Tool):
         self.n_events.attach_subarray(self.loader.subarray)
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
+        if self.n_jobs:
+            self.regressor.set_n_jobs(self.n_jobs)
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.regressor
         )

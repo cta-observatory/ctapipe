@@ -222,6 +222,13 @@ class SKLearnReconstructor(Reconstructor):
         y = self._table_to_y(table, mask=valid)
         self._models[key].fit(X, y)
 
+    def set_n_jobs(self, n_jobs):
+        """
+        Update n_jobs of all associated models.
+        """
+        for model in self._models.values():
+            setattr(model, "n_jobs", n_jobs)
+
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
     """
@@ -802,6 +809,14 @@ class DispReconstructor(Reconstructor):
             ReconstructionProperty.DISP: disp_result,
             ReconstructionProperty.GEOMETRY: altaz_result,
         }
+
+    def set_n_jobs(self, n_jobs):
+        """
+        Update n_jobs of all associated models.
+        """
+        for (disp, sign) in self._models.values():
+            setattr(disp, "n_jobs", n_jobs)
+            setattr(sign, "n_jobs", n_jobs)
 
 
 class CrossValidator(Component):
