@@ -83,6 +83,7 @@ class ApplyModels(Tool):
         ("i", "input"): "ApplyModels.input_url",
         ("r", "reconstructor"): "ApplyModels.reconstructor_paths",
         ("o", "output"): "ApplyModels.output_path",
+        "n-jobs": "ApplyModels.n_jobs",
         "chunk-size": "ApplyModels.chunk_size",
     }
 

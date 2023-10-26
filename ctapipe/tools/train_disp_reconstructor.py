@@ -86,6 +86,7 @@ class TrainDispReconstructor(Tool):
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainDispReconstructor.output_path",
         "n-events": "TrainDispReconstructor.n_events",
+        "n-jobs": "TrainDispReconstructor.n_jobs",
         "cv-output": "CrossValidator.output_path",
     }
 

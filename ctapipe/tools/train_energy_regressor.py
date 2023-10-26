@@ -74,6 +74,7 @@ class TrainEnergyRegressor(Tool):
         ("o", "output"): "TrainEnergyRegressor.output_path",
         "n-events": "TrainEnergyRegressor.n_events",
         "chunk-size": "TrainEnergyRegressor.chunk_size",
+        "n-jobs": "TrainEnergyRegressor.n_jobs",
         "cv-output": "CrossValidator.output_path",
     }
 
