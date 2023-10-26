@@ -1,0 +1,3 @@
+In case no configuration is found for a telescope in ``TelescopeParameter``,
+it is now checked whether the telescope exists at all to provide a better
+error message.
