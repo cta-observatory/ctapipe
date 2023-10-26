@@ -302,7 +302,9 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
-        return u.Quantity(self._height_interp(overburden), u.km)
+        return u.Quantity(
+            self._height_interp(np.log10(overburden.to("g cm-2").value)), u.km
+        )
 
     def __repr__(self):
         return (
@@ -320,6 +322,11 @@ def _exponential(h, a, b, c):
     return a + b * np.exp(-h / c)
 
 
+def _inv_exponential(T, a, b, c):
+    "inverse function for eponetial atmosphere"
+    return -c * np.log((T - a) / b)
+
+
 def _d_exponential(h, a, b, c):
     """derivative of exponential atmosphere"""
     return -b / c * np.exp(-h / c)
@@ -328,6 +335,11 @@ def _d_exponential(h, a, b, c):
 def _linear(h, a, b, c):
     """linear atmosphere"""
     return a - b * h / c
+
+
+def _inv_linear(T, a, b, c):
+    "inverse function for linear atmosphere"
+    return -b / c * (T - a)
 
 
 def _d_linear(h, a, b, c):
@@ -364,6 +376,10 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         self._funcs = [
             partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
             for i, f in enumerate([_exponential] * 4 + [_linear])
+        ]
+        self._inv_funcs = [
+            partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
+            for i, f in enumerate([_inv_linear] + 4 * [_inv_exponential])
         ]
         self._d_funcs = [
             partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
@@ -419,6 +435,19 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
                 funclist=self._funcs,
             )
         ).to(u.g / u.cm**2)
+
+    @u.quantity_input(overburden=u.g / (u.cm * u.cm))
+    def height_from_overburden(self, overburden) -> u.Quantity:
+        overburdens_at_heights = self.integral(self.table["height"].to(u.km))
+        which_func = np.digitize(overburden, overburdens_at_heights) - 1
+        condlist = [which_func == i for i in range(5)]
+        return u.Quantity(
+            np.piecewise(
+                x=overburden,
+                condlist=condlist,
+                funclist=self._inv_funcs,
+            )
+        ).to(u.km)
 
     def __repr__(self):
         return (
