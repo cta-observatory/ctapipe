@@ -70,17 +70,17 @@ def test_telescope_events_for_tel_id(dl1_file):
     """Test loading data for a single telescope"""
     from ctapipe.io.tableloader import TableLoader
 
-    loader = TableLoader(dl1_file, load_dl1_parameters=True)
+    loader = TableLoader(dl1_file)
 
     with loader as table_loader:
-        table = table_loader.read_telescope_events([8])
+        table = table_loader.read_telescope_events([8], dl1_parameters=True)
         assert "hillas_length" in table.colnames
         assert "time" in table.colnames
         assert "event_type" in table.colnames
         assert np.all(table["tel_id"] == 8)
 
-    with TableLoader(dl1_file, load_dl1_images=True) as table_loader:
-        table = table_loader.read_telescope_events([8])
+    with TableLoader(dl1_file) as table_loader:
+        table = table_loader.read_telescope_events([8], dl1_images=True)
         assert "image" in table.colnames
         assert np.all(table["tel_id"] == 8)
         assert table["obs_id"].dtype == np.int32
@@ -94,11 +94,11 @@ def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
 
     with TableLoader(
         dl1_muon_output_file,
-        load_dl1_muons=True,
-        load_dl1_parameters=False,
         focal_length_choice="EQUIVALENT",
     ) as table_loader:
-        table = table_loader.read_telescope_events([1])
+        table = table_loader.read_telescope_events(
+            [1], dl1_muons=True, dl1_parameters=False
+        )
         assert "muonring_radius" in table.colnames
         assert "muonparameters_containment" in table.colnames
         assert "muonefficiency_optical_efficiency" in table.colnames
@@ -107,27 +107,27 @@ def test_telescope_muon_events_for_tel_id(dl1_muon_output_file):
     assert not table_loader.h5file.isopen
 
 
-def test_load_instrument(dl1_file):
+def test_instrument(dl1_file):
     """Test joining instrument data onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
-    with TableLoader(dl1_file, load_instrument=True) as table_loader:
+    with TableLoader(dl1_file) as table_loader:
         expected = table_loader.subarray.tel[8].optics.equivalent_focal_length
-        table = table_loader.read_telescope_events([8])
+        table = table_loader.read_telescope_events([8], instrument=True)
         assert "equivalent_focal_length" in table.colnames
         assert np.all(table["equivalent_focal_length"] == expected)
 
 
-def test_load_simulated(dl1_file):
+def test_simulated(dl1_file):
     """Test joining simulation info onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
-    with TableLoader(dl1_file, load_simulated=True) as table_loader:
-        table = table_loader.read_subarray_events()
+    with TableLoader(dl1_file) as table_loader:
+        table = table_loader.read_subarray_events(simulated=True)
         assert "true_energy" in table.colnames
         assert table["obs_id"].dtype == np.int32
 
-        table = table_loader.read_telescope_events([8])
+        table = table_loader.read_telescope_events([8], simulated=True)
         assert "true_energy" in table.colnames
         assert "true_impact_distance" in table.colnames
 
@@ -136,10 +136,10 @@ def test_true_images(dl1_file):
     """Test joining true images onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
-    with TableLoader(
-        dl1_file, load_dl1_parameters=False, load_true_images=True
-    ) as table_loader:
-        table = table_loader.read_telescope_events(["MST_MST_NectarCam"])
+    with TableLoader(dl1_file) as table_loader:
+        table = table_loader.read_telescope_events(
+            ["MST_MST_NectarCam"], dl1_parameters=False, true_images=True
+        )
         assert "true_image" in table.colnames
 
 
@@ -147,10 +147,10 @@ def test_true_parameters(dl1_file):
     """Test joining true parameters onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
-    with TableLoader(
-        dl1_file, load_dl1_parameters=False, load_true_parameters=True
-    ) as table_loader:
-        table = table_loader.read_telescope_events()
+    with TableLoader(dl1_file) as table_loader:
+        table = table_loader.read_telescope_events(
+            dl1_parameters=False, true_parameters=True
+        )
         assert "true_hillas_intensity" in table.colnames
 
 
@@ -158,8 +158,8 @@ def test_observation_info(dl1_file):
     """Test joining observation info onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
-    with TableLoader(dl1_file, load_observation_info=True) as table_loader:
-        table = table_loader.read_telescope_events()
+    with TableLoader(dl1_file) as table_loader:
+        table = table_loader.read_telescope_events(observation_info=True)
         assert "subarray_pointing_lat" in table.colnames
 
 
@@ -167,12 +167,8 @@ def test_read_subarray_events(dl2_shower_geometry_file):
     """Test reading subarray events"""
     from ctapipe.io.tableloader import TableLoader
 
-    with TableLoader(
-        dl2_shower_geometry_file,
-        load_dl2=True,
-        load_simulated=True,
-    ) as table_loader:
-        table = table_loader.read_subarray_events()
+    with TableLoader(dl2_shower_geometry_file) as table_loader:
+        table = table_loader.read_subarray_events(dl2=True, simulated=True)
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
         assert "time" in table.colnames
@@ -187,11 +183,9 @@ def test_table_loader_keeps_original_order(dl2_merged_file):
     # check we actually have unsorted input
     assert not np.all(np.diff(trigger["obs_id"]) >= 0)
 
-    with TableLoader(
-        dl2_merged_file, load_dl2=True, load_simulated=True
-    ) as table_loader:
-        events = table_loader.read_subarray_events()
-        tel_events = table_loader.read_telescope_events()
+    with TableLoader(dl2_merged_file) as table_loader:
+        events = table_loader.read_subarray_events(dl2=True, simulated=True)
+        tel_events = table_loader.read_telescope_events(dl2=True, simulated=True)
 
     check_equal_array_event_order(events, trigger)
     check_equal_array_event_order(events, tel_events)
@@ -204,17 +198,17 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
 
     subarray = SubarrayDescription.from_hdf(dl2_shower_geometry_file)
 
-    with TableLoader(
-        dl2_shower_geometry_file,
-        load_dl1_images=False,
-        load_dl1_parameters=False,
-        load_dl2=True,
-        load_simulated=True,
-        load_true_images=True,
-        load_instrument=True,
-    ) as table_loader:
+    with TableLoader(dl2_shower_geometry_file) as table_loader:
 
-        table = table_loader.read_telescope_events(["MST_MST_FlashCam"])
+        table = table_loader.read_telescope_events(
+            ["MST_MST_FlashCam"],
+            dl1_images=False,
+            dl1_parameters=False,
+            dl2=True,
+            simulated=True,
+            true_images=True,
+            instrument=True,
+        )
 
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
@@ -233,17 +227,17 @@ def test_read_telescope_events_by_type(dl2_shower_geometry_file):
 
     subarray = SubarrayDescription.from_hdf(dl2_shower_geometry_file)
 
-    with TableLoader(
-        dl2_shower_geometry_file,
-        load_dl1_images=False,
-        load_dl1_parameters=False,
-        load_dl2=True,
-        load_simulated=True,
-        load_true_images=True,
-        load_instrument=True,
-    ) as table_loader:
+    with TableLoader(dl2_shower_geometry_file) as table_loader:
 
-        tables = table_loader.read_telescope_events_by_type([25, 130])
+        tables = table_loader.read_telescope_events_by_type(
+            [25, 130],
+            dl1_images=False,
+            dl1_parameters=False,
+            dl2=True,
+            simulated=True,
+            true_images=True,
+            instrument=True,
+        )
 
         for tel_type in ["MST_MST_NectarCam", "MST_MST_FlashCam"]:
 
@@ -287,19 +281,40 @@ def test_chunked(dl2_shower_geometry_file):
     start = 0
     stop = chunk_size
 
-    with TableLoader(
-        dl2_shower_geometry_file,
-        load_dl1_images=False,
-        load_true_images=False,
-        load_dl1_parameters=True,
-        load_dl2=True,
-        load_simulated=True,
-    ) as table_loader:
+    with TableLoader(dl2_shower_geometry_file) as table_loader:
 
-        tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
-        event_it = table_loader.read_subarray_events_chunked(chunk_size)
-        by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size)
-        by_id_it = table_loader.read_telescope_events_by_id_chunked(chunk_size)
+        tel_event_it = table_loader.read_telescope_events_chunked(
+            chunk_size,
+            dl1_images=False,
+            true_images=False,
+            dl1_parameters=True,
+            dl2=True,
+            simulated=True,
+        )
+        event_it = table_loader.read_subarray_events_chunked(
+            chunk_size,
+            dl1_images=False,
+            true_images=False,
+            dl1_parameters=True,
+            dl2=True,
+            simulated=True,
+        )
+        by_type_it = table_loader.read_telescope_events_by_type_chunked(
+            chunk_size,
+            dl1_images=False,
+            true_images=False,
+            dl1_parameters=True,
+            dl2=True,
+            simulated=True,
+        )
+        by_id_it = table_loader.read_telescope_events_by_id_chunked(
+            chunk_size,
+            dl1_images=False,
+            true_images=False,
+            dl1_parameters=True,
+            dl2=True,
+            simulated=True,
+        )
 
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
@@ -386,26 +401,26 @@ def test_read_unavailable_telescope(dl2_shower_geometry_file):
     """Reading a telescope that is not part of the subarray of the file should fail."""
     from ctapipe.io import TableLoader
 
-    with TableLoader(
-        dl2_shower_geometry_file,
-        load_dl1_parameters=False,
-        load_dl2=True,
-    ) as loader:
+    with TableLoader(dl2_shower_geometry_file) as loader:
         tel_id = max(loader.subarray.tel.keys()) + 1
         with pytest.raises(ValueError):
-            loader.read_telescope_events([tel_id])
+            loader.read_telescope_events(
+                [tel_id],
+                dl1_parameters=False,
+                dl2=True,
+            )
 
 
 def test_read_empty_table(dl2_shower_geometry_file):
     """Reading an empty table should return an empty table."""
     from ctapipe.io import TableLoader
 
-    with TableLoader(
-        dl2_shower_geometry_file,
-        load_dl1_parameters=False,
-        load_dl2=True,
-    ) as loader:
-        table = loader.read_telescope_events([6])
+    with TableLoader(dl2_shower_geometry_file) as loader:
+        table = loader.read_telescope_events(
+            [6],
+            dl1_parameters=False,
+            dl2=True,
+        )
         assert len(table) == 0
 
 
@@ -417,13 +432,8 @@ def test_order_merged():
 
     trigger = read_table(path, "/dl1/event/subarray/trigger")
     tel_trigger = read_table(path, "/dl1/event/telescope/trigger")
-    with TableLoader(
-        path,
-        load_dl1_parameters=True,
-        load_dl2=True,
-        load_observation_info=True,
-    ) as loader:
-        events = loader.read_subarray_events()
+    with TableLoader(path) as loader:
+        events = loader.read_subarray_events(dl2=True, observation_info=True)
         check_equal_array_event_order(events, trigger)
 
         tables = loader.read_telescope_events_by_id()
