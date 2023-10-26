@@ -778,7 +778,7 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
-        self.log.warning("Assuming constant and parallel pointing for each run")
+        self.log.warning("FIXME: Assuming constant and parallel pointing for each run")
         if np.all(table["subarray_pointing_frame"] is CoordinateFrameType.ALTAZ):
             pointing_alt = table["subarray_pointing_lat"]
             pointing_az = table["subarray_pointing_lon"]
