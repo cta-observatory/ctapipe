@@ -22,6 +22,7 @@ from ctapipe.exceptions import TooFewEvents
 
 from ..containers import (
     ArrayEventContainer,
+    CoordinateFrameType,
     DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
@@ -778,10 +779,10 @@ class DispReconstructor(Reconstructor):
         fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
         self.log.warning("Assuming constant and parallel pointing for each run")
-        if np.all(table["subarray_pointing_frame"] == 0):
+        if np.all(table["subarray_pointing_frame"] is CoordinateFrameType.ALTAZ):
             pointing_alt = table["subarray_pointing_lat"]
             pointing_az = table["subarray_pointing_lon"]
-        elif np.all(table["subarray_pointing_frame"] == 1):
+        elif np.all(table["subarray_pointing_frame"] is CoordinateFrameType.ICRS):
             pointing_altaz = SkyCoord(
                 ra=table["subarray_pointing_lon"],
                 dec=table["subarray_pointing_lat"],
@@ -789,7 +790,7 @@ class DispReconstructor(Reconstructor):
             ).transform_to(AltAz())
             pointing_alt = pointing_altaz.alt
             pointing_az = pointing_altaz.az
-        elif np.all(table["subarray_pointing_frame"] == 2):
+        elif np.all(table["subarray_pointing_frame"] is CoordinateFrameType.GALACTIC):
             pointing_altaz = SkyCoord(
                 l=table["subarray_pointing_lon"],
                 b=table["subarray_pointing_lat"],
