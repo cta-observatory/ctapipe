@@ -34,7 +34,7 @@ class TrainDispReconstructor(Tool):
         directory_ok=False,
         help=(
             "Ouput path for the trained reconstructor."
-            " At the moment, pickle is the only supported format.",
+            " At the moment, pickle is the only supported format."
         ),
     ).tag(config=True)
 

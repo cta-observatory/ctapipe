@@ -42,6 +42,7 @@ from .morphology import (
 )
 from .muon import (
     MuonIntensityFitter,
+    MuonProcessor,
     MuonRingFitter,
     intensity_ratio_inside_ring,
     kundu_chaudhuri_circle_fit,
@@ -93,6 +94,7 @@ __all__ = [
     "chi_squared",
     "MuonIntensityFitter",
     "MuonRingFitter",
+    "MuonProcessor",
     "kundu_chaudhuri_circle_fit",
     "mean_squared_error",
     "intensity_ratio_inside_ring",

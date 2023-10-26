@@ -44,6 +44,30 @@ INVALID = ReconstructedGeometryContainer(
     prefix="HillasIntersection",
 )
 
+FOV_ANGULAR_DISTANCE_LIMIT_RAD = (45 * u.deg).to_value(u.rad)
+H_MAX_UPPER_LIMIT_M = 100_000
+
+
+def _far_outside_fov(fov_lat, fov_lon):
+    """
+    Check if a given latitude or longiude in the FoV is further away from
+    the FoV center than `FOV_ANGULAR_DISTANCE_LIMIT`
+
+    Parameters
+    ----------
+    fov_lat : u.Quantity[angle]
+        Latitude in TelescopeFrame or NominalFrame
+    fov_lon : u.Quantity[angle]
+        Longitude in TelescopeFrame or NominalFrame
+
+    Returns
+    -------
+    bool
+    """
+    lat_outside_fov = np.abs(fov_lat) > FOV_ANGULAR_DISTANCE_LIMIT_RAD
+    lon_outside_fov = np.abs(fov_lon) > FOV_ANGULAR_DISTANCE_LIMIT_RAD
+    return lat_outside_fov or lon_outside_fov
+
 
 class HillasIntersection(HillasGeometryReconstructor):
     """
@@ -221,6 +245,12 @@ class HillasIntersection(HillasGeometryReconstructor):
         src_fov_lon, src_fov_lat, err_fov_lon, err_fov_lat = self.reconstruct_nominal(
             hillas_dict_mod
         )
+
+        # Catch events reconstructed at great angular distance from camera center
+        # and retrun INVALID container to prevent SkyCoord error below.
+        if _far_outside_fov(src_fov_lat, src_fov_lon):
+            return INVALID
+
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
             hillas_dict_mod, tel_x, tel_y
         )
@@ -234,7 +264,8 @@ class HillasIntersection(HillasGeometryReconstructor):
         sky_pos = nom.transform_to(array_pointing.frame)
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, z=0 * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
-        x_max = self.reconstruct_xmax(
+
+        h_max = self.reconstruct_h_max(
             nom.fov_lon,
             nom.fov_lat,
             tilt.x,
@@ -261,8 +292,8 @@ class HillasIntersection(HillasGeometryReconstructor):
             is_valid=True,
             alt_uncert=src_error.to(u.rad),
             az_uncert=src_error.to(u.rad),
-            h_max=x_max,
-            h_max_uncert=u.Quantity(np.nan * x_max.unit),
+            h_max=h_max,
+            h_max_uncert=u.Quantity(np.nan * h_max.unit),
             goodness_of_fit=np.nan,
             prefix=self.__class__.__name__,
         )
@@ -283,7 +314,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         """
         if len(hillas_parameters) < 2:
-            return None  # Throw away events with < 2 images
+            return (np.nan, np.nan, np.nan, np.nan)  # Throw away events with < 2 images
 
         # Find all pairs of Hillas parameters
         combos = itertools.combinations(list(hillas_parameters.values()), 2)
@@ -355,7 +386,8 @@ class HillasIntersection(HillasGeometryReconstructor):
             core uncertainty X
         """
         if len(hillas_parameters) < 2:
-            return None  # Throw away events with < 2 images
+            return (np.nan, np.nan, np.nan, np.nan)  # Throw away events with < 2 images
+
         hill_list = list()
         tx = list()
         ty = list()
@@ -411,7 +443,7 @@ class HillasIntersection(HillasGeometryReconstructor):
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
-    def reconstruct_xmax(
+    def reconstruct_h_max(
         self, source_x, source_y, core_x, core_y, hillas_parameters, tel_x, tel_y, zen
     ):
         """
@@ -469,25 +501,19 @@ class HillasIntersection(HillasGeometryReconstructor):
             np.array(ty),
         )
         weight = np.array(amp)
-        mean_height = np.sum(height * weight) / np.sum(weight)
+        mean_distance = np.average(height, weights=weight)
 
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
-        mean_height *= np.cos(zen)
+        mean_height = mean_distance * np.cos(zen.to_value(u.rad))
 
         # Add on the height of the detector above sea level
-        mean_height += 2100  # TODO: replace with instrument info
+        mean_height += self.subarray.reference_location.geodetic.height.to_value(u.m)
 
-        if mean_height > 100000 or np.isnan(mean_height):
-            mean_height = 100000
+        if mean_height > H_MAX_UPPER_LIMIT_M:
+            mean_height = np.nan
 
-        mean_height *= u.m
-        # Lookup this height in the depth tables, the convert Hmax to Xmax
-        # x_max = self.thickness_profile(mean_height.to(u.km))
-        # Convert to slant depth
-        # x_max /= np.cos(zen)
-
-        return mean_height
+        return u.Quantity(mean_height, u.m)
 
     @staticmethod
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):

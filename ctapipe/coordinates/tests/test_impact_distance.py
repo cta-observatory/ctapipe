@@ -54,7 +54,7 @@ def test_impact_distance():
     assert np.allclose(impacts, expected_impacts)
 
 
-def test_shower_impact_distance():
+def test_shower_impact_distance(reference_location):
     """test several boundary cases using the function that takes a Subarray and
     Container
     """
@@ -63,6 +63,7 @@ def test_shower_impact_distance():
         name="test",
         tel_positions={1: [0, 0, 0] * u.m, 2: [0, 1, 0] * u.m, 3: [0, 2, 0] * u.m},
         tel_descriptions={1: None, 2: None, 3: None},
+        reference_location=reference_location,
     )
 
     # coming from zenith to the center of the array, the impact distance should

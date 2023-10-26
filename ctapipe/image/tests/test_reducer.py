@@ -9,7 +9,7 @@ from ctapipe.instrument import SubarrayDescription
 
 
 @pytest.fixture(scope="module")
-def subarray_lst(prod3_lst):
+def subarray_lst(prod3_lst, reference_location):
     tel_id = 1
     subarray = SubarrayDescription(
         "test array lst",
@@ -18,6 +18,7 @@ def subarray_lst(prod3_lst):
             1: prod3_lst,
             2: prod3_lst,
         },
+        reference_location=reference_location,
     )
 
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels

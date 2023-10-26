@@ -88,25 +88,32 @@ class CameraGeometry:
 
     Parameters
     ----------
-    self : type
-        description
     name : str
-         Camera name (e.g. NectarCam, LSTCam, ...)
-    pix_id : array(int)
+         Camera name (e.g. "NectarCam", "LSTCam", ...)
+    pix_id : np.ndarray[int]
         pixels id numbers
-    pix_x : array with units
+    pix_x : u.Quantity
         position of each pixel (x-coordinate)
-    pix_y : array with units
+    pix_y : u.Quantity
         position of each pixel (y-coordinate)
-    pix_area : array(float)
-        surface area of each pixel, if None will be calculated
-    neighbors : list(arrays)
-        adjacency list for each pixel
-    pix_type : string
+    pix_area : u.Quantity
+        surface area of each pixel
+    pix_type : PixelShape
         either 'rectangular' or 'hexagonal'
-    pix_rotation : value convertable to an `astropy.coordinates.Angle`
-        rotation angle with unit (e.g. 12 * u.deg), or "12d"
-    cam_rotation : overall camera rotation with units
+    pix_rotation : u.Quantity[angle]
+        rotation of the pixels, global value for all pixels
+    cam_rotation : u.Quantity[angle]
+        rotation of the camera. All coordinates will be interpreted
+        to be rotated by this angle with respect to the definition of the
+        frame the pixel coordinates are defined in.
+    neighbors : list[list[int]]
+        adjacency list for each pixel
+        If not given, will be build from the pixel width and distances
+        between pixels.
+    apply_derotation : bool
+        If true, rotate the pixel coordinates, so that cam_rotation is 0.
+    frame : coordinate frame
+        Frame in which the pixel coordinates are defined (after applying cam_rotation)
     """
 
     CURRENT_TAB_VERSION = "2.0"
@@ -120,43 +127,60 @@ class CameraGeometry:
         pix_y,
         pix_area,
         pix_type,
-        pix_rotation="0d",
-        cam_rotation="0d",
+        pix_rotation=0 * u.deg,
+        cam_rotation=0 * u.deg,
         neighbors=None,
         apply_derotation=True,
         frame=None,
+        _validate=True,
     ):
-        if pix_x.ndim != 1 or pix_y.ndim != 1:
-            raise ValueError(
-                f"Pixel coordinates must be 1 dimensional, got {pix_x.ndim}"
-            )
-
-        assert len(pix_x) == len(pix_y), "pix_x and pix_y must have same length"
-
-        if isinstance(pix_type, str):
-            pix_type = PixelShape.from_string(pix_type)
-        elif not isinstance(pix_type, PixelShape):
-            raise TypeError(
-                f"pix_type most be a PixelShape or the name of a PixelShape, got {pix_type}"
-            )
-
-        self.n_pixels = len(pix_x)
         self.name = name
-        self.pix_id = pix_id
+        self.n_pixels = len(pix_id)
+        self.unit = pix_x.unit
+        self.pix_id = np.array(pix_id)
+
+        if _validate:
+            self.pix_id = np.array(self.pix_id)
+
+            if self.pix_id.ndim != 1:
+                raise ValueError(
+                    f"Pixel coordinates must be 1 dimensional, got {pix_id.ndim}"
+                )
+
+            shape = (self.n_pixels,)
+
+            if pix_x.shape != shape:
+                raise ValueError(
+                    f"pix_x has wrong shape: {pix_x.shape}, expected {shape}"
+                )
+            if pix_y.shape != shape:
+                raise ValueError(
+                    f"pix_y has wrong shape: {pix_y.shape}, expected {shape}"
+                )
+            if pix_area.shape != shape:
+                raise ValueError(
+                    f"pix_area has wrong shape: {pix_area.shape}, expected {shape}"
+                )
+
+            if isinstance(pix_type, str):
+                pix_type = PixelShape.from_string(pix_type)
+            elif not isinstance(pix_type, PixelShape):
+                raise TypeError(
+                    f"pix_type must be a PixelShape or the name of a PixelShape, got {pix_type}"
+                )
+
+            if not isinstance(pix_rotation, Angle):
+                pix_rotation = Angle(pix_rotation)
+
+            if not isinstance(cam_rotation, Angle):
+                cam_rotation = Angle(cam_rotation)
+
         self.pix_x = pix_x
-        self.pix_y = pix_y
-        self.pix_area = pix_area
+        self.pix_y = pix_y.to(self.unit)
+        self.pix_area = pix_area.to(self.unit**2)
         self.pix_type = pix_type
-
-        if not isinstance(pix_rotation, Angle):
-            pix_rotation = Angle(pix_rotation)
-
-        if not isinstance(cam_rotation, Angle):
-            cam_rotation = Angle(cam_rotation)
-
         self.pix_rotation = pix_rotation
         self.cam_rotation = cam_rotation
-
         self._neighbors = neighbors
         self.frame = frame
 
@@ -330,6 +354,7 @@ class CameraGeometry:
             cam_rotation=self.cam_rotation,
             neighbors=None,
             apply_derotation=False,
+            _validate=False,
         )
 
     @lazyproperty
@@ -775,7 +800,7 @@ class CameraGeometry:
         x = self.pix_x.value
         y = self.pix_y.value
 
-        return np.row_stack(
+        return np.vstack(
             [
                 x,
                 y,
@@ -929,12 +954,13 @@ class CameraGeometry:
         pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
                     outside camera
         """
-
         if not self._all_pixel_areas_equal:
             logger.warning(
                 " Method not implemented for cameras with varying pixel sizes"
             )
         unit = x.unit
+        scalar = x.ndim == 0
+
         points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
         circum_rad = self._pixel_circumradius[0].to_value(unit)
         kdtree = self._kdtree
@@ -944,8 +970,9 @@ class CameraGeometry:
         del dist
         pix_indices = pix_indices.flatten()
 
+        invalid = np.iinfo(pix_indices.dtype).min
         # 1. Mark all points outside pixel circumeference as lying outside camera
-        pix_indices[pix_indices == self.n_pixels] = -1
+        pix_indices[pix_indices == self.n_pixels] = invalid
 
         # 2. Accurate check for the remaing cases (within circumference, but still outside
         # camera). It is first checked if any border pixel numbers are returned.
@@ -981,17 +1008,9 @@ class CameraGeometry:
                 )
                 del dist_check
                 if index_check != insidepix_index:
-                    pix_indices[index] = -1
+                    pix_indices[index] = invalid
 
-        # print warning:
-        for index in np.where(pix_indices == -1)[0]:
-            logger.warning(
-                " Coordinate ({} m, {} m) lies outside camera".format(
-                    points_searched[0][index, 0], points_searched[0][index, 1]
-                )
-            )
-
-        return pix_indices if len(pix_indices) > 1 else pix_indices[0]
+        return np.squeeze(pix_indices) if scalar else pix_indices
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):

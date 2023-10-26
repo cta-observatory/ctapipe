@@ -56,21 +56,23 @@ class SubarrayDescription:
     ----------
     name: str
        name of subarray
-    tel_coords: astropy.coordinates.SkyCoord
+    tel_coords: ctapipe.coordinates.GroundFrame
        coordinates of all telescopes
     tels:
        dict of TelescopeDescription for each telescope in the subarray
     """
 
+    #: Current version number of the format written by `SubarrayDescription.to_hdf`
     CURRENT_TAB_VERSION = "2.0"
+    #: Version numbers supported by `SubarrayDescription.from_hdf`
     COMPATIBLE_VERSIONS = {"2.0"}
 
     def __init__(
         self,
         name,
-        tel_positions=None,
-        tel_descriptions=None,
-        reference_location=None,
+        tel_positions,
+        tel_descriptions,
+        reference_location,
     ):
         """
         Initialize a new SubarrayDescription
@@ -124,6 +126,11 @@ class SubarrayDescription:
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.n_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
+        printer(f"Height   : {self.reference_location.geodetic.height:.2f}")
+        printer(
+            f"Lon/Lat  : {self.reference_location.geodetic.lon}, "
+            f"{self.reference_location.geodetic.lat} "
+        )
         printer("")
 
         # print the per-telescope-type informatino:
@@ -148,35 +155,40 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_coords(self):
-        """returns telescope positions as astropy.coordinates.SkyCoord"""
+        """Telescope positions in `~ctapipe.coordinates.GroundFrame`"""
 
         pos_x = [p[0].to_value(u.m) for p in self.positions.values()]
         pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
         pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
 
-        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=GroundFrame())
+        frame = GroundFrame(reference_location=self.reference_location)
+
+        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=frame)
 
     @lazyproperty
     def tel_ids(self):
-        """telescope IDs as an array"""
+        """Array of telescope ids in order of telescope indices"""
         return np.array(list(self.tel.keys()))
 
     @lazyproperty
     def tel_indices(self):
-        """returns dict mapping tel_id to tel_index, useful for unpacking
-        lists based on tel_ids into fixed-length arrays"""
+        """dictionary mapping telescope ids to telescope index"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
     @lazyproperty
     def tel_index_array(self):
         """
-        returns an expanded array that maps tel_id to tel_index. I.e. for a given
-        telescope, this array maps the tel_id to a flat index starting at 0 for
-        the first telescope. ``tel_index = tel_id_to_index_array[tel_id]``
-        If the tel_ids are not contiguous, gaps will be filled in by -1.
+        Array of telescope indices that can be indexed by telescope id
+
+        I.e. for a given telescope, this array maps the tel_id to a flat index
+        starting at 0 for the first telescope.
+        ``tel_index = subarray.tel_index_array[tel_id]``
+
+        If the tel_ids are not contiguous, gaps will be filled in by int minval.
         For a more compact representation use the `tel_indices`
         """
-        idx = np.zeros(np.max(self.tel_ids) + 1, dtype=int) - 1  # start with -1
+        invalid = np.iinfo(int).min
+        idx = np.full(np.max(self.tel_ids) + 1, invalid, dtype=int)
         for key, val in self.tel_indices.items():
             idx[key] = val
         return idx
@@ -346,7 +358,7 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, tel_ids, name=None):
+    def select_subarray(self, tel_ids, name=None) -> "SubarrayDescription":
         """
         return a new SubarrayDescription that is a sub-array of this one
 
@@ -373,7 +385,10 @@ class SubarrayDescription:
             name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
-            name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
+            name,
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+            reference_location=self.reference_location,
         )
         return newsub
 

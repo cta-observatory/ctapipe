@@ -2,11 +2,7 @@
 Create a working directory for ctapipe-process containing standard
 configuration files.
 """
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
-
+from importlib.resources import files
 from pathlib import Path
 
 from ..core import Provenance, Tool, traits
@@ -21,6 +17,7 @@ CONFIGS_TO_WRITE = [
     "ml_preprocessing_config.yaml",
     "train_energy_regressor.yaml",
     "train_particle_classifier.yaml",
+    "train_disp_reconstructor.yaml",
 ]
 
 README_TEXT = f"""
@@ -59,13 +56,16 @@ Details about all configuration options can be found by running:
 ctapipe-process --help-all
 ```
 
-## ctapipe-train-energy-regressor / ctapipe-train-particle-classifier configs
+## ctapipe-train-energy-regressor / ctapipe-train-particle-classifier / ctapipe-train-disp-reconstructor configs
 
 Included here are also base configurations for training machine learning (ML)
-models for energy regression and gamma/hadron separation.
+models for energy regression, gamma/hadron separation and disp origin reconstruction.
+NOTE: As these files are used for unit tests, they are optimized for very fast training
+and will not result in well performing models.
 
 - `train_energy_regressor.yaml`: configuration of energy regression model
 - `train_particle_classifier.yaml`: configuration of particle classification model
+- `train_disp_reconstructor.yaml`: configuration of disp reconstruction models
 
 
 This file was generated using ctapipe version {VERSION}

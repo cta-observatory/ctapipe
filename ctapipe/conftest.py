@@ -4,7 +4,9 @@ common pytest fixtures for tests in ctapipe
 
 from copy import deepcopy
 
+import astropy.units as u
 import pytest
+from astropy.coordinates import EarthLocation
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
@@ -616,3 +618,9 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
         )
         assert ret == 0
         return out_file
+
+
+@pytest.fixture(scope="session")
+def reference_location():
+    """a dummy EarthLocation to use for SubarrayDescriptions"""
+    return EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)

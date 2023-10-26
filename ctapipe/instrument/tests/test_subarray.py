@@ -15,6 +15,8 @@ from ctapipe.instrument import (
     TelescopeDescription,
 )
 
+LOCATION = EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
+
 
 def create_subarray(tel_type, n_tels=10):
     """generate a simple subarray for testing purposes"""
@@ -31,11 +33,7 @@ def create_subarray(tel_type, n_tels=10):
         "test array",
         tel_positions=pos,
         tel_descriptions=tel,
-        reference_location=EarthLocation(
-            lon=-17 * u.deg,
-            lat=28 * u.deg,
-            height=2200 * u.m,
-        ),
+        reference_location=LOCATION,
     )
 
 
@@ -64,6 +62,8 @@ def test_subarray_description(prod5_mst_nectarcam):
     assert u.isclose(sub.optics_types[0].effective_focal_length, 16.445 * u.m)
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
+
+    assert sub.tel_coords.reference_location == LOCATION
 
     subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
     assert subsub.n_tels == 4
@@ -94,11 +94,12 @@ def test_tel_indexing(example_subarray):
     assert np.all(sub.tel_ids_to_indices([1, 2, 3]) == np.array([0, 1, 2]))
 
 
-def test_tel_ids_to_mask(prod5_lst):
+def test_tel_ids_to_mask(prod5_lst, reference_location):
     subarray = SubarrayDescription(
         "someone_counted_in_binary",
         tel_positions={1: [0, 0, 0] * u.m, 10: [50, 0, 0] * u.m},
         tel_descriptions={1: prod5_lst, 10: prod5_lst},
+        reference_location=reference_location,
     )
 
     assert np.all(subarray.tel_ids_to_mask([]) == [False, False])
@@ -153,7 +154,7 @@ def test_hdf(example_subarray, tmp_path):
         assert read == example_subarray
 
 
-def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam):
+def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam, reference_location):
     """Test writing / reading subarray to hdf5 with a subarray that has two
     different telescopes with the same camera
     """
@@ -168,7 +169,12 @@ def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam):
     }
     pos = {1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m}
 
-    array = SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
+    array = SubarrayDescription(
+        "test array",
+        tel_positions=pos,
+        tel_descriptions=tel,
+        reference_location=reference_location,
+    )
 
     path = tmp_path / "subarray.h5"
     array.to_hdf(path)
@@ -176,7 +182,7 @@ def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam):
     assert array == read
 
 
-def test_hdf_duplicate_string_repr(tmp_path, prod5_lst):
+def test_hdf_duplicate_string_repr(tmp_path, prod5_lst, reference_location):
     """Test writing and reading of a subarray with two telescopes that
     are different but have the same name.
     """
@@ -193,6 +199,7 @@ def test_hdf_duplicate_string_repr(tmp_path, prod5_lst):
         "test array",
         tel_positions={1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m},
         tel_descriptions={1: tel1, 2: tel2},
+        reference_location=reference_location,
     )
 
     # defensive checks to make sure we are actually testing this
@@ -249,7 +256,6 @@ def test_unknown_telescopes(example_subarray):
 
 
 def test_multiplicity(subarray_prod5_paranal):
-
     subarray = subarray_prod5_paranal.select_subarray([1, 2, 20, 21, 80, 81])
 
     mask = np.array([True, False, True, True, False, False])
@@ -270,3 +276,14 @@ def test_multiplicity(subarray_prod5_paranal):
     np.testing.assert_equal(subarray.multiplicity(masks, "LST_LST_LSTCam"), [1, 2])
     np.testing.assert_equal(subarray.multiplicity(masks, "MST_MST_FlashCam"), [2, 1])
     np.testing.assert_equal(subarray.multiplicity(masks, "SST_ASTRI_CHEC"), [0, 1])
+
+
+def test_subarrays(subarray_prod5_paranal: SubarrayDescription):
+    """
+    Check that constructing a new SubarrayDescription by using
+    `select_subarray()` works as expected.
+    """
+    subarray = subarray_prod5_paranal.select_subarray([1, 2, 3, 4], name="NewArray")
+    assert subarray.name == "NewArray"
+    assert isinstance(subarray.reference_location, EarthLocation)
+    assert subarray.reference_location == subarray_prod5_paranal.reference_location
