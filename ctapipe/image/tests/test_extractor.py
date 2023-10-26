@@ -186,15 +186,12 @@ def test_fwhm(toymodel):
 
 def test_tot(toymodel):
     waveforms, _, _, _, true_charge, _ = toymodel
-    max_wv = np.max(waveforms, axis=-1)
 
-    baseline = max_wv  # threshold is always above the pulse
-
-    tot_scp = time_over_threshold(waveforms, baseline, thr=200)
+    tot_scp = time_over_threshold(waveforms, thr=200)
     assert np.array(tot_scp).all() == 0
 
     waveforms = np.atleast_2d(np.heaviside([-4, -3, -2, -1, 0, 1, 2, 3, 4, 5], 1))
-    tot_scp = time_over_threshold(waveforms, np.array([0]), thr=0.5)
+    tot_scp = time_over_threshold(waveforms, thr=0.5)
     assert np.array(tot_scp)[0] == 6
 
 

@@ -351,9 +351,16 @@ def integration_correction(
     return correction
 
 
-def time_parameters(
-    waveforms,
-):
+@guvectorize(
+    [
+        (float64[:], float32[:], float32[:], float32[:]),
+        (float32[:], float32[:], float32[:], float32[:]),
+    ],
+    "(s)->(),(),()",
+    nopython=True,
+    cache=True,
+)
+def time_parameters(waveform, fwhm_arr, rise_time_arr, fall_time_arr):
     """
     Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
 
@@ -366,42 +373,37 @@ def time_parameters(
     Returns
     -------
     fwhm : list of floats
-        Full width half maximum of pulse in units of samples
+        Full width half maximum of pulse in units of time
         Shape : (n_pix)
     rise_time : list of floats
-        Rise time of the pulse in units of samples
+        Rise time of the pulse in units of time
         Shape : (n_pix)
     fall_time : list of floats
-        Fall time of the pulse in units of samples
+        Fall time of the pulse in units of time
         Shape : (n_pix)
 
     """
-    n_pixels = np.shape(waveforms)[0]
-    fwhm_arr = np.zeros(n_pixels)
-    rise_time_arr = np.zeros(n_pixels)
-    fall_time_arr = np.zeros(n_pixels)
 
-    for pixel in range(0, n_pixels):
-        waveform = waveforms[pixel]
-        amplitude = np.max(waveform)
-        peak_index = np.argmax(waveform)
-        n_samples = np.shape(waveforms)[-1]
+    amplitude = np.max(waveform)
+    peak_index = np.argmax(waveform)
+    n_samples = np.shape(waveform)[-1]
 
-        rt_90 = 0
-        rt_10 = 0
-        ft_90 = 0
-        ft_10 = 0
-        fwhm_left = 0
-        fwhm_right = 0
+    rt_90 = np.nan
+    rt_10 = np.nan
+    ft_90 = np.nan
+    ft_10 = np.nan
+    fwhm_left = np.nan
+    fwhm_right = np.nan
 
-        half_amplitude = amplitude / 2
-        ampl_10percent = 0.1 * amplitude
-        ampl_90percent = 0.9 * amplitude
+    half_amplitude = amplitude / 2
+    ampl_10percent = 0.1 * amplitude
+    ampl_90percent = 0.9 * amplitude
 
-        for ti in range(peak_index, n_samples - 1):
-            tj = ti + 1
-            yi = waveform[ti]
-            yj = waveform[tj]
+    for ti in range(peak_index, n_samples - 1):
+        tj = ti + 1
+        yi = waveform[ti]
+        yj = waveform[tj]
+        if (yj - yi) != 0:
             if yi >= half_amplitude >= yj:
                 fwhm_right = ti + (half_amplitude - yi) / (yj - yi)
             if yi >= ampl_90percent >= yj:
@@ -409,10 +411,11 @@ def time_parameters(
             if yi >= ampl_10percent >= yj:
                 ft_10 = ti + (ampl_10percent - yi) / (yj - yi)
 
-        for ti in range(peak_index, 0, -1):
-            tj = ti - 1
-            yi = waveform[ti]
-            yj = waveform[tj]
+    for ti in range(peak_index, 0, -1):
+        tj = ti - 1
+        yi = waveform[ti]
+        yj = waveform[tj]
+        if (yj - yi) != 0:
             if yi >= half_amplitude >= yj:
                 fwhm_left = ti - (half_amplitude - yi) / (yj - yi)
             if yi >= ampl_90percent >= yj:
@@ -420,36 +423,31 @@ def time_parameters(
             if yi >= ampl_10percent >= yj:
                 rt_10 = ti - (ampl_10percent - yi) / (yj - yi)
 
-        fwhm = np.nan
-        if fwhm_right and fwhm_left:
-            fwhm = fwhm_right - fwhm_left
+    fwhm = 0.0
+    if None not in (fwhm_right, fwhm_left):
+        fwhm = fwhm_right - fwhm_left
 
-        rise_time = np.nan
-        if rt_90 and rt_10:
-            rise_time = rt_90 - rt_10
+    rise_time = 0.0
+    if None not in (rt_90, rt_10):
+        rise_time = rt_90 - rt_10
 
-        fall_time = np.nan
-        if ft_90 and ft_10:
-            fall_time = ft_10 - ft_90
+    fall_time = 0.0
+    if None not in (ft_90, ft_10):
+        fall_time = ft_10 - ft_90
 
-        fwhm_arr[pixel] = fwhm
-        rise_time_arr[pixel] = rise_time
-        fall_time_arr[pixel] = fall_time
-
-    return fwhm_arr, rise_time_arr, fall_time_arr
+    fwhm_arr[0] = fwhm
+    rise_time_arr[0] = rise_time
+    fall_time_arr[0] = fall_time
 
 
-def time_over_threshold(waveforms, baseline, thr):
+def time_over_threshold(waveforms, thr):
     """
     Calculates the time over threshold
 
     Parameters
     ----------
     waveforms : ndarray
-        r0 waveforms stored in a numpy array.
-    baseline : ndarray
-        Pedestal baseline, adding it to the threshold makes time over threshold independent of NSB
-        Shape: (n_pix, )
+        r1 waveforms stored in a numpy array.
     thr: float
         Threshold above baseline
 
@@ -460,7 +458,7 @@ def time_over_threshold(waveforms, baseline, thr):
         Shape : (n_pix)
 
     """
-    return np.sum(waveforms > (thr + baseline[:, None]), axis=-1)
+    return np.sum(waveforms > thr, axis=-1)
 
 
 class ImageExtractor(TelescopeComponent):
