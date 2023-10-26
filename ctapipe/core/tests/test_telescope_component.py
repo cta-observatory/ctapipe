@@ -342,3 +342,16 @@ def test_telescope_parameter_none(trait_type, mock_subarray):
 
     f = Foo(mock_subarray, bar=[("type", "*", 1), ("id", 1, None)])
     assert f.bar.tel[1] is None
+
+
+def test_telescope_parameter_nonexistent_telescope(mock_subarray):
+    class Foo(TelescopeComponent):
+        bar = IntTelescopeParameter(
+            default_value=None,
+            allow_none=True,
+        ).tag(config=True)
+
+    foo = Foo(subarray=mock_subarray)
+
+    with pytest.raises(KeyError, match="No telescope with id 0"):
+        foo.bar.tel[0]
