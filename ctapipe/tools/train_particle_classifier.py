@@ -78,6 +78,15 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
+    chunk_size = Int(
+        default_value=100000,
+        allow_none=True,
+        help=(
+            "How many subarray events to load at once before training on"
+            " n_signal and n_background events."
+        ),
+    ).tag(config=True)
+
     random_seed = Int(
         default_value=0,
         help="Random number seed for sampling and the cross validation splitting",
@@ -152,35 +161,54 @@ class TrainParticleClassifier(Tool):
             self.log.info("done")
 
     def _read_table(self, telescope_type, loader, n_events=None):
-        table = loader.read_telescope_events(
-            [telescope_type],
-            dl1_muons=False,
-            true_parameters=False,
-        )
-        self.log.info("Events read from input: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
-            )
 
-        mask = self.classifier.quality_query.get_table_mask(table)
-        table = table[mask]
-        self.log.info("Events after applying quality query: %d", len(table))
+        chunk_iterator = loader.read_telescope_events_chunked(
+            self.chunk_size,
+            telescopes=[telescope_type],
+        )
+        table = []
+        n_events_in_file = 0
+        n_valid_events_in_file = 0
+        n_non_predictable = 0
+
+        for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
+            self.log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
+            n_events_in_file += len(table_chunk)
+
+            mask = self.classifier.quality_query.get_table_mask(table_chunk)
+            table_chunk = table_chunk[mask]
+            self.log.debug(
+                "Events in chunk %d after applying quality_query: %d",
+                chunk,
+                len(table_chunk),
+            )
+            n_valid_events_in_file += len(table_chunk)
+
+            table_chunk = self.classifier.feature_generator(
+                table_chunk, subarray=self.subarray
+            )
+            # Add true energy for energy-dependent performance plots
+            columns = self.classifier.features + [self.classifier.target, "true_energy"]
+            table_chunk = table_chunk[columns]
+
+            valid = check_valid_rows(table_chunk)
+            if not np.all(valid):
+                n_non_predictable += np.sum(valid)
+                table_chunk = table_chunk[valid]
+
+            table.append(table_chunk)
+
+        table = vstack(table)
+        self.log.info("Events read from input: %d", n_events_in_file)
+        self.log.info("Events after applying quality query: %d", n_valid_events_in_file)
+
         if len(table) == 0:
             raise TooFewEvents(
                 f"No events after quality query for telescope type {telescope_type}"
             )
 
-        table = self.classifier.feature_generator(table, subarray=self.subarray)
-
-        # Add true energy for energy-dependent performance plots
-        columns = self.classifier.features + [self.classifier.target, "true_energy"]
-        table = table[columns]
-
-        valid = check_valid_rows(table)
-        if not np.all(valid):
-            self.log.warning("Dropping non-predictable events.")
-            table = table[valid]
+        if n_non_predictable > 0:
+            self.log.warning("Dropping %d non-predictable events.", n_non_predictable)
 
         if n_events is not None:
             if n_events > len(table):
