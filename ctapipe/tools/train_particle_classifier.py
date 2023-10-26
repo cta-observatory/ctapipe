@@ -92,6 +92,12 @@ class TrainParticleClassifier(Tool):
         help="Random number seed for sampling and the cross validation splitting",
     ).tag(config=True)
 
+    n_jobs = Int(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config",
+    ).tag(config=True)
+
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
         "background": "TrainParticleClassifier.input_url_background",
@@ -144,6 +150,8 @@ class TrainParticleClassifier(Tool):
         self.n_background.attach_subarray(self.subarray)
 
         self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
+        if self.n_jobs:
+            self.classifier.set_n_jobs(self.n_jobs)
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
