@@ -217,8 +217,10 @@ class TelescopeParameterLookup:
             try:
                 return self._value_for_tel_id[tel]
             except KeyError:
+                if tel not in self._subarray.tel:
+                    raise KeyError(f"No telescope with id {tel} in subarray")
                 raise KeyError(
-                    f"TelescopeParameterLookup: no "
+                    "TelescopeParameterLookup: no "
                     f"parameter value was set for telescope with tel_id="
                     f"{tel}. Please set it explicitly, "
                     f"or by telescope type or '*'."
