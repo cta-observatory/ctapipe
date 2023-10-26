@@ -452,9 +452,9 @@ def tailcuts_hysteresis_clean(
                 pixels_above_boundary & pixels_with_picture_neighbors
             ) | (pixels_in_picture & pixels_with_boundary_neighbors)
 
-        iteration = np.all(pixels_in_picture == pixels_in_picture_previous)
+        is_unchanged = np.all(pixels_in_picture == pixels_in_picture_previous)
 
-        if iteration:
+        if is_unchanged:
             break
 
     return pixels_in_picture
