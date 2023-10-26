@@ -161,7 +161,7 @@ class TableLoader(Component):
 
     * `TableLoader.read_subarray_events`
     * `TableLoader.read_telescope_events`
-    * `TableLoader.read_telescope_events_by_type` retuns a dict with a table per
+    * `TableLoader.read_telescope_events_by_type` returns a dict with a table per
       telescope type, which is needed for e.g. DL1 image data that might have
       different shapes for each of the telescope types as tables do not support
       variable length columns.
@@ -175,37 +175,33 @@ class TableLoader(Component):
     input_url = traits.Path(
         directory_ok=False, exists=True, allow_none=True, default_value=None
     ).tag(config=True)
+    dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
+    dl1_parameters = traits.Bool(True, help="load reconstructed image parameters").tag(
+        config=True
+    )
+    dl1_muons = traits.Bool(True, help="load muon ring parameters").tag(config=True)
 
-    load_dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
-    load_dl1_parameters = traits.Bool(
-        True, help="load reconstructed image parameters"
-    ).tag(config=True)
-    load_dl1_muons = traits.Bool(False, help="load muon ring parameters").tag(
+    dl2 = traits.Bool(True, help="load available dl2 stereo parameters").tag(
         config=True
     )
 
-    load_dl2 = traits.Bool(False, help="load available dl2 stereo parameters").tag(
+    simulated = traits.Bool(True, help="load simulated shower information").tag(
         config=True
     )
-
-    load_simulated = traits.Bool(False, help="load simulated shower information").tag(
+    true_images = traits.Bool(True, help="load simulated shower images").tag(
         config=True
     )
-    load_true_images = traits.Bool(False, help="load simulated shower images").tag(
-        config=True
-    )
-    load_true_parameters = traits.Bool(
-        False, help="load image parameters obtained from true images"
+    true_parameters = traits.Bool(
+        True, help="load image parameters obtained from true images"
     ).tag(config=True)
 
-    load_instrument = traits.Bool(
-        False, help="join subarray instrument information to each event"
+    instrument = traits.Bool(
+        True, help="join subarray instrument information to each event"
     ).tag(config=True)
 
-    load_observation_info = traits.Bool(
-        False, help="join observation information to each event"
+    observation_info = traits.Bool(
+        True, help="join observation information to each event"
     ).tag(config=True)
-
     focal_length_choice = traits.UseEnum(
         FocalLengthKind,
         default_value=FocalLengthKind.EFFECTIVE,
@@ -247,15 +243,11 @@ class TableLoader(Component):
 
         Provenance().add_input_file(self.input_url, role="Event data")
 
-        self.instrument_table = None
-        if self.load_instrument:
-            self.instrument_table = self.subarray.to_table("joined")
-
         groups = {
-            "load_dl1_parameters": PARAMETERS_GROUP,
-            "load_dl1_images": IMAGES_GROUP,
-            "load_true_parameters": TRUE_PARAMETERS_GROUP,
-            "load_true_images": TRUE_IMAGES_GROUP,
+            "dl1_parameters": PARAMETERS_GROUP,
+            "dl1_images": IMAGES_GROUP,
+            "true_parameters": TRUE_PARAMETERS_GROUP,
+            "true_images": TRUE_IMAGES_GROUP,
         }
         for attr, group in groups.items():
             if getattr(self, attr) and group not in self.h5file.root:
@@ -369,23 +361,55 @@ class TableLoader(Component):
             table.remove_column("__index__")
         return joint
 
-    def read_subarray_events(self, start=None, stop=None, keep_order=True):
+    def _fallback_to_traits(self, **kwargs):
+        return {k: v if v is not None else getattr(self, k) for k, v in kwargs.items()}
+
+    def read_subarray_events(
+        self,
+        start=None,
+        stop=None,
+        dl2=None,
+        simulated=None,
+        observation_info=None,
+        keep_order=True,
+    ):
         """Read subarray-based event information.
+
+        Parameters
+        ----------
+
+        dl2: bool
+            load available dl2 stereo parameters
+        simulated: bool
+            load simulated shower information
+        observation_info: bool
+            join observation information to each event
+        start: int
+            First *subarray* event to read
+        stop: int
+            Last *subarray* event (non-inclusive)
 
         Returns
         -------
         table: astropy.io.Table
             Table with primary index columns "obs_id" and "event_id".
         """
+        # Setting None flags to traits default values
+        locals().update(
+            self._fallback_to_traits(
+                dl2=dl2, simulated=simulated, observation_info=observation_info
+            )
+        )
+
         table = read_table(self.h5file, TRIGGER_TABLE, start=start, stop=stop)
         if keep_order:
             self._add_index_if_needed(table)
 
-        if self.load_simulated and SHOWER_TABLE in self.h5file:
+        if simulated and SHOWER_TABLE in self.h5file:
             showers = read_table(self.h5file, SHOWER_TABLE, start=start, stop=stop)
             table = _merge_subarray_tables(table, showers)
 
-        if self.load_dl2:
+        if dl2:
             if DL2_SUBARRAY_GROUP in self.h5file:
                 for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
                     group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
@@ -400,7 +424,7 @@ class TableLoader(Component):
                         )
                         table = _merge_subarray_tables(table, dl2)
 
-        if self.load_observation_info:
+        if observation_info:
             table = self._join_observation_info(table)
 
         if keep_order:
@@ -424,7 +448,20 @@ class TableLoader(Component):
             kwargs=kwargs,
         )
 
-    def _read_telescope_events_for_id(self, tel_id, start=None, stop=None):
+    def _read_telescope_events_for_id(
+        self,
+        tel_id,
+        dl1_images,
+        dl1_parameters,
+        dl1_muons,
+        dl2,
+        simulated,
+        true_images,
+        true_parameters,
+        instrument,
+        start=None,
+        stop=None,
+    ):
         """Read telescope-based event information for a single telescope.
 
         This is the most low-level function doing the actual reading.
@@ -434,15 +471,44 @@ class TableLoader(Component):
         tel_id: int
             Telescope identification number.
         start: int
-            First subarray event index to read
+            First *subarray* event to read
         stop: int
-            Last subarray event index to read
+            Last *subarray* event (non-inclusive)
+        dl1_images: bool
+            load extracted images
+        dl1_parameters: bool
+            load reconstructed image parameters
+        dl1_muons: bool
+            load muon ring parameters
+        dl2: bool
+            load available dl2 stereo parameters
+        simulated: bool
+            load simulated shower information
+        true_images: bool
+            load simulated shower images
+        true_parameters: bool
+            load image parameters obtained from true images
+        instrument: bool
+            join subarray instrument information to each event
 
         Returns
         -------
         table: astropy.io.Table
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
+        # Setting None flags to traits default values
+        locals().update(
+            self._fallback_to_traits(
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
+        )
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
 
@@ -468,25 +534,25 @@ class TableLoader(Component):
             stop=trigger_stop,
         )
 
-        if self.load_dl1_parameters:
+        if dl1_parameters:
             parameters = self._read_telescope_table(
                 PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, parameters)
 
-        if self.load_dl1_muons:
+        if dl1_muons:
             muon_parameters = self._read_telescope_table(
                 MUON_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, muon_parameters)
 
-        if self.load_dl1_images:
+        if dl1_images:
             images = self._read_telescope_table(
                 IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, images)
 
-        if self.load_dl2:
+        if dl2:
             if DL2_TELESCOPE_GROUP in self.h5file:
                 dl2_tel_group = self.h5file.root[DL2_TELESCOPE_GROUP]
                 for group_name in dl2_tel_group._v_children:
@@ -503,24 +569,25 @@ class TableLoader(Component):
 
                         table = _merge_telescope_tables(table, dl2)
 
-        if self.load_true_images:
+        if true_images:
             true_images = self._read_telescope_table(
                 TRUE_IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, true_images)
 
-        if self.load_true_parameters:
+        if true_parameters:
             true_parameters = self._read_telescope_table(
                 TRUE_PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _join_telescope_events(table, true_parameters)
 
-        if self.load_instrument:
+        if instrument:
+            self.instrument_table = self.subarray.to_table("joined")
             table = join_allow_empty(
                 table, self.instrument_table, keys=["tel_id"], join_type="left"
             )
 
-        if self.load_simulated and TRUE_IMPACT_GROUP in self.h5file.root:
+        if simulated and TRUE_IMPACT_GROUP in self.h5file.root:
             impacts = self._read_telescope_table(
                 TRUE_IMPACT_GROUP,
                 tel_id,
@@ -531,9 +598,34 @@ class TableLoader(Component):
 
         return table
 
-    def _read_telescope_events_for_ids(self, tel_ids, start=None, stop=None):
+    def _read_telescope_events_for_ids(
+        self,
+        tel_ids,
+        dl1_images,
+        dl1_parameters,
+        dl1_muons,
+        dl2,
+        simulated,
+        true_images,
+        true_parameters,
+        instrument,
+        start=None,
+        stop=None,
+    ):
         tables = [
-            self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            self._read_telescope_events_for_id(
+                tel_id,
+                start=start,
+                stop=stop,
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
             for tel_id in tel_ids
         ]
         return vstack(tables)
@@ -572,7 +664,20 @@ class TableLoader(Component):
 
         return tel_start, tel_stop
 
-    def read_telescope_events(self, telescopes=None, start=None, stop=None):
+    def read_telescope_events(
+        self,
+        telescopes=None,
+        start=None,
+        stop=None,
+        dl1_images=None,
+        dl1_parameters=None,
+        dl1_muons=None,
+        dl2=None,
+        simulated=None,
+        true_images=None,
+        true_parameters=None,
+        instrument=None,
+    ):
         """
         Read telescope-based event information.
 
@@ -594,19 +699,61 @@ class TableLoader(Component):
             First *subarray* event to read
         stop: int
             Last *subarray* event (non-inclusive)
+        dl1_images: bool
+            load extracted images
+        dl1_parameters: bool
+            load reconstructed image parameters
+        dl1_muons: bool
+            load muon ring parameters
+        dl2: bool
+            load available dl2 stereo parameters
+        simulated: bool
+            load simulated shower information
+        true_images: bool
+            load simulated shower images
+        true_parameters: bool
+            load image parameters obtained from true images
+        instrument: bool
+            join subarray instrument information to each event
 
         Returns
         -------
         events: astropy.io.Table
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
+        # Setting None flags to traits default values
+        locals().update(
+            self._fallback_to_traits(
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
+        )
 
         if telescopes is None:
             tel_ids = tuple(self.subarray.tel.keys())
         else:
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
-        table = self._read_telescope_events_for_ids(tel_ids, start, stop)
+        table = self._read_telescope_events_for_ids(
+            tel_ids,
+            start,
+            stop,
+            dl1_images=dl1_images,
+            dl1_parameters=dl1_parameters,
+            dl1_muons=dl1_muons,
+            dl2=dl2,
+            simulated=simulated,
+            true_images=true_images,
+            true_parameters=true_parameters,
+            instrument=instrument,
+        )
+
         table = self._join_subarray_info(table, start=start, stop=stop)
 
         # sort back to order in the file
@@ -666,14 +813,41 @@ class TableLoader(Component):
         return self._n_telescope_events.sum(axis=1)
 
     def read_telescope_events_by_type(
-        self, telescopes=None, start=None, stop=None
+        self,
+        telescopes=None,
+        start=None,
+        stop=None,
+        dl1_images=None,
+        dl1_parameters=None,
+        dl1_muons=None,
+        dl2=None,
+        simulated=None,
+        true_images=None,
+        true_parameters=None,
+        instrument=None,
     ) -> Dict[str, Table]:
-        """Read telescope-based event information.
+        """Read subarray-based event information.
 
         Parameters
         ----------
         telescopes: List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
+        dl1_images: bool
+            load extracted images
+        dl1_parameters: bool
+            load reconstructed image parameters
+        dl1_muons: bool
+            load muon ring parameters
+        dl2: bool
+            load available dl2 stereo parameters
+        simulated: bool
+            load simulated shower information
+        true_images: bool
+            load simulated shower images
+        true_parameters: bool
+            load image parameters obtained from true images
+        instrument: bool
+            join subarray instrument information to each event
 
         Returns
         -------
@@ -681,6 +855,19 @@ class TableLoader(Component):
             Dictionary of tables organized by telescope types
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
+        # Setting None flags to traits default values
+        locals().update(
+            self._fallback_to_traits(
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
+        )
 
         if telescopes is None:
             tel_ids = tuple(self.subarray.tel.keys())
@@ -695,7 +882,20 @@ class TableLoader(Component):
         by_type = defaultdict(list)
         for tel_id in tel_ids:
             key = str(self.subarray.tel[tel_id])
-            table = self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            table = self._read_telescope_events_for_id(
+                tel_id,
+                start=start,
+                stop=stop,
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
+
             if len(table) > 0:
                 by_type[key].append(table)
 
@@ -730,14 +930,41 @@ class TableLoader(Component):
         )
 
     def read_telescope_events_by_id(
-        self, telescopes=None, start=None, stop=None
+        self,
+        telescopes=None,
+        start=None,
+        stop=None,
+        dl1_images=None,
+        dl1_parameters=None,
+        dl1_muons=None,
+        dl2=None,
+        simulated=None,
+        true_images=None,
+        true_parameters=None,
+        instrument=None,
     ) -> Dict[int, Table]:
-        """Read telescope-based event information.
+        """Read subarray-based event information.
 
         Parameters
         ----------
         telescopes: List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
+        dl1_images: bool
+            load extracted images
+        dl1_parameters: bool
+            load reconstructed image parameters
+        dl1_muons: bool
+            load muon ring parameters
+        dl2: bool
+            load available dl2 stereo parameters
+        simulated: bool
+            load simulated shower information
+        true_images: bool
+            load simulated shower images
+        true_parameters: bool
+            load image parameters obtained from true images
+        instrument: bool
+            join subarray instrument information to each event
 
         Returns
         -------
@@ -745,6 +972,19 @@ class TableLoader(Component):
             Dictionary of tables organized by telescope ids
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
+        # Setting None flags to traits default values
+        locals().update(
+            self._fallback_to_traits(
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
+        )
 
         if telescopes is None:
             tel_ids = tuple(self.subarray.tel.keys())
@@ -759,7 +999,19 @@ class TableLoader(Component):
         by_id = {}
         for tel_id in tel_ids:
             # no events for this telescope in range start/stop
-            table = self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            table = self._read_telescope_events_for_id(
+                tel_id,
+                start=start,
+                stop=stop,
+                dl1_images=dl1_images,
+                dl1_parameters=dl1_parameters,
+                dl1_muons=dl1_muons,
+                dl2=dl2,
+                simulated=simulated,
+                true_images=true_images,
+                true_parameters=true_parameters,
+                instrument=instrument,
+            )
             if len(table) > 0:
                 by_id[tel_id] = table
 
