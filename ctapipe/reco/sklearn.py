@@ -9,7 +9,7 @@ from typing import Dict
 import astropy.units as u
 import joblib
 import numpy as np
-from astropy.coordinates import AltAz
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
 from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
@@ -777,13 +777,34 @@ class DispReconstructor(Reconstructor):
         fov_lon = table["hillas_fov_lon"].quantity + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"].quantity + disp * np.sin(psi)
 
-        # FIXME: Assume constant and parallel pointing for each run
         self.log.warning("Assuming constant and parallel pointing for each run")
+        if np.all(table["subarray_pointing_frame"] == 0):
+            pointing_alt = table["subarray_pointing_lat"]
+            pointing_az = table["subarray_pointing_lon"]
+        elif np.all(table["subarray_pointing_frame"] == 1):
+            pointing_altaz = SkyCoord(
+                ra=table["subarray_pointing_lon"],
+                dec=table["subarray_pointing_lat"],
+                frame="icrs",
+            ).transform_to(AltAz())
+            pointing_alt = pointing_altaz.alt
+            pointing_az = pointing_altaz.az
+        elif np.all(table["subarray_pointing_frame"] == 2):
+            pointing_altaz = SkyCoord(
+                l=table["subarray_pointing_lon"],
+                b=table["subarray_pointing_lat"],
+                frame="galactic",
+            ).transform_to(AltAz())
+            pointing_alt = pointing_altaz.alt
+            pointing_az = pointing_altaz.az
+        else:
+            raise KeyError("Unknown observation coordinate frame")
+
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,
-            pointing_alt=table["subarray_pointing_lat"],
-            pointing_az=table["subarray_pointing_lon"],
+            pointing_alt=pointing_alt,
+            pointing_az=pointing_az,
         )
 
         altaz_result = Table(

@@ -1,0 +1,2 @@
+Check the coordinate frame in which the array pointing is given
+before using it in ``DispReconstructor``.
