@@ -103,6 +103,7 @@ class TrainParticleClassifier(Tool):
         "background": "TrainParticleClassifier.input_url_background",
         "n-signal": "TrainParticleClassifier.n_signal",
         "n-background": "TrainParticleClassifier.n_background",
+        "n-jobs": "TrainParticleClassifier.n_jobs",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
     }
