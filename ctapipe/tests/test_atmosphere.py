@@ -133,3 +133,46 @@ def test_against_reference():
         0,
         atol=1e-5,
     )
+
+
+def test_height_overburden_circle(table_profile):
+    """
+    Test that successive application of height to overburden
+    and overburden to height functions return original values
+    """
+
+    # Five-layer atmosphere
+    fit_reference = np.array(
+        [
+            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
+            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
+            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
+            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
+            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
+        ]
+    )
+
+    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+
+    circle_height_5_layer = profile_5.height_from_overburden(
+        profile_5.integral(47 * u.km)
+    )
+
+    assert np.allclose(circle_height_5_layer, 47 * u.km, rtol=0.0001)
+
+    # Exponential atmosphere
+    density_model = atmo.ExponentialAtmosphereDensityProfile(
+        scale_height=10 * u.km, scale_density=0.00125 * u.g / u.cm**3
+    )
+
+    circle_height_exponential = density_model.height_from_overburden(
+        density_model.integral(47 * u.km)
+    )
+
+    assert np.allclose(circle_height_exponential, 47 * u.km, rtol=0.0001)
+
+    circle_height_table = table_profile.height_from_overburden(
+        table_profile.integral(47 * u.km)
+    )
+
+    assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
