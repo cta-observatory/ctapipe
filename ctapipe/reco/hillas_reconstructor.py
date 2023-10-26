@@ -23,7 +23,6 @@ from ..instrument import SubarrayDescription
 from .reconstructor import (
     HillasGeometryReconstructor,
     InvalidWidthException,
-    ReconstructionProperty,
     TooFewTelescopesException,
 )
 
