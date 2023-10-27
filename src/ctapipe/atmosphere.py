@@ -378,7 +378,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             for i, f in enumerate([_exponential] * 4 + [_linear])
         ]
         self._inv_funcs = [
-            partial(f, a=param_a[4-i], b=param_b[4-i], c=param_c[4-i])
+            partial(f, a=param_a[4 - i], b=param_b[4 - i], c=param_c[4 - i])
             for i, f in enumerate([_inv_linear] + 4 * [_inv_exponential])
         ]
         self._d_funcs = [

@@ -154,17 +154,14 @@ def test_height_overburden_circle(table_profile):
 
     profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
 
-    layer_5_heights=u.Quantity([5,15,30,70,110]*u.km)
+    layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 
     for height in layer_5_heights:
-
         circle_height_5_layer = profile_5.height_from_overburden(
             profile_5.integral(height)
         )
 
         assert np.allclose(circle_height_5_layer, height, rtol=0.005)
-
-
 
     # Exponential atmosphere
     density_model = atmo.ExponentialAtmosphereDensityProfile(
