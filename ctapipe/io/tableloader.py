@@ -609,6 +609,7 @@ class TableLoader(Component):
         true_images,
         true_parameters,
         instrument,
+        observation_info,
         start=None,
         stop=None,
     ):
@@ -630,11 +631,24 @@ class TableLoader(Component):
         ]
         return vstack(tables)
 
-    def _join_subarray_info(self, table, start=None, stop=None, subarray_events=None):
+    def _join_subarray_info(
+        self,
+        table,
+        start=None,
+        stop=None,
+        dl2=None,
+        simulated=None,
+        observation_info=None,
+        subarray_events=None,
+    ):
+
         if subarray_events is None:
             subarray_events = self.read_subarray_events(
                 start=start,
                 stop=stop,
+                dl2=dl2,
+                simulated=simulated,
+                observation_info=observation_info,
                 keep_order=False,
             )
         table = join_allow_empty(
@@ -677,6 +691,7 @@ class TableLoader(Component):
         true_images=None,
         true_parameters=None,
         instrument=None,
+        observation_info=None,
     ):
         """
         Read telescope-based event information.
@@ -732,6 +747,7 @@ class TableLoader(Component):
                 true_images=true_images,
                 true_parameters=true_parameters,
                 instrument=instrument,
+                observation_info=observation_info,
             )
         )
 
@@ -750,11 +766,19 @@ class TableLoader(Component):
             true_images=true_images,
             true_parameters=true_parameters,
             instrument=instrument,
+            observation_info=observation_info,
             start=start,
             stop=stop,
         )
 
-        table = self._join_subarray_info(table, start=start, stop=stop)
+        table = self._join_subarray_info(
+            table,
+            dl2=dl2,
+            simulated=simulated,
+            observation_info=observation_info,
+            start=start,
+            stop=stop,
+        )
 
         # sort back to order in the file
         table = _join_subarray_events(
@@ -824,6 +848,7 @@ class TableLoader(Component):
         simulated=None,
         true_images=None,
         true_parameters=None,
+        observation_info=None,
         instrument=None,
     ) -> Dict[str, Table]:
         """Read subarray-based event information.
@@ -866,6 +891,7 @@ class TableLoader(Component):
                 true_images=true_images,
                 true_parameters=true_parameters,
                 instrument=instrument,
+                observation_info=observation_info,
             )
         )
 
@@ -875,7 +901,12 @@ class TableLoader(Component):
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
         subarray_events = self.read_subarray_events(
-            start=start, stop=stop, keep_order=False
+            start=start,
+            stop=stop,
+            dl2=dl2,
+            simulated=simulated,
+            observation_info=observation_info,
+            keep_order=False,
         )
         self._add_index_if_needed(subarray_events)
 
@@ -942,6 +973,7 @@ class TableLoader(Component):
         true_images=None,
         true_parameters=None,
         instrument=None,
+        observation_info=None,
     ) -> Dict[int, Table]:
         """Read subarray-based event information.
 
@@ -983,6 +1015,7 @@ class TableLoader(Component):
                 true_images=true_images,
                 true_parameters=true_parameters,
                 instrument=instrument,
+                observation_info=observation_info,
             )
         )
 
@@ -992,7 +1025,12 @@ class TableLoader(Component):
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
         subarray_events = self.read_subarray_events(
-            start=start, stop=stop, keep_order=False
+            start=start,
+            stop=stop,
+            dl2=dl2,
+            simulated=simulated,
+            observation_info=observation_info,
+            keep_order=False,
         )
         self._add_index_if_needed(subarray_events)
 
