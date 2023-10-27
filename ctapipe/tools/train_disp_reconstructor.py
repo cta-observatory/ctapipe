@@ -105,13 +105,6 @@ class TrainDispReconstructor(Tool):
             self.log.info("Loading events for %s", tel_type)
             table = self._read_table(tel_type)
 
-            if not np.all(
-                table["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
-            ):
-                raise ValueError(
-                    "Pointing information for training data has to be provided in horizontal coordinates"
-                )
-
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
 
@@ -133,6 +126,13 @@ class TrainDispReconstructor(Tool):
         if len(table) == 0:
             raise TooFewEvents(
                 f"No events after quality query for telescope type {telescope_type}"
+            )
+
+        if not np.all(
+            table["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
+        ):
+            raise ValueError(
+                "Pointing information for training data has to be provided in horizontal coordinates"
             )
 
         table = self.models.feature_generator(table, subarray=self.loader.subarray)
