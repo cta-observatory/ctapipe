@@ -93,5 +93,8 @@ Reference/API
 .. automodapi:: ctapipe.tools.train_particle_classifier
     :no-inheritance-diagram:
 
+.. automodapi:: ctapipe.tools.train_disp_reconstructor
+   :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.tools.apply_models
     :no-inheritance-diagram:

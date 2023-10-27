@@ -11,6 +11,10 @@ from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
 
+__all__ = [
+    "TrainDispReconstructor",
+]
+
 
 class TrainDispReconstructor(Tool):
     """
