@@ -323,7 +323,7 @@ def _exponential(h, a, b, c):
 
 
 def _inv_exponential(T, a, b, c):
-    "inverse function for eponetial atmosphere"
+    "inverse function for exponetial atmosphere"
     return -c * np.log((T - a) / b)
 
 
@@ -339,7 +339,7 @@ def _linear(h, a, b, c):
 
 def _inv_linear(T, a, b, c):
     "inverse function for linear atmosphere"
-    return -b / c * (T - a)
+    return -c / b * (T - a)
 
 
 def _d_linear(h, a, b, c):
@@ -378,7 +378,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             for i, f in enumerate([_exponential] * 4 + [_linear])
         ]
         self._inv_funcs = [
-            partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
+            partial(f, a=param_a[4-i], b=param_b[4-i], c=param_c[4-i])
             for i, f in enumerate([_inv_linear] + 4 * [_inv_exponential])
         ]
         self._d_funcs = [
@@ -438,8 +438,8 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
-        overburdens_at_heights = self.integral(self.table["height"].to(u.km))
-        which_func = np.digitize(overburden, overburdens_at_heights) - 1
+        overburdens_at_heights = np.flip(self.integral(self.table["height"].to(u.km)))
+        which_func = np.digitize(overburden, overburdens_at_heights)
         condlist = [which_func == i for i in range(5)]
         return u.Quantity(
             np.piecewise(
