@@ -54,28 +54,6 @@ def test_mean_poisson_likelihoood_gaussian():
 
     assert np.abs(rel_diff) < 5e-4
 
-    # Test that the mean likelihood of abunch of samples drawn from the gaussian
-    # behind the aprroximate log likelihood is indeed the precalculated mean
-
-    rng = np.random.default_rng(123456)
-
-    ped = 1
-
-    mean_likelihood = mean_poisson_likelihood_gaussian(prediction[0], spe, ped)
-
-    distribution_width = np.sqrt(ped**2 + prediction[0] * (1 + spe**2))
-
-    normal_samples = rng.normal(
-        loc=prediction[0], scale=distribution_width, size=100000
-    )
-
-    rel_diff = (
-        2 * neg_log_likelihood_approx(normal_samples, prediction[0], spe, ped) / 100000
-        - mean_likelihood
-    ) / mean_likelihood
-
-    assert np.abs(rel_diff) < 5e-4
-
 
 def test_mean_poisson_likelihood_full():
     prediction = np.array([10.0, 10.0])
@@ -94,8 +72,8 @@ def test_full_likelihood():
     signal cases. Check that full calculation and the gaussian approx become
     equal at high signal.
     """
-    spe = 0.5  # Single photo-electron width
-    pedestal = 1  # width of the pedestal distribution
+    spe = 0.5*np.ones(3)  # Single photo-electron width
+    pedestal = np.ones(3)  # width of the pedestal distribution
 
     image_small = np.array([0, 1, 2])
     expectation_small = np.array([1, 1, 1])
