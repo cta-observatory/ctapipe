@@ -271,7 +271,7 @@ class CameraCalibrator(TelescopeComponent):
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+        dl1.image *= dl1_calib.flatfielding_factor
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:

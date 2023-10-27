@@ -523,16 +523,11 @@ class DL1CameraCalibrationContainer(Container):
         " This value is subtracted from the waveforms of each pixel before"
         " the pulse extraction.",
     )
-    absolute_factor = Field(
+    flatfielding_factor = Field(
         1,
-        "Multiplicative coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel",
-    )
-    relative_factor = Field(
-        1,
-        "Multiplicative Coefficients for the relative correction between pixels to achieve a "
-        "uniform charge response (post absolute calibration) from a "
-        "uniform illumination.",
+        "Multiplicative coefficients for the relative correction between "
+        "pixels to achieve a uniform charge response "
+        "(post absolute calibration) from a uniform illumination.",
     )
     time_shift = Field(
         None,

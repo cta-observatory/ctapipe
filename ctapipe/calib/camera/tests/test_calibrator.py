@@ -173,6 +173,9 @@ def test_dl1_charge_calib(example_subarray):
     relative = random.normal(1, 0.01, n_pixels)
     y /= relative[:, np.newaxis]
 
+    # Define flatfielding coefficients
+    flatfielding = relative / absolute
+
     # Define pedestal
     pedestal = random.uniform(-4, 4, n_pixels)
     y += pedestal[:, np.newaxis]
@@ -191,8 +194,7 @@ def test_dl1_charge_calib(example_subarray):
     np.testing.assert_allclose(event.dl1.tel[tel_id].image, y.sum(1), rtol=1e-4)
 
     event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-    event.calibration.tel[tel_id].dl1.absolute_factor = absolute
-    event.calibration.tel[tel_id].dl1.relative_factor = relative
+    event.calibration.tel[tel_id].dl1.flatfielding_factor = flatfielding
 
     # Test without timing corrections
     calibrator(event)
