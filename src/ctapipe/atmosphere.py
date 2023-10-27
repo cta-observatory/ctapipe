@@ -15,7 +15,7 @@ from functools import partial
 
 import numpy as np
 from astropy import units as u
-from astropy.table import Table
+from astropy.table import QTable
 from scipy.interpolate import interp1d
 
 __all__ = [
@@ -28,6 +28,9 @@ __all__ = [
 SUPPORTED_TABLE_VERSIONS = {
     1,
 }
+
+GRAMMAGE_UNIT = u.g / u.cm**2
+DENSITY_UNIT = u.g / u.cm**3
 
 
 class AtmosphereDensityProfile(abc.ABC):
@@ -73,7 +76,10 @@ class AtmosphereDensityProfile(abc.ABC):
         """
 
     def line_of_sight_integral(
-        self, distance: u.Quantity, zenith_angle=0 * u.deg, output_units=u.g / u.cm**2
+        self,
+        distance: u.Quantity,
+        zenith_angle=0 * u.deg,
+        output_units=GRAMMAGE_UNIT,
     ):
         r"""Line-of-sight integral from the shower distance to infinity, along
         the direction specified by the zenith angle. This is sometimes called
@@ -144,7 +150,7 @@ class AtmosphereDensityProfile(abc.ABC):
         return fig, axis
 
     @classmethod
-    def from_table(cls, table: Table):
+    def from_table(cls, table: QTable):
         """return a subclass of AtmosphereDensityProfile from a serialized
         table"""
 
@@ -191,7 +197,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     """
 
     scale_height: u.Quantity = 8 * u.km
-    scale_density: u.Quantity = 0.00125 * u.g / (u.cm**3)
+    scale_density: u.Quantity = 0.00125 * u.g / u.cm**3
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
@@ -206,7 +212,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
             self.scale_density * self.scale_height * np.exp(-height / self.scale_height)
         )
 
-    @u.quantity_input(overburden=u.g / (u.cm * u.cm))
+    @u.quantity_input(overburden=u.g / u.cm**2)
     def height_from_overburden(self, overburden) -> u.Quantity:
         return -self.scale_height * np.log(
             overburden / (self.scale_height * self.scale_density)
@@ -247,11 +253,11 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         load a TableAtmosphereDensityProfile from a supported EventSource
     """
 
-    def __init__(self, table: Table):
+    def __init__(self, table: QTable):
         """
         Parameters
         ----------
-        table: Table
+        table : QTable
             Table with columns `height`, `density`, and `column_density`
         """
 
@@ -259,29 +265,32 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             if col not in table.colnames:
                 raise ValueError(f"Missing expected column: {col} in table")
 
-        self.table = table[
-            (table["height"] >= 0)
-            & (table["density"] > 0)
-            & (table["column_density"] > 0)
-        ]
+        valid = (
+            (table["height"].value >= 0)
+            & (table["density"].value > 0)
+            & (table["column_density"].value > 0)
+        )
+        self.table = QTable(table[valid], copy=False)
 
         # interpolation is done in log-y to minimize spline wobble
+        log_density = np.log10(self.table["density"].to_value(DENSITY_UNIT))
+        log_column_density = np.log10(
+            self.table["column_density"].to_value(GRAMMAGE_UNIT)
+        )
+        height_km = self.table["height"].to_value(u.km)
 
-        self._density_interp = interp1d(
-            self.table["height"].to("km").value,
-            np.log10(self.table["density"].to("g cm-3").value),
+        interp_kwargs = dict(
             kind="cubic",
+            bounds_error=False,
+        )
+        self._density_interp = interp1d(
+            height_km, log_density, fill_value=(np.nan, -np.inf), **interp_kwargs
         )
         self._col_density_interp = interp1d(
-            self.table["height"].to("km").value,
-            np.log10(self.table["column_density"].to("g cm-2").value),
-            kind="cubic",
+            height_km, log_column_density, fill_value=(np.nan, -np.inf), **interp_kwargs
         )
-
         self._height_interp = interp1d(
-            np.log10(self.table["column_density"].to("g cm-2").value),
-            self.table["height"].to("km").value,
-            kind="cubic",
+            log_column_density, height_km, fill_value=(np.inf, np.nan), **interp_kwargs
         )
 
         # ensure it can be read back
@@ -290,21 +299,18 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        return u.Quantity(
-            10 ** self._density_interp(height.to_value(u.km)), u.g / u.cm**3
-        )
+        log_density = self._density_interp(height.to_value(u.km))
+        return u.Quantity(10**log_density, DENSITY_UNIT, copy=False)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
-        return u.Quantity(
-            10 ** self._col_density_interp(height.to_value(u.km)), u.g / u.cm**2
-        )
+        log_col_density = self._col_density_interp(height.to_value(u.km))
+        return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=False)
 
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
-        return u.Quantity(
-            self._height_interp(np.log10(overburden.to("g cm-2").value)), u.km
-        )
+        log_overburden = np.log10(overburden.to_value(GRAMMAGE_UNIT))
+        return u.Quantity(self._height_interp(log_overburden), u.km, copy=False)
 
     def __repr__(self):
         return (
@@ -365,12 +371,12 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         A User’s Guide", 2021, Appendix F
     """
 
-    def __init__(self, table: Table):
+    def __init__(self, table: QTable):
         self.table = table
 
-        param_a = self.table["a"].to("g/cm2")
-        param_b = self.table["b"].to("g/cm2")
-        param_c = self.table["c"].to("km")
+        param_a = self.table["a"].to(GRAMMAGE_UNIT)
+        param_b = self.table["b"].to(GRAMMAGE_UNIT)
+        param_c = self.table["c"].to(u.km)
 
         # build list of column density functions and their derivatives:
         self._funcs = [
@@ -396,7 +402,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         if array.shape != (5, 5):
             raise ValueError("expected ndarray with shape (5,5)")
 
-        table = Table(
+        table = QTable(
             array,
             names=["height", "a", "b", "c", "1/c"],
             units=["cm", "g/cm2", "g/cm2", "cm", "cm-1"],

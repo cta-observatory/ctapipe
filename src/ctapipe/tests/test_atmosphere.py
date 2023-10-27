@@ -26,8 +26,8 @@ def get_simtel_profile_from_eventsource():
         return source.atmosphere_density_profile
 
 
-@pytest.fixture(scope="session", name="table_profile")
-def fixture_table_profile():
+@pytest.fixture(scope="session")
+def table_profile():
     """a table profile for testing"""
     return get_simtel_profile_from_eventsource()
 
@@ -179,3 +179,16 @@ def test_height_overburden_circle(table_profile):
     )
 
     assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
+
+
+def test_out_of_range(table_profile):
+    with pytest.warns(RuntimeWarning, match="divide by zero"):
+        assert np.isposinf(table_profile.height_from_overburden(0 * u.g / u.cm**2))
+
+    assert np.isnan(table_profile.height_from_overburden(2000 * u.g / u.cm**2))
+
+    assert table_profile(150 * u.km).value == 0.0
+    assert np.isnan(table_profile(-0.1 * u.km))
+
+    assert table_profile.integral(150 * u.km).value == 0.0
+    assert np.isnan(table_profile.integral(-0.1 * u.km))
