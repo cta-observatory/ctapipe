@@ -1,6 +1,7 @@
 import astropy.units as u
 import numpy as np
 
+from ctapipe.containers import CoordinateFrameType
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
 from ctapipe.exceptions import TooFewEvents
@@ -103,6 +104,13 @@ class TrainDispReconstructor(Tool):
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
             table = self._read_table(tel_type)
+
+            if not np.all(
+                table["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
+            ):
+                raise ValueError(
+                    "Pointing information for training data has to be provided in horizontal coordinates"
+                )
 
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)

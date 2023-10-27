@@ -1,2 +1,2 @@
-Check the coordinate frame in which the array pointing is given
-before using it in ``DispReconstructor``.
+Check that the array pointing is given in horizontal coordinates
+before training a ``DispReconstructor``.
