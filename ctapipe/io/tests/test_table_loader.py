@@ -199,7 +199,6 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
     subarray = SubarrayDescription.from_hdf(dl2_shower_geometry_file)
 
     with TableLoader(dl2_shower_geometry_file) as table_loader:
-
         table = table_loader.read_telescope_events(
             ["MST_MST_FlashCam"],
             dl1_images=False,
@@ -228,7 +227,6 @@ def test_read_telescope_events_by_type(dl2_shower_geometry_file):
     subarray = SubarrayDescription.from_hdf(dl2_shower_geometry_file)
 
     with TableLoader(dl2_shower_geometry_file) as table_loader:
-
         tables = table_loader.read_telescope_events_by_type(
             [25, 130],
             dl1_images=False,
@@ -240,7 +238,6 @@ def test_read_telescope_events_by_type(dl2_shower_geometry_file):
         )
 
         for tel_type in ["MST_MST_NectarCam", "MST_MST_FlashCam"]:
-
             table = tables[tel_type]
 
             assert "HillasReconstructor_alt" in table.colnames
@@ -282,44 +279,52 @@ def test_chunked(dl2_shower_geometry_file):
     stop = chunk_size
 
     with TableLoader(dl2_shower_geometry_file) as table_loader:
-
         tel_event_it = table_loader.read_telescope_events_chunked(
             chunk_size,
             dl1_images=False,
-            true_images=False,
             dl1_parameters=True,
+            dl1_muons=False,
             dl2=True,
             simulated=True,
+            true_images=False,
+            true_parameters=False,
+            instrument=False,
+            observation_info=False,
         )
         event_it = table_loader.read_subarray_events_chunked(
             chunk_size,
-            dl1_images=False,
-            true_images=False,
-            dl1_parameters=True,
             dl2=True,
             simulated=True,
+            observation_info=False,
         )
         by_type_it = table_loader.read_telescope_events_by_type_chunked(
             chunk_size,
             dl1_images=False,
-            true_images=False,
             dl1_parameters=True,
+            dl1_muons=False,
             dl2=True,
             simulated=True,
+            true_images=False,
+            true_parameters=False,
+            instrument=False,
+            observation_info=False,
         )
         by_id_it = table_loader.read_telescope_events_by_id_chunked(
             chunk_size,
             dl1_images=False,
-            true_images=False,
             dl1_parameters=True,
+            dl1_muons=False,
             dl2=True,
             simulated=True,
+            true_images=False,
+            true_parameters=False,
+            instrument=False,
+            observation_info=False,
         )
 
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
         for chunk, (events, tel_events, by_type, by_id) in enumerate(zip(*iters)):
-
             expected_start = chunk * chunk_size
             expected_stop = min(n_events, (chunk + 1) * chunk_size)
 
