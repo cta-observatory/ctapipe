@@ -615,8 +615,6 @@ class TableLoader(Component):
         tables = [
             self._read_telescope_events_for_id(
                 tel_id,
-                start=start,
-                stop=stop,
                 dl1_images=dl1_images,
                 dl1_parameters=dl1_parameters,
                 dl1_muons=dl1_muons,
@@ -625,6 +623,8 @@ class TableLoader(Component):
                 true_images=true_images,
                 true_parameters=true_parameters,
                 instrument=instrument,
+                start=start,
+                stop=stop,
             )
             for tel_id in tel_ids
         ]
@@ -742,8 +742,6 @@ class TableLoader(Component):
 
         table = self._read_telescope_events_for_ids(
             tel_ids,
-            start,
-            stop,
             dl1_images=dl1_images,
             dl1_parameters=dl1_parameters,
             dl1_muons=dl1_muons,
@@ -752,6 +750,8 @@ class TableLoader(Component):
             true_images=true_images,
             true_parameters=true_parameters,
             instrument=instrument,
+            start=start,
+            stop=stop,
         )
 
         table = self._join_subarray_info(table, start=start, stop=stop)
