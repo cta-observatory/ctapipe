@@ -46,6 +46,8 @@ Bug Fixes
 - The ```HillasIntersection``` method used to fail when individual events were reconstructed to originate from a FoV offset of more than 90 degrees.
   This is now fixed by returning an INVALID container for a reconstructed offset of larger than 45 degrees. [`#2265 <https://github.com/cta-observatory/ctapipe/pull/2265>`__]
 
+- Fixed a bug in the calculation of the full numeric pixel likelihood and the corresponding tests. [`#2388 <https://github.com/cta-observatory/ctapipe/pull/2388>`__]
+
 
 Maintenance
 -----------
