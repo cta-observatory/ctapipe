@@ -1,17 +1,14 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, Angle, SkyCoord
-from numpy.testing import assert_allclose
-
-from ctapipe.containers import HillasParametersContainer, ReconstructedGeometryContainer, ReconstructedEnergyContainer
-from ctapipe.instrument import SubarrayDescription
+from ctapipe.containers import (HillasParametersContainer,
+                                ReconstructedEnergyContainer,
+                                ReconstructedGeometryContainer)
 from ctapipe.reco.impact import ImPACTReconstructor
-from ctapipe.reco.impact_utilities import (
-    create_dummy_templates,
-    create_seed,
-    generate_fake_template,
-    rotate_translate,
-)
+from ctapipe.reco.impact_utilities import (create_dummy_templates, create_seed,
+                                           generate_fake_template,
+                                           rotate_translate)
+from numpy.testing import assert_allclose
 
 #    CameraHillasParametersContainer,
 #    ReconstructedEnergyContainer,
@@ -20,8 +17,6 @@ from ctapipe.reco.impact_utilities import (
 class TestImPACT:
     @classmethod
     def setup_class(self):
-
-
         self.horizon_frame = AltAz()
 
         self.h1 = HillasParametersContainer(
@@ -37,12 +32,12 @@ class TestImPACT:
             kurtosis=0,
         )
 
-    def test_brightest_mean_average(self,example_subarray):
+    def test_brightest_mean_average(self, example_subarray):
         """
         Test that averaging of the brightest pixel position give a sensible outcome
         """
 
-        impact_reco=ImPACTReconstructor(example_subarray)
+        impact_reco = ImPACTReconstructor(example_subarray)
         pixel_x = np.array([0.0, 1.0, 0.0, -1.0]) * u.deg
         pixel_y = np.array([-1.0, 0.0, 1.0, 0.0]) * u.deg
 
@@ -52,12 +47,8 @@ class TestImPACT:
 
         impact_reco.get_hillas_mean()
 
-        assert_allclose(
-            impact_reco.peak_x[0] * (180 / np.pi), 1, rtol=0, atol=0.001
-        )
-        assert_allclose(
-            impact_reco.peak_y[0] * (180 / np.pi), 1, rtol=0, atol=0.001
-        )
+        assert_allclose(impact_reco.peak_x[0] * (180 / np.pi), 1, rtol=0, atol=0.001)
+        assert_allclose(impact_reco.peak_y[0] * (180 / np.pi), 1, rtol=0, atol=0.001)
 
     def test_rotation(self):
         """Test pixel rotation function"""
@@ -81,10 +72,10 @@ class TestImPACT:
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
-    def test_xmax_calculation(self,example_subarray):
+    def test_xmax_calculation(self, example_subarray):
         """Test calculation of hmax and interpolation of Xmax tables"""
 
-        impact_reco=ImPACTReconstructor(example_subarray)
+        impact_reco = ImPACTReconstructor(example_subarray)
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
 
@@ -99,10 +90,10 @@ class TestImPACT:
         shower_max = impact_reco.get_shower_max(0, 0, 0, 100, 0)
         assert_allclose(shower_max, 484.2442217190515, rtol=0.01)
 
-    def test_interpolation(self, tmp_path,example_subarray):
+    def test_interpolation(self, tmp_path, example_subarray):
         """Test interpolation works on dummy template library"""
 
-        impact_reco=ImPACTReconstructor(example_subarray)
+        impact_reco = ImPACTReconstructor(example_subarray)
 
         create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
         template, x, y = generate_fake_template(-1.5, 0.5)
@@ -124,9 +115,8 @@ class TestImPACT:
 
         assert_allclose(template.ravel() - pred, np.zeros_like(pred), atol=0.1)
 
-    def test_fitting(self, tmp_path,example_subarray):
-
-        impact_reco=ImPACTReconstructor(example_subarray)
+    def test_fitting(self, tmp_path, example_subarray):
+        impact_reco = ImPACTReconstructor(example_subarray)
 
         create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
         impact_reco.root_dir = str(tmp_path)
@@ -191,7 +181,7 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
 
     shower_test.is_valid = True
 
-    energy_test.energy=500*u.GeV
+    energy_test.energy = 500 * u.GeV
     energy_test.is_valid = True
 
     event.dl2.stereo.geometry["test"] = shower_test

@@ -1,13 +1,8 @@
 import numpy as np
-
-from ctapipe.image import (
-    chi_squared,
-    mean_poisson_likelihood_full,
-    mean_poisson_likelihood_gaussian,
-    neg_log_likelihood,
-    neg_log_likelihood_approx,
-    neg_log_likelihood_numeric,
-)
+from ctapipe.image import (chi_squared, mean_poisson_likelihood_full,
+                           mean_poisson_likelihood_gaussian,
+                           neg_log_likelihood, neg_log_likelihood_approx,
+                           neg_log_likelihood_numeric)
 
 
 def test_chi_squared():
@@ -72,7 +67,7 @@ def test_full_likelihood():
     signal cases. Check that full calculation and the gaussian approx become
     equal at high signal.
     """
-    spe = 0.5*np.ones(3)  # Single photo-electron width
+    spe = 0.5 * np.ones(3)  # Single photo-electron width
     pedestal = np.ones(3)  # width of the pedestal distribution
 
     image_small = np.array([0, 1, 2])
