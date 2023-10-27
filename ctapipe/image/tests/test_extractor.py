@@ -163,7 +163,7 @@ def test_fwhm(toymodel):
 
     for i in range(0, len(waveforms)):
         peak_index = np.argmax(waveforms[i])
-        width, width_height, l_ips, r_ips = peak_widths(
+        widths = peak_widths(
             waveforms[i],
             peaks=[
                 peak_index,
@@ -171,7 +171,7 @@ def test_fwhm(toymodel):
             rel_height=0.5,
         )
 
-        fwhm_scp = np.append(fwhm_scp, width)
+        fwhm_scp = np.append(fwhm_scp, widths[0])
 
     fwhm, _, _ = time_parameters(
         waveforms,

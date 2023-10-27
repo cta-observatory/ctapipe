@@ -353,8 +353,8 @@ def integration_correction(
 
 @guvectorize(
     [
-        (float64[:], float32[:], float32[:], float32[:]),
         (float32[:], float32[:], float32[:], float32[:]),
+        (float64[:], float32[:], float32[:], float32[:]),
     ],
     "(s)->(),(),()",
     nopython=True,
