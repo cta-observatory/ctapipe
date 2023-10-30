@@ -158,6 +158,15 @@ class HDF5Merger(Component):
         True, help="Whether to include processing statistics in merged output"
     ).tag(config=True)
 
+    single_ob = traits.Bool(
+        False,
+        help=(
+            "If true, input files are assumed to be multiple chunks from the same"
+            " observation block and the ob / sb blocks will only be copied from "
+            " the first input file"
+        ),
+    ).tag(config=True)
+
     def __init__(self, output_path=None, **kwargs):
         # enable using output_path as posarg
         if output_path not in {None, traits.Undefined}:
@@ -202,6 +211,7 @@ class HDF5Merger(Component):
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
             self.required_nodes = _get_required_nodes(self.h5file)
+        self._n_merged = 0
 
     def __call__(self, other: Union[str, Path, tables.File]):
         """
@@ -213,7 +223,7 @@ class HDF5Merger(Component):
 
         with exit_stack:
             # first file to be merged
-            if self.meta is None:
+            if self._n_merged == 0:
                 self.meta = self._read_meta(other)
                 self.data_model_version = self.meta.product.data_model_version
                 metadata.write_to_hdf5(self.meta.to_dict(), self.h5file)
@@ -229,6 +239,7 @@ class HDF5Merger(Component):
                     self.log.info(
                         "Updated required nodes to %s", sorted(self.required_nodes)
                     )
+                self._n_merged += 1
             finally:
                 self._update_meta()
 
@@ -272,13 +283,15 @@ class HDF5Merger(Component):
         # Configuration
         self._append_subarray(other)
 
-        config_keys = [
-            "/configuration/observation/scheduling_block",
-            "/configuration/observation/observation_block",
-        ]
-        for key in config_keys:
-            if key in other.root:
-                self._append_table(other, other.root[key])
+        # in case of "single_ob", we only copy sb/ob blocks for the first file
+        if not self.single_ob or self._n_merged == 0:
+            config_keys = [
+                "/configuration/observation/scheduling_block",
+                "/configuration/observation/observation_block",
+            ]
+            for key in config_keys:
+                if key in other.root:
+                    self._append_table(other, other.root[key])
 
         # Simulation
         simulation_table_keys = [
