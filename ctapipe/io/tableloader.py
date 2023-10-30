@@ -259,6 +259,8 @@ class TableLoader(Component):
         self.instrument_table = None
         if self.load_instrument:
             self.instrument_table = self.subarray.to_table("joined")
+            # to prevent merging meta data onto event tables
+            self.instrument_table.meta.clear()
 
         self._pointing_interpolator = PointingInterpolator(
             h5file=self.h5file,
