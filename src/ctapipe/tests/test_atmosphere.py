@@ -181,7 +181,7 @@ def test_height_overburden_circle(table_profile):
     assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
 
 
-def test_out_of_range(table_profile):
+def test_out_of_range_table(table_profile):
     with pytest.warns(RuntimeWarning, match="divide by zero"):
         assert np.isposinf(table_profile.height_from_overburden(0 * u.g / u.cm**2))
 
@@ -192,3 +192,43 @@ def test_out_of_range(table_profile):
 
     assert table_profile.integral(150 * u.km).value == 0.0
     assert np.isnan(table_profile.integral(-0.1 * u.km))
+
+
+def test_out_of_range_exponential():
+    density_model = atmo.ExponentialAtmosphereDensityProfile(
+        scale_height=10 * u.km, scale_density=0.00125 * u.g / u.cm**3
+    )
+
+    with pytest.warns(RuntimeWarning, match="divide by zero"):
+        assert np.isposinf(density_model.height_from_overburden(0 * u.g / u.cm**2))
+
+    assert np.isnan(density_model.height_from_overburden(2000 * u.g / u.cm**2))
+
+    assert np.isnan(density_model(-0.1 * u.km))
+
+    assert np.isnan(density_model.integral(-0.1 * u.km))
+
+
+def test_out_of_range_five_layer():
+    # Five-layer atmosphere
+    fit_reference = np.array(
+        [
+            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
+            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
+            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
+            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
+            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
+        ]
+    )
+
+    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+
+    assert np.isposinf(profile_5.height_from_overburden(0 * u.g / u.cm**2))
+
+    assert np.isnan(profile_5.height_from_overburden(2000 * u.g / u.cm**2))
+
+    assert np.allclose(profile_5(150 * u.km).value, 0.0, atol=1e-9)
+    assert np.isnan(profile_5(-0.1 * u.km))
+
+    assert np.allclose(profile_5.integral(150 * u.km).value, 0.0, atol=1e-9)
+    assert np.isnan(profile_5.integral(-0.1 * u.km))

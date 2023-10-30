@@ -201,21 +201,32 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        return self.scale_density * np.exp(-height / self.scale_height)
+        return np.where(
+            height >= 0 * u.m,
+            self.scale_density * np.exp(-height / self.scale_height),
+            np.nan,
+        )
 
     @u.quantity_input(height=u.m)
     def integral(
         self,
         height,
     ) -> u.Quantity:
-        return (
-            self.scale_density * self.scale_height * np.exp(-height / self.scale_height)
+        return np.where(
+            height >= 0 * u.m,
+            self.scale_density
+            * self.scale_height
+            * np.exp(-height / self.scale_height),
+            np.nan,
         )
 
     @u.quantity_input(overburden=u.g / u.cm**2)
     def height_from_overburden(self, overburden) -> u.Quantity:
-        return -self.scale_height * np.log(
-            overburden / (self.scale_height * self.scale_density)
+        return np.where(
+            overburden <= self.scale_height * self.scale_density,
+            -self.scale_height
+            * np.log(overburden / (self.scale_height * self.scale_density)),
+            np.nan,
         )
 
 
@@ -340,17 +351,21 @@ def _d_exponential(h, a, b, c):
 
 def _linear(h, a, b, c):
     """linear atmosphere"""
-    return a - b * h / c
+    return np.where(h < a * c / b, a - b * h / c, 0)
 
 
 def _inv_linear(T, a, b, c):
     "inverse function for linear atmosphere"
-    return -c / b * (T - a)
+    return np.where(T > 0, -c / b * (T - a), np.inf)
 
 
 def _d_linear(h, a, b, c):
     """derivative of linear atmosphere"""
     return -b / c
+
+
+def _nan_func(x, unit):
+    return np.nan * unit
 
 
 class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
@@ -383,14 +398,17 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
             for i, f in enumerate([_exponential] * 4 + [_linear])
         ]
+        self._funcs.insert(0, partial(_nan_func, unit=GRAMMAGE_UNIT))
         self._inv_funcs = [
             partial(f, a=param_a[4 - i], b=param_b[4 - i], c=param_c[4 - i])
             for i, f in enumerate([_inv_linear] + 4 * [_inv_exponential])
         ]
+        self._inv_funcs.append(partial(_nan_func, unit=u.m))
         self._d_funcs = [
             partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
             for i, f in enumerate([_d_exponential] * 4 + [_d_linear])
         ]
+        self._d_funcs.insert(0, partial(_nan_func, unit=DENSITY_UNIT))
 
     @classmethod
     def from_array(cls, array: np.ndarray, metadata: dict = None):
@@ -419,8 +437,8 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        which_func = np.digitize(height, self.table["height"]) - 1
-        condlist = [which_func == i for i in range(5)]
+        which_func = np.digitize(height, self.table["height"])
+        condlist = [which_func == i for i in range(6)]
         return u.Quantity(
             -1
             * np.piecewise(
@@ -428,25 +446,25 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
                 condlist=condlist,
                 funclist=self._d_funcs,
             )
-        ).to(u.g / u.cm**3)
+        ).to(DENSITY_UNIT)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
-        which_func = np.digitize(height, self.table["height"]) - 1
-        condlist = [which_func == i for i in range(5)]
+        which_func = np.digitize(height, self.table["height"])
+        condlist = [which_func == i for i in range(6)]
         return u.Quantity(
             np.piecewise(
                 x=height,
                 condlist=condlist,
                 funclist=self._funcs,
             )
-        ).to(u.g / u.cm**2)
+        ).to(GRAMMAGE_UNIT)
 
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
         overburdens_at_heights = np.flip(self.integral(self.table["height"].to(u.km)))
         which_func = np.digitize(overburden, overburdens_at_heights)
-        condlist = [which_func == i for i in range(5)]
+        condlist = [which_func == i for i in range(6)]
         return u.Quantity(
             np.piecewise(
                 x=overburden,
