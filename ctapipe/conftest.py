@@ -327,6 +327,27 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl1_divergent_file(dl1_tmp_path):
+    from ctapipe.tools.process import ProcessorTool
+
+    path = "dataset://gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+    output = dl1_tmp_path / "gamma_divergent.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={path}",
+            f"--output={output}",
+            "--EventSource.focal_length_choice=EQUIVALENT",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
