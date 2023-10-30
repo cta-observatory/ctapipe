@@ -1,0 +1,2 @@
+Add option ``single_ob`` to the ``HDF5Merger`` to support merging
+chunks of the same observation block into the same.
