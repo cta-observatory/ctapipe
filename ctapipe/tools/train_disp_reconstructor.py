@@ -1,6 +1,7 @@
 import astropy.units as u
 import numpy as np
 
+from ctapipe.containers import CoordinateFrameType
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
 from ctapipe.exceptions import TooFewEvents
@@ -125,6 +126,13 @@ class TrainDispReconstructor(Tool):
         if len(table) == 0:
             raise TooFewEvents(
                 f"No events after quality query for telescope type {telescope_type}"
+            )
+
+        if not np.all(
+            table["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
+        ):
+            raise ValueError(
+                "Pointing information for training data has to be provided in horizontal coordinates"
             )
 
         table = self.models.feature_generator(table, subarray=self.loader.subarray)
