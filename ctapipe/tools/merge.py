@@ -74,10 +74,13 @@ class MergeTool(Tool):
         ("i", "input-dir"): "MergeTool.input_dir",
         ("o", "output"): "HDF5Merger.output_path",
         ("p", "pattern"): "MergeTool.file_pattern",
-        "single-ob": "HDF5Merger.single_ob",
     }
 
     flags = {
+        "single-ob": (
+            {"HDF5Merger.single_ob": True},
+            "Only copy observation config of first file to be merged.",
+        ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
