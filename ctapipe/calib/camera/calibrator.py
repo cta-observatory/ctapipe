@@ -123,9 +123,6 @@ class CameraCalibrator(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
-        self._r1_empty_warn = False
-        self._dl0_empty_warn = False
-
         self.image_extractors = {}
 
         if image_extractor is None:
@@ -155,24 +152,12 @@ class CameraCalibrator(TelescopeComponent):
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
-            if not self._r1_empty_warn:
-                warnings.warn(
-                    "Encountered an event with no R1 data. "
-                    "DL0 is unchanged in this circumstance."
-                )
-                self._r1_empty_warn = True
             return True
         else:
             return False
 
     def _check_dl0_empty(self, waveforms):
         if waveforms is None:
-            if not self._dl0_empty_warn:
-                warnings.warn(
-                    "Encountered an event with no DL0 data. "
-                    "DL1 is unchanged in this circumstance."
-                )
-                self._dl0_empty_warn = True
             return True
         else:
             return False
