@@ -176,6 +176,11 @@ class Tool(Application):
 
     quiet = Bool(default_value=False).tag(config=True)
     overwrite = Bool(default_value=False).tag(config=True)
+    debug = Bool(
+        default_value=False,
+        help="If true, exceptions are not caught and converted"
+        " to exit codes to enable using a debugger",
+    ).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -208,6 +213,11 @@ class Tool(Application):
             "overwrite": (
                 {"Tool": {"overwrite": True}},
                 "Overwrite existing output files without asking",
+            ),
+            "debug": (
+                {"Tool": {"debug": True}},
+                "Disable the transformation of exceptions"
+                " to exit codes to enable debugger usage",
             ),
         }
         self.flags = {**flags, **self.flags}
@@ -383,7 +393,7 @@ class Tool(Application):
         """
         self.log.info("Goodbye")
 
-    def run(self, argv=None, raises=False):
+    def run(self, argv=None, raises=None):
         """Run the tool.
 
         This automatically calls `Tool.initialize`, `Tool.start` and `Tool.finish`
@@ -398,6 +408,8 @@ class Tool(Application):
         raises : bool
             Whether to raise Exceptions (to test them) or not.
         """
+        if raises is None:
+            raises = self.debug
 
         # return codes are taken from:
         #  https://tldp.org/LDP/abs/html/exitcodes.html
