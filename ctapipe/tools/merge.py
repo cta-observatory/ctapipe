@@ -78,7 +78,7 @@ class MergeTool(Tool):
 
     flags = {
         "single-ob": (
-            {"HDF5Merger.single_ob": True},
+            {"HDF5Merger": {"single_ob": True}},
             "Only copy observation config of first file to be merged.",
         ),
         "progress": (
