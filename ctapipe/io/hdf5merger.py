@@ -32,6 +32,7 @@ _NODES_TO_CHECK = {
     "/configuration/observation/scheduling_block": NodeType.TABLE,
     "/configuration/observation/observation_block": NodeType.TABLE,
     "/configuration/simulation/run": NodeType.TABLE,
+    "/configuration/telescope/pointing": NodeType.TEL_GROUP,
     "/simulation/service/shower_distribution": NodeType.TABLE,
     "/simulation/event/subarray/shower": NodeType.TABLE,
     "/simulation/event/telescope/impact": NodeType.TEL_GROUP,
@@ -279,6 +280,10 @@ class HDF5Merger(Component):
         for key in config_keys:
             if key in other.root:
                 self._append_table(other, other.root[key])
+
+        key = "/configuration/telescope/pointing"
+        if key in other.root:
+            self._append_table_group(other, other.root[key])
 
         # Simulation
         simulation_table_keys = [
