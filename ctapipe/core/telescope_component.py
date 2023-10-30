@@ -181,13 +181,6 @@ class TelescopeParameterLookup:
                 ]
                 logger.debug(f"argument '{arg}' matched: {matched_tel_types}")
 
-                if len(matched_tel_types) == 0:
-                    logger.warning(
-                        "TelescopeParameter type argument '%s' did not match "
-                        "any known telescope types",
-                        arg,
-                    )
-
                 for tel_type in matched_tel_types:
                     self._value_for_type[tel_type] = value
                     for tel_id in subarray.get_tel_ids_for_type(tel_type):
