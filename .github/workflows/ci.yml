@@ -75,7 +75,7 @@ jobs:
           key: ctapipe-test-data
 
       - name: Prepare mamba installation
-        if: matrix.install-method == 'mamba'
+        if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
@@ -83,20 +83,20 @@ jobs:
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
       - name: mamba setup
-        if: matrix.install-method == 'mamba'
+        if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: environment.yml
           cache-downloads: true
 
       - name: Python setup
-        if: matrix.install-method == 'pip'
+        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false 
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
 
-      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }}
+      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }} && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         name: Fix Python PATH on macOS
         # See https://github.com/actions/setup-python/issues/132 and
         # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
@@ -107,6 +107,7 @@ jobs:
           tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
       - name: Install dependencies
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           python --version
           pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
@@ -115,14 +116,17 @@ jobs:
           pip freeze
 
       - name: Static codechecks
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           restructuredtext-lint README.rst
 
       - name: ctapipe-info
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           ctapipe-info --all
 
       - name: Tests
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           cd $(mktemp -d)
           pytest -n auto --dist loadscope \
