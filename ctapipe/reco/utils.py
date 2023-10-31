@@ -1,4 +1,4 @@
-def add_defaults_and_meta(table, container, prefix=None, stereo=True):
+def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
     """
     Fill column descriptions and default values into table for container
 
@@ -10,21 +10,21 @@ def add_defaults_and_meta(table, container, prefix=None, stereo=True):
         the container class to add columns and descriptions to the table
     prefix : str
         prefix for the column names
-    stereo : bool
-        If False, add a ``tel_`` prefix to the column names to signal it's
+    add_tel_prefix : bool
+        If True, add a ``tel_`` prefix to the column names to signal it's
         telescope-wise quantity
     """
     if prefix is None:
         prefix = container.default_prefix
 
     for name, field in container.fields.items():
-        if not stereo and name == "telescopes":
+        if add_tel_prefix and name == "telescopes":
             continue
 
-        if stereo:
-            colname = f"{prefix}_{name}"
-        else:
+        if add_tel_prefix:
             colname = f"{prefix}_tel_{name}"
+        else:
+            colname = f"{prefix}_{name}"
 
         if colname not in table.colnames and field.default is not None:
             table[colname] = field.default
