@@ -408,8 +408,6 @@ class Tool(Application):
         raises : bool
             Whether to raise Exceptions (to test them) or not.
         """
-        if raises is None:
-            raises = self.debug
 
         # return codes are taken from:
         #  https://tldp.org/LDP/abs/html/exitcodes.html
@@ -422,6 +420,8 @@ class Tool(Application):
                 Provenance().start_activity(self.name)
 
                 self.initialize(argv)
+                if raises is None:
+                    raises = self.debug
 
                 self.setup()
                 self.is_setup = True
