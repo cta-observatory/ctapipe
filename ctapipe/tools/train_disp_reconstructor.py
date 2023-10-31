@@ -1,3 +1,6 @@
+"""
+Tool for training the DispReconstructor
+"""
 import astropy.units as u
 import numpy as np
 
@@ -9,6 +12,10 @@ from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
 from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
 
+__all__ = [
+    "TrainDispReconstructor",
+]
+
 
 class TrainDispReconstructor(Tool):
     """
@@ -16,7 +23,8 @@ class TrainDispReconstructor(Tool):
 
     The tool first performs a cross validation to give an initial estimate
     on the quality of the estimation and then finally trains two models
-    (|disp| and sign(disp)) per telescope type on the full dataset.
+    (estimating ``norm(disp)`` and ``sign(disp)`` respectively) per
+    telescope type on the full dataset.
     """
 
     name = "ctapipe-train-disp-reconstructor"
@@ -55,9 +63,9 @@ class TrainDispReconstructor(Tool):
     project_disp = Bool(
         default_value=False,
         help=(
-            "If true, true |disp| is the distance between shower cog and"
+            "If true, ``true_disp`` is the distance between shower cog and"
             " the true source position along the reconstructed main shower axis."
-            "If false, true |disp| is the distance between shower cog"
+            "If false, ``true_disp`` is the distance between shower cog"
             " and the true source position."
         ),
     ).tag(config=True)
