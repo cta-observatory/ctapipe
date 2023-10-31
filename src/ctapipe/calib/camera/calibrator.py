@@ -7,7 +7,12 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
+from ctapipe.containers import (
+    DL0TelescopeContainer,
+    DL1TelescopeContainer,
+    PixelStatus,
+    TelescopeEventContainer,
+)
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -151,8 +156,8 @@ class CameraCalibrator(TelescopeComponent):
                 parent=self,
             )
 
-    def _check_r1_empty(self, waveforms):
-        if waveforms is None:
+    def _check_r1_empty(self, r1):
+        if r1 is None or r1.waveform is None:
             if not self._r1_empty_warn:
                 self.log.debug(
                     "Encountered an event with no R1 data. "
@@ -163,8 +168,8 @@ class CameraCalibrator(TelescopeComponent):
         else:
             return False
 
-    def _check_dl0_empty(self, waveforms):
-        if waveforms is None:
+    def _check_dl0_empty(self, dl0):
+        if dl0 is None or dl0.waveform is None:
             if not self._dl0_empty_warn:
                 self.log.warning(
                     "Encountered an event with no DL0 data. "
@@ -175,11 +180,12 @@ class CameraCalibrator(TelescopeComponent):
         else:
             return False
 
-    def _calibrate_dl0(self, event, tel_id):
-        r1 = event.r1.tel[tel_id]
-
-        if self._check_r1_empty(r1.waveform):
+    def r1_to_dl0(self, tel_event: TelescopeEventContainer):
+        if self._check_r1_empty(tel_event.r1):
             return
+
+        tel_id = tel_event.index.tel_id
+        r1 = tel_event.r1
 
         signal_pixels = self.data_volume_reducer(
             r1.waveform,
@@ -196,7 +202,8 @@ class CameraCalibrator(TelescopeComponent):
         # unset dvr bits for removed pixels
         dl0_pixel_status[~signal_pixels] &= ~np.uint8(PixelStatus.DVR_STATUS)
 
-        event.dl0.tel[tel_id] = DL0CameraContainer(
+        # FIXME: trigger information?
+        tel_event.dl0 = DL0TelescopeContainer(
             event_type=r1.event_type,
             event_time=r1.event_time,
             waveform=dl0_waveform,
@@ -206,22 +213,24 @@ class CameraCalibrator(TelescopeComponent):
             calibration_monitoring_id=r1.calibration_monitoring_id,
         )
 
-    def _calibrate_dl1(self, event, tel_id):
-        waveforms = event.dl0.tel[tel_id].waveform
-        if self._check_dl0_empty(waveforms):
+    def dl0_to_dl1(self, tel_event: TelescopeEventContainer):
+        if self._check_dl0_empty(tel_event.dl0):
             return
 
+        tel_id = tel_event.index.tel_id
+        dl0 = tel_event.dl0
+        waveforms = dl0.waveform
         n_pixels, n_samples = waveforms.shape
 
-        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+        selected_gain_channel = dl0.selected_gain_channel
         broken_pixels = _get_invalid_pixels(
             n_pixels,
-            event.mon.tel[tel_id].pixel_status,
+            tel_event.mon.pixel_status,
             selected_gain_channel,
         )
 
-        dl1_calib = event.calibration.tel[tel_id].dl1
-        time_shift = event.calibration.tel[tel_id].dl1.time_shift
+        dl1_calib = tel_event.calibration.dl1
+        time_shift = dl1_calib.time_shift
         readout = self.subarray.tel[tel_id].camera.readout
 
         # subtract any remaining pedestal before extraction
@@ -237,7 +246,7 @@ class CameraCalibrator(TelescopeComponent):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            dl1 = DL1CameraContainer(
+            dl1 = DL1TelescopeContainer(
                 image=waveforms[..., 0].astype(np.float32),
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
                 is_valid=True,
@@ -280,7 +289,7 @@ class CameraCalibrator(TelescopeComponent):
             )
 
         # store the results in the event structure
-        event.dl1.tel[tel_id] = dl1
+        tel_event.dl1 = dl1
 
     def __call__(self, event):
         """
@@ -291,13 +300,14 @@ class CameraCalibrator(TelescopeComponent):
         Parameters
         ----------
         event : container
-            A `~ctapipe.containers.ArrayEventContainer` event container
+            A `~ctapipe.containers.SubarrayEventContainer` event container
         """
-        # TODO: How to handle different calibrations depending on tel_id?
-        tel = event.r1.tel or event.dl0.tel or event.dl1.tel
-        for tel_id in tel.keys():
-            self._calibrate_dl0(event, tel_id)
-            self._calibrate_dl1(event, tel_id)
+        for tel_event in event.tel.values():
+            self.calibrate_tel_event(tel_event)
+
+    def calibrate_tel_event(self, tel_event):
+        self.r1_to_dl0(tel_event)
+        self.dl0_to_dl1(tel_event)
 
 
 def shift_waveforms(waveforms, time_shift_samples):

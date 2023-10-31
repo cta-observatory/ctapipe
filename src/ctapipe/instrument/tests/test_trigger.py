@@ -4,22 +4,25 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import (
+    DL0SubarrayContainer,
+    SubarrayEventContainer,
+    SubarrayTriggerContainer,
+    TelescopeEventContainer,
+)
 from ctapipe.io import EventSource
 
 
-def assert_all_tel_keys(event, expected, ignore=None):
-    if ignore is None:
-        ignore = set()
-
-    expected = tuple(expected)
-    for name, container in event.items():
-        if hasattr(container, "tel"):
-            actual = tuple(container.tel.keys())
-            if name not in ignore and actual != expected:
-                raise AssertionError(
-                    f"Unexpected tel_ids in container {name}:" f"{actual} != {expected}"
-                )
+def dummy_event(tel_ids):
+    event = SubarrayEventContainer(
+        dl0=DL0SubarrayContainer(
+            trigger=SubarrayTriggerContainer(
+                tels_with_trigger=tel_ids,
+            )
+        ),
+        tel={tel_id: TelescopeEventContainer() for tel_id in tel_ids},
+    )
+    return event
 
 
 @pytest.mark.parametrize("data_type", (list, np.array))
@@ -37,41 +40,35 @@ def test_software_trigger(subarray_prod5_paranal, data_type):
     )
 
     # only one telescope, no SWAT
-    event = ArrayEventContainer()
-    event.trigger.tels_with_trigger = data_type([5])
+    event = dummy_event(data_type([5]))
     assert trigger(event) == False
-    assert_equal(event.trigger.tels_with_trigger, data_type([]))
+    assert_equal(event.dl0.trigger.tels_with_trigger, data_type([]))
 
     # 1 LST + 1 MST, 1 LST would not have triggered LST hardware trigger
     # and after LST is removed, we only have 1 telescope, so no SWAT either
-    event = ArrayEventContainer()
-    event.trigger.tels_with_trigger = data_type([1, 6])
+    event = dummy_event(data_type([1, 6]))
     assert trigger(event) == False
-    assert_equal(event.trigger.tels_with_trigger, data_type([]))
+    assert_equal(event.dl0.trigger.tels_with_trigger, data_type([]))
 
     # two MSTs and 1 LST, -> remove single LST
-    event = ArrayEventContainer()
-    event.trigger.tels_with_trigger = data_type([1, 5, 6])
+    event = dummy_event(data_type([1, 5, 6]))
     assert trigger(event) == True
-    assert_equal(event.trigger.tels_with_trigger, data_type([5, 6]))
+    assert_equal(event.dl0.trigger.tels_with_trigger, data_type([5, 6]))
 
     # two MSTs, nothing to change
-    event = ArrayEventContainer()
-    event.trigger.tels_with_trigger = data_type([5, 6])
+    event = dummy_event(data_type([5, 6]))
     assert trigger(event) == True
-    assert_equal(event.trigger.tels_with_trigger, data_type([5, 6]))
+    assert_equal(event.dl0.trigger.tels_with_trigger, data_type([5, 6]))
 
     # three LSTs, nothing to change
-    event = ArrayEventContainer()
-    event.trigger.tels_with_trigger = data_type([1, 2, 3])
+    event = dummy_event(data_type([1, 2, 3]))
     assert trigger(event) == True
-    assert_equal(event.trigger.tels_with_trigger, data_type([1, 2, 3]))
+    assert_equal(event.dl0.trigger.tels_with_trigger, data_type([1, 2, 3]))
 
     # thee LSTs, plus MSTs, nothing to change
-    event = ArrayEventContainer()
-    event.trigger.tels_with_trigger = data_type([1, 2, 3, 5, 6, 7])
+    event = dummy_event(data_type([1, 2, 3, 5, 6, 7]))
     assert trigger(event) == True
-    assert_equal(event.trigger.tels_with_trigger, data_type([1, 2, 3, 5, 6, 7]))
+    assert_equal(event.dl0.trigger.tels_with_trigger, data_type([1, 2, 3, 5, 6, 7]))
 
 
 @pytest.mark.parametrize("allowed_tels", (None, list(range(1, 20))))
@@ -114,10 +111,10 @@ def test_software_trigger_simtel(allowed_tels):
             ],
         )
 
-        for e, expected_tels in zip(source, expected):
-            trigger(e)
-            assert_equal(e.trigger.tels_with_trigger, expected_tels)
-            assert_all_tel_keys(e, expected_tels, ignore={"dl0", "dl1", "dl2", "muon"})
+        for event, expected_tels in zip(source, expected):
+            trigger(event)
+            assert_equal(event.dl0.trigger.tels_with_trigger, expected_tels)
+            assert set(event.tel.keys()) == set(expected_tels)
 
 
 def test_software_trigger_simtel_single_lsts():
@@ -160,12 +157,10 @@ def test_software_trigger_simtel_single_lsts():
             ],
         )
 
-        for e, expected_tels in zip(source, expected):
-            print(e.trigger.tels_with_trigger)
-            trigger(e)
-            print(e.trigger.tels_with_trigger, expected_tels)
-            assert_equal(e.trigger.tels_with_trigger, expected_tels)
-            assert_all_tel_keys(e, expected_tels, ignore={"dl0", "dl1", "dl2", "muon"})
+        for event, expected_tels in zip(source, expected):
+            trigger(event)
+            assert_equal(event.dl0.trigger.tels_with_trigger, expected_tels)
+            assert set(event.tel.keys()) == set(expected_tels)
 
 
 def test_software_trigger_simtel_process(tmp_path):

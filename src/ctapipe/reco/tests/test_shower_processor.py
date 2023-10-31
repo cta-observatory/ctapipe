@@ -45,7 +45,7 @@ def test_shower_processor_geometry(
     process_shower(example_event_copy)
 
     for reco_type in reconstructor_types:
-        DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
+        DL2a = example_event_copy.dl2.geometry[reco_type]
         print(DL2a)
         assert isfinite(DL2a.alt)
         assert isfinite(DL2a.az)
@@ -71,7 +71,7 @@ def test_shower_processor_geometry(
     process_shower(example_event_copy)
 
     for reco_type in reconstructor_types:
-        DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
+        DL2a = example_event_copy.dl2.geometry[reco_type]
         print(DL2a)
         assert not isfinite(DL2a.alt)
         assert not isfinite(DL2a.az)
