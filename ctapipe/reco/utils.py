@@ -11,7 +11,7 @@ def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
     prefix : str
         prefix for the column names
     add_tel_prefix : bool
-        If False, add a ``tel_`` prefix to the column names to signal it's
+        If True, add a ``tel_`` prefix to the column names to signal it's
         telescope-wise quantity
     """
     if prefix is None:
