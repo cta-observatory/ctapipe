@@ -426,7 +426,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             result,
             ReconstructedEnergyContainer,
             prefix=self.prefix,
-            stereo=False,
+            add_tel_prefix=True,
         )
         return {ReconstructionProperty.ENERGY: result}
 
@@ -491,7 +491,10 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
             }
         )
         add_defaults_and_meta(
-            result, ParticleClassificationContainer, prefix=self.prefix, stereo=False
+            result,
+            ParticleClassificationContainer,
+            prefix=self.prefix,
+            add_tel_prefix=True,
         )
         return {ReconstructionProperty.PARTICLE_TYPE: result}
 
@@ -786,7 +789,8 @@ class DispReconstructor(Reconstructor):
             disp_result,
             DispContainer,
             prefix=f"{self.prefix}_parameter",
-            stereo=False,
+            # disp is always per telescope, so no need to add the prefix
+            add_tel_prefix=False,
         )
 
         psi = table["hillas_psi"].quantity.to_value(u.rad)
@@ -820,7 +824,7 @@ class DispReconstructor(Reconstructor):
             altaz_result,
             ReconstructedGeometryContainer,
             prefix=self.prefix,
-            stereo=False,
+            add_tel_prefix=True,
         )
 
         return {
