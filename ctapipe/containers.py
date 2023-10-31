@@ -988,10 +988,11 @@ class DispContainer(Container):
     Standard output of disp reconstruction algorithms for origin reconstruction
     """
 
-    default_prefix = "disp_parameter"
+    default_prefix = "disp"
 
-    norm = Field(nan * u.deg, "reconstructed value for disp", unit=u.deg)
-    is_valid = Field(False, "true if the predictions are valid")
+    parameter = Field(
+        nan * u.deg, "reconstructed value for disp (= sign * norm)", unit=u.deg
+    )
 
 
 class ReconstructedContainer(Container):
