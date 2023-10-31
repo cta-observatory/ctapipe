@@ -103,7 +103,6 @@ def test_apply_all(
     energy_regressor_path,
     particle_classifier_path,
     disp_reconstructor_path,
-    dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
     from ctapipe.tools.apply_models import ApplyModels
@@ -211,6 +210,7 @@ def test_apply_all(
         assert f"{prefix_disp}_tel_is_valid" in tel_events.colnames
         assert f"{prefix_disp}_parameter_norm" in tel_events.colnames
         assert f"{prefix_disp}_parameter_is_valid" in tel_events.colnames
+        assert f"{prefix_disp}_parameter_tel_is_valid" not in tel_events.colnames
 
         # check that the "--no-dl1-parameters" option worked
         assert "hillas_intensity" not in tel_events.colnames
