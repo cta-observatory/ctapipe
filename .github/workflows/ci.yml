@@ -108,8 +108,10 @@ jobs:
 
       - name: Install dependencies
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          python --version
+          python --version | grep "Python ${PYTHON_VERSION}"
           pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
