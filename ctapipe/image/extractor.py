@@ -353,16 +353,17 @@ def integration_correction(
 
 @guvectorize(
     [
-        (float32[:], float32[:], float32[:], float32[:]),
-        (float64[:], float32[:], float32[:], float32[:]),
+        (float32[:], int64, float32[:], float32[:], float32[:]),
+        (float64[:], int64, float32[:], float32[:], float32[:]),
     ],
-    "(s)->(),(),()",
+    "(s),()->(),(),()",
     nopython=True,
     cache=True,
 )
-def time_parameters(waveform, fwhm_arr, rise_time_arr, fall_time_arr):
+def time_parameters(waveform, peak_index, fwhm_arr, rise_time_arr, fall_time_arr):
     """
-    Calculates the full width at half maximum (fwhm), rise time, and fall time of waveforms.
+    Calculates the full width at half maximum (fwhm) of R1 waveforms.
+    The rise and fall time of waveforms is also computed at 90% and 10% of the peak.
 
     Parameters
     ----------
@@ -385,7 +386,6 @@ def time_parameters(waveform, fwhm_arr, rise_time_arr, fall_time_arr):
     """
 
     amplitude = np.max(waveform)
-    peak_index = np.argmax(waveform)
     n_samples = np.shape(waveform)[-1]
 
     rt_90 = np.nan

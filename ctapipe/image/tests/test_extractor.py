@@ -114,6 +114,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 def toymodel(subarray):
     return get_test_toymodel(subarray)
 
+
 def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
     tel_id = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -151,6 +152,7 @@ def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
 def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
     return get_test_toymodel_gradient(subarray_mst_fc)
 
+
 @pytest.fixture(scope="module")
 def toymodel_mst_fc(subarray_mst_fc: object) -> object:
     return get_test_toymodel(subarray_mst_fc)
@@ -173,9 +175,8 @@ def test_fwhm(toymodel):
 
         fwhm_scp = np.append(fwhm_scp, widths[0])
 
-    fwhm, _, _ = time_parameters(
-        waveforms,
-    )
+    fwhm, rise, fall = time_parameters(waveforms, np.argmax(waveforms, axis=-1))
+
     assert_allclose(
         np.array(fwhm),
         fwhm_scp,
