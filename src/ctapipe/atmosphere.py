@@ -29,8 +29,8 @@ SUPPORTED_TABLE_VERSIONS = {
     1,
 }
 
-GRAMMAGE_UNIT = u.g / u.cm**2
-DENSITY_UNIT = u.g / u.cm**3
+GRAMMAGE_UNIT = u.g / u.cm ** 2
+DENSITY_UNIT = u.g / u.cm ** 3
 
 
 class AtmosphereDensityProfile(abc.ABC):
@@ -102,7 +102,7 @@ class AtmosphereDensityProfile(abc.ABC):
         return (
             self.integral(distance * np.cos(zenith_angle)) / np.cos(zenith_angle)
         ).to(output_units)
-    
+
     def height_from_slant_depth(
         self,
         slant_depth: u.Quantity,
@@ -123,10 +123,10 @@ class AtmosphereDensityProfile(abc.ABC):
 
         """
 
-        return (
-            self.height_from_overburden(slant_depth * np.cos(zenith_angle))
-        ).to(output_units)
-    
+        return (self.height_from_overburden(slant_depth * np.cos(zenith_angle))).to(
+            output_units
+        )
+
     def peek(self):
         """
         Draw quick plot of profile
@@ -221,7 +221,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     """
 
     scale_height: u.Quantity = 8 * u.km
-    scale_density: u.Quantity = 0.00125 * u.g / u.cm**3
+    scale_density: u.Quantity = 0.00125 * u.g / u.cm ** 3
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
@@ -244,7 +244,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
             np.nan,
         )
 
-    @u.quantity_input(overburden=u.g / u.cm**2)
+    @u.quantity_input(overburden=u.g / u.cm ** 2)
     def height_from_overburden(self, overburden) -> u.Quantity:
         return np.where(
             overburden <= self.scale_height * self.scale_density,
@@ -335,12 +335,12 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         log_density = self._density_interp(height.to_value(u.km))
-        return u.Quantity(10**log_density, DENSITY_UNIT, copy=False)
+        return u.Quantity(10 ** log_density, DENSITY_UNIT, copy=False)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         log_col_density = self._col_density_interp(height.to_value(u.km))
-        return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=False)
+        return u.Quantity(10 ** log_col_density, GRAMMAGE_UNIT, copy=False)
 
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
