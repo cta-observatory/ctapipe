@@ -5,6 +5,7 @@ from io import StringIO
 from pathlib import Path
 
 import numpy as np
+import pytest
 import tables
 from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
@@ -13,6 +14,7 @@ from ctapipe.core import run_tool
 from ctapipe.io import TableLoader
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
+from ctapipe.tools.merge import MergeTool
 from ctapipe.tools.process import ProcessorTool
 
 
@@ -112,7 +114,6 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
-    from ctapipe.tools.merge import MergeTool
 
     output = tmp_path / "merged.dl2.h5"
     run_tool(
@@ -185,3 +186,29 @@ def test_muon(tmp_path, dl1_muon_output_file):
     assert len(table) == 2 * n_input
     assert_table_equal(table[:n_input], input_table)
     assert_table_equal(table[n_input:], input_table)
+
+
+@pytest.mark.parametrize("is_tty", [True, False])
+def test_progress_bar(tmp_path, monkeypatch, is_tty, dl1_file, dl1_proton_file):
+    import sys
+    from io import StringIO
+
+    # Simulate tty or non-tty environment
+    monkeypatch.setattr(sys, "stdout", StringIO() if is_tty else sys.stdout)
+
+    captured = run_tool(
+        MergeTool(),
+        argv=[
+            str(dl1_file),
+            str(dl1_proton_file),
+            f"--output={tmp_path}/merged_dl1b.h5",
+        ],
+        cwd=tmp_path,
+        raises=False,
+    )
+
+    # Check if the progress bar was not displayed in non-tty mode
+    if is_tty:
+        assert "s/Files" in captured.out
+    else:
+        assert "s/Files" not in captured.out
