@@ -24,6 +24,10 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
+      - name: Check README syntax
+        run: |
+          pip install restructuredtext-lint
+          restructuredtext-lint README.rst
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --files $(git diff origin/main --name-only)
@@ -96,7 +100,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           check-latest: true
 
-      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }} && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+      - if: matrix.install-method == 'pip' && runner.os == 'macOS' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         name: Fix Python PATH on macOS
         # See https://github.com/actions/setup-python/issues/132 and
         # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
@@ -108,17 +112,14 @@ jobs:
 
       - name: Install dependencies
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          python --version
-          pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
+          python --version | grep "Python ${PYTHON_VERSION}"
+          pip install pytest-cov pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
           pip freeze
-
-      - name: Static codechecks
-        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
-        run: |
-          restructuredtext-lint README.rst
 
       - name: ctapipe-info
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
