@@ -102,7 +102,31 @@ class AtmosphereDensityProfile(abc.ABC):
         return (
             self.integral(distance * np.cos(zenith_angle)) / np.cos(zenith_angle)
         ).to(output_units)
+    
+    def height_from_slant_depth(
+        self,
+        slant_depth: u.Quantity,
+        zenith_angle=0 * u.deg,
+        output_units=u.m,
+    ):
+        r"""Calculates height a.s.l. in the atmosphere from traversed slant depth
+            taking into account the shower zenith angle.
 
+        Parameters
+        ----------
+        slant_depth: u.Quantity["grammage"]
+           line-of-site distance from observer to point
+        zenith_angle: u.Quantity["angle"]
+           zenith angle of observation
+        output_units: u.Unit
+           unit to output (must be convertible to m)
+
+        """
+
+        return (
+            self.height_from_overburden(slant_depth * np.cos(zenith_angle))
+        ).to(output_units)
+    
     def peek(self):
         """
         Draw quick plot of profile
