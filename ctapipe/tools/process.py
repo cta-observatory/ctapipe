@@ -53,17 +53,19 @@ class ProcessorTool(Tool):
     )
     examples = """
     To process data with all default values:
-    > ctapipe-process --input events.simtel.gz --output events.dl1.h5 --progress
+    > ctapipe-process --input events.simtel.gz --output events.dl1.h5
 
     Or use an external configuration file, where you can specify all options:
-    > ctapipe-process --config stage1_config.json --progress
+    > ctapipe-process --config stage1_config.json
 
     The config file should be in JSON or python format (see traitlets docs). For an
     example, see ctapipe/examples/stage1_config.json in the main code repo.
     """
 
-    progress_bar = Bool(
-        help="show progress bar during processing", default_value=False
+    disable_progress_bar = Bool(
+        help="Disable the progress bar during processing",
+        default_value=None,
+        allow_none=True,
     ).tag(config=True)
 
     force_recompute_dl1 = Bool(
@@ -90,11 +92,9 @@ class ProcessorTool(Tool):
             {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
-        **flag(
-            "progress",
-            "ProcessorTool.progress_bar",
-            "show a progress bar during event processing",
-            "don't show a progress bar during event processing",
+        "disable-progress": (
+            {"DataWriter": {"disable_progress_bar": True}},
+            "Disable the progress bar during event processing",
         ),
         **flag(
             "recompute-dl1",
@@ -295,7 +295,7 @@ class ProcessorTool(Tool):
             desc=self.event_source.__class__.__name__,
             total=self.event_source.max_events,
             unit="ev",
-            disable=not self.progress_bar,
+            disable=self.disable_progress_bar,
         ):
 
             self.log.debug("Processessing event_id=%s", event.index.event_id)
