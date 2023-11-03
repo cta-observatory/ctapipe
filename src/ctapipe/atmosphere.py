@@ -221,7 +221,7 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     """
 
     scale_height: u.Quantity = 8 * u.km
-    scale_density: u.Quantity = 0.00125 * u.g / u.cm ** 3
+    scale_density: u.Quantity = 0.00125 * u.g / u.cm**3
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
