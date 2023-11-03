@@ -135,6 +135,20 @@ def test_against_reference():
     )
 
 
+def test_line_of_sight_integral(table_profile):
+    """
+    Test observer altitude and zenith angle dependence of LoS integral function
+    """
+
+    assert table_profile.line_of_sight_integral(
+        10 * u.km, observer_altitude=2000 * u.m
+    ) < table_profile.line_of_sight_integral(10 * u.km, observer_altitude=1000 * u.m)
+
+    assert table_profile.line_of_sight_integral(
+        10 * u.km, zenith_angle=30 * u.deg
+    ) > table_profile.line_of_sight_integral(10 * u.km, zenith_angle=0 * u.deg)
+
+
 def test_height_overburden_circle(table_profile):
     """
     Test that successive application of height to overburden
