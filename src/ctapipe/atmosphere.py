@@ -79,6 +79,7 @@ class AtmosphereDensityProfile(abc.ABC):
         self,
         distance: u.Quantity,
         zenith_angle=0 * u.deg,
+        observer_altitude=0 * u.m,
         output_units=GRAMMAGE_UNIT,
     ):
         r"""Line-of-sight integral from the shower distance to infinity, along
@@ -86,7 +87,7 @@ class AtmosphereDensityProfile(abc.ABC):
         the *slant depth*. The atmosphere here is assumed to be Cartesian, the
         curvature of the Earth is not taken into account.
 
-        .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h' \cos{\Psi}) dh'
+        .. math:: X(d, \Psi) = \int_{h_{obs} + d\cos{\Psi}}^{\infty} \rho(h') dh' / \cos{\Psi}
 
         Parameters
         ----------
@@ -94,13 +95,16 @@ class AtmosphereDensityProfile(abc.ABC):
            line-of-site distance from observer to point
         zenith_angle: u.Quantity["angle"]
            zenith angle of observation
+        observer_altitude: u.Quantity["length]
+           Height a.s.l. of the observer
         output_units: u.Unit
            unit to output (must be convertible to g/cm2)
 
         """
 
         return (
-            self.integral(distance * np.cos(zenith_angle)) / np.cos(zenith_angle)
+            self.integral(distance * np.cos(zenith_angle) + observer_altitude)
+            / np.cos(zenith_angle)
         ).to(output_units)
 
     def height_from_slant_depth(
