@@ -68,9 +68,10 @@ class ApplyModels(Tool):
         help="How many subarray events to load at once for making predictions.",
     ).tag(config=True)
 
-    progress_bar = Bool(
-        help="show progress bar during processing",
-        default_value=True,
+    disable_progress_bar = Bool(
+        default_value=None,
+        allow_none=True,
+        help="Disable the progress bar during execution",
     ).tag(config=True)
 
     aliases = {
@@ -81,12 +82,6 @@ class ApplyModels(Tool):
     }
 
     flags = {
-        **flag(
-            "progress",
-            "ProcessorTool.progress_bar",
-            "show a progress bar during event processing",
-            "don't show a progress bar during event processing",
-        ),
         **flag(
             "dl1-parameters",
             "HDF5Merger.dl1_parameters",
@@ -117,6 +112,10 @@ class ApplyModels(Tool):
                 "ApplyModels": {"overwrite": True},
             },
             "Overwrite output file if it exists",
+        ),
+        "disable-progress": (
+            {"ApplyModels": {"disable_progress_bar": True}},
+            "Disable the progress bar",
         ),
     }
 
@@ -161,7 +160,7 @@ class ApplyModels(Tool):
             desc="Applying reconstructors",
             unit=" Array Events",
             total=chunk_iterator.n_total,
-            disable=not self.progress_bar,
+            disable=self.disable_progress_bar,
         )
         with bar:
             for chunk, (start, stop, tel_tables) in enumerate(chunk_iterator):
