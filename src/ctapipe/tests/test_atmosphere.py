@@ -65,7 +65,7 @@ def test_models(density_model):
 
     # check we can also compute the integral
     column_density = density_model.integral(10 * u.km)
-    assert column_density.unit.is_equivalent(u.g / u.cm**2)
+    assert column_density.unit.is_equivalent(atmo.GRAMMAGE_UNIT)
 
     assert np.isclose(
         density_model.integral(1 * u.km), density_model.integral(1000 * u.m)
@@ -79,9 +79,9 @@ def test_exponential_model():
     """check exponential models"""
 
     density_model = atmo.ExponentialAtmosphereDensityProfile(
-        scale_height=10 * u.m, scale_density=0.00125 * u.g / u.cm**3
+        scale_height=10 * u.m, scale_density=0.00125 * atmo.DENSITY_UNIT
     )
-    assert np.isclose(density_model(1_000_000 * u.km), 0 * u.g / u.cm**3)
+    assert np.isclose(density_model(1_000_000 * u.km), 0 * atmo.DENSITY_UNIT)
     assert np.isclose(density_model(0 * u.km), density_model.scale_density)
 
 
@@ -179,7 +179,7 @@ def test_height_overburden_circle(table_profile):
 
     # Exponential atmosphere
     density_model = atmo.ExponentialAtmosphereDensityProfile(
-        scale_height=10 * u.km, scale_density=0.00125 * u.g / u.cm**3
+        scale_height=10 * u.km, scale_density=0.00125 * atmo.DENSITY_UNIT
     )
 
     circle_height_exponential = density_model.height_from_overburden(
@@ -197,9 +197,9 @@ def test_height_overburden_circle(table_profile):
 
 def test_out_of_range_table(table_profile):
     with pytest.warns(RuntimeWarning, match="divide by zero"):
-        assert np.isposinf(table_profile.height_from_overburden(0 * u.g / u.cm**2))
+        assert np.isposinf(table_profile.height_from_overburden(0 * atmo.GRAMMAGE_UNIT))
 
-    assert np.isnan(table_profile.height_from_overburden(2000 * u.g / u.cm**2))
+    assert np.isnan(table_profile.height_from_overburden(2000 * atmo.GRAMMAGE_UNIT))
 
     assert table_profile(150 * u.km).value == 0.0
     assert np.isnan(table_profile(-0.1 * u.km))
@@ -210,13 +210,13 @@ def test_out_of_range_table(table_profile):
 
 def test_out_of_range_exponential():
     density_model = atmo.ExponentialAtmosphereDensityProfile(
-        scale_height=10 * u.km, scale_density=0.00125 * u.g / u.cm**3
+        scale_height=10 * u.km, scale_density=0.00125 * atmo.DENSITY_UNIT
     )
 
     with pytest.warns(RuntimeWarning, match="divide by zero"):
-        assert np.isposinf(density_model.height_from_overburden(0 * u.g / u.cm**2))
+        assert np.isposinf(density_model.height_from_overburden(0 * atmo.GRAMMAGE_UNIT))
 
-    assert np.isnan(density_model.height_from_overburden(2000 * u.g / u.cm**2))
+    assert np.isnan(density_model.height_from_overburden(2000 * atmo.GRAMMAGE_UNIT))
 
     assert np.isnan(density_model(-0.1 * u.km))
 
@@ -237,9 +237,9 @@ def test_out_of_range_five_layer():
 
     profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
 
-    assert np.isposinf(profile_5.height_from_overburden(0 * u.g / u.cm**2))
+    assert np.isposinf(profile_5.height_from_overburden(0 * atmo.GRAMMAGE_UNIT))
 
-    assert np.isnan(profile_5.height_from_overburden(2000 * u.g / u.cm**2))
+    assert np.isnan(profile_5.height_from_overburden(2000 * atmo.GRAMMAGE_UNIT))
 
     assert np.allclose(profile_5(150 * u.km).value, 0.0, atol=1e-9)
     assert np.isnan(profile_5(-0.1 * u.km))
