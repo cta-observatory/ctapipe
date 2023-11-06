@@ -1,0 +1,2 @@
+Add support for using ``str`` and ``Path`` objects as input
+to ``ctapipe.io.get_hdf5_datalevels``.

@@ -1,4 +1,5 @@
 import enum
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from ctapipe.containers import (
 )
 from ctapipe.core.container import Container, Field
 from ctapipe.io import read_table
+from ctapipe.io.datalevels import DataLevel
 from ctapipe.io.hdf5tableio import HDF5TableReader, HDF5TableWriter
 
 
@@ -1014,3 +1016,21 @@ def test_can_read_same_containers(tmp_path):
         assert c1.prefix == "bar"
         assert c2.value == value
         assert c2.prefix == "foo"
+
+
+@pytest.mark.parametrize("input_type", (str, Path, tables.File))
+def test_hdf5_datalevels(input_type, dl2_shower_geometry_file):
+    from ctapipe.io import get_hdf5_datalevels
+
+    if input_type is tables.File:
+        with tables.open_file(dl2_shower_geometry_file) as h5file:
+            datalevels = get_hdf5_datalevels(h5file)
+    else:
+        path = input_type(dl2_shower_geometry_file)
+        datalevels = get_hdf5_datalevels(path)
+
+    assert set(datalevels) == {
+        DataLevel.DL1_IMAGES,
+        DataLevel.DL1_PARAMETERS,
+        DataLevel.DL2,
+    }
