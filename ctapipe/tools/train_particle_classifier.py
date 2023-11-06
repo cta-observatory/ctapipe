@@ -193,7 +193,7 @@ class TrainParticleClassifier(Tool):
 
             valid = check_valid_rows(table_chunk)
             if not np.all(valid):
-                n_non_predictable += np.sum(valid)
+                n_non_predictable += np.sum(~valid)
                 table_chunk = table_chunk[valid]
 
             table.append(table_chunk)
