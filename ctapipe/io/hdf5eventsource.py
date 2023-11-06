@@ -16,6 +16,7 @@ from ..containers import (
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
     ConcentrationContainer,
+    DispContainer,
     DL1CameraContainer,
     EventIndexContainer,
     HillasParametersContainer,
@@ -64,12 +65,14 @@ DL2_CONTAINERS = {
     "geometry": ReconstructedGeometryContainer,
     "classification": ParticleClassificationContainer,
     "impact": TelescopeImpactParameterContainer,
+    "disp": DispContainer,
 }
 
 
 COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v4.0.0",
     "v5.0.0",
+    "v5.1.0",
 ]
 
 
