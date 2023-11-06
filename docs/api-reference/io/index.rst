@@ -169,6 +169,7 @@ into one big table, joining the simulation information if available:
 
 
 You can also load telescope events for specific selections of telescopes:
+
 .. code-block:: python
 
    # by str representation of the type
