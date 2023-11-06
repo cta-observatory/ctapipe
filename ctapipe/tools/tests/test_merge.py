@@ -13,7 +13,6 @@ from ctapipe.core import run_tool
 from ctapipe.io import TableLoader
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
-from ctapipe.tools.merge import MergeTool
 from ctapipe.tools.process import ProcessorTool
 
 
@@ -113,6 +112,7 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
+    from ctapipe.tools.merge import MergeTool
 
     output = tmp_path / "merged.dl2.h5"
     run_tool(
