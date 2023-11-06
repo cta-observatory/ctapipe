@@ -14,7 +14,7 @@ in-memory storage of event data
 
 
 Reading Event Data
-===================
+==================
 
 This module provides a set of *event sources* that are python
 generators that loop through an input file or stream and fill in
@@ -115,7 +115,7 @@ for new data:
 
 
 Serialization of Containers
-============================
+===========================
 
 The `~ctapipe.io.TableWriter` and `~ctapipe.io.TableReader` base classes provide
 an interface to implement subclasses that write/read Containers to/from
@@ -128,7 +128,7 @@ array values in a column cannot be read into a ``pandas.DataFrame``, since it
 only supports scalar values).
 
 Writing Output Files
-=====================
+====================
 
 The `DataWriter` Component allows one to write a series of events (stored in
 `ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format file
@@ -145,7 +145,7 @@ information. It can be used in an event loop like:
             write_data(event)
 
 Reading Output Tables
-======================
+=====================
 In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 and higher files).
 
 
