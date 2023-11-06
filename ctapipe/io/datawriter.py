@@ -48,8 +48,11 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v5.0.0"
+DATA_MODEL_VERSION = "v6.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v6.0.0: - Remove redundant 'is_valid' column in ``DispContainer``.
+          - Rename content of ``DispContainer`` from 'norm' to 'parameter' and use the same
+            default prefix ('disp') for all containers filled by ``DispReconstructor``.
 - v5.0.0: - Change DL2 telescope-wise container prefixes from {algorithm}_tel to {algorithm}_tel_{kind}.
             As of now, this only changes 'tel_distance' to 'tel_impact_distance'
 - v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
@@ -58,8 +61,8 @@ DATA_MODEL_CHANGE_HISTORY = """
             and true parameters.
           - Telescope Impact Parameters were added.
           - Effective focal length and nominal focal length are both included
-            in the optics description now. Moved `TelescopeDescription.type`
-            to `OpticsDescription.size_type`. Added `OpticsDescription.reflector_shape`.
+            in the optics description now. Moved ``TelescopeDescription.type``
+            to ``OpticsDescription.size_type``. Added ``OpticsDescription.reflector_shape``.
           - n_samples, n_samples_long, n_channels and n_pixels are now part
             of CameraReadout.
           - The reference_location (EarthLocation origin of the telescope coordinates)
