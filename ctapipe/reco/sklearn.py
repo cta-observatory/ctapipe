@@ -690,12 +690,10 @@ class DispReconstructor(Reconstructor):
 
             if passes_quality_checks:
                 disp, valid = self._predict(self.subarray.tel[tel_id], table)
-                disp_container = DispContainer(
-                    norm=disp[0],
-                    is_valid=valid[0],
-                )
 
                 if valid:
+                    disp_container = DispContainer(parameter=disp[0])
+
                     hillas = event.dl1.tel[tel_id].parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
 
@@ -715,6 +713,9 @@ class DispReconstructor(Reconstructor):
                     )
 
                 else:
+                    disp_container = DispContainer(
+                        parameter=u.Quantity(np.nan, self.unit),
+                    )
                     altaz_container = ReconstructedGeometryContainer(
                         alt=u.Quantity(np.nan, u.deg, copy=False),
                         az=u.Quantity(np.nan, u.deg, copy=False),
