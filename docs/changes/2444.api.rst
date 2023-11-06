@@ -1,0 +1,10 @@
+Set ``disable=None`` by default in progress bar of tools
+``ctapipe-process``, ``ctapipe-merge`` and ``ctapipe-apply-models```
+This way, progress bar is shown by default when running the tools
+in interective mode. However, when executing the tools in a 
+non-interactive mode (non-tty), the progress bar is not displayed.
+
+This is achieved by using a ``--disable-progress`` command line
+option that defaults to `None`. It also allows the user disabling
+the progress bar via command line. Previous ``--progress`` and
+``--no-progress`` command line options are deprecated.

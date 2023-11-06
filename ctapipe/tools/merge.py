@@ -28,11 +28,11 @@ class MergeTool(Tool):
     examples = """
     To merge several files in the current directory:
 
-    > ctapipe-merge file1.h5 file2.h5 file3.h5 --output=/path/output_file.h5 --progress
+    > ctapipe-merge file1.h5 file2.h5 file3.h5 --output=/path/output_file.h5
 
     For merging files from a specific directory with a specific pattern, use:
 
-    > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5 --progress
+    > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5
     --pattern='*.dl1.h5'
 
     If no pattern is given, all .h5 files in the given directory will be taken as input.
@@ -52,9 +52,10 @@ class MergeTool(Tool):
         help="Input CTA HDF5 files",
     ).tag(config=True)
 
-    progress_bar = Bool(
-        False,
-        help="Show progress bar during processing",
+    disable_progress_bar = Bool(
+        default_value=None,
+        allow_none=True,
+        help="Disable the progress bar during processing",
     ).tag(config=True)
 
     file_pattern = Unicode(
@@ -77,9 +78,9 @@ class MergeTool(Tool):
     }
 
     flags = {
-        "progress": (
-            {"MergeTool": {"progress_bar": True}},
-            "Show a progress bar for all given input files",
+        "disable-progress": (
+            {"MergeTool": {"disable_progress_bar": True}},
+            "Disable the progress bar",
         ),
         "overwrite": (
             {"HDF5Merger": {"overwrite": True}},
@@ -174,7 +175,7 @@ class MergeTool(Tool):
             self.input_files,
             desc="Merging",
             unit="Files",
-            disable=not self.progress_bar,
+            disable=self.disable_progress_bar,
         ):
             try:
                 self.merger(input_path)

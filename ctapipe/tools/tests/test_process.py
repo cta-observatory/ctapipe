@@ -372,7 +372,6 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         f"--output={dl2_from_simtel}",
         "--write-showers",
         "--write-parameters",
-        "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
     ] + few_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
@@ -384,7 +383,6 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         f"--output={dl1_from_simtel}",
         "--write-showers",
         "--write-parameters",
-        "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
     ] + many_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
@@ -396,7 +394,6 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
         f"--output={dl2_from_dl1}",
         "--write-showers",
         "--write-parameters",
-        "--progress",
         "--EventSource.focal_length_choice=EQUIVALENT",
     ] + few_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
