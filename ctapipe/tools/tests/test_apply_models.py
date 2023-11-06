@@ -208,9 +208,8 @@ def test_apply_all(
         assert f"{prefix_disp}_tel_alt" in tel_events.colnames
         assert f"{prefix_disp}_tel_az" in tel_events.colnames
         assert f"{prefix_disp}_tel_is_valid" in tel_events.colnames
-        assert f"{prefix_disp}_parameter_norm" in tel_events.colnames
-        assert f"{prefix_disp}_parameter_is_valid" in tel_events.colnames
-        assert f"{prefix_disp}_parameter_tel_is_valid" not in tel_events.colnames
+        assert f"{prefix_disp}_tel_parameter" in tel_events.colnames
+        assert f"{prefix_disp}_parameter" not in tel_events.colnames
 
         # check that the "--no-dl1-parameters" option worked
         assert "hillas_intensity" not in tel_events.colnames
