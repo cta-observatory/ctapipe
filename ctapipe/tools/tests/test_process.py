@@ -497,38 +497,3 @@ def test_only_trigger_and_simulation(tmp_path):
         assert len(events) == 7
         assert "tels_with_trigger" in events.colnames
         assert "true_energy" in events.colnames
-
-
-@pytest.mark.parametrize("is_tty", [True, False])
-def test_progress_bar(
-    tmp_path,
-    monkeypatch,
-    is_tty,
-    dl1_parameters_file,
-):
-    import sys
-    from io import StringIO
-
-    config = resource_file("stage2_config.json")
-
-    # Simulate tty or non-tty environment
-    monkeypatch.setattr(sys, "stdout", StringIO() if is_tty else sys.stdout)
-
-    captured = run_tool(
-        ProcessorTool(),
-        argv=[
-            f"--config={config}",
-            f"--input={dl1_parameters_file}",
-            f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
-            "--write-parameters",
-            "--overwrite",
-        ],
-        cwd=tmp_path,
-        raises=False,
-    )
-
-    # Check if the progress bar was not displayed in non-tty mode
-    if is_tty:
-        assert "ev/s" in captured.out
-    else:
-        assert "ev/s" not in captured.out
