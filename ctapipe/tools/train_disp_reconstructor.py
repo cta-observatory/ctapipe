@@ -145,7 +145,8 @@ class TrainDispReconstructor(Tool):
             n_valid_events_in_file += len(table_chunk)
 
             if not np.all(
-                table_chunk["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
+                table_chunk["subarray_pointing_frame"]
+                == CoordinateFrameType.ALTAZ.value
             ):
                 raise ValueError(
                     "Pointing information for training data has to be provided in horizontal coordinates"
