@@ -5,6 +5,14 @@ import importlib
 import sys
 from collections import OrderedDict
 
+import numpy as np
+from astropy.table import vstack
+
+from ctapipe.containers import CoordinateFrameType
+from ctapipe.exceptions import TooFewEvents
+from ctapipe.reco.preprocessing import check_valid_rows
+from ctapipe.reco.sklearn import DispReconstructor
+
 if sys.version_info < (3, 10):
     from importlib_metadata import distribution
 else:
@@ -71,3 +79,84 @@ def get_all_descriptions():
             descriptions[name] = "[no documentation. Please add a docstring]"
 
     return descriptions
+
+
+def read_training_events(
+    loader,
+    chunk_size,
+    telescope_type,
+    reconstructor,
+    feature_names,
+    logger,
+    rng,
+    n_events=None,
+):
+    chunk_iterator = loader.read_telescope_events_chunked(
+        chunk_size,
+        telescopes=[telescope_type],
+    )
+    table = []
+    n_events_in_file = 0
+    n_valid_events_in_file = 0
+    n_non_predictable = 0
+
+    for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
+        logger.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
+        n_events_in_file += len(table_chunk)
+
+        if isinstance(reconstructor, DispReconstructor):
+            if not np.all(
+                table_chunk["subarray_pointing_frame"]
+                == CoordinateFrameType.ALTAZ.value
+            ):
+                raise ValueError(
+                    "Pointing information for training data has to be provided in horizontal coordinates"
+                )
+
+        mask = reconstructor.quality_query.get_table_mask(table_chunk)
+        table_chunk = table_chunk[mask]
+        logger.debug(
+            "Events in chunk %d after applying quality_query: %d",
+            chunk,
+            len(table_chunk),
+        )
+        n_valid_events_in_file += len(table_chunk)
+
+        table_chunk = reconstructor.feature_generator(
+            table_chunk, subarray=loader.subarray
+        )
+        table_chunk = table_chunk[feature_names]
+
+        valid = check_valid_rows(table_chunk)
+        if not np.all(valid):
+            n_non_predictable += np.sum(~valid)
+            table_chunk = table_chunk[valid]
+
+        table.append(table_chunk)
+
+    table = vstack(table)
+    logger.info("Events read from input: %d", n_events_in_file)
+    logger.info("Events after applying quality query: %d", n_valid_events_in_file)
+
+    if len(table) == 0:
+        raise TooFewEvents(
+            f"No events after quality query for telescope type {telescope_type}"
+        )
+
+    if n_non_predictable > 0:
+        logger.warning("Dropping %d non-predictable events.", n_non_predictable)
+
+    if n_events is not None:
+        if n_events > len(table):
+            logger.warning(
+                "Number of events in table (%d) is less than requested number of events %d",
+                len(table),
+                n_events,
+            )
+        else:
+            logger.info("Sampling %d events", n_events)
+            idx = rng.choice(len(table), n_events, replace=False)
+            idx.sort()
+            table = table[idx]
+
+    return table

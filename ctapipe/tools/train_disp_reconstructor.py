@@ -3,15 +3,14 @@ Tool for training the DispReconstructor
 """
 import astropy.units as u
 import numpy as np
-from astropy.table import vstack
 
-from ctapipe.containers import CoordinateFrameType
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
-from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
-from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
+from ctapipe.reco.preprocessing import horizontal_to_telescope
+
+from .utils import read_training_events
 
 __all__ = [
     "TrainDispReconstructor",
@@ -118,7 +117,28 @@ class TrainDispReconstructor(Tool):
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            table = self._read_table(tel_type)
+            feature_names = self.models.features + [
+                "true_energy",
+                "subarray_pointing_lat",
+                "subarray_pointing_lon",
+                "true_alt",
+                "true_az",
+                "hillas_fov_lat",
+                "hillas_fov_lon",
+                "hillas_psi",
+            ]
+            table = read_training_events(
+                self.loader,
+                self.chunk_size,
+                tel_type,
+                self.models,
+                feature_names,
+                self.log,
+                self.rng,
+                self.n_events.tel[tel_type],
+            )
+            table[self.models.target] = self._get_true_disp(table)
+            table = table[self.models.features + [self.models.target, "true_energy"]]
 
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
@@ -126,80 +146,6 @@ class TrainDispReconstructor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.models.fit(tel_type, table)
             self.log.info("done")
-
-    def _read_table(self, telescope_type):
-        chunk_iterator = self.loader.read_telescope_events_chunked(
-            self.chunk_size,
-            telescopes=[telescope_type],
-        )
-        table = []
-        n_events_in_file = 0
-        n_valid_events_in_file = 0
-        n_non_predictable = 0
-
-        for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
-            self.log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
-            n_events_in_file += len(table_chunk)
-
-            mask = self.models.quality_query.get_table_mask(table_chunk)
-            table_chunk = table_chunk[mask]
-            self.log.debug(
-                "Events in chunk %d after applying quality_query: %d",
-                chunk,
-                len(table_chunk),
-            )
-            n_valid_events_in_file += len(table_chunk)
-
-            if not np.all(
-                table_chunk["subarray_pointing_frame"]
-                == CoordinateFrameType.ALTAZ.value
-            ):
-                raise ValueError(
-                    "Pointing information for training data has to be provided in horizontal coordinates"
-                )
-
-            table_chunk = self.models.feature_generator(
-                table_chunk, subarray=self.loader.subarray
-            )
-            table_chunk[self.models.target] = self._get_true_disp(table_chunk)
-            # Add true energy for energy-dependent performance plots
-            columns = self.models.features + [self.models.target, "true_energy"]
-            table_chunk = table_chunk[columns]
-
-            valid = check_valid_rows(table_chunk)
-            if not np.all(valid):
-                n_non_predictable += np.sum(~valid)
-                table_chunk = table_chunk[valid]
-
-            table.append(table_chunk)
-
-        table = vstack(table)
-        self.log.info("Events read from input: %d", n_events_in_file)
-        self.log.info("Events after applying quality query: %d", n_valid_events_in_file)
-
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"No events after quality query for telescope type {telescope_type}"
-            )
-
-        if n_non_predictable > 0:
-            self.log.warning("Dropping %d non-predictable events.", n_non_predictable)
-
-        n_events = self.n_events.tel[telescope_type]
-        if n_events is not None:
-            if n_events > len(table):
-                self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
-                    len(table),
-                    n_events,
-                )
-            else:
-                self.log.info("Sampling %d events", n_events)
-                idx = self.rng.choice(len(table), n_events, replace=False)
-                idx.sort()
-                table = table[idx]
-
-        return table
 
     def _get_true_disp(self, table):
         fov_lon, fov_lat = horizontal_to_telescope(

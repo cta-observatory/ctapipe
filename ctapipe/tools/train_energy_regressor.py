@@ -2,14 +2,13 @@
 Tool for training the EnergyRegressor
 """
 import numpy as np
-from astropy.table import vstack
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
-from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, EnergyRegressor
-from ctapipe.reco.preprocessing import check_valid_rows
+
+from .utils import read_training_events
 
 __all__ = [
     "TrainEnergyRegressor",
@@ -111,7 +110,17 @@ class TrainEnergyRegressor(Tool):
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            table = self._read_table(tel_type)
+            feature_names = self.regressor.features + [self.regressor.target]
+            table = read_training_events(
+                self.loader,
+                self.chunk_size,
+                tel_type,
+                self.regressor,
+                feature_names,
+                self.log,
+                self.rng,
+                self.n_events.tel[tel_type],
+            )
 
             self.log.info("Train on %s events", len(table))
             self.cross_validate(tel_type, table)
@@ -119,70 +128,6 @@ class TrainEnergyRegressor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.regressor.fit(tel_type, table)
             self.log.info("done")
-
-    def _read_table(self, telescope_type):
-        chunk_iterator = self.loader.read_telescope_events_chunked(
-            self.chunk_size,
-            telescopes=[telescope_type],
-        )
-        table = []
-        n_events_in_file = 0
-        n_valid_events_in_file = 0
-        n_non_predictable = 0
-
-        for chunk, (_, _, table_chunk) in enumerate(chunk_iterator):
-            self.log.debug("Events read from chunk %d: %d", chunk, len(table_chunk))
-            n_events_in_file += len(table_chunk)
-
-            mask = self.regressor.quality_query.get_table_mask(table_chunk)
-            table_chunk = table_chunk[mask]
-            self.log.debug(
-                "Events in chunk %d after applying quality_query: %d",
-                chunk,
-                len(table_chunk),
-            )
-            n_valid_events_in_file += len(table_chunk)
-
-            table_chunk = self.regressor.feature_generator(
-                table_chunk, subarray=self.loader.subarray
-            )
-            feature_names = self.regressor.features + [self.regressor.target]
-            table_chunk = table_chunk[feature_names]
-
-            valid = check_valid_rows(table_chunk)
-            if not np.all(valid):
-                n_non_predictable += np.sum(~valid)
-                table_chunk = table_chunk[valid]
-
-            table.append(table_chunk)
-
-        table = vstack(table)
-        self.log.info("Events read from input: %d", n_events_in_file)
-        self.log.info("Events after applying quality query: %d", n_valid_events_in_file)
-
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"No events after quality query for telescope type {telescope_type}"
-            )
-
-        if n_non_predictable > 0:
-            self.log.warning("Dropping %d non-predictable events.", n_non_predictable)
-
-        n_events = self.n_events.tel[telescope_type]
-        if n_events is not None:
-            if n_events > len(table):
-                self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
-                    len(table),
-                    n_events,
-                )
-            else:
-                self.log.info("Sampling %d events", n_events)
-                idx = self.rng.choice(len(table), n_events, replace=False)
-                idx.sort()
-                table = table[idx]
-
-        return table
 
     def finish(self):
         """
