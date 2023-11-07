@@ -148,6 +148,29 @@ def test_line_of_sight_integral(table_profile):
         10 * u.km, zenith_angle=30 * u.deg
     ) > table_profile.line_of_sight_integral(10 * u.km, zenith_angle=0 * u.deg)
 
+    los_integral_h_10 = table_profile.line_of_sight_integral(
+        0 * u.km, observer_altitude=table_profile.table["height"].to("km")[5:15]
+    )
+
+    assert np.allclose(
+        los_integral_h_10,
+        table_profile.table["column_density"].to("g cm-2")[5:15],
+        rtol=1e-3,
+    )
+
+    los_integral_z_20 = table_profile.line_of_sight_integral(
+        table_profile.table["height"].to("km")[5:15] / np.cos(np.deg2rad(20)),
+        observer_altitude=0 * u.m,
+        zenith_angle=20 * u.deg,
+    )
+
+    assert np.allclose(
+        los_integral_z_20,
+        table_profile.table["column_density"].to("g cm-2")[5:15]
+        / np.cos(np.deg2rad(20)),
+        rtol=1e-3,
+    )
+
 
 def test_height_overburden_circle(table_profile):
     """
