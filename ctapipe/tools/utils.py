@@ -91,6 +91,7 @@ def read_training_events(
     rng,
     n_events=None,
 ):
+    """Chunked loading of events for training ML models"""
     chunk_iterator = loader.read_telescope_events_chunked(
         chunk_size,
         telescopes=[telescope_type],
