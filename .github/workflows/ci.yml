@@ -112,6 +112,7 @@ jobs:
           pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip install ./test_plugin
+          pip install --pre astropy==6.0.0rc1
           pip freeze
 
       - name: Static codechecks
