@@ -127,8 +127,8 @@ class TrainDispReconstructor(Tool):
                 tel_type,
                 self.models,
                 feature_names,
-                self.log,
                 self.rng,
+                self.log,
                 self.n_events.tel[tel_type],
             )
             table[self.models.target] = self._get_true_disp(table)

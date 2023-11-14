@@ -171,8 +171,8 @@ class TrainParticleClassifier(Tool):
             tel_type,
             self.classifier,
             feature_names,
-            self.log,
             self.rng,
+            self.log,
             self.n_signal.tel[tel_type],
         )
         background = read_training_events(
@@ -181,8 +181,8 @@ class TrainParticleClassifier(Tool):
             tel_type,
             self.classifier,
             feature_names,
-            self.log,
             self.rng,
+            self.log,
             self.n_signal.tel[tel_type],
         )
         table = vstack([signal, background])
