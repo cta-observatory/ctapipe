@@ -6,10 +6,10 @@
 # ======================================================================
 
 TrainDispReconstructor:
-  random_seed: 0            # Seed used for sampling n_events for training.
-  n_events:                 # The number of events used for training that can be provided
-    - [type, "LST*", None]  # independently for each telescope type (e.g. "LST_LST_LSTCam").
-    - [type, "MST*", None]  # If none, all events in the file are used.
+  random_seed: 0              # Seed used for sampling n_events for training.
+  n_events:                   # The number of events used for training that can be provided
+    # - [type, "LST*", 1000]  # independently for each telescope type (e.g. "LST_LST_LSTCam").
+    # - [type, "MST*", 1000]  # If not specified, all events in the file are used.
 
   CrossValidator:
     n_cross_validations: 5
