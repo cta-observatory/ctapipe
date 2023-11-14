@@ -122,14 +122,14 @@ class TrainDispReconstructor(Tool):
                 "hillas_psi",
             ]
             table = read_training_events(
-                self.loader,
-                self.chunk_size,
-                tel_type,
-                self.models,
-                feature_names,
-                self.rng,
-                self.log,
-                self.n_events.tel[tel_type],
+                loader=self.loader,
+                chunk_size=self.chunk_size,
+                telescope_type=tel_type,
+                reconstructor=self.models,
+                feature_names=feature_names,
+                rng=self.rng,
+                log=self.log,
+                n_events=self.n_events.tel[tel_type],
             )
             table[self.models.target] = self._get_true_disp(table)
             table = table[self.models.features + [self.models.target, "true_energy"]]
