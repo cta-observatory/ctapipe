@@ -4,14 +4,18 @@ import argparse
 import importlib
 import sys
 from collections import OrderedDict
+from logging import Logger
 
 import numpy as np
 from astropy.table import vstack
 
 from ctapipe.containers import CoordinateFrameType
+from ctapipe.core.traits import Int
 from ctapipe.exceptions import TooFewEvents
+from ctapipe.instrument.telescope import TelescopeDescription
+from ctapipe.io import TableLoader
 from ctapipe.reco.preprocessing import check_valid_rows
-from ctapipe.reco.sklearn import DispReconstructor
+from ctapipe.reco.sklearn import DispReconstructor, SKLearnReconstructor
 
 if sys.version_info < (3, 10):
     from importlib_metadata import distribution
@@ -82,13 +86,13 @@ def get_all_descriptions():
 
 
 def read_training_events(
-    loader,
-    chunk_size,
-    telescope_type,
-    reconstructor,
-    feature_names,
-    logger,
-    rng,
+    loader: TableLoader,
+    chunk_size: Int,
+    telescope_type: TelescopeDescription,
+    reconstructor: SKLearnReconstructor,
+    feature_names: list,
+    logger: Logger,
+    rng: np.random.Generator,
     n_events=None,
 ):
     """Chunked loading of events for training ML models"""
