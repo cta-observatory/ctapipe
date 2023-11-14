@@ -117,8 +117,8 @@ class TrainEnergyRegressor(Tool):
                 tel_type,
                 self.regressor,
                 feature_names,
-                self.log,
                 self.rng,
+                self.log,
                 self.n_events.tel[tel_type],
             )
 
