@@ -176,24 +176,24 @@ class TrainParticleClassifier(Tool):
             "true_energy",
         ]
         signal = read_training_events(
-            self.signal_loader,
-            self.chunk_size,
-            tel_type,
-            self.classifier,
-            feature_names,
-            self.rng,
-            self.log,
-            self.n_signal.tel[tel_type],
+            loader=self.signal_loader,
+            chunk_size=self.chunk_size,
+            telescope_type=tel_type,
+            reconstructor=self.classifier,
+            feature_names=feature_names,
+            rng=self.rng,
+            log=self.log,
+            n_events=self.n_signal.tel[tel_type],
         )
         background = read_training_events(
-            self.background_loader,
-            self.chunk_size,
-            tel_type,
-            self.classifier,
-            feature_names,
-            self.rng,
-            self.log,
-            self.n_signal.tel[tel_type],
+            loader=self.background_loader,
+            chunk_size=self.chunk_size,
+            telescope_type=tel_type,
+            reconstructor=self.classifier,
+            feature_names=feature_names,
+            rng=self.rng,
+            log=self.log,
+            n_events=self.n_signal.tel[tel_type],
         )
         table = vstack([signal, background])
         self.log.info(

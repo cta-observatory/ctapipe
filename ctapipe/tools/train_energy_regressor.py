@@ -112,14 +112,14 @@ class TrainEnergyRegressor(Tool):
             self.log.info("Loading events for %s", tel_type)
             feature_names = self.regressor.features + [self.regressor.target]
             table = read_training_events(
-                self.loader,
-                self.chunk_size,
-                tel_type,
-                self.regressor,
-                feature_names,
-                self.rng,
-                self.log,
-                self.n_events.tel[tel_type],
+                loader=self.loader,
+                chunk_size=self.chunk_size,
+                telescope_type=tel_type,
+                reconstructor=self.regressor,
+                feature_names=feature_names,
+                rng=self.rng,
+                log=self.log,
+                n_events=self.n_events.tel[tel_type],
             )
 
             self.log.info("Train on %s events", len(table))
