@@ -183,7 +183,7 @@ class TrainParticleClassifier(Tool):
             feature_names=feature_names,
             rng=self.rng,
             log=self.log,
-            n_events=self.n_signal.tel[tel_type],
+            n_events=self.n_background.tel[tel_type],
         )
         table = vstack([signal, background])
         self.log.info(
