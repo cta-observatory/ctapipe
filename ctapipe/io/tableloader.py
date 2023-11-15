@@ -262,8 +262,8 @@ class TableLoader(Component):
 
     def _check_args(self, **kwargs):
         """Checking args:
-        1) If None, set to default (trait) value
-        2) If True but correlated group is not included in input file - set to False
+        1) If None, set to default (trait) value.
+        2) If True but correlated group is not included in input file - set to False.
         returns a dict with new args"""
         groups = {
             "dl1_parameters": PARAMETERS_GROUP,
@@ -293,7 +293,7 @@ class TableLoader(Component):
     def _read_telescope_table(self, group, tel_id, start=None, stop=None):
         key = f"{group}/tel_{tel_id:03d}"
 
-        if key in self.h5file.root:
+        if key in self.h5file:
             table = read_table(self.h5file, key, start=start, stop=stop)
         else:
             table = _empty_telescope_events_table()
