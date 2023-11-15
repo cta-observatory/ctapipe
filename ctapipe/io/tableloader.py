@@ -82,7 +82,6 @@ class ChunkIterator:
         return self.n_chunks
 
     def __getitem__(self, chunk):
-
         if chunk < 0:
             chunk = self.n_chunks - chunk
 
@@ -188,7 +187,7 @@ class TableLoader(Component):
     simulated = traits.Bool(True, help="load simulated shower information").tag(
         config=True
     )
-    true_images = traits.Bool(True, help="load simulated shower images").tag(
+    true_images = traits.Bool(False, help="load simulated shower images").tag(
         config=True
     )
     true_parameters = traits.Bool(
@@ -243,19 +242,6 @@ class TableLoader(Component):
 
         Provenance().add_input_file(self.input_url, role="Event data")
 
-        groups = {
-            "dl1_parameters": PARAMETERS_GROUP,
-            "dl1_images": IMAGES_GROUP,
-            "true_parameters": TRUE_PARAMETERS_GROUP,
-            "true_images": TRUE_IMAGES_GROUP,
-        }
-        for attr, group in groups.items():
-            if getattr(self, attr) and group not in self.h5file.root:
-                self.log.info(
-                    "Setting %s to False, input file does not contain such data", attr
-                )
-                setattr(self, attr, False)
-
     def close(self):
         """Close the underlying hdf5 file"""
         if self._should_close:
@@ -274,10 +260,40 @@ class TableLoader(Component):
         """Number of subarray events in input file"""
         return self.h5file.root[TRIGGER_TABLE].shape[0]
 
+    def _check_args(self, **kwargs):
+        """Checking args:
+        1) If None, set to default (trait) value
+        2) If True but correlated group is not included in input file - set to False
+        returns a dict with new args"""
+        groups = {
+            "dl1_parameters": PARAMETERS_GROUP,
+            "dl1_images": IMAGES_GROUP,
+            "dl1_muons": MUON_GROUP,
+            "true_parameters": TRUE_PARAMETERS_GROUP,
+            "true_images": TRUE_IMAGES_GROUP,
+            "observation_info": OBSERVATION_TABLE,
+        }
+        updated_attributes = {}
+        for key, value in kwargs.items():
+            updated_value = value
+            if updated_value is None:
+                updated_value = getattr(self, key)
+            if (
+                updated_value
+                and key in groups.keys()
+                and groups[key] not in self.h5file.root
+            ):
+                self.log.info(
+                    "Setting %s to False, input file does not contain such data", key
+                )
+                updated_value = False
+            updated_attributes[key] = updated_value
+        return updated_attributes
+
     def _read_telescope_table(self, group, tel_id, start=None, stop=None):
         key = f"{group}/tel_{tel_id:03d}"
 
-        if key in self.h5file:
+        if key in self.h5file.root:
             table = read_table(self.h5file, key, start=start, stop=stop)
         else:
             table = _empty_telescope_events_table()
@@ -361,9 +377,6 @@ class TableLoader(Component):
             table.remove_column("__index__")
         return joint
 
-    def _fallback_to_traits(self, **kwargs):
-        return {k: v if v is not None else getattr(self, k) for k, v in kwargs.items()}
-
     def read_subarray_events(
         self,
         start=None,
@@ -394,12 +407,13 @@ class TableLoader(Component):
         table: astropy.io.Table
             Table with primary index columns "obs_id" and "event_id".
         """
-        # Setting None flags to traits default values
-        locals().update(
-            self._fallback_to_traits(
-                dl2=dl2, simulated=simulated, observation_info=observation_info
-            )
+        updated_attributes = self._check_args(
+            dl2=dl2, simulated=simulated, observation_info=observation_info
         )
+
+        dl2 = updated_attributes["dl2"]
+        simulated = updated_attributes["simulated"]
+        observation_info = updated_attributes["observation_info"]
 
         table = read_table(self.h5file, TRIGGER_TABLE, start=start, stop=stop)
         if keep_order:
@@ -496,19 +510,6 @@ class TableLoader(Component):
         table: astropy.io.Table
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
-        # Setting None flags to traits default values
-        locals().update(
-            self._fallback_to_traits(
-                dl1_images=dl1_images,
-                dl1_parameters=dl1_parameters,
-                dl1_muons=dl1_muons,
-                dl2=dl2,
-                simulated=simulated,
-                true_images=true_images,
-                true_parameters=true_parameters,
-                instrument=instrument,
-            )
-        )
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
 
@@ -609,7 +610,6 @@ class TableLoader(Component):
         true_images,
         true_parameters,
         instrument,
-        observation_info,
         start=None,
         stop=None,
     ):
@@ -634,14 +634,13 @@ class TableLoader(Component):
     def _join_subarray_info(
         self,
         table,
+        dl2,
+        simulated,
+        observation_info,
         start=None,
         stop=None,
-        dl2=None,
-        simulated=None,
-        observation_info=None,
         subarray_events=None,
     ):
-
         if subarray_events is None:
             subarray_events = self.read_subarray_events(
                 start=start,
@@ -730,26 +729,35 @@ class TableLoader(Component):
             load image parameters obtained from true images
         instrument: bool
             join subarray instrument information to each event
+        observation_info: bool
+            join observation information to each event
 
         Returns
         -------
         events: astropy.io.Table
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
-        # Setting None flags to traits default values
-        locals().update(
-            self._fallback_to_traits(
-                dl1_images=dl1_images,
-                dl1_parameters=dl1_parameters,
-                dl1_muons=dl1_muons,
-                dl2=dl2,
-                simulated=simulated,
-                true_images=true_images,
-                true_parameters=true_parameters,
-                instrument=instrument,
-                observation_info=observation_info,
-            )
+        updated_attributes = self._check_args(
+            dl1_images=dl1_images,
+            dl1_parameters=dl1_parameters,
+            dl1_muons=dl1_muons,
+            dl2=dl2,
+            simulated=simulated,
+            true_images=true_images,
+            true_parameters=true_parameters,
+            instrument=instrument,
+            observation_info=observation_info,
         )
+
+        dl1_images = updated_attributes["dl1_images"]
+        dl1_parameters = updated_attributes["dl1_parameters"]
+        dl1_muons = updated_attributes["dl1_muons"]
+        dl2 = updated_attributes["dl2"]
+        simulated = updated_attributes["simulated"]
+        true_images = updated_attributes["true_images"]
+        true_parameters = updated_attributes["true_parameters"]
+        instrument = updated_attributes["instrument"]
+        observation_info = updated_attributes["observation_info"]
 
         if telescopes is None:
             tel_ids = tuple(self.subarray.tel.keys())
@@ -766,7 +774,6 @@ class TableLoader(Component):
             true_images=true_images,
             true_parameters=true_parameters,
             instrument=instrument,
-            observation_info=observation_info,
             start=start,
             stop=stop,
         )
@@ -848,8 +855,8 @@ class TableLoader(Component):
         simulated=None,
         true_images=None,
         true_parameters=None,
-        observation_info=None,
         instrument=None,
+        observation_info=None,
     ) -> Dict[str, Table]:
         """Read subarray-based event information.
 
@@ -873,6 +880,8 @@ class TableLoader(Component):
             load image parameters obtained from true images
         instrument: bool
             join subarray instrument information to each event
+        observation_info: bool
+            join observation information to each event
 
         Returns
         -------
@@ -880,20 +889,27 @@ class TableLoader(Component):
             Dictionary of tables organized by telescope types
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
-        # Setting None flags to traits default values
-        locals().update(
-            self._fallback_to_traits(
-                dl1_images=dl1_images,
-                dl1_parameters=dl1_parameters,
-                dl1_muons=dl1_muons,
-                dl2=dl2,
-                simulated=simulated,
-                true_images=true_images,
-                true_parameters=true_parameters,
-                instrument=instrument,
-                observation_info=observation_info,
-            )
+        updated_attributes = self._check_args(
+            dl1_images=dl1_images,
+            dl1_parameters=dl1_parameters,
+            dl1_muons=dl1_muons,
+            dl2=dl2,
+            simulated=simulated,
+            true_images=true_images,
+            true_parameters=true_parameters,
+            instrument=instrument,
+            observation_info=observation_info,
         )
+
+        dl1_images = updated_attributes["dl1_images"]
+        dl1_parameters = updated_attributes["dl1_parameters"]
+        dl1_muons = updated_attributes["dl1_muons"]
+        dl2 = updated_attributes["dl2"]
+        simulated = updated_attributes["simulated"]
+        true_images = updated_attributes["true_images"]
+        true_parameters = updated_attributes["true_parameters"]
+        instrument = updated_attributes["instrument"]
+        observation_info = updated_attributes["observation_info"]
 
         if telescopes is None:
             tel_ids = tuple(self.subarray.tel.keys())
@@ -933,7 +949,11 @@ class TableLoader(Component):
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
         for key in by_type.keys():
             by_type[key] = self._join_subarray_info(
-                by_type[key], subarray_events=subarray_events
+                by_type[key],
+                dl2=dl2,
+                simulated=simulated,
+                observation_info=observation_info,
+                subarray_events=subarray_events,
             )
             self._sort_to_original_order(by_type[key], include_tel_id=True)
 
@@ -997,6 +1017,8 @@ class TableLoader(Component):
             load image parameters obtained from true images
         instrument: bool
             join subarray instrument information to each event
+        observation_info: bool
+            join observation information to each event
 
         Returns
         -------
@@ -1004,20 +1026,27 @@ class TableLoader(Component):
             Dictionary of tables organized by telescope ids
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
-        # Setting None flags to traits default values
-        locals().update(
-            self._fallback_to_traits(
-                dl1_images=dl1_images,
-                dl1_parameters=dl1_parameters,
-                dl1_muons=dl1_muons,
-                dl2=dl2,
-                simulated=simulated,
-                true_images=true_images,
-                true_parameters=true_parameters,
-                instrument=instrument,
-                observation_info=observation_info,
-            )
+        updated_attributes = self._check_args(
+            dl1_images=dl1_images,
+            dl1_parameters=dl1_parameters,
+            dl1_muons=dl1_muons,
+            dl2=dl2,
+            simulated=simulated,
+            true_images=true_images,
+            true_parameters=true_parameters,
+            instrument=instrument,
+            observation_info=observation_info,
         )
+
+        dl1_images = updated_attributes["dl1_images"]
+        dl1_parameters = updated_attributes["dl1_parameters"]
+        dl1_muons = updated_attributes["dl1_muons"]
+        dl2 = updated_attributes["dl2"]
+        simulated = updated_attributes["simulated"]
+        true_images = updated_attributes["true_images"]
+        true_parameters = updated_attributes["true_parameters"]
+        instrument = updated_attributes["instrument"]
+        observation_info = updated_attributes["observation_info"]
 
         if telescopes is None:
             tel_ids = tuple(self.subarray.tel.keys())
@@ -1055,7 +1084,11 @@ class TableLoader(Component):
 
         for tel_id in by_id.keys():
             by_id[tel_id] = self._join_subarray_info(
-                by_id[tel_id], subarray_events=subarray_events
+                by_id[tel_id],
+                dl2=dl2,
+                simulated=simulated,
+                observation_info=observation_info,
+                subarray_events=subarray_events,
             )
             self._sort_to_original_order(by_id[tel_id], include_tel_id=False)
 

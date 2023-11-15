@@ -48,9 +48,11 @@ def test_apply_energy_regressor(
         assert colname in table.colnames
         assert table[colname].description == field.description
 
-    with TableLoader(output_path, load_dl2=True) as loader:
-
-        events = loader.read_subarray_events()
+    with TableLoader(output_path) as loader:
+        events = loader.read_subarray_events(
+            simulated=False,
+            observation_info=False,
+        )
         assert f"{prefix}_energy" in events.colnames
         assert f"{prefix}_energy_uncert" in events.colnames
         assert f"{prefix}_is_valid" in events.colnames
@@ -60,7 +62,10 @@ def test_apply_energy_regressor(
             np.isfinite(events[f"{prefix}_energy"][events[f"{prefix}_is_valid"]])
         )
 
-        tel_events = loader.read_telescope_events()
+        tel_events = loader.read_telescope_events(
+            simulated=False,
+            observation_info=False,
+        )
         assert f"{prefix}_energy" in tel_events.colnames
         assert f"{prefix}_energy_uncert" in tel_events.colnames
         assert f"{prefix}_is_valid" in tel_events.colnames
@@ -181,8 +186,11 @@ def test_apply_all(
             table = read_table(output_path, key)
             check_equal_array_event_order(tel_trigger[tel_mask], table)
 
-    with TableLoader(output_path, load_dl2=True) as loader:
-        events = loader.read_subarray_events()
+    with TableLoader(output_path) as loader:
+        events = loader.read_subarray_events(
+            simulated=False,
+            observation_info=False,
+        )
         assert f"{prefix_clf}_prediction" in events.colnames
         assert f"{prefix_clf}_telescopes" in events.colnames
         assert f"{prefix_clf}_is_valid" in events.colnames
@@ -193,7 +201,13 @@ def test_apply_all(
         assert f"{prefix_disp}_is_valid" in events.colnames
         assert f"{prefix_disp}_goodness_of_fit" in events.colnames
 
-        tel_events = loader.read_telescope_events()
+        tel_events = loader.read_telescope_events(
+            dl1_muons=False,
+            simulated=False,
+            true_parameters=False,
+            instrument=False,
+            observation_info=False,
+        )
         assert f"{prefix_clf}_prediction" in tel_events.colnames
         assert f"{prefix_clf}_telescopes" in tel_events.colnames
         assert f"{prefix_clf}_is_valid" in tel_events.colnames
