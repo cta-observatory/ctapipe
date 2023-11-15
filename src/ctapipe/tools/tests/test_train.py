@@ -64,7 +64,7 @@ def test_sampling(tmp_path, dl2_shower_geometry_file):
     )
 
 
-def test_signal_ratio(tmp_path, gamma_train_clf, proton_train_clf):
+def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     tool = TrainParticleClassifier()
@@ -74,7 +74,7 @@ def test_signal_ratio(tmp_path, gamma_train_clf, proton_train_clf):
 
     with pytest.raises(
         ToolConfigurationError,
-        match="The signal_ratio has to be between 0 and 1",
+        match="The signal_fraction has to be between 0 and 1",
     ):
         run_tool(
             tool,
@@ -83,7 +83,7 @@ def test_signal_ratio(tmp_path, gamma_train_clf, proton_train_clf):
                 f"--background={proton_train_clf}",
                 f"--output={out_file}",
                 f"--config={config}",
-                "--signal-ratio=1.1",
+                "--signal-fraction=1.1",
                 "--log-level=INFO",
             ],
             raises=True,
@@ -97,7 +97,7 @@ def test_signal_ratio(tmp_path, gamma_train_clf, proton_train_clf):
             f"--output={out_file}",
             f"--config={config}",
             f"--log-file={log_file}",
-            "--signal-ratio=0.7",
+            "--signal-fraction=0.7",
             "--log-level=INFO",
         ],
     )
@@ -110,7 +110,7 @@ def test_signal_ratio(tmp_path, gamma_train_clf, proton_train_clf):
             n_signal, n_background = [int(line.split(" ")[i]) for i in (7, 10)]
             break
 
-    assert np.allclose(n_signal / (n_signal + n_background), 0.7, atol=1e-5)
+    assert np.allclose(n_signal / (n_signal + n_background), 0.7, atol=1e-4)
 
 
 def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):

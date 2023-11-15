@@ -66,14 +66,17 @@ class TrainParticleClassifier(Tool):
         help=(
             "Total number of events to be used for training."
             " If not given, all available events will be used"
-            " (considering ``signal_ratio``)."
+            " (considering ``signal_fraction``)."
         ),
     ).tag(config=True)
 
-    signal_ratio = Float(
+    signal_fraction = Float(
         default_value=0.5,
         allow_none=False,
-        help="Ratio of signal events to background events to be used for training",
+        help=(
+            "Fraction of signal events in all events to be used for training."
+            " ``signal_fraction`` = n_signal / (n_signal + n_background)"
+        ),
     ).tag(config=True)
 
     chunk_size = Int(
@@ -81,7 +84,7 @@ class TrainParticleClassifier(Tool):
         allow_none=True,
         help=(
             "How many subarray events to load at once before training on"
-            " n_signal and n_background events."
+            " n_events (or all available) events."
         ),
     ).tag(config=True)
 
@@ -99,7 +102,7 @@ class TrainParticleClassifier(Tool):
         "signal": "TrainParticleClassifier.input_url_signal",
         "background": "TrainParticleClassifier.input_url_background",
         "n-events": "TrainParticleClassifier.n_events",
-        "signal-ratio": "TrainParticleClassifier.signal_ratio",
+        "signal-fraction": "TrainParticleClassifier.signal_fraction",
         "n-jobs": "ParticleClassifier.n_jobs",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
@@ -163,8 +166,10 @@ class TrainParticleClassifier(Tool):
             self.log.info("done")
 
     def _read_input_data(self, tel_type):
-        if self.signal_ratio < 0 or self.signal_ratio > 1:
-            raise ToolConfigurationError("The signal_ratio has to be between 0 and 1")
+        if self.signal_fraction < 0 or self.signal_fraction > 1:
+            raise ToolConfigurationError(
+                "The signal_fraction has to be between 0 and 1"
+            )
 
         feature_names = self.classifier.features + [
             self.classifier.target,
@@ -173,7 +178,7 @@ class TrainParticleClassifier(Tool):
         ]
         n_events = self.n_events.tel[tel_type]
         if n_events is not None:
-            n_signal = int(self.signal_ratio * n_events)
+            n_signal = int(self.signal_fraction * n_events)
             n_background = n_events - n_signal
         else:
             n_signal = None
@@ -199,18 +204,18 @@ class TrainParticleClassifier(Tool):
             log=self.log,
             n_events=n_background,
         )
-        if n_events is None:  # use as many events as possible (keeping signal_ratio)
+        if n_events is None:  # use as many events as possible (keeping signal_fraction)
             if len(signal) < len(background):
-                if len(background) < 2 * (1 - self.signal_ratio) * len(signal):
+                if len(background) < 2 * (1 - self.signal_fraction) * len(signal):
                     n_background = len(background)
-                    n_signal = int(n_background / (1 / self.signal_ratio - 1))
+                    n_signal = int(n_background / (1 / self.signal_fraction - 1))
 
                     self.log.info("Sampling %d signal events", n_signal)
                     idx = self.rng.choice(len(signal), n_signal, replace=False)
                     idx.sort()
                     signal = signal[idx]
                 else:
-                    n_background = int(2 * (1 - self.signal_ratio) * len(signal))
+                    n_background = int(2 * (1 - self.signal_fraction) * len(signal))
                     n_signal = len(signal)
 
                     self.log.info("Sampling %d background events", n_background)
@@ -218,16 +223,16 @@ class TrainParticleClassifier(Tool):
                     idx.sort()
                     background = background[idx]
             else:
-                if len(signal) < 2 * self.signal_ratio * len(background):
+                if len(signal) < 2 * self.signal_fraction * len(background):
                     n_signal = len(signal)
-                    n_background = int(n_signal * (1 / self.signal_ratio - 1))
+                    n_background = int(n_signal * (1 / self.signal_fraction - 1))
 
                     self.log.info("Sampling %d background events", n_background)
                     idx = self.rng.choice(len(background), n_background, replace=False)
                     idx.sort()
                     background = background[idx]
                 else:
-                    n_signal = int(2 * self.signal_ratio * len(background))
+                    n_signal = int(2 * self.signal_fraction * len(background))
                     n_background = len(background)
 
                     self.log.info("Sampling %d signal events", n_signal)
