@@ -416,7 +416,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             result,
             ReconstructedEnergyContainer,
             prefix=self.prefix,
-            stereo=False,
+            add_tel_prefix=True,
         )
         return {ReconstructionProperty.ENERGY: result}
 
@@ -480,7 +480,10 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
             }
         )
         add_defaults_and_meta(
-            result, ParticleClassificationContainer, prefix=self.prefix, stereo=False
+            result,
+            ParticleClassificationContainer,
+            prefix=self.prefix,
+            add_tel_prefix=True,
         )
         return {ReconstructionProperty.PARTICLE_TYPE: result}
 
@@ -490,7 +493,7 @@ class DispReconstructor(Reconstructor):
     Predict absolute value and sign for disp origin reconstruction for each telescope.
     """
 
-    target = "true_norm"
+    target = "true_disp"
 
     prefix = traits.Unicode(default_value="disp", allow_none=False).tag(config=True)
 
@@ -687,12 +690,10 @@ class DispReconstructor(Reconstructor):
 
             if passes_quality_checks:
                 disp, valid = self._predict(self.subarray.tel[tel_id], table)
-                disp_container = DispContainer(
-                    norm=disp[0],
-                    is_valid=valid[0],
-                )
 
                 if valid:
+                    disp_container = DispContainer(parameter=disp[0])
+
                     hillas = event.dl1.tel[tel_id].parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
 
@@ -712,6 +713,9 @@ class DispReconstructor(Reconstructor):
                     )
 
                 else:
+                    disp_container = DispContainer(
+                        parameter=u.Quantity(np.nan, self.unit),
+                    )
                     altaz_container = ReconstructedGeometryContainer(
                         alt=u.Quantity(np.nan, u.deg, copy=False),
                         az=u.Quantity(np.nan, u.deg, copy=False),
@@ -719,8 +723,7 @@ class DispReconstructor(Reconstructor):
                     )
             else:
                 disp_container = DispContainer(
-                    norm=u.Quantity(np.nan, self.unit),
-                    is_valid=False,
+                    parameter=u.Quantity(np.nan, self.unit),
                 )
                 altaz_container = ReconstructedGeometryContainer(
                     alt=u.Quantity(np.nan, u.deg, copy=False),
@@ -728,7 +731,7 @@ class DispReconstructor(Reconstructor):
                     is_valid=False,
                 )
 
-            disp_container.prefix = f"{self.prefix}_parameter"
+            disp_container.prefix = f"{self.prefix}_tel"
             altaz_container.prefix = f"{self.prefix}_tel"
             event.dl2.tel[tel_id].disp[self.prefix] = disp_container
             event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
@@ -760,17 +763,12 @@ class DispReconstructor(Reconstructor):
         valid = self.quality_query.get_table_mask(table)
         disp[valid], is_valid[valid] = self._predict(key, table[valid])
 
-        disp_result = Table(
-            {
-                f"{self.prefix}_parameter_norm": disp,
-                f"{self.prefix}_parameter_is_valid": is_valid,
-            }
-        )
+        disp_result = Table({f"{self.prefix}_tel_parameter": disp})
         add_defaults_and_meta(
             disp_result,
             DispContainer,
-            prefix=f"{self.prefix}_parameter",
-            stereo=False,
+            prefix=self.prefix,
+            add_tel_prefix=True,
         )
 
         psi = table["hillas_psi"].quantity.to_value(u.rad)
@@ -797,7 +795,7 @@ class DispReconstructor(Reconstructor):
             altaz_result,
             ReconstructedGeometryContainer,
             prefix=self.prefix,
-            stereo=False,
+            add_tel_prefix=True,
         )
 
         return {

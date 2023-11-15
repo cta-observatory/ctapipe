@@ -1,0 +1,2 @@
+Check that the array pointing is given in horizontal coordinates
+before training a ``DispReconstructor``.
