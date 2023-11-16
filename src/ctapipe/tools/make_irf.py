@@ -1,6 +1,5 @@
 """Tool to generate IRFs"""
 import operator
-from enum import Enum
 
 import astropy.units as u
 import numpy as np
@@ -23,39 +22,19 @@ from pyirf.irf import (
     psf_table,
 )
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
-from pyirf.simulations import SimulatedEventsInfo
-from pyirf.spectral import (
-    CRAB_HEGRA,
-    IRFDOC_ELECTRON_SPECTRUM,
-    IRFDOC_PROTON_SPECTRUM,
-    PowerLaw,
-    calculate_event_weights,
-)
-from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
-from ..io import TableLoader
 from ..irf import (
-    CutOptimizer,
+    PYIRF_SPECTRA,
     DataBinning,
     EventPreProcessor,
+    EventSelector,
+    GridOptimizer,
     OutputEnergyBinning,
+    Spectra,
     ThetaCutsCalculator,
 )
-
-
-class Spectra(Enum):
-    CRAB_HEGRA = 1
-    IRFDOC_ELECTRON_SPECTRUM = 2
-    IRFDOC_PROTON_SPECTRUM = 3
-
-
-PYIRF_SPECTRA = {
-    Spectra.CRAB_HEGRA: CRAB_HEGRA,
-    Spectra.IRFDOC_ELECTRON_SPECTRUM: IRFDOC_ELECTRON_SPECTRUM,
-    Spectra.IRFDOC_PROTON_SPECTRUM: IRFDOC_PROTON_SPECTRUM,
-}
 
 
 class IrfTool(Tool):
@@ -121,108 +100,47 @@ class IrfTool(Tool):
         default_value=3.0, help="Radius used to calculate background rate in degrees"
     ).tag(config=True)
 
-    classes = [CutOptimizer, DataBinning, OutputEnergyBinning, EventPreProcessor]
+    classes = [GridOptimizer, DataBinning, OutputEnergyBinning, EventPreProcessor]
 
-    def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
-        if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert all(obs_conf["subarray_pointing_frame"] == 0)
-            # Lets suppose 0 means ALTAZ
-            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
-            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
-        else:
-            raise NotImplementedError(
-                "No support for making irfs from varying pointings yet"
-            )
+    def setup(self):
+        self.go = GridOptimizer(parent=self)
+        self.theta = ThetaCutsCalculator(parent=self)
+        self.e_bins = OutputEnergyBinning(parent=self)
+        self.bins = DataBinning(parent=self)
+        epp = EventPreProcessor(parent=self)
 
-        events["theta"] = calculate_theta(
-            events,
-            assumed_source_az=events["true_az"],
-            assumed_source_alt=events["true_alt"],
-        )
-        events["true_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="true"
-        )
-        events["reco_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="reco"
-        )
-        # TODO: Honestly not sure why this integral is needed, nor what
-        # are correct bounds
-        if kind == "gamma":
-            spectrum = spectrum.integrate_cone(
-                self.bins.fov_offset_min * u.deg, self.bins.fov_offset_max * u.deg
-            )
-        events["weight"] = calculate_event_weights(
-            events["true_energy"],
-            target_spectrum=target_spectrum,
-            simulated_spectrum=spectrum,
-        )
+        self.reco_energy_bins = self.e_bins.reco_energy_bins()
+        self.true_energy_bins = self.e_bins.true_energy_bins()
+        self.energy_migration_bins = self.e_bins.energy_migration_bins()
 
-        return events
+        self.source_offset_bins = self.bins.source_offset_bins()
+        self.fov_offset_bins = self.bins.fov_offset_bins()
 
-    def get_metadata(self, loader):
-        obs = loader.read_observation_information()
-        sim = loader.read_simulation_configuration()
-        show = loader.read_shower_distribution()
-
-        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(np.unique(sim[itm])) > 1:
-                raise NotImplementedError(
-                    f"Unsupported: '{itm}' differs across simulation runs"
-                )
-
-        sim_info = SimulatedEventsInfo(
-            n_showers=show["n_entries"].sum(),
-            energy_min=sim["energy_range_min"].quantity[0],
-            energy_max=sim["energy_range_max"].quantity[0],
-            max_impact=sim["max_scatter_range"].quantity[0],
-            spectral_index=sim["spectral_index"][0],
-            viewcone_max=sim["max_viewcone_radius"].quantity[0],
-            viewcone_min=sim["min_viewcone_radius"].quantity[0],
-        )
-
-        return (
-            sim_info,
-            PowerLaw.from_simulation(
-                sim_info, obstime=self.obs_time * u.Unit(self.obs_time_unit)
+        self.particles = [
+            EventSelector(
+                epp, "gammas", self.gamma_file, PYIRF_SPECTRA[self.gamma_sim_spectrum]
             ),
-            obs,
-        )
-
-    def load_preselected_events(self):
-        opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
-        reduced_events = dict()
-        for kind, file, target_spectrum in [
-            ("gamma", self.gamma_file, PYIRF_SPECTRA[self.gamma_sim_spectrum]),
-            ("proton", self.proton_file, PYIRF_SPECTRA[self.proton_sim_spectrum]),
-            (
-                "electron",
+            EventSelector(
+                epp,
+                "protons",
+                self.proton_file,
+                PYIRF_SPECTRA[self.proton_sim_spectrum],
+                epp,
+            ),
+            EventSelector(
+                epp,
+                "electroms",
                 self.electron_file,
                 PYIRF_SPECTRA[self.electron_sim_spectrum],
             ),
-        ]:
-            with TableLoader(file, **opts) as load:
-                Provenance().add_input_file(file)
-                header = self.epp.make_empty_table()
-                sim_info, spectrum, obs_conf = self.get_metadata(load)
-                if kind == "gamma":
-                    self.sim_info = sim_info
-                    self.spectrum = spectrum
-                bits = [header]
-                n_raw_events = 0
-                for start, stop, events in load.read_subarray_events_chunked(
-                    self.chunk_size
-                ):
-                    selected = events[self.epp.get_table_mask(events)]
-                    selected = self.epp.normalise_column_names(selected)
-                    selected = self.make_derived_columns(
-                        kind, selected, spectrum, target_spectrum, obs_conf
-                    )
-                    bits.append(selected)
-                    n_raw_events += len(events)
+        ]
 
-                table = vstack(bits, join_type="exact")
-                reduced_events[kind] = table
-                reduced_events[f"{kind}_count"] = n_raw_events
+    def start(self):
+        reduced_events = dict()
+        for sel in self.particles:
+            evs, cnt = sel.load_preselected_events(self.chunk_size)
+            reduced_events[sel.kind] = evs
+            reduced_events[f"{sel.kind}_count"] = cnt
 
         self.log.debug(
             "Loaded %d gammas, %d protons, %d electrons"
@@ -240,37 +158,22 @@ class IrfTool(Tool):
                 len(reduced_events["electron"]),
             )
         )
-        select_fov = (
-            reduced_events["gamma"]["true_source_fov_offset"]
-            <= self.bins.fov_offset_max * u.deg
-        )
+        # select_fov = (
+        #     reduced_events["gamma"]["true_source_fov_offset"]
+        #     <= self.bins.fov_offset_max * u.deg
+        # )
         # TODO: verify that this fov cut on only gamma is ok
-        self.signal_events = reduced_events["gamma"][select_fov]
+        self.signal_events = reduced_events["gamma"]  # [select_fov]
         self.background_events = vstack(
             [reduced_events["proton"], reduced_events["electron"]]
         )
 
-    def setup(self):
-        self.epp = EventPreProcessor(parent=self)
-        self.co = CutOptimizer(parent=self)
-        self.theta = ThetaCutsCalculator(parent=self)
-        self.e_bins = OutputEnergyBinning(parent=self)
-        self.bins = DataBinning(parent=self)
-
-        self.reco_energy_bins = self.e_bins.reco_energy_bins()
-        self.true_energy_bins = self.e_bins.true_energy_bins()
-        self.energy_migration_bins = self.e_bins.energy_migration_bins()
-
-        self.source_offset_bins = self.bins.source_offset_bins()
-        self.fov_offset_bins = self.bins.fov_offset_bins()
-
-    def start(self):
         self.load_preselected_events()
         self.log.info(
             "Optimising cuts using %d signal and %d background events"
             % (len(self.signal_events), len(self.background_events)),
         )
-        self.gh_cuts, self.theta_cuts_opt, self.sens2 = self.co.optimise_gh_cut(
+        self.gh_cuts, self.theta_cuts_opt, self.sens2 = self.go.optimise_gh_cut(
             self.signal_events,
             self.background_events,
             self.alpha,

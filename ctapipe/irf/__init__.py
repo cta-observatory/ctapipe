@@ -1,15 +1,20 @@
 from .irf_classes import (
-    CutOptimizer,
+    PYIRF_SPECTRA,
     DataBinning,
-    EventPreProcessor,
     OutputEnergyBinning,
+    Spectra,
     ThetaCutsCalculator,
 )
+from .optimise import GridOptimizer
+from .select import EventPreProcessor, EventSelector
 
 __all__ = [
-    "CutOptimizer",
+    "GridOptimizer",
     "DataBinning",
     "OutputEnergyBinning",
+    "EventSelector",
     "EventPreProcessor",
+    "Spectra",
     "ThetaCutsCalculator",
+    "PYIRF_SPECTRA",
 ]
