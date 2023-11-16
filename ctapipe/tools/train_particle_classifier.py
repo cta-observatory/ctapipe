@@ -88,8 +88,7 @@ class TrainParticleClassifier(Tool):
     ).tag(config=True)
 
     random_seed = Int(
-        default_value=0,
-        help="Random number seed for sampling and the cross validation splitting",
+        default_value=0, help="Random seed for sampling training events."
     ).tag(config=True)
 
     n_jobs = Int(

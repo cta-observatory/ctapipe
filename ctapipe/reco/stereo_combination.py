@@ -63,22 +63,24 @@ def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
 
 
 class StereoCombiner(Component):
-    """Base Class for algorithms combining telescope-wise predictions to common prediction"""
+    """
+    Base Class for algorithms combining telescope-wise predictions to common prediction.
+    """
 
     prefix = Unicode(
         default_value="",
-        help="Prefix to be added to the output container / column names",
+        help="Prefix to be added to the output container / column names.",
     ).tag(config=True)
 
     property = UseEnum(
         ReconstructionProperty,
-        help="Which property is being combined",
+        help="Which property is being combined.",
     ).tag(config=True)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Fill event container with stereo predictions
+        Fill event container with stereo predictions.
         """
 
     @abstractmethod
@@ -91,17 +93,21 @@ class StereoCombiner(Component):
 
 class StereoMeanCombiner(StereoCombiner):
     """
-    Calculate array-event prediction as (weighted) mean of telescope-wise predictions
+    Calculate array-event prediction as (weighted) mean of telescope-wise predictions.
     """
 
     weights = CaselessStrEnum(
         ["none", "intensity", "konrad"],
         default_value="none",
+        help=(
+            "What kind of weights to use."
+            " Options: ``none``, ``intensity``, ``konrad``."
+        ),
     ).tag(config=True)
 
     log_target = Bool(
         False,
-        help="If true, calculate exp(mean(log(values)))",
+        help="If true, calculate exp(mean(log(values))).",
     ).tag(config=True)
 
     def __init__(self, *args, **kwargs):
@@ -119,8 +125,6 @@ class StereoMeanCombiner(StereoCombiner):
             )
 
     def _calculate_weights(self, data):
-        """"""
-
         if isinstance(data, Container):
             if self.weights == "intensity":
                 return data.hillas.intensity
