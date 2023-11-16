@@ -66,16 +66,17 @@ class MLQualityQuery(QualityQuery):
 
 
 class SKLearnReconstructor(Reconstructor):
-    """Base Class for a Machine Learning Based Reconstructor.
+    """
+    Base Class for a Machine Learning Based Reconstructor.
 
     Keeps a dictionary of sklearn models, the current tools are designed
     to train one model per telescope type.
     """
 
-    #: Name of the target column in training table
+    #: Name of the target table column for training.
     target: str = ""
 
-    #: property predicted, overridden in baseclass
+    #: Property predicted, overridden in subclass.
     property = None
 
     prefix = traits.Unicode(
@@ -83,24 +84,29 @@ class SKLearnReconstructor(Reconstructor):
         allow_none=True,
         help="Prefix for the output of this model. If None, ``model_cls`` is used.",
     ).tag(config=True)
-    features = traits.List(traits.Unicode(), help="Features to use for this model").tag(
+    features = traits.List(
+        traits.Unicode(), help="Features to use for this model."
+    ).tag(config=True)
+    model_config = traits.Dict({}, help="kwargs for the sklearn model.").tag(
         config=True
     )
-    model_config = traits.Dict({}, help="kwargs for the sklearn model").tag(config=True)
     model_cls = traits.Enum(
-        SUPPORTED_MODELS.keys(), default_value=None, allow_none=True
+        SUPPORTED_MODELS.keys(),
+        default_value=None,
+        allow_none=True,
+        help="Which scikit-learn model to use.",
     ).tag(config=True)
 
     stereo_combiner_cls = traits.ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
-        help="Which stereo combination method to use",
+        help="Which stereo combination method to use.",
     ).tag(config=True)
 
     load_path = traits.Path(
         default_value=None,
         allow_none=True,
-        help="If given, load serialized model from this path",
+        help="If given, load serialized model from this path.",
     ).tag(config=True)
 
     def __init__(self, subarray=None, models=None, n_jobs=None, **kwargs):
@@ -155,7 +161,8 @@ class SKLearnReconstructor(Reconstructor):
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
-        """Event-wise prediction for the EventSource-Loop.
+        """
+        Event-wise prediction for the EventSource-Loop.
 
         Fills the event.dl2.<your-feature>[name] container.
 
@@ -167,7 +174,7 @@ class SKLearnReconstructor(Reconstructor):
     @abstractmethod
     def predict_table(self, key, table: Table) -> Table:
         """
-        Predict on a table of events
+        Predict on a table of events.
 
         Parameters
         ----------
@@ -206,7 +213,7 @@ class SKLearnReconstructor(Reconstructor):
 
     def _table_to_y(self, table, mask=None):
         """
-        Extract target values as numpy array from input table
+        Extract target values as numpy array from input table.
         """
         # make sure we use the unit that was used during training
         if self.unit is not None:
@@ -236,9 +243,7 @@ class SKLearnReconstructor(Reconstructor):
 
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
-    """
-    Base class for regression tasks
-    """
+    """Base class for regression tasks."""
 
     model_cls = traits.Enum(
         SUPPORTED_REGRESSORS.keys(),
@@ -292,9 +297,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
 
 
 class SKLearnClassificationReconstructor(SKLearnReconstructor):
-    """
-    Base class for classification tasks
-    """
+    """Base class for classification tasks."""
 
     model_cls = traits.Enum(
         SUPPORTED_CLASSIFIERS.keys(),
@@ -304,7 +307,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     ).tag(config=True)
 
     invalid_class = traits.Integer(
-        default_value=-1, help="The label to fill in case no prediction could be made"
+        default_value=-1, help="The label to fill in case no prediction could be made."
     ).tag(config=True)
 
     positive_class = traits.Integer(
@@ -369,16 +372,15 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
 
 class EnergyRegressor(SKLearnRegressionReconstructor):
     """
-    Use a scikit-learn regression model per telescope type to predict primary energy
+    Use a scikit-learn regression model per telescope type to predict primary energy.
     """
 
-    #: Name of the target table column for training
     target = "true_energy"
     property = ReconstructionProperty.ENERGY
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Apply model for a single event and fill result into the event container
+        Apply model for a single event and fill result into the event container.
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
@@ -408,7 +410,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
-        """Predict on a table of events"""
+        """Predict on a table of events."""
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -434,11 +436,8 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
 
 class ParticleClassifier(SKLearnClassificationReconstructor):
-    """
-    Predict dl2 particle classification
-    """
+    """Predict dl2 particle classification."""
 
-    #: Name of the target table column for training
     target = "true_shower_primary_id"
 
     positive_class = traits.Integer(
@@ -449,6 +448,9 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Apply model for a single event and fill result into the event container.
+        """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
@@ -475,7 +477,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
-        """Predict on a table of events"""
+        """Predict on a table of events."""
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -507,18 +509,26 @@ class DispReconstructor(Reconstructor):
 
     target = "true_disp"
 
-    prefix = traits.Unicode(default_value="disp", allow_none=False).tag(config=True)
+    prefix = traits.Unicode(
+        default_value="disp",
+        allow_none=False,
+        help="Prefix for the output of this model. If None, ``disp`` is used.",
+    ).tag(config=True)
 
     features = traits.List(
-        traits.Unicode(), help="Features to use for both models"
+        traits.Unicode(), help="Features to use for both models."
     ).tag(config=True)
 
     log_target = traits.Bool(
         default_value=False,
-        help="If True, the model is trained to predict the natural logarithm of the absolute value.",
+        help=(
+            "If True, the norm(disp) model is trained to predict ln(norm(disp))"
+            " and the output is"
+            " ``prefix_parameter`` = ``sign_prediction`` * ``exp(norm_prediction)``."
+        ),
     ).tag(config=True)
 
-    norm_config = traits.Dict({}, help="kwargs for the sklearn regressor").tag(
+    norm_config = traits.Dict({}, help="kwargs for the sklearn regressor.").tag(
         config=True
     )
 
@@ -529,7 +539,7 @@ class DispReconstructor(Reconstructor):
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
-    sign_config = traits.Dict({}, help="kwargs for the sklearn classifier").tag(
+    sign_config = traits.Dict({}, help="kwargs for the sklearn classifier.").tag(
         config=True
     )
 
@@ -543,13 +553,13 @@ class DispReconstructor(Reconstructor):
     stereo_combiner_cls = traits.ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
-        help="Which stereo combination method to use",
+        help="Which stereo combination method to use.",
     ).tag(config=True)
 
     load_path = traits.Path(
         default_value=None,
         allow_none=True,
-        help="If given, load serialized model from this path",
+        help="If given, load serialized model from this path.",
     ).tag(config=True)
 
     def __init__(self, subarray=None, models=None, **kwargs):
@@ -606,7 +616,7 @@ class DispReconstructor(Reconstructor):
 
     def _table_to_y(self, table, mask=None):
         """
-        Extract target values as numpy array from input table
+        Extract target values as numpy array from input table.
         """
         # make sure we use the unit that was used during training
         if self.unit is not None:
@@ -689,7 +699,8 @@ class DispReconstructor(Reconstructor):
         return prediction, valid
 
     def __call__(self, event: ArrayEventContainer) -> None:
-        """Event-wise prediction for the EventSource-Loop.
+        """
+        Event-wise prediction for the EventSource-Loop.
 
         Fills the event.dl2.tel[tel_id].disp[prefix] container
         and event.dl2.tel[tel_id].geometry[prefix] container.
@@ -755,7 +766,8 @@ class DispReconstructor(Reconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
-        """Predict on a table of events
+        """
+        Predict on a table of events.
 
         Parameters
         ----------
@@ -831,9 +843,11 @@ class DispReconstructor(Reconstructor):
 
 
 class CrossValidator(Component):
-    """Class to train sklearn based reconstructors in a cross validation"""
+    """Class to train sklearn based reconstructors in a cross validation."""
 
-    n_cross_validations = traits.Int(5).tag(config=True)
+    n_cross_validations = traits.Int(
+        default_value=5, help="Number of cross validation iterations."
+    ).tag(config=True)
 
     output_path = traits.Path(
         default_value=None,
@@ -848,7 +862,7 @@ class CrossValidator(Component):
     ).tag(config=True)
 
     rng_seed = traits.Int(
-        default_value=1337, help="Seed for the random number generator"
+        default_value=1337, help="Random seed for splitting the training data."
     ).tag(config=True)
 
     def __init__(self, model_component, **kwargs):
@@ -872,6 +886,7 @@ class CrossValidator(Component):
             )
 
     def __call__(self, telescope_type, table):
+        """Perform cross validation for the given model."""
         if self.n_cross_validations == 0:
             return
 
