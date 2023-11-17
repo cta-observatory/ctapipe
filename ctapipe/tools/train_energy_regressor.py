@@ -74,7 +74,7 @@ class TrainEnergyRegressor(Tool):
         ("o", "output"): "TrainEnergyRegressor.output_path",
         "n-events": "TrainEnergyRegressor.n_events",
         "chunk-size": "TrainEnergyRegressor.chunk_size",
-        "n-jobs": "TrainEnergyRegressor.n_jobs",
+        "n-jobs": "EnergyRegressor.n_jobs",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -101,8 +101,7 @@ class TrainEnergyRegressor(Tool):
         self.n_events.attach_subarray(self.loader.subarray)
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
-        if self.n_jobs:
-            self.regressor.set_n_jobs(self.n_jobs)
+        self.log.warning(f"{self.regressor._models}")
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.regressor
         )
