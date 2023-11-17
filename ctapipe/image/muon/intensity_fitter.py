@@ -12,7 +12,6 @@ from math import erf
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 from iminuit import Minuit
 from numba import double, vectorize
 from scipy.constants import alpha
@@ -21,7 +20,7 @@ from scipy.ndimage import correlate1d
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
 
 from ...containers import MuonEfficiencyContainer
-from ...coordinates import CameraFrame, TelescopeFrame
+from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
@@ -309,7 +308,8 @@ def image_prediction_no_units(
 
 def build_negative_log_likelihood(
     image,
-    telescope_description,
+    optics,
+    geometry_tel_frame,
     mask,
     oversampling,
     min_lambda,
@@ -330,20 +330,12 @@ def build_negative_log_likelihood(
     """
 
     # get all the neeed values and transform them into appropriate units
-    optics = telescope_description.optics
     mirror_area = optics.mirror_area.to_value(u.m**2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
 
-    focal_length = optics.equivalent_focal_length
-
-    cam = telescope_description.camera.geometry
-    camera_frame = CameraFrame(focal_length=focal_length, rotation=cam.cam_rotation)
-    cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
-    tel_coords = cam_coords.transform_to(TelescopeFrame())
-
     # Use only a subset of pixels, indicated by mask:
-    pixel_x = tel_coords.fov_lon.to_value(u.rad)
-    pixel_y = tel_coords.fov_lat.to_value(u.rad)
+    pixel_x = geometry_tel_frame.pix_x.to_value(u.rad)
+    pixel_y = geometry_tel_frame.pix_y.to_value(u.rad)
 
     if mask is not None:
         pixel_x = pixel_x[mask]
@@ -351,9 +343,7 @@ def build_negative_log_likelihood(
         image = image[mask]
         pedestal = pedestal[mask]
 
-    pixel_diameter = 2 * (
-        np.sqrt(cam.pix_area[0] / np.pi) / focal_length * u.rad
-    ).to_value(u.rad)
+    pixel_diameter = geometry_tel_frame.pixel_width[0].to_value(u.rad)
 
     min_lambda = min_lambda.to_value(u.m)
     max_lambda = max_lambda.to_value(u.m)
@@ -466,6 +456,14 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
+
+        self._geometries_tel_frame = {
+            tel_id: tel.camera.geometry.transform_to(TelescopeFrame())
+            for tel_id, tel in subarray.tel.items()
+        }
+
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
 
@@ -498,9 +496,10 @@ class MuonIntensityFitter(TelescopeComponent):
             )
 
         negative_log_likelihood = build_negative_log_likelihood(
-            image,
-            telescope,
-            mask,
+            image=image,
+            optics=telescope.optics,
+            geometry_tel_frame=self._geometries_tel_frame[tel_id],
+            mask=mask,
             oversampling=self.oversampling.tel[tel_id],
             min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
             max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
