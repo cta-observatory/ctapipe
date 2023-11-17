@@ -66,7 +66,7 @@ class TrainEnergyRegressor(Tool):
     n_jobs = Int(
         default_value=None,
         allow_none=True,
-        help="Number of threads to use for the reconstruction. This overwrites the values in the config",
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config of each reconstructor.",
     ).tag(config=True)
 
     aliases = {
