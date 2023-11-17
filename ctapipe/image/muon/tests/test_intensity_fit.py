@@ -37,7 +37,7 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
 
     center_x = 0.8 * u.deg
     center_y = 0.4 * u.deg
-    radius = 1.2 * u.deg
+    radius = 1.1 * u.deg
     ring_width = 0.05 * u.deg
     impact_parameter = 5 * u.m
     phi = 0 * u.rad
