@@ -227,15 +227,12 @@ class SKLearnReconstructor(Reconstructor):
 
     @observe("n_jobs")
     def _set_n_jobs(self, n_jobs):
-        self._propagate_n_jobs(n_jobs.new)
-
-    def _propagate_n_jobs(self, n_jobs):
         """
         Update n_jobs of all associated models.
         """
         if hasattr(self, "_models"):
             for model in self._models.values():
-                model.n_jobs = n_jobs
+                model.n_jobs = n_jobs.new
 
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
@@ -822,14 +819,15 @@ class DispReconstructor(Reconstructor):
             ReconstructionProperty.GEOMETRY: altaz_result,
         }
 
-    def _propagate_n_jobs(self, n_jobs):
+    @observe("n_jobs")
+    def _set_n_jobs(self, n_jobs):
         """
         Update n_jobs of all associated models.
         """
         if hasattr(self, "_models"):
             for (disp, sign) in self._models.values():
-                disp.n_jobs = n_jobs
-                sign.n_jobs = n_jobs
+                disp.n_jobs = n_jobs.new
+                sign.n_jobs = n_jobs.new
 
 
 class CrossValidator(Component):
