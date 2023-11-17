@@ -140,13 +140,13 @@ jobs:
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v3
-        if: contains(matrix.extra-args, 'codecov')
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         with:
           fail_ci_if_error: true
 
       # check code quality and coverage with SonarScanner
       - uses: SonarSource/sonarqube-scan-action@master
-        if: contains(matrix.extra-args, 'codecov')
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
