@@ -153,13 +153,12 @@ class ApplyModels(Tool):
             )
         )
 
-        self._reconstructors = [
-            Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
-            for path in self.reconstructor_paths
-        ]
-        if self.n_jobs:
-            for r in self._reconstructors:
-                r.set_n_jobs(self.n_jobs)
+        self._reconstructors = []
+        for path in self.reconstructor_paths:
+            r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            if self.n_jobs:
+                r.n_jobs = self.n_jobs
+            self._reconstructors.append(r)
 
     def start(self):
         """Apply models to input tables"""
