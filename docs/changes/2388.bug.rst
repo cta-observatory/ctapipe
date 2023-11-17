@@ -1,1 +1,0 @@
-Fixed a bug in the calculation of the full numeric pixel likelihood and the corresponding tests.
