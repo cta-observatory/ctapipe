@@ -131,10 +131,10 @@ jobs:
         run: |
           cd $(mktemp -d)
           pytest -n auto --dist loadscope \
-            --cov --cov-report=xml \
+            --cov --cov-report=xml:$GITHUB_WORKSPACE/coverage.xml \
             --doctest-modules --doctest-glob='*.rst' \
-            --ignore=$HOME/work/ctapipe/ctapipe/docs/conf.py \
-            --pyargs ctapipe $HOME/work/ctapipe/ctapipe/docs
+            --ignore=$GITHUB_WORKSPACE/docs/conf.py \
+            --pyargs ctapipe $GITHUB_WORKSPACE/docs
 
           ctapipe-info --version
 
