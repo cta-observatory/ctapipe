@@ -6,10 +6,10 @@ from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
-from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
-from ctapipe.reco.preprocessing import check_valid_rows
+
+from .utils import read_training_events
 
 __all__ = [
     "TrainParticleClassifier",
@@ -75,6 +75,15 @@ class TrainParticleClassifier(Tool):
         help=(
             "Number of background events to be used for training."
             " If not given, all available events will be used"
+        ),
+    ).tag(config=True)
+
+    chunk_size = Int(
+        default_value=100000,
+        allow_none=True,
+        help=(
+            "How many subarray events to load at once before training on"
+            " n_signal and n_background events."
         ),
     ).tag(config=True)
 
@@ -161,54 +170,30 @@ class TrainParticleClassifier(Tool):
             self.classifier.fit(tel_type, table)
             self.log.info("done")
 
-    def _read_table(self, telescope_type, loader, n_events=None):
-        table = loader.read_telescope_events([telescope_type])
-        self.log.info("Events read from input: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
-            )
-
-        mask = self.classifier.quality_query.get_table_mask(table)
-        table = table[mask]
-        self.log.info("Events after applying quality query: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"No events after quality query for telescope type {telescope_type}"
-            )
-
-        table = self.classifier.feature_generator(table, subarray=self.subarray)
-
-        # Add true energy for energy-dependent performance plots
-        columns = self.classifier.features + [self.classifier.target, "true_energy"]
-        table = table[columns]
-
-        valid = check_valid_rows(table)
-        if np.any(~valid):
-            self.log.warning("Dropping non-predictable events.")
-            table = table[valid]
-
-        if n_events is not None:
-            if n_events > len(table):
-                self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
-                    len(table),
-                    n_events,
-                )
-            else:
-                self.log.info("Sampling %d events", n_events)
-                idx = self.rng.choice(len(table), n_events, replace=False)
-                idx.sort()
-                table = table[idx]
-
-        return table
-
     def _read_input_data(self, tel_type):
-        signal = self._read_table(
-            tel_type, self.signal_loader, self.n_signal.tel[tel_type]
+        feature_names = self.classifier.features + [
+            self.classifier.target,
+            "true_energy",
+        ]
+        signal = read_training_events(
+            loader=self.signal_loader,
+            chunk_size=self.chunk_size,
+            telescope_type=tel_type,
+            reconstructor=self.classifier,
+            feature_names=feature_names,
+            rng=self.rng,
+            log=self.log,
+            n_events=self.n_signal.tel[tel_type],
         )
-        background = self._read_table(
-            tel_type, self.background_loader, self.n_background.tel[tel_type]
+        background = read_training_events(
+            loader=self.background_loader,
+            chunk_size=self.chunk_size,
+            telescope_type=tel_type,
+            reconstructor=self.classifier,
+            feature_names=feature_names,
+            rng=self.rng,
+            log=self.log,
+            n_events=self.n_background.tel[tel_type],
         )
         table = vstack([signal, background])
         self.log.info(

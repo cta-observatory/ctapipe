@@ -4,13 +4,13 @@ Tool for training the DispReconstructor
 import astropy.units as u
 import numpy as np
 
-from ctapipe.containers import CoordinateFrameType
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path
-from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
-from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
+from ctapipe.reco.preprocessing import horizontal_to_telescope
+
+from .utils import read_training_events
 
 __all__ = [
     "TrainDispReconstructor",
@@ -54,6 +54,12 @@ class TrainDispReconstructor(Tool):
             "Number of events for training the models."
             " If not given, all available events will be used."
         ),
+    ).tag(config=True)
+
+    chunk_size = Int(
+        default_value=100000,
+        allow_none=True,
+        help="How many subarray events to load at once before training on n_events.",
     ).tag(config=True)
 
     random_seed = Int(
@@ -111,7 +117,28 @@ class TrainDispReconstructor(Tool):
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            table = self._read_table(tel_type)
+            feature_names = self.models.features + [
+                "true_energy",
+                "subarray_pointing_lat",
+                "subarray_pointing_lon",
+                "true_alt",
+                "true_az",
+                "hillas_fov_lat",
+                "hillas_fov_lon",
+                "hillas_psi",
+            ]
+            table = read_training_events(
+                loader=self.loader,
+                chunk_size=self.chunk_size,
+                telescope_type=tel_type,
+                reconstructor=self.models,
+                feature_names=feature_names,
+                rng=self.rng,
+                log=self.log,
+                n_events=self.n_events.tel[tel_type],
+            )
+            table[self.models.target] = self._get_true_disp(table)
+            table = table[self.models.features + [self.models.target, "true_energy"]]
 
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
@@ -119,58 +146,6 @@ class TrainDispReconstructor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.models.fit(tel_type, table)
             self.log.info("done")
-
-    def _read_table(self, telescope_type):
-        table = self.loader.read_telescope_events([telescope_type])
-        self.log.info("Events read from input: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
-            )
-
-        mask = self.models.quality_query.get_table_mask(table)
-        table = table[mask]
-        self.log.info("Events after applying quality query: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"No events after quality query for telescope type {telescope_type}"
-            )
-
-        if not np.all(
-            table["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
-        ):
-            raise ValueError(
-                "Pointing information for training data has to be provided in horizontal coordinates"
-            )
-
-        table = self.models.feature_generator(table, subarray=self.loader.subarray)
-
-        table[self.models.target] = self._get_true_disp(table)
-
-        # Add true energy for energy-dependent performance plots
-        columns = self.models.features + [self.models.target, "true_energy"]
-        table = table[columns]
-
-        valid = check_valid_rows(table)
-        if np.any(~valid):
-            self.log.warning("Dropping non-predicable events.")
-            table = table[valid]
-
-        n_events = self.n_events.tel[telescope_type]
-        if n_events is not None:
-            if n_events > len(table):
-                self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
-                    len(table),
-                    n_events,
-                )
-            else:
-                self.log.info("Sampling %d events", n_events)
-                idx = self.rng.choice(len(table), n_events, replace=False)
-                idx.sort()
-                table = table[idx]
-
-        return table
 
     def _get_true_disp(self, table):
         fov_lon, fov_lat = horizontal_to_telescope(

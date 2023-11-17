@@ -5,10 +5,10 @@ import numpy as np
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path
-from ctapipe.exceptions import TooFewEvents
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, EnergyRegressor
-from ctapipe.reco.preprocessing import check_valid_rows
+
+from .utils import read_training_events
 
 __all__ = [
     "TrainEnergyRegressor",
@@ -53,6 +53,12 @@ class TrainEnergyRegressor(Tool):
         ),
     ).tag(config=True)
 
+    chunk_size = Int(
+        default_value=100000,
+        allow_none=True,
+        help="How many subarray events to load at once before training on n_events.",
+    ).tag(config=True)
+
     random_seed = Int(
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
@@ -61,6 +67,7 @@ class TrainEnergyRegressor(Tool):
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
         "n-events": "TrainEnergyRegressor.n_events",
+        "chunk-size": "TrainEnergyRegressor.chunk_size",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -103,7 +110,17 @@ class TrainEnergyRegressor(Tool):
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            table = self._read_table(tel_type)
+            feature_names = self.regressor.features + [self.regressor.target]
+            table = read_training_events(
+                loader=self.loader,
+                chunk_size=self.chunk_size,
+                telescope_type=tel_type,
+                reconstructor=self.regressor,
+                feature_names=feature_names,
+                rng=self.rng,
+                log=self.log,
+                n_events=self.n_events.tel[tel_type],
+            )
 
             self.log.info("Train on %s events", len(table))
             self.cross_validate(tel_type, table)
@@ -111,48 +128,6 @@ class TrainEnergyRegressor(Tool):
             self.log.info("Performing final fit for %s", tel_type)
             self.regressor.fit(tel_type, table)
             self.log.info("done")
-
-    def _read_table(self, telescope_type):
-        table = self.loader.read_telescope_events([telescope_type])
-        self.log.info("Events read from input: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"Input file does not contain any events for telescope type {telescope_type}"
-            )
-
-        mask = self.regressor.quality_query.get_table_mask(table)
-        table = table[mask]
-        self.log.info("Events after applying quality query: %d", len(table))
-        if len(table) == 0:
-            raise TooFewEvents(
-                f"No events after quality query for telescope type {telescope_type}"
-            )
-
-        table = self.regressor.feature_generator(table, subarray=self.loader.subarray)
-
-        feature_names = self.regressor.features + [self.regressor.target]
-        table = table[feature_names]
-
-        valid = check_valid_rows(table)
-        if np.any(~valid):
-            self.log.warning("Dropping non-predictable events.")
-            table = table[valid]
-
-        n_events = self.n_events.tel[telescope_type]
-        if n_events is not None:
-            if n_events > len(table):
-                self.log.warning(
-                    "Number of events in table (%d) is less than requested number of events %d",
-                    len(table),
-                    n_events,
-                )
-            else:
-                self.log.info("Sampling %d events", n_events)
-                idx = self.rng.choice(len(table), n_events, replace=False)
-                idx.sort()
-                table = table[idx]
-
-        return table
 
     def finish(self):
         """
