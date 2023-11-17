@@ -14,7 +14,7 @@ in-memory storage of event data
 
 
 Reading Event Data
-===================
+==================
 
 This module provides a set of *event sources* that are python
 generators that loop through an input file or stream and fill in
@@ -114,8 +114,8 @@ for new data:
    column of an output table.
 
 
-Serialization of Containers:
-============================
+Serialization of Containers
+===========================
 
 The `~ctapipe.io.TableWriter` and `~ctapipe.io.TableReader` base classes provide
 an interface to implement subclasses that write/read Containers to/from
@@ -127,8 +127,8 @@ using the `~ctapipe.io.HDF5TableReader`, or more generically using the
 array values in a column cannot be read into a ``pandas.DataFrame``, since it
 only supports scalar values).
 
-Writing Output Files:
-=====================
+Writing Output Files
+====================
 
 The `DataWriter` Component allows one to write a series of events (stored in
 `ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format file
@@ -144,12 +144,12 @@ information. It can be used in an event loop like:
             calibrate(event)
             write_data(event)
 
-Reading Output Tables:
-======================
+Reading Output Tables
+=====================
 In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 and higher files).
 
 
-`~ctapipe.io.TableLoader`: is a a convenient way to load and join together the
+`~ctapipe.io.TableLoader` is a a convenient way to load and join together the
 tables in a ctapipe output file into one or more high-level tables useful for analysis.
 Which information is read and joined is controlled by the TableLoader's configuration
 options. 
@@ -169,6 +169,7 @@ into one big table, joining the simulation information if available:
 
 
 You can also load telescope events for specific selections of telescopes:
+
 .. code-block:: python
 
    # by str representation of the type
