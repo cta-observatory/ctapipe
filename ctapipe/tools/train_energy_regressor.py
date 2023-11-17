@@ -140,6 +140,7 @@ class TrainEnergyRegressor(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
+        self.regressor.n_jobs = None
         self.regressor.write(self.output_path, overwrite=self.overwrite)
         if self.cross_validate.output_path:
             self.cross_validate.write(overwrite=self.overwrite)
