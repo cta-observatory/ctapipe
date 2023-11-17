@@ -240,12 +240,13 @@ class IrfTool(Tool):
                 len(reduced_events["electron"]),
             )
         )
-        select_fov = (
-            reduced_events["gamma"]["true_source_fov_offset"]
-            <= self.bins.fov_offset_max * u.deg
-        )
+        # select_fov = (
+        #     reduced_events["gamma"]["true_source_fov_offset"]
+        #     <= self.bins.fov_offset_max * u.deg
+        # )
         # TODO: verify that this fov cut on only gamma is ok
-        self.signal_events = reduced_events["gamma"][select_fov]
+        # self.signal_events = reduced_events["gamma"][select_fov]
+        self.signal_events = reduced_events["gamma"]
         self.background_events = vstack(
             [reduced_events["proton"], reduced_events["electron"]]
         )
