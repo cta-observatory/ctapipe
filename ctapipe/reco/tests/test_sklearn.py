@@ -183,7 +183,7 @@ def test_set_n_jobs(example_subarray):
 
     regressor._models["telescope"] = regressor._new_model()
     assert regressor._models["telescope"].n_jobs == -1
-    regressor.set_n_jobs(42)
+    regressor.n_jobs = 42
     assert regressor._models["telescope"].n_jobs == 42
 
     # DISP has two models per telescope, check that aswell
@@ -205,7 +205,7 @@ def test_set_n_jobs(example_subarray):
     disp._models["telescope"] = disp._new_models()
     assert disp._models["telescope"][0].n_jobs == -1
     assert disp._models["telescope"][1].n_jobs == -1
-    disp.set_n_jobs(42)
+    disp.n_jobs = 42
     assert disp._models["telescope"][0].n_jobs == 42
     assert disp._models["telescope"][1].n_jobs == 42
 

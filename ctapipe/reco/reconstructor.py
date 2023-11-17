@@ -8,7 +8,7 @@ from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import List
+from ctapipe.core.traits import Integer, List
 
 from ..compat import StrEnum
 from ..coordinates import shower_impact_distance
@@ -78,6 +78,12 @@ class Reconstructor(TelescopeComponent):
     #: ctapipe_reco entry points may provide Reconstructor implementations
     plugin_entry_point = "ctapipe_reco"
 
+    n_jobs = Integer(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction if supported by the reconstructor.",
+    ).tag(config=True)
+
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
         self.quality_query = StereoQualityQuery(parent=self)
@@ -145,18 +151,6 @@ class Reconstructor(TelescopeComponent):
 
         Provenance().add_input_file(path, role="reconstructor")
         return instance
-
-    def set_n_jobs(self, n_jobs):
-        """
-        Set n_jobs if applicable for the reconsructor.
-        This is not just a traits option of the class, because
-        for example in the case of the SKLearnReconstructors you need
-        to set the property of all of the sklearn models for it to be
-        applied in the fit and predict steps.
-        """
-        self.log.warning(
-            f"Trying to set n_jobs to {n_jobs}, but the reconstructor does not make any use of it."
-        )
 
 
 class HillasGeometryReconstructor(Reconstructor):
