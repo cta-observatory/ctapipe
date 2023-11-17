@@ -86,7 +86,7 @@ class TrainDispReconstructor(Tool):
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainDispReconstructor.output_path",
         "n-events": "TrainDispReconstructor.n_events",
-        "n-jobs": "TrainDispReconstructor.n_jobs",
+        "n-jobs": "DispReconstructor.n_jobs",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -104,8 +104,6 @@ class TrainDispReconstructor(Tool):
         self.n_events.attach_subarray(self.loader.subarray)
 
         self.models = DispReconstructor(self.loader.subarray, parent=self)
-        if self.n_jobs:
-            self.models.set_n_jobs(self.n_jobs)
 
         self.cross_validate = CrossValidator(parent=self, model_component=self.models)
         self.rng = np.random.default_rng(self.random_seed)

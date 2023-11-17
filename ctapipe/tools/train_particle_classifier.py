@@ -103,7 +103,7 @@ class TrainParticleClassifier(Tool):
         "background": "TrainParticleClassifier.input_url_background",
         "n-signal": "TrainParticleClassifier.n_signal",
         "n-background": "TrainParticleClassifier.n_background",
-        "n-jobs": "TrainParticleClassifier.n_jobs",
+        "n-jobs": "ParticleClassifier.n_jobs",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
     }
@@ -141,8 +141,6 @@ class TrainParticleClassifier(Tool):
         self.n_background.attach_subarray(self.subarray)
 
         self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
-        if self.n_jobs:
-            self.classifier.set_n_jobs(self.n_jobs)
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
