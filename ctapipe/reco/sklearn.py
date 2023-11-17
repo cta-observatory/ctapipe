@@ -379,9 +379,6 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
     property = ReconstructionProperty.ENERGY
 
     def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Apply model for a single event and fill result into the event container.
-        """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
@@ -410,7 +407,6 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
-        """Predict on a table of events."""
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -448,9 +444,6 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
     property = ReconstructionProperty.PARTICLE_TYPE
 
     def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Apply model for a single event and fill result into the event container.
-        """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.feature_generator(table, subarray=self.subarray)
@@ -477,7 +470,6 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
-        """Predict on a table of events."""
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -504,7 +496,8 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
 class DispReconstructor(Reconstructor):
     """
-    Predict absolute value and sign for disp origin reconstruction for each telescope.
+    Predict absolute value and sign for disp origin reconstruction and
+    convert to altitude and azimuth prediction for each telescope.
     """
 
     target = "true_disp"
