@@ -140,6 +140,8 @@ jobs:
 
       - uses: codecov/codecov-action@v3
         if: contains(matrix.extra-args, 'codecov')
+        with:
+          fail_ci_if_error: true
 
   docs:
     runs-on: ubuntu-latest
