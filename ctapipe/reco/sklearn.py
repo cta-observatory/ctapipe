@@ -307,7 +307,8 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
     ).tag(config=True)
 
     invalid_class = traits.Integer(
-        default_value=-1, help="The label to fill in case no prediction could be made."
+        default_value=-1,
+        help="The label value to fill in case no prediction could be made.",
     ).tag(config=True)
 
     positive_class = traits.Integer(
