@@ -1,6 +1,6 @@
 import sys
-import tempfile
 from abc import ABCMeta
+from tempfile import NamedTemporaryFile
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -134,7 +134,10 @@ class BokehPlot(metaclass=ABCMeta):
             output_notebook()
         else:
             # this only sets the default name, created only when show is called
-            output_file(tempfile.mktemp(prefix="ctapipe_bokeh_", suffix=".html"))
+            tmp = NamedTemporaryFile(
+                delete=False, prefix="ctapipe_bokeh_", suffix=".html"
+            )
+            output_file(tmp.name)
 
         self._handle = show(self.figure, notebook_handle=self._use_notebook)
 
