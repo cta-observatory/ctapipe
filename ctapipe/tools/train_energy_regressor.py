@@ -105,7 +105,10 @@ class TrainEnergyRegressor(Tool):
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            feature_names = self.regressor.features + [self.regressor.target]
+            feature_names = self.regressor.features + [
+                self.regressor.target,
+                "true_impact_distance",
+            ]
             table = read_training_events(
                 loader=self.loader,
                 chunk_size=self.chunk_size,

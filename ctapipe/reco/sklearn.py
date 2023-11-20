@@ -894,6 +894,7 @@ class CrossValidator(Component):
                         "prediction": cv_prediction,
                         "truth": truth,
                         "true_energy": test["true_energy"],
+                        "true_impact_distance": test["true_impact_distance"],
                     }
                 )
             )

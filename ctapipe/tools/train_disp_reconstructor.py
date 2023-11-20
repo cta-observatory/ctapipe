@@ -113,6 +113,7 @@ class TrainDispReconstructor(Tool):
             self.log.info("Loading events for %s", tel_type)
             feature_names = self.models.features + [
                 "true_energy",
+                "true_impact_distance",
                 "subarray_pointing_lat",
                 "subarray_pointing_lon",
                 "true_alt",
@@ -132,7 +133,10 @@ class TrainDispReconstructor(Tool):
                 n_events=self.n_events.tel[tel_type],
             )
             table[self.models.target] = self._get_true_disp(table)
-            table = table[self.models.features + [self.models.target, "true_energy"]]
+            table = table[
+                self.models.features
+                + [self.models.target, "true_energy", "true_impact_distance"]
+            ]
 
             self.log.info("Train models on %s events", len(table))
             self.cross_validate(tel_type, table)
