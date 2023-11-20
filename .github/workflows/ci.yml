@@ -117,7 +117,7 @@ jobs:
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
           pip install pytest-cov pytest-xdist 'coverage!=6.3.0'
-          pip install .[all]
+          pip install -e .[all]
           pip install ./test_plugin
           pip freeze
 
