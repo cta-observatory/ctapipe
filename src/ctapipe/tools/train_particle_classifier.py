@@ -205,40 +205,22 @@ class TrainParticleClassifier(Tool):
             n_events=n_background,
         )
         if n_events is None:  # use as many events as possible (keeping signal_fraction)
-            if len(signal) < len(background):
-                if len(background) < 2 * (1 - self.signal_fraction) * len(signal):
-                    n_background = len(background)
-                    n_signal = int(n_background / (1 / self.signal_fraction - 1))
+            if len(signal) < len(background) / (1 / self.signal_fraction - 1):
+                n_signal = len(signal)
+                n_background = int(n_signal * (1 / self.signal_fraction - 1))
 
-                    self.log.info("Sampling %d signal events", n_signal)
-                    idx = self.rng.choice(len(signal), n_signal, replace=False)
-                    idx.sort()
-                    signal = signal[idx]
-                else:
-                    n_background = int(2 * (1 - self.signal_fraction) * len(signal))
-                    n_signal = len(signal)
-
-                    self.log.info("Sampling %d background events", n_background)
-                    idx = self.rng.choice(len(background), n_background, replace=False)
-                    idx.sort()
-                    background = background[idx]
+                self.log.info("Sampling %d background events", n_background)
+                idx = self.rng.choice(len(background), n_background, replace=False)
+                idx.sort()
+                background = background[idx]
             else:
-                if len(signal) < 2 * self.signal_fraction * len(background):
-                    n_signal = len(signal)
-                    n_background = int(n_signal * (1 / self.signal_fraction - 1))
+                n_background = len(background)
+                n_signal = int(n_background / (1 / self.signal_fraction - 1))
 
-                    self.log.info("Sampling %d background events", n_background)
-                    idx = self.rng.choice(len(background), n_background, replace=False)
-                    idx.sort()
-                    background = background[idx]
-                else:
-                    n_signal = int(2 * self.signal_fraction * len(background))
-                    n_background = len(background)
-
-                    self.log.info("Sampling %d signal events", n_signal)
-                    idx = self.rng.choice(len(signal), n_signal, replace=False)
-                    idx.sort()
-                    signal = signal[idx]
+                self.log.info("Sampling %d signal events", n_signal)
+                idx = self.rng.choice(len(signal), n_signal, replace=False)
+                idx.sort()
+                signal = signal[idx]
 
         table = vstack([signal, background])
         self.log.info(
