@@ -5,7 +5,7 @@ import operator
 
 import astropy.units as u
 import numpy as np
-from astropy.table import QTable
+from astropy.table import QTable, Table
 from pyirf.binning import create_bins_per_decade
 from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
@@ -412,3 +412,48 @@ class DataBinning(Component):
             * u.deg
         )
         return source_offset
+
+
+class OptimisationResult:
+    def __init__(self, gh_cuts=None, offset_lim=None, precuts=None):
+        self.gh_cuts = gh_cuts
+        if gh_cuts:
+            self.gh_cuts.meta["extname"] = "GH_CUTS"
+        if offset_lim and isinstance(offset_lim[0], list):
+            self.offset_lim = offset_lim
+        else:
+            self.offset_lim = [offset_lim]
+
+        if isinstance(precuts, QualityQuery):
+            self.precuts = precuts.quality_criteria
+            if len(self.precuts) == 0:
+                self.precuts = [(" ", " ")]  # Ensures table can be created
+        else:
+            self.precuts = QualityQuery()
+
+    def write(self, out_name, overwrite=False):
+        cut_expr_tab = Table(
+            rows=self.precuts,
+            names=["name", "cut_expr"],
+            dtype=[np.unicode_, np.unicode_],
+        )
+        cut_expr_tab.meta["extname"] = "QUALITY_CUTS_EXPR"
+        offset_lim_tab = QTable(
+            rows=self.offset_lim, names=["offset_min", "offset_max"]
+        )
+        offset_lim_tab.meta["extname"] = "OFFSET_LIMITS"
+        self.gh_cuts.write(out_name, format="fits", overwrite=overwrite)
+        cut_expr_tab.write(out_name, format="fits", append=True)
+        offset_lim_tab.write(out_name, format="fits", append=True)
+
+    def read(self, file_name):
+        self.gh_cuts = QTable.read(file_name, hdu=1)
+        cut_expr_tab = Table.read(file_name, hdu=2)
+        cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
+        cut_expr_lst.remove((" ", " "))
+        self.precuts.quality_criteria = cut_expr_lst
+        offset_lim_tab = QTable.read(file_name, hdu=3)
+        self.offset_lim = list(offset_lim_tab[0])
+
+    def __repr__(self):
+        return f"<OptimisationResult in {len(self.gh_cuts)} bins for {self.offset_lim[0]} to {self.offset_lim[1]} with {len(self.precuts.quality_criteria)} precuts>"
