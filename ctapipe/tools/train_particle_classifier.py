@@ -174,6 +174,7 @@ class TrainParticleClassifier(Tool):
         feature_names = self.classifier.features + [
             self.classifier.target,
             "true_energy",
+            "true_impact_distance",
         ]
         signal = read_training_events(
             loader=self.signal_loader,
