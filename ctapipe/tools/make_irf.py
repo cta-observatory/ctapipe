@@ -33,6 +33,7 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
+from ..containers import CoordinateFrameType
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
 from ..io import TableLoader
@@ -125,10 +126,9 @@ class IrfTool(Tool):
 
     def make_derived_columns(self, kind, events, spectrum, target_spectrum, obs_conf):
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert all(obs_conf["subarray_pointing_frame"] == 0)
-            # Lets suppose 0 means ALTAZ
-            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
-            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
+            assert all(obs_conf["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ)
+            events["pointing_alt"] = obs_conf["subarray_pointing_lat"].quantity[0]
+            events["pointing_az"] = obs_conf["subarray_pointing_lon"].quantity[0]
         else:
             raise NotImplementedError(
                 "No support for making irfs from varying pointings yet"
