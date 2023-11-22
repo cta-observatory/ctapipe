@@ -1,7 +1,8 @@
 import logging
+from contextlib import ExitStack
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 import astropy.units as u
 import numpy as np
@@ -76,24 +77,28 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
 ]
 
 
-def get_hdf5_datalevels(h5file):
+def get_hdf5_datalevels(h5file: Union[tables.File, str, Path]):
     """Get the data levels present in the hdf5 file"""
     datalevels = []
 
-    if "/r1/event/telescope" in h5file.root:
-        datalevels.append(DataLevel.R1)
+    with ExitStack() as stack:
+        if not isinstance(h5file, tables.File):
+            h5file = stack.enter_context(tables.open_file(h5file))
 
-    if "/dl1/event/telescope/images" in h5file.root:
-        datalevels.append(DataLevel.DL1_IMAGES)
+        if "/r1/event/telescope" in h5file.root:
+            datalevels.append(DataLevel.R1)
 
-    if "/dl1/event/telescope/parameters" in h5file.root:
-        datalevels.append(DataLevel.DL1_PARAMETERS)
+        if "/dl1/event/telescope/images" in h5file.root:
+            datalevels.append(DataLevel.DL1_IMAGES)
 
-    if "/dl1/event/telescope/muon" in h5file.root:
-        datalevels.append(DataLevel.DL1_MUON)
+        if "/dl1/event/telescope/parameters" in h5file.root:
+            datalevels.append(DataLevel.DL1_PARAMETERS)
 
-    if "/dl2" in h5file.root:
-        datalevels.append(DataLevel.DL2)
+        if "/dl1/event/telescope/muon" in h5file.root:
+            datalevels.append(DataLevel.DL1_MUON)
+
+        if "/dl2" in h5file.root:
+            datalevels.append(DataLevel.DL2)
 
     return tuple(datalevels)
 
