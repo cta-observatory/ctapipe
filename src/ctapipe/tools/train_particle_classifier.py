@@ -205,18 +205,17 @@ class TrainParticleClassifier(Tool):
             n_events=n_background,
         )
         if n_events is None:  # use as many events as possible (keeping signal_fraction)
-            if len(signal) < len(background) / (1 / self.signal_fraction - 1):
-                n_signal = len(signal)
-                n_background = int(n_signal * (1 / self.signal_fraction - 1))
+            n_signal = len(signal)
+            n_background = len(background)
 
+            if n_signal < (n_signal + n_background) * self.signal_fraction:
+                n_background = int(n_signal * (1 / self.signal_fraction - 1))
                 self.log.info("Sampling %d background events", n_background)
                 idx = self.rng.choice(len(background), n_background, replace=False)
                 idx.sort()
                 background = background[idx]
             else:
-                n_background = len(background)
                 n_signal = int(n_background / (1 / self.signal_fraction - 1))
-
                 self.log.info("Sampling %d signal events", n_signal)
                 idx = self.rng.choice(len(signal), n_signal, replace=False)
                 idx.sort()
