@@ -1,0 +1,5 @@
+Remove warnings about missing R1 or DL0 data when using the CameraCalibrator.
+These were previously emitted directly as python warnings and did not use the 
+component logging system, which they now do.
+As we do not actually expect R1 to be present it was also moved down to
+debug level.
