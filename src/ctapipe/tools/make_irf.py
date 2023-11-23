@@ -27,11 +27,12 @@ from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
 from ..irf import (
     PYIRF_SPECTRA,
-    DataBinning,
     EventPreProcessor,
     EventSelector,
     GridOptimizer,
+    OptimisationResult,
     OutputEnergyBinning,
+    SourceOffsetBinning,
     Spectra,
     ThetaCutsCalculator,
 )
@@ -40,6 +41,10 @@ from ..irf import (
 class IrfTool(Tool):
     name = "ctapipe-make-irfs"
     description = "Tool to create IRF files in GAD format"
+
+    cuts_file = traits.Path(
+        default_value=None, directory_ok=False, help="Path to optimised cuts input file"
+    ).tag(config=True)
 
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
@@ -69,7 +74,7 @@ class IrfTool(Tool):
     chunk_size = Integer(
         default_value=100000,
         allow_none=True,
-        help="How many subarray events to load at once for making predictions.",
+        help="How many subarray events to load at once while selecting.",
     ).tag(config=True)
 
     output_path = traits.Path(
@@ -93,43 +98,46 @@ class IrfTool(Tool):
     alpha = Float(
         default_value=0.2, help="Ratio between size of on and off regions"
     ).tag(config=True)
-    # ON_radius = Float(default_value=1.0, help="Radius of ON region in degrees").tag(
-    #    config=True
-    # )
-    max_bg_radius = Float(
-        default_value=3.0, help="Radius used to calculate background rate in degrees"
-    ).tag(config=True)
 
-    classes = [GridOptimizer, DataBinning, OutputEnergyBinning, EventPreProcessor]
+    classes = [
+        GridOptimizer,
+        SourceOffsetBinning,
+        OutputEnergyBinning,
+        EventPreProcessor,
+    ]
 
     def setup(self):
-        self.go = GridOptimizer(parent=self)
+        self.opt_result = OptimisationResult()
         self.theta = ThetaCutsCalculator(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
-        self.bins = DataBinning(parent=self)
-        epp = EventPreProcessor(parent=self)
+        self.bins = SourceOffsetBinning(parent=self)
+        self.epp = EventPreProcessor(parent=self)
 
+        self.opt_result.read(self.cuts_file)
+        self.epp.quality_criteria = self.opt_result.precuts
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
         self.energy_migration_bins = self.e_bins.energy_migration_bins()
 
         self.source_offset_bins = self.bins.source_offset_bins()
-        self.fov_offset_bins = self.bins.fov_offset_bins()
+        self.fov_offset_bins = self.opt_result.offset_lim
 
         self.particles = [
             EventSelector(
-                epp, "gammas", self.gamma_file, PYIRF_SPECTRA[self.gamma_sim_spectrum]
+                self.epp,
+                "gammas",
+                self.gamma_file,
+                PYIRF_SPECTRA[self.gamma_sim_spectrum],
             ),
             EventSelector(
-                epp,
+                self.epp,
                 "protons",
                 self.proton_file,
                 PYIRF_SPECTRA[self.proton_sim_spectrum],
-                epp,
             ),
             EventSelector(
-                epp,
-                "electroms",
+                self.epp,
+                "electrons",
                 self.electron_file,
                 PYIRF_SPECTRA[self.electron_sim_spectrum],
             ),
@@ -150,36 +158,27 @@ class IrfTool(Tool):
                 reduced_events["electron_count"],
             )
         )
-        self.log.debug(
-            "Keeping %d gammas, %d protons, %d electrons"
-            % (
-                len(reduced_events["gamma"]),
-                len(reduced_events["proton"]),
-                len(reduced_events["electron"]),
-            )
-        )
-        # select_fov = (
-        #     reduced_events["gamma"]["true_source_fov_offset"]
-        #     <= self.bins.fov_offset_max * u.deg
-        # )
-        # TODO: verify that this fov cut on only gamma is ok
-        self.signal_events = reduced_events["gamma"]  # [select_fov]
+
+        self.signal_events = reduced_events["gamma"]
         self.background_events = vstack(
             [reduced_events["proton"], reduced_events["electron"]]
         )
-
-        self.load_preselected_events()
-        self.log.info(
-            "Optimising cuts using %d signal and %d background events"
-            % (len(self.signal_events), len(self.background_events)),
+        self.signal_events["selected_gh"] = evaluate_binned_cut(
+            self.signal_events["gh_score"],
+            self.signal_events["reco_energy"],
+            self.opt_result.gh_cuts,
+            operator.ge,
         )
-        self.gh_cuts, self.theta_cuts_opt, self.sens2 = self.go.optimise_gh_cut(
-            self.signal_events,
-            self.background_events,
-            self.alpha,
-            self.bins.fov_offset_min,
-            self.bins.fov_offset_max,
-            self.theta,
+        self.background_events["selected_gh"] = evaluate_binned_cut(
+            self.background_events["gh_score"],
+            self.background_events["reco_energy"],
+            self.opt_result.gh_cuts,
+            operator.ge,
+        )
+        self.theta_cuts_opt = self.theta.calculate_theta_cuts(
+            self.signal_events[self.signal_events["selected_gh"]]["theta"],
+            self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
+            self.reco_energy_bins(),
         )
 
         self.signal_events["selected_theta"] = evaluate_binned_cut(
@@ -191,12 +190,24 @@ class IrfTool(Tool):
         self.signal_events["selected"] = (
             self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
         )
+
         self.background_events["selected_theta"] = evaluate_binned_cut(
             self.background_events["theta"],
             self.background_events["reco_energy"],
             self.theta_cuts_opt,
             operator.le,
         )
+
+        # TODO: rework the above so we can give the number per
+        # species
+        self.log.debug(
+            "Keeping %d signal, %d backgrond events"
+            % (
+                sum(self.signal_events["selected"]),
+                sum(self.background_events["selected"]),
+            )
+        )
+
         # calculate sensitivity
         signal_hist = create_histogram_table(
             self.signal_events[self.signal_events["selected"]],
@@ -208,18 +219,17 @@ class IrfTool(Tool):
             reco_energy_bins=self.reco_energy_bins,
             theta_cuts=self.theta_cuts_opt,
             alpha=self.alpha,
-            fov_offset_min=self.bins.fov_offset_min * u.deg,
-            fov_offset_max=self.bins.fov_offset_max * u.deg,
+            fov_offset_min=self.bins.fov_offset_min,
+            fov_offset_max=self.bins.fov_offset_max,
         )
         self.sensitivity = calculate_sensitivity(
             signal_hist, background_hist, alpha=self.alpha
         )
 
         # scale relative sensitivity by Crab flux to get the flux sensitivity
-        for s in (self.sens2, self.sensitivity):
-            s["flux_sensitivity"] = s["relative_sensitivity"] * self.spectrum(
-                s["reco_energy_center"]
-            )
+        self.sensitivity["flux_sensitivity"] = self.sensitivity[
+            "relative_sensitivity"
+        ] * self.spectrum(self.sensitivity["reco_energy_center"])
 
     def finish(self):
         masks = {
@@ -231,7 +241,6 @@ class IrfTool(Tool):
         hdus = [
             fits.PrimaryHDU(),
             fits.BinTableHDU(self.sensitivity, name="SENSITIVITY"),
-            fits.BinTableHDU(self.sens2, name="SENSITIVITY_STEP_2"),
             fits.BinTableHDU(self.theta_cuts_opt, name="THETA_CUTS_OPT"),
             fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
         ]
