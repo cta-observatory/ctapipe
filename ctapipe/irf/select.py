@@ -19,12 +19,12 @@ class EventSelector(Component):
         self.kind = kind
         self.file = file
 
-    def load_preselected_events(self, chunk_size):
+    def load_preselected_events(self, chunk_size, obs_time, fov_bins):
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
         with TableLoader(self.file, **opts) as load:
             Provenance().add_input_file(self.file)
             header = self.epp.make_empty_table()
-            sim_info, spectrum, obs_conf = self.get_metadata(load)
+            sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
             if self.kind == "gamma":
                 self.sim_info = sim_info
                 self.spectrum = spectrum
@@ -33,7 +33,9 @@ class EventSelector(Component):
             for start, stop, events in load.read_subarray_events_chunked(chunk_size):
                 selected = events[self.epp.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
-                selected = self.make_derived_columns(selected, spectrum, obs_conf)
+                selected = self.make_derived_columns(
+                    selected, spectrum, obs_conf, fov_bins
+                )
                 bits.append(selected)
                 n_raw_events += len(events)
 
@@ -41,7 +43,7 @@ class EventSelector(Component):
             # TODO: Fix reduced events stuff
             return table, n_raw_events
 
-    def get_metadata(self, loader):
+    def get_metadata(self, loader, obs_time):
         obs = loader.read_observation_information()
         sim = loader.read_simulation_configuration()
         show = loader.read_shower_distribution()
@@ -64,13 +66,11 @@ class EventSelector(Component):
 
         return (
             sim_info,
-            PowerLaw.from_simulation(
-                sim_info, obstime=self.obs_time * u.Unit(self.obs_time_unit)
-            ),
+            PowerLaw.from_simulation(sim_info, obstime=obs_time),
             obs,
         )
 
-    def make_derived_columns(self, events, spectrum, obs_conf):
+    def make_derived_columns(self, events, spectrum, obs_conf, fov_bins):
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
             assert all(obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
@@ -96,8 +96,11 @@ class EventSelector(Component):
         # are correct bounds
         if self.kind == "gamma":
             spectrum = spectrum.integrate_cone(
-                self.bins.fov_offset_min * u.deg, self.bins.fov_offset_max * u.deg
+                fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
             )
+        self.log.info("kind: %s" % self.kind)
+        self.log.info("target: %s" % self.target_spectrum)
+        self.log.info("spectrum: %s" % spectrum)
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=self.target_spectrum,
