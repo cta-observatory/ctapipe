@@ -81,8 +81,8 @@ class SubarrayDescription:
         ----------
         name : str
             name of this subarray
-        tel_positions : Dict[int, np.ndarray]
-            dict of x,y,z telescope positions on the ground by tel_id. These are
+        tel_positions : Dict[int, Union[np.ndarray, EarthLocation]]
+            dict of x,y,z telescope positions on the ground by tel_id or EarthLocation. These are
             converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`
         tel_descriptions : Dict[TelescopeDescription]
             dict of TelescopeDescriptions by tel_id
@@ -91,7 +91,9 @@ class SubarrayDescription:
             coordinate system used for `tel_positions`.
         """
         self.name = name
-        self.positions = tel_positions or dict()
+        self.positions: Dict[int, Union[np.ndarray, EarthLocation]] = (
+            tel_positions or dict()
+        )
         self.tels: Dict[int, TelescopeDescription] = tel_descriptions or dict()
         self.reference_location = reference_location
 
@@ -157,9 +159,17 @@ class SubarrayDescription:
     def tel_coords(self):
         """Telescope positions in `~ctapipe.coordinates.GroundFrame`"""
 
-        pos_x = [p[0].to_value(u.m) for p in self.positions.values()]
-        pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
-        pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
+        positions = self.positions.values()
+        positions = [
+            GroundFrame.from_earth_location(p, self.reference_location).cartesian.xyz
+            if isinstance(p, EarthLocation)
+            else p
+            for p in positions
+        ]
+
+        pos_x = [p[0].to_value(u.m) for p in positions]
+        pos_y = [p[1].to_value(u.m) for p in positions]
+        pos_z = [p[2].to_value(u.m) for p in positions]
 
         frame = GroundFrame(reference_location=self.reference_location)
 
