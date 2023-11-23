@@ -136,6 +136,7 @@ nitpick_ignore = [
     ("py:class", "t.Sequence"),
     ("py:class", "StrDict"),
     ("py:class", "ClassesType"),
+    ("py:class", "traitlets.traitlets.G"),
     ("py:obj", "traitlets.traitlets.G"),
     ("py:obj", "traitlets.traitlets.S"),
     ("py:obj", "traitlets.traitlets.T"),

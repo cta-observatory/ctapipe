@@ -42,16 +42,17 @@ cite using this bibtex entry:
 
 .. code::
 
-  @inproceedings{ctapipe-icrc-2021,
-      author = {Nöthe, Maximilian  and  Kosack, Karl  and  Nickel, Lukas  and  Peresano, Michele},
-      title = {Prototype Open Event Reconstruction Pipeline for the Cherenkov Telescope Array},
-      doi = {10.22323/1.395.0744},
-      booktitle = {Proceedings, 37th International Cosmic Ray Conference},
-      year=2021,
-      volume={395},
-      number={744},
-      location={Berlin, Germany},
-    }
+   @inproceedings{ctapipe-icrc-2023,
+     author = {Linhoff, Maximilian and Beiske, Lukas and Biederbeck, Noah and Fröse, Stefan and Kosack, Karl and Nickel, Lukas},
+     title = {ctapipe -- Prototype Open Event Reconstruction Pipeline for the Cherenkov Telescope Array},
+     usera = {for the CTA Consortium and Observatory},
+     doi = {10.22323/1.444.0703},
+     booktitle = {Proceedings, 38th International Cosmic Ray Conference},
+     year=2023,
+     volume={444},
+     number={703},
+     location={Nagoya, Japan},
+   }
 
 
 Installation for Users
