@@ -11,8 +11,23 @@ from .astropy_helpers import read_table
 
 
 class PointingInterpolator(Component):
-    bounds_error = traits.Bool(default_value=True).tag(config=True)
-    extrapolate = traits.Bool(default_value=False).tag(config=True)
+    """
+    Interpolate pointing from a monitoring table to a given timestamp.
+
+    Monitoring table is expected to be stored at ``/dl0/monitoring/telescope/pointing``
+    in the given hdf5 file.
+    """
+
+    bounds_error = traits.Bool(
+        default_value=True,
+        help="If true, raises an exception when trying to extrapolate out of the given table",
+    ).tag(config=True)
+
+    extrapolate = traits.Bool(
+        help="If bounds_error is False, this flag will specify wether values outside"
+        "the available values are filled with nan (False) or extrapolated (True).",
+        default_value=False,
+    ).tag(config=True)
 
     def __init__(self, h5file, **kwargs):
         super().__init__(**kwargs)
@@ -69,8 +84,6 @@ class PointingInterpolator(Component):
             interpolated altitude angle
         azimuth : astropy.units.Quantity[deg]
             interpolated azimuth angle
-
-
         """
         if tel_id not in self._az_interpolators:
             self._read_pointing_table(tel_id)
