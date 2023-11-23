@@ -63,11 +63,18 @@ class TrainEnergyRegressor(Tool):
         default_value=0, help="Random seed for sampling and cross validation"
     ).tag(config=True)
 
+    n_jobs = Int(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config of each reconstructor.",
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
         "n-events": "TrainEnergyRegressor.n_events",
         "chunk-size": "TrainEnergyRegressor.chunk_size",
+        "n-jobs": "EnergyRegressor.n_jobs",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -94,6 +101,7 @@ class TrainEnergyRegressor(Tool):
         self.n_events.attach_subarray(self.loader.subarray)
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
+        self.log.warning(f"{self.regressor._models}")
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.regressor
         )
@@ -137,6 +145,7 @@ class TrainEnergyRegressor(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
+        self.regressor.n_jobs = None
         self.regressor.write(self.output_path, overwrite=self.overwrite)
         if self.cross_validate.output_path:
             self.cross_validate.write(overwrite=self.overwrite)

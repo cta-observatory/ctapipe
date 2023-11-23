@@ -92,11 +92,18 @@ class TrainParticleClassifier(Tool):
         help="Random number seed for sampling and the cross validation splitting",
     ).tag(config=True)
 
+    n_jobs = Int(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config of each reconstructor.",
+    ).tag(config=True)
+
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
         "background": "TrainParticleClassifier.input_url_background",
         "n-signal": "TrainParticleClassifier.n_signal",
         "n-background": "TrainParticleClassifier.n_background",
+        "n-jobs": "ParticleClassifier.n_jobs",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
     }
@@ -207,6 +214,7 @@ class TrainParticleClassifier(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
+        self.classifier.n_jobs = None
         self.classifier.write(self.output_path, overwrite=self.overwrite)
         self.signal_loader.close()
         self.background_loader.close()

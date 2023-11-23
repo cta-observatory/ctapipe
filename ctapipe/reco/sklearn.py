@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
 from tqdm import tqdm
-from traitlets import TraitError
+from traitlets import TraitError, observe
 
 from ctapipe.exceptions import TooFewEvents
 
@@ -103,7 +103,7 @@ class SKLearnReconstructor(Reconstructor):
         help="If given, load serialized model from this path",
     ).tag(config=True)
 
-    def __init__(self, subarray=None, models=None, **kwargs):
+    def __init__(self, subarray=None, models=None, n_jobs=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -199,7 +199,10 @@ class SKLearnReconstructor(Reconstructor):
         return QTable(self.subarray.to_table("joined"))
 
     def _new_model(self):
-        return SUPPORTED_MODELS[self.model_cls](**self.model_config)
+        cfg = self.model_config
+        if self.n_jobs:
+            cfg["n_jobs"] = self.n_jobs
+        return SUPPORTED_MODELS[self.model_cls](**cfg)
 
     def _table_to_y(self, table, mask=None):
         """
@@ -221,6 +224,15 @@ class SKLearnReconstructor(Reconstructor):
         self.unit = table[self.target].unit
         y = self._table_to_y(table, mask=valid)
         self._models[key].fit(X, y)
+
+    @observe("n_jobs")
+    def _set_n_jobs(self, n_jobs):
+        """
+        Update n_jobs of all associated models.
+        """
+        if hasattr(self, "_models"):
+            for model in self._models.values():
+                model.n_jobs = n_jobs.new
 
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
@@ -562,7 +574,6 @@ class DispReconstructor(Reconstructor):
 
             # to verify settings
             self._new_models()
-
             self._models = {} if models is None else models
             self.unit = None
             self.stereo_combiner = StereoCombiner.from_name(
@@ -584,8 +595,13 @@ class DispReconstructor(Reconstructor):
             self.subarray = subarray
 
     def _new_models(self):
-        norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**self.norm_config)
-        sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**self.sign_config)
+        norm_cfg = self.norm_config
+        sign_cfg = self.sign_config
+        if self.n_jobs:
+            norm_cfg["n_jobs"] = self.n_jobs
+            sign_cfg["n_jobs"] = self.n_jobs
+        norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**norm_cfg)
+        sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**sign_cfg)
         return norm_regressor, sign_classifier
 
     def _table_to_y(self, table, mask=None):
@@ -802,6 +818,16 @@ class DispReconstructor(Reconstructor):
             ReconstructionProperty.DISP: disp_result,
             ReconstructionProperty.GEOMETRY: altaz_result,
         }
+
+    @observe("n_jobs")
+    def _set_n_jobs(self, n_jobs):
+        """
+        Update n_jobs of all associated models.
+        """
+        if hasattr(self, "_models"):
+            for (disp, sign) in self._models.values():
+                disp.n_jobs = n_jobs.new
+                sign.n_jobs = n_jobs.new
 
 
 class CrossValidator(Component):
