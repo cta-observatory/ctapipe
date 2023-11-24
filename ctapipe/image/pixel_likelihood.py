@@ -43,6 +43,7 @@ __all__ = [
 ]
 
 EPSILON = 5.0e-324
+LOG_2_PI = np.log(2 * np.pi)
 
 
 class PixelLikelihoodError(RuntimeError):
@@ -89,15 +90,16 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
     Returns
     -------
-    float
+    result: float
+        Negative log likelihood value.
     """
     theta = pedestal**2 + prediction * (1 + spe_width**2)
 
-    neg_log_l = 0.5 * (
-        np.log(2 * np.pi * theta + EPSILON) + (image - prediction) ** 2 / theta
-    )
+    neg_log_l = np.log(theta + EPSILON) + (image - prediction) ** 2 / theta
 
-    return np.sum(neg_log_l)
+    # neg_log_l provides the variable term, add constants here to only
+    # compute them once
+    return 0.5 * (len(neg_log_l) * LOG_2_PI + np.sum(neg_log_l))
 
 
 def neg_log_likelihood_numeric(

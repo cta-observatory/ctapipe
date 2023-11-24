@@ -1,0 +1,4 @@
+Fixes a bug (see #2415), where the test for the ``MuonIntensityFitter`` would fail as the ``Minuit`` result
+was considered as not valid due to not satisfiying the ``is_above_max_edm`` criterion.
+Using a log-likelihood reduced by the number of dof lowered the likelihood-values by several 
+orders of magnitude, resulting in a valid fit-result.

@@ -413,7 +413,11 @@ def build_negative_log_likelihood(
         # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
-        return neg_log_likelihood_approx(image, prediction, spe_width, pedestal)
+        # neg_log_likelihood_approx is build choosen to reseble a chi2,
+        # use chi2 per dof for numerical stability in minimization later
+        return neg_log_likelihood_approx(image, prediction, spe_width, pedestal) / len(
+            image
+        )
 
     return negative_log_likelihood
 
