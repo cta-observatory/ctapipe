@@ -79,8 +79,12 @@ def _trait_to_str(trait, help=True, indent_level=0):
         trait_value = f"'{trait_value}'"
 
     # Make sure that list of values end up on multiple lines (In particular quality criteria)
+    # Since traitlets.List derivative can't be compared with it, nor list/tuple, I have to check if "List" is in the
+    # type (converted as str)
     value_repr = ""
-    if isinstance(trait_value, list):
+    trait_value_type = str(type(trait_value))
+    trait_value_is_list = ("List" in trait_value_type) or isinstance(trait_value, list)
+    if trait_value_is_list:
         for v in trait_value:
             # tuples are not correctly handled by yaml, so we convert them to list here. They'll be converted to tuple
             # when reading again.
@@ -92,7 +96,9 @@ def _trait_to_str(trait, help=True, indent_level=0):
 
     # Automatically comment all parameters that are unvalid
     commented = ""
-    if trait_value == traitlets.Undefined:
+    if trait_value in (traitlets.Undefined, None):
+        commented = "#"
+    elif trait_type.startswith("List") and len(trait_value) == 0:
         commented = "#"
 
     trait_repr += f"{indent_str*indent_level}{commented}{trait.name}: {value_repr}\n"
@@ -205,3 +211,30 @@ def wrap_comment(text, indent_level=0, width=144, indent_str="  "):
         initial_indent=indent_str * indent_level + "# ",
         subsequent_indent=indent_str * indent_level + "# ",
     )
+
+
+# def check_conf_repr(conf_repr):
+#     """
+#     Check the conf representation for empty sections that will crash on read
+#
+#     e.g. section EventSource has no valid parameter in the default, and crash with the error:
+#     > ValueError: values whose keys begin with an uppercase char must be Config instances: 'EventSource', None
+#
+#     :param str conf_repr: Config representation for Tool or Component
+#
+#     :return: Cleaned configuration representation
+#     """
+#     in_lines = conf_repr.split("\n")
+#
+#     work_lines = [l.strip().split("#")[0] for l in in_lines]
+#
+#     section_idx = -1
+#     section_indent = -1
+#     inside_section
+#     for i in range(len(work_lines)):
+#         line = work_lines[i]
+#         section_line = line.strip()[0].isupper()  # Bool
+#         if section_line:
+#             section_idx = i
+#             section_indent = len(line) - len(line.lstrip())
+#
