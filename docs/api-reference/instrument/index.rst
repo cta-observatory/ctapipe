@@ -1,8 +1,8 @@
 .. _instrument:
 
-==================================
+**********************************
 Instrument (`~ctapipe.instrument`)
-==================================
+**********************************
 
 .. currentmodule:: ctapipe.instrument
 
@@ -16,6 +16,7 @@ describing the instrumental layout and configuration.
 This module is under heavy restructuring and should not be considered
 ready for general use, except for the `CameraGeometry` object, which
 provides pixel positions, etc.
+
 
 Hierarchy of InstrumentDescription Classes
 ==========================================
@@ -48,9 +49,9 @@ Hierarchy of InstrumentDescription Classes
   optics
 
 
-
 Other Instrumental Data
 =======================
+
 
 Atmosphere Profiles
 -------------------
@@ -60,6 +61,7 @@ which are read from tables located in ``ctapipe_resources`` by default
 
 The function `get_atmosphere_profile_functions()` returns two interpolation
 functions that convert between height and atmosphere thickness.
+
 
 Reference/API
 =============

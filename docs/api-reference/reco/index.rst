@@ -1,10 +1,11 @@
 .. _reco:
 
-================================
+********************************
 Reconstruction (`~ctapipe.reco`)
-================================
+********************************
 
 .. currentmodule:: ctapipe.reco
+
 
 Introduction
 ============
@@ -16,10 +17,12 @@ or mono (single telescope) information.
 All shower reconstruction algorithms should be subclasses of
 `~ctapipe.reco.Reconstructor` which defines some common functionality.
 
+
 Currently Implemented Algorithms
 ================================
 
-Moment-Based Stereo Reconstruction
+
+Moment-based Stereo Reconstruction
 ----------------------------------
 
 Moment-base reconstruction uses the moments of each shower image (the
@@ -28,7 +31,8 @@ combines them geometrically to estimate the true shower direction.
 
 The implementation is in the `~ctapipe.reco.HillasReconstructor` class.
 
-Machine-Learning-Based Reconstruction
+
+Machine Learning-based Reconstruction
 -------------------------------------
 
 This module also provides `~ctapipe.reco.Reconstructor` implementations using
@@ -37,7 +41,8 @@ machine learning algorithms.
 At the moment, these are based on algorithms from ``scikit-learn`` and
 make use of DL1b and DL2 information.
 
-Template-Based Stereo Reconstruction
+
+Template-based Stereo Reconstruction
 ------------------------------------
 
 Moment-base reconstruction uses the a fit of the full camera images to an expected
