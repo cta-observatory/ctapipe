@@ -1,9 +1,9 @@
 .. _cep-001:
 
 
-**********************************
-CEP 1 - Purpose and guidelines
-**********************************
+******************************
+CEP 1 - Purpose and Guidelines
+******************************
 
 * Status: accepted
 * Discussion: `PR #2256`_
@@ -11,6 +11,7 @@ CEP 1 - Purpose and guidelines
 * Last revised: 2023-03-06
 * Author: Tomas Bylund
 * Created: 2023-02-10
+
 
 Abstract
 ========
@@ -35,7 +36,7 @@ Because the CEPs are maintained as text files in a versioned repository
 history is the historical record of the feature proposal
 
 
-What is a CEP?
+What Is a CEP?
 ==============
 
 ctapipe Enhancment Proposals are short documents proposing a major
@@ -68,6 +69,7 @@ implement all of it.  If you're not sure if you should write a CEP, please don't
 Instead bring the topic up in discussions first with other ctapipe developers, or on
 the mailing list, to get some initial feedback. This will let you figure out if writing 
 a CEP will be helpful or not to realise your proposal.
+
 
 Writing a CEP
 =============
@@ -111,8 +113,10 @@ Process CEPs do not require an reference implementation, but in cases where chan
 to governance or decision-making is being proposed it is highly encouraged to give
 examples of the process in use by other organisations.
 
-The CEP format
+
+The CEP Format
 --------------
+
 When starting to write a CEP, we suggest you copy & paste & update the header
 at the top of this file, i.e. the title, bullet list with "Author" etc, up to and 
 including the ``Abstract`` section. 
@@ -145,8 +149,10 @@ to just put a new one, and in that case what the plan concerning the old code is
 `PEP 481`_ is an example of a "process" PEP, proposing to move CPython development 
 to git and Github. 
 
+
 Submitting a CEP
 ================
+
 Once a complete draft for a CEP is written, it can be submitted for comunity discussion 
 by opening a pull request adding a RST file to the  ``docs/development/ceps`` folder 
 in the main ctapipe repository.
@@ -158,7 +164,8 @@ the author, but the role can be filled by any interested party.  Most discussion
 ctapipe will happen by talking to each other directly (calls or face-to-face), or online on 
 slack or Github.
 
-CEP review
+
+CEP Review
 ==========
 
 CEP review happens on the pull request on Github.
@@ -185,7 +192,8 @@ with the goal to reach consensus or compromise, and then make the final decision
 Usually a short "Decision rationale" section will be added at the end of the 
 document after discussion by the reviewers.
 
-CEP status
+
+CEP Status
 ==========
 
 CEPs can have a status of:
@@ -206,7 +214,8 @@ one of "withdrawn", "accepted" or "rejected". The reviewers should add a section
 decision on this CEP. Then in any case, the CEP should be merged, even if it's
 status is "withdrawn" or "rejected".
 
-Final remarks
+
+Final Remarks
 =============
 
 This CEP leaves some points open.
@@ -236,8 +245,10 @@ Specifically the following points remain flexible:
   that ctapipe the core developers will be friendly people that can collaborate
   and find a solution or at least compromise that works for everyone.
 
+
 Acknowledgments
 ===============
+
 The above proposal text borrows heavily from the Gammapy change proposal document,
 having started as a straight copy of it. It also copies and adapts substantial 
 parts of the change proposal document for Astropy, as well as incorporates some 

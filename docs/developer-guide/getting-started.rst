@@ -1,8 +1,9 @@
 
 .. _getting_started_dev:
 
-Getting Started For Developers
-==============================
+******************************
+Getting Started for Developers
+******************************
 
 We strongly recommend using the `mambaforge conda distribution <https://github.com/conda-forge/miniforge#mambaforge>`_.
 
@@ -15,7 +16,8 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
 
 
 Forking vs. Working in the Main Repository
-------------------------------------------
+==========================================
+
 If you are a member of CTA (Consortium or Observatory), or
 otherwise a regular contributor to ctapipe, the maintainers can give you
 access to the main repository at ``cta-observatory/ctapipe``.
@@ -32,8 +34,8 @@ The instructions below have versions for both approaches, select the tab that ap
 setup.
 
 
-Cloning the repository
-----------------------
+Cloning the Repository
+======================
 
 The examples below use ssh, assuming you setup an ssh key to access GitHub.
 See `the GitHub documentation <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account>`_ if you haven't done so already.
@@ -68,9 +70,8 @@ See `the GitHub documentation <https://docs.github.com/en/authentication/connect
           $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
 
-
-Setting up the development environment
---------------------------------------
+Setting Up the Development Environment
+======================================
 
 We provide a conda environment with all packages needed for development of ctapipe and a couple of additonal helpful pacakages (like ipython, jupyter and vitables):
 
@@ -89,8 +90,8 @@ You will need to run that last command any time you open a new
 terminal to activate the conda environment.
 
 
-Installing ctapipe in development mode
---------------------------------------
+Installing ctapipe in Development Mode
+======================================
 
 Now setup this cloned version for development.
 The following command will use the editable installation feature of python packages.
@@ -181,8 +182,9 @@ to your local working copy):
       Note: you can also press the "Sync fork" button on the main page of your fork on the github
       and then just use ``git pull``.
 
-Developing a new feature or code change
----------------------------------------
+
+Developing a New Feature or Code Change
+=======================================
 
 You should always create a new branch when developing some new code.
 Make a new branch for each new feature, so that you can make pull-requests
@@ -201,8 +203,8 @@ and ``git branch`` on it's own will tell you which branches are available
 and which one you are currently on.
 
 
-Create a feature branch
-^^^^^^^^^^^^^^^^^^^^^^^
+Create a Feature Branch
+-----------------------
 
 First think of a name for your code change, here we'll use
 *implement_feature_1* as an example.
@@ -231,9 +233,8 @@ we recommend starting a new branch like this:
          $ git switch -c <new branch name> upstream/main # start new branch from upstream/main
 
 
-
-Edit the code
-^^^^^^^^^^^^^
+Edit the Code
+-------------
 
 and make as many commits as you want (more than one is generally
 better for large changes!).
@@ -273,8 +274,9 @@ sub-module), check the style, and make sure the docs render correctly
    A clean history and a chain of well-written commit messages will
    make it easier on code reviews to see what you did.
 
-Push your changes
-^^^^^^^^^^^^^^^^^
+
+Push Your Changes
+-----------------
 
 The first time you push a new branch, you need to specify to which remote the branch
 should be pushed [#push]_. Normally this will be ``origin``:
@@ -294,8 +296,8 @@ You can do this at any time and more than once. It just moves the changes
 from your local branch on your development machine to your fork on github.
 
 
-Integrating changes from the ``main`` branch.
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Integrating Changes From the ``main`` Branch
+--------------------------------------------
 
 In case of updates to the ``main`` branch during your development,
 it might be necessary to update your branch to integrate those changes,
@@ -352,9 +354,8 @@ Then, update a local branch using:
 For differences between rebasing and merging and when to use which, see `this tutorial <https://www.atlassian.com/git/tutorials/merging-vs-rebasing>`_.
 
 
-
 Create a *Pull Request*
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 When you're happy, you create PR on on your github fork page by clicking
 "pull request".  You can also do this via *GitHub Desktop* if you have
@@ -365,8 +366,9 @@ Make sure to describe all the changes and give examples and use cases!
 
 See the :ref:`pullrequests` section for more info.
 
-Wait for a code review
-^^^^^^^^^^^^^^^^^^^^^^
+
+Wait for a Code Review
+----------------------
 
 Keep in mind the following:
 
@@ -391,8 +393,9 @@ commit`` them and then run ``git push`` and the reviewer will see the changes.
 When the PR is accepted, the reviewer will merge your branch into the
 *master* repo on cta-observatory's account.
 
-Delete your feature branch
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Delete Your Feature Branch
+--------------------------
 
 since it is no longer needed (assuming it was accepted and merged in):
 
@@ -428,7 +431,7 @@ And then delete your branch:
 
 
 Debugging Your Code
--------------------
+===================
 
 More often than not your tests will fail or your algorithm will
 show strange behaviour. **Debugging** is one of the power tools each
@@ -437,8 +440,9 @@ not give you access to runtime variables at the point where your code fails, we 
 using ``pdb`` or ``ipdb`` for an IPython shell. 
 A nice introduction can be found `here <https://hasil-sharma.github.io/2017-05-13-python-ipdb/>`_.
 
-More Development help
----------------------
+
+More Development Help
+=====================
 
 For coding details, read the :ref:`guidelines` section of this
 documentation.
