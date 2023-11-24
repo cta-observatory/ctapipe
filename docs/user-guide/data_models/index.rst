@@ -1,7 +1,8 @@
 .. _datamodels:
 
+***********
 Data Models
-===========
+***********
 
 .. toctree::
 
