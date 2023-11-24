@@ -285,3 +285,19 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         :return:
         """
         return config_writer.get_default_config(cls)
+
+    @classmethod
+    def write_default_config(cls, outname=None):
+        """return the current configuration as a dict (e.g. the values
+        of all traits, even if they were not set during configuration)
+        """
+
+        if outname is None:
+            outname = f"{cls.__name__}.yml"
+
+        conf = cls._get_default_config()
+
+        conf_repr = config_writer.trait_dict_to_yaml(conf)
+
+        with open(outname, "w") as obj:
+            obj.write(conf_repr)
