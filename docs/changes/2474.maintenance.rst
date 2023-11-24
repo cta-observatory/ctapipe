@@ -1,2 +1,2 @@
-Fix headings in docs. Change occurences of ``API Reference`` to ``Reference/API`` for consistency.
+Fix headings in docs. Change occurrences of ``API Reference`` to ``Reference/API`` for consistency.
 Change capitalization of some headings for consistency.
