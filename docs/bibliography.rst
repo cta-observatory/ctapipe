@@ -1,5 +1,6 @@
+**********
 References
-==========
+**********
 
 .. [chaudhuri93] B. B. Chaudhuri und P. Kundu. "Optimum circular fit
     to weighted data in multi-dimensional space". Pattern
