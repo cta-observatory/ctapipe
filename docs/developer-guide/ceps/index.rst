@@ -20,6 +20,7 @@ Accepted CEPs
 
    accepted/*
 
+
 Proposed CEPs
 =============
 
@@ -28,6 +29,7 @@ Proposed CEPs
    :glob:
 
    proposed/*
+
 
 Rejected CEPs
 =============

@@ -1,5 +1,5 @@
 **************
-For ROOT users
+For ROOT Users
 **************
 
 Many previous VHE gamma-ray developers are familiar with the CERN ROOT
@@ -14,7 +14,7 @@ python stack, the following table can be helpful:
 
 
 +---------------------------------+------------------------------------------------------------+
-| **ROOT functionality**          | **Recommended Python Equivalent**                          |
+| **ROOT Functionality**          | **Recommended Python Equivalent**                          |
 +=================================+============================================================+
 | interactive interpreter         | ipython, jupyter notebook                                  |
 +---------------------------------+------------------------------------------------------------+
