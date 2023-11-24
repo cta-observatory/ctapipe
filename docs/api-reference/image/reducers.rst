@@ -1,15 +1,13 @@
 .. _image_reducers:
 
-======================
-Image volume reduction
-======================
+**********************
+Image Volume Reduction
+**********************
 
 Algorithms for reducing image size via volume selection and other methods.
 
 
-API Reference
--------------
+Reference/API
+=============
 
 .. automodapi:: ctapipe.image.reducer
-
-

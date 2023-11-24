@@ -2,8 +2,9 @@
 
 .. currentmodule:: ctapipe.instrument
 
+*****************
 Camera Geometries
-=================
+*****************
 
 The `~ctapipe.instrument.CameraGeometry` provides an easy way to work with images or data
 cubes related to Cherenkov Cameras.  In *ctapipe*, a camera image is
@@ -36,8 +37,9 @@ positions, areas, neighbors, and shapes.
 `ctapipe.image` module, as well as displays in the
 `ctapipe.visualization` module.
 
+
 Input/Output
-------------
+============
 
 You can write out a `~ctapipe.instrument.CameraGeometry` by using the `CameraGeometry.to_table()`
 method to turn it into an `astropy.table.Table`, and then call its `~astropy.table.Table.write`
@@ -58,8 +60,8 @@ function.  Reading it back in can be done with `~ctapipe.instrument.CameraGeomet
    geom = ~ctapipe.instrument.CameraGeometry.from_table('mycam.h5', path='/cameras/mycam')
 
 
-A note on Pixel Neighbors
--------------------------
+A Note On Pixel Neighbors
+=========================
 
 The `~ctapipe.instrument.CameraGeometry` object provides two pixel-neighbor
 representations: a *neighbor adjacency list* (in the :attr:`~CameraGeometry.neighbors`
@@ -76,8 +78,9 @@ It is recommended that all algorithms that need to be computationally
 fast use the :attr:`~CameraGeometry.neighbor_matrix` attribute, particularly in conjunction
 with `numpy` operations, since it is quite speed-efficient.
 
+
 Examples
---------
+========
 
 .. plot:: api-reference/instrument/camerageometry_example.py
     :include-source:

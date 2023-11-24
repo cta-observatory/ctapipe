@@ -1,10 +1,14 @@
 .. _image_muon:
 
-====================
-Muon image analysis
-====================
+*******************
+Muon Image Analysis
+*******************
 
 Algorithms for detecting and characterizing muon images
+
+
+Reference/API
+=============
 
 .. automodapi:: ctapipe.image.muon
 

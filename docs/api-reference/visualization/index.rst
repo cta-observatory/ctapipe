@@ -1,10 +1,11 @@
 .. _visualization:
 
-========================================
+****************************************
 Visualization (`~ctapipe.visualization`)
-========================================
+****************************************
 
 .. currentmodule:: ctapipe.visualization
+
 
 Introduction
 ============
@@ -17,7 +18,7 @@ to render displays, but in the future more rendering methods may be supported.
 The main classes are:
 
 * `CameraDisplay`
-* `ArrayDisplay` 
+* `ArrayDisplay`
 
 
 Reference/API
@@ -25,8 +26,3 @@ Reference/API
 
 .. automodapi:: ctapipe.visualization
     :no-inheritance-diagram:
-
-
-
-
-
