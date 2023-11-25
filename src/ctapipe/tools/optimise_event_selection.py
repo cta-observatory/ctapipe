@@ -10,7 +10,6 @@ from ..irf import (
     EventSelector,
     FovOffsetBinning,
     GridOptimizer,
-    OptimisationResult,
     OutputEnergyBinning,
     Spectra,
     ThetaCutsCalculator,
@@ -53,7 +52,7 @@ class IrfEventSelector(Tool):
     ).tag(config=True)
 
     output_path = traits.Path(
-        default_value="./Selection_Cuts.fits.gz",
+        default_value="./Selection_Cuts.fits",
         allow_none=False,
         directory_ok=False,
         help="Output file storing optimisation result",
@@ -122,44 +121,40 @@ class IrfEventSelector(Tool):
         self.log.debug(
             "Loaded %d gammas, %d protons, %d electrons"
             % (
-                reduced_events["gamma_count"],
-                reduced_events["proton_count"],
-                reduced_events["electron_count"],
+                reduced_events["gammas_count"],
+                reduced_events["protons_count"],
+                reduced_events["electrons_count"],
             )
         )
         self.log.debug(
             "Keeping %d gammas, %d protons, %d electrons"
             % (
-                len(reduced_events["gamma"]),
-                len(reduced_events["proton"]),
-                len(reduced_events["electron"]),
+                len(reduced_events["gammas"]),
+                len(reduced_events["protons"]),
+                len(reduced_events["electrons"]),
             )
         )
-        self.signal_events = reduced_events["gamma"]
+        self.signal_events = reduced_events["gammas"]
         self.background_events = vstack(
-            [reduced_events["proton"], reduced_events["electron"]]
+            [reduced_events["protons"], reduced_events["electrons"]]
         )
 
         self.log.info(
             "Optimising cuts using %d signal and %d background events"
             % (len(self.signal_events), len(self.background_events)),
         )
-        self.gh_cuts, self.theta_cuts_opt, self.sens2 = self.go.optimise_gh_cut(
+        result, sens2 = self.go.optimise_gh_cut(
             self.signal_events,
             self.background_events,
             self.alpha,
-            self.bins.fov_offset_min,
-            self.bins.fov_offset_max,
+            self.bins.fov_offset_min * u.deg,
+            self.bins.fov_offset_max * u.deg,
             self.theta,
-        )
-
-        result = OptimisationResult(
-            self.gh_cuts, [self.bins.fov_offset_min, self.bins.fov_offset_max]
         )
 
         self.log.info("Writing results to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimisation_Result")
-        result.write(self.output_path, self.epp.quality_criteria, self.overwrite)
+        result.write(self.output_path, self.epp, self.overwrite)
 
 
 def main():

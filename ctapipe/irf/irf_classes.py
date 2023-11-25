@@ -1,5 +1,5 @@
 """
-Define a parent IrfTool class to hold all the options
+Defines classe with no better home
 """
 from enum import Enum
 

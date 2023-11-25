@@ -113,15 +113,15 @@ class IrfTool(Tool):
         self.bins = SourceOffsetBinning(parent=self)
         self.epp = EventPreProcessor(parent=self)
 
-        self.opt_result.read(self.cuts_file)
-        self.epp.quality_criteria = self.opt_result.precuts
+        # TODO: not very elegant, refactor later
+        precuts = self.opt_result.read(self.cuts_file)
+        self.epp.quality_criteria = precuts.quality_criteria
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
         self.energy_migration_bins = self.e_bins.energy_migration_bins()
 
         self.source_offset_bins = self.bins.source_offset_bins()
         self.fov_offset_bins = self.opt_result.offset_lim
-
         self.particles = [
             EventSelector(
                 self.epp,
@@ -146,22 +146,29 @@ class IrfTool(Tool):
     def start(self):
         reduced_events = dict()
         for sel in self.particles:
-            evs, cnt = sel.load_preselected_events(self.chunk_size)
+            evs, cnt, meta = sel.load_preselected_events(
+                self.chunk_size,
+                self.obs_time * u.Unit(self.obs_time_unit),
+                self.fov_offset_bins,
+            )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
+            if sel.kind == "gammas":
+                self.sim_info = meta["sim_info"]
+                self.gamma_spectrum = meta["spectrum"]
 
         self.log.debug(
             "Loaded %d gammas, %d protons, %d electrons"
             % (
-                reduced_events["gamma_count"],
-                reduced_events["proton_count"],
-                reduced_events["electron_count"],
+                reduced_events["gammas_count"],
+                reduced_events["protons_count"],
+                reduced_events["electrons_count"],
             )
         )
 
-        self.signal_events = reduced_events["gamma"]
+        self.signal_events = reduced_events["gammas"]
         self.background_events = vstack(
-            [reduced_events["proton"], reduced_events["electron"]]
+            [reduced_events["protons"], reduced_events["electrons"]]
         )
         self.signal_events["selected_gh"] = evaluate_binned_cut(
             self.signal_events["gh_score"],
@@ -178,7 +185,7 @@ class IrfTool(Tool):
         self.theta_cuts_opt = self.theta.calculate_theta_cuts(
             self.signal_events[self.signal_events["selected_gh"]]["theta"],
             self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
-            self.reco_energy_bins(),
+            self.reco_energy_bins,
         )
 
         self.signal_events["selected_theta"] = evaluate_binned_cut(
@@ -187,19 +194,22 @@ class IrfTool(Tool):
             self.theta_cuts_opt,
             operator.le,
         )
-        self.signal_events["selected"] = (
-            self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
-        )
-
         self.background_events["selected_theta"] = evaluate_binned_cut(
             self.background_events["theta"],
             self.background_events["reco_energy"],
             self.theta_cuts_opt,
             operator.le,
         )
+        self.signal_events["selected"] = (
+            self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
+        )
+        self.background_events["selected"] = (
+            self.background_events["selected_theta"]
+            & self.background_events["selected_gh"]
+        )
 
-        # TODO: rework the above so we can give the number per
-        # species
+        # TODO: maybe rework the above so we can give the number per
+        # species instead of the total background
         self.log.debug(
             "Keeping %d signal, %d backgrond events"
             % (
@@ -213,14 +223,13 @@ class IrfTool(Tool):
             self.signal_events[self.signal_events["selected"]],
             bins=self.reco_energy_bins,
         )
-
         background_hist = estimate_background(
             self.background_events[self.background_events["selected_gh"]],
             reco_energy_bins=self.reco_energy_bins,
             theta_cuts=self.theta_cuts_opt,
             alpha=self.alpha,
-            fov_offset_min=self.bins.fov_offset_min,
-            fov_offset_max=self.bins.fov_offset_max,
+            fov_offset_min=self.fov_offset_bins["offset_min"],
+            fov_offset_max=self.fov_offset_bins["offset_max"],
         )
         self.sensitivity = calculate_sensitivity(
             signal_hist, background_hist, alpha=self.alpha
@@ -229,7 +238,7 @@ class IrfTool(Tool):
         # scale relative sensitivity by Crab flux to get the flux sensitivity
         self.sensitivity["flux_sensitivity"] = self.sensitivity[
             "relative_sensitivity"
-        ] * self.spectrum(self.sensitivity["reco_energy_center"])
+        ] * self.gamma_spectrum(self.sensitivity["reco_energy_center"])
 
     def finish(self):
         masks = {
@@ -242,30 +251,31 @@ class IrfTool(Tool):
             fits.PrimaryHDU(),
             fits.BinTableHDU(self.sensitivity, name="SENSITIVITY"),
             fits.BinTableHDU(self.theta_cuts_opt, name="THETA_CUTS_OPT"),
-            fits.BinTableHDU(self.gh_cuts, name="GH_CUTS"),
+            fits.BinTableHDU(self.opt_result.gh_cuts, name="GH_CUTS"),
         ]
 
         self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
-        self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins.value))
+        self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins["bins"]))
         for label, mask in masks.items():
             effective_area = effective_area_per_energy_and_fov(
                 self.signal_events[mask],
                 self.sim_info,
                 true_energy_bins=self.true_energy_bins,
-                fov_offset_bins=self.fov_offset_bins,
+                # TODO: the fucking units on these fov offset bits are not working out at all :(
+                fov_offset_bins=self.fov_offset_bins["bins"],
             )
             hdus.append(
                 create_aeff2d_hdu(
                     effective_area[..., np.newaxis],  # +1 dimension for FOV offset
                     self.true_energy_bins,
-                    self.fov_offset_bins,
+                    self.fov_offset_bins["bins"],
                     extname="EFFECTIVE AREA" + label,
                 )
             )
             edisp = energy_dispersion(
                 self.signal_events[mask],
                 true_energy_bins=self.true_energy_bins,
-                fov_offset_bins=self.fov_offset_bins,
+                fov_offset_bins=self.fov_offset_bins["bins"],
                 migration_bins=self.energy_migration_bins,
             )
             hdus.append(
@@ -273,7 +283,7 @@ class IrfTool(Tool):
                     edisp,
                     true_energy_bins=self.true_energy_bins,
                     migration_bins=self.energy_migration_bins,
-                    fov_offset_bins=self.fov_offset_bins,
+                    fov_offset_bins=self.fov_offset_bins["bins"],
                     extname="ENERGY_DISPERSION" + label,
                 )
             )
@@ -302,21 +312,21 @@ class IrfTool(Tool):
         background_rate = background_2d(
             self.background_events[sel],
             self.reco_energy_bins,
-            fov_offset_bins=self.fov_offset_bins,
+            fov_offset_bins=self.fov_offset_bins["bins"],
             t_obs=self.obs_time * u.Unit(self.obs_time_unit),
         )
         hdus.append(
             create_background_2d_hdu(
                 background_rate,
                 self.reco_energy_bins,
-                fov_offset_bins=self.fov_offset_bins,
+                fov_offset_bins=self.fov_offset_bins["bins"],
             )
         )
 
         psf = psf_table(
             self.signal_events[self.signal_events["selected_gh"]],
             self.true_energy_bins,
-            fov_offset_bins=self.fov_offset_bins,
+            fov_offset_bins=self.fov_offset_bins["bins"],
             source_offset_bins=self.source_offset_bins,
         )
         hdus.append(
@@ -324,7 +334,7 @@ class IrfTool(Tool):
                 psf,
                 self.true_energy_bins,
                 self.source_offset_bins,
-                self.fov_offset_bins,
+                self.fov_offset_bins["bins"],
             )
         )
 
@@ -332,7 +342,7 @@ class IrfTool(Tool):
             create_rad_max_hdu(
                 self.theta_cuts_opt["cut"].reshape(-1, 1),
                 self.true_energy_bins,
-                self.fov_offset_bins,
+                self.fov_offset_bins["bins"],
             )
         )
 

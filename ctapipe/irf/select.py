@@ -5,9 +5,10 @@ from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import PowerLaw, calculate_event_weights
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
-from ..core import Component, Provenance, QualityQuery
+from ..core import Component, QualityQuery
 from ..core.traits import List, Unicode
 from ..io import TableLoader
+from ..irf import FovOffsetBinning
 
 
 class EventSelector(Component):
@@ -21,13 +22,13 @@ class EventSelector(Component):
 
     def load_preselected_events(self, chunk_size, obs_time, fov_bins):
         opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
-        with TableLoader(self.file, **opts) as load:
-            Provenance().add_input_file(self.file)
+        with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
             sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
-            if self.kind == "gamma":
-                self.sim_info = sim_info
-                self.spectrum = spectrum
+            if self.kind == "gammas":
+                meta = {"sim_info": sim_info, "spectrum": spectrum}
+            else:
+                meta = None
             bits = [header]
             n_raw_events = 0
             for start, stop, events in load.read_subarray_events_chunked(chunk_size):
@@ -41,7 +42,7 @@ class EventSelector(Component):
 
             table = vstack(bits, join_type="exact")
             # TODO: Fix reduced events stuff
-            return table, n_raw_events
+            return table, n_raw_events, meta
 
     def get_metadata(self, loader, obs_time):
         obs = loader.read_observation_information()
@@ -94,13 +95,15 @@ class EventSelector(Component):
         )
         # TODO: Honestly not sure why this integral is needed, nor what
         # are correct bounds
-        if self.kind == "gamma":
-            spectrum = spectrum.integrate_cone(
-                fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
-            )
-        self.log.info("kind: %s" % self.kind)
-        self.log.info("target: %s" % self.target_spectrum)
-        self.log.info("spectrum: %s" % spectrum)
+        if self.kind == "gammas":
+            if isinstance(fov_bins, FovOffsetBinning):
+                spectrum = spectrum.integrate_cone(
+                    fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
+                )
+            else:
+                spectrum = spectrum.integrate_cone(
+                    fov_bins["offset_min"], fov_bins["offset_max"]
+                )
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=self.target_spectrum,
