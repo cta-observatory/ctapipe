@@ -400,9 +400,9 @@ with DataWriter(
 
 
 ######################################################################
-loader = TableLoader(f.name, load_dl2=True, load_simulated=True)
+loader = TableLoader(f.name)
 
-events = loader.read_subarray_events()
+events = loader.read_subarray_events(dl2=True, simulated=True)
 
 ######################################################################
 theta = angular_separation(
