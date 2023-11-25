@@ -26,8 +26,6 @@ class OptimisationResult:
             precuts = precuts.quality_criteria
             if len(precuts) == 0:
                 precuts = [(" ", " ")]  # Ensures table can be created
-        else:
-            precuts = QualityQuery()
         cut_expr_tab = Table(
             rows=precuts,
             names=["name", "cut_expr"],
@@ -46,10 +44,22 @@ class OptimisationResult:
         self.gh_cuts = QTable.read(file_name, hdu=1)
         cut_expr_tab = Table.read(file_name, hdu=2)
         cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
-        cut_expr_lst.remove((" ", " "))
-        self.precuts.quality_criteria = cut_expr_lst
+        # TODO: this crudely fixes a problem when loading non empty tables, make it nicer
+        try:
+            cut_expr_lst.remove((" ", " "))
+        except ValueError:
+            pass
+        precuts = QualityQuery()
+        precuts.quality_criteria = cut_expr_lst
         offset_lim_tab = QTable.read(file_name, hdu=3)
-        self.offset_lim = list(offset_lim_tab[0])
+        # TODO: find some way to do this cleanly
+        offset_lim_tab["bins"] = np.array(
+            [offset_lim_tab["offset_min"], offset_lim_tab["offset_max"]]
+        ).T
+        self.offset_lim = (
+            np.array(offset_lim_tab[0]) * offset_lim_tab["offset_max"].unit
+        )
+        return precuts
 
     def __repr__(self):
         return f"<OptimisationResult in {len(self.gh_cuts)} bins for {self.offset_lim[0]} to {self.offset_lim[1]} with {len(self.precuts.quality_criteria)} precuts>"
@@ -100,6 +110,10 @@ class GridOptimizer(Component):
     def optimise_gh_cut(
         self, signal, background, alpha, min_fov_radius, max_fov_radius, theta
     ):
+        if not isinstance(max_fov_radius, u.Quantity):
+            raise ValueError("max_fov_radius has to have a unit")
+        if not isinstance(min_fov_radius, u.Quantity):
+            raise ValueError("min_fov_radius has to have a unit")
         initial_gh_cuts = calculate_percentile_cut(
             signal["gh_score"],
             signal["reco_energy"],
@@ -138,8 +152,8 @@ class GridOptimizer(Component):
             op=operator.ge,
             theta_cuts=theta_cuts,
             alpha=alpha,
-            fov_offset_max=max_fov_radius * u.deg,
-            fov_offset_min=min_fov_radius * u.deg,
+            fov_offset_max=max_fov_radius,
+            fov_offset_min=min_fov_radius,
         )
 
         result = OptimisationResult(
