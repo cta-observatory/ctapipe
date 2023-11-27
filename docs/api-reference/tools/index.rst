@@ -1,7 +1,7 @@
 .. _tools:
 
 *************************************
-Command-Line Tools (`~ctapipe.tools`)
+Command-line Tools (`~ctapipe.tools`)
 *************************************
 
 .. currentmodule:: ctapipe.tools

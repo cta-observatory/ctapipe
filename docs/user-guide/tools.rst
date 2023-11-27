@@ -1,7 +1,7 @@
 .. _command_line_tools:
 
 ******************
-Command-Line Tools
+Command-line Tools
 ******************
 
 You can get a list of all available command-line tools by typing
