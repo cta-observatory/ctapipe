@@ -117,4 +117,4 @@ Prototype CTA Pipeline Framework (``ctapipe``)
             :color: primary
             :click-parent:
 
-            To API docs
+            To the API docs
