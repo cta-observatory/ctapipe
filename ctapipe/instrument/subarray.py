@@ -5,7 +5,7 @@ import warnings
 from contextlib import ExitStack
 from copy import copy
 from itertools import groupby
-from typing import Dict, Iterable, Tuple, Union
+from typing import Dict, Iterable, Optional, Tuple, Union
 
 import numpy as np
 import tables
@@ -73,6 +73,7 @@ class SubarrayDescription:
         tel_positions,
         tel_descriptions,
         reference_location,
+        subarray_id: Optional[int] = None,
     ):
         """
         Initialize a new SubarrayDescription
@@ -94,6 +95,7 @@ class SubarrayDescription:
         self.positions = tel_positions or dict()
         self.tels: Dict[int, TelescopeDescription] = tel_descriptions or dict()
         self.reference_location = reference_location
+        self.id = subarray_id
 
         if self.positions.keys() != self.tels.keys():
             raise ValueError("Telescope ids in positions and descriptions do not match")
@@ -358,7 +360,9 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, tel_ids, name=None) -> "SubarrayDescription":
+    def select_subarray(
+        self, tel_ids, name=None, subarray_id=None
+    ) -> "SubarrayDescription":
         """
         return a new SubarrayDescription that is a sub-array of this one
 
@@ -389,6 +393,7 @@ class SubarrayDescription:
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
             reference_location=self.reference_location,
+            subarray_id=subarray_id,
         )
         return newsub
 

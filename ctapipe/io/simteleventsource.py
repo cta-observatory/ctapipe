@@ -694,7 +694,11 @@ class SimTelEventSource(EventSource):
         self.n_telescopes_original = len(subarray)
 
         if self.allowed_tels:
-            subarray = subarray.select_subarray(self.allowed_tels)
+            subarray = subarray.select_subarray(
+                self.allowed_tels,
+                name=self.subarray_name,
+                subarray_id=self.subarray_id,
+            )
 
         return subarray
 

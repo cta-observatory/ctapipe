@@ -17,7 +17,7 @@ from ..containers import (
 )
 from ..core import Provenance, ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy
-from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
+from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined, Unicode
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
 
@@ -108,6 +108,18 @@ class EventSource(Component):
             "If None, all telescopes in the input stream "
             "will be included"
         ),
+    ).tag(config=True)
+
+    subarray_name = Unicode(
+        default_value=None,
+        allow_none=True,
+        help="New name of the subarray after selecting `EventSource.allowed_tels`",
+    ).tag(config=True)
+
+    subarray_id = CInt(
+        default_value=None,
+        allow_none=True,
+        help="New subarray_id after selecting `EventSource.allowed_tels`",
     ).tag(config=True)
 
     def __new__(cls, input_url=Undefined, config=None, parent=None, **kwargs):

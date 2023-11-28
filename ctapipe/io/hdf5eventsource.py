@@ -208,7 +208,11 @@ class HDF5EventSource(EventSource):
         )
 
         if self.allowed_tels:
-            self._subarray = self._full_subarray.select_subarray(self.allowed_tels)
+            self._subarray = self._full_subarray.select_subarray(
+                self.allowed_tels,
+                name=self.subarray_name,
+                subarray_id=self.subarray_id,
+            )
         else:
             self._subarray = self._full_subarray
         self._simulation_configs = self._parse_simulation_configs()
