@@ -1,12 +1,11 @@
 .. _invalid_pixels:
 
-=======================
+***********************
 Invalid Pixels Handling
-=======================
+***********************
 
 
-
-API Reference
--------------
+Reference/API
+=============
 
 .. automodapi:: ctapipe.image.invalid_pixels

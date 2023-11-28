@@ -1,10 +1,11 @@
 .. _io:
 
-====================
- Input/Output (`io`)
-====================
+*******************
+Input/Output (`io`)
+*******************
 
 .. currentmodule:: ctapipe.io
+
 
 Introduction
 ============
@@ -127,6 +128,7 @@ using the `~ctapipe.io.HDF5TableReader`, or more generically using the
 array values in a column cannot be read into a ``pandas.DataFrame``, since it
 only supports scalar values).
 
+
 Writing Output Files
 ====================
 
@@ -144,8 +146,10 @@ information. It can be used in an event loop like:
             calibrate(event)
             write_data(event)
 
+
 Reading Output Tables
 =====================
+
 In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 and higher files).
 
 
@@ -200,9 +204,9 @@ In this case, use:
 
 For more examples, see `~ctapipe.io.TableLoader`.
 
+
 Reading Single HDF5 Tables
 --------------------------
-
 
 The `read_table` function will load any table in an HDF5 table into an ``astropy.table.QTable`` in memory,
 while maintaining units, column descriptions, and other ctapipe metadata.
@@ -215,7 +219,6 @@ as long as the table does not contain any vector columns.
    mctable = read_table("events.dl1.h5", "/simulation/event/subarray/shower")
    mctable['logE'] = np.log10(mc_table['energy'])
    mctable.write("output.fits")
-
 
 
 Standard Metadata Headers

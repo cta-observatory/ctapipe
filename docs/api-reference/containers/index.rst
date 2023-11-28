@@ -1,10 +1,11 @@
 .. _containers:
 
-==================================
+**********************************
 Containers (`~ctapipe.containers`)
-==================================
+**********************************
 
 .. currentmodule:: ctapipe.containers
+
 
 Introduction
 ============
@@ -20,4 +21,3 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.containers
-

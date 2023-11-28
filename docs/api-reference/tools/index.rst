@@ -1,10 +1,11 @@
 .. _tools:
 
-=====================================
-Command line tools (`~ctapipe.tools`)
-=====================================
+*************************************
+Command-line Tools (`~ctapipe.tools`)
+*************************************
 
 .. currentmodule:: ctapipe.tools
+
 
 Introduction
 ============
@@ -47,7 +48,7 @@ Common Tool Functionality
   shown, but if you specify DEBUG you will get everything.
 
 
-Developing a new Tool
+Developing a New Tool
 =====================
 
 To create a new command-line Tool, follow the following procedure:
@@ -75,7 +76,6 @@ To create a new command-line Tool, follow the following procedure:
 8. this new tool will be installed in the bin directory next time you
    run ``make develop`` at the top-level of ctapipe, or if you
    re-install the ctapipe package in non-developer mode.
-
 
 
 Reference/API

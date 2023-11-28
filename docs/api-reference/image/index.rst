@@ -1,8 +1,8 @@
 .. _image:
 
-==========================
+**************************
 Imaging (`~ctapipe.image`)
-==========================
+**************************
 
 .. currentmodule:: ctapipe.image
 
@@ -31,10 +31,8 @@ This module contains the following sub-modules, but the most important functions
   invalid_pixels
 
 
-
 Reference/API
 =============
-
 
 .. automodapi:: ctapipe.image
     :no-inheritance-diagram:

@@ -2,8 +2,9 @@
 
 .. currentmodule:: ctapipe.instrument
 
+********************
 Subarray Description
-====================
+********************
 
 The `SubarrayDescription` class holds info about the list of telescopes in an
 array or subarray and  the position on the ground of each. Internally these
@@ -16,8 +17,9 @@ You can also convert them to `astropy.table.Table` objects using
 `SubarrayDescription.to_table()`, which can then be saved to disk or
 manipulated.
 
+
 Reference/API
--------------
+=============
 
 .. automodapi:: ctapipe.instrument.subarray
     :no-inheritance-diagram:

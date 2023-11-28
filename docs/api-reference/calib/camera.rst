@@ -1,23 +1,21 @@
 .. _calib_camera:
 
-##################
+******************
 Camera Calibration
-##################
+******************
 
 .. currentmodule:: ctapipe.calib.camera
 
 
-************
 Introduction
-************
+============
 
 This module contains all the methods and classes that are used to calibrate the
 CTA Cameras (MC, prototypes and final camera calibration algorithms).
 
 
-****************
 CameraCalibrator
-****************
+================
 
 The primary class in this module is the `~ctapipe.calib.camera.calibrator.CameraCalibrator`. This class handles
 two data level transition stages for the event:
@@ -32,9 +30,8 @@ See the `CTA Top-Level Data Model Definitions <https://redmine.cta-observatory.o
 different data levels.
 
 
-*************
 Reference/API
-*************
+=============
 
 .. automodapi:: ctapipe.calib.camera
 

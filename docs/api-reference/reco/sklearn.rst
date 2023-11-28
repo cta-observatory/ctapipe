@@ -1,10 +1,11 @@
 .. _reco_sklearn:
 
-==============================================================
-Reconstructors based on Scikit-Learn (`~ctapipe.reco.sklearn`)
-==============================================================
+**************************************************************
+Reconstructors Based On Scikit-Learn (`~ctapipe.reco.sklearn`)
+**************************************************************
 
 .. currentmodule:: ctapipe.reco.sklearn
+
 
 Introduction
 ============

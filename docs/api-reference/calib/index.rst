@@ -1,9 +1,8 @@
 .. _calib:
 
-
-==============================
+******************************
 Calibration (`~ctapipe.calib`)
-==============================
+******************************
 
 .. currentmodule:: ctapipe.calib
 
@@ -26,7 +25,6 @@ Submodules
   :glob:
 
   camera
-
 
 
 Reference/API
