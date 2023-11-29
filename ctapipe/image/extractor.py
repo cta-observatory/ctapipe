@@ -139,6 +139,7 @@ def extract_around_peak(
     ],
     "(s),(),()->(),()",
     nopython=True,
+    cache=True,
 )
 def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time):
     """
