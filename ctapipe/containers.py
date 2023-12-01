@@ -229,21 +229,33 @@ class PixelStatus(enum.IntFlag):
         return (pixel_status & gain_bits) == 0
 
 
-class EventIndexContainer(Container):
-    """index columns to include in event lists, common to all data levels"""
+class TelescopeConfigurationIndexContainer(Container):
+    """Index to include for per-OB telescope configuration"""
 
-    default_prefix = ""  # don't want to prefix these
+    default_prefix = ""
+    obs_id = obs_id_field()
+    tel_id = tel_id_field()
+
+
+class EventIndexContainer(Container):
+    """Index columns to include in event lists.
+
+    Common to all data levels
+    """
+
+    default_prefix = ""
     obs_id = obs_id_field()
     event_id = event_id_field()
 
 
 class TelEventIndexContainer(Container):
     """
-    index columns to include in telescope-wise event lists, common to all data
-    levels that have telescope-wise information
+    index columns to include in telescope-wise event lists
+
+    Common to all data levels that have telescope-wise information.
     """
 
-    default_prefix = ""  # don't want to prefix these
+    default_prefix = ""
     obs_id = obs_id_field()
     event_id = event_id_field()
     tel_id = tel_id_field()
@@ -1057,6 +1069,7 @@ class TelescopePointingContainer(Container):
     between camera and sky coordinates.
     """
 
+    default_prefix = "telescope_pointing"
     azimuth = Field(nan * u.rad, "Azimuth, measured N->E", unit=u.rad)
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
