@@ -1,3 +1,4 @@
+"""Collection of binning related functionality for the irf tools"""
 import astropy.units as u
 import numpy as np
 from pyirf.binning import create_bins_per_decade

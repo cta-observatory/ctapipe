@@ -1,3 +1,4 @@
+"""module containing optimisation related functions and classes"""
 import operator
 
 import astropy.units as u
@@ -11,38 +12,87 @@ from ..core import Component, QualityQuery
 from ..core.traits import Float
 
 
-class OptimisationResult:
-    def __init__(self, gh_cuts=None, offset_lim=None):
-        self.gh_cuts = gh_cuts
-        if gh_cuts:
-            self.gh_cuts.meta["extname"] = "GH_CUTS"
-        if offset_lim and isinstance(offset_lim[0], list):
-            self.offset_lim = offset_lim
-        else:
-            self.offset_lim = [offset_lim]
+class ResultValidRange:
+    def __init__(self, bounds_table, prefix):
+        self.min = bounds_table[f"{prefix}_min"]
+        self.max = bounds_table[f"{prefix}_max"]
+        self.bins = (
+            np.array([self.min, self.max]).reshape(-1)
+            * bounds_table[f"{prefix}_max"].unit
+        )
 
-    def write(self, out_name, precuts, overwrite=False):
-        if isinstance(precuts, QualityQuery):
-            precuts = precuts.quality_criteria
-            if len(precuts) == 0:
-                precuts = [(" ", " ")]  # Ensures table can be created
+
+class OptimisationResult:
+    def __init__(self, precuts, valid_energy, valid_offset, gh, theta):
+        self.precuts = precuts
+        self.valid_energy = ResultValidRange(valid_energy, "energy")
+        self.valid_offset = ResultValidRange(valid_offset, "offset")
+        self.gh_cuts = gh
+        self.theta_cuts = theta
+
+    def __repr__(self):
+        return (
+            f"<OptimisationResult with {len(self.gh_cuts)} G/H bins "
+            f"and {len(self.theta_cuts)} theta bins valid "
+            f"between {self.valid_offset.min} to {self.valid_offset.max} "
+            f"and {self.valid_energy.min} to {self.valid_energy.max} "
+            f"with {len(self.precuts.quality_criteria)} precuts>"
+        )
+
+
+class OptimisationResultSaver:
+    def __init__(self, precuts=None):
+        if precuts:
+            if isinstance(precuts, QualityQuery):
+                self._precuts = precuts.quality_criteria
+                if len(self._precuts) == 0:
+                    self._precuts = [(" ", " ")]  # Ensures table serialises with units
+            elif isinstance(precuts, list):
+                self._precuts = precuts
+            else:
+                self._precuts = list(precuts)
+        else:
+            self._precuts = None
+
+        self._results = None
+
+    def set_result(self, gh_cuts, theta_cuts, valid_energy, valid_offset):
+        if not self._precuts:
+            raise ValueError("Precuts must be defined before results can be saved")
+
+        gh_cuts.meta["extname"] = "GH_CUTS"
+        theta_cuts.meta["extname"] = "RAD_MAX"
+
+        energy_lim_tab = QTable(rows=[valid_energy], names=["energy_min", "energy_max"])
+        energy_lim_tab.meta["extname"] = "VALID_ENERGY"
+
+        offset_lim_tab = QTable(rows=[valid_offset], names=["offset_min", "offset_max"])
+        offset_lim_tab.meta["extname"] = "VALID_OFFSET"
+
+        self._results = [gh_cuts, theta_cuts, energy_lim_tab, offset_lim_tab]
+
+    def write(self, output_name, overwrite=False):
+        if not isinstance(self._results, list):
+            raise ValueError(
+                "The results of this object"
+                "have not been properly initialised,"
+                " call `set_results` before writing."
+            )
+
         cut_expr_tab = Table(
-            rows=precuts,
+            rows=self._precuts,
             names=["name", "cut_expr"],
             dtype=[np.unicode_, np.unicode_],
         )
         cut_expr_tab.meta["extname"] = "QUALITY_CUTS_EXPR"
-        offset_lim_tab = QTable(
-            rows=self.offset_lim, names=["offset_min", "offset_max"]
-        )
-        offset_lim_tab.meta["extname"] = "OFFSET_LIMITS"
-        self.gh_cuts.write(out_name, format="fits", overwrite=overwrite)
-        cut_expr_tab.write(out_name, format="fits", append=True)
-        offset_lim_tab.write(out_name, format="fits", append=True)
+
+        cut_expr_tab.write(output_name, format="fits", overwrite=overwrite)
+
+        for table in self._results:
+            table.write(output_name, format="fits", append=True)
 
     def read(self, file_name):
-        self.gh_cuts = QTable.read(file_name, hdu=1)
-        cut_expr_tab = Table.read(file_name, hdu=2)
+        cut_expr_tab = Table.read(file_name, hdu=1)
         cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
         # TODO: this crudely fixes a problem when loading non empty tables, make it nicer
         try:
@@ -51,18 +101,14 @@ class OptimisationResult:
             pass
         precuts = QualityQuery()
         precuts.quality_criteria = cut_expr_lst
-        offset_lim_tab = QTable.read(file_name, hdu=3)
-        # TODO: find some way to do this cleanly
-        offset_lim_tab["bins"] = np.array(
-            [offset_lim_tab["offset_min"], offset_lim_tab["offset_max"]]
-        ).T
-        self.offset_lim = (
-            np.array(offset_lim_tab[0]) * offset_lim_tab["offset_max"].unit
-        )
-        return precuts
+        gh_cuts = QTable.read(file_name, hdu=2)
+        theta_cuts = QTable.read(file_name, hdu=3)
+        valid_energy = QTable.read(file_name, hdu=4)
+        valid_offset = QTable.read(file_name, hdu=5)
 
-    def __repr__(self):
-        return f"<OptimisationResult in {len(self.gh_cuts)} bins for {self.offset_lim[0]} to {self.offset_lim[1]} with {len(self.precuts.quality_criteria)} precuts>"
+        return OptimisationResult(
+            precuts, valid_energy, valid_offset, gh_cuts, theta_cuts
+        )
 
 
 class GridOptimizer(Component):
@@ -108,7 +154,14 @@ class GridOptimizer(Component):
         return reco_energy
 
     def optimise_gh_cut(
-        self, signal, background, alpha, min_fov_radius, max_fov_radius, theta
+        self,
+        signal,
+        background,
+        alpha,
+        min_fov_radius,
+        max_fov_radius,
+        theta,
+        precuts,
     ):
         if not isinstance(max_fov_radius, u.Quantity):
             raise ValueError("max_fov_radius has to have a unit")
@@ -144,7 +197,7 @@ class GridOptimizer(Component):
             self.gh_cut_efficiency_step,
         )
 
-        sens2, gh_cuts = optimize_gh_cut(
+        opt_sens, gh_cuts = optimize_gh_cut(
             signal,
             background,
             reco_energy_bins=self.reco_energy_bins(),
@@ -155,9 +208,26 @@ class GridOptimizer(Component):
             fov_offset_max=max_fov_radius,
             fov_offset_min=min_fov_radius,
         )
+        valid_energy = self._get_valid_energy_range(opt_sens)
 
-        result = OptimisationResult(
-            gh_cuts, offset_lim=[min_fov_radius, max_fov_radius]
+        result_saver = OptimisationResultSaver(precuts)
+        result_saver.set_result(
+            gh_cuts,
+            theta_cuts,
+            valid_energy=valid_energy,
+            valid_offset=[min_fov_radius, max_fov_radius],
         )
 
-        return result, sens2
+        return result_saver, opt_sens
+
+    def _get_valid_energy_range(self, opt_sens):
+        keep_mask = np.isfinite(opt_sens["significance"])
+
+        count = np.arange(start=0, stop=len(keep_mask), step=1)
+        if all(np.diff(count[keep_mask]) == 1):
+            return [
+                opt_sens["reco_energy_low"][keep_mask][0],
+                opt_sens["reco_energy_high"][keep_mask][-1],
+            ]
+        else:
+            raise ValueError("Optimal significance curve has internal NaN bins")
