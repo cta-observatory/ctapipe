@@ -1,17 +1,19 @@
+"""Module containing classes related to eveent preprocessing and selection"""
 import astropy.units as u
 import numpy as np
 from astropy.table import QTable, vstack
+from pyirf.cuts import calculate_percentile_cut
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import PowerLaw, calculate_event_weights
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
 from ..core import Component, QualityQuery
-from ..core.traits import List, Unicode
+from ..core.traits import Float, Integer, List, Unicode
 from ..io import TableLoader
 from ..irf import FovOffsetBinning
 
 
-class EventSelector(Component):
+class EventsLoader(Component):
     def __init__(self, event_pre_processor, kind, file, target_spectrum, **kwargs):
         super().__init__(**kwargs)
 
@@ -31,7 +33,7 @@ class EventSelector(Component):
                 meta = None
             bits = [header]
             n_raw_events = 0
-            for start, stop, events in load.read_subarray_events_chunked(chunk_size):
+            for _, _, events in load.read_subarray_events_chunked(chunk_size):
                 selected = events[self.epp.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 selected = self.make_derived_columns(
@@ -41,7 +43,6 @@ class EventSelector(Component):
                 n_raw_events += len(events)
 
             table = vstack(bits, join_type="exact")
-            # TODO: Fix reduced events stuff
             return table, n_raw_events, meta
 
     def get_metadata(self, loader, obs_time):
@@ -93,17 +94,14 @@ class EventSelector(Component):
         events["reco_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="reco"
         )
-        # TODO: Honestly not sure why this integral is needed, nor what
-        # are correct bounds
+
         if self.kind == "gammas":
             if isinstance(fov_bins, FovOffsetBinning):
                 spectrum = spectrum.integrate_cone(
                     fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
                 )
             else:
-                spectrum = spectrum.integrate_cone(
-                    fov_bins["offset_min"], fov_bins["offset_max"]
-                )
+                spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[0])
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=self.target_spectrum,
@@ -206,3 +204,54 @@ class EventPreProcessor(QualityQuery):
         }
 
         return QTable(names=columns, units=units)
+
+
+class ThetaCutsCalculator(Component):
+    theta_min_angle = Float(
+        default_value=-1, help="Smallest angular cut value allowed (-1 means no cut)"
+    ).tag(config=True)
+
+    theta_max_angle = Float(
+        default_value=0.32, help="Largest angular cut value allowed"
+    ).tag(config=True)
+
+    theta_min_counts = Integer(
+        default_value=10,
+        help="Minimum number of events in a bin to attempt to find a cut value",
+    ).tag(config=True)
+
+    theta_fill_value = Float(
+        default_value=0.32, help="Angular cut value used for bins with too few events"
+    ).tag(config=True)
+
+    theta_smoothing = Float(
+        default_value=None,
+        allow_none=True,
+        help="When given, the width (in units of bins) of gaussian smoothing applied (None)",
+    ).tag(config=True)
+
+    target_percentile = Float(
+        default_value=68,
+        help="Percent of events in each energy bin keep after the theta cut",
+    ).tag(config=True)
+
+    def calculate_theta_cuts(self, theta, reco_energy, energy_bins):
+        theta_min_angle = (
+            None if self.theta_min_angle < 0 else self.theta_min_angle * u.deg
+        )
+        theta_max_angle = (
+            None if self.theta_max_angle < 0 else self.theta_max_angle * u.deg
+        )
+        theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
+
+        return calculate_percentile_cut(
+            theta,
+            reco_energy,
+            energy_bins,
+            min_value=theta_min_angle,
+            max_value=theta_max_angle,
+            smoothing=theta_smoothing,
+            percentile=self.target_percentile,
+            fill_value=self.theta_fill_value * u.deg,
+            min_events=self.theta_min_counts,
+        )

@@ -5,32 +5,23 @@ import astropy.units as u
 import numpy as np
 from astropy.io import fits
 from astropy.table import vstack
-from pyirf.benchmarks import angular_resolution, energy_bias_resolution
-from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import (
     create_aeff2d_hdu,
-    create_background_2d_hdu,
     create_energy_dispersion_hdu,
     create_psf_table_hdu,
     create_rad_max_hdu,
 )
-from pyirf.irf import (
-    background_2d,
-    effective_area_per_energy_and_fov,
-    energy_dispersion,
-    psf_table,
-)
-from pyirf.sensitivity import calculate_sensitivity, estimate_background
+from pyirf.irf import effective_area_per_energy_and_fov, energy_dispersion, psf_table
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
 from ..irf import (
     PYIRF_SPECTRA,
     EventPreProcessor,
-    EventSelector,
+    EventsLoader,
     GridOptimizer,
-    OptimisationResult,
+    OptimisationResultSaver,
     OutputEnergyBinning,
     SourceOffsetBinning,
     Spectra,
@@ -39,7 +30,7 @@ from ..irf import (
 
 
 class IrfTool(Tool):
-    name = "ctapipe-make-irfs"
+    name = "ctapipe-make-irf"
     description = "Tool to create IRF files in GAD format"
 
     cuts_file = traits.Path(
@@ -106,70 +97,7 @@ class IrfTool(Tool):
         EventPreProcessor,
     ]
 
-    def setup(self):
-        self.opt_result = OptimisationResult()
-        self.theta = ThetaCutsCalculator(parent=self)
-        self.e_bins = OutputEnergyBinning(parent=self)
-        self.bins = SourceOffsetBinning(parent=self)
-        self.epp = EventPreProcessor(parent=self)
-
-        # TODO: not very elegant, refactor later
-        precuts = self.opt_result.read(self.cuts_file)
-        self.epp.quality_criteria = precuts.quality_criteria
-        self.reco_energy_bins = self.e_bins.reco_energy_bins()
-        self.true_energy_bins = self.e_bins.true_energy_bins()
-        self.energy_migration_bins = self.e_bins.energy_migration_bins()
-
-        self.source_offset_bins = self.bins.source_offset_bins()
-        self.fov_offset_bins = self.opt_result.offset_lim
-        self.particles = [
-            EventSelector(
-                self.epp,
-                "gammas",
-                self.gamma_file,
-                PYIRF_SPECTRA[self.gamma_sim_spectrum],
-            ),
-            EventSelector(
-                self.epp,
-                "protons",
-                self.proton_file,
-                PYIRF_SPECTRA[self.proton_sim_spectrum],
-            ),
-            EventSelector(
-                self.epp,
-                "electrons",
-                self.electron_file,
-                PYIRF_SPECTRA[self.electron_sim_spectrum],
-            ),
-        ]
-
-    def start(self):
-        reduced_events = dict()
-        for sel in self.particles:
-            evs, cnt, meta = sel.load_preselected_events(
-                self.chunk_size,
-                self.obs_time * u.Unit(self.obs_time_unit),
-                self.fov_offset_bins,
-            )
-            reduced_events[sel.kind] = evs
-            reduced_events[f"{sel.kind}_count"] = cnt
-            if sel.kind == "gammas":
-                self.sim_info = meta["sim_info"]
-                self.gamma_spectrum = meta["spectrum"]
-
-        self.log.debug(
-            "Loaded %d gammas, %d protons, %d electrons"
-            % (
-                reduced_events["gammas_count"],
-                reduced_events["protons_count"],
-                reduced_events["electrons_count"],
-            )
-        )
-
-        self.signal_events = reduced_events["gammas"]
-        self.background_events = vstack(
-            [reduced_events["protons"], reduced_events["electrons"]]
-        )
+    def calculate_selections(self):
         self.signal_events["selected_gh"] = evaluate_binned_cut(
             self.signal_events["gh_score"],
             self.signal_events["reco_energy"],
@@ -218,115 +146,122 @@ class IrfTool(Tool):
             )
         )
 
-        # calculate sensitivity
-        signal_hist = create_histogram_table(
-            self.signal_events[self.signal_events["selected"]],
-            bins=self.reco_energy_bins,
-        )
-        background_hist = estimate_background(
-            self.background_events[self.background_events["selected_gh"]],
-            reco_energy_bins=self.reco_energy_bins,
-            theta_cuts=self.theta_cuts_opt,
-            alpha=self.alpha,
-            fov_offset_min=self.fov_offset_bins["offset_min"],
-            fov_offset_max=self.fov_offset_bins["offset_max"],
-        )
-        self.sensitivity = calculate_sensitivity(
-            signal_hist, background_hist, alpha=self.alpha
-        )
+    def _check_bins_in_range(self, bins, range):
+        low = bins >= range.min
+        hig = bins <= range.max
 
-        # scale relative sensitivity by Crab flux to get the flux sensitivity
-        self.sensitivity["flux_sensitivity"] = self.sensitivity[
-            "relative_sensitivity"
-        ] * self.gamma_spectrum(self.sensitivity["reco_energy_center"])
+        if not all(low & hig):
+            raise ValueError(f"Valid range is {range.min} to {range.max}, got {bins}")
 
-    def finish(self):
-        masks = {
-            "": self.signal_events["selected"],
-            "_NO_CUTS": slice(None),
-            "_ONLY_GH": self.signal_events["selected_gh"],
-            "_ONLY_THETA": self.signal_events["selected_theta"],
-        }
-        hdus = [
-            fits.PrimaryHDU(),
-            fits.BinTableHDU(self.sensitivity, name="SENSITIVITY"),
-            fits.BinTableHDU(self.theta_cuts_opt, name="THETA_CUTS_OPT"),
-            fits.BinTableHDU(self.opt_result.gh_cuts, name="GH_CUTS"),
+    def setup(self):
+        self.theta = ThetaCutsCalculator(parent=self)
+        self.e_bins = OutputEnergyBinning(parent=self)
+        self.bins = SourceOffsetBinning(parent=self)
+
+        self.opt_result = OptimisationResultSaver().read(self.cuts_file)
+        # TODO: not very elegant to pass them this way, refactor later
+        self.epp = EventPreProcessor(parent=self)
+        self.epp.quality_criteria = self.opt_result.precuts.quality_criteria
+        self.reco_energy_bins = self.e_bins.reco_energy_bins()
+        self.true_energy_bins = self.e_bins.true_energy_bins()
+        self.energy_migration_bins = self.e_bins.energy_migration_bins()
+        self.source_offset_bins = self.bins.source_offset_bins()
+
+        self._check_bins_in_range(self.reco_energy_bins, self.opt_result.valid_energy)
+        self._check_bins_in_range(self.source_offset_bins, self.opt_result.valid_offset)
+        self.fov_offset_bins = self.opt_result.valid_offset.bins
+        self.particles = [
+            EventsLoader(
+                self.epp,
+                "gammas",
+                self.gamma_file,
+                PYIRF_SPECTRA[self.gamma_sim_spectrum],
+            ),
+            EventsLoader(
+                self.epp,
+                "protons",
+                self.proton_file,
+                PYIRF_SPECTRA[self.proton_sim_spectrum],
+            ),
+            EventsLoader(
+                self.epp,
+                "electrons",
+                self.electron_file,
+                PYIRF_SPECTRA[self.electron_sim_spectrum],
+            ),
         ]
 
+    def start(self):
+        # TODO: this event loading code seems to be largely repeated between all the tools,
+        # try to refactor to a common solution
+        reduced_events = dict()
+        for sel in self.particles:
+            evs, cnt, meta = sel.load_preselected_events(
+                self.chunk_size,
+                self.obs_time * u.Unit(self.obs_time_unit),
+                self.fov_offset_bins,
+            )
+            reduced_events[sel.kind] = evs
+            reduced_events[f"{sel.kind}_count"] = cnt
+            if sel.kind == "gammas":
+                self.sim_info = meta["sim_info"]
+                self.gamma_spectrum = meta["spectrum"]
+
+        self.log.debug(
+            "Loaded %d gammas, %d protons, %d electrons"
+            % (
+                reduced_events["gammas_count"],
+                reduced_events["protons_count"],
+                reduced_events["electrons_count"],
+            )
+        )
+
+        self.signal_events = reduced_events["gammas"]
+        self.background_events = vstack(
+            [reduced_events["protons"], reduced_events["electrons"]]
+        )
+
+        self.calculate_selections()
+
+        hdus = [
+            fits.PrimaryHDU(),
+        ]
         self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
-        self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins["bins"]))
-        for label, mask in masks.items():
-            effective_area = effective_area_per_energy_and_fov(
-                self.signal_events[mask],
-                self.sim_info,
-                true_energy_bins=self.true_energy_bins,
-                # TODO: the fucking units on these fov offset bits are not working out at all :(
-                fov_offset_bins=self.fov_offset_bins["bins"],
-            )
-            hdus.append(
-                create_aeff2d_hdu(
-                    effective_area[..., np.newaxis],  # +1 dimension for FOV offset
-                    self.true_energy_bins,
-                    self.fov_offset_bins["bins"],
-                    extname="EFFECTIVE AREA" + label,
-                )
-            )
-            edisp = energy_dispersion(
-                self.signal_events[mask],
-                true_energy_bins=self.true_energy_bins,
-                fov_offset_bins=self.fov_offset_bins["bins"],
-                migration_bins=self.energy_migration_bins,
-            )
-            hdus.append(
-                create_energy_dispersion_hdu(
-                    edisp,
-                    true_energy_bins=self.true_energy_bins,
-                    migration_bins=self.energy_migration_bins,
-                    fov_offset_bins=self.fov_offset_bins["bins"],
-                    extname="ENERGY_DISPERSION" + label,
-                )
-            )
-        # Here we use reconstructed energy instead of true energy for the sake of
-        # current pipelines comparisons
-        bias_resolution = energy_bias_resolution(
+        self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
+        effective_area = effective_area_per_energy_and_fov(
             self.signal_events[self.signal_events["selected"]],
-            self.true_energy_bins,
-            bias_function=np.mean,
-            energy_type="true",
-        )
-        hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
-
-        # Here we use reconstructed energy instead of true energy for the sake of
-        # current pipelines comparisons
-        ang_res = angular_resolution(
-            self.signal_events[self.signal_events["selected_gh"]],
-            self.reco_energy_bins,
-            energy_type="reco",
-        )
-        hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
-
-        sel = self.background_events["selected_gh"]
-        self.log.debug("%d background events selected" % sel.sum())
-        self.log.debug("%f obs time" % self.obs_time)
-        background_rate = background_2d(
-            self.background_events[sel],
-            self.reco_energy_bins,
-            fov_offset_bins=self.fov_offset_bins["bins"],
-            t_obs=self.obs_time * u.Unit(self.obs_time_unit),
+            self.sim_info,
+            true_energy_bins=self.true_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
         )
         hdus.append(
-            create_background_2d_hdu(
-                background_rate,
-                self.reco_energy_bins,
-                fov_offset_bins=self.fov_offset_bins["bins"],
+            create_aeff2d_hdu(
+                effective_area[..., np.newaxis],  # +1 dimension for FOV offset
+                self.true_energy_bins,
+                self.fov_offset_bins,
+                extname="EFFECTIVE AREA",
+            )
+        )
+        edisp = energy_dispersion(
+            self.signal_events[self.signal_events["selected"]],
+            true_energy_bins=self.true_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+            migration_bins=self.energy_migration_bins,
+        )
+        hdus.append(
+            create_energy_dispersion_hdu(
+                edisp,
+                true_energy_bins=self.true_energy_bins,
+                migration_bins=self.energy_migration_bins,
+                fov_offset_bins=self.fov_offset_bins,
+                extname="ENERGY_DISPERSION",
             )
         )
 
         psf = psf_table(
             self.signal_events[self.signal_events["selected_gh"]],
             self.true_energy_bins,
-            fov_offset_bins=self.fov_offset_bins["bins"],
+            fov_offset_bins=self.fov_offset_bins,
             source_offset_bins=self.source_offset_bins,
         )
         hdus.append(
@@ -334,7 +269,7 @@ class IrfTool(Tool):
                 psf,
                 self.true_energy_bins,
                 self.source_offset_bins,
-                self.fov_offset_bins["bins"],
+                self.fov_offset_bins,
             )
         )
 
@@ -342,12 +277,15 @@ class IrfTool(Tool):
             create_rad_max_hdu(
                 self.theta_cuts_opt["cut"].reshape(-1, 1),
                 self.true_energy_bins,
-                self.fov_offset_bins["bins"],
+                self.fov_offset_bins,
             )
         )
+        self.hdus = hdus
+
+    def finish(self):
 
         self.log.info("Writing outputfile '%s'" % self.output_path)
-        fits.HDUList(hdus).writeto(
+        fits.HDUList(self.hdus).writeto(
             self.output_path,
             overwrite=self.overwrite,
         )

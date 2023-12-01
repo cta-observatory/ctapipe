@@ -7,7 +7,7 @@ from ..core.traits import Bool, Float, Integer, Unicode
 from ..irf import (
     PYIRF_SPECTRA,
     EventPreProcessor,
-    EventSelector,
+    EventsLoader,
     FovOffsetBinning,
     GridOptimizer,
     OutputEnergyBinning,
@@ -89,19 +89,19 @@ class IrfEventSelector(Tool):
         self.fov_offset_bins = self.bins.fov_offset_bins()
 
         self.particles = [
-            EventSelector(
+            EventsLoader(
                 self.epp,
                 "gammas",
                 self.gamma_file,
                 PYIRF_SPECTRA[self.gamma_sim_spectrum],
             ),
-            EventSelector(
+            EventsLoader(
                 self.epp,
                 "protons",
                 self.proton_file,
                 PYIRF_SPECTRA[self.proton_sim_spectrum],
             ),
-            EventSelector(
+            EventsLoader(
                 self.epp,
                 "electrons",
                 self.electron_file,
@@ -110,13 +110,20 @@ class IrfEventSelector(Tool):
         ]
 
     def start(self):
+
+        # TODO: this event loading code seems to be largely repeated between all the tools,
+        # try to refactor to a common solution
+
         reduced_events = dict()
         for sel in self.particles:
-            evs, cnt = sel.load_preselected_events(
+            evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size, self.obs_time * u.Unit(self.obs_time_unit), self.bins
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
+            if sel.kind == "gammas":
+                self.sim_info = meta["sim_info"]
+                self.gamma_spectrum = meta["spectrum"]
 
         self.log.debug(
             "Loaded %d gammas, %d protons, %d electrons"
@@ -143,18 +150,19 @@ class IrfEventSelector(Tool):
             "Optimising cuts using %d signal and %d background events"
             % (len(self.signal_events), len(self.background_events)),
         )
-        result, sens2 = self.go.optimise_gh_cut(
+        result, ope_sens = self.go.optimise_gh_cut(
             self.signal_events,
             self.background_events,
             self.alpha,
             self.bins.fov_offset_min * u.deg,
             self.bins.fov_offset_max * u.deg,
             self.theta,
+            self.epp,
         )
 
         self.log.info("Writing results to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimisation_Result")
-        result.write(self.output_path, self.epp, self.overwrite)
+        result.write(self.output_path, self.overwrite)
 
 
 def main():
