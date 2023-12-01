@@ -35,7 +35,7 @@ CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 SQRT2 = np.sqrt(2)
 
 
-@vectorize([double(double, double, double)])
+@vectorize([double(double, double, double)], cache=True)
 def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle
@@ -202,7 +202,7 @@ def image_prediction(
     )
 
 
-@vectorize([double(double, double, double)])
+@vectorize([double(double, double, double)], cache=True)
 def gaussian_cdf(x, mu, sig):
     """
     Function to compute values of a given gaussians
