@@ -1,16 +1,17 @@
+"""Top level module for the irf functionality"""
 from .binning import FovOffsetBinning, OutputEnergyBinning, SourceOffsetBinning
-from .irf_classes import PYIRF_SPECTRA, Spectra, ThetaCutsCalculator
-from .optimise import GridOptimizer, OptimisationResult
-from .select import EventPreProcessor, EventSelector
+from .irf_classes import PYIRF_SPECTRA, Spectra
+from .optimise import GridOptimizer, OptimisationResult, OptimisationResultSaver
+from .select import EventPreProcessor, EventsLoader, ThetaCutsCalculator
 
 __all__ = [
     "OptimisationResult",
+    "OptimisationResultSaver",
     "GridOptimizer",
-    "DataBinning",
     "OutputEnergyBinning",
     "SourceOffsetBinning",
     "FovOffsetBinning",
-    "EventSelector",
+    "EventsLoader",
     "EventPreProcessor",
     "Spectra",
     "ThetaCutsCalculator",
