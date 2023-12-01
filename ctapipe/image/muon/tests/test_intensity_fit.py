@@ -20,18 +20,19 @@ def test_chord_length():
 
 
 def test_muon_efficiency_fit(prod5_lst, reference_location):
-    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+    from ctapipe.coordinates import TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
         MuonIntensityFitter,
         image_prediction,
     )
     from ctapipe.instrument import SubarrayDescription
 
+    tel_id = 1
     telescope = prod5_lst
     subarray = SubarrayDescription(
         name="LSTMono",
-        tel_positions={0: [0, 0, 0] * u.m},
-        tel_descriptions={0: telescope},
+        tel_positions={tel_id: [0, 0, 0] * u.m},
+        tel_descriptions={tel_id: telescope},
         reference_location=reference_location,
     )
 
@@ -43,29 +44,18 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
     phi = 0 * u.rad
     efficiency = 0.5
 
-    focal_length = telescope.optics.equivalent_focal_length
-    geom = telescope.camera.geometry
+    geom = telescope.camera.geometry.transform_to(TelescopeFrame())
     mirror_radius = np.sqrt(telescope.optics.mirror_area / np.pi)
-    pixel_diameter = (
-        2
-        * u.rad
-        * (np.sqrt(geom.pix_area / np.pi) / focal_length).to_value(
-            u.dimensionless_unscaled
-        )
-    )
 
-    tel = CameraFrame(
-        x=geom.pix_x,
-        y=geom.pix_y,
-        focal_length=focal_length,
-        rotation=geom.cam_rotation,
-    ).transform_to(TelescopeFrame())
-    x = tel.fov_lon
-    y = tel.fov_lat
+    pixel_diameter = geom.pixel_width[0]
+    x = geom.pix_x
+    y = geom.pix_y
+
+    fitter = MuonIntensityFitter(subarray=subarray)
 
     image = image_prediction(
         mirror_radius,
-        hole_radius=0 * u.m,
+        hole_radius=fitter.hole_radius_m.tel[tel_id] * u.m,
         impact_parameter=impact_parameter,
         phi=phi,
         center_x=center_x,
@@ -74,12 +64,11 @@ def test_muon_efficiency_fit(prod5_lst, reference_location):
         ring_width=ring_width,
         pixel_x=x,
         pixel_y=y,
-        pixel_diameter=pixel_diameter[0],
+        pixel_diameter=pixel_diameter,
     )
 
-    fitter = MuonIntensityFitter(subarray=subarray)
     result = fitter(
-        tel_id=0,
+        tel_id=tel_id,
         center_x=center_x,
         center_y=center_y,
         radius=radius,
