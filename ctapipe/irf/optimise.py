@@ -40,7 +40,7 @@ class OptimisationResult:
         )
 
 
-class OptimisationResultSaver:
+class OptimisationResultStore:
     def __init__(self, precuts=None):
         if precuts:
             if isinstance(precuts, QualityQuery):
@@ -210,7 +210,7 @@ class GridOptimizer(Component):
         )
         valid_energy = self._get_valid_energy_range(opt_sens)
 
-        result_saver = OptimisationResultSaver(precuts)
+        result_saver = OptimisationResultStore(precuts)
         result_saver.set_result(
             gh_cuts,
             theta_cuts,

@@ -7,6 +7,14 @@ from ..core import Component
 from ..core.traits import Float, Integer
 
 
+def check_bins_in_range(bins, range):
+    low = bins >= range.min
+    hig = bins <= range.max
+
+    if not all(low & hig):
+        raise ValueError(f"Valid range is {range.min} to {range.max}, got {bins}")
+
+
 class OutputEnergyBinning(Component):
     """Collects energy binning settings"""
 
@@ -40,21 +48,6 @@ class OutputEnergyBinning(Component):
         default_value=5,
     ).tag(config=True)
 
-    energy_migration_min = Float(
-        help="Minimum value of Energy Migration matrix",
-        default_value=0.2,
-    ).tag(config=True)
-
-    energy_migration_max = Float(
-        help="Maximum value of Energy Migration matrix",
-        default_value=5,
-    ).tag(config=True)
-
-    energy_migration_n_bins = Integer(
-        help="Number of bins in log scale for Energy Migration matrix",
-        default_value=31,
-    ).tag(config=True)
-
     def true_energy_bins(self):
         """
         Creates bins per decade for true MC energy using pyirf function.
@@ -76,17 +69,6 @@ class OutputEnergyBinning(Component):
             self.reco_energy_n_bins_per_decade,
         )
         return reco_energy
-
-    def energy_migration_bins(self):
-        """
-        Creates bins for energy migration.
-        """
-        energy_migration = np.geomspace(
-            self.energy_migration_min,
-            self.energy_migration_max,
-            self.energy_migration_n_bins,
-        )
-        return energy_migration
 
 
 class FovOffsetBinning(Component):
@@ -123,55 +105,3 @@ class FovOffsetBinning(Component):
             * u.deg
         )
         return fov_offset
-
-
-class SourceOffsetBinning(Component):
-    """
-    Collects information on generating energy and angular bins for
-    generating IRFs as per pyIRF requirements.
-    """
-
-    source_offset_min = Float(
-        help="Minimum value for Source offset for PSF IRF",
-        default_value=0,
-    ).tag(config=True)
-
-    source_offset_max = Float(
-        help="Maximum value for Source offset for PSF IRF",
-        default_value=1,
-    ).tag(config=True)
-
-    source_offset_n_edges = Integer(
-        help="Number of edges for Source offset for PSF IRF",
-        default_value=101,
-    ).tag(config=True)
-
-    def fov_offset_bins(self):
-        """
-        Creates bins for single/multiple FoV offset.
-        """
-        fov_offset = (
-            np.linspace(
-                self.fov_offset_min,
-                self.fov_offset_max,
-                self.fov_offset_n_edges,
-            )
-            * u.deg
-        )
-        return fov_offset
-
-    def source_offset_bins(self):
-        """
-        Creates bins for source offset for generating PSF IRF.
-        Using the same binning as in pyirf example.
-        """
-
-        source_offset = (
-            np.linspace(
-                self.source_offset_min,
-                self.source_offset_max,
-                self.source_offset_n_edges,
-            )
-            * u.deg
-        )
-        return source_offset
