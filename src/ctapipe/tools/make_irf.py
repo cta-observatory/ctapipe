@@ -2,10 +2,15 @@
 import operator
 
 import astropy.units as u
+import numpy as np
 from astropy.io import fits
 from astropy.table import vstack
+from pyirf.benchmarks import angular_resolution, energy_bias_resolution
+from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
-from pyirf.io import create_rad_max_hdu
+from pyirf.io import create_background_2d_hdu, create_rad_max_hdu
+from pyirf.irf import background_2d
+from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode
@@ -28,6 +33,7 @@ from ..irf import (
 class IrfTool(Tool):
     name = "ctapipe-make-irf"
     description = "Tool to create IRF files in GAD format"
+
     do_background = Bool(
         True,
         help="Compute background rate IRF using supplied files",
@@ -110,15 +116,10 @@ class IrfTool(Tool):
     ]
 
     def calculate_selections(self):
+        """Add the selection columns to the signal and optionally background tables"""
         self.signal_events["selected_gh"] = evaluate_binned_cut(
             self.signal_events["gh_score"],
             self.signal_events["reco_energy"],
-            self.opt_result.gh_cuts,
-            operator.ge,
-        )
-        self.background_events["selected_gh"] = evaluate_binned_cut(
-            self.background_events["gh_score"],
-            self.background_events["reco_energy"],
             self.opt_result.gh_cuts,
             operator.ge,
         )
@@ -127,26 +128,33 @@ class IrfTool(Tool):
             self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
             self.reco_energy_bins,
         )
-
         self.signal_events["selected_theta"] = evaluate_binned_cut(
             self.signal_events["theta"],
             self.signal_events["reco_energy"],
             self.theta_cuts_opt,
             operator.le,
         )
-        self.background_events["selected_theta"] = evaluate_binned_cut(
-            self.background_events["theta"],
-            self.background_events["reco_energy"],
-            self.theta_cuts_opt,
-            operator.le,
-        )
         self.signal_events["selected"] = (
             self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
         )
-        self.background_events["selected"] = (
-            self.background_events["selected_theta"]
-            & self.background_events["selected_gh"]
-        )
+
+        if self.do_background:
+            self.background_events["selected_gh"] = evaluate_binned_cut(
+                self.background_events["gh_score"],
+                self.background_events["reco_energy"],
+                self.opt_result.gh_cuts,
+                operator.ge,
+            )
+            self.background_events["selected_theta"] = evaluate_binned_cut(
+                self.background_events["theta"],
+                self.background_events["reco_energy"],
+                self.theta_cuts_opt,
+                operator.le,
+            )
+            self.background_events["selected"] = (
+                self.background_events["selected_theta"]
+                & self.background_events["selected_gh"]
+            )
 
         # TODO: maybe rework the above so we can give the number per
         # species instead of the total background
@@ -216,6 +224,11 @@ class IrfTool(Tool):
             parent=self,
             energy_bins=self.true_energy_bins,
         )
+        if self.do_benchmarks:
+            self.b_hdus = None
+            self.b_output = self.output_path.with_name(
+                self.output_path.name.replace(".fits", "-benchmark.fits")
+            )
 
     def _stack_background(self, reduced_events):
         bkgs = []
@@ -261,9 +274,72 @@ class IrfTool(Tool):
         )
         return hdus
 
+    def _make_background_hdu(self):
+        sel = self.background_events["selected_gh"]
+        self.log.debug("%d background events selected" % sel.sum())
+        self.log.debug("%f obs time" % self.obs_time)
+
+        background_rate = background_2d(
+            self.background_events[sel],
+            self.reco_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+            t_obs=self.obs_time * u.Unit(self.obs_time_unit),
+        )
+        return create_background_2d_hdu(
+            background_rate,
+            self.reco_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+        )
+
+    def _make_benchmark_hdus(self, hdus):
+        # Here we use reconstructed energy instead of true energy for the sake of
+        # current pipelines comparisons
+        bias_resolution = energy_bias_resolution(
+            self.signal_events[self.signal_events["selected"]],
+            self.true_energy_bins,
+            bias_function=np.mean,
+            energy_type="true",
+        )
+        hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
+
+        # Here we use reconstructed energy instead of true energy for the sake of
+        # current pipelines comparisons
+        ang_res = angular_resolution(
+            self.signal_events[self.signal_events["selected_gh"]],
+            self.reco_energy_bins,
+            energy_type="reco",
+        )
+        hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
+
+        if self.do_background:
+            signal_hist = create_histogram_table(
+                self.signal_events[self.signal_events["selected"]],
+                bins=self.reco_energy_bins,
+            )
+            background_hist = estimate_background(
+                self.background_events[self.background_events["selected_gh"]],
+                reco_energy_bins=self.reco_energy_bins,
+                theta_cuts=self.theta_cuts_opt,
+                alpha=self.alpha,
+                fov_offset_min=self.fov_offset_bins["offset_min"],
+                fov_offset_max=self.fov_offset_bins["offset_max"],
+            )
+            sensitivity = calculate_sensitivity(
+                signal_hist, background_hist, alpha=self.alpha
+            )
+
+            # scale relative sensitivity by Crab flux to get the flux sensitivity
+            sensitivity["flux_sensitivity"] = sensitivity[
+                "relative_sensitivity"
+            ] * self.gamma_spectrum(sensitivity["reco_energy_center"])
+
+            hdus.append(fits.BinTableHDU(sensitivity, name="SENSITIVITY"))
+
+        return hdus
+
     def start(self):
-        # TODO: this event loading code seems to be largely repeated between all the tools,
-        # try to refactor to a common solution
+        # TODO: this event loading code seems to be largely repeated between both
+        # tools, try to refactor to a common solution
         reduced_events = dict()
         for sel in self.particles:
             evs, cnt, meta = sel.load_preselected_events(
@@ -289,11 +365,16 @@ class IrfTool(Tool):
         self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
         self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
-        hdus = [
-            fits.PrimaryHDU(),
-        ]
+        hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(hdus)
+        if self.do_background:
+            hdus.append(self._make_background_hdu())
         self.hdus = hdus
+
+        if self.do_benchmarks:
+            b_hdus = [fits.PrimaryHDU()]
+            b_hdus = self._make_benchmark_hdus(b_hdus)
+            self.b_hdus = self.b_hdus
 
     def finish(self):
 
@@ -303,6 +384,13 @@ class IrfTool(Tool):
             overwrite=self.overwrite,
         )
         Provenance().add_output_file(self.output_path, role="IRF")
+        if self.do_benchmarks:
+            self.log.info("Writing benchmark file to '%s'" % self.b_output)
+            fits.HDUList(self.b_hdus).writeto(
+                self.b_output,
+                overwrite=self.overwrite,
+            )
+            Provenance().add_output_file(self.b_output, role="Benchmark")
 
 
 def main():
