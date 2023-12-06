@@ -1005,6 +1005,11 @@ class DispContainer(Container):
     parameter = Field(
         nan * u.deg, "reconstructed value for disp (= sign * norm)", unit=u.deg
     )
+    sign_score = Field(
+        nan,
+        "Score for how certain the disp sign classification was."
+        " 0 means completely uncertain, 1 means very certain.",
+    )
 
 
 class ReconstructedContainer(Container):

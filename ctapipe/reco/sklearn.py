@@ -672,6 +672,7 @@ class DispReconstructor(Reconstructor):
             )
         X, valid = table_to_X(table, self.features, self.log)
         prediction = np.full(len(table), np.nan)
+        score = np.full(len(table), np.nan)
 
         if np.any(valid):
             valid_norms = self._models[key][0].predict(X)
@@ -681,12 +682,17 @@ class DispReconstructor(Reconstructor):
             else:
                 prediction[valid] = valid_norms
 
-            prediction[valid] *= self._models[key][1].predict(X)
+            sign_proba = self._models[key][1].predict_proba(X)[:, 0]
+            # proba is [0 and 1] where 0 => very certain -1, 1 => very certain 1
+            # and 0.5 means random guessing either. So we transform to a score
+            # where 0 means "guessing" and 1 means "very certain"
+            score[valid] = np.abs(2 * sign_proba - 1.0)
+            prediction[valid] *= np.where(sign_proba >= 0.5, 1.0, -1.0)
 
         if self.unit is not None:
             prediction = u.Quantity(prediction, self.unit, copy=False)
 
-        return prediction, valid
+        return prediction, score, valid
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.
@@ -705,10 +711,15 @@ class DispReconstructor(Reconstructor):
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
-                disp, valid = self._predict(self.subarray.tel[tel_id], table)
+                disp, sign_score, valid = self._predict(
+                    self.subarray.tel[tel_id], table
+                )
 
                 if valid:
-                    disp_container = DispContainer(parameter=disp[0])
+                    disp_container = DispContainer(
+                        parameter=disp[0],
+                        sign_score=sign_score[0],
+                    )
 
                     hillas = event.dl1.tel[tel_id].parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
@@ -775,11 +786,19 @@ class DispReconstructor(Reconstructor):
         n_rows = len(table)
         disp = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
+        sign_score = np.full(n_rows, np.nan)
 
         valid = self.quality_query.get_table_mask(table)
-        disp[valid], is_valid[valid] = self._predict(key, table[valid])
+        disp[valid], sign_score[valid], is_valid[valid] = self._predict(
+            key, table[valid]
+        )
 
-        disp_result = Table({f"{self.prefix}_tel_parameter": disp})
+        disp_result = Table(
+            {
+                f"{self.prefix}_tel_parameter": disp,
+                f"{self.prefix}_tel_sign_score": sign_score,
+            }
+        )
         add_defaults_and_meta(
             disp_result,
             DispContainer,
@@ -917,10 +936,10 @@ class CrossValidator(Component):
                     {
                         "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
                         "tel_type": [str(telescope_type)] * len(truth),
-                        "prediction": cv_prediction,
                         "truth": truth,
                         "true_energy": test["true_energy"],
                         "true_impact_distance": test["true_impact_distance"],
+                        **cv_prediction,
                     }
                 )
             )
@@ -945,7 +964,7 @@ class CrossValidator(Component):
         prediction, _ = regressor._predict(telescope_type, test)
         truth = test[regressor.target]
         r2 = r2_score(truth, prediction)
-        return prediction, truth, {"R^2": r2}
+        return {f"{regressor.prefix}_energy": prediction}, truth, {"R^2": r2}
 
     def _cross_validate_classification(self, telescope_type, train, test):
         classifier = self.model_component
@@ -957,15 +976,23 @@ class CrossValidator(Component):
             0,
         )
         roc_auc = roc_auc_score(truth, prediction)
-        return prediction, truth, {"ROC AUC": roc_auc}
+        return (
+            {f"{classifier.prefix}_prediction": prediction},
+            truth,
+            {"ROC AUC": roc_auc},
+        )
 
     def _cross_validate_disp(self, telescope_type, train, test):
         models = self.model_component
         models.fit(telescope_type, train)
-        prediction, _ = models._predict(telescope_type, test)
+        disp, sign_score, _ = models._predict(telescope_type, test)
         truth = test[models.target]
-        r2 = r2_score(np.abs(truth), np.abs(prediction))
-        accuracy = accuracy_score(np.sign(truth), np.sign(prediction))
+        r2 = r2_score(np.abs(truth), np.abs(disp))
+        accuracy = accuracy_score(np.sign(truth), np.sign(disp))
+        prediction = {
+            f"{models.prefix}_parameter": disp,
+            f"{models.prefix}_sign_score": sign_score,
+        }
         return prediction, truth, {"R^2": r2, "accuracy": accuracy}
 
     def write(self, overwrite=False):
