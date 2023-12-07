@@ -15,10 +15,7 @@ from .binning import check_bins_in_range
 
 
 class PsfIrf(Component):
-    """
-    Collects information on generating energy and angular bins for
-    generating IRFs as per pyIRF requirements.
-    """
+    """Collects the functionality for generating PSF IRFs."""
 
     source_offset_min = Float(
         help="Minimum value for Source offset for PSF IRF",
@@ -36,7 +33,6 @@ class PsfIrf(Component):
     ).tag(config=True)
 
     def __init__(self, parent, energy_bins, valid_offset, **kwargs):
-
         super().__init__(parent=parent, **kwargs)
         self.energy_bins = energy_bins
         self.valid_offset = valid_offset
@@ -66,7 +62,7 @@ class PsfIrf(Component):
 
 
 class EnergyMigrationIrf(Component):
-    """Collects the functionality for generating Migration Matrix IRFs"""
+    """Collects the functionality for generating Migration Matrix IRFs."""
 
     energy_migration_min = Float(
         help="Minimum value of Energy Migration matrix",
@@ -85,7 +81,7 @@ class EnergyMigrationIrf(Component):
 
     def __init__(self, parent, energy_bins, **kwargs):
         """
-        Creates bins per decade for true MC energy using pyirf function.
+        Creates bins per decade for true MC energy.
         """
         super().__init__(parent=parent, **kwargs)
         self.energy_bins = energy_bins
@@ -112,7 +108,7 @@ class EnergyMigrationIrf(Component):
 
 
 class EffectiveAreaIrf(Component):
-    """Collects the functionality for generating Effective Area IRFs"""
+    """Collects the functionality for generating Effective Area IRFs."""
 
     true_energy_min = Float(
         help="Minimum value for True Energy bins in TeV units",
@@ -131,7 +127,7 @@ class EffectiveAreaIrf(Component):
 
     def __init__(self, parent, sim_info, **kwargs):
         """
-        Creates bins per decade for true MC energy using pyirf function.
+        Creates bins per decade for true MC energy.
         """
         super().__init__(parent=parent, **kwargs)
         self.true_energy_bins = create_bins_per_decade(
@@ -142,7 +138,6 @@ class EffectiveAreaIrf(Component):
         self.sim_info = sim_info
 
     def make_effective_area_hdu(self, signal_events, fov_offset_bins):
-
         effective_area = effective_area_per_energy_and_fov(
             signal_events,
             self.sim_info,
