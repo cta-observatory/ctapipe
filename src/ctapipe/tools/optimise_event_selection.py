@@ -109,7 +109,6 @@ class IrfEventSelector(Tool):
         ]
 
     def start(self):
-
         # TODO: this event loading code seems to be largely repeated between all the tools,
         # try to refactor to a common solution
 
