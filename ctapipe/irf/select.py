@@ -101,7 +101,7 @@ class EventsLoader(Component):
                     fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
                 )
             else:
-                spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[0])
+                spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[-1])
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=self.target_spectrum,
@@ -232,7 +232,7 @@ class ThetaCutsCalculator(Component):
 
     target_percentile = Float(
         default_value=68,
-        help="Percent of events in each energy bin keep after the theta cut",
+        help="Percent of events in each energy bin to keep after the theta cut",
     ).tag(config=True)
 
     def calculate_theta_cuts(self, theta, reco_energy, energy_bins):
@@ -242,7 +242,10 @@ class ThetaCutsCalculator(Component):
         theta_max_angle = (
             None if self.theta_max_angle < 0 else self.theta_max_angle * u.deg
         )
-        theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
+        if self.theta_smoothing:
+            theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
+        else:
+            theta_smoothing = self.theta_smoothing
 
         return calculate_percentile_cut(
             theta,

@@ -16,7 +16,7 @@ def check_bins_in_range(bins, range):
 
 
 class OutputEnergyBinning(Component):
-    """Collects energy binning settings"""
+    """Collects energy binning settings."""
 
     true_energy_min = Float(
         help="Minimum value for True Energy bins in TeV units",
@@ -35,12 +35,12 @@ class OutputEnergyBinning(Component):
 
     reco_energy_min = Float(
         help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.006,
+        default_value=0.015,
     ).tag(config=True)
 
     reco_energy_max = Float(
         help="Maximum value for Reco Energy bins in TeV units",
-        default_value=190,
+        default_value=200,
     ).tag(config=True)
 
     reco_energy_n_bins_per_decade = Float(
@@ -72,10 +72,7 @@ class OutputEnergyBinning(Component):
 
 
 class FovOffsetBinning(Component):
-    """
-    Collects information on generating energy and angular bins for
-    generating IRFs as per pyIRF requirements.
-    """
+    """Collects FoV binning settings."""
 
     fov_offset_min = Float(
         help="Minimum value for FoV Offset bins in degrees",

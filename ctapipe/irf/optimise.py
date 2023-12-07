@@ -16,10 +16,6 @@ class ResultValidRange:
     def __init__(self, bounds_table, prefix):
         self.min = bounds_table[f"{prefix}_min"]
         self.max = bounds_table[f"{prefix}_max"]
-        self.bins = (
-            np.array([self.min, self.max]).reshape(-1)
-            * bounds_table[f"{prefix}_max"].unit
-        )
 
 
 class OptimisationResult:
@@ -129,7 +125,7 @@ class GridOptimizer(Component):
 
     reco_energy_min = Float(
         help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.005,
+        default_value=0.015,
     ).tag(config=True)
 
     reco_energy_max = Float(
