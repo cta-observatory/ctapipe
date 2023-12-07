@@ -84,7 +84,6 @@ class IrfEventSelector(Tool):
 
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
-        self.energy_migration_bins = self.e_bins.energy_migration_bins()
 
         self.fov_offset_bins = self.bins.fov_offset_bins()
 
