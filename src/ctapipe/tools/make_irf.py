@@ -321,8 +321,8 @@ class IrfTool(Tool):
                 reco_energy_bins=self.reco_energy_bins,
                 theta_cuts=self.theta_cuts_opt,
                 alpha=self.alpha,
-                fov_offset_min=self.opt_result.valid_offset.min,
-                fov_offset_max=self.opt_result.valid_offset.max,
+                fov_offset_min=self.fov_offset_bins["offset_min"],
+                fov_offset_max=self.fov_offset_bins["offset_max"],
             )
             sensitivity = calculate_sensitivity(
                 signal_hist, background_hist, alpha=self.alpha
