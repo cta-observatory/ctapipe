@@ -251,3 +251,14 @@ def test_dl1_camera_frame(dl1_camera_frame_file):
                 assert sim.true_parameters.hillas.intensity is not None
 
         assert tel_id is not None, "did not test any events"
+
+
+def test_interpolate_pointing(dl1_mon_pointing_file):
+    from ctapipe.io import HDF5EventSource
+
+    with HDF5EventSource(dl1_mon_pointing_file) as source:
+        for e in source:
+            assert set(e.pointing.tel.keys()) == set(e.trigger.tels_with_trigger)
+            for pointing in e.pointing.tel.values():
+                assert not np.isnan(pointing.azimuth)
+                assert not np.isnan(pointing.altitude)
