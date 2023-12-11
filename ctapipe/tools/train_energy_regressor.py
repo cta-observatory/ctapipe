@@ -60,7 +60,7 @@ class TrainEnergyRegressor(Tool):
     ).tag(config=True)
 
     random_seed = Int(
-        default_value=0, help="Random seed for sampling and cross validation"
+        default_value=0, help="Random seed for sampling training events."
     ).tag(config=True)
 
     n_jobs = Int(
