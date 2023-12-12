@@ -4,6 +4,7 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 """
 import os
 from contextlib import ExitStack
+from uuid import uuid4
 
 import numpy as np
 import tables
@@ -227,7 +228,7 @@ def _parse_hdf5_attrs(table):
     return transforms, descriptions, meta
 
 
-def join_allow_empty(left, right, keys, join_type="left", **kwargs):
+def join_allow_empty(left, right, keys, join_type="left", keep_order=False, **kwargs):
     """
     Join two astropy tables, allowing both sides to be empty tables.
 
@@ -262,4 +263,19 @@ def join_allow_empty(left, right, keys, join_type="left", **kwargs):
         if right_empty:
             return left.copy()
 
-    return join(left, right, keys, join_type=join_type, **kwargs)
+    sort_key = None
+    if keep_order:
+        sort_key = str(uuid4())
+        if join_type == "left":
+            left[sort_key] = np.arange(len(left))
+        elif join_type == "right":
+            right[sort_key] = np.arange(len(left))
+        else:
+            raise ValueError("keep_order is only supported for left and right joins")
+
+    joined = join(left, right, keys, join_type=join_type, **kwargs)
+    if sort_key is not None:
+        joined.sort(sort_key)
+        del joined[sort_key]
+
+    return joined
