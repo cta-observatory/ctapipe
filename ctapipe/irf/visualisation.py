@@ -38,7 +38,7 @@ def rebin_x_2D_hist(hist, xbins, x_cent, num_bins_merge=3):
     if (num_x) % num_bins_merge == 0:
         rebin_x = xbins[::num_bins_merge]
         rebin_xcent = x_cent.reshape(-1, num_bins_merge).mean(axis=1)
-        rebin_hist = hist.reshape(300, -1, num_bins_merge).sum(axis=2)
+        rebin_hist = hist.reshape(num_y, -1, num_bins_merge).sum(axis=2)
         return rebin_x, rebin_xcent, rebin_hist
     else:
         raise ValueError(
@@ -48,7 +48,7 @@ def rebin_x_2D_hist(hist, xbins, x_cent, num_bins_merge=3):
 
 def find_columnwise_stats(table, col_bins, percentiles, density=False):
     tab = np.squeeze(table)
-    out = np.ones((tab.shape[1], 4)) * -1
+    out = np.ones((tab.shape[1], 5)) * -1
     for idx, col in enumerate(tab.T):
         if (col > 0).sum() == 0:
             continue
@@ -72,11 +72,18 @@ def plot_2D_table_with_col_stats(
     quantiles=[0.2, 0.8],
     x_label=None,
     y_label=None,
+    density=False,
     mpl_args={
         "histo": {"xscale": "log"},
         "stats": {"color": "firebrick"},
     },
 ):
+    """Function to draw 2d histogram along with columnwise statistics
+    the conten values shown depending on stat_kind:
+        0 -> mean + standard deviation
+        1 -> median + standard deviation
+        2 -> median + user specified quantiles around median (default 0.1 to 0.9)
+    """
     x_lo_name, x_hi_name = f"{x_prefix}_LO", f"{x_prefix}_HI"
     y_lo_name, y_hi_name = f"{y_prefix}_LO", f"{y_prefix}_HI"
 
@@ -92,15 +99,18 @@ def plot_2D_table_with_col_stats(
     if not y_label:
         y_label = y_prefix
     if isinstance(column, str):
-        mat_vals = np.squeeze(table[column].T)
+        mat_vals = np.squeeze(table[column])
     else:
-        mat_vals = column.T
+        mat_vals = column
 
-    rebin_x, rebin_xcent, rebin_hist = rebin_x_2D_hist(
-        mat_vals, xbins, xcent, num_bins_merge=num_rebin
-    )
-    if not num_rebin == 1:
+    if num_rebin > 1:
+        rebin_x, rebin_xcent, rebin_hist = rebin_x_2D_hist(
+            mat_vals, xbins, xcent, num_bins_merge=num_rebin
+        )
         density = False
+    else:
+        rebin_x, rebin_xcent, rebin_hist = xbins, xcent, mat_vals
+
     stats = find_columnwise_stats(rebin_hist, ybins, quantiles, density)
 
     plot = plot_hist2D(
@@ -117,18 +127,28 @@ def plot_2D_table_with_col_stats(
     sel = stats[:, 0] > 0
     if stat_kind == 1:
         y_idx = 0
-        y_err_idx = 2
+        err = stats[sel, 2]
+        label = "mean + std"
     if stat_kind == 2:
         y_idx = 1
-        y_err_idx = 2
+        err = stats[sel, 2]
+        label = "median + std"
     if stat_kind == 3:
-        y_idx = 0
+        y_idx = 1
+        err = np.zeros_like(stats[:, 3:])
+        err[sel, 0] = stats[sel, 1] - stats[sel, 3]
+        err[sel, 1] = stats[sel, 4] - stats[sel, 1]
+        err = err[sel, :].T
+        label = f"median + IRQ[{quantiles[0]:.2f},{quantiles[1]:.2f}]"
+
     ax.errorbar(
         x=rebin_xcent[sel],
         y=stats[sel, y_idx],
-        yerr=stats[sel, y_err_idx],
+        yerr=err,
+        label=label,
         **mpl_args["stats"],
     )
+    ax.legend(loc="best")
 
     return ax
 
