@@ -103,7 +103,7 @@ class EnergyMigrationIrf(Component):
             true_energy_bins=self.energy_bins,
             migration_bins=self.migration_bins,
             fov_offset_bins=fov_offset_bins,
-            extname="ENERGY_DISPERSION",
+            extname="ENERGY DISPERSION",
         )
 
 
