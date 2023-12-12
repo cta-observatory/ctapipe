@@ -25,7 +25,7 @@ class PointingInterpolator(Component):
     ).tag(config=True)
 
     extrapolate = traits.Bool(
-        help="If bounds_error is False, this flag will specify wether values outside"
+        help="If bounds_error is False, this flag will specify whether values outside"
         "the available values are filled with nan (False) or extrapolated (True).",
         default_value=False,
     ).tag(config=True)
