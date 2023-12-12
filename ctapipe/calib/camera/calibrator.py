@@ -3,8 +3,6 @@ Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
 
-import warnings
-
 import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
@@ -129,7 +127,7 @@ class CameraCalibrator(TelescopeComponent):
         self.image_extractors = {}
 
         if image_extractor is None:
-            for (_, _, name) in self.image_extractor_type:
+            for _, _, name in self.image_extractor_type:
                 self.image_extractors[name] = ImageExtractor.from_name(
                     name, subarray=self.subarray, parent=self
                 )
@@ -156,7 +154,7 @@ class CameraCalibrator(TelescopeComponent):
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
             if not self._r1_empty_warn:
-                warnings.warn(
+                self.log.debug(
                     "Encountered an event with no R1 data. "
                     "DL0 is unchanged in this circumstance."
                 )
@@ -168,7 +166,7 @@ class CameraCalibrator(TelescopeComponent):
     def _check_dl0_empty(self, waveforms):
         if waveforms is None:
             if not self._dl0_empty_warn:
-                warnings.warn(
+                self.log.warning(
                     "Encountered an event with no DL0 data. "
                     "DL1 is unchanged in this circumstance."
                 )
@@ -245,7 +243,6 @@ class CameraCalibrator(TelescopeComponent):
                 is_valid=True,
             )
         else:
-
             # shift waveforms if time_shift calibration is available
             if time_shift is not None:
                 if self.apply_waveform_time_shift.tel[tel_id]:

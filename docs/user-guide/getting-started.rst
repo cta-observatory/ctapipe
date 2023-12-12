@@ -2,8 +2,9 @@
 .. _getting_started_users:
 
 
-Getting Started For Users
-=========================
+*************************
+Getting Started for Users
+*************************
 
 .. warning::
 
@@ -12,10 +13,11 @@ Getting Started For Users
 
 
 Installation
-------------
+============
 
-How to get the latest version
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+How To Get the Latest Version
+-----------------------------
 
 We recommend using the ``mamba`` package manager, which is a C++ reimplementation of ``conda``.
 It can be found `here <https://github.com/mamba-org/mamba>`_.
@@ -39,8 +41,8 @@ or with pip:
    $ pip install ctapipe
 
 
-How to get a specific version
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+How To Get a Specific Version
+-----------------------------
 
 To install a specific version of ``ctapipe`` you can use the following command:
 

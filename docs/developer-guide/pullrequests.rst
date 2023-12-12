@@ -1,10 +1,12 @@
 .. _pullrequests:
 
+**********************************
 Making and Accepting Pull Requests
-==================================
+**********************************
+
 
 Making a Pull Request
----------------------
+=====================
 
 In the pull request description (editable on GitHub), you should
 include the following information (some may be omitted if it is e.g. a
@@ -32,8 +34,8 @@ Note that you can include syntax-highlighted code examples by using 3 back-tics:
 
    ```
 
-Keep in mind
-------------
+Keep in Mind
+============
 
 * make sure you remember to update the **documentation** as well as the code!
   (see the ``docs/`` directory), and make sure it builds with no errors
@@ -47,7 +49,7 @@ Keep in mind
 
 
 Accepting a Pull Request
-------------------------
+========================
 
 ``ctapipe`` maintainers must do a *code review* before accepting any
 pull request. During the review the reviewer can ask for changes to be

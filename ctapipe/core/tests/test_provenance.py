@@ -7,8 +7,15 @@ from ctapipe.core.provenance import _ActivityProvenance
 
 
 @pytest.fixture
-def provenance():
+def provenance(monkeypatch):
+    # the singleton nature of Provenance messes with
+    # the order-independence of the tests asserting
+    # the provenance contains the correct information
+    # so we monkeypatch back to an empty state here
     prov = Provenance()
+    monkeypatch.setattr(prov, "_activities", [])
+    monkeypatch.setattr(prov, "_finished_activities", [])
+
     prov.start_activity("test1")
     prov.add_input_file("input.txt")
     prov.add_output_file("output.txt")

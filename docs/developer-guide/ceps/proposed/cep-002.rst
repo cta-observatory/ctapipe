@@ -1,6 +1,5 @@
 .. _cep-002:
 
-
 ***********************
 CEP 2 - Event Structure
 ***********************
@@ -11,6 +10,7 @@ CEP 2 - Event Structure
 * Last revised: 2023-04-04
 * Author: Maximilian Linhoff
 * Created: 2023-04-04
+
 
 Abstract
 ========
@@ -29,7 +29,8 @@ This has the following advantages:
   This maps nicely to readers filling a ``TelescopeEventContainer`` which are then
   joined together with array level information into an ``ArrayEventContainer``.
 
-Proposed new structure
+
+Proposed New Structure
 ======================
 
 This CEP proposes to change the current layout of ``ArrayEventContainer`` from having multiple
@@ -68,7 +69,7 @@ Which each data level container having specific fields and/or subcontainers incl
 information (interpolated / chosen for that specific event).
 
 
-Advantages of the new structure
+Advantages of the New Structure
 ===============================
 
 The new proposed scheme makes it easier to parallelize over array events and move loops
@@ -89,12 +90,12 @@ In the current scheme (simplified from ctapipe-process) it looks like this:
        #     calibrate r1 to dl0
        # for tel_id, dl0 in array_event.dl0.tel.items():
        #     calibrate dl0 to dl1
-       
+
        image_processor(array_event)
        # image processor also has an internal loop over the telescope events
        # for tel_id, dl1 in array_event.dl1.tel.items():
        #     image cleaning and parametrization
-       
+
        shower_processor(array_event)
 
 This looks simple, but there are hidden loops over the telescopes in both the ``CameraCalibrator``
@@ -183,8 +184,7 @@ will become:
 which is more idiomatic python and does not require repeated lookup via tel_id.
 
 
-
-Previous discussions
+Previous Discussions
 ====================
 
 Previous discussion of this issue has occurred over multiple issues,
@@ -193,9 +193,7 @@ but also in `#1301 <https://github.com/cta-observatory/ctapipe/pull/1301>`_,
 and `722 <https://github.com/cta-observatory/ctapipe/issues/722>`_.
 
 
-
-
-Advantages of the old structure
+Advantages of the Old Structure
 ===============================
 
 By having the data level first in the hierarchy, it is easier to drop certain data levels for

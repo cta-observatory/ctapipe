@@ -2,8 +2,9 @@
 
 .. currentmodule:: ctapipe.instrument
 
+**************
 Camera Readout
-==============
+**************
 
 The `CameraReadout` stores information regarding the waveform readout from the
 Cherenkov camera, such as sampling rate and information on the reference pulse
@@ -27,9 +28,9 @@ There are several ways to obtain a `CameraReadout`:
 `CameraReadout` is used by the `~ctapipe.image.extractor.ImageExtractor` in the `ctapipe.image` module
 to ensure the images are scaled to the correct units.
 
-Input/Output
-------------
 
+Input/Output
+============
 
 You can write out a `CameraReadout` by using the ``CameraReadout.to_table()``
 method to turn it into a `~astropy.table.Table`, and then call its ``write()``

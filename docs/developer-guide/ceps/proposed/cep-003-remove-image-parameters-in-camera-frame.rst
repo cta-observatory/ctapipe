@@ -1,8 +1,7 @@
 .. _cep-003:
 
-
 ************************************************************
-CEP 3 - Dropping support for image parameters in CameraFrame
+CEP 3 - Dropping Support for Image Parameters in CameraFrame
 ************************************************************
 
 * Status: draft
@@ -11,6 +10,7 @@ CEP 3 - Dropping support for image parameters in CameraFrame
 * Last revised: 2023-09-22
 * Author: Maximilian Linhoff
 * Created: 2023-09-22
+
 
 Abstract
 ========
@@ -29,7 +29,8 @@ The overhead of supporting both ``TelescopeFrame`` and ``CameraFrame`` represent
 of the image parameters is quite significant, as it e.g. requires dealing with both
 possible definitions in all Hillas-style dl2 reconstructors.
 
-Advantages of computation in TelescopeFrame
+
+Advantages of Computation in TelescopeFrame
 ===========================================
 
 Computing the image parameters in ``TelescopeFrame`` – angular units on the sky –
@@ -44,8 +45,9 @@ has the following advantages:
   special handling of the curved cameras of dual mirror telescopes.
 
 
-Previous discussions
+Previous Discussions
 ====================
+
 * Issue discussing the removal of the camera frame image parameters: `#2061 <https://github.com/cta-observatory/ctapipe/issues/2061>`_
 * Original issue for introducing the computation of image parameters in telescope frame: `#1090 <https://github.com/cta-observatory/ctapipe/issues/1090>`_
 * Pull Request implementing image parameters in telescope frame, also setting it as the default: `#1591 <https://github.com/cta-observatory/ctapipe/pull/1591>`_

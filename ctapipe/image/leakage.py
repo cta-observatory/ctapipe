@@ -3,8 +3,8 @@ Leakage calculation
 """
 
 import numpy as np
-from ..containers import LeakageContainer
 
+from ..containers import LeakageContainer
 
 __all__ = ["leakage_parameters"]
 
@@ -40,11 +40,13 @@ def leakage_parameters(geom, image, cleaning_mask):
     leakage_intensity1 = np.sum(image[mask1])
     leakage_intensity2 = np.sum(image[mask2])
 
-    size = np.sum(image[cleaning_mask])
+    clean = image[cleaning_mask]
+    n_pixels_cleaning = len(clean)
+    n_pe_cleaning = np.sum(clean)
 
     return LeakageContainer(
-        pixels_width_1=leakage_pixel1 / geom.n_pixels,
-        pixels_width_2=leakage_pixel2 / geom.n_pixels,
-        intensity_width_1=leakage_intensity1 / size,
-        intensity_width_2=leakage_intensity2 / size,
+        pixels_width_1=leakage_pixel1 / n_pixels_cleaning,
+        pixels_width_2=leakage_pixel2 / n_pixels_cleaning,
+        intensity_width_1=leakage_intensity1 / n_pe_cleaning,
+        intensity_width_2=leakage_intensity2 / n_pe_cleaning,
     )

@@ -1,10 +1,11 @@
 .. _coordinates:
 
-====================================
+************************************
 Coordinates (`~ctapipe.coordinates`)
-====================================
+************************************
 
 .. currentmodule:: ctapipe.coordinates
+
 
 Introduction
 ============

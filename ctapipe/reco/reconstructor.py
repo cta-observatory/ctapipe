@@ -8,7 +8,7 @@ from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
-from ctapipe.core.traits import List
+from ctapipe.core.traits import Integer, List
 
 from ..compat import StrEnum
 from ..coordinates import shower_impact_distance
@@ -70,8 +70,14 @@ class Reconstructor(TelescopeComponent):
     algorithms should inherit from
     """
 
-    #: ctapipe_rco entry points may provide Reconstructor implementations
+    #: ctapipe_reco entry points may provide Reconstructor implementations
     plugin_entry_point = "ctapipe_reco"
+
+    n_jobs = Integer(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction if supported by the reconstructor.",
+    ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)

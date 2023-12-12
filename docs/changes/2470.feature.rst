@@ -1,0 +1,2 @@
+The recommended citation for ctapipe has been updated to the ICRC 2023 proceeding,
+please update.

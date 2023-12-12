@@ -1,5 +1,6 @@
+***************
 Code Guidelines
-===============
+***************
 
 Coding should follow the CTA coding guidelines from the **CTA Code
 Standards** document.
@@ -9,15 +10,17 @@ also the style-guide for code style).  This guide is subject to change
 as we further develop the framework, so it should be checked
 regularly.
 
-References for good coding practices
-------------------------------------
+
+References for Good Coding Practices
+====================================
 
 * `Good Python Style <https://docs.python-guide.org/en/latest/writing/style/>`_
 * `Best Practices in Scientific Computing (Presentation) <https://swcarpentry.github.io/slideshows/best-practices/index.html>`_
 * `Best Practices for Scientific Computing (Paper) <https://arxiv.org/abs/1210.0530>`_
 
+
 Checking for Logistic Errors
-----------------------------
+============================
 
 Several static analysis packages exist to help look for common coding
 errors, and these should be used frequently.
@@ -34,8 +37,9 @@ errors, and these should be used frequently.
 If you use *PyCharm* as an IDE, there is also a GUI function to find
 and review all common code errors and style issues.
 
+
 Unit-tests
-----------
+==========
 
 A *unit test* is a piece of code that tests a single functionality of
 a library (e.g. a function, method, or class).
@@ -69,7 +73,7 @@ Follow these basic guidelines:
 
 
 Data Structures
----------------
+===============
 
 Python is very flexible with data structures: data can be in classes,
 dictionaries, lists, tuples, and numpy ``NDArrays``.  Furthermore, the
@@ -91,8 +95,8 @@ basic guidelines:
   disk (they are not necessary for simple function return values)
 
 
-Logging and debugging
----------------------
+Logging and Debugging
+=====================
 
 * do not use the ``print()`` function to output text. Instead use the
   common logging failities of ``ctapipe``.  Log messages should be
@@ -148,8 +152,8 @@ Some logging guidelines:
   ``logger.debug("some message: %d", val)``
 
 
-Function or method Input/Output
--------------------------------
+Function or Method Input/Output
+===============================
 
 Functions and methods should *not modify input parameters*. Therefore
 any data you pass in should be independent of what is output (do not
@@ -158,8 +162,9 @@ reason for this is to allow for parallelization and flow-based
 chaining of algorithms, which is impossible if one algorithm modifies
 the input to another.
 
+
 Unit Quantities
----------------
+===============
 
 When approprate (e.g. in high-level algorithms APIs), use
 ``astropy.units`` for any quantity where the unit may be ambiguous or
@@ -202,7 +207,7 @@ parameters are defined), and assume it.
 
 
 Writing Algorithms
-------------------
+==================
 
 Note that if you write an algorithm, it may be used in many ways: in a
 command-line tool used in a batch-based system, in a server that

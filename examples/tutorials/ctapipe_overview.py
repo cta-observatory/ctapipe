@@ -18,8 +18,7 @@ from copy import deepcopy
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.coordinates import AltAz
-from astropy.coordinates.angle_utilities import angular_separation
+from astropy.coordinates import AltAz, angular_separation
 from matplotlib.colors import ListedColormap
 from scipy.sparse.csgraph import connected_components
 from traitlets.config import Config

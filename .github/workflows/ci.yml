@@ -117,7 +117,7 @@ jobs:
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
           pip install pytest-cov pytest-xdist 'coverage!=6.3.0'
-          pip install .[all]
+          pip install -e .[all]
           pip install ./test_plugin
           pip freeze
 
@@ -131,15 +131,17 @@ jobs:
         run: |
           cd $(mktemp -d)
           pytest -n auto --dist loadscope \
-            --cov --cov-report=xml \
+            --cov --cov-report=xml:$GITHUB_WORKSPACE/coverage.xml \
             --doctest-modules --doctest-glob='*.rst' \
-            --ignore=$HOME/work/ctapipe/ctapipe/docs/conf.py \
-            --pyargs ctapipe $HOME/work/ctapipe/ctapipe/docs
+            --ignore=$GITHUB_WORKSPACE/docs/conf.py \
+            --pyargs ctapipe $GITHUB_WORKSPACE/docs
 
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v3
-        if: contains(matrix.extra-args, 'codecov')
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        with:
+          fail_ci_if_error: true
 
   docs:
     runs-on: ubuntu-latest

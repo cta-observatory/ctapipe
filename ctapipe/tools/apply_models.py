@@ -68,6 +68,12 @@ class ApplyModels(Tool):
         help="How many subarray events to load at once for making predictions.",
     ).tag(config=True)
 
+    n_jobs = Integer(
+        default_value=None,
+        allow_none=True,
+        help="Number of threads to use for the reconstruction. This overwrites the values in the config",
+    ).tag(config=True)
+
     progress_bar = Bool(
         help="show progress bar during processing",
         default_value=True,
@@ -77,6 +83,7 @@ class ApplyModels(Tool):
         ("i", "input"): "ApplyModels.input_url",
         ("r", "reconstructor"): "ApplyModels.reconstructor_paths",
         ("o", "output"): "ApplyModels.output_path",
+        "n-jobs": "ApplyModels.n_jobs",
         "chunk-size": "ApplyModels.chunk_size",
     }
 
@@ -140,10 +147,12 @@ class ApplyModels(Tool):
             )
         )
 
-        self._reconstructors = [
-            Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
-            for path in self.reconstructor_paths
-        ]
+        self._reconstructors = []
+        for path in self.reconstructor_paths:
+            r = Reconstructor.read(path, parent=self, subarray=self.loader.subarray)
+            if self.n_jobs:
+                r.n_jobs = self.n_jobs
+            self._reconstructors.append(r)
 
     def start(self):
         """Apply models to input tables"""

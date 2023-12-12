@@ -9,6 +9,7 @@ from traitlets.config import Config
 from ctapipe.core import Component
 from ctapipe.reco import EnergyRegressor, ParticleClassifier
 from ctapipe.reco.reconstructor import ReconstructionProperty
+from ctapipe.reco.sklearn import DispReconstructor
 
 KEY = "LST_LST_LSTCam"
 
@@ -164,6 +165,49 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
     valid = table[f"{model_cls}_tel_is_valid"]
     assert reco_energy.shape == (1,)
     assert valid[0] == False
+
+
+def test_set_n_jobs(example_subarray):
+    config = Config(
+        {
+            "EnergyRegressor": {
+                "model_cls": "RandomForestRegressor",
+                "model_config": {"n_estimators": 20, "max_depth": 15, "n_jobs": -1},
+            }
+        }
+    )
+    regressor = EnergyRegressor(
+        example_subarray,
+        config=config,
+    )
+
+    regressor._models["telescope"] = regressor._new_model()
+    assert regressor._models["telescope"].n_jobs == -1
+    regressor.n_jobs = 42
+    assert regressor._models["telescope"].n_jobs == 42
+
+    # DISP has two models per telescope, check that aswell
+    config = Config(
+        {
+            "DispReconstructor": {
+                "norm_cls": "RandomForestRegressor",
+                "norm_config": {"n_estimators": 20, "max_depth": 15, "n_jobs": -1},
+                "sign_cls": "RandomForestClassifier",
+                "sign_config": {"n_estimators": 20, "max_depth": 15, "n_jobs": -1},
+            }
+        }
+    )
+    disp = DispReconstructor(
+        example_subarray,
+        config=config,
+    )
+
+    disp._models["telescope"] = disp._new_models()
+    assert disp._models["telescope"][0].n_jobs == -1
+    assert disp._models["telescope"][1].n_jobs == -1
+    disp.n_jobs = 42
+    assert disp._models["telescope"][0].n_jobs == 42
+    assert disp._models["telescope"][1].n_jobs == 42
 
 
 @pytest.mark.parametrize(

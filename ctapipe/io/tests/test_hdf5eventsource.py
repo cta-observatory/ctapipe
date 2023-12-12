@@ -1,3 +1,5 @@
+from itertools import zip_longest
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -141,6 +143,37 @@ def test_pointing(dl1_file):
             for tel in event.pointing.tel:
                 assert np.isclose(event.pointing.tel[tel].azimuth.to_value(u.deg), 0)
                 assert np.isclose(event.pointing.tel[tel].altitude.to_value(u.deg), 70)
+
+
+def test_pointing_divergent(dl1_divergent_file):
+    path = "dataset://gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+
+    source = HDF5EventSource(
+        input_url=dl1_divergent_file, focal_length_choice="EQUIVALENT"
+    )
+    simtel_source = EventSource(path, focal_length_choice="EQUIVALENT")
+
+    with source, simtel_source:
+        for event, simtel_event in zip_longest(source, simtel_source):
+            assert event.index.event_id == simtel_event.index.event_id
+            assert u.isclose(
+                event.pointing.array_azimuth,
+                simtel_event.pointing.array_azimuth,
+            )
+            assert u.isclose(
+                event.pointing.array_altitude,
+                simtel_event.pointing.array_altitude,
+            )
+            assert event.pointing.tel.keys() == simtel_event.pointing.tel.keys()
+            for tel in event.pointing.tel:
+                assert u.isclose(
+                    event.pointing.tel[tel].azimuth,
+                    simtel_event.pointing.tel[tel].azimuth,
+                )
+                assert u.isclose(
+                    event.pointing.tel[tel].altitude,
+                    simtel_event.pointing.tel[tel].altitude,
+                )
 
 
 def test_read_r1(r1_hdf5_file):

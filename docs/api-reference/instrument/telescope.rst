@@ -2,8 +2,9 @@
 
 .. currentmodule:: ctapipe.instrument
 
+*********************
 Telescope Description
-=====================
+*********************
 
 The `TelescopeDescription` class holds info about a complete telescope,
 namely it's `OpticsDescription` and `CameraDescription` (though other aspects
@@ -11,7 +12,7 @@ may be added)
 
 
 Reference/API
--------------
+=============
 
 .. automodapi:: ctapipe.instrument.telescope
     :no-inheritance-diagram:
