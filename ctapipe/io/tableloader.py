@@ -278,11 +278,7 @@ class TableLoader(Component):
             updated_value = value
             if updated_value is None:
                 updated_value = getattr(self, key)
-            if (
-                updated_value
-                and key in groups.keys()
-                and groups[key] not in self.h5file.root
-            ):
+            if updated_value and key in groups and groups[key] not in self.h5file.root:
                 self.log.info(
                     "Setting %s to False, input file does not contain such data", key
                 )
@@ -583,9 +579,9 @@ class TableLoader(Component):
             table = _join_telescope_events(table, true_parameters)
 
         if instrument:
-            self.instrument_table = self.subarray.to_table("joined")
+            instrument_table = self.subarray.to_table("joined")
             table = join_allow_empty(
-                table, self.instrument_table, keys=["tel_id"], join_type="left"
+                table, instrument_table, keys=["tel_id"], join_type="left"
             )
 
         if simulated and TRUE_IMPACT_GROUP in self.h5file.root:
