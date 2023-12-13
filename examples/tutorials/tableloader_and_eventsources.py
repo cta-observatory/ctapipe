@@ -123,7 +123,8 @@ eventsource_config = Config(
 with EventSource(input_url=simtel_path, config=eventsource_config) as source:
     for event in source:
         print(
-            f"Event Count: {event.count}, Tels with trigger: {event.trigger.tels_with_trigger}"
+            f"Event Count: {event.count},"
+            f"Tels with trigger: {event.trigger.tels_with_trigger}"
         )
 
 # %%
