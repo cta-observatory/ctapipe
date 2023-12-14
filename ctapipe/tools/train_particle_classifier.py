@@ -115,36 +115,35 @@ class TrainParticleClassifier(Tool):
 
     def setup(self):
         """
-        Initialize components from config
+        Initialize components from config.
         """
-
         self.signal_loader = self.enter_context(
             TableLoader(
                 parent=self,
                 input_url=self.input_url_signal,
             )
         )
-
         self.background_loader = self.enter_context(
             TableLoader(
                 parent=self,
                 input_url=self.input_url_background,
             )
         )
-
         if self.signal_loader.subarray != self.background_loader.subarray:
             raise ValueError("Signal and background subarrays do not match")
 
         self.subarray = self.signal_loader.subarray
         self.n_signal.attach_subarray(self.subarray)
         self.n_background.attach_subarray(self.subarray)
-
         self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
-        self.rng = np.random.default_rng(self.random_seed)
-        self.cross_validate = CrossValidator(
-            parent=self, model_component=self.classifier
+
+        self.cross_validate = self.enter_context(
+            CrossValidator(
+                parent=self, model_component=self.classifier, overwrite=self.overwrite
+            )
         )
-        self.check_output(self.output_path, self.cross_validate.output_path)
+        self.rng = np.random.default_rng(self.random_seed)
+        self.check_output(self.output_path)
 
     def start(self):
         """
@@ -207,6 +206,7 @@ class TrainParticleClassifier(Tool):
         self.classifier.write(self.output_path, overwrite=self.overwrite)
         self.signal_loader.close()
         self.background_loader.close()
+        self.cross_validate.close()
 
 
 def main():
