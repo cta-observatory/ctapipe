@@ -142,7 +142,7 @@ class TrainParticleClassifier(Tool):
         self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
-            parent=self, model_component=self.classifier, overwrite=self.overwrite
+            parent=self, model_component=self.classifier
         )
         self.check_output(self.output_path, self.cross_validate.output_path)
 
