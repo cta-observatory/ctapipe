@@ -898,8 +898,6 @@ class CrossValidator(Component):
             )
 
         if self.output_path:
-            if self.output_path.exists() and not overwrite:
-                raise IOError(f"Path {self.output_path} exists and overwrite=False")
             Provenance().add_output_file(self.output_path, role="ml-cross-validation")
 
     def __call__(self, telescope_type, table):
