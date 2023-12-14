@@ -878,7 +878,7 @@ class CrossValidator(Component):
         default_value=1337, help="Random seed for splitting the training data."
     ).tag(config=True)
 
-    def __init__(self, model_component, overwrite=False, **kwargs):
+    def __init__(self, model_component, **kwargs):
         super().__init__(**kwargs)
         self.model_component = model_component
         self.rng = np.random.default_rng(self.rng_seed)
