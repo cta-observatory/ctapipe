@@ -850,7 +850,7 @@ class DispReconstructor(Reconstructor):
         Update n_jobs of all associated models.
         """
         if hasattr(self, "_models"):
-            for (disp, sign) in self._models.values():
+            for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
 
@@ -878,9 +878,8 @@ class CrossValidator(Component):
         default_value=1337, help="Random seed for splitting the training data."
     ).tag(config=True)
 
-    def __init__(self, model_component, **kwargs):
+    def __init__(self, model_component, overwrite=False, **kwargs):
         super().__init__(**kwargs)
-        self.cv_predictions = {}
         self.model_component = model_component
         self.rng = np.random.default_rng(self.rng_seed)
 
@@ -897,6 +896,11 @@ class CrossValidator(Component):
             raise KeyError(
                 "Unsupported Model of type %s supplied", self.model_component
             )
+
+        if self.output_path:
+            if self.output_path.exists() and not overwrite:
+                raise IOError(f"Path {self.output_path} exists and overwrite=False")
+            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
 
     def __call__(self, telescope_type, table):
         """Perform cross validation for the given model."""
@@ -965,7 +969,14 @@ class CrossValidator(Component):
                     cv_values.mean(),
                     cv_values.std(),
                 )
-        self.cv_predictions[telescope_type] = vstack(predictions)
+
+        if self.output_path:
+            write_table(
+                vstack(predictions),
+                self.output_path,
+                f"/cv_predictions_{telescope_type}",
+                overwrite=True,
+            )
 
     def _cross_validate_regressor(self, telescope_type, train, test):
         regressor = self.model_component
@@ -1003,16 +1014,3 @@ class CrossValidator(Component):
             f"{models.prefix}_sign_score": sign_score,
         }
         return prediction, truth, {"R^2": r2, "accuracy": accuracy}
-
-    def write(self, overwrite=False):
-        if self.n_cross_validations == 0:
-            return 0
-
-        if self.output_path.exists() and not overwrite:
-            raise IOError(f"Path {self.output_path} exists and overwrite=False")
-
-        Provenance().add_output_file(self.output_path, role="ml-cross-validation")
-        for tel_type, results in self.cv_predictions.items():
-            write_table(
-                results, self.output_path, f"/cv_predictions_{tel_type}", overwrite=True
-            )
