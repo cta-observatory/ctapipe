@@ -111,7 +111,9 @@ class TrainDispReconstructor(Tool):
 
         self.models = DispReconstructor(self.loader.subarray, parent=self)
 
-        self.cross_validate = CrossValidator(parent=self, model_component=self.models)
+        self.cross_validate = CrossValidator(
+            parent=self, model_component=self.models, overwrite=self.overwrite
+        )
         self.rng = np.random.default_rng(self.random_seed)
         self.check_output(self.output_path, self.cross_validate.output_path)
 
@@ -192,8 +194,6 @@ class TrainDispReconstructor(Tool):
         self.log.info("Writing output")
         self.models.n_jobs = None
         self.models.write(self.output_path, overwrite=self.overwrite)
-        if self.cross_validate.output_path:
-            self.cross_validate.write(overwrite=self.overwrite)
         self.loader.close()
 
 
