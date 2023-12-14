@@ -10,11 +10,12 @@ import astropy.units as u
 import joblib
 import numpy as np
 from astropy.coordinates import AltAz
-from astropy.table import QTable, Table, vstack
+from astropy.table import QTable, Table
 from astropy.utils.decorators import lazyproperty
 from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
+from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
 
@@ -28,7 +29,14 @@ from ..containers import (
     ReconstructedGeometryContainer,
 )
 from ..coordinates import TelescopeFrame
-from ..core import Component, FeatureGenerator, Provenance, QualityQuery, traits
+from ..core import (
+    Component,
+    FeatureGenerator,
+    Provenance,
+    QualityQuery,
+    ToolConfigurationError,
+    traits,
+)
 from ..io import write_table
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
@@ -878,7 +886,7 @@ class CrossValidator(Component):
         default_value=1337, help="Random seed for splitting the training data."
     ).tag(config=True)
 
-    def __init__(self, model_component, **kwargs):
+    def __init__(self, model_component, overwrite=False, **kwargs):
         super().__init__(**kwargs)
         self.model_component = model_component
         self.rng = np.random.default_rng(self.rng_seed)
@@ -898,7 +906,27 @@ class CrossValidator(Component):
             )
 
         if self.output_path:
+            if self.output_path.exists():
+                if overwrite:
+                    self.log.warning("Overwriting %s", self.output_path)
+                else:
+                    raise ToolConfigurationError(
+                        f"Output path {self.output_path} exists, but overwrite=False"
+                    )
+
             Provenance().add_output_file(self.output_path, role="ml-cross-validation")
+            self.h5file = open_file(self.output_path, mode="w")
+
+    def close(self):
+        """Close the output hdf5 file, if ``self.output_path`` is given."""
+        if self.output_path:
+            self.h5file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def __call__(self, telescope_type, table):
         """Perform cross validation for the given model."""
@@ -915,8 +943,6 @@ class CrossValidator(Component):
         )
 
         scores = defaultdict(list)
-        predictions = []
-
         kfold = self.split_data(
             n_splits=self.n_cross_validations,
             shuffle=True,
@@ -942,18 +968,22 @@ class CrossValidator(Component):
             cv_prediction, truth, metrics = self.cross_validate(
                 telescope_type, train, test
             )
-            predictions.append(
-                Table(
-                    {
-                        "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
-                        "tel_type": [str(telescope_type)] * len(truth),
-                        "truth": truth,
-                        "true_energy": test["true_energy"],
-                        "true_impact_distance": test["true_impact_distance"],
-                        **cv_prediction,
-                    }
+            if self.output_path:
+                write_table(
+                    Table(
+                        {
+                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
+                            "tel_type": [str(telescope_type)] * len(truth),
+                            "truth": truth,
+                            "true_energy": test["true_energy"],
+                            "true_impact_distance": test["true_impact_distance"],
+                            **cv_prediction,
+                        }
+                    ),
+                    self.h5file,
+                    f"/cv_predictions/{telescope_type}",
+                    append=True,
                 )
-            )
 
             for metric, value in metrics.items():
                 scores[metric].append(value)
@@ -967,14 +997,6 @@ class CrossValidator(Component):
                     cv_values.mean(),
                     cv_values.std(),
                 )
-
-        if self.output_path:
-            write_table(
-                vstack(predictions),
-                self.output_path,
-                f"/cv_predictions_{telescope_type}",
-                overwrite=True,
-            )
 
     def _cross_validate_regressor(self, telescope_type, train, test):
         regressor = self.model_component
