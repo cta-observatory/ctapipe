@@ -186,7 +186,7 @@ subarray_events = loader.read_subarray_events(
     observation_info=False,
 )
 
-print(subarray_events)
+subarray_events
 
 # %%
 # Reading subarray-based event information in chunks:
@@ -197,8 +197,6 @@ subarray_events_chunked = loader.read_subarray_events_chunked(
     simulated=True,
     observation_info=False,
 )
-
-print(subarray_events_chunked)
 
 for chunk in subarray_events_chunked:
     print(" \n", chunk)
@@ -221,7 +219,7 @@ lst_events = loader.read_telescope_events(
     observation_info=False,
 )
 
-print(lst_events)
+lst_events
 
 # %%
 # Loading telescope events by type returns a dict with the different telescope types:
@@ -243,7 +241,6 @@ telescope_events_by_type = loader.read_telescope_events_by_type(
 
 for tel_type, table in telescope_events_by_type.items():
     print(f"Telescope Type: {tel_type} \n", table, "\n")
-
 
 # %%
 # Loading telescope events by ID returns a dict with the different telescope IDs:
@@ -278,7 +275,7 @@ for tel_id, table in telescope_events_by_id.items():
 simulation_configuration = loader.read_simulation_configuration()
 observation_information = loader.read_observation_information()
 
-print(simulation_configuration)
+simulation_configuration
 
 # %%
 # Now you have ``astropy.table`` s including all the relevant data you need
