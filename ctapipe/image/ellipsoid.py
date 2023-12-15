@@ -19,16 +19,14 @@ from ctapipe.image.pixel_likelihood import (
 )
 from ctapipe.image.toymodel import SkewedGaussian
 
-from ..containers import CameraImageFitParametersContainer, ImageFitParametersContainer
+from ..containers import ImageFitParametersContainer
 
 PED_TABLE = {
     "LSTCam": 2.8,
     "NectarCam": 2.3,
     "FlashCam": 2.3,
-    "SSTCam": 0.5,
-    "CHEC": 0.5,
-    "DUMMY": 0,
-    "testcam": 0,
+    "SST-Camera": 0.5,
+    "testcam": 0.5,
 }
 SPE_WIDTH = 0.5
 
@@ -46,7 +44,6 @@ class PDFType(Enum):
 
 def create_initial_guess(geometry, hillas, size):
     """
-
     This function computes the seeds of the fit with the Hillas parameters
 
     Parameters
@@ -66,12 +63,8 @@ def create_initial_guess(geometry, hillas, size):
     unit = geometry.pix_x.unit
     initial_guess = {}
 
-    if unit.is_equivalent(u.m):
-        initial_guess["cog_x"] = hillas.x.to_value(unit)
-        initial_guess["cog_y"] = hillas.y.to_value(unit)
-    else:
-        initial_guess["cog_x"] = hillas.fov_lon.to_value(unit)
-        initial_guess["cog_y"] = hillas.fov_lat.to_value(unit)
+    initial_guess["cog_x"] = hillas.fov_lon.to_value(unit)
+    initial_guess["cog_y"] = hillas.fov_lat.to_value(unit)
 
     initial_guess["length"] = hillas.length.to_value(unit)
     initial_guess["width"] = hillas.width.to_value(unit)
@@ -79,7 +72,7 @@ def create_initial_guess(geometry, hillas, size):
 
     initial_guess["skewness"] = hillas.skewness
 
-    if (hillas.width.to_value(unit) == 0) or (hillas.length.to_value(unit) == 0):
+    if (hillas.width.value == 0) or (hillas.length.value == 0):
         raise ImageFitParameterizationError("Hillas width and/or length is zero")
 
     initial_guess["amplitude"] = size
@@ -88,7 +81,6 @@ def create_initial_guess(geometry, hillas, size):
 
 def boundaries(geometry, image, dilated_mask, hillas, pdf):
     """
-
     Computes the boundaries of the fit.
 
     Parameters
@@ -113,18 +105,13 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
     unit = geometry.pix_x.unit
     camera_radius = geometry.radius.to_value(unit)
 
-    # Using dilated image
-    row_image = image.copy()
-    row_image[~dilated_mask] = 0.0
-    row_image[row_image < 0] = 0.0
-
     max_x = np.max(x[dilated_mask])
     min_x = np.min(x[dilated_mask])
     max_y = np.max(y[dilated_mask])
     min_y = np.min(y[dilated_mask])
 
     ang_unit = hillas.psi.unit
-    psi_unc = 10 * u.deg
+    psi_unc = 10 * unit
     psi_min, psi_max = max(
         hillas.psi.value - psi_unc.to_value(ang_unit), -np.pi / 2
     ), min(hillas.psi.value + psi_unc.to_value(ang_unit), np.pi / 2)
@@ -141,10 +128,7 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
         (max_x - min_x) ** 2 + (max_y - min_y) ** 2
     )  # maximum distance of the shower in the longitudinal direction
 
-    if unit.is_equivalent(u.m):
-        width_unc = 0.05 * u.m
-    else:
-        width_unc = 0.1 * u.deg
+    width_unc = 0.1 * unit
     length_min, length_max = hillas.length.to_value(unit), long_dis
     width_min, width_max = hillas.width.to_value(unit), hillas.width.to_value(
         unit
@@ -156,9 +140,15 @@ def boundaries(geometry, image, dilated_mask, hillas, pdf):
     )  # Guess from Hillas unit tests
 
     if pdf == PDFType.gaussian:
-        amplitude = np.sum(row_image) / (2 * np.pi * width_min * length_min)
+        amplitude = np.sum(image[(dilated_mask) & (image > 0)]) / (
+            2 * np.pi * width_min * length_min
+        )
     else:
-        amplitude = np.sum(row_image) / scale / (2 * np.pi * width_min)
+        amplitude = (
+            np.sum(image[(dilated_mask) & (image > 0)])
+            / scale
+            / (2 * np.pi * width_min)
+        )
 
     bounds = [
         (cogx_min, cogx_max),
@@ -182,11 +172,10 @@ def image_fit_parameters(
     image,
     n_row,
     cleaned_mask,
-    pdf=PDFType("skewed"),
+    pdf=PDFType.skewed,
     bounds=None,
 ):
     """
-
     Computes image parameters for a given shower image.
     Implementation based on https://arxiv.org/pdf/1211.0254.pdf
 
@@ -326,6 +315,7 @@ def image_fit_parameters(
     fit_rcog = np.linalg.norm([pars[0], pars[1]])
     fit_phi = np.arctan2(pars[1], pars[0])
 
+    # The uncertainty in r and phi is calculated by propagating errors of the x and y coordinates
     b = pars[1] ** 2 + pars[0] ** 2
     A = (-pars[1] / b) ** 2
     B = (pars[0] / b) ** 2
@@ -337,45 +327,24 @@ def image_fit_parameters(
     delta_x = pix_x.value - pars[0]
     delta_y = pix_y.value - pars[1]
 
+    # calculate higher order moments along shower axes
     longitudinal = delta_x * np.cos(pars[2]) + delta_y * np.sin(pars[2])
 
-    m4_long = np.average(longitudinal**4, weights=dilated_image)
+    m3_long = np.average(longitudinal**3, weights=image)
+    skewness_ = m3_long / pars[3] ** 3
+
+    m4_long = np.average(longitudinal**4, weights=image)
     kurtosis_long = m4_long / pars[3] ** 4
 
-    skewness_long = pars[5]
-    skewness_uncertainty = errors[5]
+    if pdf == PDFType.gaussian:
+        skewness_long = skewness_
+        skewness_uncertainty = np.nan
+    else:
+        skewness_long = pars[5]
+        skewness_uncertainty = errors[5]
+
     amplitude = pars[6]
     amplitude_uncertainty = errors[6]
-
-    if unit.is_equivalent(u.m):
-        return CameraImageFitParametersContainer(
-            x=u.Quantity(pars[0], unit),
-            x_uncertainty=u.Quantity(errors[0], unit),
-            y=u.Quantity(pars[1], unit),
-            y_uncertainty=u.Quantity(errors[1], unit),
-            r=u.Quantity(fit_rcog, unit),
-            r_uncertainty=u.Quantity(fit_rcog_err, unit),
-            phi=Angle(fit_phi, unit=u.rad),
-            phi_uncertainty=Angle(fit_phi_err, unit=u.rad),
-            intensity=size,
-            amplitude=amplitude,
-            amplitude_uncertainty=amplitude_uncertainty,
-            length=u.Quantity(pars[3], unit),
-            length_uncertainty=u.Quantity(errors[3], unit),
-            width=u.Quantity(pars[4], unit),
-            width_uncertainty=u.Quantity(errors[4], unit),
-            psi=Angle(pars[2], unit=u.rad),
-            psi_uncertainty=Angle(errors[2], unit=u.rad),
-            skewness=skewness_long,
-            skewness_uncertainty=skewness_uncertainty,
-            kurtosis=kurtosis_long,
-            likelihood=likelihood,
-            goodness_of_fit=goodness_of_fit,
-            n_pixels=np.count_nonzero(cleaned_image),
-            free_parameters=m.nfit,
-            is_valid=m.valid,
-            is_accurate=m.accurate,
-        )
 
     return ImageFitParametersContainer(
         fov_lon=u.Quantity(pars[0], unit),

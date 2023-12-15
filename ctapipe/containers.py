@@ -34,7 +34,6 @@ __all__ = [
     "MorphologyContainer",
     "BaseHillasParametersContainer",
     "CameraHillasParametersContainer",
-    "CameraImageFitParametersContainer",
     "ImageFitParametersContainer",
     "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
@@ -282,37 +281,6 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
 
-class CameraImageFitParametersContainer(CameraHillasParametersContainer):
-    """
-    Hillas Parameters after fitting. The cog position
-    is given in meter from the camera center.
-    """
-
-    skewness_uncertainty = Field(nan, "measure of skewness uncertainty")
-    likelihood = Field(nan, "measure of likelihood")
-    goodness_of_fit = Field(
-        nan, "measure of goodness of fit, mean likelihood subtracted to the likelihood"
-    )
-    n_pixels = Field(nan, "number of pixels used in the fit")
-    free_parameters = Field(nan, "number of free parameters")
-    is_valid = Field(False, "True if the fit is valid")
-    is_accurate = Field(
-        False, "returns True if the fit is accurate. If False, the fit is not reliable."
-    )
-
-    x_uncertainty = Field(nan * u.m, "centroid x uncertainty", unit=u.m)
-    y_uncertainty = Field(nan * u.m, "centroid y uncertainty", unit=u.m)
-    r_uncertainty = Field(nan * u.m, "centroid r uncertainty", unit=u.m)
-    phi_uncertainty = Field(
-        nan * u.deg, "polar coordinate of centroid uncertainty", unit=u.deg
-    )
-    psi_uncertainty = Field(
-        nan * u.deg, "Uncertainty in rotation angle of ellipse", unit=u.deg
-    )
-    amplitude = Field(nan, "Amplitude of the fitted model")
-    amplitude_uncertainty = Field(nan, "error in amplitude from the fit")
-
-
 class HillasParametersContainer(BaseHillasParametersContainer):
     """
     Hillas Parameters in a spherical system centered on the pointing position
@@ -352,8 +320,8 @@ class ImageFitParametersContainer(HillasParametersContainer):
     goodness_of_fit = Field(
         nan, "measure of goodness of fit, mean likelihood subtracted to the likelihood"
     )
-    n_pixels = Field(nan, "number of pixels used in the fit")
-    free_parameters = Field(nan, "number of free parameters")
+    n_pixels = Field(-1, "number of pixels used in the fit")
+    free_parameters = Field(-1, "number of free parameters")
     is_valid = Field(False, "True if the fit is valid")
     is_accurate = Field(
         False, "returns True if the fit is accurate. If False, the fit is not reliable."
