@@ -157,7 +157,11 @@ class ApplyModels(Tool):
     def start(self):
         """Apply models to input tables"""
         chunk_iterator = self.loader.read_telescope_events_by_id_chunked(
-            self.chunk_size, dl1_muons=False, simulated=False, true_parameters=False
+            self.chunk_size,
+            simulated=False,
+            true_parameters=False,
+            observation_info=True,
+            instrument=True,
         )
         bar = tqdm(
             chunk_iterator,

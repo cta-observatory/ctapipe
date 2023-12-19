@@ -178,7 +178,7 @@ class TableLoader(Component):
     dl1_parameters = traits.Bool(True, help="load reconstructed image parameters").tag(
         config=True
     )
-    dl1_muons = traits.Bool(True, help="load muon ring parameters").tag(config=True)
+    dl1_muons = traits.Bool(False, help="load muon ring parameters").tag(config=True)
 
     dl2 = traits.Bool(True, help="load available dl2 stereo parameters").tag(
         config=True
@@ -195,11 +195,11 @@ class TableLoader(Component):
     ).tag(config=True)
 
     instrument = traits.Bool(
-        True, help="join subarray instrument information to each event"
+        False, help="join subarray instrument information to each event"
     ).tag(config=True)
 
     observation_info = traits.Bool(
-        True, help="join observation information to each event"
+        False, help="join observation information to each event"
     ).tag(config=True)
     focal_length_choice = traits.UseEnum(
         FocalLengthKind,

@@ -101,8 +101,9 @@ def read_training_events(
     chunk_iterator = loader.read_telescope_events_chunked(
         chunk_size,
         telescopes=[telescope_type],
-        dl1_muons=False,
         true_parameters=False,
+        instrument=True,
+        observation_info=True,
     )
     table = []
     n_events_in_file = 0

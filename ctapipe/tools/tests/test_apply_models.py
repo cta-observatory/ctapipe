@@ -51,7 +51,6 @@ def test_apply_energy_regressor(
     with TableLoader(output_path) as loader:
         events = loader.read_subarray_events(
             simulated=False,
-            observation_info=False,
         )
         assert f"{prefix}_energy" in events.colnames
         assert f"{prefix}_energy_uncert" in events.colnames
@@ -64,7 +63,6 @@ def test_apply_energy_regressor(
 
         tel_events = loader.read_telescope_events(
             simulated=False,
-            observation_info=False,
         )
         assert f"{prefix}_energy" in tel_events.colnames
         assert f"{prefix}_energy_uncert" in tel_events.colnames
@@ -188,7 +186,6 @@ def test_apply_all(
     with TableLoader(output_path) as loader:
         events = loader.read_subarray_events(
             simulated=False,
-            observation_info=False,
         )
         assert f"{prefix_clf}_prediction" in events.colnames
         assert f"{prefix_clf}_telescopes" in events.colnames
@@ -201,11 +198,8 @@ def test_apply_all(
         assert f"{prefix_disp}_goodness_of_fit" in events.colnames
 
         tel_events = loader.read_telescope_events(
-            dl1_muons=False,
             simulated=False,
             true_parameters=False,
-            instrument=False,
-            observation_info=False,
         )
         assert f"{prefix_clf}_prediction" in tel_events.colnames
         assert f"{prefix_clf}_telescopes" in tel_events.colnames

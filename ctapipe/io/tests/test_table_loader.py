@@ -73,7 +73,7 @@ def test_telescope_events_for_tel_id(dl1_file):
     loader = TableLoader(dl1_file)
 
     with loader as table_loader:
-        table = table_loader.read_telescope_events([8], dl1_parameters=True)
+        table = table_loader.read_telescope_events([8])
         assert "hillas_length" in table.colnames
         assert "time" in table.colnames
         assert "event_type" in table.colnames
@@ -123,11 +123,11 @@ def test_simulated(dl1_file):
     from ctapipe.io.tableloader import TableLoader
 
     with TableLoader(dl1_file) as table_loader:
-        table = table_loader.read_subarray_events(simulated=True)
+        table = table_loader.read_subarray_events()
         assert "true_energy" in table.colnames
         assert table["obs_id"].dtype == np.int32
 
-        table = table_loader.read_telescope_events([8], simulated=True)
+        table = table_loader.read_telescope_events([8])
         assert "true_energy" in table.colnames
         assert "true_impact_distance" in table.colnames
 
@@ -148,9 +148,7 @@ def test_true_parameters(dl1_file):
     from ctapipe.io.tableloader import TableLoader
 
     with TableLoader(dl1_file) as table_loader:
-        table = table_loader.read_telescope_events(
-            dl1_parameters=False, true_parameters=True
-        )
+        table = table_loader.read_telescope_events(dl1_parameters=False)
         assert "true_hillas_intensity" in table.colnames
 
 
@@ -168,7 +166,7 @@ def test_read_subarray_events(dl2_shower_geometry_file):
     from ctapipe.io.tableloader import TableLoader
 
     with TableLoader(dl2_shower_geometry_file) as table_loader:
-        table = table_loader.read_subarray_events(dl2=True, simulated=True)
+        table = table_loader.read_subarray_events()
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
         assert "time" in table.colnames
@@ -184,8 +182,8 @@ def test_table_loader_keeps_original_order(dl2_merged_file):
     assert not np.all(np.diff(trigger["obs_id"]) >= 0)
 
     with TableLoader(dl2_merged_file) as table_loader:
-        events = table_loader.read_subarray_events(dl2=True, simulated=True)
-        tel_events = table_loader.read_telescope_events(dl2=True, simulated=True)
+        events = table_loader.read_subarray_events()
+        tel_events = table_loader.read_telescope_events()
 
     check_equal_array_event_order(events, trigger)
     check_equal_array_event_order(events, tel_events)
@@ -201,10 +199,7 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
     with TableLoader(dl2_shower_geometry_file) as table_loader:
         table = table_loader.read_telescope_events(
             ["MST_MST_FlashCam"],
-            dl1_images=False,
             dl1_parameters=False,
-            dl2=True,
-            simulated=True,
             true_images=True,
             instrument=True,
         )
@@ -231,8 +226,6 @@ def test_read_telescope_events_by_type(dl2_shower_geometry_file):
             [25, 130],
             dl1_images=False,
             dl1_parameters=False,
-            dl2=True,
-            simulated=True,
             true_images=True,
             instrument=True,
         )
@@ -281,45 +274,18 @@ def test_chunked(dl2_shower_geometry_file):
     with TableLoader(dl2_shower_geometry_file) as table_loader:
         tel_event_it = table_loader.read_telescope_events_chunked(
             chunk_size,
-            dl1_images=False,
-            dl1_parameters=True,
-            dl1_muons=False,
-            dl2=True,
-            simulated=True,
-            true_images=False,
             true_parameters=False,
-            instrument=False,
-            observation_info=False,
         )
         event_it = table_loader.read_subarray_events_chunked(
             chunk_size,
-            dl2=True,
-            simulated=True,
-            observation_info=False,
         )
         by_type_it = table_loader.read_telescope_events_by_type_chunked(
             chunk_size,
-            dl1_images=False,
-            dl1_parameters=True,
-            dl1_muons=False,
-            dl2=True,
-            simulated=True,
-            true_images=False,
             true_parameters=False,
-            instrument=False,
-            observation_info=False,
         )
         by_id_it = table_loader.read_telescope_events_by_id_chunked(
             chunk_size,
-            dl1_images=False,
-            dl1_parameters=True,
-            dl1_muons=False,
-            dl2=True,
-            simulated=True,
-            true_images=False,
             true_parameters=False,
-            instrument=False,
-            observation_info=False,
         )
 
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
@@ -412,7 +378,6 @@ def test_read_unavailable_telescope(dl2_shower_geometry_file):
             loader.read_telescope_events(
                 [tel_id],
                 dl1_parameters=False,
-                dl2=True,
             )
 
 
@@ -424,7 +389,6 @@ def test_read_empty_table(dl2_shower_geometry_file):
         table = loader.read_telescope_events(
             [6],
             dl1_parameters=False,
-            dl2=True,
         )
         assert len(table) == 0
 

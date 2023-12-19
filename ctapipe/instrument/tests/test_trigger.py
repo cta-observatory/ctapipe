@@ -220,11 +220,8 @@ def test_software_trigger_simtel_process(tmp_path):
     ) as loader:
         events_trigger = loader.read_telescope_events(
             "LST_LST_LSTCam",
-            dl1_muons=False,
             dl2=False,
             true_parameters=False,
-            instrument=False,
-            observation_info=False,
         )
 
     with TableLoader(
@@ -233,11 +230,8 @@ def test_software_trigger_simtel_process(tmp_path):
     ) as loader:
         events_no_trigger = loader.read_telescope_events(
             "LST_LST_LSTCam",
-            dl1_muons=False,
             dl2=False,
             true_parameters=False,
-            instrument=False,
-            observation_info=False,
         )
 
     assert len(events_no_trigger) > len(events_trigger)
