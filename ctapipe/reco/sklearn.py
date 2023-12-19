@@ -10,7 +10,7 @@ import astropy.units as u
 import joblib
 import numpy as np
 from astropy.coordinates import AltAz
-from astropy.table import QTable, Table
+from astropy.table import QTable, Table, hstack
 from astropy.utils.decorators import lazyproperty
 from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
@@ -965,21 +965,30 @@ class CrossValidator(Component):
             train = table[train_indices]
             test = table[test_indices]
 
-            cv_prediction, truth, metrics = self.cross_validate(
-                telescope_type, train, test
-            )
+            cv_result, metrics = self.cross_validate(telescope_type, train, test)
             if self.output_path:
+                results = hstack(
+                    [
+                        Table(
+                            data={
+                                "cv_fold": np.full(
+                                    len(cv_result), fold, dtype=np.uint8
+                                ),
+                                "tel_type": [str(telescope_type)] * len(cv_result),
+                                "true_energy": test["true_energy"],
+                                "true_impact_distance": test["true_impact_distance"],
+                            },
+                            descriptions={
+                                "cv_fold": "Cross validation iteration",
+                                "tel_type": "Telescope type",
+                            },
+                        ),
+                        cv_result,
+                    ],
+                    join_type="exact",
+                )
                 write_table(
-                    Table(
-                        {
-                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
-                            "tel_type": [str(telescope_type)] * len(truth),
-                            "truth": truth,
-                            "true_energy": test["true_energy"],
-                            "true_impact_distance": test["true_impact_distance"],
-                            **cv_prediction,
-                        }
-                    ),
+                    results,
                     self.h5file,
                     f"/cv_predictions/{telescope_type}",
                     append=True,
@@ -1004,7 +1013,17 @@ class CrossValidator(Component):
         prediction, _ = regressor._predict(telescope_type, test)
         truth = test[regressor.target]
         r2 = r2_score(truth, prediction)
-        return {f"{regressor.prefix}_energy": prediction}, truth, {"R^2": r2}
+        result = Table(
+            data={
+                f"{regressor.prefix}_energy": prediction,
+                "truth": truth,
+            },
+            descriptions={
+                f"{regressor.prefix}_energy": "Predicted Energy",
+                "truth": "Simulated Energy",
+            },
+        )
+        return result, {"R^2": r2}
 
     def _cross_validate_classification(self, telescope_type, train, test):
         classifier = self.model_component
@@ -1016,11 +1035,17 @@ class CrossValidator(Component):
             0,
         )
         roc_auc = roc_auc_score(truth, prediction)
-        return (
-            {f"{classifier.prefix}_prediction": prediction},
-            truth,
-            {"ROC AUC": roc_auc},
+        result = Table(
+            data={
+                f"{classifier.prefix}_prediction": prediction,
+                "truth": truth,
+            },
+            descriptions={
+                f"{classifier.prefix}_prediction": "Predicted gammaness score",
+                "truth": "Particle id (default is 1 for gammas)",
+            },
         )
+        return result, {"ROC AUC": roc_auc}
 
     def _cross_validate_disp(self, telescope_type, train, test):
         models = self.model_component
@@ -1029,8 +1054,16 @@ class CrossValidator(Component):
         truth = test[models.target]
         r2 = r2_score(np.abs(truth), np.abs(disp))
         accuracy = accuracy_score(np.sign(truth), np.sign(disp))
-        prediction = {
-            f"{models.prefix}_parameter": disp,
-            f"{models.prefix}_sign_score": sign_score,
-        }
-        return prediction, truth, {"R^2": r2, "accuracy": accuracy}
+        result = Table(
+            data={
+                f"{models.prefix}_parameter": disp,
+                f"{models.prefix}_sign_score": sign_score,
+                "truth": truth,
+            },
+            descriptions={
+                f"{models.prefix}_parameter": "Predicted disp parameter",
+                f"{models.prefix}_sign_score": "Score for how certain the disp sign classification was",
+                "truth": "True disp parameter",
+            },
+        )
+        return result, {"R^2": r2, "accuracy": accuracy}
