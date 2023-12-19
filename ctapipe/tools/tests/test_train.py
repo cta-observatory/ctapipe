@@ -1,6 +1,6 @@
 import pytest
 
-from ctapipe.core import run_tool
+from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.exceptions import TooFewEvents
 from ctapipe.utils.datasets import resource_file
 
@@ -85,6 +85,34 @@ def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):
     )
     assert ret == 0
     assert energy_cv_out_file.exists()
+
+    # test overwrite of cv results works
+    with pytest.raises(
+        ToolConfigurationError,
+        match=f"Output path {energy_cv_out_file} exists, but overwrite=False",
+    ):
+        run_tool(
+            tool,
+            argv=[
+                "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+                f"--output={out_file}",
+                f"--config={config}",
+                f"--cv-output={energy_cv_out_file}",
+            ],
+            raises=True,
+        )
+
+    ret = run_tool(
+        tool,
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output={out_file}",
+            f"--config={config}",
+            f"--cv-output={energy_cv_out_file}",
+            "--overwrite",
+        ],
+    )
+    assert ret == 0
 
     tool = TrainParticleClassifier()
     config = resource_file("train_particle_classifier.yaml")
