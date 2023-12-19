@@ -21,7 +21,7 @@ from ..irf import (
     EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
-    OptimisationResultStore,
+    OptimizationResultStore,
     OutputEnergyBinning,
     PsfIrf,
     Spectra,
@@ -44,7 +44,7 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     cuts_file = traits.Path(
-        default_value=None, directory_ok=False, help="Path to optimised cuts input file"
+        default_value=None, directory_ok=False, help="Path to optimized cuts input file"
     ).tag(config=True)
 
     gamma_file = traits.Path(
@@ -195,7 +195,7 @@ class IrfTool(Tool):
         self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = FovOffsetBinning(parent=self)
 
-        self.opt_result = OptimisationResultStore().read(self.cuts_file)
+        self.opt_result = OptimizationResultStore().read(self.cuts_file)
         self.epp = EventPreProcessor(parent=self)
         # TODO: not very elegant to pass them this way, refactor later
         self.epp.quality_criteria = self.opt_result.precuts.quality_criteria

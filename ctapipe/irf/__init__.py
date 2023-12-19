@@ -2,15 +2,15 @@
 from .binning import FovOffsetBinning, OutputEnergyBinning, check_bins_in_range
 from .irf_classes import PYIRF_SPECTRA, Spectra
 from .irfs import EffectiveAreaIrf, EnergyMigrationIrf, PsfIrf
-from .optimise import GridOptimizer, OptimisationResult, OptimisationResultStore
+from .optimize import GridOptimizer, OptimizationResult, OptimizationResultStore
 from .select import EventPreProcessor, EventsLoader, ThetaCutsCalculator
 
 __all__ = [
     "EnergyMigrationIrf",
     "PsfIrf",
     "EffectiveAreaIrf",
-    "OptimisationResult",
-    "OptimisationResultStore",
+    "OptimizationResult",
+    "OptimizationResultStore",
     "GridOptimizer",
     "OutputEnergyBinning",
     "FovOffsetBinning",
