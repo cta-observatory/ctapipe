@@ -1,4 +1,4 @@
-"""module containing optimisation related functions and classes"""
+"""module containing optimization related functions and classes"""
 import operator
 
 import astropy.units as u
@@ -18,7 +18,7 @@ class ResultValidRange:
         self.max = bounds_table[f"{prefix}_max"]
 
 
-class OptimisationResult:
+class OptimizationResult:
     def __init__(self, precuts, valid_energy, valid_offset, gh, theta):
         self.precuts = precuts
         self.valid_energy = ResultValidRange(valid_energy, "energy")
@@ -28,7 +28,7 @@ class OptimisationResult:
 
     def __repr__(self):
         return (
-            f"<OptimisationResult with {len(self.gh_cuts)} G/H bins "
+            f"<OptimizationResult with {len(self.gh_cuts)} G/H bins "
             f"and {len(self.theta_cuts)} theta bins valid "
             f"between {self.valid_offset.min} to {self.valid_offset.max} "
             f"and {self.valid_energy.min} to {self.valid_energy.max} "
@@ -36,7 +36,7 @@ class OptimisationResult:
         )
 
 
-class OptimisationResultStore:
+class OptimizationResultStore:
     def __init__(self, precuts=None):
         if precuts:
             if isinstance(precuts, QualityQuery):
@@ -102,16 +102,16 @@ class OptimisationResultStore:
         valid_energy = QTable.read(file_name, hdu=4)
         valid_offset = QTable.read(file_name, hdu=5)
 
-        return OptimisationResult(
+        return OptimizationResult(
             precuts, valid_energy, valid_offset, gh_cuts, theta_cuts
         )
 
 
 class GridOptimizer(Component):
-    """Performs cut optimisation"""
+    """Performs cut optimization"""
 
     initial_gh_cut_efficency = Float(
-        default_value=0.4, help="Start value of gamma efficiency before optimisation"
+        default_value=0.4, help="Start value of gamma efficiency before optimization"
     ).tag(config=True)
 
     max_gh_cut_efficiency = Float(
@@ -149,7 +149,7 @@ class GridOptimizer(Component):
         )
         return reco_energy
 
-    def optimise_gh_cut(
+    def optimize_gh_cut(
         self,
         signal,
         background,
@@ -206,7 +206,7 @@ class GridOptimizer(Component):
         )
         valid_energy = self._get_valid_energy_range(opt_sens)
 
-        result_saver = OptimisationResultStore(precuts)
+        result_saver = OptimizationResultStore(precuts)
         result_saver.set_result(
             gh_cuts,
             theta_cuts,
