@@ -17,8 +17,8 @@ from ..irf import (
 
 
 class IrfEventSelector(Tool):
-    name = "ctapipe-optimise-event-selection"
-    description = "Tool to create optimised cuts for IRF generation"
+    name = "ctapipe-optimize-event-selection"
+    description = "Tool to create optimized cuts for IRF generation"
 
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
@@ -55,7 +55,7 @@ class IrfEventSelector(Tool):
         default_value="./Selection_Cuts.fits",
         allow_none=False,
         directory_ok=False,
-        help="Output file storing optimisation result",
+        help="Output file storing optimization result",
     ).tag(config=True)
 
     obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)
@@ -148,10 +148,10 @@ class IrfEventSelector(Tool):
         )
 
         self.log.info(
-            "Optimising cuts using %d signal and %d background events"
+            "Optimizing cuts using %d signal and %d background events"
             % (len(self.signal_events), len(self.background_events)),
         )
-        result, ope_sens = self.go.optimise_gh_cut(
+        result, ope_sens = self.go.optimize_gh_cut(
             self.signal_events,
             self.background_events,
             self.alpha,
@@ -162,7 +162,7 @@ class IrfEventSelector(Tool):
         )
 
         self.log.info("Writing results to %s" % self.output_path)
-        Provenance().add_output_file(self.output_path, role="Optimisation_Result")
+        Provenance().add_output_file(self.output_path, role="Optimization Result")
         result.write(self.output_path, self.overwrite)
 
 
