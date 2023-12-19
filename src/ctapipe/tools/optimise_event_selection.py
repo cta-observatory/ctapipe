@@ -3,7 +3,7 @@ import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import Bool, Float, Integer, Unicode
+from ..core.traits import Float, Integer, Unicode
 from ..irf import (
     PYIRF_SPECTRA,
     EventPreProcessor,
@@ -56,11 +56,6 @@ class IrfEventSelector(Tool):
         allow_none=False,
         directory_ok=False,
         help="Output file storing optimisation result",
-    ).tag(config=True)
-
-    overwrite = Bool(
-        False,
-        help="Overwrite the output file if it exists",
     ).tag(config=True)
 
     obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)

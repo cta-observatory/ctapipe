@@ -91,11 +91,6 @@ class IrfTool(Tool):
         help="Output file",
     ).tag(config=True)
 
-    overwrite = Bool(
-        False,
-        help="Overwrite the output file if it exists",
-    ).tag(config=True)
-
     obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)
     obs_time_unit = Unicode(
         default_value="hour",
