@@ -68,6 +68,14 @@ class IrfEventSelector(Tool):
         default_value=0.2, help="Ratio between size of on and off regions"
     ).tag(config=True)
 
+    aliases = {
+        "gamma-file": "IrfEventSelector.gamma_file",
+        "proton-file": "IrfEventSelector.proton_file",
+        "electron-file": "IrfEventSelector.electron_file",
+        "output": "IrfEventSelector.output_path",
+        "chunk_size": "IrfEventSelector.chunk_size",
+    }
+
     classes = [GridOptimizer, FovOffsetBinning, OutputEnergyBinning, EventPreProcessor]
 
     def setup(self):
