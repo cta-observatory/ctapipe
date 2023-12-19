@@ -18,7 +18,6 @@ from ..irf import (
     PYIRF_SPECTRA,
     EffectiveAreaIrf,
     EnergyMigrationIrf,
-    EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
     OptimizationResultStore,
@@ -128,7 +127,7 @@ class IrfTool(Tool):
     classes = [
         OutputEnergyBinning,
         FovOffsetBinning,
-        EventPreProcessor,
+        EventsLoader,
         PsfIrf,
         EnergyMigrationIrf,
         EffectiveAreaIrf,
@@ -196,9 +195,7 @@ class IrfTool(Tool):
         self.bins = FovOffsetBinning(parent=self)
 
         self.opt_result = OptimizationResultStore().read(self.cuts_file)
-        self.epp = EventPreProcessor(parent=self)
-        # TODO: not very elegant to pass them this way, refactor later
-        self.epp.quality_criteria = self.opt_result.precuts.quality_criteria
+
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
         self.fov_offset_bins = self.bins.fov_offset_bins()
@@ -208,7 +205,6 @@ class IrfTool(Tool):
 
         self.particles = [
             EventsLoader(
-                self.epp,
                 "gammas",
                 self.gamma_file,
                 PYIRF_SPECTRA[self.gamma_sim_spectrum],
@@ -217,7 +213,6 @@ class IrfTool(Tool):
         if self.do_background and self.proton_file:
             self.particles.append(
                 EventsLoader(
-                    self.epp,
                     "protons",
                     self.proton_file,
                     PYIRF_SPECTRA[self.proton_sim_spectrum],
@@ -226,7 +221,6 @@ class IrfTool(Tool):
         if self.do_background and self.electron_file:
             self.particles.append(
                 EventsLoader(
-                    self.epp,
                     "electrons",
                     self.electron_file,
                     PYIRF_SPECTRA[self.electron_sim_spectrum],
@@ -236,6 +230,9 @@ class IrfTool(Tool):
             raise RuntimeError(
                 "At least one electron or proton file required when speficying `do_background`."
             )
+        for loader in self.particles:
+            # TODO: not very elegant to pass them this way, refactor later
+            loader.epp.quality_criteria = self.opt_result.precuts.quality_criteria
 
         self.aeff = None
 
