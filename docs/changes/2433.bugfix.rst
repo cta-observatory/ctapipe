@@ -1,0 +1,3 @@
+Change DL1 charge calibration in event to be a single, relative coefficient
+per channel / pixel instead of having an absolute factor for conversion to
+p.e. and a relative factor for achieving a uniform charge distrubtion.
