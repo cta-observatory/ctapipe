@@ -60,13 +60,25 @@ class CameraDescription:
 
     @classmethod
     def from_name(cls, name):
-        """
-        Construct a CameraDescription from a camera name
+        """Construct a CameraDescription from a camera name
 
         Parameters
         ----------
         name: str
             Camera name (e.g. NectarCam, LSTCam, ...)
+
+
+        Notes
+        -----
+
+        Warning: This method loads a pre-generated ``CameraDescription`` and is
+        thus not guranteed to be the same pixel ordering or even positions that
+        correspond with event data! Therefore if you are analysing data, you
+        should not rely on this method, but rather open the data with an
+        ``EventSource`` and use the ``CameraDescription`` that is provided by
+        ``source.subarray.tel[i].camera`` or by
+        ``source.subarray.camera_types[type_name]``. This will guarantee that
+        the pixels in the event data correspond with the ``CameraDescription``
 
         Returns
         -------
