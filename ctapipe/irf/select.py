@@ -13,104 +13,6 @@ from ..io import TableLoader
 from ..irf import FovOffsetBinning
 
 
-class EventsLoader(Component):
-    def __init__(self, event_pre_processor, kind, file, target_spectrum, **kwargs):
-        super().__init__(**kwargs)
-
-        self.epp = event_pre_processor
-        self.target_spectrum = target_spectrum
-        self.kind = kind
-        self.file = file
-
-    def load_preselected_events(self, chunk_size, obs_time, fov_bins):
-        opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
-        with TableLoader(self.file, parent=self, **opts) as load:
-            header = self.epp.make_empty_table()
-            sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
-            if self.kind == "gammas":
-                meta = {"sim_info": sim_info, "spectrum": spectrum}
-            else:
-                meta = None
-            bits = [header]
-            n_raw_events = 0
-            for _, _, events in load.read_subarray_events_chunked(chunk_size):
-                selected = events[self.epp.get_table_mask(events)]
-                selected = self.epp.normalise_column_names(selected)
-                selected = self.make_derived_columns(
-                    selected, spectrum, obs_conf, fov_bins
-                )
-                bits.append(selected)
-                n_raw_events += len(events)
-
-            table = vstack(bits, join_type="exact")
-            return table, n_raw_events, meta
-
-    def get_metadata(self, loader, obs_time):
-        obs = loader.read_observation_information()
-        sim = loader.read_simulation_configuration()
-        show = loader.read_shower_distribution()
-
-        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(np.unique(sim[itm])) > 1:
-                raise NotImplementedError(
-                    f"Unsupported: '{itm}' differs across simulation runs"
-                )
-
-        sim_info = SimulatedEventsInfo(
-            n_showers=show["n_entries"].sum(),
-            energy_min=sim["energy_range_min"].quantity[0],
-            energy_max=sim["energy_range_max"].quantity[0],
-            max_impact=sim["max_scatter_range"].quantity[0],
-            spectral_index=sim["spectral_index"][0],
-            viewcone_max=sim["max_viewcone_radius"].quantity[0],
-            viewcone_min=sim["min_viewcone_radius"].quantity[0],
-        )
-
-        return (
-            sim_info,
-            PowerLaw.from_simulation(sim_info, obstime=obs_time),
-            obs,
-        )
-
-    def make_derived_columns(self, events, spectrum, obs_conf, fov_bins):
-        if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert all(obs_conf["subarray_pointing_frame"] == 0)
-            # Lets suppose 0 means ALTAZ
-            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
-            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
-        else:
-            raise NotImplementedError(
-                "No support for making irfs from varying pointings yet"
-            )
-
-        events["theta"] = calculate_theta(
-            events,
-            assumed_source_az=events["true_az"],
-            assumed_source_alt=events["true_alt"],
-        )
-        events["true_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="true"
-        )
-        events["reco_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="reco"
-        )
-
-        if self.kind == "gammas":
-            if isinstance(fov_bins, FovOffsetBinning):
-                spectrum = spectrum.integrate_cone(
-                    fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
-                )
-            else:
-                spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[-1])
-        events["weight"] = calculate_event_weights(
-            events["true_energy"],
-            target_spectrum=self.target_spectrum,
-            simulated_spectrum=spectrum,
-        )
-
-        return events
-
-
 class EventPreProcessor(QualityQuery):
     """Defines preselection cuts and the necessary renaming of columns"""
 
@@ -204,6 +106,106 @@ class EventPreProcessor(QualityQuery):
         }
 
         return QTable(names=columns, units=units)
+
+
+class EventsLoader(Component):
+    classes = [EventPreProcessor]
+
+    def __init__(self, kind, file, target_spectrum, **kwargs):
+        super().__init__(**kwargs)
+
+        self.epp = EventPreProcessor(parent=self)
+        self.target_spectrum = target_spectrum
+        self.kind = kind
+        self.file = file
+
+    def load_preselected_events(self, chunk_size, obs_time, fov_bins):
+        opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
+        with TableLoader(self.file, parent=self, **opts) as load:
+            header = self.epp.make_empty_table()
+            sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
+            if self.kind == "gammas":
+                meta = {"sim_info": sim_info, "spectrum": spectrum}
+            else:
+                meta = None
+            bits = [header]
+            n_raw_events = 0
+            for _, _, events in load.read_subarray_events_chunked(chunk_size):
+                selected = events[self.epp.get_table_mask(events)]
+                selected = self.epp.normalise_column_names(selected)
+                selected = self.make_derived_columns(
+                    selected, spectrum, obs_conf, fov_bins
+                )
+                bits.append(selected)
+                n_raw_events += len(events)
+
+            table = vstack(bits, join_type="exact")
+            return table, n_raw_events, meta
+
+    def get_metadata(self, loader, obs_time):
+        obs = loader.read_observation_information()
+        sim = loader.read_simulation_configuration()
+        show = loader.read_shower_distribution()
+
+        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
+            if len(np.unique(sim[itm])) > 1:
+                raise NotImplementedError(
+                    f"Unsupported: '{itm}' differs across simulation runs"
+                )
+
+        sim_info = SimulatedEventsInfo(
+            n_showers=show["n_entries"].sum(),
+            energy_min=sim["energy_range_min"].quantity[0],
+            energy_max=sim["energy_range_max"].quantity[0],
+            max_impact=sim["max_scatter_range"].quantity[0],
+            spectral_index=sim["spectral_index"][0],
+            viewcone_max=sim["max_viewcone_radius"].quantity[0],
+            viewcone_min=sim["min_viewcone_radius"].quantity[0],
+        )
+
+        return (
+            sim_info,
+            PowerLaw.from_simulation(sim_info, obstime=obs_time),
+            obs,
+        )
+
+    def make_derived_columns(self, events, spectrum, obs_conf, fov_bins):
+        if obs_conf["subarray_pointing_lat"].std() < 1e-3:
+            assert all(obs_conf["subarray_pointing_frame"] == 0)
+            # Lets suppose 0 means ALTAZ
+            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
+            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
+        else:
+            raise NotImplementedError(
+                "No support for making irfs from varying pointings yet"
+            )
+
+        events["theta"] = calculate_theta(
+            events,
+            assumed_source_az=events["true_az"],
+            assumed_source_alt=events["true_alt"],
+        )
+        events["true_source_fov_offset"] = calculate_source_fov_offset(
+            events, prefix="true"
+        )
+        events["reco_source_fov_offset"] = calculate_source_fov_offset(
+            events, prefix="reco"
+        )
+
+        if self.kind == "gammas":
+            if isinstance(fov_bins, FovOffsetBinning):
+                spectrum = spectrum.integrate_cone(
+                    fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
+                )
+            else:
+                spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[-1])
+        events["weight"] = calculate_event_weights(
+            events["true_energy"],
+            target_spectrum=self.target_spectrum,
+            simulated_spectrum=spectrum,
+        )
+
+        return events
 
 
 class ThetaCutsCalculator(Component):

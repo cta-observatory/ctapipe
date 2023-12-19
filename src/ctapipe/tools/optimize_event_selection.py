@@ -6,7 +6,6 @@ from ..core import Provenance, Tool, traits
 from ..core.traits import Float, Integer, Unicode
 from ..irf import (
     PYIRF_SPECTRA,
-    EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
     GridOptimizer,
@@ -76,14 +75,13 @@ class IrfEventSelector(Tool):
         "chunk_size": "IrfEventSelector.chunk_size",
     }
 
-    classes = [GridOptimizer, FovOffsetBinning, OutputEnergyBinning, EventPreProcessor]
+    classes = [GridOptimizer, FovOffsetBinning, OutputEnergyBinning, EventsLoader]
 
     def setup(self):
         self.go = GridOptimizer(parent=self)
         self.theta = ThetaCutsCalculator(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = FovOffsetBinning(parent=self)
-        self.epp = EventPreProcessor(parent=self)
 
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
@@ -92,19 +90,16 @@ class IrfEventSelector(Tool):
 
         self.particles = [
             EventsLoader(
-                self.epp,
                 "gammas",
                 self.gamma_file,
                 PYIRF_SPECTRA[self.gamma_sim_spectrum],
             ),
             EventsLoader(
-                self.epp,
                 "protons",
                 self.proton_file,
                 PYIRF_SPECTRA[self.proton_sim_spectrum],
             ),
             EventsLoader(
-                self.epp,
                 "electrons",
                 self.electron_file,
                 PYIRF_SPECTRA[self.electron_sim_spectrum],
@@ -158,7 +153,7 @@ class IrfEventSelector(Tool):
             self.bins.fov_offset_min * u.deg,
             self.bins.fov_offset_max * u.deg,
             self.theta,
-            self.epp,
+            self.particles[0].epp,  # precuts are the same for all particle types
         )
 
         self.log.info("Writing results to %s" % self.output_path)
