@@ -581,12 +581,24 @@ class CameraGeometry:
 
     @classmethod
     def from_name(cls, name="NectarCam", version=None):
-        """
-        Construct a CameraGeometry using the name of the camera and array.
+        """Construct a CameraGeometry using the name of the camera and array.
 
         This expects that there is a resource accessible via
         `~ctapipe.utils.get_table_dataset` called ``"[array]-[camera].camgeom.fits.gz"``
         or ``"[array]-[camera]-[version].camgeom.fits.gz"``
+
+        Notes
+        -----
+
+        Warning: This method loads a pre-generated ``CameraGeometry`` and is
+        thus not guranteed to be the same pixel ordering or even positions that
+        correspond with event data! Therefore if you are analysing data, you
+        should not rely on this method, but rather open the data with an
+        ``EventSource`` and use the ``CameraGeometry`` that is provided by
+        ``source.subarray.tel[i].camera.geometry`` or by
+        ``source.subarray.camera_types[type_name].geometry``. This will
+        guarantee that the pixels in the event data correspond with the
+        ``CameraGeometry``
 
         Parameters
         ----------
@@ -598,6 +610,7 @@ class CameraGeometry:
         Returns
         -------
         new CameraGeometry
+
         """
 
         if version is None:
