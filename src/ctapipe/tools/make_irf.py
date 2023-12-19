@@ -13,7 +13,7 @@ from pyirf.irf import background_2d
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import Bool, Float, Integer, Unicode
+from ..core.traits import Bool, Float, Integer, Unicode, flag
 from ..irf import (
     PYIRF_SPECTRA,
     EffectiveAreaIrf,
@@ -101,6 +101,30 @@ class IrfTool(Tool):
         default_value=0.2, help="Ratio between size of on and off regions"
     ).tag(config=True)
 
+    aliases = {
+        "cuts": "IrfTool.cuts_file",
+        "gamma-file": "IrfTool.gamma_file",
+        "proton-file": "IrfTool.proton_file",
+        "electron-file": "IrfTool.electron_file",
+        "output": "IrfTool.output_path",
+        "chunk_size": "IrfTool.chunk_size",
+    }
+
+    flags = {
+        **flag(
+            "do-background",
+            "IrfTool.do_background",
+            "Compute background rate.",
+            "Do not compute background rate.",
+        ),
+        **flag(
+            "do-benchmarks",
+            "IrfTool.do_benchmarks",
+            "Produce IRF related benchmarks.",
+            "Do not produce IRF related benchmarks.",
+        ),
+    }
+
     classes = [
         OutputEnergyBinning,
         FovOffsetBinning,
@@ -153,13 +177,18 @@ class IrfTool(Tool):
 
         # TODO: maybe rework the above so we can give the number per
         # species instead of the total background
-        self.log.debug(
-            "Keeping %d signal, %d backgrond events"
-            % (
-                sum(self.signal_events["selected"]),
-                sum(self.background_events["selected"]),
+        if self.do_background:
+            self.log.debug(
+                "Keeping %d signal, %d background events"
+                % (
+                    sum(self.signal_events["selected"]),
+                    sum(self.background_events["selected"]),
+                )
             )
-        )
+        else:
+            self.log.debug(
+                "Keeping %d signal events" % (sum(self.signal_events["selected"]))
+            )
 
     def setup(self):
         self.theta = ThetaCutsCalculator(parent=self)
