@@ -321,8 +321,8 @@ class IrfTool(Tool):
                 reco_energy_bins=self.reco_energy_bins,
                 theta_cuts=self.theta_cuts_opt,
                 alpha=self.alpha,
-                fov_offset_min=self.fov_offset_bins["offset_min"],
-                fov_offset_max=self.fov_offset_bins["offset_max"],
+                fov_offset_min=self.fov_offset_bins[0],
+                fov_offset_max=self.fov_offset_bins[-1],
             )
             sensitivity = calculate_sensitivity(
                 signal_hist, background_hist, alpha=self.alpha
@@ -374,7 +374,7 @@ class IrfTool(Tool):
         if self.do_benchmarks:
             b_hdus = [fits.PrimaryHDU()]
             b_hdus = self._make_benchmark_hdus(b_hdus)
-            self.b_hdus = self.b_hdus
+            self.b_hdus = b_hdus
 
     def finish(self):
         self.log.info("Writing outputfile '%s'" % self.output_path)
