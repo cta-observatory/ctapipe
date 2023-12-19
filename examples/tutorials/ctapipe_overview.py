@@ -401,7 +401,7 @@ with DataWriter(
 ######################################################################
 loader = TableLoader(f.name)
 
-events = loader.read_subarray_events(dl2=True, simulated=True)
+events = loader.read_subarray_events()
 
 ######################################################################
 theta = angular_separation(
@@ -468,11 +468,8 @@ loader = TableLoader(f.name)
 
 dl1_table = loader.read_telescope_events(
     ["LST_LST_LSTCam"],
-    dl1_muons=False,
     dl2=False,
     true_parameters=False,
-    instrument=False,
-    observation_info=False,
 )
 
 ######################################################################

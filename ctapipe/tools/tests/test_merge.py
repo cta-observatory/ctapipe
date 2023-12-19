@@ -160,9 +160,7 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
     loader = TableLoader(output)
     tel_events = loader.read_telescope_events(
         dl1_parameters=False,
-        dl1_muons=False,
         true_parameters=False,
-        instrument=False,
     )
     assert "true_impact_distance" in tel_events.colnames
     # regression test for #2051
