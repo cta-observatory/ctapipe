@@ -289,7 +289,7 @@ class IrfTool(Tool):
         hdus.append(
             create_rad_max_hdu(
                 self.theta_cuts_opt["cut"].reshape(-1, 1),
-                self.true_energy_bins,
+                self.reco_energy_bins,
                 self.fov_offset_bins,
             )
         )
