@@ -2,7 +2,9 @@
 """ print information about ctapipe and its command-line tools. """
 import logging
 import os
+import re
 import sys
+from importlib.metadata import metadata, requires
 from importlib.resources import files
 
 from ..core import Provenance, get_module_version
@@ -11,27 +13,6 @@ from ..utils import datasets
 from .utils import get_parser
 
 __all__ = ["info"]
-
-# TODO: this list should be global (or generated at install time)
-_dependencies = sorted(
-    [
-        "astropy",
-        "matplotlib",
-        "numpy",
-        "traitlets",
-        "sklearn",
-        "scipy",
-        "numba",
-        "pytest",
-        "iminuit",
-        "tables",
-        "eventio",
-    ]
-)
-
-_optional_dependencies = sorted(
-    ["ctapipe_resources", "pytest", "graphviz", "matplotlib"]
-)
 
 
 def main(args=None):
@@ -76,6 +57,12 @@ def main(args=None):
         sys.exit(1)
 
     info(**vars(args))
+
+
+def pretty_print_requires(package):
+    pack_name = re.split(";|=|>|<|@|~| ", package)[0]
+    entry = f"{pack_name} -- {get_module_version(pack_name)}"
+    return entry
 
 
 def info(
@@ -160,17 +147,32 @@ def _info_tools():
 
 def _info_dependencies():
     """Print info about dependencies."""
+
+    meta = metadata("ctapipe")
+    extras = [v for k, v in meta.items() if k == "Provides-Extra"]
+
+    all_dependencies = set(requires("ctapipe"))
+
+    optional_dependencies = {extra: [] for extra in extras}
+
+    required_dependencies = []
+    for package in all_dependencies:
+        if "extra" in package:
+            for extra in extras:
+                if extra in package:
+                    optional_dependencies[extra].append(pretty_print_requires(package))
+        else:
+            required_dependencies.append(pretty_print_requires(package))
+
     print("\n*** ctapipe core dependencies ***\n")
 
-    for name in _dependencies:
-        version = get_module_version(name)
-        print(f"{name:>20s} -- {version}")
+    for package in required_dependencies:
+        print(package)
 
-    print("\n*** ctapipe optional dependencies ***\n")
-
-    for name in _optional_dependencies:
-        version = get_module_version(name)
-        print(f"{name:>20s} -- {version}")
+    for extra in optional_dependencies:
+        print(f"\n*** ctapipe optional dependencies [{extra}] ***\n")
+        for package in optional_dependencies[extra]:
+            print(package)
 
 
 def _info_resources():
@@ -215,7 +217,6 @@ def _info_system():
     system_prov = prov.current_activity.provenance["system"]
 
     for section in ["platform", "python"]:
-
         print("\n====== ", section, " ======== \n")
         sysinfo = system_prov[section]
 

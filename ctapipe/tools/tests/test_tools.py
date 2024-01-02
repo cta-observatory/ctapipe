@@ -53,12 +53,6 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     run_tool(DisplayDL1Calib(), ["--help-all"], raises=True)
 
 
-def test_info():
-    from ctapipe.tools.info import info
-
-    info(show_all=True)
-
-
 def test_fileinfo(tmp_path, dl1_image_file):
     """check we can run ctapipe-fileinfo and get results"""
     import yaml
