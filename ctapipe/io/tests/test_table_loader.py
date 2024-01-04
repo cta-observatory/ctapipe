@@ -272,10 +272,16 @@ def test_chunked(dl2_shower_geometry_file):
     stop = chunk_size
 
     with TableLoader(dl2_shower_geometry_file) as table_loader:
-        tel_event_it = table_loader.read_telescope_events_chunked(chunk_size=chunk_size, true_parameters=False)
+        tel_event_it = table_loader.read_telescope_events_chunked(
+            chunk_size=chunk_size, true_parameters=False
+        )
         event_it = table_loader.read_subarray_events_chunked(chunk_size=chunk_size)
-        by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size=chunk_size, true_parameters=False)
-        by_id_it = table_loader.read_telescope_events_by_id_chunked(chunk_size=chunk_size, true_parameters=False)
+        by_type_it = table_loader.read_telescope_events_by_type_chunked(
+            chunk_size=chunk_size, true_parameters=False
+        )
+        by_id_it = table_loader.read_telescope_events_by_id_chunked(
+            chunk_size=chunk_size, true_parameters=False
+        )
 
         iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
