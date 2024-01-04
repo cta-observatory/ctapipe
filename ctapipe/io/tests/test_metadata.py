@@ -115,7 +115,7 @@ def test_from_dict():
             data_association="Subarray",
             data_model_name="Unofficial DL1",
             data_model_version="1.0",
-            data_model_url="http://google.com",
+            data_model_url="https://example.org",
             format="hdf5",
         ),
         process=meta.Process(type_="Simulation", subtype="Prod3b", id_="423442"),
