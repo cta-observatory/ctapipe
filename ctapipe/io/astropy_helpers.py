@@ -24,7 +24,7 @@ from .tableio import (
     TimeColumnTransform,
 )
 
-__all__ = ["read_table", "join_allow_empty"]
+__all__ = ["read_table", "write_table", "join_allow_empty"]
 
 
 def read_table(
