@@ -105,7 +105,6 @@ def test_software_trigger_simtel(allowed_tels):
     with EventSource(
         path, focal_length_choice="EQUIVALENT", allowed_tels=allowed_tels
     ) as source:
-
         trigger = SoftwareTrigger(
             subarray=source.subarray,
             min_telescopes=2,
@@ -152,7 +151,6 @@ def test_software_trigger_simtel_single_lsts():
     with EventSource(
         path, focal_length_choice="EQUIVALENT", allowed_tels=allowed_tels
     ) as source:
-
         trigger = SoftwareTrigger(
             subarray=source.subarray,
             min_telescopes=2,
@@ -218,18 +216,22 @@ def test_software_trigger_simtel_process(tmp_path):
 
     with TableLoader(
         output_path,
-        load_simulated=True,
-        load_dl1_parameters=True,
         focal_length_choice="EQUIVALENT",
     ) as loader:
-        events_trigger = loader.read_telescope_events("LST_LST_LSTCam")
+        events_trigger = loader.read_telescope_events(
+            "LST_LST_LSTCam",
+            dl2=False,
+            true_parameters=False,
+        )
 
     with TableLoader(
         output_path_no_software_trigger,
-        load_simulated=True,
-        load_dl1_parameters=True,
         focal_length_choice="EQUIVALENT",
     ) as loader:
-        events_no_trigger = loader.read_telescope_events("LST_LST_LSTCam")
+        events_no_trigger = loader.read_telescope_events(
+            "LST_LST_LSTCam",
+            dl2=False,
+            true_parameters=False,
+        )
 
     assert len(events_no_trigger) > len(events_trigger)

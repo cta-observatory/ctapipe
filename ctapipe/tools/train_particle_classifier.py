@@ -122,11 +122,6 @@ class TrainParticleClassifier(Tool):
             TableLoader(
                 parent=self,
                 input_url=self.input_url_signal,
-                load_dl1_images=False,
-                load_dl1_parameters=True,
-                load_dl2=True,
-                load_simulated=True,
-                load_instrument=True,
             )
         )
 
@@ -134,11 +129,6 @@ class TrainParticleClassifier(Tool):
             TableLoader(
                 parent=self,
                 input_url=self.input_url_background,
-                load_dl1_images=False,
-                load_dl1_parameters=True,
-                load_dl2=True,
-                load_simulated=True,
-                load_instrument=True,
             )
         )
 

@@ -393,10 +393,9 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
     ] + few_tels
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
 
-    args = dict(load_dl2=True, load_simulated=True)
-    with TableLoader(dl2_from_simtel, **args) as loader:
+    with TableLoader(dl2_from_simtel) as loader:
         events_from_simtel = loader.read_subarray_events()
-    with TableLoader(dl2_from_dl1, **args) as loader:
+    with TableLoader(dl2_from_dl1) as loader:
         events_from_dl1 = loader.read_subarray_events()
 
     # both files should contain identical data
@@ -487,8 +486,8 @@ def test_only_trigger_and_simulation(tmp_path):
         raises=True,
     )
 
-    with TableLoader(output, load_simulated=True) as loader:
-        events = loader.read_subarray_events()
+    with TableLoader(output) as loader:
+        events = loader.read_subarray_events(dl2=False)
         assert len(events) == 7
         assert "tels_with_trigger" in events.colnames
         assert "true_energy" in events.colnames

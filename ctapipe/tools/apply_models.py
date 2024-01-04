@@ -144,12 +144,6 @@ class ApplyModels(Tool):
             TableLoader(
                 self.input_url,
                 parent=self,
-                load_dl1_parameters=True,
-                load_dl2=True,
-                load_instrument=True,
-                load_dl1_images=False,
-                load_simulated=False,
-                load_observation_info=True,
             )
         )
 
@@ -163,7 +157,11 @@ class ApplyModels(Tool):
     def start(self):
         """Apply models to input tables"""
         chunk_iterator = self.loader.read_telescope_events_by_id_chunked(
-            self.chunk_size
+            self.chunk_size,
+            simulated=False,
+            true_parameters=False,
+            observation_info=True,
+            instrument=True,
         )
         bar = tqdm(
             chunk_iterator,
