@@ -596,11 +596,7 @@ class TableLoader(Component):
             )
             table = _join_telescope_events(table, impacts)
 
-        if (
-            len(table) > 0
-            and pointing
-            and FIXED_POINTING_GROUP in self.h5file.root
-        ):
+        if len(table) > 0 and pointing and FIXED_POINTING_GROUP in self.h5file.root:
             pointing = read_table(
                 self.h5file, f"{FIXED_POINTING_GROUP}/tel_{tel_id:03d}"
             )
