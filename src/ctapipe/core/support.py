@@ -1,5 +1,12 @@
+"""Module implementing supporting classes needed in ctapipe.core"""
+
+__all__ = [
+    "Singleton",
+]
+
+
 class Singleton(type):
-    """ " metaclass for singleton pattern"""
+    """metaclass for singleton pattern"""
 
     instance = None
 
