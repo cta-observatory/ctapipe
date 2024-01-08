@@ -43,19 +43,23 @@ jobs:
 
           - os: ubuntu-latest
             python-version: "3.10"
+            install-method: pip
+
+          - os: ubuntu-latest
+            python-version: "3.11"
+            install-method: mamba
+
+          - os: ubuntu-latest
+            python-version: "3.12"
             install-method: mamba
             extra-args: ["codecov"]
 
           - os: ubuntu-latest
-            python-version: "3.11"
-            install-method: mamba
-
-          - os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
             install-method: pip
 
           - os: macos-latest
-            python-version: "3.11"
+            python-version: "3.12"
             install-method: mamba
 
           - os: macos-latest
@@ -116,10 +120,10 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          pip install pytest-cov pytest-xdist 'coverage!=6.3.0'
           pip install -e .[all]
           pip install ./test_plugin
           pip freeze
+          pip list
 
       - name: ctapipe-info
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
