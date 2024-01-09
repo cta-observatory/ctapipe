@@ -16,7 +16,6 @@ from ..containers import (
     SchedulingBlockContainer,
 )
 from ..core import TelescopeComponent, traits
-from ..image import toymodel
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -97,6 +96,7 @@ class ToyEventSource(TelescopeComponent, EventSource):
             self.event_id += 1
 
     def generate_event(self):
+        from ..image import toymodel
 
         event = ArrayEventContainer(
             index=EventIndexContainer(obs_id=1, event_id=self.event_id),
