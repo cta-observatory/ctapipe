@@ -10,11 +10,12 @@ import astropy.units as u
 import joblib
 import numpy as np
 from astropy.coordinates import AltAz
-from astropy.table import QTable, Table, vstack
+from astropy.table import QTable, Table, hstack
 from astropy.utils.decorators import lazyproperty
 from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
+from tables import open_file
 from tqdm import tqdm
 from traitlets import TraitError, observe
 
@@ -28,7 +29,14 @@ from ..containers import (
     ReconstructedGeometryContainer,
 )
 from ..coordinates import TelescopeFrame
-from ..core import Component, FeatureGenerator, Provenance, QualityQuery, traits
+from ..core import (
+    Component,
+    FeatureGenerator,
+    Provenance,
+    QualityQuery,
+    ToolConfigurationError,
+    traits,
+)
 from ..io import write_table
 from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
@@ -850,7 +858,7 @@ class DispReconstructor(Reconstructor):
         Update n_jobs of all associated models.
         """
         if hasattr(self, "_models"):
-            for (disp, sign) in self._models.values():
+            for disp, sign in self._models.values():
                 disp.n_jobs = n_jobs.new
                 sign.n_jobs = n_jobs.new
 
@@ -878,9 +886,8 @@ class CrossValidator(Component):
         default_value=1337, help="Random seed for splitting the training data."
     ).tag(config=True)
 
-    def __init__(self, model_component, **kwargs):
+    def __init__(self, model_component, overwrite=False, **kwargs):
         super().__init__(**kwargs)
-        self.cv_predictions = {}
         self.model_component = model_component
         self.rng = np.random.default_rng(self.rng_seed)
 
@@ -898,6 +905,29 @@ class CrossValidator(Component):
                 "Unsupported Model of type %s supplied", self.model_component
             )
 
+        if self.output_path:
+            if self.output_path.exists():
+                if overwrite:
+                    self.log.warning("Overwriting %s", self.output_path)
+                else:
+                    raise ToolConfigurationError(
+                        f"Output path {self.output_path} exists, but overwrite=False"
+                    )
+
+            Provenance().add_output_file(self.output_path, role="ml-cross-validation")
+            self.h5file = open_file(self.output_path, mode="w")
+
+    def close(self):
+        """Close the output hdf5 file, if ``self.output_path`` is given."""
+        if self.output_path:
+            self.h5file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def __call__(self, telescope_type, table):
         """Perform cross validation for the given model."""
         if self.n_cross_validations == 0:
@@ -913,8 +943,6 @@ class CrossValidator(Component):
         )
 
         scores = defaultdict(list)
-        predictions = []
-
         kfold = self.split_data(
             n_splits=self.n_cross_validations,
             shuffle=True,
@@ -937,21 +965,27 @@ class CrossValidator(Component):
             train = table[train_indices]
             test = table[test_indices]
 
-            cv_prediction, truth, metrics = self.cross_validate(
-                telescope_type, train, test
-            )
-            predictions.append(
-                Table(
-                    {
-                        "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
-                        "tel_type": [str(telescope_type)] * len(truth),
-                        "truth": truth,
+            cv_result, metrics = self.cross_validate(telescope_type, train, test)
+            if self.output_path:
+                results = Table(
+                    data={
+                        "cv_fold": np.full(len(cv_result), fold, dtype=np.uint8),
+                        "tel_type": [str(telescope_type)] * len(cv_result),
                         "true_energy": test["true_energy"],
                         "true_impact_distance": test["true_impact_distance"],
-                        **cv_prediction,
-                    }
+                    },
+                    descriptions={
+                        "cv_fold": "Cross validation iteration",
+                        "tel_type": "Telescope type",
+                    },
                 )
-            )
+                results = hstack([results, cv_result], join_type="exact")
+                write_table(
+                    results,
+                    self.h5file,
+                    f"/cv_predictions/{telescope_type}",
+                    append=True,
+                )
 
             for metric, value in metrics.items():
                 scores[metric].append(value)
@@ -965,7 +999,6 @@ class CrossValidator(Component):
                     cv_values.mean(),
                     cv_values.std(),
                 )
-        self.cv_predictions[telescope_type] = vstack(predictions)
 
     def _cross_validate_regressor(self, telescope_type, train, test):
         regressor = self.model_component
@@ -973,7 +1006,17 @@ class CrossValidator(Component):
         prediction, _ = regressor._predict(telescope_type, test)
         truth = test[regressor.target]
         r2 = r2_score(truth, prediction)
-        return {f"{regressor.prefix}_energy": prediction}, truth, {"R^2": r2}
+        result = Table(
+            data={
+                f"{regressor.prefix}_energy": prediction,
+                "truth": truth,
+            },
+            descriptions={
+                f"{regressor.prefix}_energy": "Predicted Energy",
+                "truth": "Simulated Energy",
+            },
+        )
+        return result, {"R^2": r2}
 
     def _cross_validate_classification(self, telescope_type, train, test):
         classifier = self.model_component
@@ -985,11 +1028,17 @@ class CrossValidator(Component):
             0,
         )
         roc_auc = roc_auc_score(truth, prediction)
-        return (
-            {f"{classifier.prefix}_prediction": prediction},
-            truth,
-            {"ROC AUC": roc_auc},
+        result = Table(
+            data={
+                f"{classifier.prefix}_prediction": prediction,
+                "truth": truth,
+            },
+            descriptions={
+                f"{classifier.prefix}_prediction": "Predicted gammaness score",
+                "truth": "Particle id (default is 1 for gammas)",
+            },
         )
+        return result, {"ROC AUC": roc_auc}
 
     def _cross_validate_disp(self, telescope_type, train, test):
         models = self.model_component
@@ -998,21 +1047,16 @@ class CrossValidator(Component):
         truth = test[models.target]
         r2 = r2_score(np.abs(truth), np.abs(disp))
         accuracy = accuracy_score(np.sign(truth), np.sign(disp))
-        prediction = {
-            f"{models.prefix}_parameter": disp,
-            f"{models.prefix}_sign_score": sign_score,
-        }
-        return prediction, truth, {"R^2": r2, "accuracy": accuracy}
-
-    def write(self, overwrite=False):
-        if self.n_cross_validations == 0:
-            return 0
-
-        if self.output_path.exists() and not overwrite:
-            raise IOError(f"Path {self.output_path} exists and overwrite=False")
-
-        Provenance().add_output_file(self.output_path, role="ml-cross-validation")
-        for tel_type, results in self.cv_predictions.items():
-            write_table(
-                results, self.output_path, f"/cv_predictions_{tel_type}", overwrite=True
-            )
+        result = Table(
+            data={
+                f"{models.prefix}_parameter": disp,
+                f"{models.prefix}_sign_score": sign_score,
+                "truth": truth,
+            },
+            descriptions={
+                f"{models.prefix}_parameter": "Predicted disp parameter",
+                f"{models.prefix}_sign_score": "Score for how certain the disp sign classification was",
+                "truth": "True disp parameter",
+            },
+        )
+        return result, {"R^2": r2, "accuracy": accuracy}

@@ -86,7 +86,7 @@ class TrainEnergyRegressor(Tool):
 
     def setup(self):
         """
-        Initialize components from config
+        Initialize components from config.
         """
         self.loader = self.enter_context(
             TableLoader(
@@ -94,14 +94,15 @@ class TrainEnergyRegressor(Tool):
             )
         )
         self.n_events.attach_subarray(self.loader.subarray)
-
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
-        self.log.warning(f"{self.regressor._models}")
-        self.cross_validate = CrossValidator(
-            parent=self, model_component=self.regressor
+
+        self.cross_validate = self.enter_context(
+            CrossValidator(
+                parent=self, model_component=self.regressor, overwrite=self.overwrite
+            )
         )
         self.rng = np.random.default_rng(self.random_seed)
-        self.check_output(self.output_path, self.cross_validate.output_path)
+        self.check_output(self.output_path)
 
     def start(self):
         """
@@ -142,9 +143,8 @@ class TrainEnergyRegressor(Tool):
         self.log.info("Writing output")
         self.regressor.n_jobs = None
         self.regressor.write(self.output_path, overwrite=self.overwrite)
-        if self.cross_validate.output_path:
-            self.cross_validate.write(overwrite=self.overwrite)
         self.loader.close()
+        self.cross_validate.close()
 
 
 def main():
