@@ -967,26 +967,19 @@ class CrossValidator(Component):
 
             cv_result, metrics = self.cross_validate(telescope_type, train, test)
             if self.output_path:
-                results = hstack(
-                    [
-                        Table(
-                            data={
-                                "cv_fold": np.full(
-                                    len(cv_result), fold, dtype=np.uint8
-                                ),
-                                "tel_type": [str(telescope_type)] * len(cv_result),
-                                "true_energy": test["true_energy"],
-                                "true_impact_distance": test["true_impact_distance"],
-                            },
-                            descriptions={
-                                "cv_fold": "Cross validation iteration",
-                                "tel_type": "Telescope type",
-                            },
-                        ),
-                        cv_result,
-                    ],
-                    join_type="exact",
+                results = Table(
+                    data={
+                        "cv_fold": np.full(len(cv_result), fold, dtype=np.uint8),
+                        "tel_type": [str(telescope_type)] * len(cv_result),
+                        "true_energy": test["true_energy"],
+                        "true_impact_distance": test["true_impact_distance"],
+                    },
+                    descriptions={
+                        "cv_fold": "Cross validation iteration",
+                        "tel_type": "Telescope type",
+                    },
                 )
+                results = hstack([results, cv_result], join_type="exact")
                 write_table(
                     results,
                     self.h5file,
