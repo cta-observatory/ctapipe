@@ -27,9 +27,9 @@ class PsfIrf(Component):
         default_value=1,
     ).tag(config=True)
 
-    source_offset_n_edges = Integer(
+    source_offset_n_bins = Integer(
         help="Number of edges for Source offset for PSF IRF",
-        default_value=101,
+        default_value=100,
     ).tag(config=True)
 
     def __init__(self, parent, energy_bins, valid_offset, **kwargs):
@@ -40,7 +40,7 @@ class PsfIrf(Component):
             np.linspace(
                 self.source_offset_min,
                 self.source_offset_max,
-                self.source_offset_n_edges,
+                self.source_offset_n_bins + 1,
             )
             * u.deg
         )
