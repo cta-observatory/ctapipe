@@ -384,6 +384,7 @@ class IrfTool(Tool):
         self.calculate_selections()
 
         self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
+        self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
         self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
         hdus = [fits.PrimaryHDU()]
