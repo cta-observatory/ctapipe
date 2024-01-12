@@ -9,7 +9,6 @@ from ..irf import (
     EventsLoader,
     FovOffsetBinning,
     GridOptimizer,
-    OutputEnergyBinning,
     Spectra,
     ThetaCutsCalculator,
 )
@@ -75,18 +74,12 @@ class IrfEventSelector(Tool):
         "chunk_size": "IrfEventSelector.chunk_size",
     }
 
-    classes = [GridOptimizer, FovOffsetBinning, OutputEnergyBinning, EventsLoader]
+    classes = [GridOptimizer, FovOffsetBinning, EventsLoader]
 
     def setup(self):
         self.go = GridOptimizer(parent=self)
         self.theta = ThetaCutsCalculator(parent=self)
-        self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = FovOffsetBinning(parent=self)
-
-        self.reco_energy_bins = self.e_bins.reco_energy_bins()
-        self.true_energy_bins = self.e_bins.true_energy_bins()
-
-        self.fov_offset_bins = self.bins.fov_offset_bins()
 
         self.particles = [
             EventsLoader(
