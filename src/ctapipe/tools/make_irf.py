@@ -125,6 +125,7 @@ class IrfTool(Tool):
     }
 
     classes = [
+        ThetaCutsCalculator,
         OutputEnergyBinning,
         FovOffsetBinning,
         EventsLoader,
