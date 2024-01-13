@@ -74,7 +74,7 @@ class IrfEventSelector(Tool):
         "chunk_size": "IrfEventSelector.chunk_size",
     }
 
-    classes = [GridOptimizer, FovOffsetBinning, EventsLoader]
+    classes = [GridOptimizer, ThetaCutsCalculator, FovOffsetBinning, EventsLoader]
 
     def setup(self):
         self.go = GridOptimizer(parent=self)
