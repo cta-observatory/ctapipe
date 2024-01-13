@@ -205,25 +205,28 @@ class IrfTool(Tool):
 
         self.particles = [
             EventsLoader(
-                "gammas",
-                self.gamma_file,
-                PYIRF_SPECTRA[self.gamma_sim_spectrum],
+                parent=self,
+                kind="gammas",
+                file=self.gamma_file,
+                target_spectrum=PYIRF_SPECTRA[self.gamma_sim_spectrum],
             ),
         ]
         if self.do_background and self.proton_file:
             self.particles.append(
                 EventsLoader(
-                    "protons",
-                    self.proton_file,
-                    PYIRF_SPECTRA[self.proton_sim_spectrum],
+                    parent=self,
+                    kind="protons",
+                    file=self.proton_file,
+                    target_spectrum=PYIRF_SPECTRA[self.proton_sim_spectrum],
                 )
             )
         if self.do_background and self.electron_file:
             self.particles.append(
                 EventsLoader(
-                    "electrons",
-                    self.electron_file,
-                    PYIRF_SPECTRA[self.electron_sim_spectrum],
+                    parent=self,
+                    kind="electrons",
+                    file=self.electron_file,
+                    target_spectrum=PYIRF_SPECTRA[self.electron_sim_spectrum],
                 )
             )
         if self.do_background and len(self.particles) == 1:
