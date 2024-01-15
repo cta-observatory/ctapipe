@@ -192,13 +192,19 @@ class EventsLoader(Component):
             events, prefix="reco"
         )
 
-        if self.kind == "gammas":
+        if (
+            self.kind == "gammas"
+            and self.target_spectrum.normalization.unit.is_equivalent(
+                spectrum.normalization.unit * u.sr
+            )
+        ):
             if isinstance(fov_bins, FovOffsetBinning):
                 spectrum = spectrum.integrate_cone(
                     fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
                 )
             else:
                 spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[-1])
+
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=self.target_spectrum,

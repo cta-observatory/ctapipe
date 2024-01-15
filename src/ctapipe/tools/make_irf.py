@@ -4,14 +4,14 @@ import operator
 import astropy.units as u
 import numpy as np
 from astropy.io import fits
-from astropy.table import vstack
+from astropy.table import QTable, vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
-from ..core import Provenance, Tool, traits
+from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import Bool, Float, Integer, Unicode, flag
 from ..irf import (
     PYIRF_SPECTRA,
@@ -98,7 +98,15 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     alpha = Float(
-        default_value=0.2, help="Ratio between size of on and off regions"
+        default_value=0.2, help="Ratio between size of on and off regions."
+    ).tag(config=True)
+
+    point_like = Bool(
+        False,
+        help=(
+            "Compute a point-like IRF by applying a theta cut in additon"
+            " to the G/H separation cut."
+        ),
     ).tag(config=True)
 
     aliases = {
@@ -123,6 +131,12 @@ class IrfTool(Tool):
             "Produce IRF related benchmarks.",
             "Do not produce IRF related benchmarks.",
         ),
+        **flag(
+            "point-like",
+            "IrfTool.point_like",
+            "Compute a point-like IRF.",
+            "Compute a full-enclosure IRF.",
+        ),
     }
 
     classes = [
@@ -137,62 +151,6 @@ class IrfTool(Tool):
         PsfIrf,
     ]
 
-    def calculate_selections(self):
-        """Add the selection columns to the signal and optionally background tables"""
-        self.signal_events["selected_gh"] = evaluate_binned_cut(
-            self.signal_events["gh_score"],
-            self.signal_events["reco_energy"],
-            self.opt_result.gh_cuts,
-            operator.ge,
-        )
-        self.theta_cuts_opt = self.theta.calculate_theta_cuts(
-            self.signal_events[self.signal_events["selected_gh"]]["theta"],
-            self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
-            self.reco_energy_bins,
-        )
-        self.signal_events["selected_theta"] = evaluate_binned_cut(
-            self.signal_events["theta"],
-            self.signal_events["reco_energy"],
-            self.theta_cuts_opt,
-            operator.le,
-        )
-        self.signal_events["selected"] = (
-            self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
-        )
-
-        if self.do_background:
-            self.background_events["selected_gh"] = evaluate_binned_cut(
-                self.background_events["gh_score"],
-                self.background_events["reco_energy"],
-                self.opt_result.gh_cuts,
-                operator.ge,
-            )
-            self.background_events["selected_theta"] = evaluate_binned_cut(
-                self.background_events["theta"],
-                self.background_events["reco_energy"],
-                self.theta_cuts_opt,
-                operator.le,
-            )
-            self.background_events["selected"] = (
-                self.background_events["selected_theta"]
-                & self.background_events["selected_gh"]
-            )
-
-        # TODO: maybe rework the above so we can give the number per
-        # species instead of the total background
-        if self.do_background:
-            self.log.debug(
-                "Keeping %d signal, %d background events"
-                % (
-                    sum(self.signal_events["selected"]),
-                    sum(self.background_events["selected"]),
-                )
-            )
-        else:
-            self.log.debug(
-                "Keeping %d signal events" % (sum(self.signal_events["selected"]))
-            )
-
     def setup(self):
         self.theta = ThetaCutsCalculator(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
@@ -206,6 +164,11 @@ class IrfTool(Tool):
 
         check_bins_in_range(self.reco_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.fov_offset_bins, self.opt_result.valid_offset)
+
+        if self.point_like and "n_events" not in self.opt_result.theta_cuts.colnames:
+            raise ToolConfigurationError(
+                "Computing a point-like IRF requires an (optimized) theta cut."
+            )
 
         self.particles = [
             EventsLoader(
@@ -248,19 +211,85 @@ class IrfTool(Tool):
                 valid_offset=self.opt_result.valid_offset,
             )
 
-        self.aeff = None
-
-        self.psf = PsfIrf(
-            parent=self,
-            valid_offset=self.opt_result.valid_offset,
-        )
         self.mig_matrix = EnergyMigrationIrf(
             parent=self,
         )
         if self.do_benchmarks:
-            self.b_hdus = None
             self.b_output = self.output_path.with_name(
                 self.output_path.name.replace(".fits", "-benchmark.fits")
+            )
+
+    def calculate_selections(self):
+        """Add the selection columns to the signal and optionally background tables"""
+        self.signal_events["selected_gh"] = evaluate_binned_cut(
+            self.signal_events["gh_score"],
+            self.signal_events["reco_energy"],
+            self.opt_result.gh_cuts,
+            operator.ge,
+        )
+        if self.point_like:
+            self.theta_cuts_opt = self.theta.calculate_theta_cuts(
+                self.signal_events[self.signal_events["selected_gh"]]["theta"],
+                self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
+                self.reco_energy_bins,
+            )
+            self.signal_events["selected_theta"] = evaluate_binned_cut(
+                self.signal_events["theta"],
+                self.signal_events["reco_energy"],
+                self.theta_cuts_opt,
+                operator.le,
+            )
+            self.signal_events["selected"] = (
+                self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
+            )
+        else:
+            # Re-"calculate" the dummy theta cut because of potentially different reco energy binning
+            self.theta_cuts_opt = QTable()
+            self.theta_cuts_opt["low"] = self.reco_energy_bins[:-1]
+            self.theta_cuts_opt["center"] = 0.5 * (
+                self.reco_energy_bins[:-1] + self.reco_energy_bins[1:]
+            )
+            self.theta_cuts_opt["high"] = self.reco_energy_bins[1:]
+            self.theta_cuts_opt["cut"] = self.opt_result.valid_offset.max
+
+            self.signal_events["selected"] = self.signal_events["selected_gh"]
+
+        if self.do_background:
+            self.background_events["selected_gh"] = evaluate_binned_cut(
+                self.background_events["gh_score"],
+                self.background_events["reco_energy"],
+                self.opt_result.gh_cuts,
+                operator.ge,
+            )
+            if self.point_like:
+                self.background_events["selected_theta"] = evaluate_binned_cut(
+                    self.background_events["theta"],
+                    self.background_events["reco_energy"],
+                    self.theta_cuts_opt,
+                    operator.le,
+                )
+                self.background_events["selected"] = (
+                    self.background_events["selected_theta"]
+                    & self.background_events["selected_gh"]
+                )
+            else:
+                self.background_events["selected"] = self.background_events[
+                    "selected_gh"
+                ]
+
+        # TODO: maybe rework the above so we can give the number per
+        # species instead of the total background
+        if self.do_background:
+            self.log.debug(
+                "Keeping %d signal, %d background events"
+                % (
+                    sum(self.signal_events["selected"]),
+                    sum(self.background_events["selected"]),
+                )
+            )
+        else:
+            self.log.debug(
+                "Keeping %d signal events" % (sum(self.signal_events["selected"]))
             )
 
     def _stack_background(self, reduced_events):
@@ -282,29 +311,32 @@ class IrfTool(Tool):
             self.aeff.make_effective_area_hdu(
                 signal_events=self.signal_events[self.signal_events["selected"]],
                 fov_offset_bins=self.fov_offset_bins,
+                point_like=self.point_like,
+                signal_is_point_like=self.signal_is_point_like,
             )
         )
         hdus.append(
             self.mig_matrix.make_energy_dispersion_hdu(
                 signal_events=self.signal_events[self.signal_events["selected"]],
                 fov_offset_bins=self.fov_offset_bins,
+                point_like=self.point_like,
             )
         )
-
-        hdus.append(
-            self.psf.make_psf_table_hdu(
-                signal_events=self.signal_events[self.signal_events["selected"]],
-                fov_offset_bins=self.fov_offset_bins,
+        if not self.point_like:
+            hdus.append(
+                self.psf.make_psf_table_hdu(
+                    signal_events=self.signal_events[self.signal_events["selected"]],
+                    fov_offset_bins=self.fov_offset_bins,
+                )
             )
-        )
-
-        hdus.append(
-            create_rad_max_hdu(
-                self.theta_cuts_opt["cut"].reshape(-1, 1),
-                self.reco_energy_bins,
-                self.fov_offset_bins,
+        else:
+            hdus.append(
+                create_rad_max_hdu(
+                    self.theta_cuts_opt["cut"].reshape(-1, 1),
+                    self.reco_energy_bins,
+                    self.fov_offset_bins,
+                )
             )
-        )
         return hdus
 
     def _make_benchmark_hdus(self, hdus):
@@ -371,6 +403,17 @@ class IrfTool(Tool):
             if sel.kind == "gammas":
                 self.aeff = EffectiveAreaIrf(parent=self, sim_info=meta["sim_info"])
                 self.gamma_spectrum = meta["spectrum"]
+                self.signal_is_point_like = (
+                    meta["sim_info"].viewcone_max - meta["sim_info"].viewcone_min
+                ).value == 0
+
+        if self.signal_is_point_like:
+            self.log.info(
+                "The gamma input file contains point-like simulations."
+                " Therefore, the IRF is only calculated at a single point in the FoV."
+                " Changing `fov_offset_n_bins` to 1."
+            )
+            self.fov_offset_bins.fov_offset_n_bins = 1
 
         self.signal_events = reduced_events["gammas"]
         if self.do_background:
@@ -382,9 +425,14 @@ class IrfTool(Tool):
         self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
         self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
+        if not self.point_like:
+            self.psf = PsfIrf(
+                parent=self,
+                valid_offset=self.opt_result.valid_offset,
+            )
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(hdus)
-        if self.do_background:
+        if self.do_background and not self.point_like:
             hdus.append(
                 self.bkg.make_bkg2d_table_hdu(
                     self.background_events, self.obs_time * u.Unit(self.obs_time_unit)
