@@ -17,6 +17,21 @@ from .binning import check_bins_in_range
 class PsfIrf(Component):
     """Collects the functionality for generating PSF IRFs."""
 
+    true_energy_min = Float(
+        help="Minimum value for True Energy bins in TeV units",
+        default_value=0.005,
+    ).tag(config=True)
+
+    true_energy_max = Float(
+        help="Maximum value for True Energy bins in TeV units",
+        default_value=200,
+    ).tag(config=True)
+
+    true_energy_n_bins_per_decade = Float(
+        help="Number of edges per decade for True Energy bins",
+        default_value=10,
+    ).tag(config=True)
+
     source_offset_min = Float(
         help="Minimum value for Source offset for PSF IRF",
         default_value=0,
@@ -32,9 +47,13 @@ class PsfIrf(Component):
         default_value=100,
     ).tag(config=True)
 
-    def __init__(self, parent, energy_bins, valid_offset, **kwargs):
+    def __init__(self, parent, valid_offset, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.energy_bins = energy_bins
+        self.true_energy_bins = create_bins_per_decade(
+            self.true_energy_min * u.TeV,
+            self.true_energy_max * u.TeV,
+            self.true_energy_n_bins_per_decade,
+        )
         self.valid_offset = valid_offset
         self.source_offset_bins = (
             np.linspace(
@@ -49,15 +68,16 @@ class PsfIrf(Component):
         check_bins_in_range(fov_offset_bins, self.valid_offset)
         psf = psf_table(
             events=signal_events,
-            true_energy_bins=self.energy_bins,
+            true_energy_bins=self.true_energy_bins,
             fov_offset_bins=fov_offset_bins,
             source_offset_bins=self.source_offset_bins,
         )
         return create_psf_table_hdu(
             psf,
-            self.energy_bins,
+            self.true_energy_bins,
             self.source_offset_bins,
             fov_offset_bins,
+            extname="PSF",
         )
 
 
@@ -79,13 +99,32 @@ class EnergyMigrationIrf(Component):
         default_value=31,
     ).tag(config=True)
 
-    def __init__(self, parent, energy_bins, **kwargs):
+    true_energy_min = Float(
+        help="Minimum value for True Energy bins in TeV units",
+        default_value=0.005,
+    ).tag(config=True)
+
+    true_energy_max = Float(
+        help="Maximum value for True Energy bins in TeV units",
+        default_value=200,
+    ).tag(config=True)
+
+    true_energy_n_bins_per_decade = Float(
+        help="Number of edges per decade for True Energy bins",
+        default_value=10,
+    ).tag(config=True)
+
+    def __init__(self, parent, **kwargs):
         """
         Creates bins per decade for true MC energy.
         """
         super().__init__(parent=parent, **kwargs)
-        self.energy_bins = energy_bins
-        self.migration_bins = np.geomspace(
+        self.true_energy_bins = create_bins_per_decade(
+            self.true_energy_min * u.TeV,
+            self.true_energy_max * u.TeV,
+            self.true_energy_n_bins_per_decade,
+        )
+        self.migration_bins = np.linspace(
             self.energy_migration_min,
             self.energy_migration_max,
             self.energy_migration_n_bins,
@@ -94,13 +133,13 @@ class EnergyMigrationIrf(Component):
     def make_energy_dispersion_hdu(self, signal_events, fov_offset_bins):
         edisp = energy_dispersion(
             signal_events,
-            true_energy_bins=self.energy_bins,
+            true_energy_bins=self.true_energy_bins,
             fov_offset_bins=fov_offset_bins,
             migration_bins=self.migration_bins,
         )
         return create_energy_dispersion_hdu(
             edisp,
-            true_energy_bins=self.energy_bins,
+            true_energy_bins=self.true_energy_bins,
             migration_bins=self.migration_bins,
             fov_offset_bins=fov_offset_bins,
             extname="ENERGY DISPERSION",
