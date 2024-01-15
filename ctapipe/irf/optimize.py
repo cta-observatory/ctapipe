@@ -134,7 +134,7 @@ class GridOptimizer(Component):
     ).tag(config=True)
 
     reco_energy_n_bins_per_decade = Float(
-        help="Number of edges per decade for Reco Energy bins",
+        help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
 

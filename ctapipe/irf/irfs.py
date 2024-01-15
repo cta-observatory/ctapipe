@@ -28,7 +28,7 @@ class PsfIrf(Component):
     ).tag(config=True)
 
     source_offset_n_bins = Integer(
-        help="Number of edges for Source offset for PSF IRF",
+        help="Number of bins for Source offset for PSF IRF",
         default_value=100,
     ).tag(config=True)
 
@@ -121,7 +121,7 @@ class EffectiveAreaIrf(Component):
     ).tag(config=True)
 
     true_energy_n_bins_per_decade = Float(
-        help="Number of edges per decade for True Energy bins",
+        help="Number of bins per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
 
