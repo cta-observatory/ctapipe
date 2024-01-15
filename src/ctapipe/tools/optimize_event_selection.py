@@ -3,7 +3,7 @@ import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import Float, Integer, Unicode
+from ..core.traits import Bool, Float, Integer, Unicode, flag
 from ..irf import (
     PYIRF_SPECTRA,
     EventsLoader,
@@ -63,7 +63,15 @@ class IrfEventSelector(Tool):
     ).tag(config=True)
 
     alpha = Float(
-        default_value=0.2, help="Ratio between size of on and off regions"
+        default_value=0.2, help="Ratio between size of on and off regions."
+    ).tag(config=True)
+
+    point_like = Bool(
+        False,
+        help=(
+            "Optimize both G/H separation cut and theta cut"
+            " for computing point-like IRFs"
+        ),
     ).tag(config=True)
 
     aliases = {
@@ -72,6 +80,15 @@ class IrfEventSelector(Tool):
         "electron-file": "IrfEventSelector.electron_file",
         "output": "IrfEventSelector.output_path",
         "chunk_size": "IrfEventSelector.chunk_size",
+    }
+
+    flags = {
+        **flag(
+            "point-like",
+            "IrfEventSelector.point_like",
+            "Optimize both G/H separation cut and theta cut.",
+            "Optimize G/H separation cut without prior theta cut.",
+        )
     }
 
     classes = [GridOptimizer, ThetaCutsCalculator, FovOffsetBinning, EventsLoader]
@@ -150,9 +167,12 @@ class IrfEventSelector(Tool):
             self.bins.fov_offset_max * u.deg,
             self.theta,
             self.particles[0].epp,  # precuts are the same for all particle types
+            self.point_like,
         )
 
         self.log.info("Writing results to %s" % self.output_path)
+        if not self.point_like:
+            self.log.info("Writing dummy theta cut to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimization Result")
         result.write(self.output_path, self.overwrite)
 
