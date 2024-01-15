@@ -8,14 +8,15 @@ from astropy.table import vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
-from pyirf.io import create_background_2d_hdu, create_rad_max_hdu
-from pyirf.irf import background_2d
+from pyirf.io import create_rad_max_hdu
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Float, Integer, Unicode, flag
 from ..irf import (
     PYIRF_SPECTRA,
+    Background2dIrf,
+    Background3dIrf,
     EffectiveAreaIrf,
     EnergyMigrationIrf,
     EventsLoader,
@@ -126,12 +127,14 @@ class IrfTool(Tool):
 
     classes = [
         ThetaCutsCalculator,
-        OutputEnergyBinning,
-        FovOffsetBinning,
         EventsLoader,
-        PsfIrf,
-        EnergyMigrationIrf,
+        Background2dIrf,
+        Background3dIrf,
         EffectiveAreaIrf,
+        EnergyMigrationIrf,
+        FovOffsetBinning,
+        OutputEnergyBinning,
+        PsfIrf,
     ]
 
     def calculate_selections(self):
@@ -234,9 +237,16 @@ class IrfTool(Tool):
             raise RuntimeError(
                 "At least one electron or proton file required when speficying `do_background`."
             )
-        for loader in self.particles:
-            # TODO: not very elegant to pass them this way, refactor later
-            loader.epp.quality_criteria = self.opt_result.precuts.quality_criteria
+
+        if self.do_background:
+            self.bkg = Background2dIrf(
+                parent=self,
+                valid_offset=self.opt_result.valid_offset,
+            )
+            self.bkg3 = Background3dIrf(
+                parent=self,
+                valid_offset=self.opt_result.valid_offset,
+            )
 
         self.aeff = None
 
@@ -297,23 +307,6 @@ class IrfTool(Tool):
         )
         return hdus
 
-    def _make_background_hdu(self):
-        sel = self.background_events["selected_gh"]
-        self.log.debug("%d background events selected" % sel.sum())
-        self.log.debug("%f obs time" % self.obs_time)
-
-        background_rate = background_2d(
-            self.background_events[sel],
-            self.reco_energy_bins,
-            fov_offset_bins=self.fov_offset_bins,
-            t_obs=self.obs_time * u.Unit(self.obs_time_unit),
-        )
-        return create_background_2d_hdu(
-            background_rate,
-            self.reco_energy_bins,
-            fov_offset_bins=self.fov_offset_bins,
-        )
-
     def _make_benchmark_hdus(self, hdus):
         bias_resolution = energy_bias_resolution(
             self.signal_events[self.signal_events["selected"]],
@@ -363,6 +356,8 @@ class IrfTool(Tool):
         # tools, try to refactor to a common solution
         reduced_events = dict()
         for sel in self.particles:
+            # TODO: not very elegant to pass them this way, refactor later
+            sel.epp.quality_criteria = self.opt_result.precuts.quality_criteria
             evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size,
                 self.obs_time * u.Unit(self.obs_time_unit),
@@ -390,7 +385,16 @@ class IrfTool(Tool):
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(hdus)
         if self.do_background:
-            hdus.append(self._make_background_hdu())
+            hdus.append(
+                self.bkg.make_bkg2d_table_hdu(
+                    self.background_events, self.obs_time * u.Unit(self.obs_time_unit)
+                )
+            )
+            hdus.append(
+                self.bkg3.make_bkg3d_table_hdu(
+                    self.background_events, self.obs_time * u.Unit(self.obs_time_unit)
+                )
+            )
         self.hdus = hdus
 
         if self.do_benchmarks:
