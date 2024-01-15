@@ -353,17 +353,17 @@ def integration_correction(
 
 @guvectorize(
     [
-        (float32[:], int64, float32[:], float32[:], float32[:]),
-        (float64[:], int64, float32[:], float32[:], float32[:]),
+        (float32[:], float32[:], float32[:], float32[:]),
+        (float64[:], float32[:], float32[:], float32[:]),
     ],
-    "(s),()->(),(),()",
+    "(s)->(),(),()",
     nopython=True,
     cache=True,
 )
-def time_parameters(waveform, peak_index, fwhm_arr, rise_time_arr, fall_time_arr):
+def time_parameters(waveform, fwhm_arr, rise_time_arr, fall_time_arr):
     """
-    Calculates the full width at half maximum (fwhm) of R1 waveforms.
-    The rise and fall time of waveforms is also computed at 90% and 10% of the peak.
+    Calculates the full width at half maximum (FWHM) of R1 already calibrated waveforms.
+    The rise and fall time of these waveforms is also computed at 90% and 10% of the peak.
 
     Parameters
     ----------
@@ -373,21 +373,22 @@ def time_parameters(waveform, peak_index, fwhm_arr, rise_time_arr, fall_time_arr
 
     Returns
     -------
-    fwhm : list of floats
+    fwhm_arr : list of floats
         Full width half maximum of pulse in units of time
         Shape : (n_pix)
-    rise_time : list of floats
+    rise_time_arr : list of floats
         Rise time of the pulse in units of time
         Shape : (n_pix)
-    fall_time : list of floats
+    fall_time_arr : list of floats
         Fall time of the pulse in units of time
         Shape : (n_pix)
 
     """
-
+    peak_index = np.argmax(waveform)
     amplitude = np.max(waveform)
     n_samples = np.shape(waveform)[-1]
 
+    # Initialize in case of dividing by zero
     rt_90 = np.nan
     rt_10 = np.nan
     ft_90 = np.nan

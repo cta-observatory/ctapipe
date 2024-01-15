@@ -175,7 +175,7 @@ def test_fwhm(toymodel):
 
         fwhm_scp = np.append(fwhm_scp, widths[0])
 
-    fwhm, rise, fall = time_parameters(waveforms, np.argmax(waveforms, axis=-1))
+    fwhm, rise, fall = time_parameters(waveforms)
 
     assert_allclose(
         np.array(fwhm),
