@@ -12,6 +12,7 @@ from pyirf.io import (
 from pyirf.irf import (
     background_2d,
     background_3d,
+    effective_area_per_energy,
     effective_area_per_energy_and_fov,
     energy_dispersion,
     psf_table,
@@ -277,18 +278,19 @@ class EnergyMigrationIrf(Component):
             self.energy_migration_n_bins,
         )
 
-    def make_energy_dispersion_hdu(self, signal_events, fov_offset_bins):
+    def make_energy_dispersion_hdu(self, signal_events, fov_offset_bins, point_like):
         edisp = energy_dispersion(
-            signal_events,
+            selected_events=signal_events,
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=fov_offset_bins,
             migration_bins=self.migration_bins,
         )
         return create_energy_dispersion_hdu(
-            edisp,
+            energy_dispersion=edisp,
             true_energy_bins=self.true_energy_bins,
             migration_bins=self.migration_bins,
             fov_offset_bins=fov_offset_bins,
+            point_like=point_like,
             extname="ENERGY DISPERSION",
         )
 
@@ -323,16 +325,29 @@ class EffectiveAreaIrf(Component):
         )
         self.sim_info = sim_info
 
-    def make_effective_area_hdu(self, signal_events, fov_offset_bins):
-        effective_area = effective_area_per_energy_and_fov(
-            signal_events,
-            self.sim_info,
+    def make_effective_area_hdu(
+        self, signal_events, fov_offset_bins, point_like, signal_is_point_like
+    ):
+        # For point-like gammas the effective area can only be calculated at one point in the FoV
+        if signal_is_point_like:
+            effective_area = effective_area_per_energy(
+                selected_events=signal_events,
+                simulation_info=self.sim_info,
+                true_energy_bins=self.true_energy_bins,
+            )
+        else:
+            effective_area = effective_area_per_energy_and_fov(
+                selected_events=signal_events,
+                simulation_info=self.sim_info,
+                true_energy_bins=self.true_energy_bins,
+                fov_offset_bins=fov_offset_bins,
+            )
+        return create_aeff2d_hdu(
+            effective_area=effective_area[
+                ..., np.newaxis
+            ],  # +1 dimension for FOV offset
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=fov_offset_bins,
-        )
-        return create_aeff2d_hdu(
-            effective_area[..., np.newaxis],  # +1 dimension for FOV offset
-            self.true_energy_bins,
-            fov_offset_bins,
+            point_like=point_like,
             extname="EFFECTIVE AREA",
         )

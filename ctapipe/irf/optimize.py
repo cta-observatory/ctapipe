@@ -158,33 +158,44 @@ class GridOptimizer(Component):
         max_fov_radius,
         theta,
         precuts,
+        point_like,
     ):
         if not isinstance(max_fov_radius, u.Quantity):
             raise ValueError("max_fov_radius has to have a unit")
         if not isinstance(min_fov_radius, u.Quantity):
             raise ValueError("min_fov_radius has to have a unit")
-        initial_gh_cuts = calculate_percentile_cut(
-            signal["gh_score"],
-            signal["reco_energy"],
-            bins=self.reco_energy_bins(),
-            fill_value=0.0,
-            percentile=100 * (1 - self.initial_gh_cut_efficency),
-            min_events=25,
-            smoothing=1,
-        )
 
-        initial_gh_mask = evaluate_binned_cut(
-            signal["gh_score"],
-            signal["reco_energy"],
-            initial_gh_cuts,
-            op=operator.gt,
-        )
+        reco_energy_bins = self.reco_energy_bins()
+        if point_like:
+            initial_gh_cuts = calculate_percentile_cut(
+                signal["gh_score"],
+                signal["reco_energy"],
+                bins=reco_energy_bins,
+                fill_value=0.0,
+                percentile=100 * (1 - self.initial_gh_cut_efficency),
+                min_events=25,
+                smoothing=1,
+            )
+            initial_gh_mask = evaluate_binned_cut(
+                signal["gh_score"],
+                signal["reco_energy"],
+                initial_gh_cuts,
+                op=operator.gt,
+            )
 
-        theta_cuts = theta.calculate_theta_cuts(
-            signal["theta"][initial_gh_mask],
-            signal["reco_energy"][initial_gh_mask],
-            self.reco_energy_bins(),
-        )
+            theta_cuts = theta.calculate_theta_cuts(
+                signal["theta"][initial_gh_mask],
+                signal["reco_energy"][initial_gh_mask],
+                reco_energy_bins,
+            )
+        else:
+            # TODO: Find a better solution for full enclosure than this dummy theta cut
+            self.log.info("Optimizing G/H separation cut without prior theta cut.")
+            theta_cuts = QTable()
+            theta_cuts["low"] = reco_energy_bins[:-1]
+            theta_cuts["center"] = 0.5 * (reco_energy_bins[:-1] + reco_energy_bins[1:])
+            theta_cuts["high"] = reco_energy_bins[1:]
+            theta_cuts["cut"] = max_fov_radius
 
         self.log.info("Optimizing G/H separation cut for best sensitivity")
         gh_cut_efficiencies = np.arange(
@@ -196,7 +207,7 @@ class GridOptimizer(Component):
         opt_sens, gh_cuts = optimize_gh_cut(
             signal,
             background,
-            reco_energy_bins=self.reco_energy_bins(),
+            reco_energy_bins=reco_energy_bins,
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
             theta_cuts=theta_cuts,
