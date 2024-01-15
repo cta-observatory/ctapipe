@@ -242,12 +242,10 @@ class IrfTool(Tool):
 
         self.psf = PsfIrf(
             parent=self,
-            energy_bins=self.true_energy_bins,
             valid_offset=self.opt_result.valid_offset,
         )
         self.mig_matrix = EnergyMigrationIrf(
             parent=self,
-            energy_bins=self.true_energy_bins,
         )
         if self.do_benchmarks:
             self.b_hdus = None
@@ -317,8 +315,6 @@ class IrfTool(Tool):
         )
 
     def _make_benchmark_hdus(self, hdus):
-        # Here we use reconstructed energy instead of true energy for the sake of
-        # current pipelines comparisons
         bias_resolution = energy_bias_resolution(
             self.signal_events[self.signal_events["selected"]],
             self.true_energy_bins,
