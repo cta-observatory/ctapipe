@@ -29,7 +29,7 @@ class OutputEnergyBinning(Component):
     ).tag(config=True)
 
     true_energy_n_bins_per_decade = Float(
-        help="Number of edges per decade for True Energy bins",
+        help="Number of bins per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
 
@@ -44,7 +44,7 @@ class OutputEnergyBinning(Component):
     ).tag(config=True)
 
     reco_energy_n_bins_per_decade = Float(
-        help="Number of edges per decade for Reco Energy bins",
+        help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
 
@@ -85,7 +85,7 @@ class FovOffsetBinning(Component):
     ).tag(config=True)
 
     fov_offset_n_bins = Integer(
-        help="Number of edges for FoV offset bins",
+        help="Number of bins for FoV offset bins",
         default_value=1,
     ).tag(config=True)
 
