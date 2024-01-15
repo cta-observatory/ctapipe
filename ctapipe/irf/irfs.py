@@ -4,10 +4,18 @@ import numpy as np
 from pyirf.binning import create_bins_per_decade
 from pyirf.io import (
     create_aeff2d_hdu,
+    create_background_2d_hdu,
+    create_background_3d_hdu,
     create_energy_dispersion_hdu,
     create_psf_table_hdu,
 )
-from pyirf.irf import effective_area_per_energy_and_fov, energy_dispersion, psf_table
+from pyirf.irf import (
+    background_2d,
+    background_3d,
+    effective_area_per_energy_and_fov,
+    energy_dispersion,
+    psf_table,
+)
 
 from ..core import Component
 from ..core.traits import Float, Integer
@@ -78,6 +86,145 @@ class PsfIrf(Component):
             self.source_offset_bins,
             fov_offset_bins,
             extname="PSF",
+        )
+
+
+class Background3dIrf(Component):
+    """Collects the functionality for generating 3D Background IRFs using square bins."""
+
+    reco_energy_min = Float(
+        help="Minimum value for Reco Energy bins in TeV units",
+        default_value=0.005,
+    ).tag(config=True)
+
+    reco_energy_max = Float(
+        help="Maximum value for Reco Energy bins in TeV units",
+        default_value=200,
+    ).tag(config=True)
+
+    reco_energy_n_bins_per_decade = Float(
+        help="Number of edges per decade for Reco Energy bins",
+        default_value=10,
+    ).tag(config=True)
+
+    fov_offset_min = Float(
+        help="Minimum value for Field of View offset for background IRF",
+        default_value=0,
+    ).tag(config=True)
+
+    fov_offset_max = Float(
+        help="Maximum value for Field of View offset for background IRF",
+        default_value=1,
+    ).tag(config=True)
+
+    fov_offset_n_edges = Integer(
+        help="Number of edges for Field of View offset for background IRF",
+        default_value=1,
+    ).tag(config=True)
+
+    def __init__(self, parent, valid_offset, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.reco_energy_bins = create_bins_per_decade(
+            self.reco_energy_min * u.TeV,
+            self.reco_energy_max * u.TeV,
+            self.reco_energy_n_bins_per_decade,
+        )
+        self.valid_offset = valid_offset
+        self.fov_offset_bins = (
+            np.linspace(
+                self.fov_offset_min,
+                self.fov_offset_max,
+                self.fov_offset_n_edges,
+            )
+            * u.deg
+        )
+        # check_bins_in_range(self.fov_offset_bins, self.valid_offset)
+
+    def make_bkg3d_table_hdu(self, bkg_events, obs_time):
+        sel = bkg_events["selected_gh"]
+        self.log.debug("%d background events selected" % sel.sum())
+        self.log.debug("%f obs time" % obs_time.to_value(u.h))
+        breakpoint()
+        background_rate = background_3d(
+            bkg_events[sel],
+            self.reco_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+            t_obs=obs_time,
+        )
+        return create_background_3d_hdu(
+            background_rate,
+            self.reco_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+            extname="BACKGROUND3D",
+        )
+
+
+class Background2dIrf(Component):
+    """Collects the functionality for generating 2D Background IRFs."""
+
+    reco_energy_min = Float(
+        help="Minimum value for Reco Energy bins in TeV units",
+        default_value=0.005,
+    ).tag(config=True)
+
+    reco_energy_max = Float(
+        help="Maximum value for Reco Energy bins in TeV units",
+        default_value=200,
+    ).tag(config=True)
+
+    reco_energy_n_bins_per_decade = Float(
+        help="Number of edges per decade for Reco Energy bins",
+        default_value=10,
+    ).tag(config=True)
+
+    fov_offset_min = Float(
+        help="Minimum value for Field of View offset for background IRF",
+        default_value=0,
+    ).tag(config=True)
+
+    fov_offset_max = Float(
+        help="Maximum value for Field of View offset for background IRF",
+        default_value=1,
+    ).tag(config=True)
+
+    fov_offset_n_edges = Integer(
+        help="Number of edges for Field of View offset for background IRF",
+        default_value=1,
+    ).tag(config=True)
+
+    def __init__(self, parent, valid_offset, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.reco_energy_bins = create_bins_per_decade(
+            self.reco_energy_min * u.TeV,
+            self.reco_energy_max * u.TeV,
+            self.reco_energy_n_bins_per_decade,
+        )
+        self.valid_offset = valid_offset
+        self.fov_offset_bins = (
+            np.linspace(
+                self.fov_offset_min,
+                self.fov_offset_max,
+                self.fov_offset_n_edges,
+            )
+            * u.deg
+        )
+        # check_bins_in_range(self.fov_offset_bins, self.valid_offset)
+
+    def make_bkg2d_table_hdu(self, bkg_events, obs_time):
+        sel = bkg_events["selected_gh"]
+        self.log.debug("%d background events selected" % sel.sum())
+        self.log.debug("%f obs time" % obs_time.to_value(u.h))
+
+        background_rate = background_2d(
+            bkg_events[sel],
+            self.reco_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
+            t_obs=obs_time,
+        )
+        return create_background_2d_hdu(
+            background_rate,
+            self.reco_energy_bins,
+            fov_offset_bins=self.fov_offset_bins,
         )
 
 
