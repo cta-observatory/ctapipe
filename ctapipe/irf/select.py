@@ -1,12 +1,14 @@
 """Module containing classes related to eveent preprocessing and selection"""
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import QTable, vstack
 from pyirf.cuts import calculate_percentile_cut
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import PowerLaw, calculate_event_weights
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
+from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
 from ..core.traits import Float, Integer, List, Unicode
 from ..io import TableLoader
@@ -83,6 +85,8 @@ class EventPreProcessor(QualityQuery):
             "reco_energy",
             "reco_az",
             "reco_alt",
+            "reco_fov_lat",
+            "reco_fov_lon",
             "gh_score",
             "pointing_az",
             "pointing_alt",
@@ -98,14 +102,34 @@ class EventPreProcessor(QualityQuery):
             "reco_energy": u.TeV,
             "reco_az": u.deg,
             "reco_alt": u.deg,
+            "reco_fov_lat": u.deg,
+            "reco_fov_lon": u.deg,
             "pointing_az": u.deg,
             "pointing_alt": u.deg,
             "theta": u.deg,
             "true_source_fov_offset": u.deg,
             "reco_source_fov_offset": u.deg,
         }
+        descriptions = {
+            "obs_id": "Observation Block ID",
+            "event_id": "Array Event ID",
+            "true_energy": "Simulated Energy",
+            "true_az": "Simulated azimuth",
+            "true_alt": "Simulated altitude",
+            "reco_energy": "Reconstructed energy",
+            "reco_az": "Reconstructed azimuth",
+            "reco_alt": "Reconstructed altitude",
+            "reco_fov_lat": "Reconstructed field of view lat",
+            "reco_fov_lon": "Reconstructed field of view lon",
+            "pointing_az": "Pointing azimuth",
+            "pointing_alt": "Pointing altitude",
+            "theta": "Reconstructed angular offset from source position",
+            "true_source_fov_offset": "Simulated angular offset from pointing direction",
+            "reco_source_fov_offset": "Reconstructed angular offset from pointing direction",
+            "gh_score": "prediction of the classifier, defined between [0,1], where values close to 1 mean that the positive class (e.g. gamma in gamma-ray analysis) is more likely",
+        }
 
-        return QTable(names=columns, units=units)
+        return QTable(names=columns, units=units, descriptions=descriptions)
 
 
 class EventsLoader(Component):
@@ -139,7 +163,8 @@ class EventsLoader(Component):
                 bits.append(selected)
                 n_raw_events += len(events)
 
-            table = vstack(bits, join_type="exact")
+            bits.append(header)  # Putting it last ensures the correct metadata is used
+            table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table, n_raw_events, meta
 
     def get_metadata(self, loader, obs_time):
@@ -191,6 +216,22 @@ class EventsLoader(Component):
         events["reco_source_fov_offset"] = calculate_source_fov_offset(
             events, prefix="reco"
         )
+
+        altaz = AltAz()
+        pointing = SkyCoord(
+            alt=events["pointing_alt"], az=events["pointing_az"], frame=altaz
+        )
+        reco = SkyCoord(
+            alt=events["reco_alt"],
+            az=events["reco_az"],
+            frame=altaz,
+        )
+        nominal = NominalFrame(origin=pointing)
+        reco_nominal = reco.transform_to(nominal)
+        events["reco_fov_lon"] = u.Quantity(
+            -reco_nominal.fov_lon, copy=False
+        )  # minus for GADF
+        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat, copy=False)
 
         if (
             self.kind == "gammas"
