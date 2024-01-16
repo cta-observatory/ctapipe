@@ -228,10 +228,8 @@ class EventsLoader(Component):
         )
         nominal = NominalFrame(origin=pointing)
         reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = u.Quantity(
-            -reco_nominal.fov_lon, copy=False
-        )  # minus for GADF
-        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat, copy=False)
+        events["reco_fov_lon"] = -reco_nominal.fov_lon  # minus for GADF
+        events["reco_fov_lat"] = reco_nominal.fov_lat
 
         if (
             self.kind == "gammas"
