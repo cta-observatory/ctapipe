@@ -390,6 +390,7 @@ class IrfTool(Tool):
         for sel in self.particles:
             # TODO: not very elegant to pass them this way, refactor later
             sel.epp.quality_criteria = self.opt_result.precuts.quality_criteria
+            self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
             evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size,
                 self.obs_time * u.Unit(self.obs_time_unit),
