@@ -24,6 +24,14 @@ exclude = '''
 '''
 
 [tool.pytest.ini_options]
+minversion = "7"
+testpaths = ["ctapipe"]
+log_cli_level = "INFO"
+xfail_strict = true
+
+# print summar of failed tests, force errors if settings are misspelled
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+
 filterwarnings = [
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
