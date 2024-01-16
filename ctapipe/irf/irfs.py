@@ -145,7 +145,6 @@ class Background3dIrf(Component):
         sel = bkg_events["selected_gh"]
         self.log.debug("%d background events selected" % sel.sum())
         self.log.debug("%f obs time" % obs_time.to_value(u.h))
-        breakpoint()
         background_rate = background_3d(
             bkg_events[sel],
             self.reco_energy_bins,
