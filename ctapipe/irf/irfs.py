@@ -118,8 +118,8 @@ class Background3dIrf(Component):
         default_value=1,
     ).tag(config=True)
 
-    fov_offset_n_edges = Integer(
-        help="Number of edges for Field of View offset for background IRF",
+    fov_offset_n_bins = Integer(
+        help="Number of bins for Field of View offset for background IRF",
         default_value=1,
     ).tag(config=True)
 
@@ -135,7 +135,7 @@ class Background3dIrf(Component):
             np.linspace(
                 self.fov_offset_min,
                 self.fov_offset_max,
-                self.fov_offset_n_edges,
+                self.fov_offset_n_bins + 1,
             )
             * u.deg
         )
@@ -188,8 +188,8 @@ class Background2dIrf(Component):
         default_value=1,
     ).tag(config=True)
 
-    fov_offset_n_edges = Integer(
-        help="Number of edges for Field of View offset for background IRF",
+    fov_offset_n_bins = Integer(
+        help="Number of bins for Field of View offset for background IRF",
         default_value=1,
     ).tag(config=True)
 
@@ -205,7 +205,7 @@ class Background2dIrf(Component):
             np.linspace(
                 self.fov_offset_min,
                 self.fov_offset_max,
-                self.fov_offset_n_edges,
+                self.fov_offset_n_bins + 1,
             )
             * u.deg
         )
