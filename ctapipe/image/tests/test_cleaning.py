@@ -343,7 +343,7 @@ def test_time_cleaning():
     core_neighbors = geom.neighbors[core_pixel]
 
     charge[core_pixel], charge[core_neighbors] = 15, 5
-    peak_time[core_pixel], peak_time[core_neighbors] = (18, 20)
+    peak_time[core_pixel], peak_time[core_neighbors] = (0.0, 0.0)
 
     mask = cleaning.time_clustering(
         geom,
@@ -357,6 +357,48 @@ def test_time_cleaning():
     )
 
     assert np.count_nonzero(mask) == 0
+
+    mask = cleaning.time_clustering(
+        geom,
+        charge,
+        peak_time,
+        eps=1.0,
+        space_scale_m=0.25,
+        time_scale_ns=4.0,
+        hard_cut_pe=1,
+        minpts=5,
+    )
+
+    assert np.count_nonzero(mask) == 7
+
+    mask = cleaning.time_clustering(
+        geom,
+        charge,
+        peak_time,
+        eps=1.0,
+        space_scale_m=0.25,
+        time_scale_ns=4.0,
+        hard_cut_pe=1,
+        minpts=8,
+    )
+
+    assert np.count_nonzero(mask) == 0
+
+    charge[core_pixel], charge[core_neighbors] = 15, 5
+    peak_time[core_pixel], peak_time[core_neighbors] = (0.0, 30.0)
+
+    mask = cleaning.time_clustering(
+        geom,
+        charge,
+        peak_time,
+        eps=1.0,
+        space_scale_m=0.25,
+        time_scale_ns=4.0,
+        hard_cut_pe=1,
+        minpts=5,
+    )
+
+    assert np.count_nonzero(mask) == 6
 
 
 def test_time_constrained_clean():
