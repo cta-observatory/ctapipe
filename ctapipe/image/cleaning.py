@@ -133,9 +133,9 @@ def time_clustering(
     firstly applied. The cut is performed relative to the noise to account for, e.g., bright stars. Alternatively,
     a hard cut could also be performed.
 
-    DBSCAN runs with the reconstructed times and pixel positions after rescaling. The reconstructed times and
-    pixel positions are rescaled because eps is not dimension dependent. If scaling is performed properly, eps
-    can be set to 1. DBSCAN returns the cluster IDs of each point being -1 the label for noise pixels.
+    DBSCAN runs with the reconstructed times and pixel positions after scaling. Scaling is needed because eps
+    is not dimension dependent. If scaling is performed properly, eps can be set to 1. DBSCAN returns the
+    cluster IDs of each point being -1 the label for noise pixels.
 
     Parameters
     ----------
