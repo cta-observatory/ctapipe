@@ -206,3 +206,60 @@ def test_unknown_meta(tmp_path):
         writer.h5file.root.events._v_attrs["foo_UNIT"] = "TeV"
 
     read_table(filename, "/events", condition="energy > 0")
+
+
+def test_join_allow_empty():
+    from ctapipe.io.astropy_helpers import join_allow_empty
+
+    table1 = Table(
+        {
+            "obs_id": [2, 2, 2, 1, 1, 1],
+            "event_id": [1, 2, 4, 1, 3, 5],
+            "value1": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    )
+
+    table2 = Table(
+        {
+            "obs_id": [2, 2, 2, 1, 1, 1],
+            "event_id": [1, 2, 3, 1, 2, 4],
+            "value2": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    )
+
+    keys = ["obs_id", "event_id"]
+
+    for join_type in ("left", "outer"):
+        assert_table_equal(
+            join_allow_empty(table1, Table(), join_type=join_type, keys=keys), table1
+        )
+
+    for join_type in ("right", "inner"):
+        assert_table_equal(
+            join_allow_empty(table1, Table(), join_type=join_type, keys=keys), Table()
+        )
+
+    for join_type in ("left", "right", "inner", "outer"):
+        assert_table_equal(
+            join_allow_empty(Table(), Table(), join_type=join_type, keys=keys), Table()
+        )
+
+    result = join_allow_empty(table1, table2, keys=keys)
+    assert result.colnames == ["obs_id", "event_id", "value1", "value2"]
+    # join result will be ordered by the keys by default
+    np.testing.assert_equal(result["obs_id"], [1, 1, 1, 2, 2, 2])
+    np.testing.assert_equal(result["event_id"], [1, 3, 5, 1, 2, 4])
+
+    # with keep order tests
+    for join_type in ("inner", "outer"):
+        with pytest.raises(ValueError, match="keep_order is only supported"):
+            join_allow_empty(
+                table1, table2, keys=keys, join_type=join_type, keep_order=True
+            )
+
+    for join_type, reference in zip(("left", "right"), (table1, table2)):
+        result = join_allow_empty(
+            table1, table2, keys=keys, join_type=join_type, keep_order=True
+        )
+        np.testing.assert_equal(result["obs_id"], reference["obs_id"])
+        np.testing.assert_equal(result["event_id"], reference["event_id"])
