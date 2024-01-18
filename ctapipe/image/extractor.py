@@ -443,7 +443,8 @@ def time_parameters(waveform, fwhm_arr, rise_time_arr, fall_time_arr):
 
 def time_over_threshold(waveforms, thr):
     """
-    Calculates the time over threshold
+    Calculates the time over threshold (TOT) of waveforms. This is the width of the pulse above
+    a threshold above the baseline of the waveform.
 
     Parameters
     ----------
