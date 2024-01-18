@@ -34,6 +34,7 @@ from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
 from traitlets.config import Configurable
 
+from ..core import config_writer
 from ..core.traits import AstroTime
 from .datalevels import DataLevel
 
@@ -92,6 +93,14 @@ class Contact(Configurable):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(name={self.name}, email={self.email}, organization={self.organization})"
+
+    @classmethod
+    def _get_default_config(cls):
+        """
+
+        :return:
+        """
+        return config_writer.get_default_config(cls)
 
 
 class Product(HasTraits):
@@ -217,6 +226,14 @@ class Instrument(Configurable):
             f", subtype={self.subtype}, version={self.version}, id_={self.id_}"
             ")"
         )
+
+    @classmethod
+    def _get_default_config(cls):
+        """
+
+        :return:
+        """
+        return config_writer.get_default_config(cls)
 
 
 def _to_dict(hastraits_instance, prefix=""):
