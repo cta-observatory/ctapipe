@@ -459,7 +459,7 @@ def time_over_threshold(waveforms, thr):
         Shape : (n_pix)
 
     """
-    return np.sum(waveforms > thr, axis=-1)
+    return np.count_nonzero(waveforms > thr, axis=-1)
 
 
 class ImageExtractor(TelescopeComponent):
