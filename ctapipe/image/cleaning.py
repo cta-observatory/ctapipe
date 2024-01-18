@@ -15,6 +15,7 @@ image size and just set unclean pixels to 0 or similar, use
 __all__ = [
     "tailcuts_clean",
     "dilate",
+    "time_clustering",
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
@@ -27,6 +28,7 @@ __all__ = [
 from abc import abstractmethod
 
 import numpy as np
+from sklearn.cluster import DBSCAN
 
 from ..core import TelescopeComponent
 from ..core.traits import (
@@ -109,6 +111,74 @@ def tailcuts_clean(
         return (pixels_above_boundary & pixels_with_picture_neighbors) | (
             pixels_in_picture & pixels_with_boundary_neighbors
         )
+
+
+def time_clustering(
+    geom,
+    image,
+    time,
+    minpts=5,
+    eps=1.0,
+    time_scale_ns=4.0,
+    space_scale_m=0.25,
+    hard_cut_pe=4,
+):
+    """
+
+    Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
+    Previously used for HESS [timecleaning]_.
+
+    As a neighbor-based image extractor algorithm can lead to biases in the time reconstruction of noise pixels,
+    specially those next to the shower, a cut in the minimum signal image with respect to the noise level is
+    firstly applied. The cut is performed relative to the noise to account for, e.g., bright stars. Alternatively,
+    a hard cut could also be performed.
+
+    DBSCAN runs with the reconstructed times and pixel positions after scaling. Scaling is needed because eps
+    is not dimension dependent. If scaling is performed properly, eps can be set to 1. DBSCAN returns the
+    cluster IDs of each point being -1 the label for noise pixels.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel charge information
+    time: array
+        pixel timing information
+    hard_cut_pe: float
+        Hard cut in the number of signal pe
+    minpts: int
+        Minimum number of points to consider a cluster
+    eps: float
+        Minimum distance in dbscan
+    time_scale_ns: float
+        Time scale in ns
+    space_scale_m: float
+        Space scale in m
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+    """
+    precut_mask = image > hard_cut_pe
+
+    arr = np.zeros(len(image), dtype=float)
+    arr[~precut_mask] = -1
+
+    pix_x = geom.pix_x.value[precut_mask] / space_scale_m
+    pix_y = geom.pix_y.value[precut_mask] / space_scale_m
+
+    X = np.column_stack((time[precut_mask] / time_scale_ns, pix_x, pix_y))
+
+    labels = DBSCAN(eps=eps, min_samples=minpts).fit_predict(X)
+
+    # no_clusters = len(np.unique(labels))-1  # Could be used for gh separation
+
+    y = np.array(arr[(arr == 0)])
+    y[(labels == -1)] = -1
+    arr[arr == 0] = y
+    mask = arr == 0  # we keep these events
+    return mask
 
 
 def mars_cleaning_1st_pass(
@@ -529,6 +599,43 @@ class TailcutsImageCleaner(ImageCleaner):
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+        )
+
+
+class TimeCleaner(ImageCleaner):
+    """
+    Clean images using the time clustering cleaning method
+    """
+
+    space_scale_m = FloatTelescopeParameter(
+        default_value=0.25, help="Pixel space scaling parameter in m"
+    ).tag(config=True)
+    time_scale_ns = FloatTelescopeParameter(
+        default_value=4.0, help="Time scale parameter in ns"
+    ).tag(config=True)
+    minpts = IntTelescopeParameter(
+        default_value=5, help="minimum number of points to form a cluster"
+    ).tag(config=True)
+    eps = FloatTelescopeParameter(
+        default_value=1.0, help="minimum distance in DBSCAN"
+    ).tag(config=True)
+    hard_cut_pe = FloatTelescopeParameter(
+        default_value=2.5, help="Hard cut in the number of pe"
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """Apply HESS image cleaning. see ImageCleaner.__call__()"""
+        return time_clustering(
+            geom=self.subarray.tel[tel_id].camera.geometry,
+            image=image,
+            time=arrival_times,
+            eps=self.eps.tel[tel_id],
+            space_scale_m=self.space_scale_m.tel[tel_id],
+            time_scale_ns=self.time_scale_ns.tel[tel_id],
+            minpts=self.minpts.tel[tel_id],
+            hard_cut_pe=self.hard_cut_pe.tel[tel_id],
         )
 
 
