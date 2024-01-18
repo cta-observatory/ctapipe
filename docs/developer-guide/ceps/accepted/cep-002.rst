@@ -4,10 +4,10 @@
 CEP 2 - Event Structure
 ***********************
 
-* Status: draft
-* Discussion: NA
-* Date accepted: NA
-* Last revised: 2023-04-04
+* Status: accepted
+* Discussion: [`#2304 <https://github.com/cta-observatory/ctapipe/pull/2304>`__]
+* Date accepted: 2023-10-26
+* Last revised: 2023-09-08
 * Author: Maximilian Linhoff
 * Created: 2023-04-04
 
