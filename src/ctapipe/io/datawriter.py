@@ -206,6 +206,11 @@ class DataWriter(Component):
         help="Store muon parameters if available", default_value=False
     ).tag(config=True)
 
+    write_dl1_aggregates = Bool(
+        help="Store array-event-wise aggregated DL1 image parameters if available",
+        default_value=False,
+    ).tag(config=True)
+
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
     ).tag(config=True)
@@ -337,6 +342,9 @@ class DataWriter(Component):
 
         if self.write_muon_parameters:
             self._write_muon_telescope_events(event)
+
+        if self.write_dl1_aggregates:
+            self._write_dl1_aggregates(event)
 
     def _write_constant_pointing(self, event):
         """
@@ -721,6 +729,16 @@ class DataWriter(Component):
             self._writer.write(
                 f"dl1/event/telescope/muon/{table_name}",
                 [tel_index, muon.ring, muon.parameters, muon.efficiency],
+            )
+
+    def _write_dl1_aggregates(self, event: ArrayEventContainer):
+        """
+        Write array-event-wise aggregated DL1 image parameters.
+        """
+        for feature_name, container in event.dl1.aggregate.items():
+            self._writer.write(
+                table_name=f"dl1/event/aggregate/{feature_name}",
+                containers=[event.index, container],
             )
 
     def _write_dl2_telescope_events(self, event: ArrayEventContainer):
