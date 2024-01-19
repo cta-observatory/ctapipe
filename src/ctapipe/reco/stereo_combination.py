@@ -16,6 +16,7 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
+from ..vectorization import weighted_mean_ufunc
 from .utils import add_defaults_and_meta
 
 _containers = {
@@ -28,38 +29,6 @@ __all__ = [
     "StereoCombiner",
     "StereoMeanCombiner",
 ]
-
-
-def _grouped_add(tel_data, n_array_events, indices):
-    """
-    Calculate the group-wise sum for each array event over the
-    corresponding telescope events. ``indices`` is an array
-    that gives the index of the subarray event for each telescope event,
-    returned by
-    ``np.unique(tel_events[["obs_id", "event_id"]], return_inverse=True)``
-    """
-    combined_values = np.zeros(n_array_events)
-    np.add.at(combined_values, indices, tel_data)
-    return combined_values
-
-
-def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
-    # avoid numerical problems by very large or small weights
-    weights = weights / weights.max()
-    sum_prediction = _grouped_add(
-        tel_values * weights,
-        n_array_events,
-        indices,
-    )
-    sum_of_weights = _grouped_add(
-        weights,
-        n_array_events,
-        indices,
-    )
-    mean = np.full(n_array_events, np.nan)
-    valid = sum_of_weights > 0
-    mean[valid] = sum_prediction[valid] / sum_of_weights[valid]
-    return mean
 
 
 class StereoCombiner(Component):
@@ -309,7 +278,7 @@ class StereoMeanCombiner(StereoCombiner):
         if self.property is ReconstructionProperty.PARTICLE_TYPE:
             if len(valid_predictions) > 0:
                 mono_predictions = valid_predictions[f"{prefix}_prediction"]
-                stereo_predictions = _weighted_mean_ufunc(
+                stereo_predictions = weighted_mean_ufunc(
                     mono_predictions, weights, n_array_events, indices[valid]
                 )
             else:
@@ -328,13 +297,13 @@ class StereoMeanCombiner(StereoCombiner):
                 if self.log_target:
                     mono_energies = np.log(mono_energies)
 
-                stereo_energy = _weighted_mean_ufunc(
+                stereo_energy = weighted_mean_ufunc(
                     mono_energies,
                     weights,
                     n_array_events,
                     indices[valid],
                 )
-                variance = _weighted_mean_ufunc(
+                variance = weighted_mean_ufunc(
                     (mono_energies - np.repeat(stereo_energy, multiplicity)[valid])
                     ** 2,
                     weights,
@@ -369,13 +338,13 @@ class StereoMeanCombiner(StereoCombiner):
                 # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
                 mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
 
-                stereo_x = _weighted_mean_ufunc(
+                stereo_x = weighted_mean_ufunc(
                     mono_x, weights, n_array_events, indices[valid]
                 )
-                stereo_y = _weighted_mean_ufunc(
+                stereo_y = weighted_mean_ufunc(
                     mono_y, weights, n_array_events, indices[valid]
                 )
-                stereo_z = _weighted_mean_ufunc(
+                stereo_z = weighted_mean_ufunc(
                     mono_z, weights, n_array_events, indices[valid]
                 )
 
