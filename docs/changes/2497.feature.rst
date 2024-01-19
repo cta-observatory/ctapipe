@@ -1,0 +1,5 @@
+Add the ``FeatureAggregator`` component and the ``ctapipe-aggregate-image-parameters`` tool
+for aggregating the telescope-wise dl1 image parameters for each array event.
+This functionality is also added to ``ctapipe-process``.
+
+Refactor helper functions for vectorized numpy calculations into new ``ctapipe.vectorization`` module.
