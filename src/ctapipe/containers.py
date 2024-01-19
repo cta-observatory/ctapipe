@@ -55,6 +55,7 @@ __all__ = [
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
+    "BaseStatisticsContainer",
     "StatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
