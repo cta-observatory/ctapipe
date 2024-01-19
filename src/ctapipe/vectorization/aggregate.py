@@ -1,3 +1,4 @@
+"""Helper functions for vectorizing numpy operations."""
 import numpy as np
 
 __all__ = ["weighted_mean_ufunc", "max_ufunc", "min_ufunc"]
