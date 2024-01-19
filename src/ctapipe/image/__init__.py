@@ -60,7 +60,7 @@ from .pixel_likelihood import (
     neg_log_likelihood_numeric,
 )
 from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolumeReducer
-from .statistics import descriptive_statistics
+from .statistics import FeatureAggregator, descriptive_statistics
 from .timing import timing_parameters
 
 __all__ = [
@@ -119,4 +119,5 @@ __all__ = [
     "TailCutsDataVolumeReducer",
     "InvalidPixelHandler",
     "NeighborAverage",
+    "FeatureAggregator",
 ]
