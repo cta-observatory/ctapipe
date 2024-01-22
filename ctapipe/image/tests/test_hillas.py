@@ -76,7 +76,6 @@ def test_hillas_selected(prod5_lst):
 
     results = hillas_parameters(geom, image_zeros)
     results_selected = hillas_parameters(geom_selected, image_selected)
-
     compare_hillas(results, results_selected)
 
 
