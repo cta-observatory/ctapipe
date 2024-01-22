@@ -671,14 +671,14 @@ class ImPACTReconstructor(Component):
 
         Parameters
         ----------
-        shower_seed: ReconstructedShowerContainer
+        shower_seed: ReconstructedGeometryContainer
             Seed shower geometry to be used in the fit
         energy_seed: ReconstructedEnergyContainer
             Seed energy to be used in fit
 
         Returns
         -------
-        ReconstructedShowerContainer, ReconstructedEnergyContainer:
+        ReconstructedGeometryContainer, ReconstructedEnergyContainer:
         """
         self.reset_interpolator()
 
