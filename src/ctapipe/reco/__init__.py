@@ -19,7 +19,10 @@ from .sklearn import (
 )
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
+from .angular_error import AngularErrorRegressor
+
 __all__ = [
+    "AngularErrorRegressor",
     "Reconstructor",
     "HillasGeometryReconstructor",
     "ReconstructionProperty",

@@ -1,0 +1,20 @@
+TrainAngularErrorRegressor:
+  AngularErrorRegressor:
+    model_cls: 'MLPRegressor'
+    model_config:
+      hidden_layer_sizes: [36, 6]
+      activation: 'tanh'
+      solver: 'adam'
+      max_iter: 20000
+      tol: 1.0e-5
+      random_state: 0
+    features:
+      - "n_telescopes_triggered"
+      - "n_LSTs_triggered"
+      - "n_MSTs_triggered"
+
+    FeatureGenerator: # On-the-fly generation of additional features
+      features:
+        - [ "n_telescopes_triggered", "subarray.multiplicity(tels_with_trigger)" ]
+        - [ "n_LSTs_triggered", "subarray.multiplicity(tels_with_trigger, 'LST_LST_LSTCam')" ]
+        - [ "n_MSTs_triggered", "subarray.multiplicity(tels_with_trigger, 'MST_MST_NectarCam')" ]

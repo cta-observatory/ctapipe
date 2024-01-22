@@ -224,3 +224,23 @@ def test_no_cross_validation(tmp_path):
     )
     assert ret == 0
     return out_file
+
+def test_angular_error_regressor(tmp_path):
+    from ctapipe.tools.train_angular_error_regressor import TrainAngularErrorRegressor
+
+    out_file = tmp_path / "angular_error.pkl"
+
+    tool = TrainAngularErrorRegressor()
+    config = resource_file("train_ang_error_regressor.yaml")
+    ret = run_tool(
+        tool,
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output={out_file}",
+            f"--config={config}",
+            "--log-level=INFO",
+            "--overwrite",
+        ],
+    )
+    assert ret == 0
+    return out_file
