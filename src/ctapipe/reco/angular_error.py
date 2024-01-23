@@ -2,9 +2,12 @@ import pathlib
 
 import joblib
 from astropy.coordinates import angular_separation
+import numpy as np
+import astropy.units as u
+from astropy.table import Table
 
 from .preprocessing import table_to_X
-from .reconstructor import Reconstructor
+from .reconstructor import Reconstructor, ReconstructionProperty
 from ..core import traits, Provenance, FeatureGenerator
 from .sklearn import SUPPORTED_REGRESSORS
 __all__ = ['AngularErrorRegressor']
@@ -55,7 +58,21 @@ class AngularErrorRegressor(Reconstructor):
         pass
 
     def predict_subarray_table(self, events):
-        pass
+        table = self.feature_generator(events, subarray=self.subarray)
+        X, is_valid = table_to_X(table, self.features, self.log)
+        n_rows = len(table)
+        ang_error = np.full(n_rows, np.nan)
+        ang_error[is_valid] = self._model.predict(X[is_valid])
+        ang_error = u.Quantity(ang_error, self.unit, copy=False)
+
+        result = Table(
+            {
+                f"{self.reconstructor_prefix}_ang_distance_uncert": ang_error,
+                f"{self.reconstructor_prefix}_is_valid": is_valid,
+            }
+        )
+        return result
+
 
     def fit(self, table):
         """
