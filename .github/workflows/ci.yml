@@ -73,7 +73,7 @@ jobs:
           fetch-depth: 0
 
       - name: cache test data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data
