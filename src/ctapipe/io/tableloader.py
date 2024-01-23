@@ -22,7 +22,7 @@ PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
 MUON_GROUP = "/dl1/event/telescope/muon"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
-PARAMETER_AGGS_GROUP = "/dl1/event/aggregate"
+PARAMETER_AGGS_GROUP = "/dl1/event/subarray/aggregated_image_parameters"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
@@ -448,14 +448,13 @@ class TableLoader(Component):
                     table = _merge_subarray_tables(table, dl2)
 
         if dl1_aggregates and PARAMETER_AGGS_GROUP in self.h5file:
-            for group_name in self.h5file.root[PARAMETER_AGGS_GROUP]._v_children:
-                aggs = read_table(
-                    self.h5file,
-                    f"{PARAMETER_AGGS_GROUP}/{group_name}",
-                    start=start,
-                    stop=stop,
-                )
-                table = _merge_subarray_tables(table, aggs)
+            aggs = read_table(
+                self.h5file,
+                PARAMETER_AGGS_GROUP,
+                start=start,
+                stop=stop,
+            )
+            table = _merge_subarray_tables(table, aggs)
 
         if observation_info:
             table = self._join_observation_info(table)
