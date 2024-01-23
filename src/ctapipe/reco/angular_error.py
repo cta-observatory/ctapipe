@@ -8,7 +8,7 @@ from astropy.table import Table
 
 from .preprocessing import table_to_X
 from .reconstructor import Reconstructor, ReconstructionProperty
-from ..core import traits, Provenance, FeatureGenerator
+from ..core import traits, Provenance, FeatureGenerator, QualityQuery
 from .sklearn import SUPPORTED_REGRESSORS
 __all__ = ['AngularErrorRegressor']
 
@@ -48,7 +48,7 @@ class AngularErrorRegressor(Reconstructor):
             )
 
         self.feature_generator = FeatureGenerator(parent=self)
-
+        self.quality_query = QualityQuery(parent=self)
         # to verify settings
         self._new_model()
 
@@ -57,22 +57,22 @@ class AngularErrorRegressor(Reconstructor):
     def __call__(self, event):
         pass
 
-    def predict_subarray_table(self, events):
-        table = self.feature_generator(events, subarray=self.subarray)
-        X, is_valid = table_to_X(table, self.features, self.log)
+    def predict_subarray_table(self, table):
+        quality_valid = self.quality_query.get_table_mask(table)
+        table = self.feature_generator(table[quality_valid], subarray=self.subarray)
+        X, valid = table_to_X(table, self.features, self.log)
         n_rows = len(table)
         ang_error = np.full(n_rows, np.nan)
-        ang_error[is_valid] = self._model.predict(X[is_valid])
+        ang_error[valid] = self._model.predict(X)
         ang_error = u.Quantity(ang_error, self.unit, copy=False)
 
         result = Table(
             {
                 f"{self.reconstructor_prefix}_ang_distance_uncert": ang_error,
-                f"{self.reconstructor_prefix}_is_valid": is_valid,
+                f"{self.reconstructor_prefix}_is_valid": valid,
             }
         )
         return result
-
 
     def fit(self, table):
         """

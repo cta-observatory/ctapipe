@@ -3,7 +3,7 @@ Tool for training the AngularErrorRegressor
 """
 import numpy as np
 
-from ctapipe.core import Tool
+from ctapipe.core import Tool, QualityQuery
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path, Unicode
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, AngularErrorRegressor
@@ -76,6 +76,7 @@ class TrainAngularErrorRegressor(Tool):
             )
         )
         self.regressor = AngularErrorRegressor(self.loader.subarray, parent=self)
+        self.quality_query = QualityQuery(parent=self)
         self.rng = np.random.default_rng(self.random_seed)
         self.check_output(self.output_path)
 
@@ -86,10 +87,12 @@ class TrainAngularErrorRegressor(Tool):
         events = self.loader.read_subarray_events(
             dl2=True,
             simulated=True,
+            dl1_aggregates=True,
         )
 
         self.log.info("Loaded %d events", len(events))
-        valid = events[self.regressor.reconstructor_prefix + "_is_valid"]
+        valid = self.quality_query.get_table_mask(events)
+        valid = valid & events[f"{self.regressor.reconstructor_prefix}_is_valid"]
         events = events[valid]
         self.log.info("Using %d valid events", len(events))
         self.regressor.fit(events)
@@ -98,7 +101,7 @@ class TrainAngularErrorRegressor(Tool):
         """
         Save the model to disk.
         """
-        self.regressor.write(self.output_path)
+        self.regressor.write(self.output_path, overwrite=self.overwrite)
 def main():
     TrainAngularErrorRegressor().run()
 

@@ -137,6 +137,7 @@ class ApplyAngularErrorModel(Tool):
             self.chunk_size,
             simulated=False,
             observation_info=True,
+            dl1_aggregates=True,
         )
         bar = tqdm(
             chunk_iterator,

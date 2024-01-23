@@ -12,6 +12,7 @@ TrainAngularErrorRegressor:
       - "n_telescopes_triggered"
       - "n_LSTs_triggered"
       - "n_MSTs_triggered"
+      - "hillas_length_mean"
 
     FeatureGenerator: # On-the-fly generation of additional features
       features:
