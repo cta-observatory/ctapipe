@@ -2,14 +2,14 @@
 ctapipe |pypi| |conda| |doilatest| |ci| |coverage| |codacy|
 ============================================================
 
-.. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=master
-    :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amaster
+.. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=main
+    :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amain
     :alt: Test Status
 .. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115
   :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
 .. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
-.. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
+.. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/main/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe
 .. |doilatest| image:: https://zenodo.org/badge/37927055.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
@@ -60,7 +60,7 @@ Installation for Users
 
 *ctapipe* and its dependencies may be installed using the *Anaconda* or
 *Miniconda* package system. We recommend creating a conda virtual environment
-first, to isolate the installed version and dependencies from your master
+first, to isolate the installed version and dependencies from your main
 environment (this is optional).
 
 
