@@ -4,7 +4,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
-from scipy.signal import filtfilt
+from scipy.signal import filtfilt, peak_widths
 from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
@@ -27,6 +27,8 @@ from ctapipe.image.extractor import (
     integration_correction,
     neighbor_average_maximum,
     subtract_baseline,
+    time_over_threshold,
+    time_parameters,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
 from ctapipe.instrument import SubarrayDescription
@@ -154,6 +156,44 @@ def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
 @pytest.fixture(scope="module")
 def toymodel_mst_fc(subarray_mst_fc: object) -> object:
     return get_test_toymodel(subarray_mst_fc)
+
+
+def test_fwhm(toymodel):
+    waveforms, _, _, _, true_charge, _ = toymodel
+    waveforms = waveforms[true_charge > 5]
+    fwhm_scp = np.array([])
+
+    for i in range(0, len(waveforms)):
+        peak_index = np.argmax(waveforms[i])
+        widths = peak_widths(
+            waveforms[i],
+            peaks=[
+                peak_index,
+            ],
+            rel_height=0.5,
+        )
+
+        fwhm_scp = np.append(fwhm_scp, widths[0])
+
+    fwhm, rise, fall = time_parameters(waveforms)
+
+    assert_allclose(
+        np.array(fwhm),
+        fwhm_scp,
+        atol=1e-3,
+        rtol=1e-3,
+    )
+
+
+def test_tot(toymodel):
+    waveforms, _, _, _, true_charge, _ = toymodel
+
+    tot_scp = time_over_threshold(waveforms, thr=200)
+    assert np.array(tot_scp).all() == 0
+
+    waveforms = np.atleast_2d(np.heaviside([-4, -3, -2, -1, 0, 1, 2, 3, 4, 5], 1))
+    tot_scp = time_over_threshold(waveforms, thr=0.5)
+    assert np.array(tot_scp)[0] == 6
 
 
 def test_extract_around_peak(toymodel):

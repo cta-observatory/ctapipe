@@ -351,6 +351,118 @@ def integration_correction(
     return correction
 
 
+@guvectorize(
+    [
+        (float32[:], float32[:], float32[:], float32[:]),
+        (float64[:], float32[:], float32[:], float32[:]),
+    ],
+    "(s)->(),(),()",
+    nopython=True,
+    cache=True,
+)
+def time_parameters(waveform, fwhm_arr, rise_time_arr, fall_time_arr):
+    """
+    Calculates the full width at half maximum (FWHM) of R1 already calibrated waveforms.
+    The rise and fall time of these waveforms is also computed at 90% and 10% of the peak.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        r1 waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+
+    Returns
+    -------
+    fwhm_arr : list of floats
+        Full width half maximum of pulse in units of time
+        Shape : (n_pix)
+    rise_time_arr : list of floats
+        Rise time of the pulse in units of time
+        Shape : (n_pix)
+    fall_time_arr : list of floats
+        Fall time of the pulse in units of time
+        Shape : (n_pix)
+
+    """
+    peak_index = np.argmax(waveform)
+    amplitude = np.max(waveform)
+    n_samples = np.shape(waveform)[-1]
+
+    # Initialize in case of dividing by zero
+    rt_90 = np.nan
+    rt_10 = np.nan
+    ft_90 = np.nan
+    ft_10 = np.nan
+    fwhm_left = np.nan
+    fwhm_right = np.nan
+
+    half_amplitude = amplitude / 2
+    ampl_10percent = 0.1 * amplitude
+    ampl_90percent = 0.9 * amplitude
+
+    for ti in range(peak_index, n_samples - 1):
+        tj = ti + 1
+        yi = waveform[ti]
+        yj = waveform[tj]
+        if (yj - yi) != 0:
+            if yi >= half_amplitude >= yj:
+                fwhm_right = ti + (half_amplitude - yi) / (yj - yi)
+            if yi >= ampl_90percent >= yj:
+                ft_90 = ti + (ampl_90percent - yi) / (yj - yi)
+            if yi >= ampl_10percent >= yj:
+                ft_10 = ti + (ampl_10percent - yi) / (yj - yi)
+
+    for ti in range(peak_index, 0, -1):
+        tj = ti - 1
+        yi = waveform[ti]
+        yj = waveform[tj]
+        if (yj - yi) != 0:
+            if yi >= half_amplitude >= yj:
+                fwhm_left = ti - (half_amplitude - yi) / (yj - yi)
+            if yi >= ampl_90percent >= yj:
+                rt_90 = ti - (ampl_90percent - yi) / (yj - yi)
+            if yi >= ampl_10percent >= yj:
+                rt_10 = ti - (ampl_10percent - yi) / (yj - yi)
+
+    fwhm = 0.0
+    if None not in (fwhm_right, fwhm_left):
+        fwhm = fwhm_right - fwhm_left
+
+    rise_time = 0.0
+    if None not in (rt_90, rt_10):
+        rise_time = rt_90 - rt_10
+
+    fall_time = 0.0
+    if None not in (ft_90, ft_10):
+        fall_time = ft_10 - ft_90
+
+    fwhm_arr[0] = fwhm
+    rise_time_arr[0] = rise_time
+    fall_time_arr[0] = fall_time
+
+
+def time_over_threshold(waveforms, thr):
+    """
+    Calculates the time over threshold (TOT) of waveforms. This is the width of the pulse above
+    a threshold above the baseline of the waveform.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        r1 waveforms stored in a numpy array.
+    thr: float
+        Threshold above baseline
+
+    Returns
+    -------
+    time_over_thr : list of int
+        Number of samples with amplitude > thr
+        Shape : (n_pix)
+
+    """
+    return np.count_nonzero(waveforms > thr, axis=-1)
+
+
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
