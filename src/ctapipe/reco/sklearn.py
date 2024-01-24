@@ -37,7 +37,8 @@ from ..core import (
     traits,
 )
 from ..io import write_table
-from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
+from ..vectorization import collect_features
+from .preprocessing import table_to_X, telescope_to_horizontal
 from .reconstructor import ReconstructionProperty, Reconstructor
 from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
