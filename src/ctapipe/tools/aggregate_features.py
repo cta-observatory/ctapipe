@@ -1,15 +1,13 @@
 """
 Tool to aggregate DL1 image parameters array-event-wise.
 """
-import numpy as np
 import tables
 from tqdm.auto import tqdm
 
 from ..core import Tool, ToolConfigurationError
 from ..core.traits import Bool, Integer, Path, flag
 from ..image import FeatureAggregator
-from ..io import HDF5Merger, TableLoader, read_table, write_table
-from ..io.tableloader import _join_subarray_events
+from ..io import HDF5Merger, TableLoader, write_table
 
 __all__ = ["AggregateFeatures"]
 
@@ -129,7 +127,6 @@ class AggregateFeatures(Tool):
         """Aggregate DL1 image parameters for input tables."""
         chunk_iterator = self.loader.read_telescope_events_chunked(
             self.chunk_size,
-            dl2=False,
             simulated=False,
             true_parameters=False,
         )
@@ -143,27 +140,13 @@ class AggregateFeatures(Tool):
         with bar:
             for chunk, (start, stop, table) in enumerate(chunk_iterator):
                 self.log.debug("Aggregating for chunk %d", chunk)
-                agg_tables = self.aggregator.aggregate_table(table)
-
-                # to ensure events are stored in the correct order,
-                # we resort to trigger table order
-                trigger = read_table(
-                    self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
-                )[["obs_id", "event_id"]]
-                trigger["__sort_index__"] = np.arange(len(trigger))
-
-                for colname, agg_table in agg_tables.items():
-                    agg_table = _join_subarray_events(trigger, agg_table)
-                    agg_table.sort("__sort_index__")
-                    del agg_table["__sort_index__"]
-
-                    write_table(
-                        agg_table,
-                        self.output_path,
-                        f"/dl1/event/aggregate/{colname}",
-                        append=True,
-                    )
-
+                agg_table = self.aggregator.aggregate_table(table)
+                write_table(
+                    agg_table,
+                    self.output_path,
+                    "/dl1/event/subarray/aggregated_image_parameters",
+                    append=True,
+                )
                 bar.update(stop - start)
 
 
