@@ -16,7 +16,7 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
-from ..vectorization import weighted_mean_ufunc
+from ..vectorization import get_subarray_index, weighted_mean_std_ufunc
 from .utils import add_defaults_and_meta
 
 _containers = {
@@ -256,30 +256,30 @@ class StereoMeanCombiner(StereoCombiner):
         This means you might end up with less events if
         all telescope predictions of a shower are invalid.
         """
-
         prefix = f"{self.prefix}_tel"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
-        valid_predictions = mono_predictions[valid]
 
-        array_events, indices, multiplicity = np.unique(
-            mono_predictions[["obs_id", "event_id"]],
-            return_inverse=True,
-            return_counts=True,
+        obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
+            mono_predictions
         )
-        stereo_table = Table(array_events)
+        n_array_events = len(obs_ids)
+        stereo_table = Table({"obs_id": obs_ids, "event_id": event_ids})
         # copy metadata
         for colname in ("obs_id", "event_id"):
             stereo_table[colname].description = mono_predictions[colname].description
 
-        n_array_events = len(array_events)
-        weights = self._calculate_weights(valid_predictions)
+        weights = self._calculate_weights(mono_predictions[valid])
 
         if self.property is ReconstructionProperty.PARTICLE_TYPE:
-            if len(valid_predictions) > 0:
-                mono_predictions = valid_predictions[f"{prefix}_prediction"]
-                stereo_predictions = weighted_mean_ufunc(
-                    mono_predictions, weights, n_array_events, indices[valid]
+            if np.sum(valid) > 0:
+                stereo_predictions, _ = weighted_mean_std_ufunc(
+                    mono_predictions[f"{prefix}_prediction"],
+                    valid,
+                    n_array_events,
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
                 )
             else:
                 stereo_predictions = np.full(n_array_events, np.nan)
@@ -289,29 +289,21 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
 
         elif self.property is ReconstructionProperty.ENERGY:
-            if len(valid_predictions) > 0:
-                mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(
+            if np.sum(valid) > 0:
+                mono_energies = mono_predictions[f"{prefix}_energy"].quantity.to_value(
                     u.TeV
                 )
-
                 if self.log_target:
                     mono_energies = np.log(mono_energies)
 
-                stereo_energy = weighted_mean_ufunc(
+                stereo_energy, std = weighted_mean_std_ufunc(
                     mono_energies,
-                    weights,
+                    valid,
                     n_array_events,
-                    indices[valid],
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
                 )
-                variance = weighted_mean_ufunc(
-                    (mono_energies - np.repeat(stereo_energy, multiplicity)[valid])
-                    ** 2,
-                    weights,
-                    n_array_events,
-                    indices[valid],
-                )
-                std = np.sqrt(variance)
-
                 if self.log_target:
                     stereo_energy = np.exp(stereo_energy)
                     std = np.exp(std)
@@ -330,22 +322,37 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
 
         elif self.property is ReconstructionProperty.GEOMETRY:
-            if len(valid_predictions) > 0:
+            if np.sum(valid) > 0:
                 coord = AltAz(
-                    alt=valid_predictions[f"{prefix}_alt"],
-                    az=valid_predictions[f"{prefix}_az"],
+                    alt=mono_predictions[f"{prefix}_alt"],
+                    az=mono_predictions[f"{prefix}_az"],
                 )
                 # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
                 mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
 
-                stereo_x = weighted_mean_ufunc(
-                    mono_x, weights, n_array_events, indices[valid]
+                stereo_x, _ = weighted_mean_std_ufunc(
+                    mono_x,
+                    valid,
+                    n_array_events,
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
                 )
-                stereo_y = weighted_mean_ufunc(
-                    mono_y, weights, n_array_events, indices[valid]
+                stereo_y, _ = weighted_mean_std_ufunc(
+                    mono_y,
+                    valid,
+                    n_array_events,
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
                 )
-                stereo_z = weighted_mean_ufunc(
-                    mono_z, weights, n_array_events, indices[valid]
+                stereo_z, _ = weighted_mean_std_ufunc(
+                    mono_z,
+                    valid,
+                    n_array_events,
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
                 )
 
                 mean_cartesian = CartesianRepresentation(
@@ -382,7 +389,9 @@ class StereoMeanCombiner(StereoCombiner):
 
         tel_ids = [[] for _ in range(n_array_events)]
 
-        for index, tel_id in zip(indices[valid], valid_predictions["tel_id"]):
+        for index, tel_id in zip(
+            tel_to_array_indices[valid], mono_predictions["tel_id"][valid]
+        ):
             tel_ids[index].append(tel_id)
 
         stereo_table[f"{self.prefix}_telescopes"] = tel_ids
