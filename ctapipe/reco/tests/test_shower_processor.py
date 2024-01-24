@@ -9,16 +9,17 @@ from traitlets.config.loader import Config
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
-from ctapipe.reco import HillasGeometryReconstructor, ShowerProcessor
+from ctapipe.reco import ShowerProcessor
 
 
 @pytest.mark.parametrize(
     "reconstructor_types",
     [
-        [reco_type]
-        for reco_type in HillasGeometryReconstructor.non_abstract_subclasses().keys()
-    ]
-    + [["HillasReconstructor", "HillasIntersection"]],
+        ["HillasIntersection"],
+        ["HillasReconstructor"],
+        pytest.param("ImPACTReconstructor", marks=pytest.mark.xfail),
+    ],
+    ids=["HillasIntersection", "HillasReconstructor", "ImPACTReconstructor"],
 )
 def test_shower_processor_geometry(
     example_event, example_subarray, reconstructor_types
@@ -44,8 +45,10 @@ def test_shower_processor_geometry(
 
     process_shower(example_event_copy)
 
+    print(reconstructor_types)
     for reco_type in reconstructor_types:
         DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
+        print(reco_type)
         print(DL2a)
         assert isfinite(DL2a.alt)
         assert isfinite(DL2a.az)

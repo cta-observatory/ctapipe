@@ -1,0 +1,2 @@
+Implements the Image Pixel-wise fit for Atmospheric Cherenkov Telescopes reconstruction method
+(https://doi.org/10.48550/arXiv.1403.2993)

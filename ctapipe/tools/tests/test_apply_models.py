@@ -37,7 +37,7 @@ def test_apply_energy_regressor(
         raises=True,
     )
     assert ret == 0
-
+    print(output_path)
     prefix = "ExtraTreesRegressor"
     table = read_table(output_path, f"/dl2/event/subarray/energy/{prefix}")
     for col in "obs_id", "event_id":
@@ -134,7 +134,7 @@ def test_apply_all(
     prefix_en = "ExtraTreesRegressor"
     prefix_disp = "disp"
 
-    table = read_table(output_path, f"/dl2/event/subarray/classification/{prefix_clf}")
+    table = read_table(output_path, f"/dl2/event/subarray/particle_type/{prefix_clf}")
     for col in "obs_id", "event_id":
         # test file is produced using 0.17, the descriptions don't match
         # assert table[col].description == EventIndexContainer.fields[col].description
@@ -161,7 +161,7 @@ def test_apply_all(
     trigger = read_table(output_path, "/dl1/event/subarray/trigger")
 
     subarray_tables = (
-        f"/dl2/event/subarray/classification/{prefix_clf}",
+        f"/dl2/event/subarray/particle_type/{prefix_clf}",
         f"/dl2/event/subarray/geometry/{prefix_disp}",
         f"/dl2/event/subarray/energy/{prefix_en}",
     )
@@ -173,7 +173,7 @@ def test_apply_all(
     tel_trigger = read_table(output_path, "/dl1/event/telescope/trigger")
     for tel_id in subarray.tel:
         tel_keys = (
-            f"/dl2/event/telescope/classification/{prefix_clf}/tel_{tel_id:03d}",
+            f"/dl2/event/telescope/particle_type/{prefix_clf}/tel_{tel_id:03d}",
             f"/dl2/event/telescope/geometry/{prefix_disp}/tel_{tel_id:03d}",
             f"/dl2/event/telescope/energy/{prefix_en}/tel_{tel_id:03d}",
         )

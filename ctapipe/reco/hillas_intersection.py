@@ -32,6 +32,7 @@ from ..core import traits
 from .reconstructor import (
     HillasGeometryReconstructor,
     InvalidWidthException,
+    ReconstructionProperty,
     TooFewTelescopesException,
 )
 
@@ -97,6 +98,8 @@ class HillasIntersection(HillasGeometryReconstructor):
     weighting = traits.CaselessStrEnum(
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
+
+    property = ReconstructionProperty.GEOMETRY
 
     def __init__(self, subarray, **kwargs):
         """
@@ -423,8 +426,8 @@ class HillasIntersection(HillasGeometryReconstructor):
         hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        crossing_x, crossing_y = self.intersect_lines(
-            tel_x[:, 0], tel_y[:, 0], hillas1[0], tel_x[:, 1], tel_y[:, 1], hillas2[0]
+        crossing_y, crossing_x = self.intersect_lines(
+            tel_y[:, 0], tel_x[:, 0], hillas1[0], tel_y[:, 1], tel_x[:, 1], hillas2[0]
         )
 
         # Weight by chosen method

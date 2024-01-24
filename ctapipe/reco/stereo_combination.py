@@ -19,9 +19,9 @@ from ..containers import (
 from .utils import add_defaults_and_meta
 
 _containers = {
-    "energy": ReconstructedEnergyContainer,
-    "classification": ParticleClassificationContainer,
-    "geometry": ReconstructedGeometryContainer,
+    ReconstructionProperty.ENERGY: ReconstructedEnergyContainer,
+    ReconstructionProperty.PARTICLE_TYPE: ParticleClassificationContainer,
+    ReconstructionProperty.GEOMETRY: ReconstructedGeometryContainer,
 }
 
 __all__ = [
@@ -113,12 +113,12 @@ class StereoMeanCombiner(StereoCombiner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        supported = {
+        self.supported = {
             ReconstructionProperty.ENERGY,
             ReconstructionProperty.GEOMETRY,
             ReconstructionProperty.PARTICLE_TYPE,
         }
-        if self.property not in supported:
+        if self.property not in self.supported:
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
@@ -271,14 +271,21 @@ class StereoMeanCombiner(StereoCombiner):
         """
         Calculate the mean prediction for a single array event.
         """
-        if self.property is ReconstructionProperty.ENERGY:
-            self._combine_energy(event)
 
-        elif self.property is ReconstructionProperty.PARTICLE_TYPE:
-            self._combine_classification(event)
+        properties = [
+            self.property & itm
+            for itm in self.supported
+            if self.property & itm in ReconstructionProperty
+        ]
+        for prop in properties:
+            if prop is ReconstructionProperty.ENERGY:
+                self._combine_energy(event)
 
-        elif self.property is ReconstructionProperty.GEOMETRY:
-            self._combine_altaz(event)
+            elif prop is ReconstructionProperty.PARTICLE_TYPE:
+                self._combine_classification(event)
+
+            elif prop is ReconstructionProperty.GEOMETRY:
+                self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
