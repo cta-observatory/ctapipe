@@ -735,11 +735,10 @@ class DataWriter(Component):
         """
         Write array-event-wise aggregated DL1 image parameters.
         """
-        for feature_name, container in event.dl1.aggregate.items():
-            self._writer.write(
-                table_name=f"dl1/event/aggregate/{feature_name}",
-                containers=[event.index, container],
-            )
+        self._writer.write(
+            table_name="dl1/event/subarray/aggregated_image_parameters",
+            containers=[event.index] + list(event.dl1.aggregate.values()),
+        )
 
     def _write_dl2_telescope_events(self, event: ArrayEventContainer):
         """
