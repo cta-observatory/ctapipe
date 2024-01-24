@@ -8,6 +8,6 @@ recursive-include docs *
 prune build
 prune docs/_build
 prune docs/api
-prune ctapipe/_dev_version
+prune src/ctapipe/_dev_version
 
 global-exclude *.pyc *.o
