@@ -68,7 +68,7 @@ class DirectionUncertaintyRegressor(Reconstructor):
 
         result = Table(
             {
-                f"{self.reconstructor_prefix}_direction_uncertainty": dir_uncert,
+                f"{self.reconstructor_prefix}_ang_distance_uncert": dir_uncert,
                 f"{self.reconstructor_prefix}_is_valid": valid,
             }
         )
