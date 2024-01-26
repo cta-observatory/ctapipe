@@ -2,10 +2,42 @@
 
 import logging
 from collections.abc import Mapping
+from enum import IntEnum
 
 DEFAULT_LOGGING_FORMAT = (
     "%(asctime)s %(levelname)s [%(name)s] (%(module)s.%(funcName)s): %(message)s"
 )
+
+
+class ANSIEscapes(IntEnum):
+    """
+    Enum of some ANSI style escape sequences used for logging.
+
+    See https://en.wikipedia.org/wiki/ANSI_escape_code
+    """
+
+    RESET = 0
+    BOLD = 1
+    FG_RED = 31
+    FG_GREEN = 32
+    FG_YELLOW = 33
+    FG_BLUE = 34
+    FG_MAGENTA = 35
+
+
+LEVEL_COLORS = {
+    "DEBUG": ANSIEscapes.FG_BLUE,
+    "INFO": ANSIEscapes.FG_GREEN,
+    "WARNING": ANSIEscapes.FG_YELLOW,
+    "ERROR": ANSIEscapes.FG_RED,
+    "CRITICAL": ANSIEscapes.FG_MAGENTA,
+}
+
+
+def add_ansi_display(string, *styles):
+    """Surround ``string`` by ANSI escape code styling."""
+    styles = ";".join(str(int(style)) for style in styles)
+    return f"\033[{styles}m{string}\033[{ANSIEscapes.RESET}m"
 
 
 class PlainFormatter(logging.Formatter):
@@ -23,20 +55,12 @@ class ColoredFormatter(logging.Formatter):
 
 def apply_colors(levelname: str):
     """Use ANSI escape sequences to add colors the levelname of log entries."""
-    _black, red, green, yellow, blue, magenta, _cyan, _white = range(8)
-    reset_seq = "\033[0m"
-    color_seq = "\033[1;%dm"
-    colors = {
-        "INFO": green,
-        "DEBUG": blue,
-        "WARNING": yellow,
-        "CRITICAL": magenta,
-        "ERROR": red,
-    }
+    color = LEVEL_COLORS.get(levelname)
 
-    levelname_color = color_seq % (30 + colors[levelname]) + levelname + reset_seq
+    if color is None:
+        return add_ansi_display(levelname, ANSIEscapes.BOLD)
 
-    return levelname_color
+    return add_ansi_display(levelname, ANSIEscapes.BOLD, color)
 
 
 def recursive_update(d1, d2, copy=False):
