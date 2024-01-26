@@ -10,14 +10,14 @@ from .preprocessing import table_to_X
 from .reconstructor import Reconstructor, ReconstructionProperty
 from ..core import traits, Provenance, FeatureGenerator, QualityQuery
 from .sklearn import SUPPORTED_REGRESSORS
-__all__ = ['AngularErrorRegressor']
+__all__ = ['DirectionUncertaintyRegressor']
 
 from ..core.traits import TraitError, Unicode
 
 
-class AngularErrorRegressor(Reconstructor):
+class DirectionUncertaintyRegressor(Reconstructor):
     """
-    Reconstructor for estimating the angular reconstruction error.
+    Reconstructor for estimating the direction reconstruction uncertainty.
     """
     features = traits.List(
         traits.Unicode(), help="Features to use for this model."
@@ -62,13 +62,13 @@ class AngularErrorRegressor(Reconstructor):
         table = self.feature_generator(table[quality_valid], subarray=self.subarray)
         X, valid = table_to_X(table, self.features, self.log)
         n_rows = len(table)
-        ang_error = np.full(n_rows, np.nan)
-        ang_error[valid] = self._model.predict(X)
-        ang_error = u.Quantity(ang_error, self.unit, copy=False)
+        dir_uncert = np.full(n_rows, np.nan)
+        dir_uncert[valid] = self._model.predict(X)
+        dir_uncert = u.Quantity(dir_uncert, self.unit, copy=False)
 
         result = Table(
             {
-                f"{self.reconstructor_prefix}_ang_distance_uncert": ang_error,
+                f"{self.reconstructor_prefix}_direction_uncertainty": dir_uncert,
                 f"{self.reconstructor_prefix}_is_valid": valid,
             }
         )
@@ -81,9 +81,9 @@ class AngularErrorRegressor(Reconstructor):
         self._model = self._new_model()
         table = self.feature_generator(table, subarray=self.subarray)
         X, valid = table_to_X(table, self.features, self.log)
-        ang_error = self._compute_angular_separation(table[valid])
-        self.unit = ang_error.unit
-        self._model.fit(X, ang_error.quantity.to_value(self.unit))
+        dir_uncert = self._compute_angular_separation(table[valid])
+        self.unit = dir_uncert.unit
+        self._model.fit(X, dir_uncert.quantity.to_value(self.unit))
 
     def _new_model(self):
         cfg = self.model_config

@@ -11,24 +11,24 @@ from ctapipe.reco import Reconstructor
 
 
 __all__ = [
-    "ApplyAngularErrorModel",
+    "ApplyDirectionUncertaintyModel",
 ]
 
-class ApplyAngularErrorModel(Tool):
+class ApplyDirectionUncertaintyModel(Tool):
     """
-    Apply the angular error model to a DL2 file.
+    Apply the direction uncertainty model to a DL2 file.
 
     Model needs to be trained with
-    `~ctapipe.tools.train_angular_error_regressor.TrainAngularErrorRegressor`.
+    `~ctapipe.tools.train_direction_uncertainty_regressor.TrainDirectionUncertaintyRegressor`.
     """
 
-    name = "ctapipe-apply-angular-error-model"
+    name = "ctapipe-apply-direction-uncertainty-model"
     description = __doc__
 
     examples = """
-    ctapipe-apply-angular-error-model \\
+    ctapipe-apply-direction-uncertainty-model \\
         --input gamma.dl2.h5 \\
-        --reconstructor angular_error_regressor.pkl \\
+        --reconstructor direction_uncertainty_regressor.pkl \\
         --output gamma_applied.dl2.h5
     """
 
@@ -73,11 +73,11 @@ class ApplyAngularErrorModel(Tool):
     ).tag(config=True)
 
     aliases = {
-        ("i", "input"): "ApplyAngularErrorModel.input_url",
-        ("o", "output"): "ApplyAngularErrorModel.output_path",
-        ("r", "reconstructor"): "ApplyAngularErrorModel.reconstructor_path",
-        "n-jobs": "ApplyAngularErrorModel.n_jobs",
-        "chunk-size": "ApplyAngularErrorModel.chunk_size",
+        ("i", "input"): "ApplyDirectionUncertaintyModel.input_url",
+        ("o", "output"): "ApplyDirectionUncertaintyModel.output_path",
+        ("r", "reconstructor"): "ApplyDirectionUncertaintyModel.reconstructor_path",
+        "n-jobs": "ApplyDirectionUncertaintyModel.n_jobs",
+        "chunk-size": "ApplyDirectionUncertaintyModel.chunk_size",
     }
 
     flags = {
@@ -102,7 +102,7 @@ class ApplyAngularErrorModel(Tool):
         "overwrite": (
             {
                 "HDF5Merger": {"overwrite": True},
-                "ApplyAngularErrorModel": {"overwrite": True},
+                "ApplyDirectionUncertaintyModel": {"overwrite": True},
             },
             "Overwrite output file if it exists",
         ),
@@ -141,7 +141,7 @@ class ApplyAngularErrorModel(Tool):
         )
         bar = tqdm(
             chunk_iterator,
-            desc="Applying angular error model",
+            desc="Applying direction uncertainty model",
             unit="Subarray events",
             total=chunk_iterator.n_total,
             disable=not self.progress_bar,
@@ -150,7 +150,7 @@ class ApplyAngularErrorModel(Tool):
             for chunk, (start, stop, table) in enumerate(chunk_iterator):
                 self.log.debug("Events read from chunk %d: %d", chunk, len(table))
                 self._apply(self.regressor, table, start=start, stop=stop)
-                self.log.debug("Events after applying angular error model: %d", len(table))
+                self.log.debug("Events after applying direction uncertainty model: %d", len(table))
                 bar.update(stop - start)
 
     def _apply(self, reconstructor, table, start=None, stop=None):
@@ -169,7 +169,7 @@ class ApplyAngularErrorModel(Tool):
         )
 
 def main():
-    ApplyAngularErrorModel().run()
+    ApplyDirectionUncertaintyModel().run()
 
 
 if __name__ == "__main__":

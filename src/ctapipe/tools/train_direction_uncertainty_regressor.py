@@ -1,28 +1,28 @@
 """
-Tool for training the AngularErrorRegressor
+Tool for training the DirectionUncertaintyRegressor
 """
 import numpy as np
 
 from ctapipe.core import Tool, QualityQuery
 from ctapipe.core.traits import Int, IntTelescopeParameter, Path, Unicode
 from ctapipe.io import TableLoader
-from ctapipe.reco import CrossValidator, AngularErrorRegressor
+from ctapipe.reco import CrossValidator, DirectionUncertaintyRegressor
 
 __all__ = [
-    "TrainAngularErrorRegressor",
+    "TrainDirectionUncertaintyRegressor",
 ]
 
 
-class TrainAngularErrorRegressor(Tool):
+class TrainDirectionUncertaintyRegressor(Tool):
 
-    name = "ctapipe-train-angular-error-regressor"
+    name = "ctapipe-train-direction-uncertainty-regressor"
     description = __doc__
 
     examples = """
-    ctapipe-train-angular-error-regressor \\
-        --config train_angular_error_regressor.yaml \\
+    ctapipe-train-direction-uncertainty-regressor \\
+        --config train_direction_uncertainty_regressor.yaml \\
         --input gamma.dl2.h5 \\
-        --output angular_error_regressor.pkl
+        --output direction_uncertainty_regressor.pkl
     """
 
     output_path = Path(
@@ -56,13 +56,13 @@ class TrainAngularErrorRegressor(Tool):
 
     aliases = {
         ("i", "input"): "TableLoader.input_url",
-        ("o", "output"): "TrainAngularErrorRegressor.output_path",
-        "n-events": "TrainAngularErrorRegressor.n_events",
+        ("o", "output"): "TrainDirectionUncertaintyRegressor.output_path",
+        "n-events": "TrainDirectionUncertaintyRegressor.n_events",
     }
 
     classes = [
         TableLoader,
-        AngularErrorRegressor,
+        DirectionUncertaintyRegressor,
         CrossValidator,
     ]
 
@@ -75,7 +75,7 @@ class TrainAngularErrorRegressor(Tool):
                 parent=self,
             )
         )
-        self.regressor = AngularErrorRegressor(self.loader.subarray, parent=self)
+        self.regressor = DirectionUncertaintyRegressor(self.loader.subarray, parent=self)
         self.quality_query = QualityQuery(parent=self)
         self.rng = np.random.default_rng(self.random_seed)
         self.check_output(self.output_path)
@@ -103,7 +103,7 @@ class TrainAngularErrorRegressor(Tool):
         """
         self.regressor.write(self.output_path, overwrite=self.overwrite)
 def main():
-    TrainAngularErrorRegressor().run()
+    TrainDirectionUncertaintyRegressor().run()
 
 
 if __name__ == "__main__":

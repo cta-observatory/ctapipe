@@ -225,13 +225,13 @@ def test_no_cross_validation(tmp_path):
     assert ret == 0
     return out_file
 
-def test_angular_error_regressor(tmp_path):
-    from ctapipe.tools.train_angular_error_regressor import TrainAngularErrorRegressor
+def test_direction_uncertainty_regressor(tmp_path):
+    from ctapipe.tools.train_direction_uncertainty_regressor import TrainAngularErrorRegressor
 
-    out_file = tmp_path / "angular_error.pkl"
+    out_file = tmp_path / "direction_uncertainty.pkl"
 
     tool = TrainAngularErrorRegressor()
-    config = resource_file("train_ang_error_regressor.yaml")
+    config = resource_file("train_direction_uncertainty_regressor.yaml")
     ret = run_tool(
         tool,
         argv=[
