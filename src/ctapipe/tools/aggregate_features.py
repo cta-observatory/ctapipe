@@ -104,7 +104,7 @@ class AggregateFeatures(Tool):
     classes = [TableLoader, FeatureAggregator]
 
     def setup(self):
-        """Initilize components form config."""
+        """Initilize components from config."""
         self.check_output(self.output_path)
         self.log.info("Copying to output destination.")
         with HDF5Merger(self.output_path, parent=self) as merger:

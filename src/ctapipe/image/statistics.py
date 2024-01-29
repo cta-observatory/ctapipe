@@ -130,7 +130,7 @@ class FeatureAggregator(Component):
     def __call__(self, event: ArrayEventContainer) -> None:
         """Fill event container with aggregated image parameters."""
         table = None
-        for tel_id in event.trigger.tels_with_trigger:
+        for tel_id in event.dl1.tel.keys():
             t = collect_features(event, tel_id)
             t["obs_id"] = event.index.obs_id
             t["event_id"] = event.index.event_id
