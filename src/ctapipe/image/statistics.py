@@ -10,7 +10,7 @@ from ..containers import (
     StatisticsContainer,
 )
 from ..core import Component, FeatureGenerator, QualityQuery
-from ..core.traits import List, Tuple, Unicode
+from ..core.traits import List, TraitError, Tuple, Unicode
 from ..vectorization import (
     collect_features,
     get_subarray_index,
@@ -156,6 +156,9 @@ class FeatureAggregator(Component):
         Construct table containing aggregated image parameters
         from table of telescope events.
         """
+        if len(self.image_parameters) == 0:
+            raise TraitError("No DL1 image parameters to aggregate are specified.")
+
         mono_parameters = self.feature_generator(mono_parameters)
         passes_cuts = self.quality_query.get_table_mask(mono_parameters)
 

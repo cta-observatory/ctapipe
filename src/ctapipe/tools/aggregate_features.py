@@ -4,7 +4,7 @@ Tool to aggregate DL1 image parameters array-event-wise.
 import tables
 from tqdm.auto import tqdm
 
-from ..core import Tool, ToolConfigurationError
+from ..core import Tool
 from ..core.traits import Bool, Integer, Path, flag
 from ..image import FeatureAggregator
 from ..io import HDF5Merger, TableLoader, write_table
@@ -118,10 +118,6 @@ class AggregateFeatures(Tool):
             )
         )
         self.aggregator = FeatureAggregator(parent=self)
-        if len(self.aggregator.image_parameters) == 0:
-            raise ToolConfigurationError(
-                "No image parameters to aggregate are specified."
-            )
 
     def start(self):
         """Aggregate DL1 image parameters for input tables."""

@@ -7,7 +7,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool, ToolConfigurationError
+from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import FeatureAggregator, ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
@@ -172,7 +172,6 @@ class ProcessorTool(Tool):
     )
 
     def setup(self):
-
         # setup components:
         self.event_source = self.enter_context(EventSource(parent=self))
 
@@ -305,7 +304,6 @@ class ProcessorTool(Tool):
             unit="ev",
             disable=not self.progress_bar,
         ):
-
             self.log.debug("Processessing event_id=%s", event.index.event_id)
 
             if not self.event_type_filter(event):
@@ -330,10 +328,6 @@ class ProcessorTool(Tool):
                 self.process_shower(event)
 
             if self.write.write_dl1_aggregates:
-                if len(self.aggregate.image_parameters) == 0:
-                    raise ToolConfigurationError(
-                        "No DL1 image parameters to aggregate are specified."
-                    )
                 self.aggregate(event)
 
             self.write(event)
