@@ -3,6 +3,7 @@ import json
 import pytest
 
 from ctapipe.core import ToolConfigurationError, run_tool
+from ctapipe.core.traits import TraitError
 from ctapipe.io import TableLoader
 
 
@@ -14,8 +15,7 @@ def test_aggregate_features(dl2_shower_geometry_file_lapalma, tmp_path):
     config_path = tmp_path / "config.json"
 
     with pytest.raises(
-        ToolConfigurationError,
-        match="No image parameters to aggregate are specified.",
+        TraitError, match="No DL1 image parameters to aggregate are specified."
     ):
         run_tool(
             AggregateFeatures(),
@@ -72,10 +72,11 @@ def test_aggregate_features(dl2_shower_geometry_file_lapalma, tmp_path):
             dl2=False,
             simulated=False,
         )
-        assert "hillas_length_max" in events.colnames
-        assert "hillas_length_min" in events.colnames
-        assert "hillas_length_mean" in events.colnames
-        assert "hillas_length_std" in events.colnames
-        assert "timing_slope_mean" in events.colnames
-        assert "HillasReconstructor_tel_impact_distance_mean" in events.colnames
-        assert "hillas_abs_skewness_mean" in events.colnames
+        for col in [
+            "hillas_length",
+            "timing_slope",
+            "HillasReconstructor_tel_impact_distance",
+            "hillas_abs_skewness",
+        ]:
+            for suffix in ["max", "min", "mean", "std"]:
+                assert f"{col}_{suffix}" in events.colnames

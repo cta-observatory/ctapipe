@@ -7,7 +7,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool, ToolConfigurationError
+from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import FeatureAggregator, ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
@@ -328,10 +328,6 @@ class ProcessorTool(Tool):
                 self.process_shower(event)
 
             if self.write.write_dl1_aggregates:
-                if len(self.aggregate.image_parameters) == 0:
-                    raise ToolConfigurationError(
-                        "No DL1 image parameters to aggregate are specified."
-                    )
                 self.aggregate(event)
 
             self.write(event)
