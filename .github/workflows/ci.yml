@@ -120,7 +120,7 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          pip install -e .[all]
+          pip install -e .[tests]
           pip install ./test_plugin
           pip freeze
           pip list
