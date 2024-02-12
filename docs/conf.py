@@ -393,6 +393,6 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "cython": ("https://docs.cython.org/en/latest/", None),
-    "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
+    "iminuit": ("https://scikit-hep.org/iminuit/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
