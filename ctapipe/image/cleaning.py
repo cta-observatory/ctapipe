@@ -124,18 +124,15 @@ def time_clustering(
     hard_cut_pe=4,
 ):
     """
-
     Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
     Previously used for HESS [timecleaning]_.
 
     As a neighbor-based image extractor algorithm can lead to biases in the time reconstruction of noise pixels,
-    specially those next to the shower, a cut in the minimum signal image with respect to the noise level is
-    firstly applied. The cut is performed relative to the noise to account for, e.g., bright stars. Alternatively,
-    a hard cut could also be performed.
+    specially those next to the shower, a cut in the minimum signal image is applied.
 
     DBSCAN runs with the reconstructed times and pixel positions after scaling. Scaling is needed because eps
     is not dimension dependent. If scaling is performed properly, eps can be set to 1. DBSCAN returns the
-    cluster IDs of each point being -1 the label for noise pixels.
+    cluster IDs of each point. Pixels associated to cluster ID -1 are classified as noise.
 
     Parameters
     ----------
@@ -145,16 +142,16 @@ def time_clustering(
         pixel charge information
     time: array
         pixel timing information
-    hard_cut_pe: float
-        Hard cut in the number of signal pe
     minpts: int
         Minimum number of points to consider a cluster
     eps: float
         Minimum distance in dbscan
     time_scale_ns: float
         Time scale in ns
-    space_scale_m: float
+    space_scale: float
         Space scale in m
+    hard_cut_pe: float
+        Hard cut in the number of signal pe
 
     Returns
     -------
