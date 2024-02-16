@@ -64,17 +64,15 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     reduction_param = Config(
         {
             "TailCutsDataVolumeReducer": {
-                "TailcutsImageCleaner": {
-                    "picture_threshold_pe": 700.0,
-                    "boundary_threshold_pe": 350.0,
-                    "min_picture_neighbors": 0,
-                    "keep_isolated_pixels": True,
-                },
                 "image_extractor_type": "NeighborPeakWindowSum",
                 "NeighborPeakWindowSum": {
                     "apply_integration_correction": False,
                     "window_shift": 0,
                 },
+                "picture_threshold_pe": 700.0,
+                "boundary_threshold_pe": 350.0,
+                "min_picture_neighbors": 0,
+                "keep_isolated_pixels": True,
                 "n_end_dilates": 1,
                 "do_boundary_dilation": True,
             }

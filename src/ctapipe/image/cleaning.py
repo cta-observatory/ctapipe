@@ -28,6 +28,7 @@ from abc import abstractmethod
 
 import numpy as np
 
+from ..containers import ArrayEventContainer
 from ..core import TelescopeComponent
 from ..core.traits import (
     BoolTelescopeParameter,
@@ -465,9 +466,7 @@ class ImageCleaner(TelescopeComponent):
     """
 
     @abstractmethod
-    def __call__(
-        self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray = None
-    ) -> np.ndarray:
+    def __call__(self, tel_id: int, event: ArrayEventContainer) -> np.ndarray:
         """
         Identify pixels with signal, and reject those with pure noise.
 
@@ -476,10 +475,7 @@ class ImageCleaner(TelescopeComponent):
         tel_id: int
             which telescope id in the subarray is being used (determines
             which cut is used)
-        image : np.ndarray
-            image pixel data corresponding to the camera geometry
-        arrival_times: np.ndarray
-            image of arrival time (not used in this method)
+        event: `ctapipe.containers.ArrayEventContainer`
 
         Returns
         -------
@@ -513,16 +509,14 @@ class TailcutsImageCleaner(ImageCleaner):
         "removed.",
     ).tag(config=True)
 
-    def __call__(
-        self, tel_id: int, image: np.ndarray, arrival_times=None
-    ) -> np.ndarray:
+    def __call__(self, tel_id: int, event: ArrayEventContainer) -> np.ndarray:
         """
         Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
         """
 
         return tailcuts_clean(
             self.subarray.tel[tel_id].camera.geometry,
-            image,
+            event.dl1.tel[tel_id].image,
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
@@ -535,16 +529,14 @@ class MARSImageCleaner(TailcutsImageCleaner):
     1st-pass MARS-like Image cleaner (See `ctapipe.image.mars_cleaning_1st_pass`)
     """
 
-    def __call__(
-        self, tel_id: int, image: np.ndarray, arrival_times=None
-    ) -> np.ndarray:
+    def __call__(self, tel_id: int, event: ArrayEventContainer) -> np.ndarray:
         """
         Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
         """
 
         return mars_cleaning_1st_pass(
             self.subarray.tel[tel_id].camera.geometry,
-            image,
+            event.dl1.tel[tel_id].image,
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
@@ -562,14 +554,12 @@ class FACTImageCleaner(TailcutsImageCleaner):
         default_value=5.0, help="arrival time limit for neighboring " "pixels, in ns"
     ).tag(config=True)
 
-    def __call__(
-        self, tel_id: int, image: np.ndarray, arrival_times=None
-    ) -> np.ndarray:
+    def __call__(self, tel_id: int, event: ArrayEventContainer) -> np.ndarray:
         """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
         return fact_image_cleaning(
             geom=self.subarray.tel[tel_id].camera.geometry,
-            image=image,
-            arrival_times=arrival_times,
+            image=event.dl1.tel[tel_id].image,
+            arrival_times=event.dl1.tel[tel_id].peak_time,
             picture_threshold=self.picture_threshold_pe.tel[tel_id],
             boundary_threshold=self.boundary_threshold_pe.tel[tel_id],
             min_number_neighbors=self.min_picture_neighbors.tel[tel_id],
@@ -591,17 +581,15 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
         help="arrival time limit for neighboring " "boundary pixels, in ns",
     ).tag(config=True)
 
-    def __call__(
-        self, tel_id: int, image: np.ndarray, arrival_times=None
-    ) -> np.ndarray:
+    def __call__(self, tel_id: int, event: ArrayEventContainer) -> np.ndarray:
         """
         Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
         """
 
         return time_constrained_clean(
             self.subarray.tel[tel_id].camera.geometry,
-            image,
-            arrival_times=arrival_times,
+            event.dl1.tel[tel_id].image,
+            arrival_times=event.dl1.tel[tel_id].peak_time,
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],

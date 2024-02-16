@@ -1,6 +1,7 @@
 """
 Algorithms for the data volume reduction.
 """
+
 from abc import abstractmethod
 
 import numpy as np
@@ -10,11 +11,11 @@ from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
+    FloatTelescopeParameter,
     IntTelescopeParameter,
     TelescopeParameter,
 )
-from ctapipe.image import TailcutsImageCleaner
-from ctapipe.image.cleaning import dilate
+from ctapipe.image.cleaning import dilate, tailcuts_clean
 from ctapipe.image.extractor import ImageExtractor
 
 __all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeReducer"]
@@ -129,6 +130,27 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         help="Name of the ImageExtractor subclass to be used.",
     ).tag(config=True)
 
+    picture_threshold_pe = FloatTelescopeParameter(
+        default_value=10.0,
+        help="top-level threshold in photoelectrons for ``tailcuts_clean``",
+    ).tag(config=True)
+
+    boundary_threshold_pe = FloatTelescopeParameter(
+        default_value=5.0,
+        help="second-level threshold in photoelectrons for ``tailcuts_clean``",
+    ).tag(config=True)
+
+    min_picture_neighbors = IntTelescopeParameter(
+        default_value=2,
+        help="Minimum number of neighbors above threshold to consider for ``tailcuts_clean``",
+    ).tag(config=True)
+
+    keep_isolated_pixels = BoolTelescopeParameter(
+        default_value=False,
+        help="If False, pixels with less neighbors than ``min_picture_neighbors`` are"
+        "removed for ``tailcuts_clean``.",
+    ).tag(config=True)
+
     n_end_dilates = IntTelescopeParameter(
         default_value=1, help="Number of how many times to dilate at the end."
     ).tag(config=True)
@@ -144,7 +166,6 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         subarray,
         config=None,
         parent=None,
-        cleaner=None,
         image_extractor=None,
         **kwargs,
     ):
@@ -160,11 +181,6 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         kwargs
         """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
-
-        if cleaner is None:
-            self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
-        else:
-            self.cleaner = cleaner
 
         self.image_extractors = {}
         if image_extractor is None:
@@ -191,7 +207,14 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         )
 
         # 1) Step: TailcutCleaning at first
-        mask = self.cleaner(tel_id, dl1.image)
+        mask = tailcuts_clean(
+            camera_geom,
+            dl1.tel[tel_id].image,
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
+        )
         pixels_above_boundary_thresh = (
             dl1.image >= self.cleaner.boundary_threshold_pe.tel[tel_id]
         )
