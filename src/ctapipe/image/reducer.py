@@ -209,14 +209,14 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         # 1) Step: TailcutCleaning at first
         mask = tailcuts_clean(
             camera_geom,
-            dl1.tel[tel_id].image,
+            dl1.image,
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
         )
         pixels_above_boundary_thresh = (
-            dl1.image >= self.cleaner.boundary_threshold_pe.tel[tel_id]
+            dl1.image >= self.boundary_threshold_pe.tel[tel_id]
         )
         mask_in_loop = np.array([])
         # 2) Step: Add iteratively all pixels with Signal

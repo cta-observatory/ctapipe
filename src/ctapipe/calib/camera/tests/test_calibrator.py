@@ -1,6 +1,7 @@
 """
 Tests for CameraCalibrator and related functions
 """
+
 from copy import deepcopy
 
 import astropy.units as u
@@ -63,9 +64,7 @@ def test_config(example_subarray):
                     "window_width": [("type", "*", 10), ("id", 2, 8)]
                 },
                 "data_volume_reducer_type": "TailCutsDataVolumeReducer",
-                "TailCutsDataVolumeReducer": {
-                    "TailcutsImageCleaner": {"picture_threshold_pe": 20.0}
-                },
+                "TailCutsDataVolumeReducer": {"picture_threshold_pe": 20.0},
             }
         }
     )
@@ -93,7 +92,7 @@ def test_config(example_subarray):
     assert extractor_3.window_width.tel[3] == 10
 
     assert isinstance(calibrator.data_volume_reducer, TailCutsDataVolumeReducer)
-    assert calibrator.data_volume_reducer.cleaner.picture_threshold_pe.tel[None] == 20
+    assert calibrator.data_volume_reducer.picture_threshold_pe.tel[None] == 20
 
 
 def test_check_r1_empty(example_event, example_subarray):
