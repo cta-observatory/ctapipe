@@ -142,7 +142,8 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
 
     min_picture_neighbors = IntTelescopeParameter(
         default_value=2,
-        help="Minimum number of neighbors above threshold to consider for ``tailcuts_clean``",
+        help="Minimum number of neighbors above threshold to consider"
+        "for ``tailcuts_clean``",
     ).tag(config=True)
 
     keep_isolated_pixels = BoolTelescopeParameter(
