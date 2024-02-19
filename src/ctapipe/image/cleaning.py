@@ -467,7 +467,7 @@ class ImageCleaner(TelescopeComponent):
 
     def __call__(self, tel_id: int, event: ArrayEventContainer) -> np.ndarray:
         """
-        Call the relevant functions to identify pixels with signal
+        Calls the relevant functions to identify pixels with signal
         and reject those with pure noise.
 
         Parameters
@@ -494,8 +494,7 @@ class ImageCleaner(TelescopeComponent):
         self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray = None
     ) -> np.ndarray:
         """
-        Abstract method to be defined by a ImageCleaner subclass.
-        Call the relevant function for the required image cleaning.
+        Abstract cleaning method to be defined by an ImageCleaner subclass.
 
         Parameters
         ----------
