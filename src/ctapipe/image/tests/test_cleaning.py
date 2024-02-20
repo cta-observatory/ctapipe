@@ -76,7 +76,7 @@ def test_tailcuts_clean_threshold_array(prod5_lst):
     rng = np.random.default_rng(1337)
     geom = prod5_lst.camera.geometry
 
-    # artifical event having a "shower" and a "star" at these locations
+    # artificial event having a "shower" and a "star" at these locations
     star_x = 0.5 * u.m
     star_y = 0.5 * u.m
     shower_x = -0.5 * u.m

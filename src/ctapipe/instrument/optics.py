@@ -29,7 +29,7 @@ class FocalLengthKind(Enum):
     #: Effective focal length computed from ray tracing a point source
     #: and calculating the off-axis center of mass of the light distribution.
     #: This focal length should be used in coordinate transforms between camera
-    #: frame and telescope frame to correct for the mean effect of coma abberation.
+    #: frame and telescope frame to correct for the mean effect of coma aberration.
     EFFECTIVE = auto()
     #: Equivalent focal length is the nominal focal length of the main reflector
     #: for single mirror telescopes and the thin-lens equivalent for dual mirror
@@ -43,7 +43,7 @@ class SizeType(StrEnum):
     Enumeration of different telescope sizes (LST, MST, SST)
     """
 
-    #: Unkown
+    #: Unknown
     UNKNOWN = "UNKNOWN"
     #: A telescope with a mirror diameter larger than 16m
     LST = "LST"
@@ -59,7 +59,7 @@ class ReflectorShape(Enum):
     Enumeration of the different reflector shapes
     """
 
-    #: Unkown
+    #: Unknown
     UNKNOWN = "UNKNOWN"
     #: A telescope with a parabolic dish
     PARABOLIC = "PARABOLIC"

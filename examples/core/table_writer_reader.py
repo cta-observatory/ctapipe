@@ -172,7 +172,7 @@ print(bool(h5_table.h5file.isopen))
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # For this, you have several choices. Since we used the HDF5TableWriter in
-# this example, we have at least these options avilable:
+# this example, we have at least these options available:
 #
 # -  Pandas
 # -  PyTables
@@ -205,7 +205,7 @@ table.meta
 #
 # Pandas is a convenient way to read the output. **HOWEVER BE WARNED**
 # that so far Pandas does not support reading the table *meta-data* or
-# *units* for colums, so that information is lost!
+# *units* for columns, so that information is lost!
 #
 
 

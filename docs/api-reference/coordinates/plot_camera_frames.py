@@ -4,7 +4,6 @@ different coordinate frames for camera coordinates.
 """
 import astropy.units as u
 import matplotlib.pyplot as plt
-
 from ctapipe.coordinates import EngineeringCameraFrame, TelescopeFrame
 from ctapipe.image.toymodel import Gaussian
 from ctapipe.instrument import SubarrayDescription

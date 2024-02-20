@@ -125,7 +125,7 @@ def test_append(tmp_path, gamma_train_clf, proton_train_clf):
         # this should work
         merger(proton_train_clf)
 
-        # this shouldn't, because train_en does not alraedy contain energy
+        # this shouldn't, because train_en does not already contain energy
         with pytest.raises(
             CannotMerge, match="Required node .*/energy/ExtraTreesRegressor"
         ):

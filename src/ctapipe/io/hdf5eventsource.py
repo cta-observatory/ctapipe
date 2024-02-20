@@ -150,7 +150,7 @@ class HDF5EventSource(EventSource):
     file: tables.File
         File object
     obs_ids: list
-        Observation ids of te recorded runs. For unmerged files, this
+        Observation ids of the recorded runs. For unmerged files, this
         should only contain a single number.
     subarray: ctapipe.instrument.SubarrayDescription
         The subarray configuration of the recorded run.
@@ -657,7 +657,7 @@ class HDF5EventSource(EventSource):
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     # Is there a smarter way to unpack this?
-                    # Best would probbaly be if we could directly read
+                    # Best would probably be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[key])
                     data.dl1.tel[tel_id].parameters = ImageParametersContainer(

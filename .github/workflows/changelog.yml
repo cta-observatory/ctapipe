@@ -19,6 +19,6 @@ jobs:
       - name: Check for news fragment
         if: ${{ ! contains( github.event.pull_request.labels.*.name, 'no-changelog-needed')}}
         uses: andstor/file-existence-action@v3
-        with: 
+        with:
           files: ${{ env.FRAGMENT_NAME }}
           fail: true

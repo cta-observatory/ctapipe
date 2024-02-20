@@ -160,7 +160,7 @@ def build_camera(simtel_telescope, telescope, frame):
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
     except ValueError:
         warnings.warn(
-            f"Unkown pixel_shape {pixel_shape} for camera_type {telescope.camera_name}",
+            f"Unknown pixel_shape {pixel_shape} for camera_type {telescope.camera_name}",
             UnknownPixelShapeWarning,
         )
         pix_type = "hexagon"
@@ -424,7 +424,7 @@ class SimTelEventSource(EventSource):
         to correctly setup coordinate transforms.
 
     If these parameters are not included in the input data, ctapipe will
-    fallback guesses these based on avaible data and the list of known telescopes
+    fallback guesses these based on available data and the list of known telescopes
     for `ctapipe.instrument.guess_telescope`.
     """
 

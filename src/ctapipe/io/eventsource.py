@@ -38,7 +38,7 @@ class EventSource(Component):
     information from different data sources (simulation or different camera
     file formats). Creating an EventSource for a new
     file format or other event source ensures that data can be accessed in a common way,
-    irregardless of the file format or data origin.
+    regardless of the file format or data origin.
 
     EventSource itself is an abstract class, but will create an
     appropriate subclass if a compatible source is found for the given
@@ -291,7 +291,7 @@ class EventSource(Component):
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         """atmosphere density profile that can be integrated to
         convert between h_max and X_max.  This should correspond
-        either to what was used in a simualtion, or a measurment
+        either to what was used in a simulation, or a measurement
         for use with observed data.
 
         Returns
@@ -407,7 +407,7 @@ class EventSource(Component):
 
         # parent was passed
         else:
-            # first look at appropriate position in the config hierarcy
+            # first look at appropriate position in the config hierarchy
             input_url = find_config_in_hierarchy(parent, "EventSource", "input_url")
 
             # if not found, check top level
@@ -422,6 +422,6 @@ class EventSource(Component):
     def close(self):
         """Close this event source.
 
-        No-op by default. Should be overriden by sources needing a cleanup-step
+        No-op by default. Should be overridden by sources needing a cleanup-step
         """
         pass

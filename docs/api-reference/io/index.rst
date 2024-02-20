@@ -71,7 +71,7 @@ Container Classes
 =================
 
 Event data that is intended to be read or written from files is stored
-in subclasses of `~ctapipe.core.Container`, the structre of which is
+in subclasses of `~ctapipe.core.Container`, the structure of which is
 defined in the `~ctapipe.containers` module (See reference API below). Each
 element in the container is a `~ctapipe.core.Field`, containing the
 default value, a description, and default unit if necessary. The
@@ -156,7 +156,7 @@ In addition to using an `EventSource` to read R0-DL1 data files, one can also ac
 `~ctapipe.io.TableLoader` is a a convenient way to load and join together the
 tables in a ctapipe output file into one or more high-level tables useful for analysis.
 Which information is read and joined is controlled by the TableLoader's configuration
-options. 
+options.
 
 By default, TableLoader will read the dl1 parameters for each telescope
 into one big table, joining the simulation information if available:
@@ -187,7 +187,7 @@ You can also load telescope events for specific selections of telescopes:
 
 
 Loading the DL1 image data for telescopes with different numbers of pixels
-does not work as astropy tables do not support heterogenous data in columns.
+does not work as astropy tables do not support heterogeneous data in columns.
 In this case, use:
 
 .. code-block:: python

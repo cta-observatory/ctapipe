@@ -20,7 +20,7 @@ def concentration_parameters(geom: CameraGeometry, image, hillas_parameters):
     Concentrations are ratios of the amount of light in certain
     areas to the full intensity of the image.
 
-    These features are usefull for g/h separation and energy estimation.
+    These features are useful for g/h separation and energy estimation.
     """
 
     h = hillas_parameters

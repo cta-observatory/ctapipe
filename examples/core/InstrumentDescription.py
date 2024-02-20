@@ -92,7 +92,7 @@ CameraDisplay(subarray.tel[98].camera.geometry)
 #
 # We’ll make a subarray by telescope type and plot each separately, so
 # they appear in different colors. We also calculate the radius using the
-# mirror area (and exagerate it a bit).
+# mirror area (and exaggerate it a bit).
 #
 # This is just for debugging and info, for any “real” use, a
 # ``visualization.ArrayDisplay`` should be used
@@ -129,7 +129,7 @@ coords.separation(center)
 # ------------------------
 #
 # Note that ``subarray.tel`` is a dict mapped by ``tel_id`` (the
-# indentifying number of a telescope). It is possible to have telescope
+# identifying number of a telescope). It is possible to have telescope
 # IDs that do not start at 0, are not contiguouous (e.g. if a subarray is
 # selected). Some functions and properties like ``tel_coords`` are numpy
 # arrays (not dicts) so they are not mapped to the telescope ID, but

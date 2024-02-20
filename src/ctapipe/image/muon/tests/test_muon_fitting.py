@@ -1,6 +1,5 @@
 import astropy.units as u
 import numpy as np
-
 from ctapipe.image.muon import kundu_chaudhuri_circle_fit
 
 

@@ -33,7 +33,7 @@ def test_mean_poisson_likelihoood_gaussian():
     assert small_mean_likelihood < large_mean_likelihood
 
     # Test that the mean likelihood of abunch of samples drawn from the gaussian
-    # behind the aprroximate log likelihood is indeed the precalculated mean
+    # behind the approximate log likelihood is indeed the precalculated mean
 
     rng = np.random.default_rng(123456)
 
@@ -105,7 +105,7 @@ def test_full_likelihood():
         image_large, expectation_large, spe, pedestal
     )
 
-    # Check thats in large signal case the full expectation is equal to the
+    # Check that's in large signal case the full expectation is equal to the
     # gaussian approximation (to 5%)
     assert np.all(
         np.abs((numeric_like_large - gaus_like_large) / numeric_like_large) < 0.05

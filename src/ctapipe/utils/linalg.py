@@ -41,7 +41,7 @@ def normalise(vec):
 
 def angle(v1, v2):
     """computes the angle between two vectors
-        assuming carthesian coordinates
+        assuming cartesian coordinates
 
     Parameters
     ----------

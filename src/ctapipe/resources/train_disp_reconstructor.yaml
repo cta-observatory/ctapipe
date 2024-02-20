@@ -19,7 +19,7 @@ TrainDispReconstructor:
     # prefix:  # Add a prefix of the output here, if you want to apply multiple
                # DispReconstructors on the same file (e.g. for comparing different settings)
 
-    # How many cores to use. Overwrites model config 
+    # How many cores to use. Overwrites model config
     n_jobs: -1
 
     # All regression algorithms in scikit-learn are supported
@@ -88,4 +88,3 @@ TrainDispReconstructor:
     # stereo_combiner_cls: "StereoMeanCombiner"
     # StereoMeanCombiner:  # Here you can set options for StereoMeanCombiner
     #   weights:           # (e.g. which kind of weights to use).
-

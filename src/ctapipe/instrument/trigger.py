@@ -51,7 +51,7 @@ class SoftwareTrigger(TelescopeComponent):
             "Minimum number of telescopes required for a specific type."
             " In events with fewer telescopes of that type"
             " , those telescopes will be removed from the array event."
-            " This might result in the event not fullfilling ``min_telescopes`` anymore"
+            " This might result in the event not fulfilling ``min_telescopes`` anymore"
             " and thus being filtered completely."
         ),
     ).tag(config=True)

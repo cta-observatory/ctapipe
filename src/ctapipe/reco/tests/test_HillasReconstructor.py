@@ -215,7 +215,7 @@ def test_CameraFrame_against_TelescopeFrame(filename):
         input_file, max_events=10, focal_length_choice="EQUIVALENT"
     )
 
-    # too few events survive for this test with the defautl quality criteria,
+    # too few events survive for this test with the default quality criteria,
     # use less restrictive ones
     config = Config(
         {

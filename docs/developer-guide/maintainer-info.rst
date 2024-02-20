@@ -48,7 +48,7 @@ How To Make a Release?
       $ git switch -c prepare_<VERSION NUMBER> origin/main
       $ towncrier build --version=<VERSION NUMBER>
 
-   Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be 
+   Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be
    available from the version dropdown once the documentation is built.
 
 2. Create a new github release, a good starting point should already be made by the

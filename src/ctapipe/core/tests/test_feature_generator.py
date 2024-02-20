@@ -54,7 +54,7 @@ def test_missing_colname():
 
 
 def test_to_unit():
-    """Test chaning the unit of a feature"""
+    """Test changing the unit of a feature"""
     from astropy import units as u
 
     expressions = [

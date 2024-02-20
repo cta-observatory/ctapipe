@@ -47,7 +47,7 @@ class EventSeeker(Component):
     **NOTE**: Event_index refers to the number associated to the event
     assigned by ctapipe (``event.count``), based on the order the events are
     read from the file.
-    Whereas the event_id refers to the ID attatched to the event from the
+    Whereas the event_id refers to the ID attached to the event from the
     external source of the file (software or camera or CTA array).
     """
 

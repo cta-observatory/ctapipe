@@ -325,7 +325,7 @@ class HDF5TableWriter(TableWriter):
         # add original field name name, without prefix
         meta[f"CTAFIELD_{pos}_NAME"] = field.name
 
-        # add desription to metadata
+        # add description to metadata
         meta[f"CTAFIELD_{pos}_DESC"] = field.description
 
         self.log.debug(
@@ -347,7 +347,7 @@ class HDF5TableWriter(TableWriter):
         table_name: str
             name of table
         container: ctapipe.core.Container
-            instance of an initalized container
+            instance of an initialized container
 
         Returns
         -------
@@ -359,7 +359,7 @@ class HDF5TableWriter(TableWriter):
 
         meta = {}  # any extra meta-data generated here (like units, etc)
 
-        # set up any column tranforms that were requested as regexps (i.e.
+        # set up any column transforms that were requested as regexps (i.e.
         # convert them to explicit transform in the _transforms dict if they
         # match)
         self._realize_regexp_transforms(table_name, containers)

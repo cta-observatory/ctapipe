@@ -156,7 +156,7 @@ def get_dataset_path(filename, url=None):
     ctapipe, given the dataset's full name (filename with no directory).
 
     This will first search for the file in directories listed in
-    tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,
+    the environment variable CTAPIPE_SVC_PATH (if set), and if not found,
     will look in the ctapipe_resources module
     (if installed with the ctapipe-extra package), which contains the defaults.
 
@@ -232,7 +232,7 @@ def try_filetypes(basename, role, file_types, url=None, **kwargs):
         url = get_default_url()
     path = None
 
-    # look first in search pathes (includes cache)
+    # look first in search paths (includes cache)
     # so we respect user provided paths and don't have to try non-existing downloads
     search_paths = get_searchpath_dirs(url=url)
     for search_path in search_paths:
@@ -332,5 +332,5 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
 
 def resource_file(filename):
-    """Get the absoulte path of ctapipe resource files."""
+    """Get the absolute path of ctapipe resource files."""
     return files("ctapipe").joinpath("resources", filename)

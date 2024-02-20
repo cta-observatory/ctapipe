@@ -283,7 +283,7 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
 
     # remove telescopes 2 and 3 to see that HillasIntersection can work
-    # with arbirary telescope ids
+    # with arbitrary telescope ids
     allowed_tels = {1, 4}
     for tel_id in subarray.tel.keys():
         if tel_id not in allowed_tels:

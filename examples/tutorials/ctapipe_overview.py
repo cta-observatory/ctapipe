@@ -73,7 +73,7 @@ plt.rcParams["figure.figsize"]
 
 
 ######################################################################
-# Developement
+# Development
 # ~~~~~~~~~~~~
 #
 # -  ctapipe is developed as Open Source Software (BSD 3-Clause License)
@@ -87,7 +87,7 @@ plt.rcParams["figure.figsize"]
 #    -  Pull Requests are merged after Code Review and automatic execution
 #       of the test suite
 #
-# -  Early developement stage ⇒ backwards-incompatible API changes might
+# -  Early development stage ⇒ backwards-incompatible API changes might
 #    and will happen
 #
 

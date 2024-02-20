@@ -232,7 +232,7 @@ def ground_to_tilted(ground_coord, tilted_frame):
     """
     xyz_grd = _get_xyz(ground_coord)
 
-    # convert to rad first and substract. Faster than .zen
+    # convert to rad first and subtract. Faster than .zen
     altitude = tilted_frame.pointing_direction.alt.to_value(u.rad)
     azimuth = tilted_frame.pointing_direction.az.to_value(u.rad)
 
@@ -287,7 +287,7 @@ def project_to_ground(tilt_system):
     Parameters
     ----------
     tilt_system: `astropy.coordinates.SkyCoord`
-        coorinate in the the tilted ground system
+        coordinate in the the tilted ground system
 
     Returns
     -------

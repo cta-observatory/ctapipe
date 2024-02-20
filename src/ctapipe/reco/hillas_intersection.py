@@ -244,7 +244,7 @@ class HillasIntersection(HillasGeometryReconstructor):
         )
 
         # Catch events reconstructed at great angular distance from camera center
-        # and retrun INVALID container to prevent SkyCoord error below.
+        # and return INVALID container to prevent SkyCoord error below.
         if _far_outside_fov(src_fov_lat, src_fov_lon):
             return INVALID
 

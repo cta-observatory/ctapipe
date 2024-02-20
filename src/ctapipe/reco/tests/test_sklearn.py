@@ -186,7 +186,7 @@ def test_set_n_jobs(example_subarray):
     regressor.n_jobs = 42
     assert regressor._models["telescope"].n_jobs == 42
 
-    # DISP has two models per telescope, check that aswell
+    # DISP has two models per telescope, check that as well
     config = Config(
         {
             "DispReconstructor": {

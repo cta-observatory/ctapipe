@@ -228,7 +228,7 @@ disp.overlay_moments(hillas, color="red", linewidth=3, with_label=False)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # This depends on the coordinate frame of the ``CameraGeometry``. Here we
-# will sepcify the coordinate the ``EngineerngCameraFrame``, but if you
+# will specify the coordinate the ``EngineerngCameraFrame``, but if you
 # have enough information to do the coordinate transform, you could use
 # ``ICRS`` coordinates and overlay star positions. ``CameraDisplay`` will
 # convert the coordinate you pass in to the ``Frame`` of the display
@@ -304,7 +304,7 @@ plt.show()
 # Using CameraDisplays interactively
 # ----------------------------------
 #
-# ``CameraDisplays`` can be used interactivly whe displayed in a window,
+# ``CameraDisplays`` can be used interactively when displayed in a window,
 # and also when using Jupyter notebooks/lab with appropriate backends.
 
 ######################################################################

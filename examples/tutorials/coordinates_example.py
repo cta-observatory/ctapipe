@@ -246,7 +246,7 @@ plt.ylabel("fov_lat / {}".format(telescope_coords.altaz.alt.unit))
 #
 # Nominal coordinate frame. A Frame using a
 # ``UnitSphericalRepresentation``. This is basically the same as a
-# ``HorizonCoordinate``, but the origin is at an arbitray position in the
+# ``HorizonCoordinate``, but the origin is at an arbitrary position in the
 # sky. This is what astropy calls a ``SkyOffsetFrame`` If the telescopes
 # are in divergent pointing, this ``Frame`` can be used to transform to a
 # common system. - 2D reconstruction (``HillasIntersector``) is performed

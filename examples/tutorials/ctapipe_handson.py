@@ -230,7 +230,7 @@ disp.overlay_moments(params, color="white", lw=2)
 #    (e.g. LST:LSTCam)
 # -  for each event, apply calibration/trace integration
 # -  calculate Hillas parameters
-# -  write out all hillas paremeters to a file that can be loaded with
+# -  write out all hillas parameters to a file that can be loaded with
 #    Pandas
 #
 

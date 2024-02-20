@@ -5,7 +5,7 @@ For ROOT Users
 Many previous VHE gamma-ray developers are familiar with the CERN ROOT
 library for data processing.  ``ctapipe`` is intentionally not ROOT
 based, and we do not allow ``ROOT`` or ``pyroot`` as a *required dependency*
-of ctapipe due to its large and complex nature and maintenence
+of ctapipe due to its large and complex nature and maintenance
 issues. Fortunately nearly all ROOT-like functionality can be found in
 the scientific python stack, though the API is of course not the same.
 
@@ -76,4 +76,3 @@ python stack, the following table can be helpful:
 +---------------------------------+------------------------------------------------------------+
 | –                               | scipy.signal (digital signal processing)                   |
 +---------------------------------+------------------------------------------------------------+
-

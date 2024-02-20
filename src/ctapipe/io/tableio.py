@@ -75,7 +75,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         col_name: str
             name of column in the table (or item in the Container).
         transform: ColumnTransform
-            function that tranforms input into output
+            function that transforms input into output
 
         """
         # allow leading slash

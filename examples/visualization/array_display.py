@@ -114,7 +114,7 @@ plt.colorbar(ad.telescopes, label="Distance (m)")
 # For plotting reconstruction quantities, it’s useful to overlay vectors
 # on the telescope positions. ``ArrayDisplay`` provides functions: \*
 # ``set_vector_uv`` to set by cartesian coordinates from the center of
-# each telescope \* ``set_vector_rho_phi`` to set by polar coorinates from
+# each telescope \* ``set_vector_rho_phi`` to set by polar coordinates from
 # the center of each telescope \* ``set_vector_hillas`` to set vectors
 # from a ``dict[int,HillasParameters]`` mapping tel_id (not index!) to a
 # set of parameters.

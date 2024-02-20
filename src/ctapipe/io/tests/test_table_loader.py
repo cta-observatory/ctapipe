@@ -30,7 +30,7 @@ def check_equal_array_event_order(table1, table2):
     if np.any(unique_events1 != unique_events2):
         raise ValueError("Tables have different subarray events")
 
-    # we expect the rank in which the events appear in indicies to be the
+    # we expect the rank in which the events appear in indices to be the
     # same, that means argsort should produce the same result on both:
     order1 = np.argsort(indicies1)
     order2 = np.argsort(indicies2)

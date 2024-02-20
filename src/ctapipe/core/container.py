@@ -287,7 +287,7 @@ class Container(metaclass=ContainerMeta):
     `dict` conversion can be made recursively and even flattened so
     that a nested set of `Containers <Container>`_ can be translated into a set of
     columns in a flat table without naming conflicts (the name of the
-    parent Field is pre-pended).
+    parent Field is prepended).
 
     Only members of instance `Field` will be used as output.
     For hierarchical data structures, Field can use `Container`
@@ -440,7 +440,7 @@ class Container(metaclass=ContainerMeta):
 
     def validate(self):
         """
-        Check that all fields in the Container have the expected characterisics (as
+        Check that all fields in the Container have the expected characteristics (as
         defined by the Field metadata).  This is not intended to be run every time a
         Container is filled, since it is slow, only for testing a first event.
 

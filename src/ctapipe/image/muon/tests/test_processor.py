@@ -2,7 +2,6 @@
 Tests for MuonProcessor functionality
 """
 import numpy as np
-
 from ctapipe.image import ImageProcessor
 from ctapipe.image.muon import MuonProcessor
 from ctapipe.io import EventSource

@@ -66,7 +66,7 @@ p.finished_activity_names
 # Full provenance
 # ---------------
 #
-# The provence object is a list of activitites, and for each lots of
+# The provenance object is a list of activities, and for each lots of
 # details are collected:
 #
 

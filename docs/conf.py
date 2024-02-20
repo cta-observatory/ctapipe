@@ -4,7 +4,7 @@
 # ctapipe documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  6 10:22:58 2017.
 #
-# Thi file is execfile()d with the current directory set to its
+# This file is execfile()d with the current directory set to its
 # containing dir.
 #
 # Note that not all possible configuration values are present in this
@@ -27,16 +27,15 @@ import datetime
 import os
 import sys
 from pathlib import Path
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+
+import ctapipe
 
 if sys.version_info < (3, 11):
     import tomli as tomllib
 else:
     import tomllib
 
-# Sphinx gallery
-from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
-
-import ctapipe
 
 pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 pyproject = tomllib.loads(pyproject_path.read_text())

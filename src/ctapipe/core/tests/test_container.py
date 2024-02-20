@@ -288,7 +288,7 @@ def test_container_validation():
         MyContainer().validate()  # fails since 3.2 has no units
 
     with pytest.raises(FieldValidationError):
-        MyContainer(x=10 * u.s).validate()  # seconds is not convertable to meters
+        MyContainer(x=10 * u.s).validate()  # seconds is not convertible to meters
 
     MyContainer(x=6.4 * u.m).validate()  # works
 

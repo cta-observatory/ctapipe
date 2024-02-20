@@ -265,7 +265,7 @@ class Histogram:
 
         for dim in range(ndim):
             # note that histogramdd returns edges for 0-N+1 (including
-            # the lower edge of the non-existant next bin), so we do
+            # the lower edge of the non-existent next bin), so we do
             # the same here to keep things the same
             ax = np.zeros((nbins[dim] + 1, ndim))
             ax[:, dim] = np.arange(nbins[dim] + 1) + 0.5

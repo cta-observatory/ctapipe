@@ -1,6 +1,5 @@
-from matplotlib import pyplot as plt
-
 from ctapipe.instrument import SubarrayDescription
+from matplotlib import pyplot as plt
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
 geom = subarray.tel[1].camera.geometry

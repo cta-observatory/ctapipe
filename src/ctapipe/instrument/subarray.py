@@ -30,7 +30,7 @@ class UnknownTelescopeID(KeyError):
 
 def _group_consecutives(sequence):
     """
-    Turn consequtive lists into ranges (used in SubarrayDescription.info())
+    Turn consecutive lists into ranges (used in SubarrayDescription.info())
 
     from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
     """

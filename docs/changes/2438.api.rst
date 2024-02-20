@@ -9,7 +9,7 @@ resolution of the monitoring is much lower.
 For simulated events, the event time is the timestamp of the simulation
 and pointing is fixed in ``AltAz``.
 ``ctapipe`` was using the closest point in time for simulated events when
-reading data back in, however, this is problematic in case of many 
+reading data back in, however, this is problematic in case of many
 simulation runs processed in parallel.
 
 We now store the first received pointing information

@@ -6,4 +6,3 @@ engines:
  pyflakes:
    disable:
      - F999
-

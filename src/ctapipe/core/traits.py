@@ -230,7 +230,7 @@ class ComponentName(Unicode):
     def __init__(self, cls, **kwargs):
         # we need to prevent triggering importing plugins at
         # import time to avoid circular imports, this flag is used
-        # to prevent calling the full plugin mechanism at defintion
+        # to prevent calling the full plugin mechanism at definition
         # time of a `ComponentName`
         self._init_done = False
 
@@ -278,7 +278,7 @@ class ComponentNameList(List):
     def __init__(self, cls, **kwargs):
         # we need to prevent triggering importing plugins at
         # import time to avoid circular imports, this flag is used
-        # to prevent calling the full plugin mechanism at defintion
+        # to prevent calling the full plugin mechanism at definition
         # time of a `ComponentNameList`
         self._init_done = False
         if not issubclass(cls, Component):

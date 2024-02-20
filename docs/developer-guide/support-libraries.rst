@@ -152,7 +152,7 @@ Use Numba
 ---------
 
 ``numba`` allows you to automatically compile a python function via the LLVM
-compiler backend the first time a funciton is called ("just in time
+compiler backend the first time a function is called ("just in time
 compilation"). The advantage over cython is that there is no special syntax,
 and no compilation step, however as a somewhat "black-box" it does not always
 improve your code without some help. See the ``numba`` documentation for more

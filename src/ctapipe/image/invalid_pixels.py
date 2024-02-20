@@ -16,7 +16,7 @@ __all__ = [
 
 class InvalidPixelHandler(TelescopeComponent, metaclass=ABCMeta):
     """
-    An abtract base class for algorithms treating invalid pixel data in images
+    An abstract base class for algorithms treating invalid pixel data in images
     """
 
     @abstractmethod

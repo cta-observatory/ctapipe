@@ -1,6 +1,5 @@
 import astropy.units as u
 import pytest
-
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.muon import MuonRingFitter
 

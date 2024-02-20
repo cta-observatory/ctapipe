@@ -7,7 +7,7 @@ from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 
 def test_simple_interpolation():
     """
-    Simple test function to asses the basic funtionality of the unstructured
+    Simple test function to asses the basic functionality of the unstructured
     interpolator, check if we just spread points on a grid
     """
 

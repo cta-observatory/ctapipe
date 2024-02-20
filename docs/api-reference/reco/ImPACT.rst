@@ -83,7 +83,7 @@ of the brightest 3 camera pixels). The minimisation can then be performed over a
 modification factor to the estimated Xmax, greatly reducing the time taken for the fit
 procedure.
 
-Fitting is performed using the `iminuit <https://iminuit.readthedocs.io/en/stable/>`_ 
+Fitting is performed using the `iminuit <https://iminuit.readthedocs.io/en/stable/>`_
 package (a wrapper around the MINUIT minimiser), providing a fast and reliable minimisation.
 The algorithm finds a function minimum in the majority of cases, typically taking
 around 500 function calls to reach the minimum.

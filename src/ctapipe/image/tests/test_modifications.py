@@ -41,7 +41,7 @@ def test_smear_image(prod5_lst):
     """
     seed = 20
 
-    # Hexagonal geometry -> Thats why we divide by 6 below
+    # Hexagonal geometry -> That's why we divide by 6 below
     geom: CameraGeometry = prod5_lst.camera.geometry
     image = np.zeros_like(geom.pix_id, dtype=np.float64)
     # select two pixels, one at the edge with only 5 neighbors

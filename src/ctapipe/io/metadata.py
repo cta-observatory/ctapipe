@@ -333,7 +333,7 @@ def read_metadata(h5file, path="/"):
 
     Returns
     -------
-    metadata: dictionnary
+    metadata: dictionary
     """
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):

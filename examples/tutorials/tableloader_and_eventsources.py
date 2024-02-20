@@ -25,7 +25,7 @@ at CEA Paris-Saclay (J. Hackfeld).
 # EventSource provides a common high-level interface for accessing event
 # information from different data sources. Creating an EventSource for a new
 # file format or other event source ensures that data can be accessed in a common way,
-# irregardless of the file format or data origin.
+# regardless of the file format or data origin.
 #
 # EventSource itself is an abstract class, but will create an
 # appropriate subclass if a compatible source is found for the given

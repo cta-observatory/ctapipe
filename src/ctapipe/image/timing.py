@@ -39,7 +39,7 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         Time of the pulse extracted from each pixels waveform
     hillas_parameters: ctapipe.containers.HillasParametersContainer
         Result of hillas_parameters
-    cleaning_mask: optionnal, array, dtype=bool
+    cleaning_mask: optional, array, dtype=bool
         The pixels that survived cleaning, e.g. tailcuts_clean
         The non-masked pixels must verify signal > 0
 

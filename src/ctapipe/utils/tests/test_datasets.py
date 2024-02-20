@@ -13,7 +13,7 @@ def test_find_datasets():
     r = datasets.find_all_matching_datasets(r"(.*)\.camgeom\.fits\.gz")
     assert len(r) > 3
 
-    # get the full filename for a resrouces
+    # get the full filename for a resources
     assert datasets.get_dataset_path(r[0].name).exists()
 
     # try using a pattern

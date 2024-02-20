@@ -181,7 +181,7 @@ def test_pointing():
             assert np.isnan(e.pointing.array_ra)
             assert np.isnan(e.pointing.array_dec)
 
-            # normal run, alle telescopes point to the array direction
+            # normal run, all telescopes point to the array direction
             for pointing in e.pointing.tel.values():
                 assert u.isclose(e.pointing.array_azimuth, pointing.azimuth)
                 assert u.isclose(e.pointing.array_altitude, pointing.altitude)
@@ -621,7 +621,7 @@ def test_override_obs_id(override_obs_id, expected_obs_id, prod5_gamma_simtel_pa
         assert s.observation_blocks.keys() == {expected_obs_id}
         assert s.scheduling_blocks.keys() == {expected_obs_id}
 
-        # this should alway be the original run number
+        # this should always be the original run number
         assert s.simulation_config[s.obs_id].run_number == original_run_number
 
         for e in s:

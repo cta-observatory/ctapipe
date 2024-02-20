@@ -45,7 +45,7 @@ A *unit test* is a piece of code that tests a single functionality of
 a library (e.g. a function, method, or class).
 
 All code your write should have associated *unit tests* to ensure the
-code works, gives resonable results, handles error cases properly, and
+code works, gives reasonable results, handles error cases properly, and
 to keep bugs at a minimum
 
 Unit tests in ``ctapipe`` uses `pytest <https://docs.pytest.org>`_ .
@@ -142,7 +142,7 @@ Some logging guidelines:
   messages come with an attached ``LogRecord`` which contains all of the
   necessary metadata: name, level, pathname, filename, line number, message,
   arguments,exc_info (for exceptions), function name, stack info, process name, and
-  optinal user-defined fields.
+  optional user-defined fields.
 
 * the log message should be human-readable and explain to a user not fully
   familiar with the code what is happening.
@@ -166,7 +166,7 @@ the input to another.
 Unit Quantities
 ===============
 
-When approprate (e.g. in high-level algorithms APIs), use
+When appropriate (e.g. in high-level algorithms APIs), use
 ``astropy.units`` for any quantity where the unit may be ambiguous or
 where units need to be transformed.  Internally in a function, this is not necessary since the coder can ensure unit consistency, but for public APIs (function inputs, etc), units are useful.  You can even enforce a function to have particular unit inputs:
 
@@ -246,7 +246,7 @@ help when writing algorithms:
         signal : np.ndarray
             array of signal values for each point in space
         px,py  : np.ndarray
-            arrays of x and y valyes of each signal value
+            arrays of x and y values of each signal value
         centerpoint : (x,y)
             center value in pixel coordinates
         setpoint : float quantity
@@ -271,7 +271,7 @@ help when writing algorithms:
         def mangle(self, signal):
             ...
 
-* if there are multiple implemenations of the same generic algorithm,
+* if there are multiple implementations of the same generic algorithm,
   a *class hierarchy* should be use where the base class defines the
   common interface to all algorithm instances.
 
@@ -285,7 +285,7 @@ help when writing algorithms:
 * When writing example or integration test code for an algorithm,
   **keep it simple**: use a basic for loop to chain your algorithms
   together.
-  An algorithm test (not unit test, but integration test) should look roughtly like this:
+  An algorithm test (not unit test, but integration test) should look roughly like this:
 
   .. code-block:: python
 

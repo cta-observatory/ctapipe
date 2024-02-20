@@ -86,7 +86,7 @@ ImageProcessor:
 
   # Choose which images should be parameterized:
   ImageQualityQuery:
-    # quality critieria should be a list of pairs of [name, filter_expression]
+    # quality criteria should be a list of pairs of [name, filter_expression]
     # The filter expression should contain the variable `image` which is the
     # image itself, a 1D np.array.
     quality_criteria:
@@ -121,7 +121,7 @@ ShowerProcessor:
 MuonProcessor:
   # Choose which events should be considered for muon analysis
   ImageParameterQuery:
-    # quality critieria should be a list of pairs of [name, filter_expression]
+    # quality criteria should be a list of pairs of [name, filter_expression]
     # The filter expression should contain the variable `dl1_params` which are the
     # image parameters.
     quality_criteria:
@@ -130,9 +130,9 @@ MuonProcessor:
 
   # Choose which rings should be processed to the actual muon parameters
   RingQuery:
-    # quality critieria should be a list of pairs of [name, filter_expression]
-    # The filter expression can either contain the variable `parameters` 
-    # (muon ring parameters like containment), `ring` (muon ring position and radius) 
+    # quality criteria should be a list of pairs of [name, filter_expression]
+    # The filter expression can either contain the variable `parameters`
+    # (muon ring parameters like containment), `ring` (muon ring position and radius)
     # or `mask` (pixel mask masking the rings pixels)
     quality_criteria:
       - ["radius_not_nan", "np.isfinite(ring.radius.value)"]
