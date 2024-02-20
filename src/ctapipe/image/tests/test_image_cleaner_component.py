@@ -7,7 +7,7 @@ from ctapipe.instrument import SubarrayDescription
 
 
 @pytest.mark.parametrize("method", ImageCleaner.non_abstract_subclasses().keys())
-def test_image_cleaner(method, prod5_mst_nectarcam, example_event, reference_location):
+def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
     """Test that we can construct and use a component-based ImageCleaner"""
 
     config = Config(
@@ -45,10 +45,7 @@ def test_image_cleaner(method, prod5_mst_nectarcam, example_event, reference_loc
     image[31:40] = 8.0
     times = np.linspace(-5, 10, image.shape[0])
 
-    example_event.dl1.tel[1].image = image
-    example_event.dl1.tel[1].peak_time = times
-
-    mask = clean(tel_id=1, event=example_event)
+    mask = clean(tel_id=1, image=image, arrival_times=times)
 
     # we're not testing the algorithm here, just that it does something (for the
     # algorithm tests, see test_cleaning.py

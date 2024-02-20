@@ -218,7 +218,12 @@ class ImageProcessor(TelescopeComponent):
             if self.apply_image_modifier.tel[tel_id]:
                 dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
 
-            dl1_camera.image_mask = self.clean(tel_id=tel_id, event=event)
+            dl1_camera.image_mask = self.clean(
+                tel_id=tel_id,
+                image=dl1_camera.image,
+                arrival_times=dl1_camera.peak_time,
+                event=event,
+            )
 
             dl1_camera.parameters = self._parameterize_image(
                 tel_id=tel_id,

@@ -1,6 +1,7 @@
 """
 Algorithms for the data volume reduction.
 """
+
 from abc import abstractmethod
 
 import numpy as np
@@ -191,7 +192,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         )
 
         # 1) Step: TailcutCleaning at first
-        mask = self.cleaner.clean_image(tel_id, dl1.image)
+        mask = self.cleaner(tel_id, dl1.image)
         pixels_above_boundary_thresh = (
             dl1.image >= self.cleaner.boundary_threshold_pe.tel[tel_id]
         )
