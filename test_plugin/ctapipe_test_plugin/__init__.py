@@ -2,6 +2,7 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import EarthLocation
+
 from ctapipe.containers import (
     ObservationBlockContainer,
     ReconstructedGeometryContainer,

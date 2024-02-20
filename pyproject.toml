@@ -128,24 +128,6 @@ exclude = ["ctapipe._dev_version"]
 [tool.setuptools_scm]
 write_to = "src/ctapipe/_version.py"
 
-[tool.black]
-line-length = 88
-target-version = ['py39', 'py310', 'py311']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-)/
-'''
-
 [tool.pytest.ini_options]
 minversion = "7"
 testpaths = ["src"]
@@ -229,9 +211,8 @@ indent-style = "space"
 line-ending = "auto"
 skip-magic-trailing-comma = false
 
-[tool.isort]
-profile = "black"
-line_length = 88
+[tool.ruff.lint.isort]
+known-first-party = ["ctapipe"]
 
 
 [tool.codespell]

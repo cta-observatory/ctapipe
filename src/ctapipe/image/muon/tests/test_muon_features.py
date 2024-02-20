@@ -2,6 +2,7 @@ import math
 
 import astropy.units as u
 import numpy as np
+
 from ctapipe.image.muon.features import ring_completeness, ring_containment
 
 
