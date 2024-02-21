@@ -78,6 +78,7 @@ docs = [
     "ipython",
     "ffmpeg-python",
     "pypandoc",
+    "tomli; python_version < '3.11'",
 ]
 
 dev = [

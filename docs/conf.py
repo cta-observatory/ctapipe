@@ -25,19 +25,21 @@
 # -- General configuration ------------------------------------------------
 import datetime
 import os
+import sys
+from pathlib import Path
 
-# Get configuration information from setup.cfg
-from configparser import ConfigParser
+if sys.version_info < (3, 11):
+    import tomli as tomllib
+else:
+    import tomllib
 
 # Sphinx gallery
 from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import ctapipe
 
-setup_cfg = ConfigParser()
-setup_cfg.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
-setup_metadata = dict(setup_cfg.items("metadata"))
-setup_options = dict(setup_cfg.items("options"))
+pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+pyproject = tomllib.loads(pyproject_path.read_text())
 
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -201,12 +203,12 @@ suppress_warnings = ["ref.citation"]  # ignore citation not referenced warnings
 
 # General information about the project.
 
-project = setup_metadata["name"]
-author = setup_metadata["author"]
+project = pyproject["project"]["name"]
+author = pyproject["project"]["authors"][0]["name"]
 copyright = "{}.  Last updated {}".format(
-    setup_metadata["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
+    author, datetime.datetime.now().strftime("%d %b %Y %H:%M")
 )
-python_requires = setup_options["python_requires"]
+python_requires = pyproject["project"]["requires-python"]
 
 # make some variables available to each page
 rst_epilog = f"""
