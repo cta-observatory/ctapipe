@@ -108,8 +108,8 @@ def setup(app):
 # these
 nitpick_ignore = [
     # needed for building the docs with python 3.11 locally.
-    # we use the lowest supported version on readthedocs, so that is what we use the intersphinx
-    # link above
+    # we use the lowest supported version on readthedocs,
+    # so that is what we use in the intersphinx link above
     ("py:class", "enum.StrEnum"),
     # these are coming from traitlets:
     ("py:class", "t.Union"),
@@ -305,7 +305,7 @@ html_theme_options = {
             "name": "CTA Observatory",
             "url": "https://www.cta-observatory.org/",
             "type": "url",
-            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",
+            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",  # noqa: E501
         },
     ],
     "announcement": """
