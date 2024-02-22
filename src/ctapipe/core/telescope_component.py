@@ -270,7 +270,7 @@ class TelescopeParameter(List):
     Examples
     --------
 
-    .. code-block: python
+    .. code-block:: python
 
         tel_param = [
             ('type', '*', 5.0),                       # default for all
@@ -280,7 +280,7 @@ class TelescopeParameter(List):
             ('id', 34, 4.0),                   # override telescope 34 specifically
         ]
 
-    .. code-block: python
+    .. code-block:: python
 
         tel_param = 4.0  # sets this value for all telescopes
 
