@@ -3,15 +3,6 @@ reconstruction with the CTA pipeline and the transformations between
 this different systems. Frames and transformations are defined using
 the astropy.coordinates framework. This module defines transformations
 for ground based cartesian and planar systems.
-
-For examples on usage see examples/coordinate_transformations.py
-
-This code is based on the coordinate transformations performed in the
-read_hess code
-
-TODO:
-
-- Tests Tests Tests!
 """
 import astropy.units as u
 import numpy as np
