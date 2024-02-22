@@ -116,8 +116,9 @@ test plugin via
     $ pip install -e ./test_plugin
 
 
-We are using the ``black`` and ``isort`` auto-formatters for automatic
-adherence to the code style (see our :doc:`/developer-guide/style-guide`).
+We are using the ``pre-commit``, ``code-spell`` and ``ruff`` tools
+for automatic adherence to the code style
+(see our :doc:`/developer-guide/style-guide`).
 To enforce running these tools whenever you make a commit, setup the
 `pre-commit hook <https://pre-commit.com/>`_:
 
@@ -125,7 +126,7 @@ To enforce running these tools whenever you make a commit, setup the
 
     $ pre-commit install
 
-The pre-commit hook will then execute the tools with the same settings as when the a pull request is checked on github,
+The pre-commit hook will then execute the tools with the same settings as when a pull request is checked on GitHub,
 and if any problems are reported the commit will be rejected.
 You then have to fix the reported issues before tying to commit again.
 Note that a common problem is code not complying with the style guide, and that whenever this was the only problem found,
