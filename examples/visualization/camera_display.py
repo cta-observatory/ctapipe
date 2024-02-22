@@ -77,11 +77,12 @@ CameraDisplay(geom)
 # top of the camera (when parked) is aligned to the X-axis. To show the
 # camera in another orientation, it’s useful to apply a coordinate
 # transform to the ``CameraGeometry`` before passing it to the
-# ``CameraDisplay``. The following ``Frames`` are supported: \*
-# ``EngineeringCameraFrame`` : similar to CameraFrame, but with the top of
-# the camera aligned to the Y axis \* ``TelescopeFrame``: In *degrees* (on
-# the sky) coordinates relative to the telescope Alt/Az pointing position,
-# with the Alt axis pointing upward.
+# ``CameraDisplay``. The following ``Frames`` are supported:
+#
+# * ``EngineeringCameraFrame`` : similar to CameraFrame, but with the top of
+# the camera aligned to the Y axis
+# * ``TelescopeFrame``: In *degrees* (on the sky) coordinates relative to the
+# telescope Alt/Az pointing position, with the Alt axis pointing upward.
 #
 
 fig, ax = plt.subplots(1, 3, figsize=(15, 4))
