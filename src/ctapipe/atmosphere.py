@@ -315,7 +315,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     Layer 5 is modeled with:
 
-    ..math:: T(h) = a_5 - b_5 \frac{h}{c_5}
+    .. math:: T(h) = a_5 - b_5 \frac{h}{c_5}
 
     References
     ----------

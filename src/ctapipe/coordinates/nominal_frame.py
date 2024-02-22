@@ -39,11 +39,11 @@ class NominalFrame(BaseCoordinateFrame):
     Attributes
     ----------
 
-    origin: SkyCoord[AltAz]
+    origin: astropy.coordinates.SkyCoord[AltAz]
         Origin of this frame as a HorizonCoordinate
-    obstime: Tiem
+    obstime: astropy.time.Time
         Observation time
-    location: EarthLocation
+    location: astropy.coordinates.EarthLocation
         Location of the telescope
     """
 

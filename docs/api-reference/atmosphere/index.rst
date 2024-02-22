@@ -15,3 +15,4 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.atmosphere
+    :inherited-members:
