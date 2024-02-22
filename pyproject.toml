@@ -193,7 +193,7 @@ line-length = 88
 
 [tool.ruff.lint]
 extend-select = [
-    "I",
+    "I",  # isort
 ]
 ignore = []
 

@@ -96,7 +96,7 @@
   * Store system as class member
   * Fixed incorrect inversion of axes
   * renamed to work correctly with new ctapipe version
-  * Fixed mis labelled axes
+  * Fixed mislabelled axes
   * Added ImPACT reconstruction tool
   * Added fix for pixel neighbour list
   * Added Xmax reconstruction
