@@ -79,21 +79,21 @@ CameraDisplay(geom)
 # transform to the ``CameraGeometry`` before passing it to the
 # ``CameraDisplay``. The following ``Frames`` are supported:
 #
-# * ``EngineeringCameraFrame`` : similar to CameraFrame, but with the top of
-# the camera aligned to the Y axis
-# * ``TelescopeFrame``: In *degrees* (on the sky) coordinates relative to the
-# telescope Alt/Az pointing position, with the Alt axis pointing upward.
+#     * ``CameraFrame``: The frame used by SimTelArray, with the top
+#       of the camera on the x-axis
+#     * ``EngineeringCameraFrame``: similar to CameraFrame, but with
+#       the top of the camera aligned to the Y axis
+#     * ``TelescopeFrame``: In *degrees* (on the sky) coordinates
+#       relative to the telescope Alt/Az pointing position,
+#       with the Alt axis pointing upward.
 #
+# Note the the name of the Frame appears in the lower-right corner
+
 
 fig, ax = plt.subplots(1, 3, figsize=(15, 4))
 CameraDisplay(geom, image=image, ax=ax[0])
 CameraDisplay(geom.transform_to(EngineeringCameraFrame()), image=image, ax=ax[1])
 CameraDisplay(geom.transform_to(TelescopeFrame()), image=image, ax=ax[2])
-
-
-######################################################################
-# Note the the name of the Frame appears in the lower-right corner
-#
 
 
 ######################################################################
