@@ -55,6 +55,7 @@ __all__ = [
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
+    "BaseStatisticsContainer",
     "StatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -410,13 +411,16 @@ class MorphologyContainer(Container):
     n_large_islands = Field(-1, "Number of > 50 pixel islands")
 
 
-class StatisticsContainer(Container):
+class BaseStatisticsContainer(Container):
     """Store descriptive statistics"""
 
     max = Field(np.float32(nan), "value of pixel with maximum intensity")
     min = Field(np.float32(nan), "value of pixel with minimum intensity")
     mean = Field(np.float32(nan), "mean intensity")
     std = Field(np.float32(nan), "standard deviation of intensity")
+
+
+class StatisticsContainer(BaseStatisticsContainer):
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
 
@@ -521,6 +525,10 @@ class DL1Container(Container):
     tel = Field(
         default_factory=partial(Map, DL1CameraContainer),
         description="map of tel_id to DL1CameraContainer",
+    )
+    aggregate = Field(
+        default_factory=partial(Map, BaseStatisticsContainer),
+        description="map of image parameter to aggregation statistics",
     )
 
 

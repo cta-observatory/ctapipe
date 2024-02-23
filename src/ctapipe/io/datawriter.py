@@ -207,6 +207,11 @@ class DataWriter(Component):
         help="Store muon parameters if available", default_value=False
     ).tag(config=True)
 
+    write_dl1_aggregates = Bool(
+        help="Store array-event-wise aggregated DL1 image parameters if available",
+        default_value=False,
+    ).tag(config=True)
+
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
     ).tag(config=True)
@@ -338,6 +343,9 @@ class DataWriter(Component):
 
         if self.write_muon_parameters:
             self._write_muon_telescope_events(event)
+
+        if self.write_dl1_aggregates:
+            self._write_dl1_aggregates(event)
 
     def _write_constant_pointing(self, event):
         """
@@ -642,7 +650,6 @@ class DataWriter(Component):
 
     def _write_r1_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r1_tel in event.r1.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -651,7 +658,6 @@ class DataWriter(Component):
 
     def _write_r0_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r0_tel in event.r0.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -718,7 +724,6 @@ class DataWriter(Component):
                     )
 
     def _write_muon_telescope_events(self, event: ArrayEventContainer):
-
         for tel_id, muon in event.muon.tel.items():
             table_name = self.table_name(tel_id)
             tel_index = _get_tel_index(event, tel_id)
@@ -726,6 +731,15 @@ class DataWriter(Component):
                 f"dl1/event/telescope/muon/{table_name}",
                 [tel_index, muon.ring, muon.parameters, muon.efficiency],
             )
+
+    def _write_dl1_aggregates(self, event: ArrayEventContainer):
+        """
+        Write array-event-wise aggregated DL1 image parameters.
+        """
+        self._writer.write(
+            table_name="dl1/event/subarray/aggregated_image_parameters",
+            containers=[event.index] + list(event.dl1.aggregate.values()),
+        )
 
     def _write_dl2_telescope_events(self, event: ArrayEventContainer):
         """
