@@ -105,7 +105,7 @@ def test_full_likelihood():
         image_large, expectation_large, spe, pedestal
     )
 
-    # Check that's in large signal case the full expectation is equal to the
+    # Check that in the large signal case the full expectation is equal to the
     # gaussian approximation (to 5%)
     assert np.all(
         np.abs((numeric_like_large - gaus_like_large) / numeric_like_large) < 0.05

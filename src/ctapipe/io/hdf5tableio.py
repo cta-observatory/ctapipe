@@ -114,9 +114,13 @@ def get_node_meta(node):
     node : `tables.Node`
         The node for which to parse the metadata attributes
     """
+
+    def _ignore_column_descriptions(attr_name):
+        return not attr_name.startswith("CTAFIELD_")
+
     meta = {}
     attrs = node._v_attrs
-    for key in filter(lambda k: not k.startswith("CTAFIELD_"), attrs._v_attrnamesuser):
+    for key in filter(_ignore_column_descriptions, attrs._v_attrnamesuser):
         value = attrs[key]
 
         # convert numpy scalars to plain python objects
