@@ -129,38 +129,37 @@ def test_against_reference():
         1.0 - profile_5(height) / reference_table["rho_5"], 0, atol=1e-5
     )
     np.testing.assert_allclose(
-        1.0 - profile_5.line_of_sight_integral(height) / reference_table["thick_5"],
+        1.0 - profile_5.slant_depth_from_height(height) / reference_table["thick_5"],
         0,
         atol=1e-5,
     )
 
 
-def test_line_of_sight_integral(table_profile):
+def test_slant_depth_from_height(table_profile):
     """
     Test observer altitude and zenith angle dependence of LoS integral function
     """
 
-    assert table_profile.line_of_sight_integral(
-        10 * u.km, observer_altitude=2000 * u.m
-    ) < table_profile.line_of_sight_integral(10 * u.km, observer_altitude=1000 * u.m)
+    assert table_profile.slant_depth_from_height(
+        20 * u.km
+    ) < table_profile.slant_depth_from_height(10 * u.km)
 
-    assert table_profile.line_of_sight_integral(
+    assert table_profile.slant_depth_from_height(
         10 * u.km, zenith_angle=30 * u.deg
-    ) > table_profile.line_of_sight_integral(10 * u.km, zenith_angle=0 * u.deg)
+    ) > table_profile.slant_depth_from_height(10 * u.km, zenith_angle=0 * u.deg)
 
-    los_integral_h_10 = table_profile.line_of_sight_integral(
-        0 * u.km, observer_altitude=table_profile.table["height"].to("km")[5:15]
+    los_integral_z_0 = table_profile.slant_depth_from_height(
+        table_profile.table["height"].to("km")[5:15]
     )
 
     assert np.allclose(
-        los_integral_h_10,
+        los_integral_z_0,
         table_profile.table["column_density"].to("g cm-2")[5:15],
         rtol=1e-3,
     )
 
-    los_integral_z_20 = table_profile.line_of_sight_integral(
-        table_profile.table["height"].to("km")[5:15] / np.cos(np.deg2rad(20)),
-        observer_altitude=0 * u.m,
+    los_integral_z_20 = table_profile.slant_depth_from_height(
+        table_profile.table["height"].to("km")[5:15],
         zenith_angle=20 * u.deg,
     )
 
@@ -216,6 +215,74 @@ def test_height_overburden_circle(table_profile):
     )
 
     assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
+
+
+def test_height_slant_depth_circle(table_profile):
+    """
+    Test that successive application of height to overburden
+    and overburden to height functions return original values
+    """
+
+    # Five-layer atmosphere
+    fit_reference = np.array(
+        [
+            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
+            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
+            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
+            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
+            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
+        ]
+    )
+
+    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+
+    layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
+
+    for height in layer_5_heights:
+        circle_height_5_layer = profile_5.height_from_slant_depth(
+            profile_5.slant_depth_from_height(height)
+        )
+
+        assert np.allclose(circle_height_5_layer, height, rtol=0.005)
+
+    for height in layer_5_heights:
+        circle_height_5_layer_z_20 = profile_5.height_from_slant_depth(
+            profile_5.slant_depth_from_height(height, zenith_angle=20 * u.deg),
+            zenith_angle=20 * u.deg,
+        )
+
+        assert np.allclose(circle_height_5_layer_z_20, height, rtol=0.005)
+
+    # Exponential atmosphere
+    density_model = atmo.ExponentialAtmosphereDensityProfile(
+        scale_height=10 * u.km, scale_density=0.00125 * atmo.DENSITY_UNIT
+    )
+
+    circle_height_exponential = density_model.height_from_slant_depth(
+        density_model.slant_depth_from_height(47 * u.km)
+    )
+
+    assert np.allclose(circle_height_exponential, 47 * u.km, rtol=0.0001)
+
+    circle_height_exponential_z_20 = density_model.height_from_slant_depth(
+        density_model.slant_depth_from_height(47 * u.km, zenith_angle=20 * u.deg),
+        zenith_angle=20 * u.deg,
+    )
+
+    assert np.allclose(circle_height_exponential_z_20, 47 * u.km, rtol=0.0001)
+
+    circle_height_table = table_profile.height_from_slant_depth(
+        table_profile.slant_depth_from_height(47 * u.km)
+    )
+
+    assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
+
+    circle_height_table_z_20 = table_profile.height_from_slant_depth(
+        table_profile.slant_depth_from_height(47 * u.km, zenith_angle=20 * u.deg),
+        zenith_angle=20 * u.deg,
+    )
+
+    assert np.allclose(circle_height_table_z_20, 47 * u.km, rtol=0.0001)
 
 
 def test_out_of_range_table(table_profile):
