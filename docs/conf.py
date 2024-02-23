@@ -27,6 +27,7 @@ import datetime
 import os
 import sys
 from pathlib import Path
+
 from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import ctapipe
