@@ -16,7 +16,7 @@ from typing import Dict
 
 import numpy as np
 from astropy import units as u
-from astropy.table import QTable
+from astropy.table import QTable, Table
 from scipy.interpolate import interp1d
 
 __all__ = [
@@ -179,9 +179,11 @@ class AtmosphereDensityProfile(abc.ABC):
         return fig, axis
 
     @classmethod
-    def from_table(cls, table: QTable):
+    def from_table(cls, table: Table):
         """return a subclass of AtmosphereDensityProfile from a serialized
         table"""
+
+        table = QTable(table, copy=False)
 
         if "TAB_TYPE" not in table.meta:
             raise ValueError("expected a TAB_TYPE metadata field")
@@ -293,11 +295,11 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         load a TableAtmosphereDensityProfile from a supported EventSource
     """
 
-    def __init__(self, table: QTable):
+    def __init__(self, table: Table):
         """
         Parameters
         ----------
-        table : QTable
+        table : Table
             Table with columns `height`, `density`, and `column_density`
         """
 
@@ -306,9 +308,9 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
                 raise ValueError(f"Missing expected column: {col} in table")
 
         valid = (
-            (table["height"].value >= 0)
-            & (table["density"].value > 0)
-            & (table["column_density"].value > 0)
+            (table["height"] >= 0)
+            & (table["density"] > 0)
+            & (table["column_density"] > 0)
         )
         self.table = QTable(table[valid], copy=False)
 
@@ -415,8 +417,9 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         A User’s Guide", 2021, Appendix F
     """
 
-    def __init__(self, table: QTable):
-        self.table = table
+    def __init__(self, table: Table):
+
+        self.table = QTable(table, copy=False)
 
         param_a = self.table["a"].to(GRAMMAGE_UNIT)
         param_b = self.table["b"].to(GRAMMAGE_UNIT)
