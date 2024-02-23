@@ -75,37 +75,32 @@ class AtmosphereDensityProfile(abc.ABC):
 
         """
 
-    def line_of_sight_integral(
+    def slant_depth_from_height(
         self,
-        distance: u.Quantity,
+        height: u.Quantity,
         zenith_angle=0 * u.deg,
-        observer_altitude=0 * u.m,
         output_units=GRAMMAGE_UNIT,
     ):
-        r"""Line-of-sight integral from the shower distance to infinity, along
+        r"""Line-of-sight integral from height to infinity, along
         the direction specified by the zenith angle. This is sometimes called
         the *slant depth*. The atmosphere here is assumed to be Cartesian, the
-        curvature of the Earth is not taken into account.
+        curvature of the Earth is not taken into account. Inverse of
+        height_from_slant_depth function.
 
-        .. math:: X(d, \Psi) = \int_{h_{obs} + d\cos{\Psi}}^{\infty} \rho(h') dh' / \cos{\Psi}
+        .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h') dh' / \cos{\Psi}
 
         Parameters
         ----------
-        distance: u.Quantity["length"]
-           line-of-site distance from observer to point
+        height: u.Quantity["length"]
+           height a.s.l. at which to start integral
         zenith_angle: u.Quantity["angle"]
            zenith angle of observation
-        observer_altitude: u.Quantity["length]
-           Height a.s.l. of the observer
         output_units: u.Unit
            unit to output (must be convertible to g/cm2)
 
         """
 
-        return (
-            self.integral(distance * np.cos(zenith_angle) + observer_altitude)
-            / np.cos(zenith_angle)
-        ).to(output_units)
+        return (self.integral(height) / np.cos(zenith_angle)).to(output_units)
 
     def height_from_slant_depth(
         self,
@@ -150,21 +145,21 @@ class AtmosphereDensityProfile(abc.ABC):
         axis[0].set_ylabel(f"Density / {density.unit.to_string('latex')}")
         axis[0].grid(True)
 
-        distance = np.linspace(1, 100, 500) * u.km
+        heights = np.linspace(1, 100, 500) * u.km
         for zenith_angle in [0, 40, 50, 70] * u.deg:
-            column_density = self.line_of_sight_integral(distance, zenith_angle)
-            axis[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
+            column_density = self.slant_depth_from_height(heights, zenith_angle)
+            axis[1].plot(heights, column_density, label=f"$\\Psi$={zenith_angle}")
 
         axis[1].legend(loc="best")
-        axis[1].set_xlabel(f"Distance / {distance.unit.to_string('latex')}")
+        axis[1].set_xlabel(f"Distance / {heights.unit.to_string('latex')}")
         axis[1].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
         axis[1].set_yscale("log")
         axis[1].grid(True)
 
         zenith_angle = np.linspace(0, 80, 20) * u.deg
-        for distance in [0, 5, 10, 20] * u.km:
-            column_density = self.line_of_sight_integral(distance, zenith_angle)
-            axis[2].plot(zenith_angle, column_density, label=f"Height={distance}")
+        for height in [0, 5, 10, 20] * u.km:
+            column_density = self.slant_depth_from_height(height, zenith_angle)
+            axis[2].plot(zenith_angle, column_density, label=f"Height={height}")
 
         axis[2].legend(loc="best")
         axis[2].set_xlabel(
