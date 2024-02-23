@@ -4,8 +4,8 @@ Tool for training the ParticleClassifier
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Int, IntTelescopeParameter, Path
+from ctapipe.core.tool import Tool, ToolConfigurationError
+from ctapipe.core.traits import Float, Int, IntTelescopeParameter, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 
@@ -60,21 +60,22 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
-    n_signal = IntTelescopeParameter(
+    n_events = IntTelescopeParameter(
         default_value=None,
         allow_none=True,
         help=(
-            "Number of signal events to be used for training."
+            "Total number of events to be used for training."
             " If not given, all available events will be used"
+            " (considering ``signal_fraction``)."
         ),
     ).tag(config=True)
 
-    n_background = IntTelescopeParameter(
-        default_value=None,
-        allow_none=True,
+    signal_fraction = Float(
+        default_value=0.5,
+        allow_none=False,
         help=(
-            "Number of background events to be used for training."
-            " If not given, all available events will be used"
+            "Fraction of signal events in all events to be used for training."
+            " ``signal_fraction`` = n_signal / (n_signal + n_background)"
         ),
     ).tag(config=True)
 
@@ -83,7 +84,7 @@ class TrainParticleClassifier(Tool):
         allow_none=True,
         help=(
             "How many subarray events to load at once before training on"
-            " n_signal and n_background events."
+            " n_events (or all available) events."
         ),
     ).tag(config=True)
 
@@ -100,8 +101,8 @@ class TrainParticleClassifier(Tool):
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
         "background": "TrainParticleClassifier.input_url_background",
-        "n-signal": "TrainParticleClassifier.n_signal",
-        "n-background": "TrainParticleClassifier.n_background",
+        "n-events": "TrainParticleClassifier.n_events",
+        "signal-fraction": "TrainParticleClassifier.signal_fraction",
         "n-jobs": "ParticleClassifier.n_jobs",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
@@ -132,11 +133,10 @@ class TrainParticleClassifier(Tool):
         if self.signal_loader.subarray != self.background_loader.subarray:
             raise ValueError("Signal and background subarrays do not match")
 
-        self.subarray = self.signal_loader.subarray
-        self.n_signal.attach_subarray(self.subarray)
-        self.n_background.attach_subarray(self.subarray)
-        self.classifier = ParticleClassifier(subarray=self.subarray, parent=self)
-
+        self.n_events.attach_subarray(self.signal_loader.subarray)
+        self.classifier = ParticleClassifier(
+            subarray=self.signal_loader.subarray, parent=self
+        )
         self.cross_validate = self.enter_context(
             CrossValidator(
                 parent=self, model_component=self.classifier, overwrite=self.overwrite
@@ -166,11 +166,24 @@ class TrainParticleClassifier(Tool):
             self.log.info("done")
 
     def _read_input_data(self, tel_type):
+        if self.signal_fraction < 0 or self.signal_fraction > 1:
+            raise ToolConfigurationError(
+                "The signal_fraction has to be between 0 and 1"
+            )
+
         feature_names = self.classifier.features + [
             self.classifier.target,
             "true_energy",
             "true_impact_distance",
         ]
+        n_events = self.n_events.tel[tel_type]
+        if n_events is not None:
+            n_signal = int(self.signal_fraction * n_events)
+            n_background = n_events - n_signal
+        else:
+            n_signal = None
+            n_background = None
+
         signal = read_training_events(
             loader=self.signal_loader,
             chunk_size=self.chunk_size,
@@ -179,7 +192,7 @@ class TrainParticleClassifier(Tool):
             feature_names=feature_names,
             rng=self.rng,
             log=self.log,
-            n_events=self.n_signal.tel[tel_type],
+            n_events=n_signal,
         )
         background = read_training_events(
             loader=self.background_loader,
@@ -189,8 +202,25 @@ class TrainParticleClassifier(Tool):
             feature_names=feature_names,
             rng=self.rng,
             log=self.log,
-            n_events=self.n_background.tel[tel_type],
+            n_events=n_background,
         )
+        if n_events is None:  # use as many events as possible (keeping signal_fraction)
+            n_signal = len(signal)
+            n_background = len(background)
+
+            if n_signal < (n_signal + n_background) * self.signal_fraction:
+                n_background = int(n_signal * (1 / self.signal_fraction - 1))
+                self.log.info("Sampling %d background events", n_background)
+                idx = self.rng.choice(len(background), n_background, replace=False)
+                idx.sort()
+                background = background[idx]
+            else:
+                n_signal = int(n_background / (1 / self.signal_fraction - 1))
+                self.log.info("Sampling %d signal events", n_signal)
+                idx = self.rng.choice(len(signal), n_signal, replace=False)
+                idx.sort()
+                signal = signal[idx]
+
         table = vstack([signal, background])
         self.log.info(
             "Train on %s signal and %s background events", len(signal), len(background)

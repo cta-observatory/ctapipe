@@ -6,13 +6,11 @@
 # ======================================================================
 
 TrainParticleClassifier:
-  random_seed: 0              # Seed used for sampling n_* events for training.
-  n_signal:                   # The number of signal events used for training that can be provided
+  random_seed: 0              # Seed used for sampling n_events for training.
+  n_events:                   # The number of events used for training that can be provided
     # - [type, "LST*", 1000]  # independently for each telescope type (e.g. "LST_LST_LSTCam").
-    # - [type, "MST*", 1000]  # If not specified, all events in the file are used.
-  n_background:               # Same as above, but for background events.
-    # - [type, "LST*", 1000]
-    # - [type, "MST*", 1000]
+    # - [type, "MST*", 1000]  # If not specified, as many events as possible are used.
+  signal_fraction: 0.5        # signal_fraction = n_signal / n_events
 
   CrossValidator:
     n_cross_validations: 5

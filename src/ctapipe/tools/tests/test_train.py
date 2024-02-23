@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from ctapipe.core import ToolConfigurationError, run_tool
@@ -61,6 +62,57 @@ def test_sampling(tmp_path, dl2_shower_geometry_file):
         ],
         raises=True,
     )
+
+
+def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
+    from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
+
+    tool = TrainParticleClassifier()
+    config = resource_file("train_particle_classifier.yaml")
+    out_file = tmp_path / "particle_classifier_.pkl"
+    log_file = tmp_path / "train_particle.log"
+
+    with pytest.raises(
+        ToolConfigurationError,
+        match="The signal_fraction has to be between 0 and 1",
+    ):
+        run_tool(
+            tool,
+            argv=[
+                f"--signal={gamma_train_clf}",
+                f"--background={proton_train_clf}",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--signal-fraction=1.1",
+                "--log-level=INFO",
+            ],
+            raises=True,
+        )
+
+    for frac in [0.7, 0.1]:
+        run_tool(
+            tool,
+            argv=[
+                f"--signal={gamma_train_clf}",
+                f"--background={proton_train_clf}",
+                f"--output={out_file}",
+                f"--config={config}",
+                f"--log-file={log_file}",
+                f"--signal-fraction={frac}",
+                "--log-level=INFO",
+                "--overwrite",
+            ],
+        )
+
+        with open(log_file, "r") as f:
+            log = f.readlines()
+
+        for line in log[::-1]:
+            if "Train on" in line:
+                n_signal, n_background = [int(line.split(" ")[i]) for i in (7, 10)]
+                break
+
+        assert np.allclose(n_signal / (n_signal + n_background), frac, atol=1e-4)
 
 
 def test_cross_validation_results(tmp_path, gamma_train_clf, proton_train_clf):

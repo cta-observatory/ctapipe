@@ -1,0 +1,2 @@
+Replace ``n_signal`` and ``n_background`` options in ``ctapipe-train-particle-classifier``
+with ``n_events`` and ``signal_fraction``, where ``signal_fraction`` = n_signal / (n_signal + n_background).
