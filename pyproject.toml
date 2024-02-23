@@ -110,11 +110,11 @@ SimTelEventSource = "ctapipe.io.simteleventsource:SimTelEventSource"
 
 
 [project.entry-points.ctapipe_reco]
-DispReconstructor = "ctapipe.reco.sklearn.DispReconstructor"
-HillasIntersection = "ctapipe.reco.hillas_intersection.HillasIntersection"
-HillasReconstructor = "ctapipe.reco.hillas_reconstructor.HillasReconstructor"
-EnergyRegressor = "ctapipe.reco.sklearn.EnergyRegressor"
-ParticleClassifier = "ctapipe.reco.sklearn.ParticleClassifier"
+HillasIntersection = "ctapipe.reco.hillas_intersection:HillasIntersection"
+HillasReconstructor = "ctapipe.reco.hillas_reconstructor:HillasReconstructor"
+DispReconstructor = "ctapipe.reco.sklearn:DispReconstructor"
+EnergyRegressor = "ctapipe.reco.sklearn:EnergyRegressor"
+ParticleClassifier = "ctapipe.reco.sklearn:ParticleClassifier"
 
 [project.urls]
 repository = "https://github.com/cta-observatory/ctapipe/"
