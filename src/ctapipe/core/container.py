@@ -329,7 +329,6 @@ class Container(metaclass=ContainerMeta):
         self.prefix = prefix if prefix is not None else self.default_prefix
 
         for k in set(self.fields).difference(fields):
-
             # deepcopy of None is surprisingly slow
             field = self.fields[k]
             if field.default_factory is not None:
@@ -417,8 +416,8 @@ class Container(metaclass=ContainerMeta):
 
     def update(self, **values):
         """
-        update more than one parameter at once (e.g. `update(x=3,y=4)`
-        or `update(**dict_of_values)`)
+        update more than one parameter at once (e.g. ``update(x=3,y=4)``
+        or ``update(**dict_of_values)``)
         """
         for key in values:
             self[key] = values[key]
