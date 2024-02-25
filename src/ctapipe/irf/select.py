@@ -144,7 +144,7 @@ class EventsLoader(Component):
         self.file = file
 
     def load_preselected_events(self, chunk_size, obs_time, fov_bins):
-        opts = dict(load_dl2=True, load_simulated=True, load_dl1_parameters=False)
+        opts = dict(dl2=True, simulated=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
             sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
@@ -154,7 +154,7 @@ class EventsLoader(Component):
                 meta = None
             bits = [header]
             n_raw_events = 0
-            for _, _, events in load.read_subarray_events_chunked(chunk_size):
+            for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 selected = events[self.epp.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 selected = self.make_derived_columns(

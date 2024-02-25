@@ -334,6 +334,8 @@ class EffectiveAreaIrf(Component):
                 simulation_info=self.sim_info,
                 true_energy_bins=self.true_energy_bins,
             )
+            # +1 dimension for FOV offset
+            effective_area = effective_area[..., np.newaxis]
         else:
             effective_area = effective_area_per_energy_and_fov(
                 selected_events=signal_events,
@@ -342,9 +344,7 @@ class EffectiveAreaIrf(Component):
                 fov_offset_bins=fov_offset_bins,
             )
         return create_aeff2d_hdu(
-            effective_area=effective_area[
-                ..., np.newaxis
-            ],  # +1 dimension for FOV offset
+            effective_area,
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=fov_offset_bins,
             point_like=point_like,
