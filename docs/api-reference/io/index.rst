@@ -133,7 +133,7 @@ Writing Output Files
 ====================
 
 The `DataWriter` Component allows one to write a series of events (stored in
-`ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format file
+`ctapipe.containers.SubarrayEventContainer`) to a standardized HDF5 format file
 following the data model (see :ref:`datamodels`). This includes all related datasets
 such as the instrument and simulation configuration information, simulated
 shower and image information, observed images and parameters and reconstruction

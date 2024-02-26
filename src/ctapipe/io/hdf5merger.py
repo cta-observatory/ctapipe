@@ -40,6 +40,8 @@ _NODES_TO_CHECK = {
     "/simulation/event/telescope/parameters": NodeType.TEL_GROUP,
     "/r0/event/telescope": NodeType.TEL_GROUP,
     "/r1/event/telescope": NodeType.TEL_GROUP,
+    "/dl0/event/subarray/trigger": NodeType.TABLE,
+    "/dl0/event/telescope/trigger": NodeType.TABLE,
     "/dl1/event/subarray/trigger": NodeType.TABLE,
     "/dl1/event/telescope/trigger": NodeType.TABLE,
     "/dl1/event/telescope/images": NodeType.TEL_GROUP,
@@ -49,6 +51,8 @@ _NODES_TO_CHECK = {
     "/dl2/event/subarray": NodeType.ALGORITHM_GROUP,
     "/dl1/monitoring/subarray/pointing": NodeType.TABLE,
     "/dl1/monitoring/telescope/pointing": NodeType.TEL_GROUP,
+    "/dl0/monitoring/subarray/pointing": NodeType.TABLE,
+    "/dl0/monitoring/telescope/pointing": NodeType.TEL_GROUP,
 }
 
 
@@ -324,13 +328,14 @@ class HDF5Merger(Component):
             self._append_table_group(other, other.root[key])
 
         # DL1
-        key = "/dl1/event/subarray/trigger"
-        if key in other.root:
-            self._append_table(other, other.root[key])
+        for dl in ("dl0", "dl1"):
+            key = f"/{dl}/event/subarray/trigger"
+            if key in other.root:
+                self._append_table(other, other.root[key])
 
-        key = "/dl1/event/telescope/trigger"
-        if self.telescope_events and key in other.root:
-            self._append_table(other, other.root[key])
+            key = f"/{dl}/event/telescope/trigger"
+            if self.telescope_events and key in other.root:
+                self._append_table(other, other.root[key])
 
         key = "/dl1/event/telescope/images"
         if self.telescope_events and self.dl1_images and key in other.root:
@@ -358,13 +363,14 @@ class HDF5Merger(Component):
                     self._append_table(other, table)
 
         # monitoring
-        key = "/dl1/monitoring/subarray/pointing"
-        if self.monitoring and key in other.root:
-            self._append_table(other, other.root[key])
+        for dl in ("dl0", "dl1"):
+            key = f"/{dl}/monitoring/subarray/pointing"
+            if self.monitoring and key in other.root:
+                self._append_table(other, other.root[key])
 
-        key = "/dl1/monitoring/telescope/pointing"
-        if self.monitoring and self.telescope_events and key in other.root:
-            self._append_table_group(other, other.root[key])
+            key = f"/{dl}/monitoring/telescope/pointing"
+            if self.monitoring and self.telescope_events and key in other.root:
+                self._append_table_group(other, other.root[key])
 
         # quality query statistics
         key = "/dl1/service/image_statistics"
