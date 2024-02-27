@@ -276,7 +276,7 @@ class CalibrationExtractor(TelescopeComponent):
             "charge_median_outliers": charge_median_outliers.filled(True),
         }
 
-    def _calculate_arrivaltime_stats(
+    def _calculate_arrival_time_stats(
         self,
         arrival_times,
         broken_pixels,
@@ -291,7 +291,7 @@ class CalibrationExtractor(TelescopeComponent):
 
         Returns
         -------
-        arrivaltime_stats : dict
+        arrival_time_stats : dict
         The sample statistics of the arrival time of each camera pixel.
         """
 
@@ -369,7 +369,7 @@ class FlatFieldExtractor(CalibrationExtractor):
             self.sample_masked_pixels,
             self.trigger_times,
         )
-        arrivaltime_stats = self._calculate_arrivaltime_stats(
+        arrivaltime_stats = self._calculate_arrival_time_stats(
             self.arrival_times,
             self.sample_masked_pixels,
         )
