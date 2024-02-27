@@ -6,10 +6,17 @@ from abc import abstractmethod
 
 import numpy as np
 from astropy import units as u
+from astropy.stats import sigma_clipped_stats
 
 from ctapipe.containers import DL1CameraContainer
-from ctapipe.core import Component
-from ctapipe.core.traits import Int, List, TelescopeParameter, IntTelescopeParameter
+from ctapipe.core import TelescopeComponent
+from ctapipe.core.traits import (
+    Int,
+    List,
+    TelescopeParameter,
+    IntTelescopeParameter,
+    ComponentName,
+)
 from ctapipe.image.extractor import ImageExtractor
 
 __all__ = ["CalibrationExtractor", "FlatFieldExtractor", "PedestalExtractor"]
@@ -30,7 +37,11 @@ class CalibrationExtractor(TelescopeComponent):
     sample distribution (charge_median_cut_outliers) and the pixel charge standard deviation over
     the full sample distribution with respect to the camera median values (charge_std_cut_outliers),
     as well as the pixel signal/arrival time inside the waveform time (time_cut_outliers). Sigma
-    clipping
+    clipping from astropy is applied for the outlier removal using configurable parameters
+    (sigma_clipping_max_sigma and sigma_clipping_iterations).
+    # TODO:
+        1) Discuss whether to express the outlier cuts based on quantiles.
+        2) Discuss whether to calculate the number of iterations for sigma clipping on the fly.
 
     Attributes
     ----------
@@ -107,7 +118,7 @@ class CalibrationExtractor(TelescopeComponent):
             self.image_extractor_type, parent=self, subarray=subarray
         )
 
-    def __call__(self, event, tel_id) -> Bool:
+    def __call__(self, event: ArrayEventContainer) -> Bool:
         """
         Extract the charge and the time from a calibration event.
         Process sample if enough statistics is reached and
@@ -115,8 +126,7 @@ class CalibrationExtractor(TelescopeComponent):
 
         Parameters
         ----------
-        event : general event container
-        tel_id : int
+        event : ArrayEventContainer
 
         Returns: True if the MonitoringCameraContainer is updated,
                  False otherwise
@@ -124,32 +134,32 @@ class CalibrationExtractor(TelescopeComponent):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        dl1: DL1CameraContainer = self._extract_charge_and_time(event, tel_id)
+        dl1: DL1CameraContainer = self._extract_charge_and_time(event)
 
+        # append valid dl1 events
+        self.n_events_in_buffer += 1
+        self.trigger_times.append(event.trigger.tel[self.tel_id].time)
+        self.charges.append(dl1.image)
+        self.arrival_times.append(dl1.peak_time)
+        self.broken_pixels.append(broken_pixels)
+        # check if buffer is filled to process a sample of calibration events
         container_updated = False
-        if dl1.is_valid:
-            # append valid dl1 events
-            self.n_events_in_buffer += 1
-            self.trigger_times.append(event.trigger.tel[tel_id].time)
-            self.charges.append(dl1.image)
-            self.arrival_times.append(dl1.peak_time)
-            self.broken_pixels.append(broken_pixels)
-            # check if to create a calibration event
-            if self.n_events_in_buffer == self.sample_size:
-                self._process(event, tel_id)
-                self._clean_buffer()
-                container_updated = True
+        if self.n_events_in_buffer == self.sample_size:
+            self._process(event)
+            self._clean_buffer()
+            container_updated = True
 
         return container_updated
 
-    def _extract_charge_and_time(self, event, tel_id) -> DL1CameraContainer:
+    def _extract_charge_and_time(
+        self, event: ArrayEventContainer
+    ) -> DL1CameraContainer:
         """
         Extract the charge and the arrival time from a calibration event
 
         Parameters
         ----------
-        event : general event container
-        tel_id : int
+        event : ArrayEventContainer
 
         Returns
         -------
@@ -157,24 +167,23 @@ class CalibrationExtractor(TelescopeComponent):
             extracted images and validity flags
         """
 
-        # copy the waveform be cause we do not want to change it for the moment
-        waveforms = np.copy(event.r1.tel[tel_id].waveform)
-        broken_pixels = event.mon.tel[tel_id].pixel_status.hardware_failing_pixels
+        # copy the waveform because we do not want to change it for the moment
+        waveforms = np.copy(event.r1.tel[self.tel_id].waveform)
+        broken_pixels = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
 
-        # TODO: Move this outside this call function in the init from subarray description
+        # TODO: See #1836 (process all provided gains in the ImageExtractor)
         n_channels = waveform.shape[0]
         n_pixels = waveform.shape[1]
         no_gain_selection = np.zeros((n_channels, n_pixels), dtype=np.int64)
         if n_channels == 2:
             no_gain_selection[1] = 1
 
-        dl1 = DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
         # Extract charge and arrival time
-        if self.extractor:
-            dl1 = self.extractor(waveforms, tel_id, no_gain_selection, broken_pixels)
+        dl1 = self.extractor(waveforms, self.tel_id, no_gain_selection, broken_pixels)
 
         return dl1
 
+    # TODO: Check if stats calculation can be simplified and shared between charge and arrival time
     def _calculate_charge_stats(
         self,
         charges,
@@ -257,8 +266,6 @@ class CalibrationExtractor(TelescopeComponent):
                 trigger_times[0] + (trigger_times[-1] - trigger_times[0]) / 2
             ).unix
             * u.s,
-            "sample_time_min": trigger_times[0].unix * u.s,
-            "sample_time_max": trigger_times[-1].unix * u.s,
             "charge_median": pixel_median.filled(np.nan),
             "charge_mean": pixel_mean.filled(np.nan),
             "charge_std": pixel_std.filled(np.nan),
@@ -327,15 +334,14 @@ class CalibrationExtractor(TelescopeComponent):
         self.broken_pixels = self.broken_pixels[self.update_frequency :]
 
     @abstractmethod
-    def _process(self, event, tel_id):
+    def _process(self, event: ArrayEventContainer):
         """
         Process the sample statistics of calibration events and fill the
         corresponding MonitoringCameraContainer.
 
         Parameters
         ----------
-        event : general event container
-        tel_id : int
+        event : ArrayEventContainer
         """
 
 
@@ -347,13 +353,13 @@ class FlatFieldExtractor(CalibrationExtractor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def _process(self, event, tel_id):
+    def _process(self, event: ArrayEventContainer):
         """
         Process the sample statistics of flat-field events and fill the
-        mon.tel[tel_id].flatfield container
+        mon.tel[self.tel_id].flatfield container
         """
 
-        container = event.mon.tel[tel_id].flatfield
+        container = event.mon.tel[self.tel_id].flatfield
 
         charge_stats = self._calculate_charge_stats(
             self.charges,
@@ -377,8 +383,8 @@ class FlatFieldExtractor(CalibrationExtractor):
         ff_charge_failing_pixels = np.logical_or(
             container.charge_median_outliers, container.charge_std_outliers
         )
-        event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels = np.logical_or(
-            ff_charge_failing_pixels, container.time_median_outliers
+        event.mon.tel[self.tel_id].pixel_status.flatfield_failing_pixels = (
+            np.logical_or(ff_charge_failing_pixels, container.time_median_outliers)
         )
 
 
@@ -390,13 +396,13 @@ class PedestalExtractor(CalibrationExtractor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def _process(self, event, tel_id):
+    def _process(self, event: ArrayEventContainer):
         """
         Process the sample statistics of pedestal events and fill the
-        mon.tel[tel_id].pedestal container
+        mon.tel[self.tel_id].pedestal container
         """
 
-        container = event.mon.tel[tel_id].pedestal
+        container = event.mon.tel[self.tel_id].pedestal
 
         charge_stats = self._calculate_charge_stats(
             self.charges,
@@ -412,6 +418,6 @@ class PedestalExtractor(CalibrationExtractor):
             setattr(container, key, value)
 
         # update pedestal mask
-        event.mon.tel[tel_id].pixel_status.pedestal_failing_pixels = np.logical_or(
+        event.mon.tel[self.tel_id].pixel_status.pedestal_failing_pixels = np.logical_or(
             container.charge_median_outliers, container.charge_std_outliers
         )
