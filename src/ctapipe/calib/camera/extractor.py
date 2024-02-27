@@ -106,6 +106,11 @@ class CalibrationExtractor(TelescopeComponent):
         """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
+        # Check validity of sample size and update frequency
+        if self.sample_size < self.update_frequency:
+            raise ValueError(
+                f"The 'update_frequency' ({self.update_frequency}) must be less than or equal to the 'sample_size' ({self.sample_size})."
+            )
         # set up the buffer
         self.n_events_in_buffer = 0  # number of events in sample
         self.trigger_time = []  # trigger time of event in sample
