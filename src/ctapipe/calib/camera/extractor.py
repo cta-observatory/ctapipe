@@ -178,10 +178,8 @@ class CalibrationExtractor(TelescopeComponent):
         if n_channels == 2:
             no_gain_selection[1] = 1
 
-        # Extract charge and arrival time
-        dl1 = self.extractor(waveforms, self.tel_id, no_gain_selection, broken_pixels)
-
-        return dl1
+        # Extract charge and arrival time and return the DL1CameraContainer
+        return self.extractor(waveforms, self.tel_id, no_gain_selection, broken_pixels)
 
     # TODO: Check if stats calculation can be simplified and shared between charge and arrival time
     def _calculate_charge_stats(
