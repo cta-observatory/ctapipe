@@ -142,7 +142,7 @@ class Background3dIrf(Component):
         # check_bins_in_range(self.fov_offset_bins, self.valid_offset)
 
     def make_bkg3d_table_hdu(self, bkg_events, obs_time):
-        sel = bkg_events["selected_gh"]
+        sel = bkg_events["selected"]
         self.log.debug("%d background events selected" % sel.sum())
         self.log.debug("%f obs time" % obs_time.to_value(u.h))
         background_rate = background_3d(
@@ -211,7 +211,7 @@ class Background2dIrf(Component):
         # check_bins_in_range(self.fov_offset_bins, self.valid_offset)
 
     def make_bkg2d_table_hdu(self, bkg_events, obs_time):
-        sel = bkg_events["selected_gh"]
+        sel = bkg_events["selected"]
         self.log.debug("%d background events selected" % sel.sum())
         self.log.debug("%f obs time" % obs_time.to_value(u.h))
 
