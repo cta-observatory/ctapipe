@@ -66,8 +66,6 @@ class AtmosphereDensityProfile(abc.ABC):
         r"""Get the height a.s.l. from the mass overburden in the atmosphere.
             Inverse of the integral function
 
-        ..
-
         Returns
         -------
         u.Quantity["m"]:
