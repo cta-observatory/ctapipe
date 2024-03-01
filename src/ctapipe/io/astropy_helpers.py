@@ -66,7 +66,6 @@ def read_table(
     """
 
     with ExitStack() as stack:
-
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
@@ -139,7 +138,7 @@ def write_table(
     path: str
         dataset path inside the ``h5file``
     append: bool
-        Wether to try to append to or replace an existing table
+        Whether to try to append to or replace an existing table
     overwrite: bool
         If table is already in file and overwrite and append are false,
         raise an error.

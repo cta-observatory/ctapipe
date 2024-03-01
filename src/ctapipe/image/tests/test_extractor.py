@@ -370,7 +370,7 @@ def test_extractors(Extractor, toymodel):
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
 
 @pytest.mark.parametrize("Extractor", extractors)
@@ -391,7 +391,7 @@ def test_integration_correction_off(Extractor, toymodel):
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
 
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
     # peak time should stay the same
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
@@ -414,7 +414,7 @@ def test_fixed_window_sum(toymodel):
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
 
 def test_sliding_window_max_sum(toymodel):
@@ -432,7 +432,7 @@ def test_sliding_window_max_sum(toymodel):
     print(true_charge, dl1.image, true_time, dl1.peak_time)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
 
 def test_neighbor_peak_window_sum_local_weight(toymodel):
@@ -450,7 +450,7 @@ def test_neighbor_peak_window_sum_local_weight(toymodel):
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
 
 def test_Two_pass_window_sum_no_noise(subarray_1_LST):
@@ -548,7 +548,7 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     # since there is no noise in this test, 1st pass will find the peak and 2nd
     # can at most to the same
     assert (reco_charge2 / reco_charge1) < 1
-    assert dl1_pass1.is_valid == True
+    assert dl1_pass1.is_valid
 
     # Test only signal pixels for which it is expected to find most of the
     # charge well inside the readout window
@@ -799,7 +799,7 @@ def test_FC_time(toymodel_mst_fc_time):
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
     extractor = FlashCamExtractor(
         subarray=subarray, upsampling=1, leading_edge_timing=True
@@ -807,7 +807,7 @@ def test_FC_time(toymodel_mst_fc_time):
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
     extractor = FlashCamExtractor(
         subarray=subarray, upsampling=1, leading_edge_timing=False
@@ -815,13 +815,13 @@ def test_FC_time(toymodel_mst_fc_time):
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
     extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=False)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
 
 def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
@@ -838,7 +838,7 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
-    assert dl1.is_valid == True
+    assert dl1.is_valid
 
     # Test on prod5 simulations
     with EventSource(prod5_gamma_simtel_path) as source:
@@ -859,7 +859,7 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
                 ].pixel_status.hardware_failing_pixels[0]
 
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
-                assert dl1.is_valid == True
+                assert dl1.is_valid
 
                 bright_pixels = (
                     (true_charge > 30) & (true_charge < 3000) & (~broken_pixels)

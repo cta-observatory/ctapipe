@@ -168,14 +168,14 @@ def hillas_parameters(geom, image):
         length_uncertainty = np.nan
     else:
         length_uncertainty = np.sqrt(
-            np.sum(((((a * A) + (b * B) + (c * C))) ** 2.0) * image)
+            np.sum((((a * A) + (b * B) + (c * C)) ** 2.0) * image)
         ) / (2 * length)
 
     if width == 0:
         width_uncertainty = np.nan
     else:
         width_uncertainty = np.sqrt(
-            np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
+            np.sum((((b * A) + (a * B) + (-c * C)) ** 2.0) * image)
         ) / (2 * width)
 
     if unit.is_equivalent(u.m):

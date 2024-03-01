@@ -45,7 +45,7 @@ class PixelShape(Enum):
     @classmethod
     def from_string(cls, name):
         """
-        Convert a string represenation to the enum value
+        Convert a string representation to the enum value
 
         This function supports abbreviations and for backwards compatibility
         "rect" as alias for "square".
@@ -728,10 +728,9 @@ class CameraGeometry:
             radius = 1.4
             norm = 2  # use L2 norm for hex
         else:
-
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
-            # < than 2 * the pixel size, else 4 neigbors with max L1 distance
+            # < than 2 * the pixel size, else 4 neighbors with max L1 distance
             # < 2 pixel size. We take a conservative 1.5 here,
             # because that worked on the PROD4 CHEC camera that has
             # irregular pixel positions.
@@ -837,7 +836,7 @@ class CameraGeometry:
         Parameters
         ----------
 
-        angle: value convertable to an `astropy.coordinates.Angle`
+        angle: value convertible to an `astropy.coordinates.Angle`
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
@@ -974,7 +973,7 @@ class CameraGeometry:
         # 1. Mark all points outside pixel circumeference as lying outside camera
         pix_indices[pix_indices == self.n_pixels] = invalid
 
-        # 2. Accurate check for the remaing cases (within circumference, but still outside
+        # 2. Accurate check for the remaining cases (within circumference, but still outside
         # camera). It is first checked if any border pixel numbers are returned.
         # If not, everything is fine. If yes, the distance of the given position to the
         # the given position to the closest pixel center is translated to the distance to

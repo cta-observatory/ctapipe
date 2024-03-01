@@ -36,7 +36,6 @@ class TableWriter(Component, metaclass=ABCMeta):
         self.add_prefix = add_prefix
 
     def __enter__(self):
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -76,7 +75,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         col_name: str
             name of column in the table (or item in the Container).
         transform: ColumnTransform
-            function that tranforms input into output
+            function that transforms input into output
 
         """
         # allow leading slash
@@ -136,7 +135,6 @@ class TableWriter(Component, metaclass=ABCMeta):
             for column_regexp, transform in column_regexp_dict.items():
                 for container in containers:
                     for col_name, _ in container.items(add_prefix=self.add_prefix):
-
                         if re.fullmatch(column_regexp, col_name):
                             self.log.debug(
                                 "Column '%s' matched pattern '%s'",

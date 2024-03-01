@@ -81,8 +81,7 @@ class UnstructuredInterpolator:
         self._previous_shape = None
 
     def __call__(self, points, eval_points=None):
-
-        # Convert to a numpy array here incase we get a list
+        # Convert to a numpy array here in case we get a list
         points = np.array(points)
 
         if len(points.shape) == 1:
@@ -91,7 +90,6 @@ class UnstructuredInterpolator:
         # First find simplexes that contain interpolated points
         # In
         if self._remember and self._previous_v is not None:
-
             previous_keys = self.keys[self._previous_v.ravel()]
             hull = Delaunay(previous_keys)
 

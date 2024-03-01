@@ -47,7 +47,7 @@
   * Fixed error when taking log of quantity
   * Fixed import problem in hillas intersection test
   * minor cleanup of bug
-  * Inproved documentation for functions guessing the shower maximum given the reconstructed energy
+  * Improved documentation for functions guessing the shower maximum given the reconstructed energy
   * Significantly improved documentation for the ImPACT code
   * solving migrad nan issue and change shower max to return depth (not height)
   * register outputs from ctapipe-dump-instrument with provenance
@@ -69,7 +69,7 @@
   * Updated viewers to allow backgrounds to be added more easily, updated scaling factors on the Hillas parameters
   * Added low gain channel
   * Changed scaling values
-  * Removed unused funtions and added optional fit priors
+  * Removed unused functions and added optional fit priors
   * Added option to use LM minimiser
   * Fixed camera rotation problems and added functions to draw likelihood surfaces
   * Allowed selection of minimiser to be used for ImPACt
@@ -84,19 +84,19 @@
   * Added comments
   * Changed structure such that set parameters function is not need
   * Changed structure such that set parameters function is not need
-  * Added tool for perfomring hillas based reconstruction
-  * Fixed energy reconstruction and added ouput into the correct format
+  * Added tool for performing hillas based reconstruction
+  * Fixed energy reconstruction and added output into the correct format
   * Created tool for reco using Hillas parameters
   * Added MVA based energy reconstruction algorithm
   * Fixed incorrect calculation of impact distance when getting the training parameters
   * Added Tool to output Hillas parameters into FITS files
-  * Code cleanup and addtion of command line options
+  * Code cleanup and addition of command line options
   * Added cut to prevent 0 width events
   * Switched to use of FITS templates and fixed use of depth tables
   * Store system as class member
   * Fixed incorrect inversion of axes
   * renamed to work correctly with new ctapipe version
-  * Fixed mis labelled axes
+  * Fixed mislabelled axes
   * Added ImPACT reconstruction tool
   * Added fix for pixel neighbour list
   * Added Xmax reconstruction

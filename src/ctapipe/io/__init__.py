@@ -4,7 +4,7 @@ ctapipe io module
 # order matters to prevent circular imports
 isort:skip_file
 """
-from .astropy_helpers import read_table, write_table
+from .astropy_helpers import read_table, write_table  # noqa: I001
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .eventseeker import EventSeeker

@@ -55,7 +55,7 @@ class CameraDisplay:
         redraw automatically (otherwise need to call plt.draw())
     autoscale : bool (default True)
         rescale the vmin/vmax values when the image changes.
-        This is set to False if ``set_limits_*`` is called to explicity
+        This is set to False if ``set_limits_*`` is called to explicitly
         set data limits.
 
     Notes
@@ -539,7 +539,7 @@ class CameraDisplay:
         self.on_pixel_clicked(pix_id)  # call user-function
 
     def on_pixel_clicked(self, pix_id):
-        """virtual function to overide in sub-classes to do something special
+        """virtual function to override in sub-classes to do something special
         when a pixel is clicked
         """
         print(f"Clicked pixel_id {pix_id}")

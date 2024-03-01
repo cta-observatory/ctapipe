@@ -114,10 +114,13 @@ def get_node_meta(node):
     node : `tables.Node`
         The node for which to parse the metadata attributes
     """
-    ignore_column_descriptions = lambda k: not k.startswith("CTAFIELD_")
+
+    def _ignore_column_descriptions(attr_name):
+        return not attr_name.startswith("CTAFIELD_")
+
     meta = {}
     attrs = node._v_attrs
-    for key in filter(ignore_column_descriptions, attrs._v_attrnamesuser):
+    for key in filter(_ignore_column_descriptions, attrs._v_attrnamesuser):
         value = attrs[key]
 
         # convert numpy scalars to plain python objects
@@ -232,7 +235,6 @@ class HDF5TableWriter(TableWriter):
         config=None,
         **kwargs,
     ):
-
         super().__init__(add_prefix=add_prefix, parent=parent, config=config)
         self._schemas = {}
         self._tables = {}
@@ -327,7 +329,7 @@ class HDF5TableWriter(TableWriter):
         # add original field name name, without prefix
         meta[f"CTAFIELD_{pos}_NAME"] = field.name
 
-        # add desription to metadata
+        # add description to metadata
         meta[f"CTAFIELD_{pos}_DESC"] = field.description
 
         self.log.debug(
@@ -349,7 +351,7 @@ class HDF5TableWriter(TableWriter):
         table_name: str
             name of table
         container: ctapipe.core.Container
-            instance of an initalized container
+            instance of an initialized container
 
         Returns
         -------
@@ -361,14 +363,13 @@ class HDF5TableWriter(TableWriter):
 
         meta = {}  # any extra meta-data generated here (like units, etc)
 
-        # set up any column tranforms that were requested as regexps (i.e.
+        # set up any column transforms that were requested as regexps (i.e.
         # convert them to explicit transform in the _transforms dict if they
         # match)
         self._realize_regexp_transforms(table_name, containers)
 
         # create pytables schema description for the given container
         for container in containers:
-
             container.validate()  # ensure the data are complete
 
             it = zip(

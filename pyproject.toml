@@ -128,24 +128,6 @@ exclude = ["ctapipe._dev_version"]
 [tool.setuptools_scm]
 write_to = "src/ctapipe/_version.py"
 
-[tool.black]
-line-length = 88
-target-version = ['py37', 'py38', 'py39', 'py310']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-)/
-'''
-
 [tool.pytest.ini_options]
 minversion = "7"
 testpaths = ["src"]
@@ -153,7 +135,7 @@ log_cli_level = "INFO"
 xfail_strict = true
 astropy_header = true
 
-# print summar of failed tests, force errors if settings are misspelled
+# print summary of failed tests, force errors if settings are misspelled
 addopts = ["-ra", "--strict-config", "--strict-markers"]
 
 filterwarnings = [
@@ -203,3 +185,35 @@ norecursedirs = [
     [[tool.towncrier.section]]
         name = ""
         path = ""
+
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = [
+    "I",  # isort
+]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+# notebooks have imports in all cells
+"examples/**" = ["I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["ctapipe"]
+
+
+[tool.codespell]
+ignore-words = ".codespell-ignores"

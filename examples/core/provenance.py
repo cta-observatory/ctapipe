@@ -66,7 +66,7 @@ p.finished_activity_names
 # Full provenance
 # ---------------
 #
-# The provence object is a list of activitites, and for each lots of
+# The provenance object is a list of activities, and for each lots of
 # details are collected:
 #
 
@@ -96,10 +96,10 @@ def flatten_dict(y):
     out = {}
 
     def flatten(x, name=""):
-        if type(x) is dict:
+        if isinstance(x, dict):
             for a in x:
                 flatten(x[a], name + a + ".")
-        elif type(x) is list:
+        elif isinstance(x, list):
             i = 0
             for a in x:
                 flatten(a, name + str(i) + ".")

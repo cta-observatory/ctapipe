@@ -215,7 +215,6 @@ def _info_system():
     system_prov = prov.current_activity.provenance["system"]
 
     for section in ["platform", "python"]:
-
         print("\n====== ", section, " ======== \n")
         sysinfo = system_prov[section]
 

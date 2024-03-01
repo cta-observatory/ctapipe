@@ -59,7 +59,6 @@ class FlatFieldCalculator(Component):
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
-
         """
         Parent class for the flat-field calculators.
         Fills the MonitoringCameraContainer.FlatfieldContainer on the base of a given
@@ -269,7 +268,6 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             return True
 
         else:
-
             return False
 
     def setup_sample_buffers(self, waveform, sample_size):

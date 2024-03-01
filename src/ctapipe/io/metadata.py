@@ -270,7 +270,6 @@ class Reference(HasTraits):
     def from_dict(cls, metadata):
         kwargs = defaultdict(dict)
         for hierarchical_key, value in metadata.items():
-
             components = hierarchical_key.split(" ")
 
             if components[0] != "CTA":
@@ -334,7 +333,7 @@ def read_metadata(h5file, path="/"):
 
     Returns
     -------
-    metadata: dictionnary
+    metadata: dictionary
     """
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):

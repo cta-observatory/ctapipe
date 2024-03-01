@@ -8,13 +8,11 @@ dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_eventseeker():
-
     with SimTelEventSource(
         input_url=dataset,
         back_seekable=True,
         focal_length_choice="EQUIVALENT",
     ) as reader:
-
         seeker = EventSeeker(event_source=reader)
 
         event = seeker.get_event_index(1)

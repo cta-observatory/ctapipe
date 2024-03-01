@@ -30,7 +30,7 @@ class NominalFrame(BaseCoordinateFrame):
 
     A Frame using a UnitSphericalRepresentation.
     This is basically the same as a HorizonCoordinate, but the
-    origin is at an arbitray position in the sky.
+    origin is at an arbitrary position in the sky.
     This is what astropy calls a SkyOffsetCoordinate
 
     If the telescopes are in divergent pointing, this Frame can be

@@ -36,7 +36,6 @@ def test_h5_file(tmp_path_factory):
     with HDF5TableWriter(
         path, group_name="R0", filters=tables.Filters(complevel=7)
     ) as writer:
-
         for _ in range(100):
             r0.waveform[:] = np.random.uniform(size=(50, 10))
             shower.energy = 10 ** np.random.uniform(1, 2) * u.TeV
@@ -61,14 +60,14 @@ def test_read_meta(test_h5_file):
         # check we don't have anything else
         # system attributes and column metadata should be excluded
         assert len(meta) == 3
+        assert isinstance(meta["CTAPIPE_VERSION"], str)
         assert meta["CTAPIPE_VERSION"] == __version__
-        assert type(meta["CTAPIPE_VERSION"]) is str
 
+        assert isinstance(meta["date"], str)
         assert meta["date"] == "2020-10-10"
-        assert type(meta["date"]) is str
 
+        assert isinstance(meta["test_attribute"], float)
         assert meta["test_attribute"] == 3.14159
-        assert type(meta["test_attribute"]) is float
 
 
 def test_read_column_attrs(test_h5_file):
@@ -378,7 +377,6 @@ def test_write_large_integer(tmp_path):
 
 def test_read_container(test_h5_file):
     with HDF5TableReader(test_h5_file) as reader:
-
         # get the generators for each table
         # test supplying a single container as well as an
         # iterable with one entry only
@@ -388,7 +386,6 @@ def test_read_container(test_h5_file):
 
         # read all 3 tables in sync
         for _ in range(3):
-
             m = next(simtab)[0]
             r0_1 = next(r0tab1)
             r0_2 = next(r0tab2)
@@ -403,7 +400,6 @@ def test_read_container(test_h5_file):
 
 
 def test_read_whole_table(test_h5_file):
-
     with HDF5TableReader(test_h5_file) as reader:
         for cont in reader.read("/R0/sim_shower", SimulatedShowerContainer):
             print(cont)
@@ -417,7 +413,6 @@ def test_with_context_writer(tmp_path):
         b = Field("b", None)
 
     with HDF5TableWriter(path, "test") as h5_table:
-
         for i in range(5):
             c1 = C1()
             c1.a, c1.b = np.random.normal(size=2)
@@ -426,7 +421,6 @@ def test_with_context_writer(tmp_path):
 
 
 def test_writer_closes_file(tmp_path):
-
     with HDF5TableWriter(tmp_path / "test.h5", "test") as h5_table:
         assert h5_table.h5file.isopen == 1
 
@@ -435,16 +429,13 @@ def test_writer_closes_file(tmp_path):
 
 def test_reader_closes_file(test_h5_file):
     with HDF5TableReader(test_h5_file) as h5_table:
-
         assert h5_table._h5file.isopen == 1
 
     assert h5_table._h5file.isopen == 0
 
 
 def test_with_context_reader(test_h5_file):
-
     with HDF5TableReader(test_h5_file) as h5_table:
-
         assert h5_table._h5file.isopen == 1
 
         for cont in h5_table.read("/R0/sim_shower", SimulatedShowerContainer):
@@ -454,7 +445,6 @@ def test_with_context_reader(test_h5_file):
 
 
 def test_closing_reader(test_h5_file):
-
     f = HDF5TableReader(test_h5_file)
     f.close()
 
@@ -462,7 +452,6 @@ def test_closing_reader(test_h5_file):
 
 
 def test_closing_writer(tmp_path):
-
     h5_table = HDF5TableWriter(tmp_path / "test.h5", "test")
     h5_table.close()
 
@@ -508,7 +497,6 @@ def test_append_mode(tmp_path):
 
     # Check if file has two tables with a = 1
     with HDF5TableReader(path) as h5:
-
         for container in h5.read("/group/table_1", ContainerA):
             assert container.a == 1
 
@@ -623,7 +611,6 @@ def test_column_exclusions(tmp_path):
     cont = SomeContainer(hillas_x=10, hillas_y=10, impact_x=15, impact_y=15)
 
     with HDF5TableWriter(tmp_file) as writer:
-
         # don't write hillas columns for any table
         writer.exclude(".*table", "hillas_.*")
 

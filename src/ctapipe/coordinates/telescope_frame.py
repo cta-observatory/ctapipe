@@ -48,7 +48,7 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     telescope_pointing: SkyCoord[AltAz]
         Coordinate of the telescope pointing in AltAz
-    obstime: Tiem
+    obstime: Time
         Observation time
     location: EarthLocation
         Location of the telescope

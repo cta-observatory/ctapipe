@@ -73,7 +73,6 @@ def _smear_psf_randomly(
         np.random.seed(seed)
 
     for pixel in range(len(image)):
-
         if image[pixel] <= 0:
             continue
 
@@ -89,7 +88,7 @@ def _smear_psf_randomly(
         n_neighbors = len(neighbors)
 
         # we always distribute the charge as if the maximum number
-        # of neighbors of a geoemtry is present, so that charge
+        # of neighbors of a geometry is present, so that charge
         # on the edges of the camera is lost
         neighbor_charges = np.random.multinomial(to_smear, smear_probabilities)
 

@@ -87,7 +87,7 @@ def download_cached(
     lock_file = path.with_suffix(path.suffix + ".lock")
 
     with FileLock(lock_file):
-        # if we already dowloaded the file, just use it
+        # if we already downloaded the file, just use it
         if path.is_file():
             log.debug(f"{url} is available in cache.")
             return path
@@ -135,7 +135,7 @@ def download_file_cached(
         If ``True``, read username and password for the request from
         the env variables ``env_prefix + 'USER'`` and ``env_prefix + PASSWORD``
     default_url: str
-        The default url from which to download ``name``, can be overriden
+        The default url from which to download ``name``, can be overridden
         by setting the env variable ``env_prefix + URL``
 
     Returns

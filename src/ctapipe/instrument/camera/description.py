@@ -32,7 +32,6 @@ class CameraDescription:
     )
 
     def __init__(self, name, geometry: CameraGeometry, readout: CameraReadout):
-
         self.name = name
         self.geometry = geometry
         self.readout = readout

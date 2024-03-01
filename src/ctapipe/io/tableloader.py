@@ -54,7 +54,7 @@ class ChunkIterator:
     ----------
     func : Callable
         Signature must be ``function(*args, start=start, stop=stop, **kwargs)``
-        Where start and stop are the first and last (noninclusive) indicies of
+        Where start and stop are the first and last (noninclusive) indices of
         a chunk.
     n_total : int
         Total number of elements

@@ -110,7 +110,7 @@ TelescopeWiseComponent(subarray=subarray)
 #    component.param = [("type", "LST*",3.0),("type", "MST*", 2.0),(id, 25, 4.0)]
 #
 # These get translated into per-telescope-id values once the subarray is
-# registered. After that one acccess the per-telescope id values via:
+# registered. After that one access the per-telescope id values via:
 #
 #
 #    component.param.tel[tel_id]
@@ -171,7 +171,7 @@ class MyTool(Tool):
 # -------------
 #
 # The following allows you to print the help info within a Jupyter
-# notebook, but this same inforamtion would be displayed if the user
+# notebook, but this same information would be displayed if the user
 # types:
 #
 # ::
@@ -187,7 +187,7 @@ tool.print_help()
 
 
 ######################################################################
-# The following is equivalant to the user typing ``mytool --help-all``
+# The following is equivalent to the user typing ``mytool --help-all``
 #
 
 tool.print_help(classes=True)
@@ -204,7 +204,7 @@ tool.print_help(classes=True)
 #
 #    mytool --log_level=INFO --infile gamma_test.simtel.gz --iterations=3
 #
-# As Tools are intended to be exectutables, they are raising
+# As Tools are intended to be executables, they are raising
 # ``SystemExit`` on exit. Here, we use them to demonstrate how it would
 # work, so we catch the ``SystemExit``.
 #

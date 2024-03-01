@@ -7,5 +7,3 @@ Data Models
 .. toctree::
 
     dl1
-
-

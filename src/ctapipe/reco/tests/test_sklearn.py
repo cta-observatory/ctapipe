@@ -164,7 +164,7 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
     reco_energy = table[f"{model_cls}_tel_energy"].quantity
     valid = table[f"{model_cls}_tel_is_valid"]
     assert reco_energy.shape == (1,)
-    assert valid[0] == False
+    assert not valid[0]
 
 
 def test_set_n_jobs(example_subarray):
@@ -186,7 +186,7 @@ def test_set_n_jobs(example_subarray):
     regressor.n_jobs = 42
     assert regressor._models["telescope"].n_jobs == 42
 
-    # DISP has two models per telescope, check that aswell
+    # DISP has two models per telescope, check that as well
     config = Config(
         {
             "DispReconstructor": {

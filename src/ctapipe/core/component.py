@@ -192,7 +192,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
         Returns
         -------
-        instace
+        instance
             Instance of subclass to this class
         """
         requested_subclass = cls.non_abstract_subclasses()[name]

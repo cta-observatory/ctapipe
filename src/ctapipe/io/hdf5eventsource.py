@@ -150,7 +150,7 @@ class HDF5EventSource(EventSource):
     file: tables.File
         File object
     obs_ids: list
-        Observation ids of te recorded runs. For unmerged files, this
+        Observation ids of the recorded runs. For unmerged files, this
         should only contain a single number.
     subarray: ctapipe.instrument.SubarrayDescription
         The subarray configuration of the recorded run.
@@ -353,6 +353,7 @@ class HDF5EventSource(EventSource):
         self.file_.root.configuration.simulation.run.
         These are used to match the correct header to each event
         """
+
         # Just returning next(reader) would work as long as there are no merged files
         # The reader ignores obs_id making the setup somewhat tricky
         # This is ugly but supports multiple headers so each event can have
@@ -515,7 +516,6 @@ class HDF5EventSource(EventSource):
             dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
 
             for kind, group in dl2_group._v_children.items():
-
                 try:
                     container = DL2_CONTAINERS[kind]
                 except KeyError:
@@ -657,7 +657,7 @@ class HDF5EventSource(EventSource):
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     # Is there a smarter way to unpack this?
-                    # Best would probbaly be if we could directly read
+                    # Best would probably be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[key])
                     data.dl1.tel[tel_id].parameters = ImageParametersContainer(

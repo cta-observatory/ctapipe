@@ -103,7 +103,7 @@ def test_separation_is_the_same():
 def test_cam_to_tel():
     from ctapipe.coordinates import CameraFrame, TelescopeFrame
 
-    # Coordinates in any fram can be given as a numpy array of the xyz positions
+    # Coordinates in any frame can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
     pix_x = [1] * u.m
     pix_y = [1] * u.m

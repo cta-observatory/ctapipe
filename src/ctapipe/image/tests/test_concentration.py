@@ -7,7 +7,6 @@ from ctapipe.image.tests.test_hillas import create_sample_image
 
 
 def test_concentration(prod5_lst):
-
     geom = prod5_lst.camera.geometry
     image, clean_mask = create_sample_image(psi="30d", geometry=geom)
 

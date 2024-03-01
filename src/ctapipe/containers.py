@@ -742,7 +742,7 @@ class SimulatedShowerContainer(Container):
 
 class SimulatedCameraContainer(Container):
     """
-    True images and parameters derived from them, analgous to the `DL1CameraContainer`
+    True images and parameters derived from them, analogous to the `DL1CameraContainer`
     but for simulated data.
     """
 
@@ -820,7 +820,7 @@ class SimulationConfigContainer(Container):
     detector_prog_id = Field(nan, description="simtelarray=1")
     n_showers = Field(nan, description="Number of showers simulated")
     shower_reuse = Field(nan, description="Numbers of uses of each shower")
-    max_alt = Field(nan * u.rad, description="Maximimum shower altitude", unit=u.rad)
+    max_alt = Field(nan * u.rad, description="Maximum shower altitude", unit=u.rad)
     min_alt = Field(nan * u.rad, description="Minimum shower altitude", unit=u.rad)
     max_az = Field(nan * u.rad, description="Maximum shower azimuth", unit=u.rad)
     min_az = Field(nan * u.rad, description="Minimum shower azimuth", unit=u.rad)

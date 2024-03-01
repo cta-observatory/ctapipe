@@ -29,7 +29,7 @@ Documentation for all algorithms should contain citations to external
 works, which should be collected in ``bibliography.rst``. An example of
 citing a reference in that file::
 
-  this algorithm is an implementaton of [author2003]_
+  this algorithm is an implementation of [author2003]_
 
 
 Interactive Development Environment

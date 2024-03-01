@@ -11,7 +11,7 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
 
    The following guide is used only if you want to *develop* the
    ``ctapipe`` package, if you just want to write code that uses it
-   as a depdency, you can install ``ctapipe`` from PyPI or conda-forge.
+   as a dependency, you can install ``ctapipe`` from PyPI or conda-forge.
    See :ref:`getting_started_users`
 
 
@@ -73,7 +73,7 @@ See `the GitHub documentation <https://docs.github.com/en/authentication/connect
 Setting Up the Development Environment
 ======================================
 
-We provide a conda environment with all packages needed for development of ctapipe and a couple of additonal helpful pacakages (like ipython, jupyter and vitables):
+We provide a conda environment with all packages needed for development of ctapipe and a couple of additional helpful packages (like ipython, jupyter and vitables):
 
 .. code-block:: console
 
@@ -116,8 +116,9 @@ test plugin via
     $ pip install -e ./test_plugin
 
 
-We are using the ``black`` and ``isort`` auto-formatters for automatic 
-adherence to the code style (see our :doc:`/developer-guide/style-guide`).
+We are using the ``pre-commit``, ``code-spell`` and ``ruff`` tools
+for automatic adherence to the code style
+(see our :doc:`/developer-guide/style-guide`).
 To enforce running these tools whenever you make a commit, setup the
 `pre-commit hook <https://pre-commit.com/>`_:
 
@@ -125,7 +126,7 @@ To enforce running these tools whenever you make a commit, setup the
 
     $ pre-commit install
 
-The pre-commit hook will then execute the tools with the same settings as when the a pull request is checked on github,
+The pre-commit hook will then execute the tools with the same settings as when a pull request is checked on GitHub,
 and if any problems are reported the commit will be rejected.
 You then have to fix the reported issues before tying to commit again.
 Note that a common problem is code not complying with the style guide, and that whenever this was the only problem found,
@@ -437,7 +438,7 @@ More often than not your tests will fail or your algorithm will
 show strange behaviour. **Debugging** is one of the power tools each
 developer should know. Since using ``print`` statements is **not** debugging and does
 not give you access to runtime variables at the point where your code fails, we recommend
-using ``pdb`` or ``ipdb`` for an IPython shell. 
+using ``pdb`` or ``ipdb`` for an IPython shell.
 A nice introduction can be found `here <https://hasil-sharma.github.io/2017-05-13-python-ipdb/>`_.
 
 

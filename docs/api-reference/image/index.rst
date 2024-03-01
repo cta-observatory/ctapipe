@@ -6,7 +6,7 @@ Imaging (`~ctapipe.image`)
 
 .. currentmodule:: ctapipe.image
 
-`ctapipe.image` contains all algortihms that operate on Cherenkov camera images.
+`ctapipe.image` contains all algorithms that operate on Cherenkov camera images.
 
 A *Cherenkov image* is defined as two pieces of data:
 

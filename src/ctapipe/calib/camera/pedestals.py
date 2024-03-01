@@ -285,7 +285,6 @@ class PedestalIntegrator(PedestalCalculator):
             return True
 
         else:
-
             return False
 
     def setup_sample_buffers(self, waveform, sample_size):

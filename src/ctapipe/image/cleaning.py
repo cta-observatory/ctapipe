@@ -45,7 +45,6 @@ def tailcuts_clean(
     keep_isolated_pixels=False,
     min_number_picture_neighbors=0,
 ):
-
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
     defined with respect to the pedestal dispersion. All pixels that
@@ -273,7 +272,6 @@ def apply_time_average_cleaning(
     """
     mask = mask.copy()
     if np.count_nonzero(mask) > 0:
-
         # use main island (maximum charge) for time average calculation
         n_islands, island_labels = number_of_islands(geom, mask)
         mask_main = brightest_island(n_islands, island_labels, image)

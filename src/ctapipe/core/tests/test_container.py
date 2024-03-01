@@ -209,7 +209,6 @@ def test_container_brackets():
 
 
 def test_deprecated_field():
-
     with pytest.warns(DeprecationWarning, match="answer to all questions"):
 
         class ExampleContainer(Container):
@@ -222,7 +221,6 @@ def test_deprecated_field():
 
 
 def test_field_validation():
-
     # test units
     field_u = Field(None, "float with units", unit="m")
     field_u.validate(3.0 * u.m)
@@ -290,7 +288,7 @@ def test_container_validation():
         MyContainer().validate()  # fails since 3.2 has no units
 
     with pytest.raises(FieldValidationError):
-        MyContainer(x=10 * u.s).validate()  # seconds is not convertable to meters
+        MyContainer(x=10 * u.s).validate()  # seconds is not convertible to meters
 
     MyContainer(x=6.4 * u.m).validate()  # works
 

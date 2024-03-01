@@ -70,7 +70,7 @@ DATA_MODEL_CHANGE_HISTORY = """
             is now included in SubarrayDescription
           - Only unique optics are stored in the optics table
           - include observation configuration
-- v3.0.0: reconstructed core uncertainties splitted in their X-Y components
+- v3.0.0: reconstructed core uncertainties split in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
 - v2.0.0: Match optics and camera tables using indices instead of names
@@ -255,7 +255,7 @@ class DataWriter(Component):
         config : , optional
             configuration class
         parent : , optional
-            parent of this component in the config hierarchy (this supercedes
+            parent of this component in the config hierarchy (this supersedes
             the config option)
         **kwargs :
             other options, such as parameters passed to parent.
@@ -344,7 +344,7 @@ class DataWriter(Component):
         Write pointing configuration from event data assuming fixed pointing over the OB.
 
         This function mainly exists due to a limitation of sim_telarray files.
-        Pointing information is only written as part of triggerred array events,
+        Pointing information is only written as part of triggered array events,
         even though it is constant over the run. It also is not written for all
         telescopes, only for those for which it is "known", which seem to be
         all telescopes that participated in an array event at least once.
@@ -642,7 +642,6 @@ class DataWriter(Component):
 
     def _write_r1_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r1_tel in event.r1.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -651,7 +650,6 @@ class DataWriter(Component):
 
     def _write_r0_telescope_events(self, event: ArrayEventContainer):
         for tel_id, r0_tel in event.r0.tel.items():
-
             tel_index = _get_tel_index(event, tel_id)
             table_name = self.table_name(tel_id)
 
@@ -718,7 +716,6 @@ class DataWriter(Component):
                     )
 
     def _write_muon_telescope_events(self, event: ArrayEventContainer):
-
         for tel_id, muon in event.muon.tel.items():
             table_name = self.table_name(tel_id)
             tel_index = _get_tel_index(event, tel_id)

@@ -330,7 +330,6 @@ class TelescopeParameter(List):
         return self._trait.validate(obj, value)
 
     def validate(self, obj, value):
-
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, (list, List, UserList, TelescopePatternList)):
             value = [("type", "*", self._validate_entry(obj, value))]
@@ -339,7 +338,6 @@ class TelescopeParameter(List):
         normalized_value = TelescopePatternList()
 
         for pattern in value:
-
             # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
                 raise TraitError(

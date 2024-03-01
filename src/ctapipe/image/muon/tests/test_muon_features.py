@@ -7,7 +7,6 @@ from ctapipe.image.muon.features import ring_completeness, ring_containment
 
 
 def test_ring_containment():
-
     ring_radius = 1 * u.deg
     cam_radius = 4 * u.deg
 

@@ -136,7 +136,6 @@ def test_neighbor_pixels(camera_geometry):
 
 
 def test_calc_pixel_neighbors_square():
-
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
     cam = CameraGeometry(

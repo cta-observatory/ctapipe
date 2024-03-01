@@ -329,7 +329,7 @@ def build_negative_log_likelihood(
     and terms constant under differentation are discarded.
     """
 
-    # get all the neeed values and transform them into appropriate units
+    # get all the needed values and transform them into appropriate units
     mirror_area = optics.mirror_area.to_value(u.m**2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
 
@@ -512,7 +512,7 @@ class MuonIntensityFitter(TelescopeComponent):
         initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
 
         # Create Minuit object with first guesses at parameters
-        # strip away the units as Minuit doesnt like them
+        # strip away the units as Minuit does not like them
 
         minuit = Minuit(negative_log_likelihood, **initial_guess)
 

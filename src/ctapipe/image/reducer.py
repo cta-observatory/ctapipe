@@ -168,7 +168,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
 
         self.image_extractors = {}
         if image_extractor is None:
-            for (_, _, name) in self.image_extractor_type:
+            for _, _, name in self.image_extractor_type:
                 self.image_extractors[name] = ImageExtractor.from_name(
                     name, subarray=self.subarray, parent=self
                 )

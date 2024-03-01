@@ -98,7 +98,7 @@ jobs:
           cache-downloads: true
 
       - name: Python setup
-        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false 
+        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}

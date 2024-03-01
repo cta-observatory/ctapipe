@@ -181,7 +181,6 @@ def test_tool_exit_code():
     """Check that we can get the full instance configuration"""
 
     class MyTool(Tool):
-
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 

@@ -1,5 +1,5 @@
 Move the ``TableLoader`` options from being traitlets to
-each ``read_...`` method allowing to load different data with the 
+each ``read_...`` method allowing to load different data with the
 same TableLoader-Instance.
 
 In addition the default values for the options have changed.

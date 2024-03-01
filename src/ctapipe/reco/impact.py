@@ -66,7 +66,7 @@ def xmax_prior(energy, xmax, width=100):
 class ImPACTReconstructor(Component):
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from parsons14.  This method uses a
-    comparision of the predicted image from a library of image
+    comparison of the predicted image from a library of image
     templates to perform a maximum likelihood fit for the shower axis,
     energy and height of maximum.
 
@@ -87,7 +87,7 @@ class ImPACTReconstructor(Component):
 
     # For likelihood calculation we need the with of the
     # pedestal distribution for each pixel
-    # currently this is not availible from the calibration,
+    # currently this is not available from the calibration,
     # so for now lets hard code it in a dict
     ped_table = {
         "LSTCam": 2.8,
@@ -490,7 +490,7 @@ class ImPACTReconstructor(Component):
             )
 
         prior_pen = 0
-        # Add prior penalities if we have them
+        # Add prior penalties if we have them
         array_like += 1e-8
         if "energy" in self.priors:
             prior_pen += energy_prior(energy, index=-1)
@@ -605,7 +605,6 @@ class ImPACTReconstructor(Component):
 
         # So here we must loop over the telescopes
         for x, i in zip(tel_x, range(len(tel_x))):
-
             px.append(pixel_x[x].to(u.rad).value)
             if len(px[i]) > max_pix_x:
                 max_pix_x = len(px[i])
@@ -793,7 +792,6 @@ class ImPACTReconstructor(Component):
         """
         limits = np.asarray(limits)
         if minimiser_name == "minuit":
-
             self.min = Minuit(
                 self.get_likelihood,
                 print_level=1,

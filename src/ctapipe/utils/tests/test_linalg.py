@@ -4,11 +4,10 @@ from ..linalg import rotation_matrix_2d
 
 
 def test_rotation_matrix_2d():
-
     # test that 360 rotation is back to the identity:
     assert allclose(rotation_matrix_2d("360d"), identity(2))
 
-    # test that a vector can be rotated correcly:
+    # test that a vector can be rotated correctly:
     vec = [1, 0]
     mat = rotation_matrix_2d("90d")
     vecp = dot(vec, mat)

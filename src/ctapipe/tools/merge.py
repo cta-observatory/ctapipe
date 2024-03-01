@@ -191,7 +191,7 @@ class MergeTool(Tool):
         )
 
     def finish(self):
-        # overide activity meta with merge current activity
+        # override activity meta with merge current activity
         current_activity = Provenance().current_activity.provenance
         self.merger.meta.activity = meta.Activity.from_provenance(current_activity)
         meta.write_to_hdf5(self.merger.meta.to_dict(), self.merger.h5file)

@@ -5,7 +5,7 @@ Using Container classes
 ``ctapipe.core.Container`` is the base class for all event-wise data
 classes in ctapipe. It works like a object-relational mapper, in that it
 defines a set of ``Fields`` along with their metadata (description,
-unit, default), which can be later translated automatially into an
+unit, default), which can be later translated automatically into an
 output table using a ``ctapipe.io.TableWriter``.
 
 """
@@ -151,8 +151,8 @@ ev.tel
 
 
 ######################################################################
-# Converion to dictionaries
-# -------------------------
+# Conversion to dictionaries
+# --------------------------
 #
 
 ev.as_dict()

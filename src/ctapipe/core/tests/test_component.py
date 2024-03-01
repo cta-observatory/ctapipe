@@ -333,7 +333,7 @@ def test_change_default_subclass_override():
     old_default = ExampleComponent.param.default_value
     ExampleComponent.param.default_value = 199.0
     comp = ExampleSubclass2()
-    assert comp.param == 3.0  # No change as it is a seperate traitlet object
+    assert comp.param == 3.0  # No change as it is a separate traitlet object
     ExampleComponent.param.default_value = old_default
 
 
@@ -352,7 +352,7 @@ def test_non_abstract_subclasses():
     in a python session.
 
     Can also be helpful in parametrized tests, to make sure all
-    sublcasses are being tested.
+    subclasses are being tested.
     """
     assert "ExampleSubclass1" in ExampleComponent.non_abstract_subclasses()
 

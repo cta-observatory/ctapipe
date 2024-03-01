@@ -185,7 +185,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
 
     # first find the cumulative waveform
     cwf = np.cumsum(waveforms)
-    # add zero at the begining so it is easier to substract the two arrays later
+    # add zero at the beginning so it is easier to subtract the two arrays later
     cwf = np.concatenate((np.zeros(1), cwf))
     sums = cwf[width:] - cwf[:-width]
     maxpos = np.argmax(sums)  # start of the window with largest sum
@@ -705,7 +705,7 @@ class SlidingWindowMaxSum(ImageExtractor):
         for ichannel, pulse_shape in enumerate(readout.reference_pulse_shape):
             # apply the same method as sliding window to find the highest sum
             cwf = np.cumsum(pulse_shape)
-            # add zero at the begining so it is easier to substract the two arrays later
+            # add zero at the beginning so it is easier to subtract the two arrays later
             cwf = np.concatenate((np.zeros(1), cwf))
             sums = cwf[width_shape:] - cwf[:-width_shape]
             maxsum = np.max(sums)

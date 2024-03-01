@@ -20,16 +20,16 @@ TrainParticleClassifier:
     # prefix:  # Add a prefix of the output here, if you want to apply multiple
                # ParticleClassifiers on the same file (e.g. for comparing different settings)
 
-    # How many cores to use. Overwrites model config 
+    # How many cores to use. Overwrites model config
     n_jobs: -1
 
-    # All classification algorithms in scikit-learn are supported 
+    # All classification algorithms in scikit-learn are supported
     # (https://scikit-learn.org/stable/modules/classes.html)
     model_cls: ExtraTreesClassifier
     model_config:
       n_estimators: 10
       max_depth: 10
-    
+
     QualityQuery:  # Event Selection performed before training the models
       quality_criteria:
       # - [<name>, <definition>]
@@ -83,4 +83,3 @@ TrainParticleClassifier:
     # stereo_combiner_cls: "StereoMeanCombiner"
     # StereoMeanCombiner:  # Here you can set options for StereoMeanCombiner
     #   weights:           # (e.g. which kind of weights to use).
-
