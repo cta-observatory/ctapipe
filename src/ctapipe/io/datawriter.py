@@ -183,7 +183,7 @@ class DataWriter(Component):
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
-    write_raw_waveforms = Bool(
+    write_r0_waveforms = Bool(
         help="Store R0 waveforms if available", default_value=False
     ).tag(config=True)
 
@@ -325,7 +325,7 @@ class DataWriter(Component):
         if self.write_waveforms:
             self._write_r1_telescope_events(event)
 
-        if self.write_raw_waveforms:
+        if self.write_r0_waveforms:
             self._write_r0_telescope_events(event)
 
         # write telescope event data
@@ -400,7 +400,7 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_MUON)
         if self.write_showers:
             data_levels.append(DataLevel.DL2)
-        if self.write_raw_waveforms:
+        if self.write_r0_waveforms:
             data_levels.append(DataLevel.R0)
         if self.write_waveforms:
             data_levels.append(DataLevel.R1)

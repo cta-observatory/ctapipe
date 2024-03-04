@@ -24,7 +24,7 @@ DataWriter:
   write_images: false # store DL1 images
   write_parameters: false # store DL1 parameters
   write_showers: false # store DL2 stereo geometry
-  write_raw_waveforms: false # write R0 waveforms
+  write_r0_waveforms: false # write R0 waveforms
   write_waveforms: false # write R1 waveforms
   write_muon_parameters: false # analyze and write muon parameters
 
