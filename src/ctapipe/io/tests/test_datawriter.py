@@ -81,7 +81,7 @@ def test_write(tmpdir: Path):
         event_source=source,
         output_path=output_path,
         write_parameters=False,
-        write_images=True,
+        write_dl1_images=True,
         write_dl2=True,
         write_r0_waveforms=True,
         write_r1_waveforms=True,
@@ -159,7 +159,7 @@ def test_roundtrip(tmpdir: Path):
         event_source=source,
         output_path=output_path,
         write_parameters=False,
-        write_images=True,
+        write_dl1_images=True,
         transform_image=True,
         image_dtype="int32",
         image_scale=10,
@@ -230,7 +230,7 @@ def test_dl1writer_no_events(tmpdir: Path):
         event_source=source,
         output_path=output_path,
         write_parameters=True,
-        write_images=True,
+        write_dl1_images=True,
     ) as writer:
         writer.log.level = logging.DEBUG
         writer.write_simulation_histograms(source)
@@ -270,7 +270,7 @@ def test_metadata(tmpdir: Path):
             event_source=source,
             output_path=output_path,
             write_parameters=True,
-            write_images=True,
+            write_dl1_images=True,
             config=config,
         ):
             pass

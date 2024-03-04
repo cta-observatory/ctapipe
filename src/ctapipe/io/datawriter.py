@@ -191,9 +191,9 @@ class DataWriter(Component):
         help="Store R1 waveforms if available", default_value=False
     ).tag(config=True)
 
-    write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
-        config=True
-    )
+    write_dl1_images = Bool(
+        help="Store DL1 Images if available", default_value=False
+    ).tag(config=True)
 
     write_parameters = Bool(
         help="Store DL1 image parameters if available", default_value=True
@@ -392,7 +392,7 @@ class DataWriter(Component):
     def datalevels(self):
         """returns a list of data levels requested"""
         data_levels = []
-        if self.write_images:
+        if self.write_dl1_images:
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
@@ -436,7 +436,7 @@ class DataWriter(Component):
         # check that options make sense
         writable_things = [
             self.write_parameters,
-            self.write_images,
+            self.write_dl1_images,
             self.write_dl2,
             self.write_r1_waveforms,
             self.write_muon_parameters,
@@ -472,7 +472,7 @@ class DataWriter(Component):
         writer.exclude("/dl1/event/telescope/images/.*", "parameters")
         writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
 
-        if not self.write_images:
+        if not self.write_dl1_images:
             writer.exclude("/simulation/event/telescope/images/.*", "true_image")
 
         if not self.write_parameters:
@@ -677,10 +677,10 @@ class DataWriter(Component):
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-            if self.write_images:
+            if self.write_dl1_images:
                 if dl1_camera.image is None:
                     raise ValueError(
-                        "DataWriter.write_images is True but event does not contain image"
+                        "DataWriter.write_dl1_images is True but event does not contain image"
                     )
 
                 self._writer.write(
@@ -783,7 +783,7 @@ class DataWriter(Component):
     def _generate_indices(self):
         """generate PyTables index tables for common columns"""
         self.log.debug("Writing index tables")
-        if self.write_images:
+        if self.write_dl1_images:
             self._generate_table_indices(
                 self._writer.h5file, "/dl1/event/telescope/images"
             )

@@ -8,7 +8,7 @@ organization = "YOUR-ORGANIZATION"
 [DataWriter]
 # options that control what is stored in the output file
 overwrite = false
-write_images = true
+write_dl1_images = true
 write_parameters = true
 write_dl2 = false
 transform_image = true

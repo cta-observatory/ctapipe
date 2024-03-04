@@ -110,7 +110,7 @@ class ProcessorTool(Tool):
         ),
         **flag(
             "write-images",
-            "DataWriter.write_images",
+            "DataWriter.write_dl1_images",
             "store DL1/Event/Telescope images in output",
             "don't store DL1/Event/Telescope images in output",
         ),
@@ -233,7 +233,7 @@ class ProcessorTool(Tool):
             return True
 
         if (
-            self.write.write_images
+            self.write.write_dl1_images
             and DataLevel.DL1_IMAGES not in self.event_source.datalevels
         ):
             return True

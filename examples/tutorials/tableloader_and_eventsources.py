@@ -140,7 +140,7 @@ with DataWriter(
     output_path="events.dl1.h5",
     write_parameters=False,
     overwrite=True,
-    write_images=True,
+    write_dl1_images=True,
 ) as write_data:
     for event in source:
         calibrate(event)

@@ -6,7 +6,7 @@
             "organization": "YOUR-ORGANIZATION"
         },
         "overwrite": false,
-        "write_images": false,
+        "write_dl1_images": false,
         "write_parameters": true,
         "write_dl2": true,
         "transform_image": true,

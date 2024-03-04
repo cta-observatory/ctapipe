@@ -6,7 +6,7 @@
             "organization": "CTA Consortium"
         },
         "overwrite": false,
-        "write_images": true,
+        "write_dl1_images": true,
         "write_parameters": true,
         "write_dl2": false,
         "transform_image": true,
