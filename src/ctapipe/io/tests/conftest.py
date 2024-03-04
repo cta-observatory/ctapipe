@@ -20,7 +20,7 @@ def r1_hdf5_file(prod5_proton_simtel_path, r1_path):
     writer = DataWriter(
         event_source=source,
         output_path=path,
-        write_parameters=False,
+        write_dl1_parameters=False,
         write_dl1_images=False,
         write_dl2=False,
         write_r0_waveforms=False,

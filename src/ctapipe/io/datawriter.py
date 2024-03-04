@@ -195,7 +195,7 @@ class DataWriter(Component):
         help="Store DL1 Images if available", default_value=False
     ).tag(config=True)
 
-    write_parameters = Bool(
+    write_dl1_parameters = Bool(
         help="Store DL1 image parameters if available", default_value=True
     ).tag(config=True)
 
@@ -394,7 +394,7 @@ class DataWriter(Component):
         data_levels = []
         if self.write_dl1_images:
             data_levels.append(DataLevel.DL1_IMAGES)
-        if self.write_parameters:
+        if self.write_dl1_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
         if self.write_muon_parameters:
             data_levels.append(DataLevel.DL1_MUON)
@@ -435,7 +435,7 @@ class DataWriter(Component):
 
         # check that options make sense
         writable_things = [
-            self.write_parameters,
+            self.write_dl1_parameters,
             self.write_dl1_images,
             self.write_dl2,
             self.write_r1_waveforms,
@@ -475,7 +475,7 @@ class DataWriter(Component):
         if not self.write_dl1_images:
             writer.exclude("/simulation/event/telescope/images/.*", "true_image")
 
-        if not self.write_parameters:
+        if not self.write_dl1_parameters:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
 
         # Set up transforms
@@ -671,7 +671,7 @@ class DataWriter(Component):
 
             table_name = self.table_name(tel_id)
 
-            if self.write_parameters:
+            if self.write_dl1_parameters:
                 self._writer.write(
                     table_name=f"dl1/event/telescope/parameters/{table_name}",
                     containers=[tel_index, *dl1_camera.parameters.values()],
@@ -699,7 +699,7 @@ class DataWriter(Component):
                     tel_id in event.simulation.tel
                     and event.simulation.tel[tel_id].true_image is not None
                 )
-                if self.write_parameters and has_sim_image:
+                if self.write_dl1_parameters and has_sim_image:
                     true_parameters = event.simulation.tel[tel_id].true_parameters
                     # only write the available containers, no peak time related
                     # features for true image available.
@@ -791,7 +791,7 @@ class DataWriter(Component):
                 self._generate_table_indices(
                     self._writer.h5file, "/simulation/event/telescope/images"
                 )
-        if self.write_parameters:
+        if self.write_dl1_parameters:
             self._generate_table_indices(
                 self._writer.h5file, "/dl1/event/telescope/parameters"
             )

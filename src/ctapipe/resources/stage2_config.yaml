@@ -12,5 +12,5 @@
 
 DataWriter:
   write_dl1_images: false
-  write_parameters: false
+  write_dl1_parameters: false
   write_dl2: true

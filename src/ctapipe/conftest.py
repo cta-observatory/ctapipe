@@ -415,7 +415,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--DataWriter.write_parameters=False",
+            "--DataWriter.write_dl1_parameters=False",
             "--max-events=20",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]

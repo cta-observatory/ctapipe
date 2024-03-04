@@ -9,7 +9,7 @@ organization = "YOUR-ORGANIZATION"
 # options that control what is stored in the output file
 overwrite = false
 write_dl1_images = true
-write_parameters = true
+write_dl1_parameters = true
 write_dl2 = false
 transform_image = true
 transform_peak_time = true

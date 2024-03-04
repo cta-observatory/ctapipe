@@ -138,7 +138,7 @@ calibrate = CameraCalibrator(subarray=source.subarray)
 with DataWriter(
     event_source=source,
     output_path="events.dl1.h5",
-    write_parameters=False,
+    write_dl1_parameters=False,
     overwrite=True,
     write_dl1_images=True,
 ) as write_data:
