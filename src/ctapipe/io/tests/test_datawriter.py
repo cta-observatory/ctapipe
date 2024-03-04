@@ -84,7 +84,7 @@ def test_write(tmpdir: Path):
         write_images=True,
         write_showers=True,
         write_r0_waveforms=True,
-        write_waveforms=True,
+        write_r1_waveforms=True,
     ) as writer:
         writer.log.level = logging.DEBUG
         for event in source:

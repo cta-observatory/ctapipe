@@ -25,7 +25,7 @@ DataWriter:
   write_parameters: false # store DL1 parameters
   write_showers: false # store DL2 stereo geometry
   write_r0_waveforms: false # write R0 waveforms
-  write_waveforms: false # write R1 waveforms
+  write_r1_waveforms: false # write R1 waveforms
   write_muon_parameters: false # analyze and write muon parameters
 
 # The CameraCalibrator takes data from R1 or DL0 to DL1a level, applying finer

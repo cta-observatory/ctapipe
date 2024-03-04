@@ -24,7 +24,7 @@ def r1_hdf5_file(prod5_proton_simtel_path, r1_path):
         write_images=False,
         write_showers=False,
         write_r0_waveforms=False,
-        write_waveforms=True,
+        write_r1_waveforms=True,
     )
 
     for e in source:

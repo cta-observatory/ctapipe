@@ -187,7 +187,7 @@ class DataWriter(Component):
         help="Store R0 waveforms if available", default_value=False
     ).tag(config=True)
 
-    write_waveforms = Bool(
+    write_r1_waveforms = Bool(
         help="Store R1 waveforms if available", default_value=False
     ).tag(config=True)
 
@@ -322,7 +322,7 @@ class DataWriter(Component):
                     [tel_index, sim.impact],
                 )
 
-        if self.write_waveforms:
+        if self.write_r1_waveforms:
             self._write_r1_telescope_events(event)
 
         if self.write_r0_waveforms:
@@ -402,7 +402,7 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL2)
         if self.write_r0_waveforms:
             data_levels.append(DataLevel.R0)
-        if self.write_waveforms:
+        if self.write_r1_waveforms:
             data_levels.append(DataLevel.R1)
         return data_levels
 
@@ -438,7 +438,7 @@ class DataWriter(Component):
             self.write_parameters,
             self.write_images,
             self.write_showers,
-            self.write_waveforms,
+            self.write_r1_waveforms,
             self.write_muon_parameters,
         ]
         if not any(writable_things):
