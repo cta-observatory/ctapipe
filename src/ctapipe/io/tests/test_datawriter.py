@@ -82,7 +82,7 @@ def test_write(tmpdir: Path):
         output_path=output_path,
         write_parameters=False,
         write_images=True,
-        write_showers=True,
+        write_dl2=True,
         write_r0_waveforms=True,
         write_r1_waveforms=True,
     ) as writer:
@@ -166,7 +166,7 @@ def test_roundtrip(tmpdir: Path):
         transform_peak_time=True,
         peak_time_dtype="int16",
         peak_time_scale=100,
-        write_showers=True,
+        write_dl2=True,
     ) as write:
         write.log.level = logging.DEBUG
         for event in source:

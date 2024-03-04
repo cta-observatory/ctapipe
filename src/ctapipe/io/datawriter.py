@@ -199,7 +199,7 @@ class DataWriter(Component):
         help="Store DL1 image parameters if available", default_value=True
     ).tag(config=True)
 
-    write_showers = Bool(
+    write_dl2 = Bool(
         help="Store DL2 stereo shower parameters if available", default_value=False
     ).tag(config=True)
 
@@ -332,7 +332,7 @@ class DataWriter(Component):
         self._write_dl1_telescope_events(event)
 
         # write DL2 info if requested
-        if self.write_showers:
+        if self.write_dl2:
             self._write_dl2_telescope_events(event)
             self._write_dl2_stereo_event(event)
 
@@ -398,7 +398,7 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_PARAMETERS)
         if self.write_muon_parameters:
             data_levels.append(DataLevel.DL1_MUON)
-        if self.write_showers:
+        if self.write_dl2:
             data_levels.append(DataLevel.DL2)
         if self.write_r0_waveforms:
             data_levels.append(DataLevel.R0)
@@ -437,7 +437,7 @@ class DataWriter(Component):
         writable_things = [
             self.write_parameters,
             self.write_images,
-            self.write_showers,
+            self.write_dl2,
             self.write_r1_waveforms,
             self.write_muon_parameters,
         ]

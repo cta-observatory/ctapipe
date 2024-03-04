@@ -8,7 +8,7 @@
         "overwrite": false,
         "write_images": false,
         "write_parameters": true,
-        "write_showers": true,
+        "write_dl2": true,
         "transform_image": true,
         "transform_peak_time": true
     },

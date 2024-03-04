@@ -122,7 +122,7 @@ class ProcessorTool(Tool):
         ),
         **flag(
             "write-showers",
-            "DataWriter.write_showers",
+            "DataWriter.write_dl2",
             "store DL2/Event parameters in output",
             "don't DL2/Event parameters in output",
         ),
@@ -209,7 +209,7 @@ class ProcessorTool(Tool):
         if self.force_recompute_dl2:
             return True
 
-        return self.write.write_showers
+        return self.write.write_dl2
 
     @property
     def should_compute_dl1(self):

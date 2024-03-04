@@ -14,4 +14,4 @@
 DataWriter:
   write_images: false
   write_parameters: true
-  write_showers: true
+  write_dl2: true
