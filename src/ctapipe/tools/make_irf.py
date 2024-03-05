@@ -50,7 +50,7 @@ class IrfTool(Tool):
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
     ).tag(config=True)
-    gamma_sim_spectrum = traits.UseEnum(
+    gamma_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
         help="Name of the pyrif spectra used for the simulated gamma spectrum",
@@ -61,7 +61,7 @@ class IrfTool(Tool):
         directory_ok=False,
         help="Proton input filename and path",
     ).tag(config=True)
-    proton_sim_spectrum = traits.UseEnum(
+    proton_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
         help="Name of the pyrif spectra used for the simulated proton spectrum",
@@ -72,7 +72,7 @@ class IrfTool(Tool):
         directory_ok=False,
         help="Electron input filename and path",
     ).tag(config=True)
-    electron_sim_spectrum = traits.UseEnum(
+    electron_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
         help="Name of the pyrif spectra used for the simulated electron spectrum",
@@ -175,7 +175,7 @@ class IrfTool(Tool):
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
-                target_spectrum=PYIRF_SPECTRA[self.gamma_sim_spectrum],
+                target_spectrum=PYIRF_SPECTRA[self.gamma_target_spectrum],
             ),
         ]
         if self.do_background and self.proton_file:
@@ -184,7 +184,7 @@ class IrfTool(Tool):
                     parent=self,
                     kind="protons",
                     file=self.proton_file,
-                    target_spectrum=PYIRF_SPECTRA[self.proton_sim_spectrum],
+                    target_spectrum=PYIRF_SPECTRA[self.proton_target_spectrum],
                 )
             )
         if self.do_background and self.electron_file:
@@ -193,7 +193,7 @@ class IrfTool(Tool):
                     parent=self,
                     kind="electrons",
                     file=self.electron_file,
-                    target_spectrum=PYIRF_SPECTRA[self.electron_sim_spectrum],
+                    target_spectrum=PYIRF_SPECTRA[self.electron_target_spectrum],
                 )
             )
         if self.do_background and len(self.particles) == 1:
@@ -373,11 +373,11 @@ class IrfTool(Tool):
             sensitivity = calculate_sensitivity(
                 signal_hist, background_hist, alpha=self.alpha
             )
-
+            gamma_spectrum = PYIRF_SPECTRA[self.gamma_target_spectrum]
             # scale relative sensitivity by Crab flux to get the flux sensitivity
             sensitivity["flux_sensitivity"] = sensitivity[
                 "relative_sensitivity"
-            ] * self.gamma_spectrum(sensitivity["reco_energy_center"])
+            ] * gamma_spectrum(sensitivity["reco_energy_center"])
 
             hdus.append(fits.BinTableHDU(sensitivity, name="SENSITIVITY"))
 
@@ -403,7 +403,6 @@ class IrfTool(Tool):
             )
             if sel.kind == "gammas":
                 self.aeff = EffectiveAreaIrf(parent=self, sim_info=meta["sim_info"])
-                self.gamma_spectrum = meta["spectrum"]
                 self.signal_is_point_like = (
                     meta["sim_info"].viewcone_max - meta["sim_info"].viewcone_min
                 ).value == 0
