@@ -62,10 +62,7 @@ def test_multiple_configs(dl1_image_file):
     tool.setup()
 
     # ensure the overwriting works (base config has this option disabled)
-    assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_showers"]
-        is True
-    )
+    assert tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_dl2"] is True
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):

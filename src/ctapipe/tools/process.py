@@ -43,7 +43,7 @@ class ProcessorTool(Tool):
 
     Note that the muon analysis and shower reconstruction both depend on
     parametrized images and therefore compute image parameters even if
-    DataWriter.write_parameters=False in case these are not already present
+    DataWriter.write_dl1_parameters=False in case these are not already present
     in the input file.
     """
 
@@ -110,19 +110,19 @@ class ProcessorTool(Tool):
         ),
         **flag(
             "write-images",
-            "DataWriter.write_images",
+            "DataWriter.write_dl1_images",
             "store DL1/Event/Telescope images in output",
             "don't store DL1/Event/Telescope images in output",
         ),
         **flag(
             "write-parameters",
-            "DataWriter.write_parameters",
+            "DataWriter.write_dl1_parameters",
             "store DL1/Event/Telescope parameters in output",
             "don't store DL1/Event/Telescope parameters in output",
         ),
         **flag(
             "write-showers",
-            "DataWriter.write_showers",
+            "DataWriter.write_dl2",
             "store DL2/Event parameters in output",
             "don't DL2/Event parameters in output",
         ),
@@ -209,7 +209,7 @@ class ProcessorTool(Tool):
         if self.force_recompute_dl2:
             return True
 
-        return self.write.write_showers
+        return self.write.write_dl2
 
     @property
     def should_compute_dl1(self):
@@ -221,7 +221,7 @@ class ProcessorTool(Tool):
             return False
 
         return (
-            self.write.write_parameters
+            self.write.write_dl1_parameters
             or self.should_compute_dl2
             or self.should_compute_muon_parameters
         )
@@ -233,7 +233,7 @@ class ProcessorTool(Tool):
             return True
 
         if (
-            self.write.write_images
+            self.write.write_dl1_images
             and DataLevel.DL1_IMAGES not in self.event_source.datalevels
         ):
             return True

@@ -11,6 +11,6 @@
 #  Make sure you first include `--config base_config.yaml` before including this file
 
 DataWriter:
-  write_images: false
-  write_parameters: false
-  write_showers: true
+  write_dl1_images: false
+  write_dl1_parameters: false
+  write_dl2: true

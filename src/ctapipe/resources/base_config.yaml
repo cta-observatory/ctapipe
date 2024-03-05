@@ -21,11 +21,11 @@ DataWriter:
   # write nothing (can be overridden on the command-line or in subsequent config
   # files)
   overwrite: false # do not overwrite existing files
-  write_images: false # store DL1 images
-  write_parameters: false # store DL1 parameters
-  write_showers: false # store DL2 stereo geometry
-  write_raw_waveforms: false # write R0 waveforms
-  write_waveforms: false # write R1 waveforms
+  write_dl1_images: false # store DL1 images
+  write_dl1_parameters: false # store DL1 parameters
+  write_dl2: false # store DL2 stereo geometry
+  write_r0_waveforms: false # write R0 waveforms
+  write_r1_waveforms: false # write R1 waveforms
   write_muon_parameters: false # analyze and write muon parameters
 
 # The CameraCalibrator takes data from R1 or DL0 to DL1a level, applying finer
@@ -95,7 +95,7 @@ ImageProcessor:
 
 
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
-# transition. It is run only if the parameter DataWriter.write_showers=True.
+# transition. It is run only if the parameter DataWriter.write_dl2=True.
 ShowerProcessor:
   # choose between HillasReconstructor and HillasIntersection or both (two
   # implementations of the standard stereo line-intersection method)
