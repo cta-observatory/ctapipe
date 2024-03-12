@@ -11,6 +11,7 @@ from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStat
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
+    Bool,
     ComponentName,
     TelescopeParameter,
 )
@@ -87,12 +88,12 @@ class CameraCalibrator(TelescopeComponent):
         ),
     ).tag(config=True)
 
-    process_flatfield_events = BoolTelescopeParameter(
+    process_flatfield_events = Bool(
         default_value=False,
         help="Process flatfield events from a calibration data stream.",
     ).tag(config=True)
 
-    process_pedestal_events = BoolTelescopeParameter(
+    process_pedestal_events = Bool(
         default_value=False,
         help="Process pedestal events from a calibration data stream.",
     ).tag(config=True)
@@ -345,8 +346,8 @@ class CameraCalibrator(TelescopeComponent):
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
         for tel_id in tel.keys():
             if (
-                self.process_flatfield_events.tel[tel_id]
-                or self.process_pedestal_events.tel[tel_id]
+                self.process_flatfield_events
+                or self.process_pedestal_events
             ):
                 self._process_calib(event, tel_id)
             else:
