@@ -222,7 +222,7 @@ class ImageProcessor(TelescopeComponent):
                 tel_id=tel_id,
                 image=dl1_camera.image,
                 arrival_times=dl1_camera.peak_time,
-                event=event,
+                monitoring=event.mon.tel[tel_id],
             )
 
             dl1_camera.parameters = self._parameterize_image(
