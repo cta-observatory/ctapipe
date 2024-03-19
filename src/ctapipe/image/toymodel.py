@@ -135,7 +135,7 @@ class WaveformModel:
         -------
         waveform : ndarray
             Toy model waveform
-            Shape (n_pixels, n_samples)
+            Shape (n_channels, n_pixels, n_samples)
 
         """
         n_pixels = charge.size
@@ -156,7 +156,7 @@ class WaveformModel:
             ).sum(-1)
             * self.ref_width_ns  # Waveform units: p.e.
         )
-        return sampled
+        return sampled[np.newaxis, :]
 
     @classmethod
     def from_camera_readout(cls, readout, gain_channel=0):

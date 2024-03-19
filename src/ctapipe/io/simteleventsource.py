@@ -272,7 +272,7 @@ def apply_simtel_r1_calibration(
     -------
     r1_waveforms : ndarray
         Calibrated waveforms
-        Shape: (n_pixels, n_samples)
+        Shape: (n_channels, n_pixels, n_samples)
     selected_gain_channel : ndarray
         The gain channel selected for each pixel
         Shape: (n_pixels)
@@ -286,10 +286,12 @@ def apply_simtel_r1_calibration(
 
     if n_channels == 1:
         selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
-        r1_waveforms = r1_waveforms[0]
+        r1_waveforms = r1_waveforms
     else:
         selected_gain_channel = gain_selector(r0_waveforms)
-        r1_waveforms = r1_waveforms[selected_gain_channel, np.arange(n_pixels)]
+        r1_waveforms = r1_waveforms[
+            np.newaxis, selected_gain_channel, np.arange(n_pixels)
+        ]
 
     return r1_waveforms, selected_gain_channel
 

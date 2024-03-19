@@ -1,6 +1,7 @@
 """
 Container structures for data that should be read or written to disk
 """
+
 import enum
 from functools import partial
 
@@ -559,7 +560,7 @@ class R0CameraContainer(Container):
     """
 
     waveform = Field(
-        None, ("numpy array containing ADC samples" "(n_channels, n_pixels, n_samples)")
+        None, ("numpy array containing ADC samples: (n_channels, n_pixels, n_samples)")
     )
 
 
@@ -586,7 +587,7 @@ class R1CameraContainer(Container):
         None,
         (
             "numpy array containing a set of images, one per ADC sample"
-            "Shape: (n_pixels, n_samples)"
+            "Shape: (n_channels, n_pixels, n_samples)"
         ),
     )
 
@@ -660,7 +661,7 @@ class DL0CameraContainer(Container):
         (
             "numpy array containing data volume reduced "
             "p.e. samples"
-            "(n_pixels, n_samples). Note this may be a masked array, "
+            "(n_channels, n_pixels, n_samples). Note this may be a masked array, "
             "if pixels or time slices are zero-suppressed"
         ),
     )
