@@ -84,7 +84,7 @@ def extract_around_peak(
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix, n_samples)
     peak_index : ndarray or int
         Peak index for each pixel.
     width : ndarray or int
@@ -105,7 +105,10 @@ def extract_around_peak(
     -------
     charge : ndarray
         Extracted charge.
-        Shape: (n_pix)
+        Shape: (n_channels, n_pix)
+    peak_time: ndarray
+        Extracted peak time.
+        Shape: (n_channels, n_pix)
 
     """
     n_samples = waveforms.size
@@ -162,7 +165,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix, n_samples)
     width : ndarray or int
         Window size of integration window for each pixel.
     sampling_rate_ghz : float
@@ -179,7 +182,10 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     -------
     charge : ndarray
         Extracted charge.
-        Shape: (n_pix)
+        Shape: (n_channels, n_pix)
+    peak_time: ndarray
+        Extracted peak time.
+        Shape: (n_channels, n_pix)
 
     """
 
@@ -215,7 +221,7 @@ def neighbor_average_maximum(
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix, n_samples)
     neighbors_indices : ndarray
         indices of a scipy csr sparse matrix of neighbors, i.e.
         ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices``.
@@ -233,29 +239,30 @@ def neighbor_average_maximum(
     -------
     average_wf : ndarray
         Average of neighbor waveforms for each pixel.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix)
 
     """
 
-    n_pixels = waveforms.shape[0]
+    n_channels, n_pixels, _ = waveforms.shape
     indptr = neighbors_indptr
     indices = neighbors_indices
 
     # initialize to waveforms weighted with local_weight
     # so the value of the pixel itself is already taken into account
-    peak_pos = np.empty(n_pixels, dtype=np.int64)
+    peak_pos = np.empty((n_channels, n_pixels), dtype=np.int64)
 
     for pixel in prange(n_pixels):
-        average = waveforms[pixel] * local_weight
+        average = waveforms[:, pixel] * local_weight
         neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
         for neighbor in neighbors:
             if broken_pixels[neighbor]:
                 continue
 
-            average += waveforms[neighbor]
+            for ichannel in range(n_channels):
+                average[ichannel] += waveforms[ichannel][neighbor]
 
-        peak_pos[pixel] = np.argmax(average)
+        peak_pos[:, pixel] = np.argmax(average, axis=-1)
 
     return peak_pos
 
@@ -269,7 +276,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix, n_samples)
     baseline_start : int
         Sample where the baseline window starts
     baseline_end : int
@@ -279,6 +286,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
     -------
     baseline_corrected : ndarray
         Waveform with the baseline subtracted
+        Shape: (n_channels, n_pix, n_samples)
     """
     baseline_corrected = (
         waveforms
@@ -397,7 +405,7 @@ class ImageExtractor(TelescopeComponent):
         ----------
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
-            (n_pix, n_samples).
+            (n_channels, n_pix, n_samples).
         tel_id : int
             The telescope id. Used to obtain to correct traitlet configuration
             and instrument properties
@@ -424,7 +432,9 @@ class FullWaveformSum(ImageExtractor):
         charge, peak_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[tel_id]
         )
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1CameraContainer(
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
+        )
 
 
 class FixedWindowSum(ImageExtractor):
@@ -451,7 +461,7 @@ class FixedWindowSum(ImageExtractor):
     @lru_cache(maxsize=128)
     def _calculate_correction(self, tel_id):
         """
-        Calculate the correction for the extracted change such that the value
+        Calculate the correction for the extracted charge such that the value
         returned would equal 1 for a noise-less unit pulse.
 
         This method is decorated with @lru_cache to ensure it is only
@@ -488,8 +498,17 @@ class FixedWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    selected_gain_channel
+                ]
+            else:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    :, np.newaxis, np.newaxis
+                ]
+        return DL1CameraContainer(
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
+        )
 
 
 class GlobalPeakWindowSum(ImageExtractor):
@@ -530,7 +549,7 @@ class GlobalPeakWindowSum(ImageExtractor):
     @lru_cache(maxsize=128)
     def _calculate_correction(self, tel_id):
         """
-        Calculate the correction for the extracted change such that the value
+        Calculate the correction for the extracted charge such that the value
         returned would equal 1 for a noise-less unit pulse.
 
         This method is decorated with @lru_cache to ensure it is only
@@ -561,26 +580,35 @@ class GlobalPeakWindowSum(ImageExtractor):
     ) -> DL1CameraContainer:
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
-            peak_index = waveforms[~broken_pixels].mean(axis=-2).argmax()
+            peak_index = waveforms[:, ~broken_pixels].mean(axis=-2).argmax(axis=-1)
         else:
             n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
-            brightest = np.argsort(waveforms.max(axis=-1))[~broken_pixels][
+            brightest = np.argsort(waveforms.max(axis=-1))[:, ~broken_pixels][
                 ..., -n_pixels:
             ]
 
             # average over brightest pixels then argmax over samples
-            peak_index = waveforms[brightest].mean(axis=-2).argmax()
+            peak_index = waveforms[:, brightest].mean(axis=-2).argmax(axis=-1)
 
         charge, peak_time = extract_around_peak(
             waveforms,
-            peak_index,
+            peak_index[:, np.newaxis],
             self.window_width.tel[tel_id],
             self.window_shift.tel[tel_id],
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    selected_gain_channel
+                ]
+            else:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    :, np.newaxis, np.newaxis
+                ]
+        return DL1CameraContainer(
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
+        )
 
 
 class LocalPeakWindowSum(ImageExtractor):
@@ -606,7 +634,7 @@ class LocalPeakWindowSum(ImageExtractor):
     @lru_cache(maxsize=128)
     def _calculate_correction(self, tel_id):
         """
-        Calculate the correction for the extracted change such that the value
+        Calculate the correction for the extracted charge such that the value
         returned would equal 1 for a noise-less unit pulse.
 
         This method is decorated with @lru_cache to ensure it is only
@@ -644,8 +672,17 @@ class LocalPeakWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    selected_gain_channel
+                ]
+            else:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    :, np.newaxis, np.newaxis
+                ]
+        return DL1CameraContainer(
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
+        )
 
 
 class SlidingWindowMaxSum(ImageExtractor):
@@ -720,8 +757,17 @@ class SlidingWindowMaxSum(ImageExtractor):
             waveforms, self.window_width.tel[tel_id], self.sampling_rate_ghz[tel_id]
         )
         if self.apply_integration_correction.tel[tel_id]:
-            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    selected_gain_channel
+                ]
+            else:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    :, np.newaxis, np.newaxis
+                ]
+        return DL1CameraContainer(
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
+        )
 
 
 class NeighborPeakWindowSum(ImageExtractor):
@@ -753,7 +799,7 @@ class NeighborPeakWindowSum(ImageExtractor):
     @lru_cache(maxsize=128)
     def _calculate_correction(self, tel_id):
         """
-        Calculate the correction for the extracted change such that the value
+        Calculate the correction for the extracted charge such that the value
         returned would equal 1 for a noise-less unit pulse.
 
         This method is decorated with @lru_cache to ensure it is only
@@ -798,8 +844,17 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    selected_gain_channel
+                ]
+            else:
+                charge *= self._calculate_correction(tel_id=tel_id)[
+                    :, np.newaxis, np.newaxis
+                ]
+        return DL1CameraContainer(
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
+        )
 
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
@@ -836,7 +891,7 @@ class TwoPassWindowSum(ImageExtractor):
        the range of the sliding is the one allowing extension from 3 to 5;
        add 1 sample on each side and integrate charge in the 5-sample window;
        time is obtained as a charge-weighted average of the sample numbers;
-       No information from neighboouring pixels is used.
+       No information from neighbouring pixels is used.
     #. Preliminary image cleaning via simple tailcut with minimum number
        of core neighbours set at 1,
     #. Only the brightest cluster of pixels is kept.
@@ -1265,6 +1320,13 @@ class TwoPassWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
+        if waveforms.shape[-3] != 1:
+            raise AttributeError(
+                "The data needs to be gain selected to use the TwoPassWindowSum."
+            )
+        else:
+            waveforms = waveforms[0, :, :]
+
         charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, tel_id)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
@@ -1422,8 +1484,8 @@ def __filtfilt_fast(signal, filt):
     filtfilt has some speed issues (https://github.com/scipy/scipy/issues/17080)
     """
     forward = convolve1d(signal, filt, axis=-1, mode="nearest")
-    backward = convolve1d(forward[:, ::-1], filt, axis=-1, mode="nearest")
-    return backward[:, ::-1]
+    backward = convolve1d(forward[..., ::-1], filt, axis=-1, mode="nearest")
+    return backward[..., ::-1]
 
 
 def deconvolve(
@@ -1441,7 +1503,7 @@ def deconvolve(
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix, n_samples)
     baselines : ndarray or float
         Baseline estimates for each pixel that are subtracted from the waveforms
         before deconvolution.
@@ -1459,8 +1521,8 @@ def deconvolve(
         Shape: (n_pix, upsampling * n_samples)
     """
     deconvolved_waveforms = np.atleast_2d(waveforms) - np.atleast_2d(baselines).T
-    deconvolved_waveforms[:, 1:] -= pole_zero * deconvolved_waveforms[:, :-1]
-    deconvolved_waveforms[:, 0] = 0
+    deconvolved_waveforms[..., 1:] -= pole_zero * deconvolved_waveforms[..., :-1]
+    deconvolved_waveforms[..., 0] = 0
 
     if upsampling > 1:
         filt = np.ones(upsampling)
@@ -1491,7 +1553,7 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
+        Shape: (n_channels, n_pix, n_samples)
     peak_index : ndarray or int
         Peak index for each pixel.
     rel_descend_limit : ndarray or float
@@ -1644,6 +1706,13 @@ class FlashCamExtractor(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
+        if waveforms.shape[-3] != 1:
+            raise AttributeError(
+                "The FlashCam concept foresees the use of preamplifiers with non-linear "
+                "gain characteristics, instead of splitting the signal into two separate "
+                f"channels but the data consists of {waveforms.shape[-3]} channels."
+            )
+
         upsampling = self.upsampling.tel[tel_id]
         integration_window_width = self.window_width.tel[tel_id]
         integration_window_shift = self.window_shift.tel[tel_id]
@@ -1696,4 +1765,6 @@ class FlashCamExtractor(ImageExtractor):
         if shift != 0:
             peak_time -= shift
 
-        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
+        return DL1CameraContainer(
+            image=charge[0, :], peak_time=peak_time[0, :], is_valid=True
+        )

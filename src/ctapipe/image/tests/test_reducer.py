@@ -31,7 +31,7 @@ def subarray_lst(prod3_lst, reference_location):
 def test_null_data_volume_reducer(subarray_lst):
     subarray, _, _, _, _ = subarray_lst
     rng = np.random.default_rng(0)
-    waveforms = rng.uniform(0, 1, (2048, 96))
+    waveforms = rng.uniform(0, 1, (1, 2048, 96))
     reducer = NullDataVolumeReducer(subarray=subarray)
     reduced_waveforms_mask = reducer(waveforms)
     reduced_waveforms = waveforms.copy()
@@ -43,22 +43,24 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     subarray, tel_id, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
     # create signal
-    waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float64)
+    waveforms_signal = np.zeros((1, n_pixels, n_samples), dtype=np.float64)
 
     # Should be selected as core-pixel from Step 1) tailcuts_clean
-    waveforms_signal[9] = 100
+    waveforms_signal[0][9] = 100
 
     # 10 and 8 as boundary-pixel from Step 1) tailcuts_clean
     # 6 and 5 as iteration-pixel in Step 2)
-    waveforms_signal[[10, 8, 6, 5]] = 50
+    waveforms_signal[0][[10, 8, 6, 5]] = 50
 
     # pixels from dilate at the end in Step 3)
-    waveforms_signal[[0, 1, 4, 7, 11, 13, 121, 122, 136, 137, 257, 258, 267, 272]] = 25
+    waveforms_signal[0][
+        [0, 1, 4, 7, 11, 13, 121, 122, 136, 137, 257, 258, 267, 272]
+    ] = 25
 
     expected_waveforms = waveforms_signal.copy()
 
     # add some random pixels, which should not be selected
-    waveforms_signal[[50, 51, 135, 138, 54, 170, 210, 400]] = 25
+    waveforms_signal[0][[50, 51, 135, 138, 54, 170, 210, 400]] = 25
 
     # Reduction parameters
     reduction_param = Config(

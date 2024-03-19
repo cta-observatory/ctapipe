@@ -187,8 +187,8 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         dl1: DL1CameraContainer = extractor(
             waveforms,
             tel_id=tel_id,
-            selected_gain_channel=selected_gain_channel,
             broken_pixels=broken_pixels,
+            selected_gain_channel=selected_gain_channel,
         )
 
         # 1) Step: TailcutCleaning at first
