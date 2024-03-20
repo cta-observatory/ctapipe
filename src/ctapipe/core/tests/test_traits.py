@@ -9,6 +9,7 @@ from traitlets import CaselessStrEnum, HasTraits, Int
 
 from ctapipe.core import Component
 from ctapipe.core.traits import (
+    AstroQuantity,
     AstroTime,
     List,
     Path,
@@ -276,6 +277,46 @@ def test_time_none():
     c = NoNone()
     with pytest.raises(TraitError):
         c.time = None
+
+
+def test_quantity():
+    import astropy.units as u
+
+    class SomeComponentWithQuantityTrait(Component):
+        quantity = AstroQuantity()
+
+    c = SomeComponentWithQuantityTrait()
+    c.quantity = -1.754 * u.m / (u.s * u.deg)
+    assert isinstance(c.quantity, u.Quantity)
+    assert c.quantity.value == -1.754
+    assert c.quantity.unit == u.Unit("m / (deg s)")
+
+    c.quantity = "1337 erg / centimeter**2 second"
+    assert isinstance(c.quantity, u.Quantity)
+    assert c.quantity.value == 1337
+    assert c.quantity.unit == u.Unit("erg / (s cm2)")
+
+    with pytest.raises(TraitError):
+        c.quantity = "No quantity"
+
+    # Try misspelled/ non-existent unit
+    with pytest.raises(TraitError):
+        c.quantity = "5 meters"
+
+
+def test_quantity_none():
+    class AllowNone(Component):
+        quantity = AstroQuantity(default_value=None, allow_none=True)
+
+    c = AllowNone()
+    assert c.quantity is None
+
+    class NoNone(Component):
+        quantity = AstroQuantity(default_value="5 meter", allow_none=False)
+
+    c = NoNone()
+    with pytest.raises(TraitError):
+        c.quantity = None
 
 
 def test_component_name():

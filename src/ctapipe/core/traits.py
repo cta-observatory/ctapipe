@@ -5,6 +5,7 @@ import os
 import pathlib
 from urllib.parse import urlparse
 
+import astropy.units as u
 import traitlets
 import traitlets.config
 from astropy.time import Time
@@ -17,6 +18,7 @@ from .telescope_component import TelescopeParameter
 
 __all__ = [
     # Implemented here
+    "AstroQuantity",
     "AstroTime",
     "BoolTelescopeParameter",
     "IntTelescopeParameter",
@@ -72,8 +74,33 @@ observe = traitlets.observe
 flag = traitlets.config.boolean_flag
 
 
+class AstroQuantity(TraitType):
+    """A trait containing an ``astropy.units`` quantity."""
+
+    def info(self):
+        info = "An ``astropy.units.Quantity`` instance"
+        if self.allow_none:
+            info += "or None"
+        return info
+
+    def validate(self, obj, value):
+        try:
+            quantity = u.Quantity(value)
+            return quantity
+        except TypeError:
+            return self.error(obj, value)
+        except ValueError:
+            return self.error(obj, value)
+
+    def from_string(self, s: str):
+        if self.allow_none and s == "None":
+            return None
+
+        return u.Quantity(s)
+
+
 class AstroTime(TraitType):
-    """A trait representing a point in Time, as understood by `astropy.time`"""
+    """A trait representing a point in Time, as understood by ``astropy.time``."""
 
     def validate(self, obj, value):
         """try to parse and return an ISO time string"""
