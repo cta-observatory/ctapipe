@@ -1,4 +1,5 @@
 """ tests of SimTelEventSource """
+
 # pylint: disable=import-outside-toplevel
 import copy
 from itertools import zip_longest
@@ -285,12 +286,12 @@ def test_apply_simtel_r1_calibration_1_channel():
     )
 
     assert (selected_gain_channel == 0).all()
-    assert r1_waveforms.ndim == 2
-    assert r1_waveforms.shape == (n_pixels, n_samples)
+    assert r1_waveforms.ndim == 3
+    assert r1_waveforms.shape == (1, n_pixels, n_samples)
 
     ped = pedestal
-    assert r1_waveforms[0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
-    assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
+    assert r1_waveforms[0, 0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
+    assert r1_waveforms[0, 1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
 
 def test_apply_simtel_r1_calibration_2_channel():
@@ -317,12 +318,12 @@ def test_apply_simtel_r1_calibration_2_channel():
 
     assert selected_gain_channel[0] == 1
     assert (selected_gain_channel[np.arange(1, 2048)] == 0).all()
-    assert r1_waveforms.ndim == 2
-    assert r1_waveforms.shape == (n_pixels, n_samples)
+    assert r1_waveforms.ndim == 3
+    assert r1_waveforms.shape == (1, n_pixels, n_samples)
 
     ped = pedestal
-    assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
-    assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
+    assert r1_waveforms[0, 0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
+    assert r1_waveforms[0, 1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
 
 def test_focal_length_choice():

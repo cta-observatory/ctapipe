@@ -109,7 +109,7 @@ def test_check_r1_empty(example_event, example_subarray):
         image_extractor=FullWaveformSum(subarray=example_subarray),
     )
     event = ArrayEventContainer()
-    event.dl0.tel[tel_id].waveform = np.full((2048, 128), 2)
+    event.dl0.tel[tel_id].waveform = np.full((1, 2048, 128), 2)
     calibrator(event)
     assert (event.dl0.tel[tel_id].waveform == 2).all()
     assert (event.dl1.tel[tel_id].image == 2 * 128).all()
@@ -148,22 +148,24 @@ def test_dl1_charge_calib(example_subarray):
 
     # Randomize times and create pulses
     time_offset = random.uniform(-10, +10, n_pixels)
-    y = norm.pdf(x, mid + time_offset[:, np.newaxis], pulse_sigma).astype("float32")
+    y = norm.pdf(x, mid + time_offset[np.newaxis, :, np.newaxis], pulse_sigma).astype(
+        "float32"
+    )
 
     camera.readout.reference_pulse_shape = norm.pdf(x, mid, pulse_sigma)[np.newaxis, :]
     camera.readout.reference_pulse_sample_width = 1 / camera.readout.sampling_rate
 
     # Define absolute calibration coefficients
     absolute = random.uniform(100, 1000, n_pixels).astype("float32")
-    y *= absolute[:, np.newaxis]
+    y *= absolute[np.newaxis, :, np.newaxis]
 
     # Define relative coefficients
     relative = random.normal(1, 0.01, n_pixels)
-    y /= relative[:, np.newaxis]
+    y /= relative[np.newaxis, :, np.newaxis]
 
     # Define pedestal
     pedestal = random.uniform(-4, 4, n_pixels)
-    y += pedestal[:, np.newaxis]
+    y += pedestal[np.newaxis, :, np.newaxis]
 
     event = ArrayEventContainer()
     tel_id = list(subarray.tel.keys())[0]
@@ -176,7 +178,7 @@ def test_dl1_charge_calib(example_subarray):
         subarray=subarray, image_extractor=FullWaveformSum(subarray=subarray)
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[tel_id].image, y.sum(1), rtol=1e-4)
+    np.testing.assert_allclose(event.dl1.tel[tel_id].image, y.sum(2)[0, :], rtol=1e-4)
 
     event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
     event.calibration.tel[tel_id].dl1.absolute_factor = absolute
@@ -276,8 +278,8 @@ def test_invalid_pixels(example_event, example_subarray):
 
     event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
     event.r1.tel[tel_id].waveform.fill(0.0)
-    event.r1.tel[tel_id].waveform[1:, 20] = 1.0
-    event.r1.tel[tel_id].waveform[0, 10] = 9999
+    event.r1.tel[tel_id].waveform[:, 1:, 20] = 1.0
+    event.r1.tel[tel_id].waveform[:, 0, 10] = 9999
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,

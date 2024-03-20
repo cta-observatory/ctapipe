@@ -503,9 +503,7 @@ class FixedWindowSum(ImageExtractor):
                     selected_gain_channel
                 ]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    :, np.newaxis, np.newaxis
-                ]
+                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -603,9 +601,7 @@ class GlobalPeakWindowSum(ImageExtractor):
                     selected_gain_channel
                 ]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    :, np.newaxis, np.newaxis
-                ]
+                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -677,9 +673,7 @@ class LocalPeakWindowSum(ImageExtractor):
                     selected_gain_channel
                 ]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    :, np.newaxis, np.newaxis
-                ]
+                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -762,9 +756,7 @@ class SlidingWindowMaxSum(ImageExtractor):
                     selected_gain_channel
                 ]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    :, np.newaxis, np.newaxis
-                ]
+                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -849,9 +841,7 @@ class NeighborPeakWindowSum(ImageExtractor):
                     selected_gain_channel
                 ]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    :, np.newaxis, np.newaxis
-                ]
+                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -1518,7 +1508,7 @@ def deconvolve(
     -------
     deconvolved_waveforms : ndarray
         Deconvolved and upsampled waveforms stored in a numpy array.
-        Shape: (n_pix, upsampling * n_samples)
+        Shape: (n_channels, n_pix, upsampling * n_samples)
     """
     deconvolved_waveforms = np.atleast_2d(waveforms) - np.atleast_2d(baselines).T
     deconvolved_waveforms[..., 1:] -= pole_zero * deconvolved_waveforms[..., :-1]
@@ -1706,13 +1696,6 @@ class FlashCamExtractor(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
-        if waveforms.shape[-3] != 1:
-            raise AttributeError(
-                "The FlashCam concept foresees the use of preamplifiers with non-linear "
-                "gain characteristics, instead of splitting the signal into two separate "
-                f"channels but the data consists of {waveforms.shape[-3]} channels."
-            )
-
         upsampling = self.upsampling.tel[tel_id]
         integration_window_width = self.window_width.tel[tel_id]
         integration_window_shift = self.window_shift.tel[tel_id]
@@ -1766,5 +1749,5 @@ class FlashCamExtractor(ImageExtractor):
             peak_time -= shift
 
         return DL1CameraContainer(
-            image=charge[0, :], peak_time=peak_time[0, :], is_valid=True
+            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
