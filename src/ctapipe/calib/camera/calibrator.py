@@ -188,7 +188,7 @@ class CameraCalibrator(TelescopeComponent):
         )
 
         dl0_waveform = r1.waveform.copy()
-        dl0_waveform[~signal_pixels] = 0
+        dl0_waveform[:, ~signal_pixels] = 0
 
         dl0_pixel_status = r1.pixel_status.copy()
         # set dvr pixel bit in pixel_status for pixels kept by DVR
@@ -211,7 +211,7 @@ class CameraCalibrator(TelescopeComponent):
         if self._check_dl0_empty(waveforms):
             return
 
-        n_pixels, n_samples = waveforms.shape
+        _, n_pixels, n_samples = waveforms.shape
 
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
         broken_pixels = _get_invalid_pixels(
@@ -227,8 +227,8 @@ class CameraCalibrator(TelescopeComponent):
         # subtract any remaining pedestal before extraction
         if dl1_calib.pedestal_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
-            # waveforms have shape (n_pixel, n_samples), pedestals (n_pixels, )
-            waveforms = waveforms - dl1_calib.pedestal_offset[:, np.newaxis]
+            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels, )
+            waveforms = waveforms - dl1_calib.pedestal_offset[np.newaxis, :, np.newaxis]
 
         if n_samples == 1:
             # To handle ASTRI and dst
@@ -238,7 +238,7 @@ class CameraCalibrator(TelescopeComponent):
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
             dl1 = DL1CameraContainer(
-                image=waveforms[..., 0].astype(np.float32),
+                image=waveforms[0, ..., 0].astype(np.float32),
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
                 is_valid=True,
             )
@@ -309,7 +309,7 @@ def shift_waveforms(waveforms, time_shift_samples):
 
     Parameters
     ----------
-    waveforms: ndarray of shape (n_pixels, n_samples)
+    waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
         The waveforms to shift
     time_shift_samples: ndarray of shape (n_pixels, )
         The shift to apply in units of samples.
@@ -318,7 +318,7 @@ def shift_waveforms(waveforms, time_shift_samples):
 
     Returns
     -------
-    shifted_waveforms: ndarray of shape (n_pixels, n_samples)
+    shifted_waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
         The shifted waveforms
     remaining_shift: ndarray of shape (n_pixels, )
         The remaining shift after applying the integer shift to the waveforms.

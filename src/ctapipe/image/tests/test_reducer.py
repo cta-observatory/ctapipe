@@ -35,7 +35,7 @@ def test_null_data_volume_reducer(subarray_lst):
     reducer = NullDataVolumeReducer(subarray=subarray)
     reduced_waveforms_mask = reducer(waveforms)
     reduced_waveforms = waveforms.copy()
-    reduced_waveforms[~reduced_waveforms_mask] = 0
+    reduced_waveforms[:, ~reduced_waveforms_mask] = 0
     assert_array_equal(waveforms, reduced_waveforms)
 
 
@@ -43,7 +43,8 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     subarray, tel_id, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
     # create signal
-    waveforms_signal = np.zeros((1, n_pixels, n_samples), dtype=np.float64)
+    n_channels = 1
+    waveforms_signal = np.zeros((n_channels, n_pixels, n_samples), dtype=np.float64)
 
     # Should be selected as core-pixel from Step 1) tailcuts_clean
     waveforms_signal[0][9] = 100
@@ -87,7 +88,7 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     reduced_waveforms_mask = reducer(
         waveforms_signal, tel_id=tel_id, selected_gain_channel=selected_gain_channel
     )
-    reduced_waveforms[~reduced_waveforms_mask] = 0
+    reduced_waveforms[:, ~reduced_waveforms_mask] = 0
 
     assert (reduced_waveforms != 0).sum() == (1 + 4 + 14) * n_samples
     assert_array_equal(expected_waveforms, reduced_waveforms)

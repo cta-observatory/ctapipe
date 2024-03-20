@@ -198,7 +198,7 @@ def test_extract_sliding_window(toymodel):
     assert charge.dtype == np.float32
 
 
-def test_extract_around_peak_charge_expected(toymodel):
+def test_extract_around_peak_charge_expected():
     waveforms = np.ones((1, 2048, 96))
     n_samples = waveforms.shape[-1]
     sampling_rate_ghz = 1
