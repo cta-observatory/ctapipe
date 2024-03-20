@@ -92,12 +92,6 @@ class AstroQuantity(TraitType):
         except ValueError:
             return self.error(obj, value)
 
-    def from_string(self, s: str):
-        if self.allow_none and s == "None":
-            return None
-
-        return u.Quantity(s)
-
 
 class AstroTime(TraitType):
     """A trait representing a point in Time, as understood by ``astropy.time``."""
