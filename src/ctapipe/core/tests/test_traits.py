@@ -304,6 +304,17 @@ def test_quantity():
     with pytest.raises(TraitError):
         c.quantity = "5 meters"
 
+    with pytest.raises(
+        TraitError,
+        match=f"Given physical type {u.physical.energy} does not match"
+        + " physical type of the default value length.",
+    ):
+
+        class SomeComponentWithEnergyTrait(Component):
+            energy = AstroQuantity(
+                default_value=5 * u.m, physical_type=u.physical.energy
+            )
+
 
 def test_quantity_tool(capsys):
     import astropy.units as u

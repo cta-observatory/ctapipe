@@ -81,6 +81,14 @@ class AstroQuantity(TraitType):
         super().__init__(**kwargs)
         self.physical_type = physical_type
 
+        if self.default_value is not Undefined and self.physical_type is not None:
+            default_type = u.get_physical_type(self.default_value)
+            if default_type != self.physical_type:
+                raise TraitError(
+                    f"Given physical type {self.physical_type} does not match"
+                    f" physical type of the default value {default_type}."
+                )
+
     def info(self):
         info = "An ``astropy.units.Quantity`` instance"
         if self.allow_none:
