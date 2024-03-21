@@ -2,12 +2,13 @@ import os
 import pathlib
 import tempfile
 from abc import ABCMeta, abstractmethod
+from subprocess import CalledProcessError
 from unittest import mock
 
 import pytest
 from traitlets import CaselessStrEnum, HasTraits, Int
 
-from ctapipe.core import Component
+from ctapipe.core import Component, Tool, run_tool
 from ctapipe.core.traits import (
     AstroQuantity,
     AstroTime,
@@ -302,6 +303,26 @@ def test_quantity():
     # Try misspelled/ non-existent unit
     with pytest.raises(TraitError):
         c.quantity = "5 meters"
+
+
+def test_quantity_tool(capsys):
+    import astropy.units as u
+
+    class MyTool(Tool):
+        energy = AstroQuantity(physical_type=u.physical.energy).tag(config=True)
+
+    tool = MyTool()
+    run_tool(tool, ["--MyTool.energy=5 TeV"])
+    assert tool.energy == 5 * u.TeV
+
+    with pytest.raises(CalledProcessError):
+        run_tool(tool, ["--MyTool.energy=5 m"], raises=True)
+
+    captured = capsys.readouterr()
+    assert (
+        captured.err.split(":")[-1]
+        == f" Given quantity is of physical type length. Expected {u.physical.energy}.\n"
+    )
 
 
 def test_quantity_none():

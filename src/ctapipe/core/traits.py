@@ -77,6 +77,14 @@ flag = traitlets.config.boolean_flag
 class AstroQuantity(TraitType):
     """A trait containing an ``astropy.units`` quantity."""
 
+    def __init__(
+        self,
+        physical_type: u.physical.PhysicalType | None = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.physical_type = physical_type
+
     def info(self):
         info = "An ``astropy.units.Quantity`` instance"
         if self.allow_none:
@@ -86,11 +94,20 @@ class AstroQuantity(TraitType):
     def validate(self, obj, value):
         try:
             quantity = u.Quantity(value)
-            return quantity
         except TypeError:
             return self.error(obj, value)
         except ValueError:
             return self.error(obj, value)
+
+        if self.physical_type is not None:
+            given_type = u.get_physical_type(quantity)
+            if given_type != self.physical_type:
+                raise TraitError(
+                    f"Given quantity is of physical type {given_type}."
+                    f" Expected {self.physical_type}."
+                )
+
+        return quantity
 
 
 class AstroTime(TraitType):
