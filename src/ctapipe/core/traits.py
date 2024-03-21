@@ -77,11 +77,7 @@ flag = traitlets.config.boolean_flag
 class AstroQuantity(TraitType):
     """A trait containing an ``astropy.units`` quantity."""
 
-    def __init__(
-        self,
-        physical_type: u.physical.PhysicalType | None = None,
-        **kwargs,
-    ):
+    def __init__(self, physical_type=None, **kwargs):
         super().__init__(**kwargs)
         self.physical_type = physical_type
 
