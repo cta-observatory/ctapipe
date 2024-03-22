@@ -90,7 +90,7 @@ def extract_around_peak(
     width : ndarray or int
         Window size of integration window for each pixel.
     shift : ndarray or int
-        Window size of integration window for each pixel.
+        Shift of the integration window from the peak_index.
     sampling_rate_ghz : float
         Sampling rate of the camera, in units of GHz
         Astropy units should have to_value('GHz') applied before being passed

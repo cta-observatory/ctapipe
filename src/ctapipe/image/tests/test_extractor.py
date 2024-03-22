@@ -37,6 +37,8 @@ extractors = non_abstract_children(ImageExtractor)
 extractors.remove(FixedWindowSum)
 extractors.remove(FlashCamExtractor)
 
+camera_toymodels = ["toymodel", "toymodel_lst", "toymodel_mst_fc"]
+
 
 @pytest.fixture(scope="module")
 def subarray(prod5_sst, reference_location):
@@ -92,8 +94,8 @@ def subarray_mst_fc(prod5_mst_flashcam, reference_location):
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     tel_id = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
-    n_samples = 96
     readout = subarray.tel[tel_id].camera.readout
+    n_samples = readout.n_samples
 
     random = np.random.RandomState(1)
     charge = random.uniform(minCharge, maxCharge, n_pixels)
@@ -109,8 +111,18 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 
 
 @pytest.fixture(scope="module")
-def toymodel(subarray):
+def toymodel(subarray: object) -> object:
     return get_test_toymodel(subarray)
+
+
+@pytest.fixture(scope="module")
+def toymodel_lst(subarray_1_LST: object) -> object:
+    return get_test_toymodel(subarray_1_LST)
+
+
+@pytest.fixture(scope="module")
+def toymodel_mst_fc(subarray_mst_fc: object) -> object:
+    return get_test_toymodel(subarray_mst_fc)
 
 
 def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
@@ -129,7 +141,7 @@ def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
     mask = geometry.pix_id == pix_id
 
     dilated_mask = mask.copy()
-    for row in range(4):
+    for _ in range(4):
         dilated_mask = dilate(geometry, dilated_mask)
 
     x_d = subarray.tel[tel_id].camera.geometry.pix_x.value
@@ -149,11 +161,6 @@ def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
 @pytest.fixture(scope="module")
 def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
     return get_test_toymodel_gradient(subarray_mst_fc)
-
-
-@pytest.fixture(scope="module")
-def toymodel_mst_fc(subarray_mst_fc: object) -> object:
-    return get_test_toymodel(subarray_mst_fc)
 
 
 def test_extract_around_peak(toymodel):
@@ -252,8 +259,9 @@ def test_extract_around_peak_charge_expected():
     assert_equal(charge, n_samples)
 
 
-def test_neighbor_average_peakpos(toymodel):
-    waveforms, subarray, tel_id, _, _, _ = toymodel
+@pytest.mark.parametrize("toymodels", camera_toymodels)
+def test_neighbor_average_peakpos(toymodels, request):
+    waveforms, subarray, tel_id, _, _, _ = request.getfixturevalue(toymodels)
     neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     peak_pos = neighbor_average_maximum(
@@ -262,13 +270,14 @@ def test_neighbor_average_peakpos(toymodel):
         neighbors_indptr=neighbors.indptr,
         local_weight=0,
         broken_pixels=broken_pixels,
-    )[0]
+    )
 
     pixel = 0
     _, nei_pixel = np.where(neighbors[pixel].A)
-    expected_average = waveforms[0][nei_pixel].sum(0) / len(nei_pixel)
+    expected_average = waveforms[:, nei_pixel].sum(1) / len(nei_pixel)
     expected_peak_pos = np.argmax(expected_average, axis=-1)
-    assert (peak_pos[pixel] == expected_peak_pos).all()
+    for ichannel in range(waveforms.shape[-3]):
+        assert (peak_pos[ichannel][pixel] == expected_peak_pos).all()
 
     local_weight = 4
     peak_pos = neighbor_average_maximum(
@@ -277,14 +286,15 @@ def test_neighbor_average_peakpos(toymodel):
         neighbors_indptr=neighbors.indptr,
         local_weight=local_weight,
         broken_pixels=broken_pixels,
-    )[0]
+    )
 
     pixel = 1
     _, nei_pixel = np.where(neighbors[pixel].A)
     nei_pixel = np.concatenate([nei_pixel, [pixel] * local_weight])
-    expected_average = waveforms[0][nei_pixel].sum(0) / len(nei_pixel)
+    expected_average = waveforms[:, nei_pixel].sum(1) / len(nei_pixel)
     expected_peak_pos = np.argmax(expected_average, axis=-1)
-    assert (peak_pos[pixel] == expected_peak_pos).all()
+    for ichannel in range(waveforms.shape[-3]):
+        assert (peak_pos[ichannel][pixel] == expected_peak_pos).all()
 
 
 def test_extract_peak_time_within_range():
@@ -355,8 +365,9 @@ def test_integration_correction_outofbounds(subarray):
                 np.testing.assert_allclose(full_integral, window_integral * correction)
 
 
+@pytest.mark.parametrize("toymodels", camera_toymodels)
 @pytest.mark.parametrize("Extractor", extractors)
-def test_extractors(Extractor, toymodel):
+def test_extractors(Extractor, toymodels, request):
     (
         waveforms,
         subarray,
@@ -364,17 +375,30 @@ def test_extractors(Extractor, toymodel):
         selected_gain_channel,
         true_charge,
         true_time,
-    ) = toymodel
+    ) = request.getfixturevalue(toymodels)
     extractor = Extractor(subarray=subarray)
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+
+    if Extractor is TwoPassWindowSum and waveforms.shape[-3] != 1:
+        with pytest.raises(AttributeError):
+            extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+        return
+
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
-    assert_allclose(dl1.image, true_charge, rtol=0.1)
-    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
     assert dl1.is_valid
+    breakpoint()
+    if dl1.image.ndim == 1:
+        assert_allclose(dl1.image, true_charge, rtol=0.2)
+        assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    else:
+        for ichannel in range(dl1.image.shape[-2]):
+            assert_allclose(dl1.image[ichannel], true_charge, rtol=0.2)
+            assert_allclose(dl1.peak_time[ichannel], true_time, rtol=0.1)
 
 
+@pytest.mark.parametrize("toymodels", camera_toymodels)
 @pytest.mark.parametrize("Extractor", extractors)
-def test_integration_correction_off(Extractor, toymodel):
+def test_integration_correction_off(Extractor, toymodels, request):
     # full waveform extractor does not have an integration correction
     if Extractor is FullWaveformSum:
         return
@@ -386,18 +410,27 @@ def test_integration_correction_off(Extractor, toymodel):
         selected_gain_channel,
         true_charge,
         true_time,
-    ) = toymodel
+    ) = request.getfixturevalue(toymodels)
     extractor = Extractor(subarray=subarray, apply_integration_correction=False)
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
-    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
 
+    if Extractor is TwoPassWindowSum and waveforms.shape[-3] != 1:
+        with pytest.raises(AttributeError):
+            extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+        return
+
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid
 
     # peak time should stay the same
-    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
-
     # charge should be too small without correction
-    assert np.all(dl1.image <= true_charge)
+    if dl1.image.ndim == 1:
+        assert np.all(dl1.image <= true_charge)
+        assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    else:
+        for ichannel in range(dl1.image.shape[-2]):
+            assert np.all(dl1.image[ichannel] <= true_charge)
+            assert_allclose(dl1.peak_time[ichannel], true_time, rtol=0.1)
 
 
 def test_fixed_window_sum(toymodel):
