@@ -10,7 +10,7 @@ from astropy.coordinates import EarthLocation
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
-from ctapipe.instrument import CameraGeometry, SubarrayDescription
+from ctapipe.instrument import CameraGeometry, FromNameWarning, SubarrayDescription
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.datasets import resource_file
@@ -43,7 +43,8 @@ camera_names = [
 
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
-    return CameraGeometry.from_name(request.param)
+    with pytest.warns(FromNameWarning):
+        return CameraGeometry.from_name(request.param)
 
 
 @pytest.fixture(scope="session")

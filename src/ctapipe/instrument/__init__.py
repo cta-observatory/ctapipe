@@ -5,6 +5,7 @@ from .optics import FocalLengthKind, OpticsDescription, ReflectorShape, SizeType
 from .subarray import SubarrayDescription, UnknownTelescopeID
 from .telescope import TelescopeDescription
 from .trigger import SoftwareTrigger
+from .warnings import FromNameWarning
 
 __all__ = [
     "CameraDescription",
@@ -21,4 +22,5 @@ __all__ = [
     "ReflectorShape",
     "SizeType",
     "SoftwareTrigger",
+    "FromNameWarning",
 ]

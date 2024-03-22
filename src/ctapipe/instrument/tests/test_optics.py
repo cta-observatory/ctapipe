@@ -4,6 +4,7 @@ import pytest
 from astropy import units as u
 
 from ctapipe.instrument.optics import OpticsDescription, ReflectorShape, SizeType
+from ctapipe.instrument.warnings import FromNameWarning
 
 
 def test_guess_optics():
@@ -50,6 +51,7 @@ def test_construct_optics():
 )
 def test_optics_from_name(optics_name, focal_length, svc_path):
     # test with file written by dump-instrument
-    optics = OpticsDescription.from_name(optics_name)
+    with pytest.warns(FromNameWarning):
+        optics = OpticsDescription.from_name(optics_name)
     assert optics.name == optics_name
     assert u.isclose(optics.equivalent_focal_length, focal_length)

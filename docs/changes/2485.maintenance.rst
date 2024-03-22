@@ -1,4 +1,7 @@
-Improve documentation in instrument module to explain when not to use the
-various `from_name()` methods. These are provided for the case when no event
+The ``from_name`` methods of instrument description classes now raise a warning
+that it is better to access instrument information via a ``SubarrayDescription``.
+
+Also improve documentation in instrument module to explain when not to use the
+various ``from_name()`` methods. These are provided for the case when no event
 data is available, e.g. for unit testing or demos, but do not guarantee that the
 returned instrument information corresponds to a particular set of event data.

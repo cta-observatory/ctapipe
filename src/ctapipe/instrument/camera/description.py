@@ -4,6 +4,7 @@ Classes pertaining to the description of a Cherenkov camera
 
 from ctapipe.utils import find_all_matching_datasets
 
+from ..warnings import warn_from_name
 from .geometry import CameraGeometry
 from .readout import CameraReadout
 
@@ -72,7 +73,7 @@ class CameraDescription:
         -----
 
         Warning: This method loads a pre-generated ``CameraDescription`` and is
-        thus not guranteed to be the same pixel ordering or even positions that
+        thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you
         should not rely on this method, but rather open the data with an
         ``EventSource`` and use the ``CameraDescription`` that is provided by
@@ -85,6 +86,7 @@ class CameraDescription:
         CameraDescription
 
         """
+        warn_from_name()
 
         geometry = CameraGeometry.from_name(name)
         try:

@@ -19,6 +19,7 @@ from ctapipe.coordinates import CameraFrame, get_representation_component_names
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 
+from ..warnings import warn_from_name
 from .image_conversion import (
     get_orthogonal_grid_edges,
     get_orthogonal_grid_indices,
@@ -591,7 +592,7 @@ class CameraGeometry:
         -----
 
         Warning: This method loads a pre-generated ``CameraGeometry`` and is
-        thus not guranteed to be the same pixel ordering or even positions that
+        thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you
         should not rely on this method, but rather open the data with an
         ``EventSource`` and use the ``CameraGeometry`` that is provided by
@@ -612,6 +613,7 @@ class CameraGeometry:
         new CameraGeometry
 
         """
+        warn_from_name()
 
         if version is None:
             verstr = ""

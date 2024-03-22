@@ -10,6 +10,8 @@ from astropy.table import Table
 
 from ctapipe.utils import get_table_dataset
 
+from ..warnings import warn_from_name
+
 __all__ = ["CameraReadout"]
 
 logger = logging.getLogger(__name__)
@@ -144,8 +146,8 @@ class CameraReadout:
         Returns
         -------
         new CameraReadout
-
         """
+        warn_from_name()
 
         if version is None:
             verstr = ""

@@ -17,6 +17,7 @@ from ..coordinates import CameraFrame
 from .camera import CameraDescription
 from .guess import guess_telescope, unknown_telescope
 from .optics import OpticsDescription
+from .warnings import warn_from_name
 
 __all__ = ["TelescopeDescription"]
 
@@ -88,7 +89,7 @@ class TelescopeDescription:
         -----
 
         Warning: This method loads a pre-generated ``TelescopeDescription`` and is
-        thus not guranteed to be the same pixel ordering or even positions that
+        thus not guaranteed to be the same pixel ordering or even positions that
         correspond with event data! Therefore if you are analysing data, you
         should not rely on this method, but rather open the data with an
         ``EventSource`` and use the ``TelescopeDescription`` that is provided by
@@ -102,6 +103,7 @@ class TelescopeDescription:
         TelescopeDescription
 
         """
+        warn_from_name()
 
         camera = CameraDescription.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)

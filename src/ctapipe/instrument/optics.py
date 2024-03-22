@@ -11,6 +11,7 @@ from astropy.table import QTable
 
 from ..compat import StrEnum
 from ..utils import get_table_dataset
+from .warnings import warn_from_name
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +196,8 @@ class OpticsDescription:
         OpticsDescription
 
         """
+        warn_from_name()
+
         if isinstance(optics_table, str):
             table = get_table_dataset(optics_table, role="OpticsDescription.from_name")
         else:

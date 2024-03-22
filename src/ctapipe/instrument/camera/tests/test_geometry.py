@@ -7,6 +7,7 @@ from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.instrument import CameraGeometry, PixelShape
+from ctapipe.instrument.warnings import FromNameWarning
 
 
 def test_construct():
@@ -306,7 +307,8 @@ def test_hashing(prod5_lst, prod5_mst_nectarcam):
 
 def test_camera_from_name(camera_geometry):
     """check we can construct all cameras from name"""
-    camera = CameraGeometry.from_name(camera_geometry.name)
+    with pytest.warns(FromNameWarning):
+        camera = CameraGeometry.from_name(camera_geometry.name)
     assert str(camera) == camera_geometry.name
 
 

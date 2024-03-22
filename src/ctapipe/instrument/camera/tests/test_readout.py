@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 
-from ctapipe.instrument import CameraReadout
+from ctapipe.instrument import CameraReadout, FromNameWarning
 
 
 def test_construct():
@@ -186,7 +186,8 @@ def test_hashing():
 @pytest.mark.parametrize("name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
 def test_camera_from_name(name, svc_path):
     """check we can construct all cameras from name"""
-    camera = CameraReadout.from_name(name)
+    with pytest.warns(FromNameWarning):
+        camera = CameraReadout.from_name(name)
     assert str(camera) == name
 
 
