@@ -1,6 +1,7 @@
 """
 Algorithms for the data volume reduction.
 """
+
 from abc import abstractmethod
 
 import numpy as np

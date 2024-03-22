@@ -1,6 +1,7 @@
 """
 Tests for CameraCalibrator and related functions
 """
+
 from copy import deepcopy
 
 import astropy.units as u

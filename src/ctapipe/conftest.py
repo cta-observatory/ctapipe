@@ -50,7 +50,7 @@ def camera_geometry(request):
 def _global_example_event():
     """
     helper to get a single event from a MC file. Don't use this fixture
-    directly, rather use `test_event`
+    directly, rather use `example_event`
     """
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -93,8 +93,8 @@ def example_event(_global_example_event):
     example:
 
     .. code-block::
-        def test_my_thing(test_event):
-            assert len(test_event.r0.tel) > 0
+        def test_my_thing(example_event):
+            assert len(example_event.r0.tel) > 0
 
     """
     return deepcopy(_global_example_event)
