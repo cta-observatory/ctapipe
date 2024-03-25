@@ -151,6 +151,10 @@ norecursedirs = [
     "build",
 ]
 
+[tool.coverage.run]
+include = ["src/*"]
+relative_files = true
+
 [tool.towncrier]
     package = "ctapipe"
     directory = "docs/changes"

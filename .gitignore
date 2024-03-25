@@ -11,6 +11,7 @@ __pycache__
 
 # ignore version cache file (generated automatically when setup.py is run)
 ctapipe/_version_cache.py
+ctapipe/_version.py
 src/ctapipe/_version.py
 
 
