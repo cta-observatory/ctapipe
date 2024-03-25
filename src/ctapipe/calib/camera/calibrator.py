@@ -7,7 +7,13 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
+from ctapipe.containers import (
+    DL0CameraContainer,
+    DL1CameraContainer,
+    PixelStatus,
+    EventType,
+)
+
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -346,8 +352,8 @@ class CameraCalibrator(TelescopeComponent):
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
         for tel_id in tel.keys():
             if (
-                self.process_flatfield_events
-                or self.process_pedestal_events
+                event.trigger.event_type == EventType.SKY_PEDESTAL
+                or event.trigger.event_type == EventType.FLATFIELD
             ):
                 self._process_calib(event, tel_id)
             else:

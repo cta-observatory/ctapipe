@@ -8,7 +8,6 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..containers import EventType
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
@@ -111,18 +110,6 @@ class ProcessorTool(Tool):
             "Only compute DL2 if there is no shower reconstruction in the file",
         ),
         **flag(
-            "process-flatfield",
-            "CameraCalibrator.process_flatfield_events",
-            "process flatfield events from a calibration data stream",
-            "don't process flatfield events from a calibration data stream",
-        ),
-        **flag(
-            "process-pedestal",
-            "CameraCalibrator.process_pedestal_events",
-            "process pedestal events from a calibration data stream",
-            "don't process pedestal events from a calibration data stream",
-        ),
-        **flag(
             "write-images",
             "DataWriter.write_dl1_images",
             "store DL1/Event/Telescope images in output",
@@ -202,18 +189,6 @@ class ProcessorTool(Tool):
             DataWriter(event_source=self.event_source, parent=self)
         )
 
-        if (
-            self.calibrate.process_flatfield_events
-            or self.calibrate.process_pedestal_events
-        ):
-            self.log.warning(
-                "DataWriter flags are set automatically when processing of calibration events"
-            )
-            self.write.write_dl1_images = True
-            self.write.write_dl1_parameters = False
-            self.write.write_dl2 = False
-            self.write.write_muon_parameters = False
-
         self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)
@@ -253,12 +228,6 @@ class ProcessorTool(Tool):
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
-        if (
-            self.calibrate.process_flatfield_events
-            or self.calibrate.process_pedestal_events
-        ):
-            return False
-
         return (
             self.write.write_dl1_parameters
             or self.should_compute_dl2
@@ -277,12 +246,6 @@ class ProcessorTool(Tool):
         ):
             return True
 
-        if (
-            self.calibrate.process_flatfield_events
-            or self.calibrate.process_pedestal_events
-        ):
-            return True
-
         if self.should_compute_dl1:
             return DataLevel.DL1_IMAGES not in self.event_source.datalevels
 
@@ -294,23 +257,7 @@ class ProcessorTool(Tool):
         if self.write.write_muon_parameters:
             return True
 
-        if (
-            self.calibrate.process_flatfield_events
-            or self.calibrate.process_pedestal_events
-        ):
-            return False
-
         return False
-
-    def should_process(self, event):
-        """returns true if event should be processed"""
-        if self.calibrate.process_flatfield_events:
-            return event.trigger.event_type == EventType.FLATFIELD
-
-        if self.calibrate.process_pedestal_events:
-            return event.trigger.event_type == EventType.SKY_PEDESTAL
-
-        return True
 
     def _write_processing_statistics(self):
         """write out the event selection stats, etc."""
@@ -365,12 +312,6 @@ class ProcessorTool(Tool):
             if not self.software_trigger(event):
                 self.log.debug(
                     "Skipping event %i due to software trigger", event.index.event_id
-                )
-                continue
-
-            if not self.should_process(event):
-                self.log.debug(
-                    "Skipping event %i due to calibration settings", event.index.event_id
                 )
                 continue
 
