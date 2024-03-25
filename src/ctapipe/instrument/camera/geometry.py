@@ -672,7 +672,7 @@ class CameraGeometry:
 
         version = tab.meta.get("TAB_VER")
         if version not in cls.SUPPORTED_TAB_VERSIONS:
-            raise IOError(f"Unsupported camera geometry table version: {version}")
+            raise OSError(f"Unsupported camera geometry table version: {version}")
 
         return cls(
             name=tab.meta.get("CAM_ID", "Unknown"),

@@ -3,7 +3,6 @@
 Create a toymodel event stream of array events
 """
 import logging
-from typing import Dict
 
 import astropy.units as u
 import numpy as np
@@ -73,12 +72,12 @@ class ToyEventSource(TelescopeComponent, EventSource):
         return (DataLevel.DL1_IMAGES,)
 
     @property
-    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+    def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         sb = SchedulingBlockContainer(producer_id="ctapipe toymodel")
         return {sb.sb_id: sb}
 
     @property
-    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+    def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         ob = ObservationBlockContainer(producer_id="ctapipe toymodel")
         return {ob.ob_id: ob}
 

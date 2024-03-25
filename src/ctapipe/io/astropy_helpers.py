@@ -81,7 +81,7 @@ def read_table(
         path = os.path.join("/", path)
         table = h5file.get_node(path)
         if not isinstance(table, tables.Table):
-            raise IOError(
+            raise OSError(
                 f"Node {path} is a {table.__class__.__name__}, must be a Table"
             )
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
@@ -163,7 +163,7 @@ def write_table(
                 already_exists = False
 
             elif not overwrite and not append:
-                raise IOError(
+                raise OSError(
                     f"Table {path} already exists in output file, use append or overwrite"
                 )
 

@@ -46,7 +46,7 @@ def test_all_traitlets_configurable():
                     obj = getattr(submodule, obj_name)
 
                     try:
-                        has_traits = issubclass(obj, (Component, Tool))
+                        has_traits = issubclass(obj, Component | Tool)
                     except TypeError:
                         has_traits = False
 

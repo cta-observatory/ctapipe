@@ -343,4 +343,4 @@ def read_metadata(h5file, path="/"):
         metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
         return metadata
 
-    raise IOError("Could not read metadata")
+    raise OSError("Could not read metadata")

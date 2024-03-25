@@ -5,7 +5,6 @@ from an HDF5 file produced with ctapipe-process.
 import warnings
 from collections import defaultdict, namedtuple
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import tables
@@ -874,7 +873,7 @@ class TableLoader(Component):
         instrument=None,
         observation_info=None,
         pointing=None,
-    ) -> Dict[str, Table]:
+    ) -> dict[str, Table]:
         """Read subarray-based event information.
 
         Parameters
@@ -1016,7 +1015,7 @@ class TableLoader(Component):
         instrument=None,
         observation_info=None,
         pointing=None,
-    ) -> Dict[int, Table]:
+    ) -> dict[int, Table]:
         """Read subarray-based event information.
 
         Parameters

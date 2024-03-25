@@ -149,7 +149,7 @@ class Path(TraitType):
             else:
                 self.error(obj, value)
 
-        if not isinstance(value, (str, pathlib.Path)):
+        if not isinstance(value, str | pathlib.Path):
             return self.error(obj, value)
 
         # expand any environment variables in the path:

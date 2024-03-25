@@ -3,9 +3,8 @@
 import argparse
 import importlib
 import logging
-import sys
 from collections import OrderedDict
-from typing import Type
+from importlib.metadata import distribution
 
 import numpy as np
 from astropy.table import vstack
@@ -20,10 +19,6 @@ from ..reco.sklearn import DispReconstructor, SKLearnReconstructor
 
 LOG = logging.getLogger(__name__)
 
-if sys.version_info < (3, 10):
-    from importlib_metadata import distribution
-else:
-    from importlib.metadata import distribution
 
 __all__ = [
     "ArgparseFormatter",
@@ -91,7 +86,7 @@ def read_training_events(
     loader: TableLoader,
     chunk_size: Int,
     telescope_type: TelescopeDescription,
-    reconstructor: Type[SKLearnReconstructor],
+    reconstructor: type[SKLearnReconstructor],
     feature_names: list,
     rng: np.random.Generator,
     log=LOG,

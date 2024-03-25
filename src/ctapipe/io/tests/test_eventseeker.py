@@ -80,7 +80,7 @@ def test_eventseeker_simtel():
         assert event.count == 2
         event = seeker.get_event_index(4)
         assert event.count == 4
-        with pytest.raises(IOError):
+        with pytest.raises(OSError):
             seeker.get_event_index(1)
         event = seeker.get_event_index(5)
         assert event.count == 5

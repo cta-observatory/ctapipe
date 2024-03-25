@@ -4,7 +4,6 @@ Component Wrappers around sklearn models
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Dict
 
 import astropy.units as u
 import joblib
@@ -203,7 +202,7 @@ class SKLearnReconstructor(Reconstructor):
         path = pathlib.Path(path)
 
         if path.exists() and not overwrite:
-            raise IOError(f"Path {path} exists and overwrite=False")
+            raise OSError(f"Path {path} exists and overwrite=False")
 
         with path.open("wb") as f:
             Provenance().add_output_file(path, role="ml-models")
@@ -415,7 +414,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
+    def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -478,7 +477,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
+    def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
         table = self.feature_generator(table, subarray=self.subarray)
 
         n_rows = len(table)
@@ -650,7 +649,7 @@ class DispReconstructor(Reconstructor):
         path = pathlib.Path(path)
 
         if path.exists() and not overwrite:
-            raise IOError(f"Path {path} exists and overwrite=False")
+            raise OSError(f"Path {path} exists and overwrite=False")
 
         with path.open("wb") as f:
             Provenance().add_output_file(path, role="ml-models")
@@ -778,7 +777,7 @@ class DispReconstructor(Reconstructor):
 
         self.stereo_combiner(event)
 
-    def predict_table(self, key, table: Table) -> Dict[ReconstructionProperty, Table]:
+    def predict_table(self, key, table: Table) -> dict[ReconstructionProperty, Table]:
         """
         Predict on a table of events.
 

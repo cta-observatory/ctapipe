@@ -209,7 +209,7 @@ class CameraReadout:
 
         version = tab.meta.get("TAB_VER", "")
         if version not in cls.SUPPORTED_TAB_VERSIONS:
-            raise IOError(
+            raise OSError(
                 f"CameraReadout table has unsupported version: {version},"
                 f" supported are: {cls.SUPPORTED_TAB_VERSIONS}."
             )

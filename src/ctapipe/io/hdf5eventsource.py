@@ -1,7 +1,6 @@
 import logging
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Dict, Union
 
 import numpy as np
 import tables
@@ -77,7 +76,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
 ]
 
 
-def get_hdf5_datalevels(h5file: Union[tables.File, str, Path]):
+def get_hdf5_datalevels(h5file: tables.File | str | Path):
     """Get the data levels present in the hdf5 file"""
     datalevels = []
 
@@ -326,15 +325,15 @@ class HDF5EventSource(EventSource):
         return self._obs_ids
 
     @property
-    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+    def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         return self._scheduling_block
 
     @property
-    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+    def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         return self._observation_block
 
     @property
-    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+    def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         """
         Returns the simulation config(s) as
         a dict mapping obs_id to the respective config.

@@ -3,7 +3,7 @@ Handles reading of different event/waveform containing files
 """
 import warnings
 from abc import abstractmethod
-from typing import Dict, Generator, List, Tuple
+from collections.abc import Generator
 
 from traitlets.config.loader import LazyConfigValue
 
@@ -215,19 +215,19 @@ class EventSource(Component):
         """
 
     @property
-    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+    def simulation_config(self) -> dict[int, SimulationConfigContainer] | None:
         """The simulation configurations of all observations provided by the
         EventSource, or None if the source does not provide simulated data
 
         Returns
         -------
-        Dict[int,ctapipe.containers.SimulationConfigContainer] | None
+        dict[int,ctapipe.containers.SimulationConfigContainer] | None
         """
         return None
 
     @property
     @abstractmethod
-    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+    def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
@@ -235,7 +235,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+    def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
@@ -255,7 +255,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def datalevels(self) -> Tuple[DataLevel]:
+    def datalevels(self) -> tuple[DataLevel]:
         """
         The datalevels provided by this event source
 
@@ -276,7 +276,7 @@ class EventSource(Component):
         return any(dl in self.datalevels for dl in datalevels)
 
     @property
-    def obs_ids(self) -> List[int]:
+    def obs_ids(self) -> list[int]:
         """
         The observation ids of the runs located in the file
         Unmerged files should only contain a single obs id.

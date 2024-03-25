@@ -2,10 +2,10 @@
 Description of Arrays or Subarrays of telescopes
 """
 import warnings
+from collections.abc import Iterable
 from contextlib import ExitStack
 from copy import copy
 from itertools import groupby
-from typing import Dict, Iterable, Tuple, Union
 
 import numpy as np
 import tables
@@ -81,10 +81,10 @@ class SubarrayDescription:
         ----------
         name : str
             name of this subarray
-        tel_positions : Dict[int, np.ndarray]
+        tel_positions : dict[int, np.ndarray]
             dict of x,y,z telescope positions on the ground by tel_id. These are
             converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`
-        tel_descriptions : Dict[TelescopeDescription]
+        tel_descriptions : dict[TelescopeDescription]
             dict of TelescopeDescriptions by tel_id
         reference_location : `astropy.coordinates.EarthLocation`
             EarthLocation of the array reference position, (0, 0, 0) of the
@@ -92,7 +92,7 @@ class SubarrayDescription:
         """
         self.name = name
         self.positions = tel_positions or dict()
-        self.tels: Dict[int, TelescopeDescription] = tel_descriptions or dict()
+        self.tels: dict[int, TelescopeDescription] = tel_descriptions or dict()
         self.reference_location = reference_location
 
         if self.positions.keys() != self.tels.keys():
@@ -107,7 +107,7 @@ class SubarrayDescription:
         )
 
     @property
-    def tel(self) -> Dict[int, TelescopeDescription]:
+    def tel(self) -> dict[int, TelescopeDescription]:
         """Dictionary mapping tel_ids to TelescopeDescriptions"""
         return self.tels
 
@@ -427,7 +427,7 @@ class SubarrayDescription:
         return ad
 
     @lazyproperty
-    def telescope_types(self) -> Tuple[TelescopeDescription]:
+    def telescope_types(self) -> tuple[TelescopeDescription]:
         """
         Tuple of unique telescope types in the array
 
@@ -438,7 +438,7 @@ class SubarrayDescription:
         return tuple(sorted(unique_types, key=lambda tel: tel.name))
 
     @lazyproperty
-    def camera_types(self) -> Tuple[CameraDescription]:
+    def camera_types(self) -> tuple[CameraDescription]:
         """
         Tuple of unique camera types in the array
 
@@ -449,7 +449,7 @@ class SubarrayDescription:
         return tuple(sorted(unique_cameras, key=lambda camera: camera.name))
 
     @lazyproperty
-    def optics_types(self) -> Tuple[OpticsDescription]:
+    def optics_types(self) -> tuple[OpticsDescription]:
         """
         Tuple of unique optics types in the array
 
@@ -459,7 +459,7 @@ class SubarrayDescription:
         unique_optics = {tel.optics for tel in self.tel.values()}
         return tuple(sorted(unique_optics, key=lambda optics: optics.name))
 
-    def get_tel_ids_for_type(self, tel_type) -> Tuple[int]:
+    def get_tel_ids_for_type(self, tel_type) -> tuple[int]:
         """
         return tuple of tel_ids that have the given tel_type
 
@@ -520,8 +520,8 @@ class SubarrayDescription:
         )
 
     def get_tel_ids(
-        self, telescopes: Iterable[Union[int, str, TelescopeDescription]]
-    ) -> Tuple[int]:
+        self, telescopes: Iterable[int | str | TelescopeDescription]
+    ) -> tuple[int]:
         """
         Convert a list of telescope ids and telescope descriptions to
         a list of unique telescope ids.
@@ -542,11 +542,11 @@ class SubarrayDescription:
         ids = set()
 
         # support single telescope element
-        if isinstance(telescopes, (int, str, TelescopeDescription)):
+        if isinstance(telescopes, int | str | TelescopeDescription):
             telescopes = (telescopes,)
 
         for telescope in telescopes:
-            if isinstance(telescope, (int, np.integer)):
+            if isinstance(telescope, int | np.integer):
                 if telescope not in self.tel:
                     raise ValueError(
                         f"Telescope with tel_id={telescope} not in subarray."
@@ -607,7 +607,7 @@ class SubarrayDescription:
                 h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
             if "/configuration/instrument/subarray" in h5file.root and not overwrite:
-                raise IOError(
+                raise OSError(
                     "File already contains a SubarrayDescription and overwrite=False"
                 )
 
@@ -661,7 +661,7 @@ class SubarrayDescription:
 
         version = layout.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_VERSIONS:
-            raise IOError(f"Unsupported version of subarray table: {version}")
+            raise OSError(f"Unsupported version of subarray table: {version}")
 
         cameras = {}
 
@@ -690,7 +690,7 @@ class SubarrayDescription:
 
         optics_version = optics_table.meta.get("TAB_VER")
         if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
-            raise IOError(f"Unsupported version of optics table: {optics_version}")
+            raise OSError(f"Unsupported version of optics table: {optics_version}")
 
         # for backwards compatibility
         # if optics_index not in table, guess via telescope_description string

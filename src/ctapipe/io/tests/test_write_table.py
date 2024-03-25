@@ -46,7 +46,7 @@ def test_write_table(tmp_path):
     assert read["speed"].description == "Speed of stuff"
 
     # test error for already existing table
-    with pytest.raises(IOError):
+    with pytest.raises(OSError):
         write_table(table, output_path, table_path)
 
     # test we can append
