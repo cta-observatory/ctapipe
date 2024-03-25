@@ -334,8 +334,8 @@ def test_apply_time_delta_cleaning(prod3_lst):
     assert (test_mask == td_mask).all()
 
 
-def test_time_constrained_clean():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_time_constrained_clean(prod5_lst):
+    geom = prod5_lst.camera.geometry
     charge = np.zeros(geom.n_pixels, dtype=np.float64)
     peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
 

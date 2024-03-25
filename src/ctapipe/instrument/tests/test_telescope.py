@@ -1,6 +1,7 @@
 """ Tests for TelescopeDescriptions """
 import pytest
 
+from ctapipe.instrument import FromNameWarning
 from ctapipe.instrument.telescope import TelescopeDescription
 
 
@@ -36,7 +37,8 @@ def test_hash(subarray_prod5_paranal):
 @pytest.mark.parametrize("optics_name", ["LST", "MST", "ASTRI"])
 def test_telescope_from_name(optics_name, camera_name, svc_path):
     """Check we can construct all telescopes from their names"""
-    tel = TelescopeDescription.from_name(optics_name, camera_name)
+    with pytest.warns(FromNameWarning):
+        tel = TelescopeDescription.from_name(optics_name, camera_name)
 
     assert optics_name in str(tel)
     assert camera_name in str(tel)

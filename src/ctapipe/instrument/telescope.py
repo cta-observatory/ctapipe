@@ -17,6 +17,7 @@ from ..coordinates import CameraFrame
 from .camera import CameraDescription
 from .guess import guess_telescope, unknown_telescope
 from .optics import OpticsDescription
+from .warnings import warn_from_name
 
 __all__ = ["TelescopeDescription"]
 
@@ -84,11 +85,25 @@ class TelescopeDescription:
            optics name (e.g. LST, or SST-ASTRI), also called
            telescope_description
 
+        Notes
+        -----
+
+        Warning: This method loads a pre-generated ``TelescopeDescription`` and is
+        thus not guaranteed to be the same pixel ordering or even positions that
+        correspond with event data! Therefore if you are analysing data, you
+        should not rely on this method, but rather open the data with an
+        ``EventSource`` and use the ``TelescopeDescription`` that is provided by
+        ``source.subarray.tel[i]`` or by
+        ``source.subarray.telescope_types[type_name]``. This will guarantee that
+        the pixels in the event data correspond with the ``TelescopeDescription``
+
+
         Returns
         -------
         TelescopeDescription
 
         """
+        warn_from_name()
 
         camera = CameraDescription.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)

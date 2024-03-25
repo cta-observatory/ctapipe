@@ -141,6 +141,7 @@ addopts = ["-ra", "--strict-config", "--strict-markers"]
 filterwarnings = [
     "error::astropy.utils.exceptions.AstropyDeprecationWarning",
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
+    "error::ctapipe.instrument.FromNameWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
 ]
 norecursedirs = [
