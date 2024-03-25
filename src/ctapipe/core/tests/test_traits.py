@@ -304,13 +304,34 @@ def test_quantity():
     with pytest.raises(TraitError):
         c.quantity = "5 meters"
 
+    # Test definition of physical type
+    class SomeComponentWithEnergyTrait(Component):
+        energy = AstroQuantity(physical_type=u.physical.energy)
+
+    c = SomeComponentWithEnergyTrait()
+
+    class AnotherComponentWithEnergyTrait(Component):
+        energy = AstroQuantity(physical_type=u.TeV)
+
+    c = AnotherComponentWithEnergyTrait()
+
+    with pytest.raises(
+        TraitError,
+        match="Given physical type must be either of type"
+        + " astropy.units.PhysicalType or a subclass of"
+        + f" astropy.units.UnitBase, was {type(5 * u.TeV)}.",
+    ):
+
+        class SomeBadComponentWithEnergyTrait(Component):
+            energy = AstroQuantity(physical_type=5 * u.TeV)
+
     with pytest.raises(
         TraitError,
         match=f"Given physical type {u.physical.energy} does not match"
-        + " physical type of the default value length.",
+        + f" physical type of the default value, {u.get_physical_type(5 * u.m)}.",
     ):
 
-        class SomeComponentWithEnergyTrait(Component):
+        class AnotherBadComponentWithEnergyTrait(Component):
             energy = AstroQuantity(
                 default_value=5 * u.m, physical_type=u.physical.energy
             )
@@ -332,7 +353,8 @@ def test_quantity_tool(capsys):
     captured = capsys.readouterr()
     assert (
         captured.err.split(":")[-1]
-        == f" Given quantity is of physical type length. Expected {u.physical.energy}.\n"
+        == f" Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
+        + f" Expected {u.physical.energy}.\n"
     )
 
 
