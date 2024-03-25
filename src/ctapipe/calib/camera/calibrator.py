@@ -94,16 +94,6 @@ class CameraCalibrator(TelescopeComponent):
         ),
     ).tag(config=True)
 
-    process_flatfield_events = Bool(
-        default_value=False,
-        help="Process flatfield events from a calibration data stream.",
-    ).tag(config=True)
-
-    process_pedestal_events = Bool(
-        default_value=False,
-        help="Process pedestal events from a calibration data stream.",
-    ).tag(config=True)
-
     def __init__(
         self,
         subarray,
