@@ -251,18 +251,17 @@ def neighbor_average_maximum(
     # so the value of the pixel itself is already taken into account
     peak_pos = np.empty((n_channels, n_pixels), dtype=np.int64)
 
-    for pixel in prange(n_pixels):
-        average = waveforms[:, pixel] * local_weight
-        neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
+    for ichannel in prange(n_channels):
+        for pixel in prange(n_pixels):
+            average = waveforms[ichannel, pixel] * local_weight
+            neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
-        for neighbor in neighbors:
-            if broken_pixels[neighbor]:
-                continue
+            for neighbor in neighbors:
+                if broken_pixels[neighbor]:
+                    continue
+                average += waveforms[ichannel][neighbor]
 
-            for ichannel in range(n_channels):
-                average[ichannel] += waveforms[ichannel][neighbor]
-
-        peak_pos[:, pixel] = np.argmax(average, axis=-1)
+            peak_pos[ichannel, pixel] = np.argmax(average)
 
     return peak_pos
 
@@ -498,12 +497,11 @@ class FixedWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    selected_gain_channel
-                ]
+            correction = self._calculate_correction(tel_id=tel_id)
+            if selected_gain_channel is None:
+                charge *= correction[:, np.newaxis]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
+                charge *= correction[selected_gain_channel]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -596,12 +594,11 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    selected_gain_channel
-                ]
+            correction = self._calculate_correction(tel_id=tel_id)
+            if selected_gain_channel is None:
+                charge *= correction[:, np.newaxis]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
+                charge *= correction[selected_gain_channel]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -668,12 +665,11 @@ class LocalPeakWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    selected_gain_channel
-                ]
+            correction = self._calculate_correction(tel_id=tel_id)
+            if selected_gain_channel is None:
+                charge *= correction[:, np.newaxis]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
+                charge *= correction[selected_gain_channel]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -751,12 +747,11 @@ class SlidingWindowMaxSum(ImageExtractor):
             waveforms, self.window_width.tel[tel_id], self.sampling_rate_ghz[tel_id]
         )
         if self.apply_integration_correction.tel[tel_id]:
-            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    selected_gain_channel
-                ]
+            correction = self._calculate_correction(tel_id=tel_id)
+            if selected_gain_channel is None:
+                charge *= correction[:, np.newaxis]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
+                charge *= correction[selected_gain_channel]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -836,12 +831,11 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.sampling_rate_ghz[tel_id],
         )
         if self.apply_integration_correction.tel[tel_id]:
-            if selected_gain_channel is not None and waveforms.shape[-3] == 1:
-                charge *= self._calculate_correction(tel_id=tel_id)[
-                    selected_gain_channel
-                ]
+            correction = self._calculate_correction(tel_id=tel_id)
+            if selected_gain_channel is None:
+                charge *= correction[:, np.newaxis]
             else:
-                charge *= self._calculate_correction(tel_id=tel_id)[:, np.newaxis]
+                charge *= correction[selected_gain_channel]
         return DL1CameraContainer(
             image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
         )
@@ -1628,10 +1622,6 @@ class FlashCamExtractor(ImageExtractor):
         default_value=3,
         help="Define the shift of the integration window from the peak_index "
         "(peak_index - shift)",
-    ).tag(config=True)
-
-    apply_integration_correction = BoolTelescopeParameter(
-        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     local_weight = IntTelescopeParameter(

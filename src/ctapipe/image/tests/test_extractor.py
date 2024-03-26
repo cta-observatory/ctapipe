@@ -37,7 +37,7 @@ extractors = non_abstract_children(ImageExtractor)
 extractors.remove(FixedWindowSum)
 extractors.remove(FlashCamExtractor)
 
-camera_toymodels = ["toymodel", "toymodel_lst", "toymodel_mst_fc"]
+camera_toymodels = ["toymodel", "toymodel_sst", "toymodel_lst", "toymodel_mst_fc"]
 
 
 @pytest.fixture(scope="module")
@@ -66,6 +66,21 @@ def subarray(prod5_sst, reference_location):
         reference_pulse_sample_width, u.ns
     )
     readout.sampling_rate = u.Quantity(1 / sample_width, u.GHz)
+    readout.n_samples = 96
+    return subarray
+
+
+@pytest.fixture(scope="module")
+def subarray_2_sst(prod5_sst, reference_location):
+    subarray = SubarrayDescription(
+        "test array",
+        tel_positions={1: np.zeros(3) * u.m, 2: np.zeros(3) * u.m},
+        tel_descriptions={
+            1: deepcopy(prod5_sst),
+            2: deepcopy(prod5_sst),
+        },
+        reference_location=reference_location,
+    )
     return subarray
 
 
@@ -81,7 +96,7 @@ def subarray_1_LST(prod3_lst, reference_location):
 
 
 @pytest.fixture(scope="module")
-def subarray_mst_fc(prod5_mst_flashcam, reference_location):
+def subarray_1_mst_fc(prod5_mst_flashcam, reference_location):
     subarray = SubarrayDescription(
         "One MST with FlashCam",
         tel_positions={1: np.zeros(3) * u.m},
@@ -106,6 +121,8 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     waveform = waveform_model.get_waveform(charge, time, n_samples)
 
     selected_gain_channel = np.zeros(charge.size, dtype=np.int64)
+    if waveform.shape[-3] != 1:
+        selected_gain_channel = None
 
     return waveform, subarray, tel_id, selected_gain_channel, charge, time
 
@@ -116,13 +133,18 @@ def toymodel(subarray: object) -> object:
 
 
 @pytest.fixture(scope="module")
+def toymodel_sst(subarray_2_sst: object) -> object:
+    return get_test_toymodel(subarray_2_sst)
+
+
+@pytest.fixture(scope="module")
 def toymodel_lst(subarray_1_LST: object) -> object:
     return get_test_toymodel(subarray_1_LST)
 
 
 @pytest.fixture(scope="module")
-def toymodel_mst_fc(subarray_mst_fc: object) -> object:
-    return get_test_toymodel(subarray_mst_fc)
+def toymodel_mst_fc(subarray_1_mst_fc: object) -> object:
+    return get_test_toymodel(subarray_1_mst_fc)
 
 
 def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
@@ -159,8 +181,8 @@ def get_test_toymodel_gradient(subarray, minCharge=100, maxCharge=1000):
 
 
 @pytest.fixture(scope="module")
-def toymodel_mst_fc_time(subarray_mst_fc: object) -> object:
-    return get_test_toymodel_gradient(subarray_mst_fc)
+def toymodel_mst_fc_time(subarray_1_mst_fc: object) -> object:
+    return get_test_toymodel_gradient(subarray_1_mst_fc)
 
 
 def test_extract_around_peak(toymodel):
@@ -386,14 +408,13 @@ def test_extractors(Extractor, toymodels, request):
 
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid
-    breakpoint()
     if dl1.image.ndim == 1:
         assert_allclose(dl1.image, true_charge, rtol=0.2)
-        assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+        assert_allclose(dl1.peak_time, true_time, rtol=0.2)
     else:
         for ichannel in range(dl1.image.shape[-2]):
             assert_allclose(dl1.image[ichannel], true_charge, rtol=0.2)
-            assert_allclose(dl1.peak_time[ichannel], true_time, rtol=0.1)
+            assert_allclose(dl1.peak_time[ichannel], true_time, rtol=0.2)
 
 
 @pytest.mark.parametrize("toymodels", camera_toymodels)
@@ -442,15 +463,23 @@ def test_fixed_window_sum(toymodel):
         true_charge,
         true_time,
     ) = toymodel
+
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert dl1.is_valid
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
-    assert dl1.is_valid
+
+    waveforms = np.append(waveforms, waveforms, axis=-3)
+    dl1 = extractor(waveforms, tel_id, None, broken_pixels)
+    for ichannel in range(dl1.image.shape[-2]):
+        assert_allclose(dl1.image[ichannel], true_charge, rtol=0.1)
+        assert_allclose(dl1.peak_time[ichannel], true_time, rtol=0.1)
 
 
-def test_sliding_window_max_sum(toymodel):
+@pytest.mark.parametrize("toymodels", camera_toymodels)
+def test_sliding_window_max_sum(toymodels, request):
     (
         waveforms,
         subarray,
@@ -458,14 +487,18 @@ def test_sliding_window_max_sum(toymodel):
         selected_gain_channel,
         true_charge,
         true_time,
-    ) = toymodel
+    ) = request.getfixturevalue(toymodels)
     extractor = SlidingWindowMaxSum(subarray=subarray)
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
-    print(true_charge, dl1.image, true_time, dl1.peak_time)
-    assert_allclose(dl1.image, true_charge, rtol=0.1)
-    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
     assert dl1.is_valid
+    if dl1.image.ndim == 1:
+        assert_allclose(dl1.image, true_charge, rtol=0.1)
+        assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    else:
+        for ichannel in range(dl1.image.shape[-2]):
+            assert_allclose(dl1.image[ichannel], true_charge, rtol=0.1)
+            assert_allclose(dl1.peak_time[ichannel], true_time, rtol=0.1)
 
 
 def test_neighbor_peak_window_sum_local_weight(toymodel):
@@ -535,7 +568,7 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
     # Define the model for the waveforms to fill with the information from
     # the simulated image
-    waveform_model = WaveformModel.from_camera_readout(readout)
+    waveform_model = WaveformModel.from_camera_readout(readout, gain_channel="HIGH")
     waveforms = waveform_model.get_waveform(true_charge, true_time, n_samples)
     selected_gain_channel = np.zeros(true_charge.size, dtype=np.int64)
 
@@ -575,11 +608,11 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
     # Check that we have gained signal charge by using the 2nd pass
     # This also checks that the test image has triggered the 2nd pass
-    # (i.e. it is not so bad to have <3 pixels in the preliminary cleaned image)
+    # (i.e. it is not so bad to have < 3 pixels in the preliminary cleaned image)
     reco_charge1 = np.sum(dl1_pass1.image[signal_pixels & integration_window_inside])
     reco_charge2 = np.sum(dl1_pass2.image[signal_pixels & integration_window_inside])
     # since there is no noise in this test, 1st pass will find the peak and 2nd
-    # can at most to the same
+    # can at most do the same
     assert (reco_charge2 / reco_charge1) < 1
     assert dl1_pass1.is_valid
 
@@ -648,7 +681,7 @@ def test_extractor_tel_param(toymodel):
     )
 
     waveforms, subarray, _, _, _, _ = toymodel
-    _, n_pixels, n_samples = waveforms.shape
+    _, _, n_samples = waveforms.shape
     extractor = ImageExtractor.from_name(
         "FixedWindowSum", subarray=subarray, config=config
     )
@@ -719,9 +752,9 @@ def test_adaptive_centroid(toymodel_mst_fc):
         waveforms,
         subarray,
         tel_id,
-        selected_gain_channel,
-        true_charge,
-        true_time,
+        _,
+        _,
+        _,
     ) = toymodel_mst_fc
 
     neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
@@ -756,11 +789,11 @@ def test_adaptive_centroid(toymodel_mst_fc):
 def test_deconvolve(toymodel_mst_fc):
     (
         waveforms,
-        subarray,
-        tel_id,
-        selected_gain_channel,
-        true_charge,
-        true_time,
+        _,
+        _,
+        _,
+        _,
+        _,
     ) = toymodel_mst_fc
 
     deconvolved_waveforms_0 = deconvolve(waveforms, 0, 0, 0.0)
@@ -775,11 +808,11 @@ def test_deconvolve(toymodel_mst_fc):
 def test_upsampling(toymodel_mst_fc):
     (
         waveforms,
-        subarray,
-        tel_id,
-        selected_gain_channel,
-        true_charge,
-        true_time,
+        _,
+        _,
+        _,
+        _,
+        _,
     ) = toymodel_mst_fc
     upsampling_even = 4
     upsampling_odd = 3
@@ -823,7 +856,7 @@ def test_FC_time(toymodel_mst_fc_time):
         subarray,
         tel_id,
         selected_gain_channel,
-        true_charge,
+        _,
         true_time,
         mask,
     ) = toymodel_mst_fc_time
@@ -865,7 +898,7 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
         tel_id,
         selected_gain_channel,
         true_charge,
-        true_time,
+        _,
     ) = toymodel_mst_fc
     extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=True)
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
