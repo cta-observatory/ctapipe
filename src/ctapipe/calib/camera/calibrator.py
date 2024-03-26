@@ -294,15 +294,6 @@ class CameraCalibrator(TelescopeComponent):
         if self._check_r1_empty(waveforms):
             return
 
-        if self.image_extractor_type.tel[tel_id] not in [
-            "LocalPeakWindowSum",
-            "FixedWindowSum",
-        ]:
-            raise ValueError(
-                f"Invalid ImageExtractor '{self.image_extractor_type.tel[tel_id]}'."
-                "Valid options: LocalPeakWindowSum FixedWindowSum."
-            )
-
         n_channels, n_pixels, n_samples = waveforms.shape
 
         broken_pixels = event.mon.tel[tel_id].pixel_status.hardware_failing_pixels
