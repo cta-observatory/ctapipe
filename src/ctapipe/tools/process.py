@@ -211,12 +211,6 @@ class ProcessorTool(Tool):
         if self.force_recompute_dl2:
             return True
 
-        if (
-            self.calibrate.process_flatfield_events
-            or self.calibrate.process_pedestal_events
-        ):
-            return False
-
         return self.write.write_dl2
 
     @property
