@@ -484,16 +484,16 @@ class DL1CameraContainer(Container):
 
     image = Field(
         None,
-        "Numpy array of camera image, after waveform extraction." "Shape: (n_pixel)",
-        dtype=np.float32,
-        ndim=1,
+        "Numpy array of camera image, after waveform extraction."
+        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
+        "else: (n_channels, n_pixel)",
     )
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
-        "the extractor. Shape: (n_pixel, )",
-        dtype=np.float32,
-        ndim=1,
+        "the extractor."
+        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
+        "else: (n_channels, n_pixel)",
     )
     image_mask = Field(
         None,
