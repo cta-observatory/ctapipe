@@ -5,6 +5,7 @@ import os
 import pathlib
 from urllib.parse import urlparse
 
+import astropy.units as u
 import traitlets
 import traitlets.config
 from astropy.time import Time
@@ -17,6 +18,7 @@ from .telescope_component import TelescopeParameter
 
 __all__ = [
     # Implemented here
+    "AstroQuantity",
     "AstroTime",
     "BoolTelescopeParameter",
     "IntTelescopeParameter",
@@ -72,8 +74,60 @@ observe = traitlets.observe
 flag = traitlets.config.boolean_flag
 
 
+class AstroQuantity(TraitType):
+    """A trait containing an ``astropy.units`` quantity."""
+
+    def __init__(self, physical_type=None, **kwargs):
+        super().__init__(**kwargs)
+        if physical_type is not None:
+            if isinstance(physical_type, u.PhysicalType):
+                self.physical_type = physical_type
+            elif isinstance(physical_type, u.UnitBase):
+                self.physical_type = u.get_physical_type(physical_type)
+            else:
+                raise TraitError(
+                    "Given physical type must be either of type"
+                    " astropy.units.PhysicalType or a subclass of"
+                    f" astropy.units.UnitBase, was {type(physical_type)}."
+                )
+        else:
+            self.physical_type = physical_type
+
+        if self.default_value is not Undefined and self.physical_type is not None:
+            default_type = u.get_physical_type(self.default_value)
+            if default_type != self.physical_type:
+                raise TraitError(
+                    f"Given physical type {self.physical_type} does not match"
+                    f" physical type of the default value, {default_type}."
+                )
+
+    def info(self):
+        info = "An ``astropy.units.Quantity`` instance"
+        if self.allow_none:
+            info += "or None"
+        return info
+
+    def validate(self, obj, value):
+        try:
+            quantity = u.Quantity(value)
+        except TypeError:
+            return self.error(obj, value)
+        except ValueError:
+            return self.error(obj, value)
+
+        if self.physical_type is not None:
+            given_type = u.get_physical_type(quantity)
+            if given_type != self.physical_type:
+                raise TraitError(
+                    f"Given quantity is of physical type {given_type}."
+                    f" Expected {self.physical_type}."
+                )
+
+        return quantity
+
+
 class AstroTime(TraitType):
-    """A trait representing a point in Time, as understood by `astropy.time`"""
+    """A trait representing a point in Time, as understood by ``astropy.time``."""
 
     def validate(self, obj, value):
         """try to parse and return an ISO time string"""
