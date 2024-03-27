@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.10"
       - name: Check README syntax
         run: |
           pip install restructuredtext-lint
@@ -39,7 +39,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python-version: "3.9"
+            python-version: "3.10"
             install-method: mamba
 
           - os: ubuntu-latest
@@ -60,12 +60,12 @@ jobs:
             install-method: pip
 
           - os: macos-latest
-            python-version: "3.12"
-            install-method: mamba
+            python-version: "3.10"
+            install-method: pip
 
           - os: macos-latest
-            python-version: "3.9"
-            install-method: pip
+            python-version: "3.12"
+            install-method: mamba
 
     defaults:
       run:
@@ -164,7 +164,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.10"
 
       - name: Install doc dependencies
         run: |

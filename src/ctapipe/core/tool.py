@@ -11,7 +11,6 @@ from contextlib import ExitStack
 from inspect import cleandoc
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
-from typing import Union
 
 import yaml
 from docutils.core import publish_parts
@@ -258,7 +257,7 @@ class Tool(Application):
 
         self.log.info(f"ctapipe version {self.version_string}")
 
-    def load_config_file(self, path: Union[str, pathlib.Path]) -> None:
+    def load_config_file(self, path: str | pathlib.Path) -> None:
         """
         Load a configuration file in one of the supported formats, and merge it with
         the current config if it exists.
@@ -272,7 +271,7 @@ class Tool(Application):
 
         if path.suffix in [".yaml", ".yml"]:
             # do our own YAML loading
-            with open(path, "r") as infile:
+            with open(path) as infile:
                 config = Config(yaml.safe_load(infile))
             self.update_config(config)
         elif path.suffix == ".toml" and HAS_TOML:

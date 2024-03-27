@@ -117,7 +117,7 @@ plt.ylabel("Impact Dist (m)")
 plt.pcolormesh(
     energy_table.bin_centers(0), energy_table.bin_centers(1), energy_table.hist.T
 )
-plt.title("Raw table, uninterpolated {0}".format(energy_table.hist.T.shape))
+plt.title(f"Raw table, uninterpolated {energy_table.hist.T.shape}")
 cb = plt.colorbar()
 cb.set_label(r"$\log_{10}(E/\mathrm{TeV})$")
 

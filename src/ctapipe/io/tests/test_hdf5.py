@@ -459,7 +459,7 @@ def test_closing_writer(tmp_path):
 
 
 def test_cannot_read_with_writer(tmp_path):
-    with pytest.raises(IOError):
+    with pytest.raises(OSError):
         with HDF5TableWriter(tmp_path / "test.h5", "test", mode="r"):
             pass
 
@@ -984,7 +984,7 @@ def test_can_read_same_containers(tmp_path):
 
     # This needs to fail since the mapping is not unique
     with HDF5TableReader(path) as reader:
-        with pytest.raises(IOError):
+        with pytest.raises(OSError):
             generator = reader.read("/values", [Container1, Container1])
             next(generator)
 

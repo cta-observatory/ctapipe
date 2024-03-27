@@ -88,7 +88,7 @@ class EventSeeker(Component):
         Recreate the generator so it starts from the beginning
         """
         if self._event_source.is_stream:
-            raise IOError("Back-seeking is not possible for event source")
+            raise OSError("Back-seeking is not possible for event source")
         self._source = self._event_source.__iter__()
         self._current_event = None
 

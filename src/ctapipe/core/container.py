@@ -389,7 +389,7 @@ class Container(metaclass=ContainerMeta):
 
         d = dict()
         for key, val in self.items(add_prefix=add_prefix):
-            if isinstance(val, (Container, Map)):
+            if isinstance(val, Container | Map):
                 if flatten:
                     d.update(val.as_dict(**kwargs))
                 else:

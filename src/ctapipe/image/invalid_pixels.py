@@ -2,7 +2,6 @@
 Methods to interpolate broken pixels
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple
 
 import numpy as np
 
@@ -22,7 +21,7 @@ class InvalidPixelHandler(TelescopeComponent, metaclass=ABCMeta):
     @abstractmethod
     def __call__(
         self, tel_id, image, peak_time, pixel_mask
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Handle invalid (broken, high noise, ...) pixels.
 

@@ -93,7 +93,7 @@ def get_column_attrs(table):
             key = full_key[len(prefix) :]
 
             # convert numpy scalars to plain python objects
-            if isinstance(value, (np.str_, np.bool_, np.number)):
+            if isinstance(value, np.str_ | np.bool_ | np.number):
                 value = value.item()
 
             current[key] = value
@@ -124,7 +124,7 @@ def get_node_meta(node):
         value = attrs[key]
 
         # convert numpy scalars to plain python objects
-        if isinstance(value, (np.str_, np.bool_, np.number)):
+        if isinstance(value, np.str_ | np.bool_ | np.number):
             value = value.item()
 
         meta[key] = value
@@ -240,7 +240,7 @@ class HDF5TableWriter(TableWriter):
         self._tables = {}
 
         if mode not in ["a", "w", "r+"]:
-            raise IOError(f"The mode '{mode}' is not supported for writing")
+            raise OSError(f"The mode '{mode}' is not supported for writing")
 
         kwargs.update(mode=mode, root_uep=root_uep, filters=filters)
 
@@ -603,7 +603,7 @@ class HDF5TableReader(TableReader):
                     )
                 else:
                     if col_name in cols_to_read:
-                        raise IOError(
+                        raise OSError(
                             "Mapping of column names to container fields is not unique"
                             ", prefixes are required."
                             f" Duplicated column: {col_name} / {field_name}"

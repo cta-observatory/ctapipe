@@ -5,7 +5,6 @@ import copy
 import logging
 from collections import UserList
 from fnmatch import fnmatch
-from typing import Optional, Union
 
 import numpy as np
 from traitlets import List, TraitError, TraitType, Undefined
@@ -197,7 +196,7 @@ class TelescopeParameterLookup:
             else:
                 raise ValueError(f"Unrecognized command: {command}")
 
-    def __getitem__(self, tel: Optional[Union[int, str]]):
+    def __getitem__(self, tel: int | str | None):
         """
         Returns the resolved parameter for the given telescope id
         """
@@ -213,7 +212,7 @@ class TelescopeParameterLookup:
                 "`attach_subarray` first before trying to access a value by tel_id"
             )
 
-        if isinstance(tel, (int, np.integer)):
+        if isinstance(tel, int | np.integer):
             try:
                 return self._value_for_tel_id[tel]
             except KeyError:
@@ -331,7 +330,7 @@ class TelescopeParameter(List):
 
     def validate(self, obj, value):
         # Support a single value for all (check and convert into a default value)
-        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
+        if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]
 
         # Check each value of list
@@ -374,7 +373,7 @@ class TelescopeParameter(List):
 
     def set(self, obj, value):
         # Support a single value for all (check and convert into a default value)
-        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
+        if not isinstance(value, list | List | UserList | TelescopePatternList):
             value = [("type", "*", self._validate_entry(obj, value))]
 
         # Retain existing subarray description

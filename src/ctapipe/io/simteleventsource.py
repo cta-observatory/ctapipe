@@ -5,7 +5,6 @@ from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
-from typing import Dict, Optional, Union
 
 import numpy as np
 from astropy import units as u
@@ -315,8 +314,8 @@ class AtmosphereProfileKind(Enum):
 
 
 def read_atmosphere_profile_from_simtel(
-    simtelfile: Union[str, Path, SimTelFile], kind=AtmosphereProfileKind.AUTO
-) -> Optional[TableAtmosphereDensityProfile]:
+    simtelfile: str | Path | SimTelFile, kind=AtmosphereProfileKind.AUTO
+) -> TableAtmosphereDensityProfile | None:
     """Read an atmosphere profile from a SimTelArray file as an astropy Table
 
     Parameters
@@ -343,7 +342,7 @@ def read_atmosphere_profile_from_simtel(
     if kind == AtmosphereProfileKind.NONE:
         return None
 
-    if isinstance(simtelfile, (str, Path)):
+    if isinstance(simtelfile, str | Path):
         context_manager = SimTelFile(simtelfile)
         Provenance().add_input_file(
             filename=simtelfile, role="ctapipe.atmosphere.AtmosphereDensityProfile"
@@ -519,7 +518,7 @@ class SimTelEventSource(EventSource):
             zcat=not self.back_seekable,
         )
         if self.back_seekable and self.is_stream:
-            raise IOError("back seekable was required but not possible for inputfile")
+            raise OSError("back seekable was required but not possible for inputfile")
         (
             self._scheduling_blocks,
             self._observation_blocks,
@@ -555,7 +554,7 @@ class SimTelEventSource(EventSource):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
-    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+    def simulation_config(self) -> dict[int, SimulationConfigContainer]:
         return self._simulation_config
 
     @property
@@ -563,14 +562,14 @@ class SimTelEventSource(EventSource):
         return self._atmosphere_density_profile
 
     @property
-    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+    def observation_blocks(self) -> dict[int, ObservationBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
         return self._observation_blocks
 
     @property
-    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+    def scheduling_blocks(self) -> dict[int, SchedulingBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
@@ -578,7 +577,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def is_stream(self):
-        return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
+        return not isinstance(self.file_._filehandle, BufferedReader | GzipFile)
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """

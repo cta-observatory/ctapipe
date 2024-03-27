@@ -104,12 +104,12 @@ def test_signal_fraction(tmp_path, gamma_train_clf, proton_train_clf):
             ],
         )
 
-        with open(log_file, "r") as f:
+        with open(log_file) as f:
             log = f.readlines()
 
         for line in log[::-1]:
             if "Train on" in line:
-                n_signal, n_background = [int(line.split(" ")[i]) for i in (7, 10)]
+                n_signal, n_background = (int(line.split(" ")[i]) for i in (7, 10))
                 break
 
         assert np.allclose(n_signal / (n_signal + n_background), frac, atol=1e-4)

@@ -6,7 +6,6 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 
 import pathlib
 from collections import defaultdict
-from typing import List
 
 import numpy as np
 import tables
@@ -83,7 +82,7 @@ PROV = Provenance()
 
 
 def write_reference_metadata_headers(
-    obs_ids: List[int],
+    obs_ids: list[int],
     subarray: SubarrayDescription,
     writer: "DataWriter",
     is_simulation: bool,

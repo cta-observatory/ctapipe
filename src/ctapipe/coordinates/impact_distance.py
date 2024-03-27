@@ -1,12 +1,8 @@
-#!/usr/bin/env python3
 """
 Functions to compute the impact distance from a simulated or reconstructed
 shower axis (Defined by the line from the impact point on the ground in the
 reconstructed sky direction) to each telescope's ground position.
 """
-
-from typing import Union
-
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -37,7 +33,7 @@ def impact_distance(point: np.ndarray, direction: np.ndarray, test_points: np.nd
 
 
 def shower_impact_distance(
-    shower_geom: Union[ReconstructedGeometryContainer, SimulatedShowerContainer],
+    shower_geom: ReconstructedGeometryContainer | SimulatedShowerContainer,
     subarray,
 ):
     """computes the impact distance of the shower axis to the telescope positions

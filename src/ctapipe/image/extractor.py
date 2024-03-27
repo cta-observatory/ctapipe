@@ -22,8 +22,8 @@ __all__ = [
 
 
 from abc import abstractmethod
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Callable, List, Optional, Tuple
 
 import astropy.units as u
 import numpy as np
@@ -937,7 +937,7 @@ class TwoPassWindowSum(ImageExtractor):
 
     def _apply_first_pass(
         self, waveforms, tel_id
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Execute step 1.
 
@@ -1015,7 +1015,7 @@ class TwoPassWindowSum(ImageExtractor):
         pulse_time_1stpass,
         correction,
         broken_pixels,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Follow steps from 2 to 7.
 
@@ -1299,8 +1299,8 @@ def deconvolution_parameters(
     window_shift: int,
     leading_edge_timing: bool,
     leading_edge_rel_descend_limit: float,
-    time_profile_pdf: Optional[Callable[[npt.ArrayLike], npt.ArrayLike]] = None,
-) -> Tuple[List[float], List[float], List[float]]:
+    time_profile_pdf: None | Callable[[npt.ArrayLike], npt.ArrayLike] = None,
+) -> tuple[list[float], list[float], list[float]]:
     """
     Estimates deconvolution and recalibration parameters from the camera's reference
     single-p.e. pulse shape for the given configuration of FlashCamExtractor.

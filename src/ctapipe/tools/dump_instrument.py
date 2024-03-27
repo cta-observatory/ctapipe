@@ -94,7 +94,7 @@ class DumpInstrumentTool(Tool):
                 readout_table.write(readout_filename, **args)
                 Provenance().add_output_file(geom_filename, "CameraGeometry")
                 Provenance().add_output_file(readout_filename, "CameraReadout")
-            except IOError as err:
+            except OSError as err:
                 self.log.warning("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
@@ -108,7 +108,7 @@ class DumpInstrumentTool(Tool):
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, "OpticsDescription")
-        except IOError as err:
+        except OSError as err:
             self.log.warning(
                 "couldn't write optics description '%s' because: %s", filename, err
             )
@@ -122,7 +122,7 @@ class DumpInstrumentTool(Tool):
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, "SubarrayDescription")
-        except IOError as err:
+        except OSError as err:
             self.log.warning(
                 "couldn't write subarray description '%s' because: %s", filename, err
             )

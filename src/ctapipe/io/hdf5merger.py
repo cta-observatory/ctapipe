@@ -3,7 +3,6 @@ import uuid
 import warnings
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Union
 
 import tables
 from astropy.time import Time
@@ -77,7 +76,7 @@ def _get_required_nodes(h5file):
     return required_nodes
 
 
-class CannotMerge(IOError):
+class CannotMerge(OSError):
     """Raised when trying to merge incompatible files"""
 
 
@@ -204,7 +203,7 @@ class HDF5Merger(Component):
             )
             self.required_nodes = _get_required_nodes(self.h5file)
 
-    def __call__(self, other: Union[str, Path, tables.File]):
+    def __call__(self, other: str | Path | tables.File):
         """
         Append file ``other`` to the output file
         """

@@ -12,7 +12,6 @@ account)
 import abc
 from dataclasses import dataclass
 from functools import partial
-from typing import Dict
 
 import numpy as np
 from astropy import units as u
@@ -342,7 +341,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         ]
 
     @classmethod
-    def from_array(cls, array: np.ndarray, metadata: Dict = None):
+    def from_array(cls, array: np.ndarray, metadata: dict = None):
         """construct from a 5x5 array as provided by eventio"""
 
         if metadata is None:
