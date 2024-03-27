@@ -1,6 +1,7 @@
 """
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
+
 # pylint: disable=W0201
 import sys
 
@@ -187,6 +188,7 @@ class ProcessorTool(Tool):
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)
         )
+
         self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)

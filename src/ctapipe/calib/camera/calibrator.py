@@ -7,10 +7,17 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
+from ctapipe.containers import (
+    DL0CameraContainer,
+    DL1CameraContainer,
+    PixelStatus,
+    EventType,
+)
+
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
+    Bool,
     ComponentName,
     TelescopeParameter,
 )
@@ -282,6 +289,35 @@ class CameraCalibrator(TelescopeComponent):
         # store the results in the event structure
         event.dl1.tel[tel_id] = dl1
 
+    def _process_calib(self, event, tel_id):
+        waveforms = event.r1.tel[tel_id].waveform
+        if self._check_r1_empty(waveforms):
+            return
+
+        n_channels, n_pixels, n_samples = waveforms.shape
+
+        broken_pixels = event.mon.tel[tel_id].pixel_status.hardware_failing_pixels
+        if broken_pixels is None:
+            broken_pixels = np.zeros(n_pixels, dtype=bool)
+
+        # TODO: See #1836 (process all provided gains in the ImageExtractor)
+        no_gain_selection = np.zeros((n_channels, n_pixels), dtype=np.int64)
+
+        if n_channels == 2:
+            no_gain_selection[1] = 1
+
+        # Extract charge and arrival time and return the DL1CameraContainer
+        extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
+
+        dl1 = extractor(
+            waveforms,
+            tel_id=tel_id,
+            selected_gain_channel=no_gain_selection,
+            broken_pixels=broken_pixels,
+        )
+        # store the results in the event structure
+        event.dl1.tel[tel_id] = dl1
+
     def __call__(self, event):
         """
         Perform the full camera calibration from R1 to DL1. Any calibration
@@ -296,8 +332,14 @@ class CameraCalibrator(TelescopeComponent):
         # TODO: How to handle different calibrations depending on tel_id?
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
         for tel_id in tel.keys():
-            self._calibrate_dl0(event, tel_id)
-            self._calibrate_dl1(event, tel_id)
+            if (
+                event.trigger.event_type == EventType.SKY_PEDESTAL
+                or event.trigger.event_type == EventType.FLATFIELD
+            ):
+                self._process_calib(event, tel_id)
+            else:
+                self._calibrate_dl0(event, tel_id)
+                self._calibrate_dl1(event, tel_id)
 
 
 def shift_waveforms(waveforms, time_shift_samples):
