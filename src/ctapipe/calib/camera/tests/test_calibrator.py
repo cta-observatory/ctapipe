@@ -240,20 +240,20 @@ def test_dl1_charge_calib(example_subarray):
 def test_shift_waveforms():
     from ctapipe.calib.camera.calibrator import shift_waveforms
 
-    # 5 pixels, 40 samples
-    waveforms = np.zeros((5, 40))
-    waveforms[:, 10] = 1
+    # 2 channels, 5 pixels, 40 samples
+    waveforms = np.zeros((2, 5, 40))
+    waveforms[:, :, 10] = 1
     shifts = np.array([1.4, 2.1, -1.8, 3.1, -4.4])
 
     shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
 
     assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
 
-    assert shifted_waveforms[0, 9] == 1
-    assert shifted_waveforms[1, 8] == 1
-    assert shifted_waveforms[2, 12] == 1
-    assert shifted_waveforms[3, 7] == 1
-    assert shifted_waveforms[4, 14] == 1
+    assert shifted_waveforms[:, 0, 9].all() == 1
+    assert shifted_waveforms[:, 1, 8].all() == 1
+    assert shifted_waveforms[:, 2, 12].all() == 1
+    assert shifted_waveforms[:, 3, 7].all() == 1
+    assert shifted_waveforms[:, 4, 14].all() == 1
 
 
 def test_invalid_pixels(example_event, example_subarray):
