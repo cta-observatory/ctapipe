@@ -1,6 +1,7 @@
 """
 Algorithms to select correct gain channel
 """
+
 from abc import abstractmethod
 from enum import IntEnum
 
@@ -47,16 +48,16 @@ class GainSelector(Component):
             Shape: n_pix
             Dtype: int8
         """
-        if waveforms.ndim == 2:  # Return None if already gain selected
-            return None
-        elif waveforms.ndim == 3:
+        if waveforms.ndim == 3:
             n_channels, n_pixels, _ = waveforms.shape
-            if n_channels == 1:  # Must be first channel if only one channel
+            if n_channels == 1:
                 return np.zeros(n_pixels, dtype=np.int8)
             else:
                 return self.select_channel(waveforms)
         else:
-            raise ValueError(f"Cannot handle waveform array of shape: {waveforms.ndim}")
+            raise ValueError(
+                f"Cannot handle waveform array of shape: {waveforms.shape}"
+            )
 
     @abstractmethod
     def select_channel(self, waveforms):
