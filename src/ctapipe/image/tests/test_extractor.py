@@ -444,7 +444,8 @@ def test_integration_correction_off(Extractor, toymodels, request):
     assert dl1.is_valid
 
     # peak time should stay the same
-    # charge should be too small without correction
+    # charge should be too small without correction for the used reference pulse
+    # shapes (not in general).
     if dl1.image.ndim == 1:
         assert np.all(dl1.image <= true_charge)
         assert_allclose(dl1.peak_time, true_time, rtol=0.1)
