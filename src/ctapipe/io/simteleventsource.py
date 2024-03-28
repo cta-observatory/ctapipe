@@ -277,21 +277,15 @@ def apply_simtel_r1_calibration(
         The gain channel selected for each pixel
         Shape: (n_pixels)
     """
-    n_channels, n_pixels, _ = r0_waveforms.shape
+    n_pixels = r0_waveforms.shape[-2]
     ped = pedestal[..., np.newaxis]
     DC_to_PHE = dc_to_pe[..., np.newaxis]
     gain = DC_to_PHE * calib_scale
 
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
 
-    if n_channels == 1:
-        selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
-        r1_waveforms = r1_waveforms
-    else:
-        selected_gain_channel = gain_selector(r0_waveforms)
-        r1_waveforms = r1_waveforms[
-            np.newaxis, selected_gain_channel, np.arange(n_pixels)
-        ]
+    selected_gain_channel = gain_selector(r0_waveforms)
+    r1_waveforms = r1_waveforms[np.newaxis, selected_gain_channel, np.arange(n_pixels)]
 
     return r1_waveforms, selected_gain_channel
 

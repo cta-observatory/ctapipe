@@ -23,15 +23,6 @@ def test_gain_selector():
     np.testing.assert_equal(selected_gain_channel, 0)
 
 
-def test_pre_selected():
-    shape = (2048, 128)
-    waveforms = np.zeros(shape)
-
-    gain_selector = DummyGainSelector()
-    selected_gain_channel = gain_selector(waveforms)
-    assert selected_gain_channel is None
-
-
 def test_single_channel():
     shape = (1, 2048, 128)
     waveforms = np.zeros(shape)
