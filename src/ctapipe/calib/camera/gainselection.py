@@ -52,8 +52,7 @@ class GainSelector(Component):
             n_channels, n_pixels, _ = waveforms.shape
             if n_channels == 1:
                 return np.zeros(n_pixels, dtype=np.int8)
-            else:
-                return self.select_channel(waveforms)
+            return self.select_channel(waveforms)
         else:
             raise ValueError(
                 f"Cannot handle waveform array of shape: {waveforms.shape}"

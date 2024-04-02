@@ -227,7 +227,7 @@ class CameraCalibrator(TelescopeComponent):
         # subtract any remaining pedestal before extraction
         if dl1_calib.pedestal_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
-            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels, )
+            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels,)
             waveforms = waveforms - dl1_calib.pedestal_offset[np.newaxis, :, np.newaxis]
 
         if n_samples == 1:

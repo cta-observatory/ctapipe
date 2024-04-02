@@ -128,22 +128,22 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 
 
 @pytest.fixture(scope="module")
-def toymodel(subarray: object) -> object:
+def toymodel(subarray):
     return get_test_toymodel(subarray)
 
 
 @pytest.fixture(scope="module")
-def toymodel_sst(subarray_2_sst: object) -> object:
+def toymodel_sst(subarray_2_sst):
     return get_test_toymodel(subarray_2_sst)
 
 
 @pytest.fixture(scope="module")
-def toymodel_lst(subarray_1_LST: object) -> object:
+def toymodel_lst(subarray_1_LST):
     return get_test_toymodel(subarray_1_LST)
 
 
 @pytest.fixture(scope="module")
-def toymodel_mst_fc(subarray_1_mst_fc: object) -> object:
+def toymodel_mst_fc(subarray_1_mst_fc):
     return get_test_toymodel(subarray_1_mst_fc)
 
 

@@ -1308,8 +1308,7 @@ class TwoPassWindowSum(ImageExtractor):
             raise AttributeError(
                 "The data needs to be gain selected to use the TwoPassWindowSum."
             )
-        else:
-            waveforms = waveforms[0, :, :]
+        waveforms = waveforms[0, :, :]
 
         charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, tel_id)
 

@@ -249,11 +249,11 @@ def test_shift_waveforms():
 
     assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
 
-    assert shifted_waveforms[:, 0, 9].all() == 1
-    assert shifted_waveforms[:, 1, 8].all() == 1
-    assert shifted_waveforms[:, 2, 12].all() == 1
-    assert shifted_waveforms[:, 3, 7].all() == 1
-    assert shifted_waveforms[:, 4, 14].all() == 1
+    assert (shifted_waveforms[:, 0, 9] == 1).all()
+    assert (shifted_waveforms[:, 1, 8] == 1).all()
+    assert (shifted_waveforms[:, 2, 12] == 1).all()
+    assert (shifted_waveforms[:, 3, 7] == 1).all()
+    assert (shifted_waveforms[:, 4, 14] == 1).all()
 
 
 def test_invalid_pixels(example_event, example_subarray):

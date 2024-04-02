@@ -185,7 +185,7 @@ class WaveformModel:
         readout : `ctapipe.instrument.CameraReadout`
         gain_channel : str
             The reference pulse gain channel to use.
-            Choose between `HIGH`, `LOW` and `ALL`.
+            Choose between 'HIGH', 'LOW' and 'ALL'.
 
         Returns
         -------
