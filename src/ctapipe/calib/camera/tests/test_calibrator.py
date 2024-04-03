@@ -240,8 +240,8 @@ def test_dl1_charge_calib(example_subarray):
 def test_shift_waveforms():
     from ctapipe.calib.camera.calibrator import shift_waveforms
 
-    # 2 channels, 5 pixels, 40 samples
-    waveforms = np.zeros((2, 5, 40))
+    # 1 channel, 5 pixels, 40 samples
+    waveforms = np.zeros((1, 5, 40))
     waveforms[:, :, 10] = 1
     shifts = np.array([1.4, 2.1, -1.8, 3.1, -4.4])
 

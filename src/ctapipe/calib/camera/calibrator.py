@@ -228,7 +228,9 @@ class CameraCalibrator(TelescopeComponent):
         if dl1_calib.pedestal_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
             # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels,)
-            waveforms = waveforms - dl1_calib.pedestal_offset[np.newaxis, :, np.newaxis]
+            waveforms = (
+                waveforms - np.atleast_2d(dl1_calib.pedestal_offset)[..., np.newaxis]
+            )
 
         if n_samples == 1:
             # To handle ASTRI and dst
@@ -238,7 +240,7 @@ class CameraCalibrator(TelescopeComponent):
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
             dl1 = DL1CameraContainer(
-                image=waveforms[0, ..., 0].astype(np.float32),
+                image=np.squeeze(waveforms).astype(np.float32),
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
                 is_valid=True,
             )
@@ -265,10 +267,12 @@ class CameraCalibrator(TelescopeComponent):
 
             # correct non-integer remainder of the shift if given
             if self.apply_peak_time_shift.tel[tel_id] and time_shift is not None:
-                dl1.peak_time -= remaining_shift
+                dl1.peak_time = (dl1.peak_time.T - remaining_shift).T
 
         # Calibrate extracted charge
-        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+        dl1.image = (
+            dl1.image.T * (dl1_calib.relative_factor / dl1_calib.absolute_factor)
+        ).T
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:
@@ -323,8 +327,8 @@ def shift_waveforms(waveforms, time_shift_samples):
     remaining_shift: ndarray of shape (n_pixels, )
         The remaining shift after applying the integer shift to the waveforms.
     """
-    mean_shift = time_shift_samples.mean()
-    integer_shift = np.round(time_shift_samples - mean_shift).astype("int16")
+    mean_shift = time_shift_samples.mean(-1)
+    integer_shift = np.round((time_shift_samples.T - mean_shift).T).astype("int16")
     remaining_shift = time_shift_samples - integer_shift
     shifted_waveforms = _shift_waveforms_by_integer(waveforms, integer_shift)
     return shifted_waveforms, remaining_shift
