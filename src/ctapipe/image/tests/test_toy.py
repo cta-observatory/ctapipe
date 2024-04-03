@@ -279,3 +279,6 @@ def test_waveform_model(frame, prod5_sst):
     waveform_model = WaveformModel.from_camera_readout(readout, gain_channel="HIGH")
     waveform = waveform_model.get_waveform(charge, time, 96)
     assert waveform.shape[-3] == 1
+
+    with pytest.raises(ValueError):
+        WaveformModel.from_camera_readout(readout, gain_channel=0)
