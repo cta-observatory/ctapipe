@@ -299,7 +299,7 @@ def test_neighbor_average_peakpos(toymodels, request):
     expected_average = waveforms[:, nei_pixel].sum(1) / len(nei_pixel)
     expected_peak_pos = np.argmax(expected_average, axis=-1)
     for ichannel in range(waveforms.shape[-3]):
-        assert (peak_pos[ichannel][pixel] == expected_peak_pos).all()
+        assert peak_pos[ichannel][pixel] == expected_peak_pos[ichannel]
 
     local_weight = 4
     peak_pos = neighbor_average_maximum(
@@ -316,7 +316,7 @@ def test_neighbor_average_peakpos(toymodels, request):
     expected_average = waveforms[:, nei_pixel].sum(1) / len(nei_pixel)
     expected_peak_pos = np.argmax(expected_average, axis=-1)
     for ichannel in range(waveforms.shape[-3]):
-        assert (peak_pos[ichannel][pixel] == expected_peak_pos).all()
+        assert peak_pos[ichannel][pixel] == expected_peak_pos[ichannel]
 
 
 def test_extract_peak_time_within_range():
