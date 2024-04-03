@@ -30,7 +30,7 @@ def test_is_compatible(compatible_file, request):
 def test_metadata(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
-        assert source.datamodel_version == (5, 1, 0)
+        assert source.datamodel_version == (6, 0, 0)
         assert set(source.datalevels) == {
             DataLevel.DL1_IMAGES,
             DataLevel.DL1_PARAMETERS,
