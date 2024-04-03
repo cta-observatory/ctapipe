@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ctapipe.calib.camera.gainselection import (
     GainChannel,
@@ -21,6 +22,16 @@ def test_gain_selector():
     gain_selector = DummyGainSelector()
     selected_gain_channel = gain_selector(waveforms)
     np.testing.assert_equal(selected_gain_channel, 0)
+
+
+def test_ndim():
+    shape = (5, 2, 2048, 128)
+    waveforms = np.indices(shape)[1]
+    waveforms[1] *= 2
+
+    gain_selector = DummyGainSelector()
+    with pytest.raises(ValueError):
+        gain_selector(waveforms)
 
 
 def test_single_channel():
