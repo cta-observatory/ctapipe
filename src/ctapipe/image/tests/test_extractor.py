@@ -723,12 +723,12 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     # signal in dim pixels is in slice 10, signal in bright pixels is in slice 30
     waveforms = np.zeros((1, n_pixels, 50), dtype="float64")
-    waveforms[0][~bright_pixels, 9] = 3
-    waveforms[0][~bright_pixels, 10] = 5
-    waveforms[0][~bright_pixels, 11] = 2
-    waveforms[0][bright_pixels, 29] = 5
-    waveforms[0][bright_pixels, 30] = 10
-    waveforms[0][bright_pixels, 31] = 3
+    waveforms[:, ~bright_pixels, 9] = 3
+    waveforms[:, ~bright_pixels, 10] = 5
+    waveforms[:, ~bright_pixels, 11] = 2
+    waveforms[:, bright_pixels, 29] = 5
+    waveforms[:, bright_pixels, 30] = 10
+    waveforms[:, bright_pixels, 31] = 3
 
     extractor = GlobalPeakWindowSum(
         subarray=subarray,
