@@ -249,6 +249,23 @@ def test_shift_waveforms():
 
     assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
 
+    assert shifted_waveforms[0, 0, 9] == 1
+    assert shifted_waveforms[0, 1, 8] == 1
+    assert shifted_waveforms[0, 2, 12] == 1
+    assert shifted_waveforms[0, 3, 7] == 1
+    assert shifted_waveforms[0, 4, 14] == 1
+
+    # 2 channel, 5 pixels, 40 samples
+    waveforms = np.zeros((2, 5, 40))
+    waveforms[:, :, 10] = 1
+    shifts = np.array([[1.4, 2.1, -1.8, 3.1, -4.4], [1.4, 2.1, -1.8, 3.1, -4.4]])
+
+    shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
+
+    assert np.allclose(
+        remaining_shift, [[0.4, 0.1, 0.2, 0.1, -0.4], [0.4, 0.1, 0.2, 0.1, -0.4]]
+    )
+
     assert (shifted_waveforms[:, 0, 9] == 1).all()
     assert (shifted_waveforms[:, 1, 8] == 1).all()
     assert (shifted_waveforms[:, 2, 12] == 1).all()
