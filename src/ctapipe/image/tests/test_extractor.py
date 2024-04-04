@@ -85,7 +85,7 @@ def subarray_2_sst(prod5_sst, reference_location):
 
 
 @pytest.fixture(scope="module")
-def subarray_1_LST(prod3_lst, reference_location):
+def subarray_1_lst(prod3_lst, reference_location):
     subarray = SubarrayDescription(
         "One LST",
         tel_positions={1: np.zeros(3) * u.m},
@@ -138,8 +138,8 @@ def toymodel_sst(subarray_2_sst):
 
 
 @pytest.fixture(scope="module")
-def toymodel_lst(subarray_1_LST):
-    return get_test_toymodel(subarray_1_LST)
+def toymodel_lst(subarray_1_lst):
+    return get_test_toymodel(subarray_1_lst)
 
 
 @pytest.fixture(scope="module")
@@ -520,10 +520,10 @@ def test_neighbor_peak_window_sum_local_weight(toymodel):
     assert dl1.is_valid
 
 
-def test_Two_pass_window_sum_no_noise(subarray_1_LST):
+def test_Two_pass_window_sum_no_noise(subarray_1_lst):
     rng = np.random.default_rng(0)
 
-    subarray = subarray_1_LST
+    subarray = subarray_1_lst
 
     camera = subarray.tel[1].camera
     geometry = camera.geometry
