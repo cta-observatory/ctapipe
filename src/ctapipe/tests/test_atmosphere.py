@@ -171,7 +171,7 @@ def test_slant_depth_from_height(table_profile):
     )
 
 
-def test_height_overburden_circle(table_profile):
+def test_height_overburden_roundtrip(table_profile):
     """
     Test that successive application of height to overburden
     and overburden to height functions return original values
@@ -217,7 +217,7 @@ def test_height_overburden_circle(table_profile):
     assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
 
 
-def test_height_slant_depth_circle(table_profile):
+def test_height_slant_depth_roundtrip(table_profile):
     """
     Test that successive application of height to overburden
     and overburden to height functions return original values
