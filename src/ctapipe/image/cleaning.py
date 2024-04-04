@@ -36,7 +36,7 @@ from ..core.traits import (
     FloatTelescopeParameter,
     IntTelescopeParameter,
 )
-from .morphology import brightest_island, number_of_islands
+from .morphology import brightest_island, largest_island, number_of_islands
 
 
 def tailcuts_clean(
@@ -110,6 +110,41 @@ def tailcuts_clean(
         return (pixels_above_boundary & pixels_with_picture_neighbors) | (
             pixels_in_picture & pixels_with_boundary_neighbors
         )
+
+
+def bright_cleaning(image, threshold=267, fraction=0.03):
+    """
+    Clean an image by removing pixels below
+    fraction * (mean charge in the 3 brightest pixels). Select all pixels
+    instead if the mean charge of the brightest pixels are below a
+    certain threshold.
+
+    Parameters
+    ----------
+    image: array
+        pixel values
+    threshold: `float`
+        Minimum average charge in the 3 brightest pixels to apply
+        cleaning
+    fraction: `float`
+        Pixels below fraction * (average charge in the 3 brightest pixels)
+        will be removed from the cleaned image
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+
+    """
+    max_3_value_index = np.argsort(image)[-3:]
+    mean_3_max_signal = np.mean(image[max_3_value_index])
+
+    if mean_3_max_signal < threshold:
+        return np.ones(image.shape, dtype=bool)
+
+    threshold_brightest = fraction * mean_3_max_signal
+    mask = image >= threshold_brightest
+
+    return mask
 
 
 def mars_cleaning_1st_pass(
@@ -459,6 +494,122 @@ def time_constrained_clean(
     return mask_core | mask_boundary
 
 
+def lst_image_cleaning(
+    geom,
+    image,
+    arrival_times,
+    picture_thresh=8,
+    boundary_thresh=4,
+    min_number_picture_neighbors=2,
+    keep_isolated_pixels=False,
+    time_limit=2,
+    apply_bright_cleaning=True,
+    fraction_bright_cleaning=0.03,
+    threshold_bright_cleaning=267,
+    largest_island_only=False,
+    pedestal_factor=2.5,
+    pedestal_std=None,
+):
+    """
+    Clean an image in 5 Steps:
+
+    1) Get picture threshold for `tailcuts_clean` in step 2) from interleaved
+        pedestal events if `pedestal_factor` and `pedestal_std` is not None.
+    2) Apply tailcuts image cleaning algorithm - `ctapipe.image.cleaning.tailcuts_clean`.
+    3) Apply time_delta_cleaning algorithm -
+        `ctapipe.image.cleaning.apply_time_delta_cleaning` if `time_limit` is not None.
+    4) Apply bright_cleaning - `ctapipe.image.cleaning.bright_cleaning` if
+        `apply_bright_cleaning` is set to true.
+    5) Get only largest island - `ctapipe.image.morphology.largest_island` if
+        `largest_island_only` is set to true.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: `np.ndarray`
+        pixel charges
+    arrival_times: `np.ndarray`
+        Pixel timing information
+    picture_thresh: `float` or `np.ndarray`
+        threshold above which all pixels are retained. Used for `tailcuts_clean`.
+    boundary_thresh: `float` or `np.ndarray`
+        threshold above which pixels are retained if they have a neighbor
+        already above the picture_thresh. Used for `tailcuts_clean`.
+    min_number_picture_neighbors: `int`
+        A picture pixel survives cleaning only if it has at least this number
+        of picture neighbors. This has no effect in case keep_isolated_pixels is True.
+        Used for `tailcuts_clean`.
+    keep_isolated_pixels: `bool`
+        If True, pixels above the picture threshold will be included always,
+        if not they are only included if a neighbor is in the picture or
+        boundary. Used for `tailcuts_clean`.
+    time_limit: `float`
+        Time limit for the `time_delta_cleaning`. Set to None if no
+        `time_delta_cleaning` should be applied.
+    apply_bright_cleaning: `bool`
+        Set to true if `bright_cleaning` should be applied.
+    fraction_bright_cleaning: `float`
+        `fraction` parameter for `bright_cleaning`. Pixels below
+        fraction * (average charge in the 3 brightest pixels) will be removed from
+        the cleaned image.
+    threshold_bright_cleaning: `float`
+        `threshold` parameter for `bright_cleaning`. Minimum average charge
+        in the 3 brightest pixels to apply the cleaning.
+    largest_island_only: `bool`
+        Set to true to get only largest island.
+    pedestal_factor: `float`
+        Factor for interleaved pedestal cleaning. It is multiplied by the
+        pedestal standard deviation for each pixel to calculate pixelwise picture
+        threshold parameters for `tailcuts_clean` considering the current background.
+        Set to None if no pedestal cleaning should be applied.
+    pedestal_std: `np.ndarray`
+        Pedestal standard deviation for each pixel. See
+        `ctapipe.containers.PedestalContainer`
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+
+    """
+    # Step 1
+    if pedestal_factor is not None and pedestal_std is not None:
+        pedestal_threshold = pedestal_std * pedestal_factor
+        picture_thresh = np.clip(pedestal_threshold, picture_thresh, None)
+    # Step 2
+    mask = tailcuts_clean(
+        geom,
+        image,
+        picture_thresh=picture_thresh,
+        boundary_thresh=boundary_thresh,
+        min_number_picture_neighbors=min_number_picture_neighbors,
+        keep_isolated_pixels=keep_isolated_pixels,
+    )
+    # Check that at least one pixel survives tailcuts_clean
+    if ~mask.any():
+        return mask
+    # Step 3
+    if time_limit is not None:
+        mask = apply_time_delta_cleaning(
+            geom,
+            mask,
+            arrival_times,
+            min_number_neighbors=1,
+            time_limit=time_limit,
+        )
+    # Step 4
+    if apply_bright_cleaning:
+        mask = bright_cleaning(
+            image, mask, threshold_bright_cleaning, fraction_bright_cleaning
+        )
+    # Step 5
+    if largest_island_only:
+        _, island_labels = number_of_islands(geom, mask)
+        mask = largest_island(island_labels)
+
+    return mask
+
+
 class ImageCleaner(TelescopeComponent):
     """
     Abstract class for all configurable Image Cleaning algorithms.   Use
@@ -541,6 +692,80 @@ class TailcutsImageCleaner(ImageCleaner):
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+        )
+
+
+class LSTImageCleaner(TailcutsImageCleaner):
+    """
+    Clean images using lstchains image cleaning technique. See
+    `ctapipe.image.lst_image_cleaning`
+    """
+
+    time_limit = FloatTelescopeParameter(
+        default_value=2,
+        help="Time limit for the `time_delta_cleaning`. Set to None if no"
+        "`time_delta_cleaning` should be applied",
+    ).tag(config=True)
+
+    apply_bright_cleaning = BoolTelescopeParameter(
+        default_value=True, help="Set to true if `bright_cleaning` should be applied"
+    ).tag(config=True)
+
+    fraction_bright_cleaning = FloatTelescopeParameter(
+        default_value=0.03,
+        help="`fraction` parameter for `bright_cleaning`. Pixels below "
+        "fraction * (average charge in the 3 brightest pixels) will be removed from "
+        "the cleaned image",
+    ).tag(config=True)
+
+    threshold_bright_cleaning = FloatTelescopeParameter(
+        default_value=267,
+        help="`threshold` parameter for `bright_cleaning`. Minimum average charge "
+        "in the 3 brightest pixels to apply the cleaning",
+    ).tag(config=True)
+
+    largest_island_only = BoolTelescopeParameter(
+        default_value=False, help="Set to true to get only largest island"
+    ).tag(config=True)
+
+    pedestal_factor = FloatTelescopeParameter(
+        default_value=2.5,
+        help="Factor for interleaved pedestal cleaning. It is multiplied by the "
+        "pedestal standard deviation for each pixel to calculate pixelwise picture "
+        "threshold parameters for `tailcuts_clean` considering the current background. "
+        "Set to None if no pedestal cleaning should be applied.",
+    ).tag(config=True)
+
+    def __call__(
+        self,
+        tel_id: int,
+        image: np.ndarray,
+        arrival_times: np.ndarray = None,
+        *,
+        monitoring: MonitoringCameraContainer = None,
+    ) -> np.ndarray:
+        """
+        Apply LST image cleaning. See `ImageCleaner.__call__()`
+        """
+        pedestal_std = None
+        if monitoring is not None:
+            pedestal_std = monitoring.tel[tel_id].pedestal.charge_std
+
+        return lst_image_cleaning(
+            self.subarray.tel[tel_id].camera.geometry,
+            image,
+            arrival_times,
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
+            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
+            time_limit=self.time_limit.tel[tel_id],
+            apply_bright_cleaning=self.apply_bright_cleaning.tel[tel_id],
+            fraction_bright_cleaning=self.fraction_bright_cleaning.tel[tel_id],
+            threshold_bright_cleaning=self.threshold_bright_cleaning.tel[tel_id],
+            largest_island_only=self.largest_island_only.tel[tel_id],
+            pedestal_factor=self.pedestal_factor.tel[tel_id],
+            pedestal_std=pedestal_std,
         )
 
 
