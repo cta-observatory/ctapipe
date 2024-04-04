@@ -749,14 +749,7 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
 
 def test_adaptive_centroid(toymodel_mst_fc):
-    (
-        waveforms,
-        subarray,
-        tel_id,
-        _,
-        _,
-        _,
-    ) = toymodel_mst_fc
+    waveforms, subarray, tel_id, _, _, _ = toymodel_mst_fc
 
     neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
     broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
@@ -788,14 +781,7 @@ def test_adaptive_centroid(toymodel_mst_fc):
 
 
 def test_deconvolve(toymodel_mst_fc):
-    (
-        waveforms,
-        _,
-        _,
-        _,
-        _,
-        _,
-    ) = toymodel_mst_fc
+    waveforms, _, _, _, _, _ = toymodel_mst_fc
 
     deconvolved_waveforms_0 = deconvolve(waveforms, 0, 0, 0.0)
 
@@ -807,14 +793,7 @@ def test_deconvolve(toymodel_mst_fc):
 
 
 def test_upsampling(toymodel_mst_fc):
-    (
-        waveforms,
-        _,
-        _,
-        _,
-        _,
-        _,
-    ) = toymodel_mst_fc
+    waveforms, _, _, _, _, _ = toymodel_mst_fc
     upsampling_even = 4
     upsampling_odd = 3
     filt_even = np.ones(upsampling_even)

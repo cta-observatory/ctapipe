@@ -584,8 +584,11 @@ class GlobalPeakWindowSum(ImageExtractor):
             ]
 
             # average over brightest pixels then argmax over samples
-            peak_index = waveforms[:, brightest].mean(axis=(-2, -3)).argmax(axis=-1)
+            peak_index = (
+                waveforms[:, brightest][:, 0, ...].mean(axis=-2).argmax(axis=-1)
+            )
 
+        breakpoint()
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index[:, np.newaxis],
