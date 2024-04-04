@@ -15,7 +15,6 @@ TableWriter.
 
 """
 
-
 ######################################################################
 # Caveats to think about: \* vector columns in Containers *can* be
 # written, but some lilbraries like Pandas can not read those (so you must
@@ -228,11 +227,20 @@ table
 # note that here we can still access the metadata
 #
 
+
 table.attrs
 
 ######################################################################
 # close the file
 #
+h5.close()
+
+
+######################################################################
+# close the file afterwards
+#
+
+
 h5.close()
 
 
