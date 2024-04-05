@@ -378,7 +378,7 @@ def _exponential(h, a, b, c):
 
 
 def _inv_exponential(T, a, b, c):
-    "inverse function for exponetial atmosphere"
+    "inverse function for exponential atmosphere"
     return -c * np.log((T - a) / b)
 
 
@@ -425,7 +425,6 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
     """
 
     def __init__(self, table: Table):
-
         self.table = QTable(table, copy=False)
 
         param_a = self.table["a"].to(GRAMMAGE_UNIT)
