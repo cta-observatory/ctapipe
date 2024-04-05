@@ -32,6 +32,23 @@ def table_profile():
     return get_simtel_profile_from_eventsource()
 
 
+@pytest.fixture(scope="session")
+def layer5_profile():
+    """a 5 layer profile for testing"""
+    fit_reference = np.array(
+        [
+            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
+            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
+            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
+            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
+            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
+        ]
+    )
+
+    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+    return profile_5
+
+
 def get_simtel_fivelayer_profile():
     """
     get a sample 3-layer profile
@@ -98,7 +115,7 @@ def test_table_model_interpolation(table_profile):
     assert np.isfinite(table_profile.integral(height_fine)).all()
 
 
-def test_against_reference():
+def test_against_reference(layer5_profile):
     """
     Test five-layer and table methods against a reference analysis from
     SimTelArray.  Data from communication with K. Bernloehr.
@@ -111,25 +128,14 @@ def test_against_reference():
         "atmosphere_profile_comparison_from_simtelarray"
     )
 
-    fit_reference = np.array(
-        [
-            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
-            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
-            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
-            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
-            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
-        ]
-    )
-
-    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
-
     height = reference_table["Altitude_km"].to("km")
 
     np.testing.assert_allclose(
-        1.0 - profile_5(height) / reference_table["rho_5"], 0, atol=1e-5
+        1.0 - layer5_profile(height) / reference_table["rho_5"], 0, atol=1e-5
     )
     np.testing.assert_allclose(
-        1.0 - profile_5.slant_depth_from_height(height) / reference_table["thick_5"],
+        1.0
+        - layer5_profile.slant_depth_from_height(height) / reference_table["thick_5"],
         0,
         atol=1e-5,
     )
@@ -171,30 +177,17 @@ def test_slant_depth_from_height(table_profile):
     )
 
 
-def test_height_overburden_roundtrip(table_profile):
+def test_height_overburden_roundtrip(table_profile, layer5_profile):
     """
     Test that successive application of height to overburden
     and overburden to height functions return original values
     """
 
-    # Five-layer atmosphere
-    fit_reference = np.array(
-        [
-            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
-            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
-            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
-            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
-            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
-        ]
-    )
-
-    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
-
     layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 
     for height in layer_5_heights:
-        circle_height_5_layer = profile_5.height_from_overburden(
-            profile_5.integral(height)
+        circle_height_5_layer = layer5_profile.height_from_overburden(
+            layer5_profile.integral(height)
         )
 
         assert np.allclose(circle_height_5_layer, height, rtol=0.005)
@@ -217,37 +210,24 @@ def test_height_overburden_roundtrip(table_profile):
     assert np.allclose(circle_height_table, 47 * u.km, rtol=0.0001)
 
 
-def test_height_slant_depth_roundtrip(table_profile):
+def test_height_slant_depth_roundtrip(table_profile, layer5_profile):
     """
     Test that successive application of height to overburden
     and overburden to height functions return original values
     """
 
-    # Five-layer atmosphere
-    fit_reference = np.array(
-        [
-            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
-            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
-            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
-            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
-            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
-        ]
-    )
-
-    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
-
     layer_5_heights = u.Quantity([5, 15, 30, 70, 110] * u.km)
 
     for height in layer_5_heights:
-        circle_height_5_layer = profile_5.height_from_slant_depth(
-            profile_5.slant_depth_from_height(height)
+        circle_height_5_layer = layer5_profile.height_from_slant_depth(
+            layer5_profile.slant_depth_from_height(height)
         )
 
         assert np.allclose(circle_height_5_layer, height, rtol=0.005)
 
     for height in layer_5_heights:
-        circle_height_5_layer_z_20 = profile_5.height_from_slant_depth(
-            profile_5.slant_depth_from_height(height, zenith_angle=20 * u.deg),
+        circle_height_5_layer_z_20 = layer5_profile.height_from_slant_depth(
+            layer5_profile.slant_depth_from_height(height, zenith_angle=20 * u.deg),
             zenith_angle=20 * u.deg,
         )
 
@@ -313,26 +293,15 @@ def test_out_of_range_exponential():
     assert np.isnan(density_model.integral(-0.1 * u.km))
 
 
-def test_out_of_range_five_layer():
+def test_out_of_range_five_layer(layer5_profile):
     # Five-layer atmosphere
-    fit_reference = np.array(
-        [
-            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
-            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
-            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
-            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
-            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
-        ]
-    )
 
-    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+    assert np.isposinf(layer5_profile.height_from_overburden(0 * atmo.GRAMMAGE_UNIT))
 
-    assert np.isposinf(profile_5.height_from_overburden(0 * atmo.GRAMMAGE_UNIT))
+    assert np.isnan(layer5_profile.height_from_overburden(2000 * atmo.GRAMMAGE_UNIT))
 
-    assert np.isnan(profile_5.height_from_overburden(2000 * atmo.GRAMMAGE_UNIT))
+    assert np.allclose(layer5_profile(150 * u.km).value, 0.0, atol=1e-9)
+    assert np.isnan(layer5_profile(-0.1 * u.km))
 
-    assert np.allclose(profile_5(150 * u.km).value, 0.0, atol=1e-9)
-    assert np.isnan(profile_5(-0.1 * u.km))
-
-    assert np.allclose(profile_5.integral(150 * u.km).value, 0.0, atol=1e-9)
-    assert np.isnan(profile_5.integral(-0.1 * u.km))
+    assert np.allclose(layer5_profile.integral(150 * u.km).value, 0.0, atol=1e-9)
+    assert np.isnan(layer5_profile.integral(-0.1 * u.km))
