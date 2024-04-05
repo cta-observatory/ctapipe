@@ -2,13 +2,15 @@ import os
 import pathlib
 import tempfile
 from abc import ABCMeta, abstractmethod
+from subprocess import CalledProcessError
 from unittest import mock
 
 import pytest
 from traitlets import CaselessStrEnum, HasTraits, Int
 
-from ctapipe.core import Component
+from ctapipe.core import Component, Tool, run_tool
 from ctapipe.core.traits import (
+    AstroQuantity,
     AstroTime,
     List,
     Path,
@@ -276,6 +278,99 @@ def test_time_none():
     c = NoNone()
     with pytest.raises(TraitError):
         c.time = None
+
+
+def test_quantity():
+    import astropy.units as u
+
+    class SomeComponentWithQuantityTrait(Component):
+        quantity = AstroQuantity()
+
+    c = SomeComponentWithQuantityTrait()
+    c.quantity = -1.754 * u.m / (u.s * u.deg)
+    assert isinstance(c.quantity, u.Quantity)
+    assert c.quantity.value == -1.754
+    assert c.quantity.unit == u.Unit("m / (deg s)")
+
+    c.quantity = "1337 erg / centimeter**2 second"
+    assert isinstance(c.quantity, u.Quantity)
+    assert c.quantity.value == 1337
+    assert c.quantity.unit == u.Unit("erg / (s cm2)")
+
+    with pytest.raises(TraitError):
+        c.quantity = "No quantity"
+
+    # Try misspelled/ non-existent unit
+    with pytest.raises(TraitError):
+        c.quantity = "5 meters"
+
+    # Test definition of physical type
+    class SomeComponentWithEnergyTrait(Component):
+        energy = AstroQuantity(physical_type=u.physical.energy)
+
+    c = SomeComponentWithEnergyTrait()
+
+    class AnotherComponentWithEnergyTrait(Component):
+        energy = AstroQuantity(physical_type=u.TeV)
+
+    c = AnotherComponentWithEnergyTrait()
+
+    with pytest.raises(
+        TraitError,
+        match="Given physical type must be either of type"
+        + " astropy.units.PhysicalType or a subclass of"
+        + f" astropy.units.UnitBase, was {type(5 * u.TeV)}.",
+    ):
+
+        class SomeBadComponentWithEnergyTrait(Component):
+            energy = AstroQuantity(physical_type=5 * u.TeV)
+
+    with pytest.raises(
+        TraitError,
+        match=f"Given physical type {u.physical.energy} does not match"
+        + f" physical type of the default value, {u.get_physical_type(5 * u.m)}.",
+    ):
+
+        class AnotherBadComponentWithEnergyTrait(Component):
+            energy = AstroQuantity(
+                default_value=5 * u.m, physical_type=u.physical.energy
+            )
+
+
+def test_quantity_tool(capsys):
+    import astropy.units as u
+
+    class MyTool(Tool):
+        energy = AstroQuantity(physical_type=u.physical.energy).tag(config=True)
+
+    tool = MyTool()
+    run_tool(tool, ["--MyTool.energy=5 TeV"])
+    assert tool.energy == 5 * u.TeV
+
+    with pytest.raises(CalledProcessError):
+        run_tool(tool, ["--MyTool.energy=5 m"], raises=True)
+
+    captured = capsys.readouterr()
+    assert (
+        captured.err.split(":")[-1]
+        == f" Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
+        + f" Expected {u.physical.energy}.\n"
+    )
+
+
+def test_quantity_none():
+    class AllowNone(Component):
+        quantity = AstroQuantity(default_value=None, allow_none=True)
+
+    c = AllowNone()
+    assert c.quantity is None
+
+    class NoNone(Component):
+        quantity = AstroQuantity(default_value="5 meter", allow_none=False)
+
+    c = NoNone()
+    with pytest.raises(TraitError):
+        c.quantity = None
 
 
 def test_component_name():
