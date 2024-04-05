@@ -107,7 +107,7 @@ class AtmosphereDensityProfile(abc.ABC):
 
         """
 
-        if zenith_angle > 70 * u.deg:
+        if np.any(zenith_angle > 70 * u.deg):
             warnings.warn(
                 "Zenith angle too high for accurate slant depth",
                 SlantDepthZenithRangeWarning,
@@ -134,6 +134,12 @@ class AtmosphereDensityProfile(abc.ABC):
            unit to output (must be convertible to m)
 
         """
+
+        if np.any(zenith_angle > 70 * u.deg):
+            warnings.warn(
+                "Zenith angle too high for accurate slant depth",
+                SlantDepthZenithRangeWarning,
+            )
 
         return (self.height_from_overburden(slant_depth * np.cos(zenith_angle))).to(
             output_units
@@ -169,7 +175,7 @@ class AtmosphereDensityProfile(abc.ABC):
         axis[1].set_yscale("log")
         axis[1].grid(True)
 
-        zenith_angle = np.linspace(0, 80, 20) * u.deg
+        zenith_angle = np.linspace(0, 70, 20) * u.deg
         for height in [0, 5, 10, 20] * u.km:
             column_density = self.slant_depth_from_height(height, zenith_angle)
             axis[2].plot(zenith_angle, column_density, label=f"Height={height}")
