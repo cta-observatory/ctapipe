@@ -15,8 +15,14 @@ class PointingInterpolator(Component):
     """
     Interpolate pointing from a monitoring table to a given timestamp.
 
-    Monitoring table is expected to be stored at ``/dl0/monitoring/telescope/pointing``
-    in the given hdf5 file.
+    Parameters
+    ----------
+    h5file : None | tables.File
+        A open hdf5 file with read access.
+        The monitoring table is expected to be stored in that file at
+        ``/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}``
+
+        If not given, monitoring tables can be added via `PointingInterpolator.add_table`.
     """
 
     bounds_error = traits.Bool(
