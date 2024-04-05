@@ -421,7 +421,7 @@ def test_order_merged():
 def test_interpolate_pointing(dl1_mon_pointing_file, tmp_path):
     from ctapipe.io import TableLoader
 
-    with TableLoader(dl1_mon_pointing_file, interpolate_pointing=True) as loader:
+    with TableLoader(dl1_mon_pointing_file, pointing=True) as loader:
         events = loader.read_telescope_events([4])
         assert len(events) > 0
         assert "telescope_pointing_azimuth" in events.colnames

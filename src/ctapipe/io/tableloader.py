@@ -29,7 +29,7 @@ TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
-FIXED_POINTING_GROUP = "configuration/telescope/pointing"
+FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
 POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
@@ -601,7 +601,12 @@ class TableLoader(Component):
             table = _join_telescope_events(table, impacts)
 
         if len(table) > 0 and pointing:
-            if FIXED_POINTING_GROUP in self.h5file.root:
+            # prefer monitoring pointing
+            if POINTING_GROUP in self.h5file.root:
+                alt, az = self._pointing_interpolator(tel_id, table["time"])
+                table["telescope_pointing_altitude"] = alt
+                table["telescope_pointing_azimuth"] = az
+            elif FIXED_POINTING_GROUP in self.h5file.root:
                 pointing_table = read_table(
                     self.h5file, f"{FIXED_POINTING_GROUP}/tel_{tel_id:03d}"
                 )
@@ -610,11 +615,6 @@ class TableLoader(Component):
                 table = join_allow_empty(
                     table, pointing_table, ["obs_id"], "left", keep_order=True
                 )
-
-            elif POINTING_GROUP in self.h5file.root:
-                alt, az = self._pointing_interpolator(tel_id, table["time"])
-                table["telescope_pointing_altitude"] = alt
-                table["telescope_pointing_azimuth"] = az
 
         return table
 

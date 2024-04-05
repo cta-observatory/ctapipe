@@ -7,6 +7,7 @@ from copy import deepcopy
 import astropy.units as u
 import numpy as np
 import pytest
+import tables
 from astropy.coordinates import EarthLocation
 from astropy.table import Table
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
@@ -677,5 +678,9 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
 
     for tel_id in subarray.tel:
         write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+
+    # remove static pointing table
+    with tables.open_file(path, "r+") as f:
+        f.remove_node("/configuration/telescope/pointing", recursive=True)
 
     return path
