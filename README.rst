@@ -1,6 +1,6 @@
-============================================================
-ctapipe |pypi| |conda| |doilatest| |ci| |sonarqube_coverage| |sonarqube_quality|
-============================================================
+==================================================================================
+ ctapipe |pypi| |conda| |doilatest| |ci| |sonarqube_coverage| |sonarqube_quality|
+==================================================================================
 
 .. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=main
     :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amain
@@ -30,7 +30,7 @@ expert or developer!
 * Slack: Contact Karl Kosack for invite
 
 Citing this software
---------------------
+====================
 
 If you use this software for a publication, please cite the Zenodo Record
 for the specific version you are using and our latest publication.
@@ -58,7 +58,7 @@ cite using this bibtex entry:
 
 
 Installation for Users
-----------------------
+======================
 
 *ctapipe* and its dependencies may be installed using the *Anaconda* or
 *Miniconda* package system. We recommend creating a conda virtual environment
