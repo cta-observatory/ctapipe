@@ -43,6 +43,7 @@ Specific functionality:
 these functions are all based on ``numpy.ndarray`` data structures,
 which provide c-like speeds.
 
+
 Multivariate Analysis and Machine Learning
 ==========================================
 
@@ -93,7 +94,8 @@ We support the following systems to process and manipulate tabular data (e.g.
 * ``pytables``: for direct manipulation of tables in HDF5 files (faster than
   other systems for large on-disk files)
 
-low-level FITS Table Access
+
+Low-level FITS Table Access
 ---------------------------
 
 FITS Tables can be read via ``astropy.table``, or ``astropy.io.fits``,
@@ -104,7 +106,8 @@ in a FITS table, the ``fitsio`` module should be used instead. It is a
 simple wrapper for libCFITSIO, and supports efficient row-wise table
 access.
 
-low-level HDF5 Table Access
+
+Low-level HDF5 Table Access
 ---------------------------
 
 For HDF5 input/output we use ``pytables`` directly and ``h5py`` through
@@ -117,6 +120,7 @@ Model Fitting
 We support only ``scipy.optimize``,  ``iminuit``, and ``scikit-learn`` fitting
 systems.
 
+
 Graphics and Plotting
 =====================
 
@@ -125,6 +129,7 @@ We support the following:
 * ``matplotlib`` (recommended for most cases)
 * ``bokeh`` (for web-guis)
 
+
 Parallelization and Speed-ups
 =============================
 
@@ -132,7 +137,8 @@ Since execution speed is important in some algorithms (particularly those
 called per-event), the speed of python can be a hindrance to performance.
 The following methods to improve speed are allowed in ``ctapipe``:
 
-Use NumPy operations
+
+Use NumPy Operations
 --------------------
 
 One of the easiest way to speed up code is to attempt to avoid *for-loops*
@@ -141,17 +147,19 @@ well as libraries that use them internally (like ``scipy`` and ``astropy``). Thi
 requires no special support, but can sometimes be conceptually difficult to
 achieve. If it is not possible, use one of the following supported methods.
 
+
 Use Numba
 ---------
 
 ``numba`` allows you to automatically compile a python function via the LLVM
-compiler backend the first time a funciton is called ("just in time
+compiler backend the first time a function is called ("just in time
 compilation"). The advantage over cython is that there is no special syntax,
 and no compilation step, however as a somewhat "black-box" it does not always
 improve your code without some help. See the ``numba`` documentation for more
 info.
 
-Use C/C++ code and wrap it
+
+Use C/C++ Code and Wrap It
 --------------------------
 
 Currently, ctapipe does not have any AoT compiled components.

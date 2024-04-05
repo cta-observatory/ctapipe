@@ -2,14 +2,14 @@
 ctapipe |pypi| |conda| |doilatest| |ci| |coverage| |codacy|
 ============================================================
 
-.. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=master
-    :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amaster
+.. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=main
+    :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amain
     :alt: Test Status
 .. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115
   :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
 .. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
-.. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
+.. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/main/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe
 .. |doilatest| image:: https://zenodo.org/badge/37927055.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
@@ -37,21 +37,22 @@ You can find all ctapipe Zenodo records here: `List of ctapipe Records on Zenodo
 
 There is also a Zenodo DOI always pointing to the latest version: |doilatest|
 
-At this point, our latest publication is the 2021 ICRC proceeding, which you can
+At this point, our latest publication is the `2023 ICRC proceeding <https://doi.org/10.22323/1.444.0703>`_, which you can
 cite using this bibtex entry:
 
 .. code::
 
-  @inproceedings{ctapipe-icrc-2021,
-      author = {Nöthe, Maximilian  and  Kosack, Karl  and  Nickel, Lukas  and  Peresano, Michele},
-      title = {Prototype Open Event Reconstruction Pipeline for the Cherenkov Telescope Array},
-      doi = {10.22323/1.395.0744},
-      booktitle = {Proceedings, 37th International Cosmic Ray Conference},
-      year=2021,
-      volume={395},
-      number={744},
-      location={Berlin, Germany},
-    }
+   @inproceedings{ctapipe-icrc-2023,
+     author = {Linhoff, Maximilian and Beiske, Lukas and Biederbeck, Noah and Fröse, Stefan and Kosack, Karl and Nickel, Lukas},
+     title = {ctapipe -- Prototype Open Event Reconstruction Pipeline for the Cherenkov Telescope Array},
+     usera = {for the CTA Consortium and Observatory},
+     doi = {10.22323/1.444.0703},
+     booktitle = {Proceedings, 38th International Cosmic Ray Conference},
+     year=2023,
+     volume={444},
+     number={703},
+     location={Nagoya, Japan},
+   }
 
 
 Installation for Users
@@ -59,7 +60,7 @@ Installation for Users
 
 *ctapipe* and its dependencies may be installed using the *Anaconda* or
 *Miniconda* package system. We recommend creating a conda virtual environment
-first, to isolate the installed version and dependencies from your master
+first, to isolate the installed version and dependencies from your main
 environment (this is optional).
 
 
@@ -71,11 +72,11 @@ or via::
 
   pip install ctapipe
 
-**Note**: to install a specific version of ctapipe take look at the documentation `here <https://ctapipe.readthedocs.org/en/latest/getting_started_users/>`__.
+**Note**: to install a specific version of ctapipe take look at the documentation `here <https://ctapipe.readthedocs.io/en/latest/user-guide/index.html>`__.
 
 **Note**: ``mamba`` is a C++ reimplementation of conda and can be found `here <https://github.com/mamba-org/mamba>`__.
 
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 Developers should follow the development install instructions found in the
-`documentation <https://ctapipe.readthedocs.org/en/latest/getting_started/>`__.
+`documentation <https://ctapipe.readthedocs.io/en/latest/developer-guide/getting-started.html>`__.

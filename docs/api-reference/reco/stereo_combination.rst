@@ -1,10 +1,11 @@
 .. _reco_stereo_combination:
 
-==================
+******************
 Stereo Combination
-==================
+******************
 
 .. currentmodule:: ctapipe.reco.sklearn
+
 
 Introduction
 ============

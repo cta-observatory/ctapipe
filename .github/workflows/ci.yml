@@ -13,18 +13,23 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
+  SONAR_HOST_URL: https://sonar-cta-dpps.zeuthen.desy.de
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
-      - uses: pre-commit/action@v3.0.0
+          python-version: "3.10"
+      - name: Check README syntax
+        run: |
+          pip install restructuredtext-lint
+          restructuredtext-lint README.rst
+      - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --files $(git diff origin/main --name-only)
   tests:
@@ -34,29 +39,33 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python-version: "3.9"
+            python-version: "3.10"
             install-method: mamba
 
           - os: ubuntu-latest
             python-version: "3.10"
+            install-method: pip
+
+          - os: ubuntu-latest
+            python-version: "3.11"
+            install-method: mamba
+
+          - os: ubuntu-latest
+            python-version: "3.12"
             install-method: mamba
             extra-args: ["codecov"]
 
           - os: ubuntu-latest
-            python-version: "3.11"
-            install-method: mamba
-
-          - os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
             install-method: pip
 
           - os: macos-latest
-            python-version: "3.11"
-            install-method: mamba
+            python-version: "3.10"
+            install-method: pip
 
           - os: macos-latest
-            python-version: "3.9"
-            install-method: pip
+            python-version: "3.12"
+            install-method: mamba
 
     defaults:
       run:
@@ -64,18 +73,18 @@ jobs:
         shell: bash -leo pipefail {0}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: cache test data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data
 
       - name: Prepare mamba installation
-        if: matrix.install-method == 'mamba'
+        if: matrix.install-method == 'mamba' &&  contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
@@ -83,20 +92,20 @@ jobs:
           sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
 
       - name: mamba setup
-        if: matrix.install-method == 'mamba'
+        if: matrix.install-method == 'mamba' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: environment.yml
           cache-downloads: true
 
       - name: Python setup
-        if: matrix.install-method == 'pip'
-        uses: actions/setup-python@v4
+        if: matrix.install-method == 'pip' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
 
-      - if: ${{ matrix.install-method == 'pip' && runner.os == 'macOS' }}
+      - if: matrix.install-method == 'pip' && runner.os == 'macOS' && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         name: Fix Python PATH on macOS
         # See https://github.com/actions/setup-python/issues/132 and
         # https://github.com/actions/setup-python/issues/132#issuecomment-779406058
@@ -107,51 +116,60 @@ jobs:
           tee -a ~/.bash_profile <<<'export PATH="$pythonLocation/bin:$PATH"'
 
       - name: Install dependencies
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          python --version
-          pip install pytest-cov restructuredtext-lint pytest-xdist 'coverage!=6.3.0'
-          pip install .[all]
+          python --version | grep "Python ${PYTHON_VERSION}"
+          pip install -e .[tests]
           pip install ./test_plugin
           pip freeze
-
-      - name: Static codechecks
-        run: |
-          restructuredtext-lint README.rst
+          pip list
 
       - name: ctapipe-info
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
           ctapipe-info --all
 
       - name: Tests
+        if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
-          cd $(mktemp -d)
           pytest -n auto --dist loadscope \
             --cov --cov-report=xml \
             --doctest-modules --doctest-glob='*.rst' \
-            --ignore=$HOME/work/ctapipe/ctapipe/docs/conf.py \
-            --pyargs ctapipe $HOME/work/ctapipe/ctapipe/docs
+            --ignore=docs/conf.py \
+            src/ctapipe docs
 
           ctapipe-info --version
 
-      - uses: codecov/codecov-action@v3
-        if: contains(matrix.extra-args, 'codecov')
+      # check code quality and coverage with SonarScanner
+      - uses: SonarSource/sonarqube-scan-action@v2
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - uses: codecov/codecov-action@v4
+        if: contains(matrix.extra-args, 'codecov') && contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.10"
 
       - name: Install doc dependencies
         run: |
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz ffmpeg
-          pip install -U pip towncrier
+          pip install -U pip towncrier setuptools
           pip install -e .[docs]
           pip install ./test_plugin
           git describe --tags
@@ -167,14 +185,14 @@ jobs:
       - name: Deploy to github pages
         # only run on push to master
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages
           FOLDER: docs/_build/html
           CLEAN: true
           SINGLE_COMMIT: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: docs
           path: docs/_build/html

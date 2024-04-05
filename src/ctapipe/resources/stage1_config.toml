@@ -1,0 +1,54 @@
+[DataWriter.Contact]
+# please fill in your contact information here. It will be stored in the
+# output files as provenance information
+name = "YOUR-NAME-HERE"
+email = "YOUREMAIL@EXAMPLE.ORG"
+organization = "YOUR-ORGANIZATION"
+
+[DataWriter]
+# options that control what is stored in the output file
+overwrite = false
+write_dl1_images = true
+write_dl1_parameters = true
+write_dl2 = false
+transform_image = true
+transform_peak_time = true
+
+[CameraCalibrator]
+image_extractor_type = "NeighborPeakWindowSum"
+
+[ImageProcessor]
+image_cleaner_type = "TailcutsImageCleaner"
+
+
+
+[ImageProcessor.TailcutsImageCleaner]
+picture_threshold_pe = [
+    [ "type", "*", 10.0,],
+    [ "type", "LST_LST_LSTCam", 5.0,],
+    [ "type", "MST_MST_NectarCam", 5.0,],
+    [ "type", "SST_ASTRI_CHEC", 3.0,],
+]
+boundary_threshold_pe = [
+    [ "type", "*", 5.0,],
+    [ "type", "LST_LST_LSTCam", 2.5,],
+    [ "type", "MST_MST_NectarCam", 2.5,],
+    [ "type", "SST_ASTRI_CHEC", 1.5,],
+]
+min_picture_neighbors = [ [ "type", "*", 2,],]
+
+[ImageProcessor.ImageQualityQuery]
+# These specify which images should be parameterized:
+quality_criteria = [
+    [ "enough_pixels", "np.count_nonzero(image) > 2",],
+    [ "enough_charge", "image.sum() > 50",]
+]
+
+[ShowerProcessor.ShowerQualityQuery]
+# These specify criteria for telescopes that should be included in stereo
+# reconstruction:
+quality_criteria = [
+    [ "enough intensity", "parameters.hillas.intensity > 50",],
+    [ "Positive width", "parameters.hillas.width.value > 0",],
+    [ "enough pixels", "parameters.morphology.n_pixels > 3",],
+]

@@ -1,9 +1,8 @@
 .. _image_charge_extractors:
 
-
-#########################################
-Image Extraction (waveform cube to image)
-#########################################
+*****************************************
+Image Extraction (Waveform Cube to Image)
+*****************************************
 
 .. currentmodule:: ctapipe.image.extractor
 
@@ -33,9 +32,8 @@ signal contained in the waveform with two parameters:
 * The position (time) of the signal with the waveform.
 
 
-************************
 Image Extraction Methods
-************************
+========================
 
 The field of signal processing is very widespread, and many common
 techniques are applicable to the waveforms from Cherenkov cameras. The large
@@ -62,9 +60,8 @@ another.
 See below for the currently existing `ImageExtractor` classes.
 
 
-***********************
 Units and Normalisation
-***********************
+=======================
 
 An `ImageExtractor` should preserve the units of the waveform samples when
 extracting the charge. I.e. if the samples are already calibrated into
@@ -78,9 +75,10 @@ the result of the `ImageExtractor` will equal 1, no matter the window size.
 The extracted pulse time is corrected for the waveform sampling rate to be
 provided in units of nanoseconds.
 
-********
+
 Examples
-********
+========
+
 
 TwoPassWindowSum
 ----------------
@@ -89,5 +87,8 @@ Example of 1st pass integration:
 
 .. image:: ./TwoPassWindowSum_1st_pass_example.png
 
+
+Reference/API
+=============
 
 .. automodapi:: ctapipe.image.extractor

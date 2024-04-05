@@ -1,0 +1,140 @@
+# ==========================================================================
+# ctapipe-process configuration file.
+# version: VERSION
+#
+# This configuration contains a subset of options needed for a basic analysis.
+# Not all possible options are shown. To get a complete list, run:
+#
+#     `ctapipe-process --help-all`
+#
+# ==========================================================================
+
+DataWriter:
+  Contact:
+    # please fill in your contact information here. It will be stored in the
+    # output files as provenance information
+    name: YOUR-NAME-HERE
+    email: YOUREMAIL@EXAMPLE.ORG
+    organization: YOUR-ORGANIZATION
+
+  # options that control what is stored in the output file by default here we
+  # write nothing (can be overridden on the command-line or in subsequent config
+  # files)
+  overwrite: false # do not overwrite existing files
+  write_dl1_images: false # store DL1 images
+  write_dl1_parameters: false # store DL1 parameters
+  write_dl2: false # store DL2 stereo geometry
+  write_r0_waveforms: false # write R0 waveforms
+  write_r1_waveforms: false # write R1 waveforms
+  write_muon_parameters: false # analyze and write muon parameters
+
+# The CameraCalibrator takes data from R1 or DL0 to DL1a level, applying finer
+# calibration and turning waveforms into images. It is run only if DL1a images
+# do not already exist in the input file.
+CameraCalibrator:
+  # Choose an extractor type from the following possibilities:
+  #'FullWaveformSum', 'FixedWindowSum', 'GlobalPeakWindowSum',
+  #'LocalPeakWindowSum', 'SlidingWindowMaxSum', 'NeighborPeakWindowSum',
+  #'TwoPassWindowSum', 'BaselineSubtractedNeighborPeakWindowSum'
+  #
+  # Note this is a telescope-wise parameter, so can be specified per telescope
+  # if necessary (see below for an example)
+  image_extractor_type:
+    - ['type', '*', 'NeighborPeakWindowSum']
+    - ['type', '*FlashCam', 'FlashCamExtractor']
+
+# The ImageProcessor performs the DL1a-> DL1b (image parameters) transition. It
+# is run only if the parameters `DataWriter.write_image_parameters=True` and the
+# parameters don't already exist in the input file (or if the user forces them
+# to be re-computed using DataWriter.recompute_dl1=True)
+ImageProcessor:
+  # The image cleaner selects pixels which have signal in them and rejects those
+  # without. Options are: 'TailcutsImageCleaner', 'MARSImageCleaner',
+  # 'FACTImageCleaner'
+  image_cleaner_type: TailcutsImageCleaner
+
+  # make sure you include a configuration for the image cleaner you selected
+  # above here. The section named by the image_cleaner_type will be used to
+  # configure it.
+  TailcutsImageCleaner:
+    # the thresholds for this image cleaner must be optimized for the data set
+    # you are analyzing. The defaults may not be correct and should be optimized
+    # for the given use case.
+    #
+    # These are telescope-wise parameters, where the options are patterns
+    # specified in a list in order of precedence, with later options overwriting
+    # earlier ones. Each pattern is a triplet of [scope, key, value], where the
+    # scope can be "type" (matching to the telescope type name) or "id"
+    # (matching a specific telescope ID number). In the case of "type", the key
+    # should be either a telescope type string, or part of one with "*" used as
+    # a wildcard match (e.g. "LST*" would match all LST telescopes). You can
+    # specify a universal default value using "*" as a key. Note that specifying
+    # a single value is equivalent to specifying a one-item list containing
+    # [type, '*', value] .
+    picture_threshold_pe: # top-level threshold in photoelectrons
+      - [type, "LST*", 8.5]
+      - [type, "MST*NectarCam", 9.0]
+      - [type, "MST*FlashCam", 9.0]
+      - [type, "SST_ASTRI_CHEC", 4.0]
+    boundary_threshold_pe: # second-level threshold in photoelectrons
+      - [type, "LST*", 4.25]
+      - [type, "MST*NectarCam", 4.5]
+      - [type, "MST*FlashCam", 4.5]
+      - [type, "SST_ASTRI_CHEC", 2.0]
+    keep_isolated_pixels: False # If False, pixels with  < min_picture_neighbors are removed.
+    min_picture_neighbors: 2 # Minimum number of neighbors above threshold to consider
+
+  # Choose which images should be parameterized:
+  ImageQualityQuery:
+    # quality criteria should be a list of pairs of [name, filter_expression]
+    # The filter expression should contain the variable `image` which is the
+    # image itself, a 1D np.array.
+    quality_criteria:
+      - ["enough_pixels", "np.count_nonzero(image) > 2"]
+      - ["enough_charge", "image.sum() > 50"]
+
+
+# The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
+# transition. It is run only if the parameter DataWriter.write_dl2=True.
+ShowerProcessor:
+  # choose between HillasReconstructor and HillasIntersection or both (two
+  # implementations of the standard stereo line-intersection method)
+  reconstructor_types:
+    - HillasReconstructor
+      #  - HillasIntersection
+
+  HillasReconstructor:
+    # Choose which telescope events should be included in the reconstruction.
+    StereoQualityQuery:
+      # the quality criteria here should again be a list of [name,
+      # filter_expression] pairs, filter_expression contains the variable
+      # `parameters` which is a `ctapipe.containers.ImageParametersContainer`
+      # for the current event
+      quality_criteria:
+        - [enough intensity, "parameters.hillas.intensity > 50"]
+        - [Positive width, "parameters.hillas.width.value > 0"]
+        - [enough pixels, "parameters.morphology.n_pixels > 3"]
+        - [not clipped, "parameters.leakage.intensity_width_2 < 0.5"]
+
+# The MuonProcessor analyses DL1 images for muons and writes muon parameters.
+# It is only run if DataWriter.write_muon_parameters=True.
+MuonProcessor:
+  # Choose which events should be considered for muon analysis
+  ImageParameterQuery:
+    # quality criteria should be a list of pairs of [name, filter_expression]
+    # The filter expression should contain the variable `dl1_params` which are the
+    # image parameters.
+    quality_criteria:
+      - ["min_pixels", "dl1_params.morphology.n_pixels > 100"]
+      - ["min_intensity", "dl1_params.hillas.intensity > 500"]
+
+  # Choose which rings should be processed to the actual muon parameters
+  RingQuery:
+    # quality criteria should be a list of pairs of [name, filter_expression]
+    # The filter expression can either contain the variable `parameters`
+    # (muon ring parameters like containment), `ring` (muon ring position and radius)
+    # or `mask` (pixel mask masking the rings pixels)
+    quality_criteria:
+      - ["radius_not_nan", "np.isfinite(ring.radius.value)"]
+      - ["min_pixels", "np.count_nonzero(mask) > 50"]
+      - ["ring_containment", "parameters.containment > 0.5"]

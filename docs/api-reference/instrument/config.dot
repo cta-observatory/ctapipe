@@ -5,7 +5,7 @@ digraph config {
 
 
         ObsConfig [fillcolor=dodgerblue3, fontcolor=white, style=filled]
-        SubarrayConfig [fillcolor=dodgerblue3, fontcolor=white, style=filled] 
+        SubarrayConfig [fillcolor=dodgerblue3, fontcolor=white, style=filled]
         ArrayTriggerConfig [fillcolor=goldenrod4,
                             fontcolor=white, style=filled]
         TelescopeTriggerConfig [fillcolor=goldenrod4,
@@ -13,8 +13,8 @@ digraph config {
 
         ObsConfig -> SubarrayConfig [label="obs_id"];
         ObsConfig -> ArrayTriggerConfig [label="run_type"];
-        ArrayTriggerConfig -> TelescopeTriggerConfig [label="run_type,\ntel_id"];       
-        SubarrayConfig -> ArrayConfig [label="site_id,\nversion"]      
+        ArrayTriggerConfig -> TelescopeTriggerConfig [label="run_type,\ntel_id"];
+        SubarrayConfig -> ArrayConfig [label="site_id,\nversion"]
         ArrayConfig -> TelescopeConfig [label="tel_id"];
         TelescopeConfig -> CameraConfig [label="tel_id"];
         TelescopeConfig -> OpticsConfig [label="tel_id"];

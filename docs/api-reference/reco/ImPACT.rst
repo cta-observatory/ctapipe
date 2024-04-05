@@ -1,12 +1,14 @@
 .. _ImPACT:
 
-Analysis with ImPACT
-==================================
+********************
+Analysis With ImPACT
+********************
 
 .. currentmodule:: ctapipe.reco.impact
 
-What is ImPACT?
----------------------
+
+What Is ImPACT?
+===============
 
 ImPACT stands for **Image Pixel-wise fit for Atmospheric Cherenkov Telescopes**, it is
 an event reconstruction algorithm originally created for the H.E.S.S. experiment. This
@@ -15,7 +17,7 @@ and nergy, thereby extracting the maximum possible performance of the instrument
 
 
 Image Templates
-++++++++++++++++++++++
+---------------
 
 The first step of the analysis is to generate a library of image templates for all
 possible shower energies, impact distances and depth of maximum. There templates are
@@ -31,8 +33,9 @@ details as to how this is performed check the paper (link).
 The above figure shows 4 examples of the image templates, created in the nominal system
 (X-Y axis in degrees), with the Z-axis showing the expected number of photo-electrons.
 
+
 Image Prediction
-++++++++++++++++++++++
+----------------
 
 Once the template library has been generated it can then be used to create a predicted
 gamma-ray image by interpolating between the template available in the library.
@@ -45,7 +48,7 @@ class.
 
 
 Calculating Image Likelihood
-++++++++++++++++++++++++++++
+----------------------------
 
 Once a prediction of the image expectation can be made it should be compared to the
 data to assess the likelihood that the model represents the data. Several likelihood
@@ -68,8 +71,9 @@ more) additional rows of pixels added around the image edge, and summed over all
 telescopes passing selection cuts to find an event likelihood for a given set of
 shower parameters.
 
+
 Maximum Likelihood Fitting
-++++++++++++++++++++++++++
+--------------------------
 
 This event likelihood must then be minimised in a 6-dimensional fit over direction,
 impact point, Xmax and primary energy. In order to simplify the reconstruction of Xmax
@@ -79,18 +83,20 @@ of the brightest 3 camera pixels). The minimisation can then be performed over a
 modification factor to the estimated Xmax, greatly reducing the time taken for the fit
 procedure.
 
-Fitting is performed using the `iminuit <https://iminuit.readthedocs.io/en/stable/>`_ 
+Fitting is performed using the `iminuit <https://iminuit.readthedocs.io/en/stable/>`_
 package (a wrapper around the MINUIT minimiser), providing a fast and reliable minimisation.
 The algorithm finds a function minimum in the majority of cases, typically taking
 around 500 function calls to reach the minimum.
 
+
 Performance
-++++++++++++++++++++++
+-----------
 
 Coming soon...?
 
-Running an ImPACT analysis
---------------------------
+
+Running an ImPACT Analysis
+==========================
 
 Simple pseudocode example of using ImPACT is shown below. Full example will be added to
 examples directory soon.
@@ -130,8 +136,9 @@ Once the event properties have been passed the event reconstruction can be perfo
 simply calling the `~ctapipe.reco.ImPACTReconstructor.predict` function and
 providing a seed shower direction and energy.
 
-Choosing you minimiser
-++++++++++++++++++++++
+
+Choosing Your Minimiser
+-----------------------
 
 When initialising the ImPACT reconstructor (see
 `~ctapipe.reco.ImPACTReconstructor`), one can choose the minimiser to be used in the
@@ -142,5 +149,3 @@ purposes.
 Any of the minimiser names listed for `~scipy.optimize.minimize` or
 `~scipy.optimize.least_squares` can be used. For example "bfgs" or "lm" can be used to
 select the scipy BFGS or Levenberg-Marquart minimisers respectively.
-
-

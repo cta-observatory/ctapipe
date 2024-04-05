@@ -12,13 +12,13 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Check for news fragment
         if: ${{ ! contains( github.event.pull_request.labels.*.name, 'no-changelog-needed')}}
-        uses: andstor/file-existence-action@v2
-        with: 
+        uses: andstor/file-existence-action@v3
+        with:
           files: ${{ env.FRAGMENT_NAME }}
           fail: true

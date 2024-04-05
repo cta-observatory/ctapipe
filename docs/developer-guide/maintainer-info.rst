@@ -1,10 +1,12 @@
-Maintainer info
-===============
+***************
+Maintainer Info
+***************
 
 This is a collection of some notes for maintainers.
 
-Python / numpy versions to support
-----------------------------------
+
+Python / NumPy Versions To Support
+==================================
 
 ctapipe follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_.
 
@@ -26,14 +28,15 @@ However, for specific features, ctapipe could require more recent versions
 of numpy. E.g. for the astropy quantity interoperability, we required 1.17 earlier than 2021.
 
 
-How to update the online docs?
-------------------------------
+How To Update the Online Docs?
+==============================
 
 The docs are automatically built and deployed using readthedocs.
 
 
-How to make a release?
-----------------------
+How To Make a Release?
+======================
+
 1. Open a new pull request to prepare the release.
    This should be the last pull request to be merged before making the actual release.
 
@@ -45,7 +48,7 @@ How to make a release?
       $ git switch -c prepare_<VERSION NUMBER> origin/main
       $ towncrier build --version=<VERSION NUMBER>
 
-   Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be 
+   Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be
    available from the version dropdown once the documentation is built.
 
 2. Create a new github release, a good starting point should already be made by the

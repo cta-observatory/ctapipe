@@ -1,10 +1,11 @@
 .. _coordinates:
 
-====================================
+************************************
 Coordinates (`~ctapipe.coordinates`)
-====================================
+************************************
 
 .. currentmodule:: ctapipe.coordinates
+
 
 Introduction
 ============
@@ -21,7 +22,7 @@ Getting Started
 ===============
 
 The coordinate library defines a set of *frames*,
-which represent different coordinate reprentations.
+which represent different coordinate representations.
 Coordinates should be described using an ``astropy.coordinates.SkyCoord`` in the appropriate frame.
 
 The following special frames are defined for CTA:

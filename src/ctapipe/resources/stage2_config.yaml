@@ -1,0 +1,16 @@
+# ======================================================================
+# ctapipe-process configuration file.
+# version: VERSION
+#
+# Perform Stage 2 Processing
+#
+# This configuration enables options needed for Rx to DL2a (shower
+# reconstruction) But not including any image parameters
+# ======================================================================
+#
+#  Make sure you first include `--config base_config.yaml` before including this file
+
+DataWriter:
+  write_dl1_images: false
+  write_dl1_parameters: false
+  write_dl2: true

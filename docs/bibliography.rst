@@ -1,5 +1,6 @@
+**********
 References
-==========
+**********
 
 .. [chaudhuri93] B. B. Chaudhuri und P. Kundu. "Optimum circular fit
     to weighted data in multi-dimensional space". Pattern
@@ -31,7 +32,7 @@ References
 .. [lts_regression] P. J. Rousseeuw, K. van Driessen, "Computing LTS Regression for Large Data Sets",
     Data Mining and Knowledge Discovery, 12, 29-45, DOI: 10.1007/s10618-005-0024-4
 
-.. [hillas_uncertainties] W. Wittek, "Image Parameters", MAGIC-TDAS internal note 02-03, (2002). 
+.. [hillas_uncertainties] W. Wittek, "Image Parameters", MAGIC-TDAS internal note 02-03, (2002).
 
 .. [cta_sb_ob] Oya et al, Scheduling Block Data Model Specification, CTA-SPE-COM-000000-0003, Issue 1, Rev. c
 

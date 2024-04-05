@@ -6,7 +6,7 @@ API Changes
 -----------
 
 - The ``ctapipe-dump-triggers`` tool was removed, since it wrote a custom data format
-  not compatble with e.g. the output of the ``DataWriter`` and ``ctapipe-process``.
+  not compatible with e.g. the output of the ``DataWriter`` and ``ctapipe-process``.
   If you only want to store trigger and simulation information from simulated / DL0
   input files into the ctapipe format HDF5 files, you can now use
   ``ctapipe-process -i <input> -o <output> --no-write-parameters``. [`#2375 <https://github.com/cta-observatory/ctapipe/pull/2375>`__]
@@ -14,7 +14,7 @@ API Changes
 - Change the fill value for invalid telescope ids in ``SubarrayDescription.tel_index_array``
   from ``-1`` to ``np.iinfo(int).minval`` to prevent ``-1`` being used as an index resulting in the last element being used for invalid telescope ids. [`#2376 <https://github.com/cta-observatory/ctapipe/pull/2376>`__]
 
-- Remove ``EventSource.from_config``, simply use ``EventSource(config=config)`` or 
+- Remove ``EventSource.from_config``, simply use ``EventSource(config=config)`` or
   ``EventSource(parent=parent)``. [`#2384 <https://github.com/cta-observatory/ctapipe/pull/2384>`__]
 
 
@@ -45,6 +45,8 @@ Bug Fixes
 
 - The ```HillasIntersection``` method used to fail when individual events were reconstructed to originate from a FoV offset of more than 90 degrees.
   This is now fixed by returning an INVALID container for a reconstructed offset of larger than 45 degrees. [`#2265 <https://github.com/cta-observatory/ctapipe/pull/2265>`__]
+
+- Fixed a bug in the calculation of the full numeric pixel likelihood and the corresponding tests. [`#2388 <https://github.com/cta-observatory/ctapipe/pull/2388>`__]
 
 
 Maintenance
@@ -143,7 +145,7 @@ Bug Fixes
 New Features
 ------------
 
-- Add ``SubarrayDescription.mulitplicity`` method that can compute
+- Add ``SubarrayDescription.multiplicity`` method that can compute
   telescope multiplicity for a given telescope boolean mask, either for
   all telescope or a given telescope type.
 
@@ -217,25 +219,25 @@ ctapipe v0.18.0 (2023-02-09)
 API Changes
 -----------
 
-- ctapipe now uses entry points for plugin discovery. ``EventSource`` implementations 
+- ctapipe now uses entry points for plugin discovery. ``EventSource`` implementations
   now need to advertise a ``ctapipe_io`` entry point, to be discovered by ctapipe.
   Additionally, ctapipe now includes preliminary support for discovering ``Reconstructor``
   implementations via the ``ctapipe_reco`` entry_point. [`#2101 <https://github.com/cta-observatory/ctapipe/pull/2101>`__]
 
 - Migrate muon analysis into the ``ctapipe-process`` tool:
 
-  1. The former ``muon_reconstruction`` tool is dropped and all functionalities are transferred 
+  1. The former ``muon_reconstruction`` tool is dropped and all functionalities are transferred
      into the ``ctapipe-process`` tool.
 
   2. The ``process`` tool now has a ``write_muon_parameters`` flag which defaults to ``false``.
-     Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1 image 
-     parameters, so they are computed in case they are not available from the input even 
+     Muons are only analyzed and written if the flag is set. Analyzing muons requires DL1 image
+     parameters, so they are computed in case they are not available from the input even
      if the user did not explicitly ask for the computation of image parameters.
 
-  3. Two instances of ``QualityQuery``, ``MuonProcessor.ImageParameterQuery`` and ``MuonProcessor.RingQuery`` 
-     are added to the muon analysis to either preselect images according to image parameters and 
-     to select images according to the initial, geometrical ring fit for further processing. 
-     Deselected events or those where the muon analysis fails are being returned and written 
+  3. Two instances of ``QualityQuery``, ``MuonProcessor.ImageParameterQuery`` and ``MuonProcessor.RingQuery``
+     are added to the muon analysis to either preselect images according to image parameters and
+     to select images according to the initial, geometrical ring fit for further processing.
+     Deselected events or those where the muon analysis fails are being returned and written
      filled with invalid value markers instead of being ignored.
      Base configure options for the muon analysis were added to the ``base_config.yaml``.
 
@@ -267,7 +269,7 @@ API Changes
 New Features
 ------------
 
-- Implement Components and Tools to perform training and application of 
+- Implement Components and Tools to perform training and application of
   machine learning models based on scikit-learn.
 
   Four new tools are implemented:
@@ -342,8 +344,8 @@ New Features
   fine-grained control which information should be included in the output file
   and for appending to existing output files. [`#2179 <https://github.com/cta-observatory/ctapipe/pull/2179>`__]
 
-- ``CameraDisplay.overlay_coordinate`` can now be used to 
-  plot coordinates into the camera display, e.g. to show 
+- ``CameraDisplay.overlay_coordinate`` can now be used to
+  plot coordinates into the camera display, e.g. to show
   the source position or the position of stars in the FoV. [`#2203 <https://github.com/cta-observatory/ctapipe/pull/2203>`__]
 
 
@@ -467,15 +469,15 @@ Some Major changes since last release:
 v0.5.3 (unreleased)
 ===================
 
-* Major speed improvements to calibration code, particuarly
+* Major speed improvements to calibration code, particularly
    ``NeighborPeakIntegrator`` (Jason Watson, #490), which now uses some
    compiled c-code for speed.
 
 * ``GeometryConverter`` now works for all cameras (Tino Michael, #)
 
-* Plotting improvements when overlays are used (Max Noe, #489)
+* Plotting improvements when overlays are used (MaxNoe, #489)
 
-* Fixes to coordinate ``PlanarRepresentation`` (Max Noe, #506)
+* Fixes to coordinate ``PlanarRepresentation`` (MaxNoe, #506)
 
 * HDF5 output for charge resolution calculation (Jason Watons, #488)
 
@@ -488,7 +490,7 @@ v0.5.3 (unreleased)
 v0.5.2 (2017-07-31)
 ===================
 
-* improvements to ``core.Container`` (Max Noe)
+* improvements to ``core.Container`` (MaxNoe)
 
 * ``TableWriter`` correctly handles units and metadata
 
@@ -538,7 +540,7 @@ v0.5.1 (2016-07-20)
 * Improvements to ``flow`` framework (Jean Jacquemier)
 
 * Travis CI now builds automatically for multiply python versions and
-  uploads lates documentation
+  uploads latest documentation
 
 * use Lanscape.io for code quality
 

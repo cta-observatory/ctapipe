@@ -2,7 +2,7 @@
 ctapipe Enhancement Proposals
 *****************************
 
-CEPs (ctapipe Enhancment Proposals) are short documents proposing and describing
+CEPs (ctapipe Enhancement Proposals) are short documents proposing and describing
 a major addition or change to ctapipe. See :ref:`cep-001` for further information.
 
 Below is a list of merged CEPs, i.e. the ones that are finalised,
@@ -20,6 +20,7 @@ Accepted CEPs
 
    accepted/*
 
+
 Proposed CEPs
 =============
 
@@ -29,8 +30,11 @@ Proposed CEPs
 
    proposed/*
 
+
 Rejected CEPs
 =============
+
+There are no rejected CEPs currently.
 
 .. .. toctree::
 ..    :maxdepth: 1

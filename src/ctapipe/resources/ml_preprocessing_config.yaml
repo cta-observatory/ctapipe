@@ -1,0 +1,17 @@
+# ======================================================================
+# ctapipe-process configuration file.
+# version: VERSION
+#
+# Perform Stage 1 and Stage 2a processing to generate features needed for
+# training machine learning algorithms.
+#
+# Note that here write_dl1_images is disabled by default (to avoid very large
+# files), however for training deep learning algorithms, it should be turned on.
+# ======================================================================
+#
+#  Make sure you first include `--config base_config.yaml` before including this file
+
+DataWriter:
+  write_dl1_images: false
+  write_dl1_parameters: true
+  write_dl2: true

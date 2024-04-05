@@ -1,10 +1,11 @@
 .. _utils:
 
-============================
+****************************
 Utilities (`~ctapipe.utils`)
-============================
+****************************
 
 .. currentmodule:: ctapipe.utils
+
 
 Introduction
 ============
@@ -24,7 +25,7 @@ It currently provides:
 * json conversion
 
 
-Access to Service Data files
+Access To Service Data Files
 ============================
 
 The `get_dataset_path()` function provides a common way to load CTA "SVC"

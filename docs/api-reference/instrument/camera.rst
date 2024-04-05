@@ -2,8 +2,10 @@
 
 .. currentmodule:: ctapipe.instrument
 
+
+******************
 Camera Description
-==================
+******************
 
 The `~camera.description.CameraDescription` contains classes holding information about the
 Cherenkov camera, namely the `~camera.geometry.CameraGeometry` and `~camera.readout.CameraReadout` classes.

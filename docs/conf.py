@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
 # ctapipe documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  6 10:22:58 2017.
 #
-# Thi file is execfile()d with the current directory set to its
+# This file is execfile()d with the current directory set to its
 # containing dir.
 #
 # Note that not all possible configuration values are present in this
@@ -25,19 +23,21 @@
 # -- General configuration ------------------------------------------------
 import datetime
 import os
+import sys
+from pathlib import Path
 
-# Get configuration information from setup.cfg
-from configparser import ConfigParser
-
-# Sphinx gallery
 from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
 
 import ctapipe
 
-setup_cfg = ConfigParser()
-setup_cfg.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
-setup_metadata = dict(setup_cfg.items("metadata"))
-setup_options = dict(setup_cfg.items("options"))
+if sys.version_info < (3, 11):
+    import tomli as tomllib
+else:
+    import tomllib
+
+
+pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+pyproject = tomllib.loads(pyproject_path.read_text())
 
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -106,8 +106,8 @@ def setup(app):
 # these
 nitpick_ignore = [
     # needed for building the docs with python 3.11 locally.
-    # we use the lowest supported version on readthedocs, so that is what we use the intersphinx
-    # link above
+    # we use the lowest supported version on readthedocs,
+    # so that is what we use in the intersphinx link above
     ("py:class", "enum.StrEnum"),
     # these are coming from traitlets:
     ("py:class", "t.Union"),
@@ -131,12 +131,20 @@ nitpick_ignore = [
     ("py:class", "traitlets.config.application.Application"),
     ("py:class", "traitlets.utils.sentinel.Sentinel"),
     ("py:class", "traitlets.traitlets.ObserveHandler"),
+    ("py:class", "dict[K, V]"),
+    ("py:class", "G"),
+    ("py:class", "K"),
+    ("py:class", "V"),
+    ("py:class", "t.Sequence"),
     ("py:class", "StrDict"),
     ("py:class", "ClassesType"),
+    ("py:class", "traitlets.traitlets.G"),
     ("py:obj", "traitlets.traitlets.G"),
     ("py:obj", "traitlets.traitlets.S"),
+    ("py:obj", "traitlets.traitlets.T"),
     ("py:class", "traitlets.traitlets.T"),
     ("py:class", "re.Pattern[t.Any]"),
+    ("py:class", "re.Pattern"),
     ("py:class", "Sentinel"),
     ("py:class", "ObserveHandler"),
     ("py:obj", "traitlets.config.boolean_flag"),
@@ -196,12 +204,12 @@ suppress_warnings = ["ref.citation"]  # ignore citation not referenced warnings
 
 # General information about the project.
 
-project = setup_metadata["name"]
-author = setup_metadata["author"]
+project = pyproject["project"]["name"]
+author = pyproject["project"]["authors"][0]["name"]
 copyright = "{}.  Last updated {}".format(
-    setup_metadata["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
+    author, datetime.datetime.now().strftime("%d %b %Y %H:%M")
 )
-python_requires = setup_options["python_requires"]
+python_requires = pyproject["project"]["requires-python"]
 
 # make some variables available to each page
 rst_epilog = f"""
@@ -290,6 +298,7 @@ html_theme_options = {
         "version_match": version_match,
         "json_url": json_url,
     },
+    "navigation_with_keys": False,
     "use_edit_page_button": True,
     "icon_links_label": "Quick Links",
     "icon_links": [
@@ -297,7 +306,7 @@ html_theme_options = {
             "name": "CTA Observatory",
             "url": "https://www.cta-observatory.org/",
             "type": "url",
-            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",
+            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",  # noqa: E501
         },
     ],
     "announcement": """
@@ -379,14 +388,14 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.9", None),
+    "python": ("https://docs.python.org/3.10", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "astropy": ("https://docs.astropy.org/en/latest/", None),
-    "pytables": ("http://www.pytables.org/", None),
+    "pytables": ("https://www.pytables.org/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "cython": ("https://docs.cython.org/en/latest/", None),
-    "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
+    "iminuit": ("https://scikit-hep.org/iminuit/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }

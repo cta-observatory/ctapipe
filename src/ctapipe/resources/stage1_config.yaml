@@ -1,0 +1,15 @@
+# ======================================================================
+# ctapipe-process configuration file.
+# version: VERSION
+#
+# Perform Stage 1 Processing
+#
+# This configuration enables options needed for Rx to DL1b (image parameters)
+# ======================================================================
+#
+#  Make sure you first include `--config base_config.yaml` before including this file
+
+DataWriter:
+  write_dl1_images: true
+  write_dl1_parameters: true
+  write_dl2: false

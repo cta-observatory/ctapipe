@@ -1,0 +1,3 @@
+Adding monitoring: MonitoringCameraContainer as keyword argument to
+the ``ImageCleaner`` API so cleaning algorithms can now access
+relevant information for methods that e.g. require monitoring information.

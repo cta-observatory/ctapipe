@@ -1,8 +1,10 @@
+***********
 Style Guide
-==================
+***********
+
 
 Coding Style
-------------
+============
 
 Code follows the Python
 `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guide.
@@ -15,7 +17,7 @@ editor plugins.
 
 
 API Documentation Style
------------------------
+=======================
 
 All functions, classes, and modules should contain appropriate API
 documentation in their *docstrings*.  The *docstrings* should be
@@ -27,12 +29,11 @@ Documentation for all algorithms should contain citations to external
 works, which should be collected in ``bibliography.rst``. An example of
 citing a reference in that file::
 
-  this algorithm is an implementaton of [author2003]_
-
+  this algorithm is an implementation of [author2003]_
 
 
 Interactive Development Environment
------------------------------------
+===================================
 
 It is recommended that a fully python-aware *interactive development
 environment* (IDE) is used to develop code, rather than a basic text
@@ -46,7 +47,4 @@ problems. The recommended IDEs are:
 
 The IDEs provide a lot of support for avoiding common style and coding
 mistakes, and automatic re-formatting (e.g. ``M-x py-autopep8-buffer``
-in emacs)
-
-
-
+in emacs).

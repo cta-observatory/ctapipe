@@ -230,7 +230,7 @@ disp.overlay_moments(params, color="white", lw=2)
 #    (e.g. LST:LSTCam)
 # -  for each event, apply calibration/trace integration
 # -  calculate Hillas parameters
-# -  write out all hillas paremeters to a file that can be loaded with
+# -  write out all hillas parameters to a file that can be loaded with
 #    Pandas
 #
 
@@ -265,7 +265,6 @@ for event in source:
 
 ######################################################################
 with HDF5TableWriter(filename="hillas.h5", group_name="dl1", overwrite=True) as writer:
-
     source = EventSource(data, allowed_tels=[1, 2, 3, 4], max_events=10)
     for event in source:
         calib(event)

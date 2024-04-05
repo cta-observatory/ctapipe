@@ -59,7 +59,7 @@ event = next(event_iterator)
 
 ######################################################################
 # the event is just a class with a bunch of data items in it. You can see
-# a more compact represntation via:
+# a more compact representation via:
 #
 
 event.r0
@@ -98,7 +98,7 @@ teldata
 ######################################################################
 # Note that some values are unit quantities (``astropy.units.Quantity``)
 # or angular quantities (``astropy.coordinates.Angle``), and you can
-# easily maniuplate them:
+# easily manipulate them:
 #
 
 event.simulation.shower.energy

@@ -1,0 +1,1 @@
+Fix colored logging in case of custom log levels being defined.

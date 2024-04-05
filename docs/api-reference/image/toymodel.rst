@@ -1,10 +1,13 @@
 .. _image_toymodel:
 
-==========================
-Toy model image generation
-==========================
+**************************
+Toy Model Image Generation
+**************************
 
-fake shower image generation for testing purposes
+Fake shower image generation for testing purposes.
+
+
+Reference/API
+=============
 
 .. automodapi:: ctapipe.image.toymodel
-

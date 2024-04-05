@@ -1,0 +1,200 @@
+.. _cep-002:
+
+***********************
+CEP 2 - Event Structure
+***********************
+
+* Status: accepted
+* Discussion: [`#2304 <https://github.com/cta-observatory/ctapipe/pull/2304>`__]
+* Date accepted: 2023-10-26
+* Last revised: 2023-09-08
+* Author: Maximilian Linhoff
+* Created: 2023-04-04
+
+
+Abstract
+========
+
+Currently, the hierarchy of the ctapipe ``ArrayEventContainer`` container has the data
+levels first and then each data level has a ``Map`` ``.tel`` for telescope specific
+information in subcontainers.
+This CEP proposes to change this structure to have a container ``TelescopeEventContainer``
+as parent for all telescope-wise information that then contains the data levels.
+
+This has the following advantages:
+
+* At lower data levels, many processing steps can be performed independently for each
+  telescope event, which is easier if all data from a single telescope is in a single container.
+* The current proposed ACADA-DPPS ICD fore-sees event and monitoring files per telescope.
+  This maps nicely to readers filling a ``TelescopeEventContainer`` which are then
+  joined together with array level information into an ``ArrayEventContainer``.
+
+
+Proposed New Structure
+======================
+
+This CEP proposes to change the current layout of ``ArrayEventContainer`` from having multiple
+data levels each with a ``Map`` containing telescope-wise data to a structure
+where each ``ArrayEventContainer`` is composed of one to many ``TelescopeEvents`` containing
+all telescope-wise information for all data levels.
+
+The ``ArrayEventContainer`` should also be renamed to ``SubarrayEventContainer``, to match with other naming
+patterns in ctapipe, such as the ``SubarrayDescription``, making it clear that the array is split
+into multiple subarrays, each observing their own observation block.
+
+The main structure after the change will look like this (Container-suffix left out for readability):
+
+.. code-block::
+
+   SubarrayEvent
+   - index: SubarrayEventIndex
+   - simulation: SimulatedShower
+   - dl0: DL0Subarray
+   - dl1: DL1Subarray
+   - dl2: DL2Subarray
+   - dl3: DL3Subarray
+   - tel: Map[tel_id -> TelescopeEvent]
+
+   TelescopeEvent
+   - index: TelescopeEventIndex
+   - simulation: TelescopeSimulation
+   - r0: R0Telescope
+   - r1: R1Telescope
+   - dl0: DL0Telescope
+   - dl1: DL1Telescope
+   - dl2: DL2Telescope
+   - dl3: DL3Telescope
+
+Which each data level container having specific fields and/or subcontainers including monitoring
+information (interpolated / chosen for that specific event).
+
+
+Advantages of the New Structure
+===============================
+
+The new proposed scheme makes it easier to parallelize over array events and move loops
+over telescopes out of code paths that only deal with a single telescope.
+E.g. in the ``CameraCalibrator``, ``ImageProcessor`` and more classes,
+we currently have to provide the ``ArrayEventContainer``,
+so that higher data levels can be filled from lower data levels, although only one telescope
+is processed at a time.
+
+In the current scheme (simplified from ctapipe-process) it looks like this:
+
+.. code-block:: python
+
+   for array_event in source:
+       calibrator(array_event)
+       # calibrator internally has two hidden loops like this:
+       # for tel_id, r1 in array_event.r1.tel.items():
+       #     calibrate r1 to dl0
+       # for tel_id, dl0 in array_event.dl0.tel.items():
+       #     calibrate dl0 to dl1
+
+       image_processor(array_event)
+       # image processor also has an internal loop over the telescope events
+       # for tel_id, dl1 in array_event.dl1.tel.items():
+       #     image cleaning and parametrization
+
+       shower_processor(array_event)
+
+This looks simple, but there are hidden loops over the telescopes in both the ``CameraCalibrator``
+and the ``ImageProcessor`` here, although both of these do not access any subarray-wide data at all.
+
+Using the new structure, these classes will get a single ``TelescopeEventContainer`` and the loop
+can to be moved outside those classes to a single place:
+
+.. code-block:: python
+
+   for array_event in source:
+       for telescope_event in array_event.tel.values():
+           calibrator(telescope_event)
+           image_processor(telescope_event)
+
+       shower_processor(array_event)
+
+Clearly separating the components working on the telescope level from the ones working on
+the subarray level.
+
+By removing the hidden loops in the telescope level components, it now would also be easy to
+parallelize the processing of telescope events:
+
+.. code-block:: python
+
+   def process_telescope_event(telescope_event):
+       calibrator(telescope_event)
+       image_processor(telescope_event)
+
+   with ThreadPool(8) as pool:
+       for array_event in source:
+           pool.map(proces_telescope_events, array_event.tel.values())
+           shower_processor(array_event)
+
+
+It also makes writing ``EventSource`` implementations simpler,
+as reading data of different telescopes might require opening multiple files (as e.g. foreseen for the CTAO DL0 files).
+Each of those files could read the corresponding information into independent ``TelescopeEvent`` instances, that are then joined into single ``SubarrayEvent``.
+Since ``sim_telarray`` files use the same organization, it might also simplify some code in the ``SimTelEventSource``.
+
+For code directly accessing information from the array event, this mostly means inverting the order of ``.tel`` and the data level.
+
+Before: ``event.dl1.tel[1].image``,
+After: ``event.tel[1].dl1.image``
+
+Before:
+
+.. code-block:: python
+
+    hillas_dicts = {
+        tel_id: dl1.parameters.hillas
+        for tel_id, dl1 in event.dl1.items()
+        if all(self.quality_query(parameters=dl1.parameters))
+    }
+
+After:
+
+.. code-block:: python
+
+    hillas_dicts = {
+        tel_id: tel_event.dl1.parameters.hillas
+        for tel_id, tel_event in event.tel.items()
+        if all(self.quality_query(parameters=tel_event.dl1.parameters))
+    }
+
+Or in our loops, code like this:
+
+.. code-block:: python
+
+   for tel_id in event.trigger.tels_with_trigger:
+       dl0 = event.dl0.tel[tel_id]
+       dl1 = event.dl1.tel[tel_id]
+
+       # do something with dl0 and dl1
+
+will become:
+
+.. code-block:: python
+
+   for telescope_event in event.tel.values():
+       dl0 = telescope_event.dl0
+       dl1 = telescope_event.dl1
+
+       # do something with dl0 and dl1
+
+which is more idiomatic python and does not require repeated lookup via tel_id.
+
+
+Previous Discussions
+====================
+
+Previous discussion of this issue has occurred over multiple issues,
+most importantly `#1165 <https://github.com/cta-observatory/ctapipe/issues/1165>`_,
+but also in `#1301 <https://github.com/cta-observatory/ctapipe/pull/1301>`_,
+and `722 <https://github.com/cta-observatory/ctapipe/issues/722>`_.
+
+
+Advantages of the Old Structure
+===============================
+
+By having the data level first in the hierarchy, it is easier to drop certain data levels for
+all telescopes.

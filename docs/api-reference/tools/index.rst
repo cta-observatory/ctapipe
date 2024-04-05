@@ -1,10 +1,11 @@
 .. _tools:
 
-=====================================
-Command line tools (`~ctapipe.tools`)
-=====================================
+*************************************
+Command-line Tools (`~ctapipe.tools`)
+*************************************
 
 .. currentmodule:: ctapipe.tools
+
 
 Introduction
 ============
@@ -47,7 +48,7 @@ Common Tool Functionality
   shown, but if you specify DEBUG you will get everything.
 
 
-Developing a new Tool
+Developing a New Tool
 =====================
 
 To create a new command-line Tool, follow the following procedure:
@@ -77,7 +78,6 @@ To create a new command-line Tool, follow the following procedure:
    re-install the ctapipe package in non-developer mode.
 
 
-
 Reference/API
 =============
 
@@ -92,6 +92,9 @@ Reference/API
 
 .. automodapi:: ctapipe.tools.train_particle_classifier
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.train_disp_reconstructor
+   :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.apply_models
     :no-inheritance-diagram:
