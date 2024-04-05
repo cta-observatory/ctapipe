@@ -10,6 +10,7 @@ account)
 """
 
 import abc
+import warnings
 from dataclasses import dataclass
 from functools import partial
 
@@ -31,6 +32,13 @@ SUPPORTED_TABLE_VERSIONS = {
 
 GRAMMAGE_UNIT = u.g / u.cm**2
 DENSITY_UNIT = u.g / u.cm**3
+
+
+class SlantDepthZenithRangeWarning(UserWarning):
+    """
+    Issued when the zenith angle of an event is beyond
+    the range where the slant depth computation is correct (approx. 70 deg)
+    """
 
 
 class AtmosphereDensityProfile(abc.ABC):
@@ -82,8 +90,9 @@ class AtmosphereDensityProfile(abc.ABC):
         r"""Line-of-sight integral from height to infinity, along
         the direction specified by the zenith angle. This is sometimes called
         the *slant depth*. The atmosphere here is assumed to be Cartesian, the
-        curvature of the Earth is not taken into account. Inverse of
-        height_from_slant_depth function.
+        curvature of the Earth is not taken into account. This approximation breaks down
+        for large zenith angles (>70 deg), in which case this function
+        does not give correct results. Inverse of height_from_slant_depth function.
 
         .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h') dh' / \cos{\Psi}
 
@@ -97,6 +106,12 @@ class AtmosphereDensityProfile(abc.ABC):
            unit to output (must be convertible to g/cm2)
 
         """
+
+        if zenith_angle > 70 * u.deg:
+            warnings.warn(
+                "Zenith angle too high for accurate slant depth",
+                SlantDepthZenithRangeWarning,
+            )
 
         return (self.integral(height) / np.cos(zenith_angle)).to(output_units)
 
