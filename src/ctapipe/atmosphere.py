@@ -10,12 +10,13 @@ account)
 """
 
 import abc
+import warnings
 from dataclasses import dataclass
 from functools import partial
 
 import numpy as np
 from astropy import units as u
-from astropy.table import Table
+from astropy.table import QTable, Table
 from scipy.interpolate import interp1d
 
 __all__ = [
@@ -28,6 +29,16 @@ __all__ = [
 SUPPORTED_TABLE_VERSIONS = {
     1,
 }
+
+GRAMMAGE_UNIT = u.g / u.cm**2
+DENSITY_UNIT = u.g / u.cm**3
+
+
+class SlantDepthZenithRangeWarning(UserWarning):
+    """
+    Issued when the zenith angle of an event is beyond
+    the range where the slant depth computation is correct (approx. 70 deg)
+    """
 
 
 class AtmosphereDensityProfile(abc.ABC):
@@ -58,20 +69,37 @@ class AtmosphereDensityProfile(abc.ABC):
 
         """
 
-    def line_of_sight_integral(
-        self, distance: u.Quantity, zenith_angle=0 * u.deg, output_units=u.g / u.cm**2
+    @abc.abstractmethod
+    def height_from_overburden(self, overburden: u.Quantity) -> u.Quantity:
+        r"""Get the height a.s.l. from the mass overburden in the atmosphere.
+            Inverse of the integral function
+
+        Returns
+        -------
+        u.Quantity["m"]:
+            Height a.s.l. for given overburden
+
+        """
+
+    def slant_depth_from_height(
+        self,
+        height: u.Quantity,
+        zenith_angle=0 * u.deg,
+        output_units=GRAMMAGE_UNIT,
     ):
-        r"""Line-of-sight integral from the shower distance to infinity, along
+        r"""Line-of-sight integral from height to infinity, along
         the direction specified by the zenith angle. This is sometimes called
         the *slant depth*. The atmosphere here is assumed to be Cartesian, the
-        curvature of the Earth is not taken into account.
+        curvature of the Earth is not taken into account. This approximation breaks down
+        for large zenith angles (>70 deg), in which case this function
+        does not give correct results. Inverse of height_from_slant_depth function.
 
-        .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h' \cos{\Psi}) dh'
+        .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h') dh' / \cos{\Psi}
 
         Parameters
         ----------
-        distance: u.Quantity["length"]
-           line-of-site distance from observer to point
+        height: u.Quantity["length"]
+           height a.s.l. at which to start integral
         zenith_angle: u.Quantity["angle"]
            zenith angle of observation
         output_units: u.Unit
@@ -79,9 +107,43 @@ class AtmosphereDensityProfile(abc.ABC):
 
         """
 
-        return (
-            self.integral(distance * np.cos(zenith_angle)) / np.cos(zenith_angle)
-        ).to(output_units)
+        if np.any(zenith_angle > 70 * u.deg):
+            warnings.warn(
+                "Zenith angle too high for accurate slant depth",
+                SlantDepthZenithRangeWarning,
+            )
+
+        return (self.integral(height) / np.cos(zenith_angle)).to(output_units)
+
+    def height_from_slant_depth(
+        self,
+        slant_depth: u.Quantity,
+        zenith_angle=0 * u.deg,
+        output_units=u.m,
+    ):
+        r"""Calculates height a.s.l. in the atmosphere from traversed slant depth
+            taking into account the shower zenith angle.
+
+        Parameters
+        ----------
+        slant_depth: u.Quantity["grammage"]
+           line-of-site distance from observer to point
+        zenith_angle: u.Quantity["angle"]
+           zenith angle of observation
+        output_units: u.Unit
+           unit to output (must be convertible to m)
+
+        """
+
+        if np.any(zenith_angle > 70 * u.deg):
+            warnings.warn(
+                "Zenith angle too high for accurate slant depth",
+                SlantDepthZenithRangeWarning,
+            )
+
+        return (self.height_from_overburden(slant_depth * np.cos(zenith_angle))).to(
+            output_units
+        )
 
     def peek(self):
         """
@@ -102,21 +164,21 @@ class AtmosphereDensityProfile(abc.ABC):
         axis[0].set_ylabel(f"Density / {density.unit.to_string('latex')}")
         axis[0].grid(True)
 
-        distance = np.linspace(1, 100, 500) * u.km
+        heights = np.linspace(1, 100, 500) * u.km
         for zenith_angle in [0, 40, 50, 70] * u.deg:
-            column_density = self.line_of_sight_integral(distance, zenith_angle)
-            axis[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
+            column_density = self.slant_depth_from_height(heights, zenith_angle)
+            axis[1].plot(heights, column_density, label=f"$\\Psi$={zenith_angle}")
 
         axis[1].legend(loc="best")
-        axis[1].set_xlabel(f"Distance / {distance.unit.to_string('latex')}")
+        axis[1].set_xlabel(f"Distance / {heights.unit.to_string('latex')}")
         axis[1].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
         axis[1].set_yscale("log")
         axis[1].grid(True)
 
-        zenith_angle = np.linspace(0, 80, 20) * u.deg
-        for distance in [0, 5, 10, 20] * u.km:
-            column_density = self.line_of_sight_integral(distance, zenith_angle)
-            axis[2].plot(zenith_angle, column_density, label=f"Height={distance}")
+        zenith_angle = np.linspace(0, 70, 20) * u.deg
+        for height in [0, 5, 10, 20] * u.km:
+            column_density = self.slant_depth_from_height(height, zenith_angle)
+            axis[2].plot(zenith_angle, column_density, label=f"Height={height}")
 
         axis[2].legend(loc="best")
         axis[2].set_xlabel(
@@ -133,6 +195,8 @@ class AtmosphereDensityProfile(abc.ABC):
     def from_table(cls, table: Table):
         """return a subclass of AtmosphereDensityProfile from a serialized
         table"""
+
+        table = QTable(table, copy=False)
 
         if "TAB_TYPE" not in table.meta:
             raise ValueError("expected a TAB_TYPE metadata field")
@@ -177,19 +241,36 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     """
 
     scale_height: u.Quantity = 8 * u.km
-    scale_density: u.Quantity = 0.00125 * u.g / (u.cm**3)
+    scale_density: u.Quantity = 0.00125 * u.g / u.cm**3
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        return self.scale_density * np.exp(-height / self.scale_height)
+        return np.where(
+            height >= 0 * u.m,
+            self.scale_density * np.exp(-height / self.scale_height),
+            np.nan,
+        )
 
     @u.quantity_input(height=u.m)
     def integral(
         self,
         height,
     ) -> u.Quantity:
-        return (
-            self.scale_density * self.scale_height * np.exp(-height / self.scale_height)
+        return np.where(
+            height >= 0 * u.m,
+            self.scale_density
+            * self.scale_height
+            * np.exp(-height / self.scale_height),
+            np.nan,
+        )
+
+    @u.quantity_input(overburden=u.g / u.cm**2)
+    def height_from_overburden(self, overburden) -> u.Quantity:
+        return np.where(
+            overburden <= self.scale_height * self.scale_density,
+            -self.scale_height
+            * np.log(overburden / (self.scale_height * self.scale_density)),
+            np.nan,
         )
 
 
@@ -231,7 +312,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         """
         Parameters
         ----------
-        table: Table
+        table : Table
             Table with columns `height`, `density`, and `column_density`
         """
 
@@ -239,23 +320,32 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             if col not in table.colnames:
                 raise ValueError(f"Missing expected column: {col} in table")
 
-        self.table = table[
+        valid = (
             (table["height"] >= 0)
             & (table["density"] > 0)
             & (table["column_density"] > 0)
-        ]
+        )
+        self.table = QTable(table[valid], copy=False)
 
         # interpolation is done in log-y to minimize spline wobble
+        log_density = np.log10(self.table["density"].to_value(DENSITY_UNIT))
+        log_column_density = np.log10(
+            self.table["column_density"].to_value(GRAMMAGE_UNIT)
+        )
+        height_km = self.table["height"].to_value(u.km)
 
-        self._density_interp = interp1d(
-            self.table["height"].to("km").value,
-            np.log10(self.table["density"].to("g cm-3").value),
+        interp_kwargs = dict(
             kind="cubic",
+            bounds_error=False,
+        )
+        self._density_interp = interp1d(
+            height_km, log_density, fill_value=(np.nan, -np.inf), **interp_kwargs
         )
         self._col_density_interp = interp1d(
-            self.table["height"].to("km").value,
-            np.log10(self.table["column_density"].to("g cm-2").value),
-            kind="cubic",
+            height_km, log_column_density, fill_value=(np.nan, -np.inf), **interp_kwargs
+        )
+        self._height_interp = interp1d(
+            log_column_density, height_km, fill_value=(np.inf, np.nan), **interp_kwargs
         )
 
         # ensure it can be read back
@@ -264,15 +354,18 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        return u.Quantity(
-            10 ** self._density_interp(height.to_value(u.km)), u.g / u.cm**3
-        )
+        log_density = self._density_interp(height.to_value(u.km))
+        return u.Quantity(10**log_density, DENSITY_UNIT, copy=False)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
-        return u.Quantity(
-            10 ** self._col_density_interp(height.to_value(u.km)), u.g / u.cm**2
-        )
+        log_col_density = self._col_density_interp(height.to_value(u.km))
+        return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=False)
+
+    @u.quantity_input(overburden=u.g / (u.cm * u.cm))
+    def height_from_overburden(self, overburden) -> u.Quantity:
+        log_overburden = np.log10(overburden.to_value(GRAMMAGE_UNIT))
+        return u.Quantity(self._height_interp(log_overburden), u.km, copy=False)
 
     def __repr__(self):
         return (
@@ -290,6 +383,11 @@ def _exponential(h, a, b, c):
     return a + b * np.exp(-h / c)
 
 
+def _inv_exponential(T, a, b, c):
+    "inverse function for exponential atmosphere"
+    return -c * np.log((T - a) / b)
+
+
 def _d_exponential(h, a, b, c):
     """derivative of exponential atmosphere"""
     return -b / c * np.exp(-h / c)
@@ -297,12 +395,21 @@ def _d_exponential(h, a, b, c):
 
 def _linear(h, a, b, c):
     """linear atmosphere"""
-    return a - b * h / c
+    return np.where(h < a * c / b, a - b * h / c, 0)
+
+
+def _inv_linear(T, a, b, c):
+    "inverse function for linear atmosphere"
+    return np.where(T > 0, -c / b * (T - a), np.inf)
 
 
 def _d_linear(h, a, b, c):
     """derivative of linear atmosphere"""
     return -b / c
+
+
+def _nan_func(x, unit):
+    return np.nan * unit
 
 
 class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
@@ -324,21 +431,28 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
     """
 
     def __init__(self, table: Table):
-        self.table = table
+        self.table = QTable(table, copy=False)
 
-        param_a = self.table["a"].to("g/cm2")
-        param_b = self.table["b"].to("g/cm2")
-        param_c = self.table["c"].to("km")
+        param_a = self.table["a"].to(GRAMMAGE_UNIT)
+        param_b = self.table["b"].to(GRAMMAGE_UNIT)
+        param_c = self.table["c"].to(u.km)
 
         # build list of column density functions and their derivatives:
         self._funcs = [
             partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
             for i, f in enumerate([_exponential] * 4 + [_linear])
         ]
+        self._funcs.insert(0, partial(_nan_func, unit=GRAMMAGE_UNIT))
+        self._inv_funcs = [
+            partial(f, a=param_a[4 - i], b=param_b[4 - i], c=param_c[4 - i])
+            for i, f in enumerate([_inv_linear] + 4 * [_inv_exponential])
+        ]
+        self._inv_funcs.append(partial(_nan_func, unit=u.m))
         self._d_funcs = [
             partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
             for i, f in enumerate([_d_exponential] * 4 + [_d_linear])
         ]
+        self._d_funcs.insert(0, partial(_nan_func, unit=DENSITY_UNIT))
 
     @classmethod
     def from_array(cls, array: np.ndarray, metadata: dict = None):
@@ -350,7 +464,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         if array.shape != (5, 5):
             raise ValueError("expected ndarray with shape (5,5)")
 
-        table = Table(
+        table = QTable(
             array,
             names=["height", "a", "b", "c", "1/c"],
             units=["cm", "g/cm2", "g/cm2", "cm", "cm-1"],
@@ -367,8 +481,8 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        which_func = np.digitize(height, self.table["height"]) - 1
-        condlist = [which_func == i for i in range(5)]
+        which_func = np.digitize(height, self.table["height"])
+        condlist = [which_func == i for i in range(6)]
         return u.Quantity(
             -1
             * np.piecewise(
@@ -376,19 +490,32 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
                 condlist=condlist,
                 funclist=self._d_funcs,
             )
-        ).to(u.g / u.cm**3)
+        ).to(DENSITY_UNIT)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
-        which_func = np.digitize(height, self.table["height"]) - 1
-        condlist = [which_func == i for i in range(5)]
+        which_func = np.digitize(height, self.table["height"])
+        condlist = [which_func == i for i in range(6)]
         return u.Quantity(
             np.piecewise(
                 x=height,
                 condlist=condlist,
                 funclist=self._funcs,
             )
-        ).to(u.g / u.cm**2)
+        ).to(GRAMMAGE_UNIT)
+
+    @u.quantity_input(overburden=u.g / (u.cm * u.cm))
+    def height_from_overburden(self, overburden) -> u.Quantity:
+        overburdens_at_heights = np.flip(self.integral(self.table["height"].to(u.km)))
+        which_func = np.digitize(overburden, overburdens_at_heights)
+        condlist = [which_func == i for i in range(6)]
+        return u.Quantity(
+            np.piecewise(
+                x=overburden,
+                condlist=condlist,
+                funclist=self._inv_funcs,
+            )
+        ).to(u.km)
 
     def __repr__(self):
         return (
