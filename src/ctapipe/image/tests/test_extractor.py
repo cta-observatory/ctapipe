@@ -286,10 +286,7 @@ def test_neighbor_average_peakpos(toymodels, request):
     waveforms, subarray, tel_id, _, _, _ = request.getfixturevalue(toymodels)
     n_channels, n_pixels, _ = waveforms.shape
     neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
-    if n_channels == 1:
-        broken_pixels = np.zeros(n_pixels, dtype=bool)
-    else:
-        broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     peak_pos = neighbor_average_maximum(
         waveforms,
         neighbors_indices=neighbors.indices,
@@ -404,10 +401,7 @@ def test_extractors(Extractor, toymodels, request):
     ) = request.getfixturevalue(toymodels)
     extractor = Extractor(subarray=subarray)
     n_channels, n_pixels, _ = waveforms.shape
-    if n_channels == 1:
-        broken_pixels = np.zeros(n_pixels, dtype=bool)
-    else:
-        broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
     if Extractor is TwoPassWindowSum and waveforms.shape[-3] != 1:
         with pytest.raises(AttributeError):
@@ -442,10 +436,7 @@ def test_integration_correction_off(Extractor, toymodels, request):
     ) = request.getfixturevalue(toymodels)
     extractor = Extractor(subarray=subarray, apply_integration_correction=False)
     n_channels, n_pixels, _ = waveforms.shape
-    if n_channels == 1:
-        broken_pixels = np.zeros(n_pixels, dtype=bool)
-    else:
-        broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
     if Extractor is TwoPassWindowSum and waveforms.shape[-3] != 1:
         with pytest.raises(AttributeError):
@@ -478,7 +469,8 @@ def test_fixed_window_sum(toymodel):
     ) = toymodel
 
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid
     assert_allclose(dl1.image, true_charge, rtol=0.1)
@@ -502,7 +494,8 @@ def test_sliding_window_max_sum(toymodels, request):
         true_time,
     ) = request.getfixturevalue(toymodels)
     extractor = SlidingWindowMaxSum(subarray=subarray)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid
     if dl1.image.ndim == 1:
@@ -525,7 +518,8 @@ def test_neighbor_peak_window_sum_local_weight(toymodel):
     ) = toymodel
     extractor = NeighborPeakWindowSum(subarray=subarray, local_weight=4)
     assert extractor.local_weight.tel[tel_id] == 4
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
@@ -602,7 +596,8 @@ def test_Two_pass_window_sum_no_noise(subarray_1_lst):
 
     # Test only the 1st pass
     extractor.disable_second_pass = True
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1_pass1 = extractor(waveforms, 1, selected_gain_channel, broken_pixels)
     assert_allclose(
         dl1_pass1.image[signal_pixels & integration_window_inside],
@@ -656,7 +651,8 @@ def test_waveform_extractor_factory(toymodel):
     ) = toymodel
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
 
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
@@ -715,7 +711,8 @@ def test_dtype(Extractor, subarray):
 
     waveforms = np.ones((1, n_pixels, 50), dtype="float64")
     extractor = Extractor(subarray=subarray)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.image.dtype == np.float32
     assert dl1.peak_time.dtype == np.float32
@@ -750,7 +747,8 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
         apply_integration_correction=False,
     )
 
-    broken_pixels = np.zeros((waveforms.shape[-2]), dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
 
     assert np.allclose(dl1.image[bright_pixels], 18)
@@ -764,7 +762,8 @@ def test_adaptive_centroid(toymodel_mst_fc):
     waveforms, subarray, tel_id, _, _, _ = toymodel_mst_fc
 
     neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
     trig_time = np.argmax(waveforms, axis=-1)
     peak_time = adaptive_centroid(
@@ -853,8 +852,10 @@ def test_FC_time(toymodel_mst_fc_time):
         mask,
     ) = toymodel_mst_fc_time
 
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+
     extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=True)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
     assert dl1.is_valid
@@ -862,7 +863,6 @@ def test_FC_time(toymodel_mst_fc_time):
     extractor = FlashCamExtractor(
         subarray=subarray, upsampling=1, leading_edge_timing=True
     )
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
     assert dl1.is_valid
@@ -870,13 +870,11 @@ def test_FC_time(toymodel_mst_fc_time):
     extractor = FlashCamExtractor(
         subarray=subarray, upsampling=1, leading_edge_timing=False
     )
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
     assert dl1.is_valid
 
     extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=False)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.peak_time[mask], true_time[mask], rtol=0.1)
     assert dl1.is_valid
@@ -893,7 +891,8 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
         _,
     ) = toymodel_mst_fc
     extractor = FlashCamExtractor(subarray=subarray, leading_edge_timing=True)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert dl1.is_valid
@@ -914,13 +913,13 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
                 selected_gain_channel = np.zeros(waveforms.shape[-2], dtype=np.int64)
                 broken_pixels = event.mon.tel[
                     tel_id
-                ].pixel_status.hardware_failing_pixels[0]
+                ].pixel_status.hardware_failing_pixels
 
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid
 
                 bright_pixels = (
-                    (true_charge > 30) & (true_charge < 3000) & (~broken_pixels)
+                    (true_charge > 30) & (true_charge < 3000) & (~broken_pixels[0])
                 )
                 assert_allclose(
                     dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35

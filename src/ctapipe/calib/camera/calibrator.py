@@ -21,8 +21,8 @@ from ctapipe.image.reducer import DataVolumeReducer
 __all__ = ["CameraCalibrator"]
 
 
-def _get_invalid_pixels(n_pixels, pixel_status, selected_gain_channel):
-    broken_pixels = np.zeros(n_pixels, dtype=bool)
+def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channel):
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     index = np.arange(n_pixels)
     masks = (
         pixel_status.hardware_failing_pixels,
@@ -214,10 +214,11 @@ class CameraCalibrator(TelescopeComponent):
         if self._check_dl0_empty(waveforms):
             return
 
-        _, n_pixels, n_samples = waveforms.shape
+        n_channels, n_pixels, n_samples = waveforms.shape
 
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
         broken_pixels = _get_invalid_pixels(
+            n_channels,
             n_pixels,
             event.mon.tel[tel_id].pixel_status,
             selected_gain_channel,
