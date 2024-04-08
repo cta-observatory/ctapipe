@@ -211,9 +211,11 @@ class PedestalIntegrator(PedestalCalculator):
         DL1CameraContainer
         """
         waveforms = event.r1.tel[self.tel_id].waveform
+        n_channels, n_pixels, _ = waveforms.shape
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
         broken_pixels = _get_invalid_pixels(
-            n_pixels=waveforms.shape[-2],
+            n_channels=n_channels,
+            n_pixels=n_pixels,
             pixel_status=event.mon.tel[self.tel_id].pixel_status,
             selected_gain_channel=selected_gain_channel,
         )

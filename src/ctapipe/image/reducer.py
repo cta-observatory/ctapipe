@@ -183,7 +183,9 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         # Pulse-integrate waveforms
         extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
         # do not treat broken pixels in data volume reduction
-        broken_pixels = np.zeros(camera_geom.n_pixels, dtype=bool)
+        broken_pixels = np.zeros(
+            (waveforms.shape[-3], camera_geom.n_pixels), dtype=bool
+        )
         dl1: DL1CameraContainer = extractor(
             waveforms,
             tel_id=tel_id,
