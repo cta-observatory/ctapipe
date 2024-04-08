@@ -363,8 +363,8 @@ def _apply_correction(charge, correction, selected_gain_channel):
     Helper function for applying the integration correction for certain `ImageExtractor`s.
     """
     if selected_gain_channel is None:
-        return charge * correction[:, np.newaxis]
-    return charge * correction[selected_gain_channel]
+        return (charge * correction[:, np.newaxis]).astype(charge.dtype)
+    return (charge * correction[selected_gain_channel]).astype(charge.dtype)
 
 
 class ImageExtractor(TelescopeComponent):
