@@ -76,8 +76,8 @@ def subarray_2_sst(prod5_sst, reference_location):
         "test array",
         tel_positions={1: np.zeros(3) * u.m, 2: np.zeros(3) * u.m},
         tel_descriptions={
-            1: deepcopy(prod5_sst),
-            2: deepcopy(prod5_sst),
+            1: prod5_sst,
+            2: prod5_sst,
         },
         reference_location=reference_location,
     )
@@ -89,7 +89,7 @@ def subarray_1_lst(prod3_lst, reference_location):
     subarray = SubarrayDescription(
         "One LST",
         tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={1: deepcopy(prod3_lst)},
+        tel_descriptions={1: prod3_lst},
         reference_location=reference_location,
     )
     return subarray
@@ -100,7 +100,7 @@ def subarray_1_mst_fc(prod5_mst_flashcam, reference_location):
     subarray = SubarrayDescription(
         "One MST with FlashCam",
         tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={1: deepcopy(prod5_mst_flashcam)},
+        tel_descriptions={1: prod5_mst_flashcam},
         reference_location=reference_location,
     )
     return subarray

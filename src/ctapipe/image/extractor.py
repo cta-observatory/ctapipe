@@ -580,7 +580,7 @@ class GlobalPeakWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
-        # Make broken_pixels atleast 2D to allow multiple gains
+        # Make broken_pixels at least 2D to allow multiple gains
         broken_pix_2d = np.atleast_2d(broken_pixels)
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
