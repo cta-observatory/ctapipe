@@ -257,7 +257,7 @@ def neighbor_average_maximum(
             neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
             for neighbor in neighbors:
-                if broken_pixels[neighbor]:
+                if np.atleast_2d(broken_pixels)[ichannel, neighbor]:
                     continue
                 average += waveforms[ichannel][neighbor]
 
@@ -580,14 +580,21 @@ class GlobalPeakWindowSum(ImageExtractor):
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
+        # Make broken_pixels atleast 2D to allow multiple gains
+        broken_pix_2d = np.atleast_2d(broken_pixels)
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
-            peak_index = waveforms[:, ~broken_pixels].mean(axis=-2).argmax(axis=-1)
+            peak_index = (
+                waveforms[~broken_pix_2d]
+                .reshape(waveforms.shape)
+                .mean(axis=-2)
+                .argmax(axis=-1)
+            )
         else:
             n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
-            brightest = np.argsort(waveforms.max(axis=-1))[:, ~broken_pixels][
-                ..., -n_pixels:
-            ]
+            brightest = np.argsort(waveforms.max(axis=-1))[~broken_pix_2d].reshape(
+                waveforms.shape[-3], waveforms.shape[-2]
+            )[..., -n_pixels:]
 
             # average over brightest pixels then argmax over samples
             peak_index = (

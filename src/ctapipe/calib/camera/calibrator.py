@@ -31,7 +31,10 @@ def _get_invalid_pixels(n_pixels, pixel_status, selected_gain_channel):
     )
     for mask in masks:
         if mask is not None:
-            broken_pixels |= mask[selected_gain_channel, index]
+            if selected_gain_channel is not None:
+                broken_pixels |= mask[selected_gain_channel, index]
+            else:
+                broken_pixels |= mask
 
     return broken_pixels
 

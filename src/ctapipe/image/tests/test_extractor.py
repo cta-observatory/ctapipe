@@ -284,8 +284,12 @@ def test_extract_around_peak_charge_expected():
 @pytest.mark.parametrize("toymodels", camera_toymodels)
 def test_neighbor_average_peakpos(toymodels, request):
     waveforms, subarray, tel_id, _, _, _ = request.getfixturevalue(toymodels)
+    n_channels, n_pixels, _ = waveforms.shape
     neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    if n_channels == 1:
+        broken_pixels = np.zeros(n_pixels, dtype=bool)
+    else:
+        broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     peak_pos = neighbor_average_maximum(
         waveforms,
         neighbors_indices=neighbors.indices,
@@ -399,7 +403,11 @@ def test_extractors(Extractor, toymodels, request):
         true_time,
     ) = request.getfixturevalue(toymodels)
     extractor = Extractor(subarray=subarray)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    if n_channels == 1:
+        broken_pixels = np.zeros(n_pixels, dtype=bool)
+    else:
+        broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
     if Extractor is TwoPassWindowSum and waveforms.shape[-3] != 1:
         with pytest.raises(AttributeError):
@@ -433,7 +441,11 @@ def test_integration_correction_off(Extractor, toymodels, request):
         true_time,
     ) = request.getfixturevalue(toymodels)
     extractor = Extractor(subarray=subarray, apply_integration_correction=False)
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    n_channels, n_pixels, _ = waveforms.shape
+    if n_channels == 1:
+        broken_pixels = np.zeros(n_pixels, dtype=bool)
+    else:
+        broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
     if Extractor is TwoPassWindowSum and waveforms.shape[-3] != 1:
         with pytest.raises(AttributeError):
@@ -738,7 +750,7 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
         apply_integration_correction=False,
     )
 
-    broken_pixels = np.zeros(waveforms.shape[-2], dtype=bool)
+    broken_pixels = np.zeros((waveforms.shape[-2]), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
 
     assert np.allclose(dl1.image[bright_pixels], 18)

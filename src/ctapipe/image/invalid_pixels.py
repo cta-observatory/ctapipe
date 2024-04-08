@@ -1,6 +1,7 @@
 """
 Methods to interpolate broken pixels
 """
+
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
@@ -51,7 +52,7 @@ class NeighborAverage(InvalidPixelHandler):
     def __call__(self, tel_id, image, peak_time, pixel_mask):
         """Interpolate pixels in dl1 images and peak_times
 
-        Pixels to be interpolated are replaced by the average value their neighbors.
+        Pixels to be interpolated are replaced by the average value of their neighbors.
 
         Pixels where no valid neighbors are available are filled with zeros.
 
