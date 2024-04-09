@@ -1,16 +1,18 @@
-============================================================
-ctapipe |pypi| |conda| |doilatest| |ci| |coverage| |codacy|
-============================================================
+==================================================================================
+ ctapipe |pypi| |conda| |doilatest| |ci| |sonarqube_coverage| |sonarqube_quality|
+==================================================================================
 
 .. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=main
     :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amain
     :alt: Test Status
-.. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115
-  :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
+.. |sonarqube_quality| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=alert_status&token=sqb_a533204f382b350568e922385cab7c2394587458
+    :target: https://sonar-cta-dpps.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
+    :alt: sonarqube quality gate
+.. |sonarqube_coverage| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=coverage&token=sqb_a533204f382b350568e922385cab7c2394587458
+    :target: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=coverage&token=sqb_a533204f382b350568e922385cab7c2394587458)](https://sonar-cta-dpps.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
+    :alt: sonarqube code coverage
 .. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/version.svg
   :target: https://anaconda.org/conda-forge/ctapipe
-.. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/main/graph/badge.svg
-  :target: https://codecov.io/gh/cta-observatory/ctapipe
 .. |doilatest| image:: https://zenodo.org/badge/37927055.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
 .. |pypi| image:: https://badge.fury.io/py/ctapipe.svg
@@ -28,7 +30,7 @@ expert or developer!
 * Slack: Contact Karl Kosack for invite
 
 Citing this software
---------------------
+====================
 
 If you use this software for a publication, please cite the Zenodo Record
 for the specific version you are using and our latest publication.
@@ -56,7 +58,7 @@ cite using this bibtex entry:
 
 
 Installation for Users
-----------------------
+======================
 
 *ctapipe* and its dependencies may be installed using the *Anaconda* or
 *Miniconda* package system. We recommend creating a conda virtual environment
