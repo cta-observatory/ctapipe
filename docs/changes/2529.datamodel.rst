@@ -1,6 +1,6 @@
 Change R1- and DL0-waveforms datamodel shape from (n_pixels, n_samples)
-to be always (n_channels, n_pixels, n_samples). This breaks reading in single
-gain data of older versions (< v6.0.0) with the ``HDF5EventSource``.
+to be always (n_channels, n_pixels, n_samples). ``HDF5EventSource`` was adjusted
+accordingly to support also older datamodel versions.
 
 Re-introduce also the possibility of running ``ImageExtractor``\s on data
 consisting of multiple gain channels.
