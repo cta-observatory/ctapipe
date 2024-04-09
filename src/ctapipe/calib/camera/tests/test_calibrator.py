@@ -130,7 +130,7 @@ def test_check_dl0_empty(example_event, example_subarray):
     assert (event.dl1.tel[tel_id].image == 2).all()
 
 
-def test_dl1_charge_calib(example_subarray):
+def test_dl1_charge_calib_1_gain(example_subarray):
     # copy because we mutate the camera, should not affect other tests
     subarray = deepcopy(example_subarray)
     camera = subarray.tel[1].camera
@@ -178,7 +178,7 @@ def test_dl1_charge_calib(example_subarray):
         subarray=subarray, image_extractor=FullWaveformSum(subarray=subarray)
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[tel_id].image, y.sum(2)[0, :], rtol=1e-4)
+    np.testing.assert_allclose(event.dl1.tel[tel_id].image, y.sum(-1)[0], rtol=1e-4)
 
     event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
     event.calibration.tel[tel_id].dl1.absolute_factor = absolute
@@ -193,6 +193,119 @@ def test_dl1_charge_calib(example_subarray):
 
     # test with timing corrections
     event.calibration.tel[tel_id].dl1.time_shift = time_offset / sampling_rate
+    calibrator(event)
+
+    # more rtol since shifting might lead to reduced integral
+    np.testing.assert_allclose(event.dl1.tel[tel_id].image, 1, rtol=1e-5)
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time, mid / sampling_rate, atol=1
+    )
+
+    # test not applying time shifts
+    # now we should be back to the result without setting time shift
+    calibrator.apply_peak_time_shift = False
+    calibrator.apply_waveform_time_shift = False
+    calibrator(event)
+
+    np.testing.assert_allclose(event.dl1.tel[tel_id].image, 1, rtol=1e-4)
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time, expected_peak_time, atol=1
+    )
+
+    # We now use GlobalPeakWindowSum to see the effect of missing charge
+    # due to not correcting time offsets.
+    calibrator = CameraCalibrator(
+        subarray=subarray,
+        image_extractor=GlobalPeakWindowSum(subarray=subarray),
+        apply_waveform_time_shift=True,
+    )
+    calibrator(event)
+    # test with timing corrections, should work
+    # higher rtol because we cannot shift perfectly
+    np.testing.assert_allclose(event.dl1.tel[tel_id].image, 1, rtol=0.01)
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].peak_time, mid / sampling_rate, atol=1
+    )
+
+    # test deactivating timing corrections
+    calibrator.apply_waveform_time_shift = False
+    calibrator(event)
+
+    # make sure we chose an example where the time shifts matter
+    # charges should be quite off due to summing around global shift
+    assert not np.allclose(event.dl1.tel[tel_id].image, 1, rtol=0.1)
+    assert not np.allclose(event.dl1.tel[tel_id].peak_time, mid / sampling_rate, atol=1)
+
+
+def test_dl1_charge_calib_2_gain(example_subarray):
+    # copy because we mutate the camera, should not affect other tests
+    subarray = deepcopy(example_subarray)
+    camera = subarray.tel[1].camera
+    # test with a sampling_rate different than 1 to
+    # test if we handle time vs. slices correctly
+    sampling_rate = 2
+    camera.readout.sampling_rate = sampling_rate * u.GHz
+
+    n_pixels = camera.geometry.n_pixels
+    n_samples = 96
+    mid = n_samples // 2
+    pulse_sigma = 6
+    random = np.random.default_rng(1)
+    x = np.arange(n_samples)
+
+    # Randomize times and create pulses
+    time_offset_2_gain = random.uniform(-10, +10, (2, n_pixels))
+    y_2_gain = np.ones((2, n_pixels, n_samples))
+    y_2_gain[:] = norm.pdf(
+        x, mid + time_offset_2_gain[..., np.newaxis], pulse_sigma
+    ).astype("float32")
+
+    camera.readout.reference_pulse_shape = norm.pdf(x, mid, pulse_sigma)
+    camera.readout.reference_pulse_shape = np.repeat(
+        camera.readout.reference_pulse_shape[np.newaxis, :], 2, axis=0
+    )
+    camera.readout.reference_pulse_sample_width = 1 / camera.readout.sampling_rate
+
+    # Define absolute calibration coefficients
+    absolute_2_gain = random.uniform(100, 1000, (2, n_pixels)).astype("float32")
+    y_2_gain *= absolute_2_gain[..., np.newaxis]
+
+    # Define relative coefficients
+    relative_2_gain = random.normal(1, 0.01, (2, n_pixels))
+    y_2_gain /= relative_2_gain[..., np.newaxis]
+
+    # Define pedestal
+    pedestal_2_gain = random.uniform(-4, 4, (2, n_pixels))
+    y_2_gain += pedestal_2_gain[..., np.newaxis]
+
+    event = ArrayEventContainer()
+    tel_id = list(subarray.tel.keys())[0]
+    event.dl0.tel[tel_id].waveform = y_2_gain
+    event.dl0.tel[tel_id].selected_gain_channel = None
+    event.r1.tel[tel_id].selected_gain_channel = None
+
+    # Test default
+    calibrator = CameraCalibrator(
+        subarray=subarray, image_extractor=FullWaveformSum(subarray=subarray)
+    )
+    calibrator(event)
+    np.testing.assert_allclose(
+        event.dl1.tel[tel_id].image[0], y_2_gain.sum(2)[0, :], rtol=1e-4
+    )
+
+    event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal_2_gain
+    event.calibration.tel[tel_id].dl1.absolute_factor = absolute_2_gain
+    event.calibration.tel[tel_id].dl1.relative_factor = relative_2_gain
+
+    # Test without timing corrections
+    calibrator(event)
+    dl1 = event.dl1.tel[tel_id]
+    np.testing.assert_allclose(dl1.image[0], 1, rtol=1e-5)
+    expected_peak_time = (mid + time_offset_2_gain) / sampling_rate
+    np.testing.assert_allclose(dl1.peak_time, expected_peak_time, rtol=1e-5)
+
+    # test with timing corrections
+    event.calibration.tel[tel_id].dl1.time_shift = time_offset_2_gain / sampling_rate
     calibrator(event)
 
     # more rtol since shifting might lead to reduced integral

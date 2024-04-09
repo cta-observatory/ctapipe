@@ -225,16 +225,15 @@ class CameraCalibrator(TelescopeComponent):
         )
 
         dl1_calib = event.calibration.tel[tel_id].dl1
-        time_shift = event.calibration.tel[tel_id].dl1.time_shift
+        ped_offset = dl1_calib.pedestal_offset
+        time_shift = dl1_calib.time_shift
         readout = self.subarray.tel[tel_id].camera.readout
 
         # subtract any remaining pedestal before extraction
-        if dl1_calib.pedestal_offset is not None:
+        if ped_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
-            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels,)
-            waveforms = (
-                waveforms - np.atleast_2d(dl1_calib.pedestal_offset)[..., np.newaxis]
-            )
+            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
+            waveforms = waveforms - np.atleast_2d(ped_offset)[..., np.newaxis]
 
         if n_samples == 1:
             # To handle ASTRI and dst
@@ -271,12 +270,10 @@ class CameraCalibrator(TelescopeComponent):
 
             # correct non-integer remainder of the shift if given
             if self.apply_peak_time_shift.tel[tel_id] and time_shift is not None:
-                dl1.peak_time = (dl1.peak_time.T - remaining_shift).T
+                dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        dl1.image = (
-            dl1.image.T * (dl1_calib.relative_factor / dl1_calib.absolute_factor)
-        ).T
+        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:
@@ -319,7 +316,7 @@ def shift_waveforms(waveforms, time_shift_samples):
     ----------
     waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
         The waveforms to shift
-    time_shift_samples: ndarray of shape (n_pixels, )
+    time_shift_samples: ndarray
         The shift to apply in units of samples.
         Waveforms are shifted to the left by the smallest integer
         that minimizes inter-pixel differences.
@@ -328,11 +325,11 @@ def shift_waveforms(waveforms, time_shift_samples):
     -------
     shifted_waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
         The shifted waveforms
-    remaining_shift: ndarray of shape (n_pixels, )
+    remaining_shift: ndarray
         The remaining shift after applying the integer shift to the waveforms.
     """
-    mean_shift = time_shift_samples.mean(-1)
-    integer_shift = np.round((time_shift_samples.T - mean_shift).T).astype("int16")
+    mean_shift = time_shift_samples.mean(axis=-1, keepdims=True)
+    integer_shift = np.round(time_shift_samples - mean_shift).astype("int16")
     remaining_shift = time_shift_samples - integer_shift
     shifted_waveforms = _shift_waveforms_by_integer(waveforms, integer_shift)
     return shifted_waveforms, remaining_shift
