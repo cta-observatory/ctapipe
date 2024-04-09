@@ -423,7 +423,7 @@ class ImageExtractor(TelescopeComponent):
             some cases to calculate the correct correction for the charge
             extraction.
         broken_pixels : ndarray
-            Mask of broken pixels used for certain `Image Extractor` types.
+            Mask of broken pixels used for certain `ImageExtractor` types.
             Shape: (n_channels, n_pix)
 
         Returns
