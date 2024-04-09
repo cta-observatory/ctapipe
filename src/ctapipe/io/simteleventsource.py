@@ -284,8 +284,13 @@ def apply_simtel_r1_calibration(
 
     r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
 
-    selected_gain_channel = gain_selector(r0_waveforms)
-    r1_waveforms = r1_waveforms[np.newaxis, selected_gain_channel, np.arange(n_pixels)]
+    if gain_selector is not None:
+        selected_gain_channel = gain_selector(r0_waveforms)
+        r1_waveforms = r1_waveforms[
+            np.newaxis, selected_gain_channel, np.arange(n_pixels)
+        ]
+    else:
+        selected_gain_channel = None
 
     return r1_waveforms, selected_gain_channel
 
@@ -487,6 +492,15 @@ class SimTelEventSource(EventSource):
         help="Use the given obs_id instead of the run number from sim_telarray",
     ).tag(config=True)
 
+    select_gain = Bool(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Whether to perform gain selection. The default (None) means only"
+            " select gain of physics events, not of calibration events."
+        ),
+    ).tag(config=True)
+
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
@@ -626,7 +640,7 @@ class SimTelEventSource(EventSource):
 
                 # TODO: switch to warning or even an exception once
                 # we start relying on this.
-                self.log.info(
+                self.log.debug(
                     "Could not determine telescope from sim_telarray metadata,"
                     " guessing using builtin lookup-table: %d: %s",
                     tel_id,
@@ -835,11 +849,20 @@ class SimTelEventSource(EventSource):
                 mon.calibration.pedestal_per_sample = pedestal
                 mon.pixel_status = self._fill_mon_pixels_status(tel_id)
 
+                select_gain = self.select_gain is True or (
+                    self.select_gain is None
+                    and trigger.event_type is EventType.SUBARRAY
+                )
+                if select_gain:
+                    gain_selector = self.gain_selector
+                else:
+                    gain_selector = None
+
                 r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples,
                     pedestal,
                     dc_to_pe,
-                    self.gain_selector,
+                    gain_selector,
                     self.calib_scale,
                     self.calib_shift,
                 )
