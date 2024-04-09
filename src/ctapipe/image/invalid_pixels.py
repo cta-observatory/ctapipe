@@ -82,31 +82,35 @@ class NeighborAverage(InvalidPixelHandler):
         if (n_interpolated == 0).all():
             return image, peak_time
 
+        input_1d = image.ndim == 1
         image = np.atleast_2d(image)
         peak_time = np.atleast_2d(peak_time)
-        for ichannel in range(image.shape[-2]):
-            if n_interpolated[ichannel] == 0:
+        n_channels = image.shape[0]
+        for channel in range(n_channels):
+            if n_interpolated[channel] == 0:
                 continue
             # exclude to-be-interpolated pixels from neighbors
             neighbors = (
-                geometry.neighbor_matrix[pixel_mask[ichannel]] & ~pixel_mask[ichannel]
+                geometry.neighbor_matrix[pixel_mask[channel]] & ~pixel_mask[channel]
             )
 
             index, neighbor = np.nonzero(neighbors)
-            image_sum = np.zeros(n_interpolated[ichannel], dtype=image.dtype)
-            count = np.zeros(n_interpolated[ichannel], dtype=int)
-            peak_time_sum = np.zeros(n_interpolated[ichannel], dtype=peak_time.dtype)
+            image_sum = np.zeros(n_interpolated[channel], dtype=image.dtype)
+            count = np.zeros(n_interpolated[channel], dtype=int)
+            peak_time_sum = np.zeros(n_interpolated[channel], dtype=peak_time.dtype)
 
             # calculate average of image and peak_time
             np.add.at(count, index, 1)
-            np.add.at(image_sum, index, image[ichannel, neighbor])
-            np.add.at(peak_time_sum, index, peak_time[ichannel, neighbor])
+            np.add.at(image_sum, index, image[channel, neighbor])
+            np.add.at(peak_time_sum, index, peak_time[channel, neighbor])
 
             valid = count > 0
             np.divide(image_sum, count, out=image_sum, where=valid)
             np.divide(peak_time_sum, count, out=peak_time_sum, where=valid)
 
-            peak_time[ichannel, pixel_mask[ichannel]] = peak_time_sum
-            image[ichannel, pixel_mask[ichannel]] = image_sum
+            peak_time[channel, pixel_mask[channel]] = peak_time_sum
+            image[channel, pixel_mask[channel]] = image_sum
 
-        return np.squeeze(image), np.squeeze(peak_time)
+        if input_1d:
+            return image[0], peak_time[0]
+        return image, peak_time

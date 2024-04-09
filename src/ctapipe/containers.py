@@ -534,23 +534,24 @@ class DL1CameraCalibrationContainer(Container):
         None,
         "Residual mean pedestal of the waveforms for each pixel."
         " This value is subtracted from the waveforms of each pixel before"
-        " the pulse extraction.",
+        " the pulse extraction. Shape: (n_channels, n_pixels)",
     )
     absolute_factor = Field(
-        1,
-        "Multiplicative coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel",
+        None,
+        "Multiplicative coefficients for the absolute calibration of extracted charge"
+        " into physical units (e.g. photoelectrons or photons) for each pixel."
+        " Shape: (n_channels, n_pixels)",
     )
     relative_factor = Field(
-        1,
-        "Multiplicative Coefficients for the relative correction between pixels to achieve a "
-        "uniform charge response (post absolute calibration) from a "
-        "uniform illumination.",
+        None,
+        "Multiplicative Coefficients for the relative correction between pixels to"
+        " achieve a uniform charge response (post absolute calibration) from a"
+        " uniform illumination. Shape: (n_channels, n_pixels)",
     )
     time_shift = Field(
         None,
-        "Additive coefficients for the timing correction before charge extraction "
-        "for each pixel",
+        "Additive coefficients for the timing correction before charge extraction"
+        " for each pixel. Shape: (n_channels, n_pixels)",
     )
 
 

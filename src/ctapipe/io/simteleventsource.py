@@ -880,10 +880,8 @@ class SimTelEventSource(EventSource):
 
                 # get time_shift from laser calibration
                 time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                pix_index = np.arange(n_pixels)
-
                 dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib[selected_gain_channel, pix_index]
+                dl1_calib.time_shift = time_calib
 
             yield data
 

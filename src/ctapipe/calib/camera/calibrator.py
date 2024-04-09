@@ -23,6 +23,7 @@ __all__ = ["CameraCalibrator"]
 
 def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channel):
     broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+
     index = np.arange(n_pixels)
     masks = (
         pixel_status.hardware_failing_pixels,
@@ -223,6 +224,7 @@ class CameraCalibrator(TelescopeComponent):
             event.mon.tel[tel_id].pixel_status,
             selected_gain_channel,
         )
+        pixel_index = np.arange(n_pixels)
 
         dl1_calib = event.calibration.tel[tel_id].dl1
         ped_offset = dl1_calib.pedestal_offset
@@ -250,6 +252,9 @@ class CameraCalibrator(TelescopeComponent):
         else:
             # shift waveforms if time_shift calibration is available
             if time_shift is not None:
+                if selected_gain_channel is not None:
+                    time_shift = time_shift[selected_gain_channel, pixel_index]
+
                 if self.apply_waveform_time_shift.tel[tel_id]:
                     sampling_rate = readout.sampling_rate.to_value(u.GHz)
                     time_shift_samples = time_shift * sampling_rate
@@ -273,7 +278,18 @@ class CameraCalibrator(TelescopeComponent):
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+        if (
+            dl1_calib.relative_factor is not None
+            and dl1_calib.absolute_factor is not None
+        ):
+            if selected_gain_channel is None:
+                dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+            else:
+                corr = (
+                    dl1_calib.relative_factor[selected_gain_channel, pixel_index]
+                    / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
+                )
+                dl1.image *= corr
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:

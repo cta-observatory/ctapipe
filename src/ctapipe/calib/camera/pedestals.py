@@ -219,7 +219,6 @@ class PedestalIntegrator(PedestalCalculator):
             pixel_status=event.mon.tel[self.tel_id].pixel_status,
             selected_gain_channel=selected_gain_channel,
         )
-
         # Extract charge and time
         if self.extractor:
             return self.extractor(
@@ -249,10 +248,7 @@ class PedestalIntegrator(PedestalCalculator):
 
         # real data
         trigger_time = event.trigger.time
-        if event.meta["origin"] != "hessio":
-            pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
-        else:  # patches for MC data
-            pixel_mask = np.zeros(waveform.shape[1], dtype=bool)
+        pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
 
         if self.n_events_seen == 0:
             self.time_start = trigger_time

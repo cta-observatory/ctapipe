@@ -444,9 +444,13 @@ class FullWaveformSum(ImageExtractor):
         charge, peak_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[tel_id]
         )
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class FixedWindowSum(ImageExtractor):
@@ -512,9 +516,13 @@ class FixedWindowSum(ImageExtractor):
         if self.apply_integration_correction.tel[tel_id]:
             correction = self._calculate_correction(tel_id=tel_id)
             charge = _apply_correction(charge, correction, selected_gain_channel)
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class GlobalPeakWindowSum(ImageExtractor):
@@ -586,16 +594,15 @@ class GlobalPeakWindowSum(ImageExtractor):
     ) -> DL1CameraContainer:
         if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
-            peak_index = (
-                waveforms[~broken_pixels]
-                .reshape(waveforms.shape)
-                .mean(axis=-2)
-                .argmax(axis=-1)
-            )
+            peak_index = waveforms.mean(
+                axis=-2, where=~broken_pixels[..., np.newaxis]
+            ).argmax(axis=-1)
         else:
             n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
-            brightest = np.argsort(waveforms.max(axis=-1))[~broken_pixels].reshape(
-                waveforms.shape[-3], waveforms.shape[-2]
+            brightest = np.argsort(
+                waveforms.max(
+                    axis=-1, where=~broken_pixels[..., np.newaxis], initial=-np.inf
+                )
             )[..., -n_pixels:]
 
             # average over brightest pixels then argmax over samples
@@ -613,9 +620,13 @@ class GlobalPeakWindowSum(ImageExtractor):
         if self.apply_integration_correction.tel[tel_id]:
             correction = self._calculate_correction(tel_id=tel_id)
             charge = _apply_correction(charge, correction, selected_gain_channel)
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class LocalPeakWindowSum(ImageExtractor):
@@ -681,9 +692,13 @@ class LocalPeakWindowSum(ImageExtractor):
         if self.apply_integration_correction.tel[tel_id]:
             correction = self._calculate_correction(tel_id=tel_id)
             charge = _apply_correction(charge, correction, selected_gain_channel)
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class SlidingWindowMaxSum(ImageExtractor):
@@ -757,12 +772,17 @@ class SlidingWindowMaxSum(ImageExtractor):
         charge, peak_time = extract_sliding_window(
             waveforms, self.window_width.tel[tel_id], self.sampling_rate_ghz[tel_id]
         )
+
         if self.apply_integration_correction.tel[tel_id]:
             correction = self._calculate_correction(tel_id=tel_id)
             charge = _apply_correction(charge, correction, selected_gain_channel)
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class NeighborPeakWindowSum(ImageExtractor):
@@ -838,12 +858,17 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.window_shift.tel[tel_id],
             self.sampling_rate_ghz[tel_id],
         )
+
         if self.apply_integration_correction.tel[tel_id]:
             correction = self._calculate_correction(tel_id=tel_id)
             charge = _apply_correction(charge, correction, selected_gain_channel)
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
@@ -1742,6 +1767,9 @@ class FlashCamExtractor(ImageExtractor):
         if shift != 0:
             peak_time -= shift
 
-        return DL1CameraContainer(
-            image=np.squeeze(charge), peak_time=np.squeeze(peak_time), is_valid=True
-        )
+        # reduce dimensions for gain selected data to (n_pixels, )
+        if selected_gain_channel is not None:
+            charge = charge[0]
+            peak_time = peak_time[0]
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)

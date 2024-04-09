@@ -139,6 +139,7 @@ def test_dl1_charge_calib_1_gain(example_subarray):
     sampling_rate = 2
     camera.readout.sampling_rate = sampling_rate * u.GHz
 
+    n_channels = camera.readout.n_channels
     n_pixels = camera.geometry.n_pixels
     n_samples = 96
     mid = n_samples // 2
@@ -147,31 +148,29 @@ def test_dl1_charge_calib_1_gain(example_subarray):
     x = np.arange(n_samples)
 
     # Randomize times and create pulses
-    time_offset = random.uniform(-10, +10, n_pixels)
-    y = norm.pdf(x, mid + time_offset[np.newaxis, :, np.newaxis], pulse_sigma).astype(
-        "float32"
-    )
+    time_offset = random.uniform(-10, +10, (n_channels, n_pixels))
+    y = norm.pdf(x, mid + time_offset[:, :, np.newaxis], pulse_sigma).astype("float32")
 
     camera.readout.reference_pulse_shape = norm.pdf(x, mid, pulse_sigma)[np.newaxis, :]
     camera.readout.reference_pulse_sample_width = 1 / camera.readout.sampling_rate
 
     # Define absolute calibration coefficients
-    absolute = random.uniform(100, 1000, n_pixels).astype("float32")
-    y *= absolute[np.newaxis, :, np.newaxis]
+    absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
+    y *= absolute[..., np.newaxis]
 
     # Define relative coefficients
-    relative = random.normal(1, 0.01, n_pixels)
-    y /= relative[np.newaxis, :, np.newaxis]
+    relative = random.normal(1, 0.01, (n_channels, n_pixels))
+    y /= relative[..., np.newaxis]
 
     # Define pedestal
-    pedestal = random.uniform(-4, 4, n_pixels)
-    y += pedestal[np.newaxis, :, np.newaxis]
+    pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
+    y += pedestal[..., np.newaxis]
 
     event = ArrayEventContainer()
     tel_id = list(subarray.tel.keys())[0]
     event.dl0.tel[tel_id].waveform = y
-    event.dl0.tel[tel_id].selected_gain_channel = np.zeros(len(y), dtype=int)
-    event.r1.tel[tel_id].selected_gain_channel = np.zeros(len(y), dtype=int)
+    event.dl0.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=int)
+    event.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=int)
 
     # Test default
     calibrator = CameraCalibrator(
@@ -188,7 +187,9 @@ def test_dl1_charge_calib_1_gain(example_subarray):
     calibrator(event)
     dl1 = event.dl1.tel[tel_id]
     np.testing.assert_allclose(dl1.image, 1, rtol=1e-5)
-    expected_peak_time = (mid + time_offset) / sampling_rate
+
+    # we use only the first gain
+    expected_peak_time = (mid + time_offset[0]) / sampling_rate
     np.testing.assert_allclose(dl1.peak_time, expected_peak_time, rtol=1e-5)
 
     # test with timing corrections
@@ -428,3 +429,23 @@ def test_invalid_pixels(example_event, example_subarray):
     calibrator(event)
     assert event.dl1.tel[tel_id].image[0] == 9999
     assert event.dl1.tel[tel_id].peak_time[0] == 10.0 / sampling_rate
+
+
+def test_no_gain_selection(prod5_gamma_simtel_path):
+    from ctapipe.io import SimTelEventSource
+
+    with SimTelEventSource(prod5_gamma_simtel_path, select_gain=False) as source:
+        event = next(iter(source))
+
+    tel_id = next(iter(event.r1.tel))
+    readout = source.subarray.tel[tel_id].camera.readout
+
+    calibrator = CameraCalibrator(subarray=source.subarray)
+    calibrator(event)
+
+    image = event.dl1.tel[tel_id].image
+    peak_time = event.dl1.tel[tel_id].peak_time
+    assert image.ndim == 2
+    assert peak_time.ndim == 2
+    assert image.shape == (readout.n_channels, readout.n_pixels)
+    assert peak_time.shape == (readout.n_channels, readout.n_pixels)
