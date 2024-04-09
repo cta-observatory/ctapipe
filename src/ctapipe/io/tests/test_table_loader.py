@@ -416,3 +416,13 @@ def test_order_merged():
         for tel, table in tables.items():
             mask = np.isin(tel_trigger["tel_id"], loader.subarray.get_tel_ids(tel))
             check_equal_array_event_order(table, tel_trigger[mask])
+
+
+def test_interpolate_pointing(dl1_mon_pointing_file, tmp_path):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl1_mon_pointing_file, pointing=True) as loader:
+        events = loader.read_telescope_events([4])
+        assert len(events) > 0
+        assert "telescope_pointing_azimuth" in events.colnames
+        assert "telescope_pointing_altitude" in events.colnames

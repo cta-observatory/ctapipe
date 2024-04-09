@@ -1,12 +1,15 @@
 """
 common pytest fixtures for tests in ctapipe
 """
-
+import shutil
 from copy import deepcopy
 
 import astropy.units as u
+import numpy as np
 import pytest
+import tables
 from astropy.coordinates import EarthLocation
+from astropy.table import Table
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
@@ -646,3 +649,38 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
 def reference_location():
     """a dummy EarthLocation to use for SubarrayDescriptions"""
     return EarthLocation(lon=-17 * u.deg, lat=28 * u.deg, height=2200 * u.m)
+
+
+@pytest.fixture(scope="session")
+def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
+    from ctapipe.instrument import SubarrayDescription
+    from ctapipe.io import read_table, write_table
+
+    path = dl1_tmp_path / "dl1_mon_ponting.dl1.h5"
+    shutil.copy(dl1_file, path)
+
+    events = read_table(path, "/dl1/event/subarray/trigger")
+    subarray = SubarrayDescription.from_hdf(path)
+
+    # create some dummy monitoring data
+    time = events["time"]
+    start, stop = time[[0, -1]]
+    duration = (stop - start).to_value(u.s)
+
+    # start a bit before, go a bit longer
+    dt = np.arange(-1, duration + 2, 1) * u.s
+    time_mon = start + dt
+
+    alt = (69 + 2 * dt / dt[-1]) * u.deg
+    az = (180 + 5 * dt / dt[-1]) * u.deg
+
+    table = Table({"time": time_mon, "azimuth": az, "altitude": alt})
+
+    for tel_id in subarray.tel:
+        write_table(table, path, f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}")
+
+    # remove static pointing table
+    with tables.open_file(path, "r+") as f:
+        f.remove_node("/configuration/telescope/pointing", recursive=True)
+
+    return path
