@@ -50,3 +50,5 @@ dependencies:
   - zstandard
   - eventio>=1.9.1
   - ffmpeg # for making movies in the documentation
+  # fix for tables not pinning this and failing to import as a result
+  - c-blosc2=2.13
