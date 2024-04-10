@@ -101,11 +101,11 @@ class IrfTool(Tool):
         default_value=0.2, help="Ratio between size of on and off regions."
     ).tag(config=True)
 
-    point_like = Bool(
+    full_enclosure = Bool(
         False,
         help=(
-            "Compute a point-like IRF by applying a theta cut in additon"
-            " to the G/H separation cut."
+            "Compute a full enclosure IRF by not applying a theta cut and only use"
+            " the G/H separation cut."
         ),
     ).tag(config=True)
 
@@ -132,10 +132,10 @@ class IrfTool(Tool):
             "Do not produce IRF related benchmarks.",
         ),
         **flag(
-            "point-like",
-            "IrfTool.point_like",
-            "Compute a point-like IRF.",
+            "full-enclosure",
+            "IrfTool.full_enclosure",
             "Compute a full-enclosure IRF.",
+            "Compute a point-like IRF.",
         ),
     }
 
@@ -165,7 +165,10 @@ class IrfTool(Tool):
         check_bins_in_range(self.reco_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.fov_offset_bins, self.opt_result.valid_offset)
 
-        if self.point_like and "n_events" not in self.opt_result.theta_cuts.colnames:
+        if (
+            not self.full_enclosure
+            and "n_events" not in self.opt_result.theta_cuts.colnames
+        ):
             raise ToolConfigurationError(
                 "Computing a point-like IRF requires an (optimized) theta cut."
             )
@@ -227,7 +230,7 @@ class IrfTool(Tool):
             self.opt_result.gh_cuts,
             operator.ge,
         )
-        if self.point_like:
+        if not self.full_enclosure:
             self.theta_cuts_opt = self.theta.calculate_theta_cuts(
                 self.signal_events[self.signal_events["selected_gh"]]["theta"],
                 self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
@@ -261,7 +264,7 @@ class IrfTool(Tool):
                 self.opt_result.gh_cuts,
                 operator.ge,
             )
-            if self.point_like:
+            if not self.full_enclosure:
                 self.background_events["selected_theta"] = evaluate_binned_cut(
                     self.background_events["theta"],
                     self.background_events["reco_energy"],
@@ -311,7 +314,7 @@ class IrfTool(Tool):
             self.aeff.make_effective_area_hdu(
                 signal_events=self.signal_events[self.signal_events["selected"]],
                 fov_offset_bins=self.fov_offset_bins,
-                point_like=self.point_like,
+                point_like=not self.full_enclosure,
                 signal_is_point_like=self.signal_is_point_like,
             )
         )
@@ -319,24 +322,22 @@ class IrfTool(Tool):
             self.mig_matrix.make_energy_dispersion_hdu(
                 signal_events=self.signal_events[self.signal_events["selected"]],
                 fov_offset_bins=self.fov_offset_bins,
-                point_like=self.point_like,
+                point_like=not self.full_enclosure,
             )
         )
-        if not self.point_like:
-            hdus.append(
-                self.psf.make_psf_table_hdu(
-                    signal_events=self.signal_events[self.signal_events["selected"]],
-                    fov_offset_bins=self.fov_offset_bins,
-                )
+        hdus.append(
+            self.psf.make_psf_table_hdu(
+                signal_events=self.signal_events[self.signal_events["selected"]],
+                fov_offset_bins=self.fov_offset_bins,
             )
-        else:
-            hdus.append(
-                create_rad_max_hdu(
-                    self.theta_cuts_opt["cut"].reshape(-1, 1),
-                    self.reco_energy_bins,
-                    self.fov_offset_bins,
-                )
+        )
+        hdus.append(
+            create_rad_max_hdu(
+                self.theta_cuts_opt["cut"].reshape(-1, 1),
+                self.reco_energy_bins,
+                self.fov_offset_bins,
             )
+        )
         return hdus
 
     def _make_benchmark_hdus(self, hdus):
@@ -384,8 +385,7 @@ class IrfTool(Tool):
         return hdus
 
     def start(self):
-        # TODO: this event loading code seems to be largely repeated between both
-        # tools, try to refactor to a common solution
+
         reduced_events = dict()
         for sel in self.particles:
             # TODO: not very elegant to pass them this way, refactor later
@@ -425,14 +425,13 @@ class IrfTool(Tool):
         self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
         self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
-        if not self.point_like:
-            self.psf = PsfIrf(
-                parent=self,
-                valid_offset=self.opt_result.valid_offset,
-            )
+        self.psf = PsfIrf(
+            parent=self,
+            valid_offset=self.opt_result.valid_offset,
+        )
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(hdus)
-        if self.do_background and not self.point_like:
+        if self.do_background:
             hdus.append(
                 self.bkg.make_bkg2d_table_hdu(
                     self.background_events, self.obs_time * u.Unit(self.obs_time_unit)
