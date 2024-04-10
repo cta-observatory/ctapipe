@@ -3,7 +3,6 @@
 
 """
 import copy
-import warnings
 from string import Template
 
 import numpy as np
@@ -30,8 +29,6 @@ from ..image.pixel_likelihood import (
     mean_poisson_likelihood_gaussian,
     neg_log_likelihood_approx,
 )
-from ..instrument import get_atmosphere_profile_functions
-from ..utils.deprecation import CTAPipeDeprecationWarning
 from ..utils.template_network_interpolator import (
     DummyTemplateInterpolator,
     DummyTimeInterpolator,
@@ -99,12 +96,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         help="name minimiser to use in the fit",
     ).tag(config=True)
 
-    atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal", "lapalma"],
-        default_value="paranal",
-        help="name of atmosphere profile to use",
-    ).tag(config=True)
-
     use_time_gradient = traits.Bool(
         default_value=False, help="Use time gradient in ImPACT reconstruction"
     ).tag(config=True)
@@ -131,7 +122,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
     property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
 
-    def __init__(self, subarray, dummy_reconstructor=False, **kwargs):
+    def __init__(
+        self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
+    ):
         """
         Create a new instance of ImPACTReconstructor
         """
@@ -139,6 +132,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         super().__init__(subarray, **kwargs)
 
         self.subarray = subarray
+        self.atmosphere_profile = atmosphere_profile
         # First we create a dictionary of image template interpolators
         # for each telescope type
         # self.priors = prior
@@ -146,18 +140,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # String templates for loading ImPACT templates
         self.amplitude_template = Template("${base}/${camera}.template.gz")
         self.time_template = Template("${base}/${camera}_time.template.gz")
-
-        # We also need a conversion function from height above ground to
-        # depth of maximum To do this we need the conversion table from CORSIKA
-        # We need a conversion function from height above ground to depth of maximum
-        # To do this we need the conversion table from CORSIKA
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", CTAPipeDeprecationWarning)
-            _ = get_atmosphere_profile_functions(
-                self.atmosphere_profile_name, with_units=False
-            )
-            self.thickness_profile, self.altitude_profile = _
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -394,11 +376,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mean_height_asl = 100000
 
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        column_density = self.thickness_profile(mean_height_asl)
-        # Convert to slant depth
-        x_max = column_density / np.cos(zen)
+        slant_depth = self.atmosphere_profile.slant_depth_from_height(
+            mean_height_asl * u.m, zen * u.rad
+        )
 
-        return x_max
+        return slant_depth.to_value(u.g / (u.cm * u.cm))
 
     def image_prediction(
         self, tel_type, zenith, azimuth, energy, impact, x_max, pix_x, pix_y
@@ -926,7 +908,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # shower_result.core_uncert = np.nan
 
         # Copy reconstructed Xmax
-        column_density = (
+        slant_depth = (
             fit_params[5]
             * self.get_shower_max(
                 fit_params[0],
@@ -935,11 +917,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 fit_params[3],
                 zenith.to(u.rad).value,
             )
-            * np.cos(zenith)
+            * u.g
+            / (u.cm * u.cm)
         )
-        # h_max really is the vertical altitude of the maximum above ground
-        h_max = self.altitude_profile(column_density)
-        shower_result.h_max = h_max * u.m
+        # h_max really is the vertical altitude of the maximum above sea level
+        shower_result.h_max = self.atmosphere_profile.height_from_slant_depth(
+            slant_depth
+        )
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
         goodness_of_fit = self.get_likelihood(
