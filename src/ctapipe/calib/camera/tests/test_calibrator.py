@@ -437,15 +437,20 @@ def test_no_gain_selection(prod5_gamma_simtel_path):
     with SimTelEventSource(prod5_gamma_simtel_path, select_gain=False) as source:
         event = next(iter(source))
 
-    tel_id = next(iter(event.r1.tel))
-    readout = source.subarray.tel[tel_id].camera.readout
+    tested_n_channels = set()
 
-    calibrator = CameraCalibrator(subarray=source.subarray)
-    calibrator(event)
+    for tel_id in event.r1.tel:
+        readout = source.subarray.tel[tel_id].camera.readout
+        tested_n_channels.add(readout.n_channels)
 
-    image = event.dl1.tel[tel_id].image
-    peak_time = event.dl1.tel[tel_id].peak_time
-    assert image.ndim == 2
-    assert peak_time.ndim == 2
-    assert image.shape == (readout.n_channels, readout.n_pixels)
-    assert peak_time.shape == (readout.n_channels, readout.n_pixels)
+        calibrator = CameraCalibrator(subarray=source.subarray)
+        calibrator(event)
+
+        image = event.dl1.tel[tel_id].image
+        peak_time = event.dl1.tel[tel_id].peak_time
+        assert image.ndim == 2
+        assert peak_time.ndim == 2
+        assert image.shape == (readout.n_channels, readout.n_pixels)
+        assert peak_time.shape == (readout.n_channels, readout.n_pixels)
+
+    assert tested_n_channels == {1, 2}
