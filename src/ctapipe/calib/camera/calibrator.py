@@ -227,15 +227,14 @@ class CameraCalibrator(TelescopeComponent):
         pixel_index = np.arange(n_pixels)
 
         dl1_calib = event.calibration.tel[tel_id].dl1
-        ped_offset = dl1_calib.pedestal_offset
-        time_shift = dl1_calib.time_shift
         readout = self.subarray.tel[tel_id].camera.readout
 
         # subtract any remaining pedestal before extraction
-        if ped_offset is not None:
+        if dl1_calib.pedestal_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
             # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
-            waveforms = waveforms - np.atleast_2d(ped_offset)[..., np.newaxis]
+            waveforms = waveforms.copy()
+            waveforms -= np.atleast_2d(dl1_calib.pedestal_offset)[..., np.newaxis]
 
         if n_samples == 1:
             # To handle ASTRI and dst
@@ -251,6 +250,8 @@ class CameraCalibrator(TelescopeComponent):
             )
         else:
             # shift waveforms if time_shift calibration is available
+            time_shift = dl1_calib.time_shift
+            remaining_shift = None
             if time_shift is not None:
                 if selected_gain_channel is not None:
                     time_shift = time_shift[selected_gain_channel, pixel_index]
@@ -274,7 +275,7 @@ class CameraCalibrator(TelescopeComponent):
             )
 
             # correct non-integer remainder of the shift if given
-            if self.apply_peak_time_shift.tel[tel_id] and time_shift is not None:
+            if self.apply_peak_time_shift.tel[tel_id] and remaining_shift is not None:
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
