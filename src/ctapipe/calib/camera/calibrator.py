@@ -2,6 +2,7 @@
 Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
+from functools import cache
 
 import astropy.units as u
 import numpy as np
@@ -21,10 +22,16 @@ from ctapipe.image.reducer import DataVolumeReducer
 __all__ = ["CameraCalibrator"]
 
 
+@cache
+def _get_pixel_index(n_pixels):
+    """Cached version of ``np.arange(n_pixels)``"""
+    return np.arange(n_pixels)
+
+
 def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channel):
     broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
 
-    index = np.arange(n_pixels)
+    index = _get_pixel_index(n_pixels)
     masks = (
         pixel_status.hardware_failing_pixels,
         pixel_status.pedestal_failing_pixels,
@@ -224,7 +231,7 @@ class CameraCalibrator(TelescopeComponent):
             event.mon.tel[tel_id].pixel_status,
             selected_gain_channel,
         )
-        pixel_index = np.arange(n_pixels)
+        pixel_index = _get_pixel_index(n_pixels)
 
         dl1_calib = event.calibration.tel[tel_id].dl1
         readout = self.subarray.tel[tel_id].camera.readout
