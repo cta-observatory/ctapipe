@@ -385,7 +385,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
     """
 
     target = "true_energy"
-    property = ReconstructionProperty.ENERGY
+    property = {ReconstructionProperty.ENERGY}
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
@@ -450,7 +450,7 @@ class ParticleClassifier(SKLearnClassificationReconstructor):
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
     ).tag(config=True)
 
-    property = ReconstructionProperty.PARTICLE_TYPE
+    property = {ReconstructionProperty.PARTICLE_TYPE}
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
@@ -516,6 +516,8 @@ class DispReconstructor(Reconstructor):
         allow_none=False,
         help="Prefix for the output of this model. If None, ``disp`` is used.",
     ).tag(config=True)
+
+    property = {ReconstructionProperty.DISP, ReconstructionProperty.GEOMETRY}
 
     features = traits.List(
         traits.Unicode(), help="Features to use for both models."
@@ -591,7 +593,7 @@ class DispReconstructor(Reconstructor):
             self.stereo_combiner = StereoCombiner.from_name(
                 self.stereo_combiner_cls,
                 prefix=self.prefix,
-                property=ReconstructionProperty.GEOMETRY,
+                property=self.property,
                 parent=self,
             )
         else:

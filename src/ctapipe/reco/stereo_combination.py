@@ -4,7 +4,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
-from traitlets import UseEnum
+from traitlets import Set
 
 from ctapipe.core import Component, Container
 from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
@@ -72,9 +72,9 @@ class StereoCombiner(Component):
         help="Prefix to be added to the output container / column names.",
     ).tag(config=True)
 
-    property = UseEnum(
-        ReconstructionProperty,
-        help="Which property is being combined.",
+    property = Set(
+        trait=ReconstructionProperty,
+        help="Which property/properties to combine combined.",
     ).tag(config=True)
 
     @abstractmethod
@@ -113,16 +113,19 @@ class StereoMeanCombiner(StereoCombiner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.available_combiners = {
+        possible_combiners = {
             ReconstructionProperty.ENERGY: self._combine_energy,
             ReconstructionProperty.GEOMETRY: self._combine_altaz,
             ReconstructionProperty.PARTICLE_TYPE: self._combine_classification,
         }
-
-        if self.property not in self.available_combiners:
-            raise NotImplementedError(
-                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
-            )
+        self.combiners = []
+        for prop in self.property:
+            if prop not in possible_combiners:
+                raise NotImplementedError(
+                    f"Combination of {self.property} not implemented in {self.__class__.__name__}"
+                )
+            else:
+                self.combiners.append(possible_combiners[prop])
 
     def _calculate_weights(self, data):
         if isinstance(data, Container):
@@ -273,9 +276,8 @@ class StereoMeanCombiner(StereoCombiner):
         Calculate the mean prediction for a single array event.
         """
 
-        for prop in ReconstructionProperty:
-            if prop in self.available_combiners:
-                self.available_combiners[prop](event)
+        for combiner in self.combiners:
+            combiner(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
