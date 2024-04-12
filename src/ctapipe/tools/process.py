@@ -183,7 +183,11 @@ class ProcessorTool(Tool):
         self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
-        self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
+        self.process_shower = ShowerProcessor(
+            subarray=subarray,
+            atmosphere_profile=self.event_source.atmosphere_density_profile,
+            parent=self,
+        )
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)
         )
