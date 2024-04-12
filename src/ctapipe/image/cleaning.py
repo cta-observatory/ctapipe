@@ -115,7 +115,7 @@ def tailcuts_clean(
 def bright_cleaning(image, threshold=267, fraction=0.03):
     """
     Clean an image by removing pixels below
-    fraction * (mean charge in the 3 brightest pixels). Select all pixels
+    fraction * (mean charge in the 3 brightest pixels). Select no pixels
     instead if the mean charge of the brightest pixels are below a
     certain threshold.
 
@@ -139,7 +139,7 @@ def bright_cleaning(image, threshold=267, fraction=0.03):
     mean_3_max_signal = np.mean(image[max_3_value_index])
 
     if mean_3_max_signal < threshold:
-        return np.ones(image.shape, dtype=bool)
+        return np.zeros(image.shape, dtype=bool)
 
     threshold_brightest = fraction * mean_3_max_signal
     mask = image >= threshold_brightest
@@ -576,6 +576,7 @@ def lst_image_cleaning(
     if pedestal_factor is not None and pedestal_std is not None:
         pedestal_threshold = pedestal_std * pedestal_factor
         picture_thresh = np.clip(pedestal_threshold, picture_thresh, None)
+
     # Step 2
     mask = tailcuts_clean(
         geom,
@@ -586,8 +587,9 @@ def lst_image_cleaning(
         keep_isolated_pixels=keep_isolated_pixels,
     )
     # Check that at least one pixel survives tailcuts_clean
-    if ~mask.any():
+    if np.count_nonzero(mask) == 0:
         return mask
+
     # Step 3
     if time_limit is not None:
         mask = apply_time_delta_cleaning(
@@ -597,11 +599,13 @@ def lst_image_cleaning(
             min_number_neighbors=1,
             time_limit=time_limit,
         )
+
     # Step 4
     if apply_bright_cleaning:
-        mask = bright_cleaning(
-            image, mask, threshold_bright_cleaning, fraction_bright_cleaning
+        mask &= bright_cleaning(
+            image, threshold_bright_cleaning, fraction_bright_cleaning
         )
+
     # Step 5
     if largest_island_only:
         _, island_labels = number_of_islands(geom, mask)
