@@ -1,5 +1,6 @@
 import astropy.units as u
 import numpy as np
+import pytest
 from astropy.coordinates import AltAz, Angle, SkyCoord
 from numpy.testing import assert_allclose
 
@@ -15,9 +16,29 @@ from ctapipe.reco.impact_utilities import (
     generate_fake_template,
     rotate_translate,
 )
+from ctapipe.utils import get_dataset_path
 
 #    CameraHillasParametersContainer,
 #    ReconstructedEnergyContainer,
+
+SIMTEL_PATH = get_dataset_path(
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert"
+    "-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
+
+
+def get_simtel_profile_from_eventsource():
+    """get a TableAtmosphereDensityProfile from a simtel file"""
+    from ctapipe.io import EventSource
+
+    with EventSource(SIMTEL_PATH) as source:
+        return source.atmosphere_density_profile
+
+
+@pytest.fixture(scope="session")
+def table_profile():
+    """a table profile for testing"""
+    return get_simtel_profile_from_eventsource()
 
 
 class TestImPACT:
@@ -38,12 +59,12 @@ class TestImPACT:
             kurtosis=0,
         )
 
-    def test_brightest_mean_average(self, example_subarray):
+    def test_brightest_mean_average(self, example_subarray, table_profile):
         """
         Test that averaging of the brightest pixel position give a sensible outcome
         """
 
-        impact_reco = ImPACTReconstructor(example_subarray)
+        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
         pixel_x = np.array([0.0, 1.0, 0.0, -1.0]) * u.deg
         pixel_y = np.array([-1.0, 0.0, 1.0, 0.0]) * u.deg
 
@@ -78,10 +99,10 @@ class TestImPACT:
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
-    def test_xmax_calculation(self, example_subarray):
+    def test_xmax_calculation(self, example_subarray, table_profile):
         """Test calculation of hmax and interpolation of Xmax tables"""
 
-        impact_reco = ImPACTReconstructor(example_subarray)
+        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
 
@@ -94,12 +115,12 @@ class TestImPACT:
         impact_reco.get_hillas_mean()
 
         shower_max = impact_reco.get_shower_max(0, 0, 0, 100, 0)
-        assert_allclose(shower_max, 484.2442217190515, rtol=0.01)
+        assert_allclose(shower_max, 489.525278, rtol=0.01)
 
-    def test_interpolation(self, tmp_path, example_subarray):
+    def test_interpolation(self, tmp_path, example_subarray, table_profile):
         """Test interpolation works on dummy template library"""
 
-        impact_reco = ImPACTReconstructor(example_subarray)
+        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
 
         create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
         template, x, y = generate_fake_template(-1.5, 0.5)
@@ -121,8 +142,8 @@ class TestImPACT:
 
         assert_allclose(template.ravel() - pred, np.zeros_like(pred), atol=0.1)
 
-    def test_fitting(self, tmp_path, example_subarray):
-        impact_reco = ImPACTReconstructor(example_subarray)
+    def test_fitting(self, tmp_path, example_subarray, table_profile):
+        impact_reco = ImPACTReconstructor(example_subarray, table_profile)
 
         create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
         impact_reco.root_dir = str(tmp_path)
@@ -166,7 +187,9 @@ class TestImPACT:
         assert_allclose(np.rad2deg(theta), 0, atol=0.02)
 
 
-def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
+def test_selected_subarray(
+    subarray_and_event_gamma_off_axis_500_gev, tmp_path, table_profile
+):
     """test that reconstructor also works with "missing" ids"""
 
     create_dummy_templates(str(tmp_path) + "/LSTCam.template.gz", 1)
@@ -192,7 +215,7 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
 
     event.dl2.stereo.geometry["test"] = shower_test
     event.dl2.stereo.energy["test_energy"] = energy_test
-    reconstructor = ImPACTReconstructor(subarray)
+    reconstructor = ImPACTReconstructor(subarray, table_profile)
     reconstructor.root_dir = str(tmp_path)
     reconstructor(event)
     assert event.dl2.stereo.geometry["ImPACTReconstructor"].is_valid
