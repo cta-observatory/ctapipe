@@ -19,9 +19,9 @@ def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
             "LSTImageCleaner": {
                 "boundary_threshold_pe": 5.0,
                 "picture_threshold_pe": 10.0,
-                "time_limit": 0,
+                "apply_time_cleaning": False,
                 "apply_bright_cleaning": False,
-                "pedestal_factor": 0,
+                "apply_pedestal_cleaning": False,
             },
             "MARSImageCleaner": {
                 "boundary_threshold_pe": 5.0,
