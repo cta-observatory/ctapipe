@@ -84,9 +84,10 @@ class Reconstructor(TelescopeComponent):
         help="Number of threads to use for the reconstruction if supported by the reconstructor.",
     ).tag(config=True)
 
-    def __init__(self, subarray, **kwargs):
+    def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
         self.quality_query = StereoQualityQuery(parent=self)
+        self.atmosphere_profile = atmosphere_profile
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):

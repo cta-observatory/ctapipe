@@ -129,10 +129,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         Create a new instance of ImPACTReconstructor
         """
 
-        super().__init__(subarray, **kwargs)
+        if atmosphere_profile is None:
+            raise TypeError(
+                "Argument 'atmosphere_profile' can not be 'None' for ImPACTReconstructor"
+            )
 
-        self.subarray = subarray
-        self.atmosphere_profile = atmosphere_profile
+        super().__init__(subarray, atmosphere_profile, **kwargs)
+
         # First we create a dictionary of image template interpolators
         # for each telescope type
         # self.priors = prior

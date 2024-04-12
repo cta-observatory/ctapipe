@@ -116,7 +116,9 @@ class SKLearnReconstructor(Reconstructor):
         help="If given, load serialized model from this path.",
     ).tag(config=True)
 
-    def __init__(self, subarray=None, models=None, n_jobs=None, **kwargs):
+    def __init__(
+        self, subarray=None, atmosphere_profile=None, models=None, n_jobs=None, **kwargs
+    ):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -136,7 +138,7 @@ class SKLearnReconstructor(Reconstructor):
                 # Default prefix is model_cls
                 self.prefix = self.model_cls
 
-            super().__init__(subarray, **kwargs)
+            super().__init__(subarray, atmosphere_profile, **kwargs)
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = MLQualityQuery(parent=self)
 
@@ -563,7 +565,7 @@ class DispReconstructor(Reconstructor):
         help="If given, load serialized model from this path.",
     ).tag(config=True)
 
-    def __init__(self, subarray=None, models=None, **kwargs):
+    def __init__(self, subarray=None, atmosphere_profile=None, models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -579,7 +581,7 @@ class DispReconstructor(Reconstructor):
                     "__init__() missing 1 required positional argument: 'subarray'"
                 )
 
-            super().__init__(subarray, **kwargs)
+            super().__init__(subarray, atmosphere_profile, **kwargs)
             self.quality_query = MLQualityQuery(parent=self)
             self.feature_generator = FeatureGenerator(parent=self)
 

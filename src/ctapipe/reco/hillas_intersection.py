@@ -91,21 +91,17 @@ class HillasIntersection(HillasGeometryReconstructor):
     Note: only input from CameraFrame is currently supported
     """
 
-    atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
-    ).tag(config=True)
-
     weighting = traits.CaselessStrEnum(
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
 
     property = ReconstructionProperty.GEOMETRY
 
-    def __init__(self, subarray, **kwargs):
+    def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
-        super().__init__(subarray, **kwargs)
+        super().__init__(subarray, atmosphere_profile, **kwargs)
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA

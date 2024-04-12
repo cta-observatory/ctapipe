@@ -107,8 +107,12 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     """
 
-    def __init__(self, subarray: SubarrayDescription, **kwargs):
-        super().__init__(subarray=subarray, **kwargs)
+    def __init__(
+        self, subarray: SubarrayDescription, atmosphere_profile=None, **kwargs
+    ):
+        super().__init__(
+            subarray=subarray, atmosphere_profile=atmosphere_profile, **kwargs
+        )
         _cam_radius_m = {
             cam: cam.geometry.guess_radius().to_value(u.m)
             for cam in subarray.camera_types
