@@ -258,8 +258,8 @@ def apply_time_delta_cleaning(
     arrival_times: array
         pixel timing information
     min_number_neighbors: int
-        Threshold to determine if a pixel survives cleaning steps.
-        These steps include checks of neighbor arrival time and value
+        a selected pixel needs at least this number of (already selected) neighbors
+        that arrived within a given time_limit to itself to survive the cleaning.
     time_limit: int or float
         arrival time limit for neighboring pixels
 
@@ -503,9 +503,10 @@ def lst_image_cleaning(
     min_number_picture_neighbors=2,
     keep_isolated_pixels=False,
     time_limit=2,
+    time_num_neighbors=1,
     apply_bright_cleaning=True,
-    fraction_bright_cleaning=0.03,
-    threshold_bright_cleaning=267,
+    bright_cleaning_fraction=0.03,
+    bright_cleaning_threshold=267,
     largest_island_only=False,
     pedestal_factor=2.5,
     pedestal_std=None,
@@ -514,10 +515,10 @@ def lst_image_cleaning(
     Clean an image in 5 Steps:
 
     1) Get picture threshold for `tailcuts_clean` in step 2) from interleaved
-        pedestal events if `pedestal_factor` and `pedestal_std` is not None.
+        pedestal events if `pedestal_factor` and `pedestal_std` is not 0.
     2) Apply tailcuts image cleaning algorithm - `ctapipe.image.cleaning.tailcuts_clean`.
     3) Apply time_delta_cleaning algorithm -
-        `ctapipe.image.cleaning.apply_time_delta_cleaning` if `time_limit` is not None.
+        `ctapipe.image.cleaning.apply_time_delta_cleaning` if `time_limit` is not 0.
     4) Apply bright_cleaning - `ctapipe.image.cleaning.bright_cleaning` if
         `apply_bright_cleaning` is set to true.
     5) Get only largest island - `ctapipe.image.morphology.largest_island` if
@@ -545,15 +546,19 @@ def lst_image_cleaning(
         if not they are only included if a neighbor is in the picture or
         boundary. Used for `tailcuts_clean`.
     time_limit: `float`
-        Time limit for the `time_delta_cleaning`. Set to None if no
+        Time limit for the `time_delta_cleaning`. Set to 0 if no
         `time_delta_cleaning` should be applied.
+    time_num_neighbors: int
+        Used for `time_delta_cleaning`.
+        A selected pixel needs at least this number of (already selected) neighbors
+        that arrived within a given time_limit to itself to survive this cleaning.
     apply_bright_cleaning: `bool`
         Set to true if `bright_cleaning` should be applied.
-    fraction_bright_cleaning: `float`
+    bright_cleaning_fraction: `float`
         `fraction` parameter for `bright_cleaning`. Pixels below
         fraction * (average charge in the 3 brightest pixels) will be removed from
         the cleaned image.
-    threshold_bright_cleaning: `float`
+    bright_cleaning_threshold: `float`
         `threshold` parameter for `bright_cleaning`. Minimum average charge
         in the 3 brightest pixels to apply the cleaning.
     largest_island_only: `bool`
@@ -562,7 +567,7 @@ def lst_image_cleaning(
         Factor for interleaved pedestal cleaning. It is multiplied by the
         pedestal standard deviation for each pixel to calculate pixelwise picture
         threshold parameters for `tailcuts_clean` considering the current background.
-        Set to None if no pedestal cleaning should be applied.
+        Set to 0 if no pedestal cleaning should be applied.
     pedestal_std: `np.ndarray`
         Pedestal standard deviation for each pixel. See
         `ctapipe.containers.PedestalContainer`
@@ -573,7 +578,7 @@ def lst_image_cleaning(
 
     """
     # Step 1
-    if pedestal_factor is not None and pedestal_std is not None:
+    if pedestal_factor != 0 and pedestal_std is not None:
         pedestal_threshold = pedestal_std * pedestal_factor
         picture_thresh = np.clip(pedestal_threshold, picture_thresh, None)
 
@@ -591,19 +596,19 @@ def lst_image_cleaning(
         return mask
 
     # Step 3
-    if time_limit is not None:
+    if time_limit != 0:
         mask = apply_time_delta_cleaning(
             geom,
             mask,
             arrival_times,
-            min_number_neighbors=1,
+            min_number_neighbors=time_num_neighbors,
             time_limit=time_limit,
         )
 
     # Step 4
     if apply_bright_cleaning:
         mask &= bright_cleaning(
-            image, threshold_bright_cleaning, fraction_bright_cleaning
+            image, bright_cleaning_threshold, bright_cleaning_fraction
         )
 
     # Step 5
@@ -707,25 +712,32 @@ class LSTImageCleaner(TailcutsImageCleaner):
 
     time_limit = FloatTelescopeParameter(
         default_value=2,
-        help="Time limit for the `time_delta_cleaning`. Set to None if no"
-        "`time_delta_cleaning` should be applied",
+        help="Time limit for the `time_delta_cleaning`. Set to 0 if no"
+        " `time_delta_cleaning` should be applied",
+    ).tag(config=True)
+
+    time_num_neighbors = IntTelescopeParameter(
+        default_value=1,
+        help="Used for `time_delta_cleaning`."
+        " A selected pixel needs at least this number of (already selected) neighbors"
+        " that arrived within a given time_limit to itself to survive this cleaning.",
     ).tag(config=True)
 
     apply_bright_cleaning = BoolTelescopeParameter(
         default_value=True, help="Set to true if `bright_cleaning` should be applied"
     ).tag(config=True)
 
-    fraction_bright_cleaning = FloatTelescopeParameter(
+    bright_cleaning_fraction = FloatTelescopeParameter(
         default_value=0.03,
-        help="`fraction` parameter for `bright_cleaning`. Pixels below "
-        "fraction * (average charge in the 3 brightest pixels) will be removed from "
-        "the cleaned image",
+        help="`fraction` parameter for `bright_cleaning`. Pixels below"
+        " fraction * (average charge in the 3 brightest pixels) will be removed from"
+        " the cleaned image",
     ).tag(config=True)
 
-    threshold_bright_cleaning = FloatTelescopeParameter(
+    bright_cleaning_threshold = FloatTelescopeParameter(
         default_value=267,
-        help="`threshold` parameter for `bright_cleaning`. Minimum average charge "
-        "in the 3 brightest pixels to apply the cleaning",
+        help="`threshold` parameter for `bright_cleaning`. Minimum average charge"
+        " in the 3 brightest pixels to apply the cleaning",
     ).tag(config=True)
 
     largest_island_only = BoolTelescopeParameter(
@@ -734,10 +746,10 @@ class LSTImageCleaner(TailcutsImageCleaner):
 
     pedestal_factor = FloatTelescopeParameter(
         default_value=2.5,
-        help="Factor for interleaved pedestal cleaning. It is multiplied by the "
-        "pedestal standard deviation for each pixel to calculate pixelwise picture "
-        "threshold parameters for `tailcuts_clean` considering the current background. "
-        "Set to None if no pedestal cleaning should be applied.",
+        help="Factor for interleaved pedestal cleaning. It is multiplied by the"
+        " pedestal standard deviation for each pixel to calculate pixelwise picture"
+        " threshold parameters for `tailcuts_clean` considering the current background."
+        " Set to 0 if no pedestal cleaning should be applied.",
     ).tag(config=True)
 
     def __call__(
@@ -764,9 +776,10 @@ class LSTImageCleaner(TailcutsImageCleaner):
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
             time_limit=self.time_limit.tel[tel_id],
+            time_num_neighbors=self.time_num_neighbors.tel[tel_id],
             apply_bright_cleaning=self.apply_bright_cleaning.tel[tel_id],
-            fraction_bright_cleaning=self.fraction_bright_cleaning.tel[tel_id],
-            threshold_bright_cleaning=self.threshold_bright_cleaning.tel[tel_id],
+            bright_cleaning_fraction=self.bright_cleaning_fraction.tel[tel_id],
+            bright_cleaning_threshold=self.bright_cleaning_threshold.tel[tel_id],
             largest_island_only=self.largest_island_only.tel[tel_id],
             pedestal_factor=self.pedestal_factor.tel[tel_id],
             pedestal_std=pedestal_std,
