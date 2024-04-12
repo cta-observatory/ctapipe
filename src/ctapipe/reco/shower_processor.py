@@ -40,7 +40,12 @@ class ShowerProcessor(Component):
     ).tag(config=True)
 
     def __init__(
-        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
+        self,
+        subarray: SubarrayDescription,
+        atmosphere_profile,
+        config=None,
+        parent=None,
+        **kwargs,
     ):
         """
         Parameters
@@ -60,10 +65,12 @@ class ShowerProcessor(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
+        self.atmosphere_profile = atmosphere_profile
         self.reconstructors = [
             Reconstructor.from_name(
                 reco_type,
                 subarray=self.subarray,
+                atmosphere_profile=atmosphere_profile,
                 parent=self,
             )
             for reco_type in self.reconstructor_types

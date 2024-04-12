@@ -10,6 +10,26 @@ from traitlets.config.loader import Config
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.reco import ShowerProcessor
+from ctapipe.utils import get_dataset_path
+
+SIMTEL_PATH = get_dataset_path(
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert"
+    "-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
+
+
+def get_simtel_profile_from_eventsource():
+    """get a TableAtmosphereDensityProfile from a simtel file"""
+    from ctapipe.io import EventSource
+
+    with EventSource(SIMTEL_PATH) as source:
+        return source.atmosphere_density_profile
+
+
+@pytest.fixture(scope="session")
+def table_profile():
+    """a table profile for testing"""
+    return get_simtel_profile_from_eventsource()
 
 
 @pytest.mark.parametrize(
@@ -22,7 +42,7 @@ from ctapipe.reco import ShowerProcessor
     ids=["HillasIntersection", "HillasReconstructor", "ImPACTReconstructor"],
 )
 def test_shower_processor_geometry(
-    example_event, example_subarray, reconstructor_types
+    example_event, example_subarray, reconstructor_types, table_profile
 ):
     """Ensure we get shower geometry when we input an event with parametrized images."""
 
@@ -35,7 +55,9 @@ def test_shower_processor_geometry(
     )
 
     process_shower = ShowerProcessor(
-        subarray=example_subarray, reconstructor_types=reconstructor_types
+        subarray=example_subarray,
+        atmosphere_profile=table_profile,
+        reconstructor_types=reconstructor_types,
     )
 
     calibrate(example_event)
@@ -67,6 +89,7 @@ def test_shower_processor_geometry(
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
+        atmosphere_profile=table_profile,
         reconstructor_types=reconstructor_types,
     )
 

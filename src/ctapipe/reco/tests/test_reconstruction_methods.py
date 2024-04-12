@@ -38,7 +38,9 @@ def test_reconstructors(reconstructors):
         image_processor(event)
 
         for ReconstructorType in reconstructors:
-            reconstructor = ReconstructorType(subarray)
+            reconstructor = ReconstructorType(
+                subarray, atmosphere_profile=source.atmosphere_density_profile
+            )
             if ReconstructorType is ImPACTReconstructor:
                 reconstructor.root_dir = str(template_file.parents[0])
             reconstructor(event)
