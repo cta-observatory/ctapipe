@@ -146,7 +146,7 @@ class BaseTemplate:
         self.interpolator[zenith_bin][azimuth_bin] = UnstructuredInterpolator(
             self.keys[selection].T[2:5].T,
             self.values[selection],
-            remember_last=True,
+            remember_last=False,
             bounds=self.bounds,
             dtype="float32",
         )
@@ -287,7 +287,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
             # Currently impact is not set up for offset dependent templates.
             # Therefore remove offset (last) dimension from interpolator
             self.interpolator = UnstructuredInterpolator(
-                keys[:-1], values, remember_last=True, bounds=bounds
+                keys[:-1], values, remember_last=False, bounds=bounds
             )
             self.no_zenaz = True
 
@@ -355,7 +355,7 @@ class TimeGradientInterpolator(BaseTemplate):
             # Currently impact is not set up for offset dependent templates.
             # Therefore remove offset (last) dimension from interpolator
             self.interpolator = UnstructuredInterpolator(
-                keys[:-1], values, remember_last=True
+                keys[:-1], values, remember_last=False
             )
             self.no_zenaz = True
 
