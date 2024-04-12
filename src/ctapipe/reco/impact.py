@@ -707,7 +707,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
             mask = mask_dict[tel_id]
 
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+            focal_length = subarray.tel[tel_id].optics.effective_focal_length
             camera_frame = CameraFrame(
                 telescope_pointing=telescope_pointing[tel_id],
                 focal_length=focal_length,
