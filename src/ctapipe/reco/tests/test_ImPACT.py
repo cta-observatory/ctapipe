@@ -169,8 +169,8 @@ class TestImPACT:
 
         impact_reco.image = image * 1000
         impact_reco.hillas_parameters = [self.h1, self.h1, self.h1, self.h1]
-        impact_reco.pixel_x = np.deg2rad(pixel_x)
-        impact_reco.pixel_y = np.deg2rad(pixel_y)
+        impact_reco.pixel_x = np.ma.array(np.deg2rad(pixel_x))
+        impact_reco.pixel_y = np.ma.array(np.deg2rad(pixel_y))
         impact_reco.tel_pos_x = np.array([0, 100, -0, -100])
         impact_reco.tel_pos_y = np.array([-100.0, 0, 100, 0])
         impact_reco.array_direction = array_pointing
