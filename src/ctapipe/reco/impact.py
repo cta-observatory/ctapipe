@@ -504,12 +504,12 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             (self.tel_pos_x - core_x) ** 2 + (self.tel_pos_y - core_y) ** 2
         )
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_y - core_y), (self.tel_pos_x - core_x)) * u.rad
+        phi = np.arctan2(self.tel_pos_y - core_y, self.tel_pos_x - core_x)
 
         # Rotate and translate all pixels such that they match the
         # template orientation
         pix_x_rot, pix_y_rot = rotate_translate(
-            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi.value
+            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi
         )
 
         # In the interpolator class we can gain speed advantages by using masked arrays
