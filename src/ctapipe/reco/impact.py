@@ -508,9 +508,12 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         # Rotate and translate all pixels such that they match the
         # template orientation
+        # numba does not support masked arrays, work on underlying array and add mask back
         pix_x_rot, pix_y_rot = rotate_translate(
-            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi.value
+            self.pixel_y.data, self.pixel_x.data, source_y, source_x, -1 * phi.value
         )
+        pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask, copy=False)
+        pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask, copy=False)
 
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked
