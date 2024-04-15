@@ -504,13 +504,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             (self.tel_pos_x - core_x) ** 2 + (self.tel_pos_y - core_y) ** 2
         )
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_y - core_y), (self.tel_pos_x - core_x)) * u.rad
+        phi = np.arctan2(self.tel_pos_y - core_y, self.tel_pos_x - core_x)
 
         # Rotate and translate all pixels such that they match the
         # template orientation
         # numba does not support masked arrays, work on underlying array and add mask back
         pix_x_rot, pix_y_rot = rotate_translate(
-            self.pixel_y.data, self.pixel_x.data, source_y, source_x, -1 * phi.value
+            self.pixel_y.data, self.pixel_x.data, source_y, source_x, -phi
         )
         pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask, copy=False)
         pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask, copy=False)
