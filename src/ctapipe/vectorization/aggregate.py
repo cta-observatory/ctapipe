@@ -92,7 +92,7 @@ def weighted_mean_std_ufunc(
     weights=np.array([1]),
 ):
     """
-    Calculate the weighted mean and standart deviation for each array event
+    Calculate the weighted mean and standard deviation for each array event
     over the corresponding telescope events.
 
     Parameters
@@ -115,7 +115,7 @@ def weighted_mean_std_ufunc(
     Returns
     -------
     Tuple(np.ndarray, np.ndarray)
-        weighted mean and standart deviation for each array event
+        weighted mean and standard deviation for each array event
     """
     # avoid numerical problems by very large or small weights
     weights = weights / weights.max()
