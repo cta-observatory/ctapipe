@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
-from ..image import ImageCleaner, ImageModifier, ImageProcessor
+from ..image import FeatureAggregator, ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..image.muon import MuonProcessor
 from ..instrument import SoftwareTrigger
@@ -137,6 +137,12 @@ class ProcessorTool(Tool):
             "store DL1/Event/Telescope muon parameters in output",
             "don't store DL1/Event/Telescope muon parameters in output",
         ),
+        **flag(
+            "aggregate-dl1-image-parameters",
+            "DataWriter.write_dl1_aggregates",
+            "store array-event-wise aggregated DL1 image parameters in output",
+            "don't store array-event-wise aggregated DL1 image parameters in output",
+        ),
         "camera-frame": (
             {"ImageProcessor": {"use_telescope_frame": False}},
             "Use camera frame for image parameters instead of telescope frame",
@@ -153,6 +159,7 @@ class ProcessorTool(Tool):
             metadata.Instrument,
             metadata.Contact,
             SoftwareTrigger,
+            FeatureAggregator,
         ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
@@ -184,6 +191,7 @@ class ProcessorTool(Tool):
         self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
         self.process_images = ImageProcessor(subarray=subarray, parent=self)
         self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
+        self.aggregate = FeatureAggregator(parent=self)
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)
         )
@@ -318,6 +326,9 @@ class ProcessorTool(Tool):
 
             if self.should_compute_dl2:
                 self.process_shower(event)
+
+            if self.write.write_dl1_aggregates:
+                self.aggregate(event)
 
             self.write(event)
 

@@ -22,6 +22,7 @@ PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
 MUON_GROUP = "/dl1/event/telescope/muon"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
+PARAMETER_AGGS_GROUP = "/dl1/event/subarray/aggregated_image_parameters"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
@@ -179,6 +180,9 @@ class TableLoader(Component):
         config=True
     )
     dl1_muons = traits.Bool(False, help="load muon ring parameters").tag(config=True)
+    dl1_aggregates = traits.Bool(
+        False, help="load array-event-wise aggregated image parameters"
+    ).tag(config=True)
 
     dl2 = traits.Bool(True, help="load available dl2 stereo parameters").tag(
         config=True
@@ -280,6 +284,7 @@ class TableLoader(Component):
             "dl1_parameters": PARAMETERS_GROUP,
             "dl1_images": IMAGES_GROUP,
             "dl1_muons": MUON_GROUP,
+            "dl1_aggregates": PARAMETER_AGGS_GROUP,
             "true_parameters": TRUE_PARAMETERS_GROUP,
             "true_images": TRUE_IMAGES_GROUP,
             "observation_info": OBSERVATION_TABLE,
@@ -380,6 +385,7 @@ class TableLoader(Component):
         self,
         start=None,
         stop=None,
+        dl1_aggregates=None,
         dl2=None,
         simulated=None,
         observation_info=None,
@@ -390,6 +396,8 @@ class TableLoader(Component):
         Parameters
         ----------
 
+        dl1_aggregates: bool
+            load available aggregated dl1 image parameters
         dl2: bool
             load available dl2 stereo parameters
         simulated: bool
@@ -407,10 +415,12 @@ class TableLoader(Component):
             Table with primary index columns "obs_id" and "event_id".
         """
         updated_args = self._check_args(
+            dl1_aggregates=dl1_aggregates,
             dl2=dl2,
             simulated=simulated,
             observation_info=observation_info,
         )
+        dl1_aggregates = updated_args["dl1_aggregates"]
         dl2 = updated_args["dl2"]
         simulated = updated_args["simulated"]
         observation_info = updated_args["observation_info"]
@@ -423,20 +433,28 @@ class TableLoader(Component):
             showers = read_table(self.h5file, SHOWER_TABLE, start=start, stop=stop)
             table = _merge_subarray_tables(table, showers)
 
-        if dl2:
-            if DL2_SUBARRAY_GROUP in self.h5file:
-                for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
-                    group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
-                    group = self.h5file.root[group_path]
+        if dl2 and DL2_SUBARRAY_GROUP in self.h5file:
+            for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
+                group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
+                group = self.h5file.root[group_path]
 
-                    for algorithm in group._v_children:
-                        dl2 = read_table(
-                            self.h5file,
-                            f"{group_path}/{algorithm}",
-                            start=start,
-                            stop=stop,
-                        )
-                        table = _merge_subarray_tables(table, dl2)
+                for algorithm in group._v_children:
+                    dl2 = read_table(
+                        self.h5file,
+                        f"{group_path}/{algorithm}",
+                        start=start,
+                        stop=stop,
+                    )
+                    table = _merge_subarray_tables(table, dl2)
+
+        if dl1_aggregates and PARAMETER_AGGS_GROUP in self.h5file:
+            aggs = read_table(
+                self.h5file,
+                PARAMETER_AGGS_GROUP,
+                start=start,
+                stop=stop,
+            )
+            table = _merge_subarray_tables(table, aggs)
 
         if observation_info:
             table = self._join_observation_info(table)

@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -218,6 +220,54 @@ def test_no_cross_validation(tmp_path):
             f"--output={out_file}",
             f"--config={config}",
             "--CrossValidator.n_cross_validations=0",
+            "--log-level=INFO",
+            "--overwrite",
+        ],
+    )
+    assert ret == 0
+    return out_file
+
+
+def test_direction_uncertainty_regressor(tmp_path):
+    from ctapipe.tools.aggregate_features import AggregateFeatures
+    from ctapipe.tools.train_direction_uncertainty_regressor import (
+        TrainDirectionUncertaintyRegressor,
+    )
+
+    agg_path = tmp_path / "aggregated.dl1.h5"
+    config_path = tmp_path / "config.json"
+    config = {
+        "FeatureAggregator": {
+            "image_parameters": [
+                ("hillas", "length"),
+                ("hillas", "width"),
+                ("hillas", "skewness"),
+                ("hillas", "kurtosis"),
+            ],
+        }
+    }
+    with config_path.open("w") as f:
+        json.dump(config, f)
+
+    run_tool(
+        AggregateFeatures(),
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output={agg_path}",
+            f"--config={config_path}",
+        ],
+    )
+
+    out_file = tmp_path / "direction_uncertainty.pkl"
+
+    tool = TrainDirectionUncertaintyRegressor()
+    config = resource_file("train_direction_uncertainty_regressor.yaml")
+    ret = run_tool(
+        tool,
+        argv=[
+            f"--input={agg_path}",
+            f"--output={out_file}",
+            f"--config={config}",
             "--log-level=INFO",
             "--overwrite",
         ],
