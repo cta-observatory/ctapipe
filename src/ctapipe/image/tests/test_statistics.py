@@ -1,5 +1,13 @@
+import astropy.units as u
 import numpy as np
 import scipy.stats
+
+from ctapipe.containers import (
+    ArrayEventContainer,
+    HillasParametersContainer,
+    ImageParametersContainer,
+    MorphologyContainer,
+)
 
 
 def test_statistics():
@@ -60,3 +68,29 @@ def test_return_type():
 
     stats = descriptive_statistics(data, container_class=PeakTimeStatisticsContainer)
     assert isinstance(stats, PeakTimeStatisticsContainer)
+
+
+def test_feature_aggregator():
+    from ctapipe.image import FeatureAggregator
+
+    event = ArrayEventContainer()
+    for tel_id, length, n_islands in zip((2, 7, 11), (0.3, 0.5, 0.4), (2, 1, 3)):
+        event.dl1.tel[tel_id].parameters = ImageParametersContainer(
+            hillas=HillasParametersContainer(length=length * u.deg),
+            morphology=MorphologyContainer(n_islands=n_islands),
+        )
+
+    features = [
+        ("hillas", "length"),
+        ("morphology", "n_islands"),
+    ]
+    aggregate_featuers = FeatureAggregator(image_parameters=features)
+    aggregate_featuers(event)
+    assert event.dl1.aggregate["hillas_length"].max == 0.5 * u.deg
+    assert event.dl1.aggregate["hillas_length"].min == 0.3 * u.deg
+    assert u.isclose(event.dl1.aggregate["hillas_length"].mean, 0.4 * u.deg)
+    assert u.isclose(event.dl1.aggregate["hillas_length"].std, 0.081649658 * u.deg)
+    assert event.dl1.aggregate["morphology_n_islands"].max == 3
+    assert event.dl1.aggregate["morphology_n_islands"].min == 1
+    assert np.isclose(event.dl1.aggregate["morphology_n_islands"].mean, 2)
+    assert np.isclose(event.dl1.aggregate["morphology_n_islands"].std, 0.81649658)

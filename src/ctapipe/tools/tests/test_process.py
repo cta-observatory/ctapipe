@@ -4,6 +4,7 @@
 Test ctapipe-process on a few different use cases
 """
 
+import json
 from subprocess import CalledProcessError
 
 import astropy.units as u
@@ -488,3 +489,29 @@ def test_only_trigger_and_simulation(tmp_path):
         assert len(events) == 7
         assert "tels_with_trigger" in events.colnames
         assert "true_energy" in events.colnames
+
+
+def test_dl1_aggregation(dl1_parameters_file, tmp_path):
+    output_path = tmp_path / "aggregated.dl1.h5"
+    config_path = tmp_path / "config.json"
+
+    config = {"FeatureAggregator": {"image_parameters": [("hillas", "length")]}}
+    with config_path.open("w") as f:
+        json.dump(config, f)
+
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={dl1_parameters_file}",
+            f"--output={output_path}",
+            f"--config={config_path}",
+            "--aggregate-dl1-image-parameters",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output_path) as loader:
+        events = loader.read_subarray_events(simulated=False, dl1_aggregates=True)
+        for suffix in ["max", "min", "mean", "std"]:
+            assert f"hillas_length_{suffix}" in events.colnames
