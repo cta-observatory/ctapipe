@@ -3,8 +3,8 @@ Tool for training the DirectionUncertaintyRegressor
 """
 import numpy as np
 
-from ctapipe.core import Tool, QualityQuery
-from ctapipe.core.traits import Int, IntTelescopeParameter, Path, Unicode
+from ctapipe.core import QualityQuery, Tool
+from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DirectionUncertaintyRegressor
 
@@ -14,7 +14,6 @@ __all__ = [
 
 
 class TrainDirectionUncertaintyRegressor(Tool):
-
     name = "ctapipe-train-direction-uncertainty-regressor"
     description = __doc__
 
@@ -75,7 +74,9 @@ class TrainDirectionUncertaintyRegressor(Tool):
                 parent=self,
             )
         )
-        self.regressor = DirectionUncertaintyRegressor(self.loader.subarray, parent=self)
+        self.regressor = DirectionUncertaintyRegressor(
+            self.loader.subarray, parent=self
+        )
         self.quality_query = QualityQuery(parent=self)
         self.rng = np.random.default_rng(self.random_seed)
         self.check_output(self.output_path)
@@ -102,6 +103,8 @@ class TrainDirectionUncertaintyRegressor(Tool):
         Save the model to disk.
         """
         self.regressor.write(self.output_path, overwrite=self.overwrite)
+
+
 def main():
     TrainDirectionUncertaintyRegressor().run()
 

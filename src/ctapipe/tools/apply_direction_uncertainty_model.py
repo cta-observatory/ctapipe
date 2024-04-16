@@ -1,18 +1,15 @@
-
 import tables
 from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
-
-from ctapipe.core.traits import Path, Integer, Bool, classes_with_traits, flag
-
-from ctapipe.io import TableLoader, HDF5Merger, write_table
+from ctapipe.core.traits import Bool, Integer, Path, classes_with_traits, flag
+from ctapipe.io import HDF5Merger, TableLoader, write_table
 from ctapipe.reco import Reconstructor
-
 
 __all__ = [
     "ApplyDirectionUncertaintyModel",
 ]
+
 
 class ApplyDirectionUncertaintyModel(Tool):
     """
@@ -125,7 +122,9 @@ class ApplyDirectionUncertaintyModel(Tool):
                 parent=self,
             )
         )
-        self.regressor = Reconstructor.read(self.reconstructor_path, parent=self, subarray=self.loader.subarray)
+        self.regressor = Reconstructor.read(
+            self.reconstructor_path, parent=self, subarray=self.loader.subarray
+        )
         if self.n_jobs:
             self.regressor.n_jobs = self.n_jobs
 
@@ -150,7 +149,9 @@ class ApplyDirectionUncertaintyModel(Tool):
             for chunk, (start, stop, table) in enumerate(chunk_iterator):
                 self.log.debug("Events read from chunk %d: %d", chunk, len(table))
                 self._apply(self.regressor, table, start=start, stop=stop)
-                self.log.debug("Events after applying direction uncertainty model: %d", len(table))
+                self.log.debug(
+                    "Events after applying direction uncertainty model: %d", len(table)
+                )
                 bar.update(stop - start)
 
     def _apply(self, reconstructor, table, start=None, stop=None):
@@ -167,6 +168,7 @@ class ApplyDirectionUncertaintyModel(Tool):
             f"/dl2/event/subarray/geometry/{prefix}_uncertainty",
             append=True,
         )
+
 
 def main():
     ApplyDirectionUncertaintyModel().run()

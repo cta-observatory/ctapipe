@@ -1,16 +1,17 @@
 import pathlib
 
-import joblib
-from astropy.coordinates import angular_separation
-import numpy as np
 import astropy.units as u
+import joblib
+import numpy as np
+from astropy.coordinates import angular_separation
 from astropy.table import Table
 
+from ..core import FeatureGenerator, Provenance, QualityQuery, traits
 from .preprocessing import table_to_X
-from .reconstructor import Reconstructor, ReconstructionProperty
-from ..core import traits, Provenance, FeatureGenerator, QualityQuery
+from .reconstructor import Reconstructor
 from .sklearn import SUPPORTED_REGRESSORS
-__all__ = ['DirectionUncertaintyRegressor']
+
+__all__ = ["DirectionUncertaintyRegressor"]
 
 from ..core.traits import TraitError, Unicode
 
@@ -19,6 +20,7 @@ class DirectionUncertaintyRegressor(Reconstructor):
     """
     Reconstructor for estimating the direction reconstruction uncertainty.
     """
+
     features = traits.List(
         traits.Unicode(), help="Features to use for this model."
     ).tag(config=True)
@@ -43,9 +45,7 @@ class DirectionUncertaintyRegressor(Reconstructor):
         super().__init__(subarray, **kwargs)
 
         if self.model_cls is None:
-            raise TraitError(
-                "Must provide `model_cls` if not loading model from file"
-            )
+            raise TraitError("Must provide `model_cls` if not loading model from file")
 
         self.feature_generator = FeatureGenerator(parent=self)
         self.quality_query = QualityQuery(parent=self)

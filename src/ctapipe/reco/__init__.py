@@ -2,6 +2,7 @@
 
 # reconstructors must be imported before ShowerProcessor, so
 # they are available there
+from .direction_uncertainty import DirectionUncertaintyRegressor
 from .hillas_intersection import HillasIntersection
 from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
@@ -18,8 +19,6 @@ from .sklearn import (
     ParticleClassifier,
 )
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
-
-from .direction_uncertainty import DirectionUncertaintyRegressor
 
 __all__ = [
     "DirectionUncertaintyRegressor",
