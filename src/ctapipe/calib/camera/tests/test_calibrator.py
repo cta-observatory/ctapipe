@@ -149,7 +149,7 @@ def test_dl1_charge_calib_1_gain(example_subarray):
 
     # Randomize times and create pulses
     time_offset = random.uniform(-10, +10, (n_channels, n_pixels))
-    y = norm.pdf(x, mid + time_offset[:, :, np.newaxis], pulse_sigma).astype("float32")
+    y = norm.pdf(x, mid + time_offset[..., np.newaxis], pulse_sigma).astype("float32")
 
     camera.readout.reference_pulse_shape = norm.pdf(x, mid, pulse_sigma)[np.newaxis, :]
     camera.readout.reference_pulse_sample_width = 1 / camera.readout.sampling_rate

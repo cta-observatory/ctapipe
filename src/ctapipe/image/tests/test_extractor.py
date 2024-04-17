@@ -678,7 +678,7 @@ def test_waveform_extractor_factory_args(subarray):
 
 def test_extractor_tel_param(toymodel):
     waveforms, subarray, _, _, _, _ = toymodel
-    n_samples = waveforms.shape[-1]
+    _, _, n_samples = waveforms.shape
 
     config = Config(
         {

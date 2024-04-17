@@ -26,8 +26,7 @@ def test_gain_selector():
 
 def test_ndim():
     shape = (5, 2, 2048, 128)
-    waveforms = np.indices(shape)[1]
-    waveforms[1] *= 2
+    waveforms = np.zeros(shape)
 
     gain_selector = DummyGainSelector()
     with pytest.raises(ValueError):
