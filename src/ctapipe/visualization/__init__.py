@@ -4,10 +4,11 @@ Visualization: Methods for displaying data
 """
 
 try:
+    from .hillas_reco_display import HillasRecoDisplay
     from .mpl_array import ArrayDisplay
     from .mpl_camera import CameraDisplay
 except ImportError:
     pass
 
 
-__all__ = ["CameraDisplay", "ArrayDisplay"]
+__all__ = ["CameraDisplay", "ArrayDisplay", "HillasRecoDisplay"]
