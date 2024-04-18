@@ -7,7 +7,8 @@ try:
     from .hillas_reco_display import HillasRecoDisplay
     from .mpl_array import ArrayDisplay
     from .mpl_camera import CameraDisplay
-except ImportError:
+except ImportError as err:
+    print(err)
     pass
 
 
