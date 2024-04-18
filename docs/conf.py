@@ -399,3 +399,7 @@ intersphinx_mapping = {
     "iminuit": ("https://scikit-hep.org/iminuit/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
+
+
+# workaround for sphinx-gallery-conf not being cacheable and warning resulting in docs failure
+suppress_warnings = ["config.cache"]
