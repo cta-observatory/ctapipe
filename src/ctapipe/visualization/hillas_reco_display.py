@@ -11,13 +11,15 @@ from ..coordinates import GroundFrame, NominalFrame, TelescopeFrame, TiltedGroun
 from ..core import Component, traits
 from . import ArrayDisplay
 
+__all__ = ["HillasRecoDisplay"]
+
 
 class HillasRecoDisplay(Component):
     """Sky and ground ellipse crossings from a Hillas-parameter-style
     reconstruction.
     """
 
-    trace_points = traits.Bool(False, "Accumulate origin points")
+    trace_points = traits.Bool(False, help="Accumulate origin points").tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, figsize=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -180,5 +182,9 @@ class HillasRecoDisplay(Component):
                 self.origin_points = None
 
         if self.impact_points:
-            self.impact_points.remove()
-            self.impact_points = None
+            if self.trace_points:
+                self.impact_points.set_color("grey")
+                self.impact_points.set_alpha(0.5)
+            else:
+                self.impact_points.remove()
+                self.impact_points = None
