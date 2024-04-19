@@ -71,7 +71,7 @@ def _far_outside_fov(fov_lat, fov_lon):
 class HillasIntersection(HillasGeometryReconstructor):
     """
     This class is a simple re-implementation of Hillas parameter based event
-    reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
+    reconstruction. See algorithm I of :cite:p:`hofmann-1999-comparison`.
 
     In this case the Hillas parameters are all constructed in the shared
     angular (Nominal) system. Direction reconstruction is performed by
@@ -80,14 +80,12 @@ class HillasIntersection(HillasGeometryReconstructor):
     reconstruction is performed by performing the same procedure in the
     tilted ground system.
 
-    The height of maximum is reconstructed by the projection os the image
+    The height of maximum is reconstructed by the projection of the image
     centroid onto the shower axis, taking the weighted average of all images.
 
     Uncertainties on the positions are provided by taking the spread of the
     crossing points, however this means that no uncertainty can be provided
     for multiplicity 2 events.
-
-    Note: only input from CameraFrame is currently supported
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
