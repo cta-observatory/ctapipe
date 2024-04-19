@@ -333,8 +333,7 @@ def fact_image_cleaning(
 
     References
     ----------
-    See  [temme2016]_ and for implementation [factcleaning]_
-
+    See :cite:p:`phd-temme` and for implementation :cite:p:`fact-tools`.
     """
 
     # Step 1

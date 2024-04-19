@@ -142,7 +142,7 @@ class CoordinateFrameType(enum.Enum):
 
 
 class EventType(enum.Enum):
-    """Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_"""
+    """Enum of EventTypes as defined in :cite:p:`ctao-r1-event-data-model`"""
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -1424,13 +1424,14 @@ class ArrayEventContainer(Container):
 
 
 class SchedulingBlockContainer(Container):
-    """Stores information about the scheduling block. This is a simplified
-    version of the SB model, only storing what is necessary for analysis. From
-    [cta_sb_ob]_
+    """Stores information about the scheduling block.
 
+    This is a simplified version of the SB model, only storing what is necessary for analysis.
+    From :cite:p:`cta-sb-ob-data-model`.
     """
 
     default_prefix = ""
+
     sb_id = Field(UNKNOWN_ID, "Scheduling block ID", type=np.uint64)
     sb_type = Field(
         SchedulingBlockType.UNKNOWN,

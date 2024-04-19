@@ -53,6 +53,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
+    "sphinxcontrib.bibtex",
     "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
@@ -403,3 +404,6 @@ intersphinx_mapping = {
 
 # workaround for sphinx-gallery-conf not being cacheable and warning resulting in docs failure
 suppress_warnings = ["config.cache"]
+
+bibtex_bibfiles = ["references.bib"]
+bibtex_encoding = "utf8"

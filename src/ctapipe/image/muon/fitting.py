@@ -12,7 +12,7 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     Fast and reliable analytical circle fitting method previously used
     in the H.E.S.S. experiment for muon identification
 
-    Implementation based on [chaudhuri93]_
+    Implementation based on :cite:p:`chaudhuri93`
 
     Parameters
     ----------
