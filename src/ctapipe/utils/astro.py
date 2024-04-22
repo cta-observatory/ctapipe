@@ -12,13 +12,14 @@ __all__ = ["get_bright_stars"]
 
 def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     """
-    Returns an astropy table containing star positions above a given magnitude within
-    a given radius around a position in the sky, using the Yale bright star catalog
-    which needs to be present in the ctapipe-extra package. The included Yale bright
-    star catalog contains all 9096 stars, excluding the Nova objects present in the
-    original catalog from  Hoffleit & Jaschek (1991),
-    https://adsabs.harvard.edu/abs/1991bsc..book.....H, and is complete down to
-    magnitude ~6.5, while the faintest included star has mag=7.96.
+    Get an astropy table of bright stars.
+
+    This function is using the Yale bright star catalog, available through ctapipe
+    data downloads.
+
+    The included Yale bright star catalog contains all 9096 stars, excluding the
+    Nova objects present in the original catalog and is complete down to magnitude
+    ~6.5, while the faintest included star has mag=7.96. :cite:p:`bright-star-catalog`
 
     Parameters
     ----------

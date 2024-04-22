@@ -1,7 +1,7 @@
 """
 Class for calculation of likelihood of a pixel expectation, given the pixel amplitude,
 the level of noise in the pixel and the photoelectron resolution.
-This calculation is taken from [denaurois2009]_.
+This calculation is taken from :cite:p:`denaurois2009`.
 
 The likelihood is essentially a poissonian convolved with a gaussian, at low signal
 a full possonian approach must be adopted, which requires the sum of contributions
@@ -52,7 +52,7 @@ class PixelLikelihoodError(RuntimeError):
 def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     """Calculate negative log likelihood for telescope.
 
-    Gaussian approximation from [denaurois2009]_, p. 22 (equation between (24) and (25)).
+    Gaussian approximation from :cite:p:`denaurois2009`, p. 22 (equation between (24) and (25)).
 
     Simplification:
 
@@ -105,7 +105,7 @@ def neg_log_likelihood_numeric(
 ):
     """
     Calculate likelihood of prediction given the measured signal,
-    full numerical integration from [denaurois2009]_.
+    full numerical integration from :cite:p:`denaurois2009`.
 
     Parameters
     ----------

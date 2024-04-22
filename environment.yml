@@ -39,6 +39,7 @@ dependencies:
   - sphinx-automodapi
   - pydata-sphinx-theme
   - sphinx-design
+  - sphinxcontrib-bibtex
   - tomli
   - towncrier
   - tqdm

@@ -212,7 +212,7 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
     def initialize_arrays(self, event, hillas_dict):
         """
-        Creates flat arrays of needed quantities from the event structure
+        Creates flat arrays of needed quantities from the event structure.
 
         Parameters
         ----------
@@ -227,8 +227,8 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Notes
         -----
-        The part of the algorithm taking into account divergent pointing
-        mode and the correction to the psi angle is explained in [gasparetto]_
+        The part of the algorithm taking into account divergent pointing mode and
+        the correction to the psi angle is explained in :cite:p:`phd-gasparetto`,
         section 7.1.4.
         """
         # get one telescope id to check what frame to use
@@ -378,10 +378,9 @@ class HillasReconstructor(HillasGeometryReconstructor):
 
         Notes
         -----
-        The part of the algorithm taking into account divergent pointing
-        mode and the usage of a corrected psi angle is explained in [gasparetto]_
+        The part of the algorithm taking into account divergent pointing mode and
+        the usage of a corrected psi angle is explained in :cite:p:`phd-gasparetto`
         section 7.1.4.
-
         """
 
         # Since psi has been recalculated in the fake CameraFrame

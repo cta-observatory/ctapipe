@@ -1,11 +1,11 @@
 """
-Management of CTA Reference Metadata, as defined in the CTA Top-Level Data Model
-document [ctatopleveldatamodel]_ , version 1A. This information is required to be
-attached to the header of any
-files generated.
+Management of CTA Reference Metadata.
+
+Definitions from :cite:`ctao-top-level-data-model`.
+This information is required to be attached to the header of any files generated.
 
 The class Reference collects all required reference metadata, and can be turned into a
-flat dictionary.  The user should try to fill out all fields, or use a helper to fill
+flat dictionary. The user should try to fill out all fields, or use a helper to fill
 them (as in `Activity.from_provenance()`)
 
 .. code-block:: python
