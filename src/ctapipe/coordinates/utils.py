@@ -62,13 +62,13 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
         Azimuth of primary
     telescope_position : GroundFrame
         Telescope position
-    slant_distance : u.Quantity[length]
+    distance : u.Quantity[length]
         Distance from along the shower axis from the ground of the point returned.
 
     Returns
     -------
     coord : AltAz
-        The AltAz coordinate of a point on the shower axis at distance `slant_distance`
+        The AltAz coordinate of a point on the shower axis at the given distance
         from the impact point.
     """
     impact = u.Quantity([core_x, core_y, _zero_m], unit=u.m)
