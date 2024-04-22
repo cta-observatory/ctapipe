@@ -112,6 +112,7 @@ SimTelEventSource = "ctapipe.io.simteleventsource:SimTelEventSource"
 [project.entry-points.ctapipe_reco]
 HillasIntersection = "ctapipe.reco.hillas_intersection:HillasIntersection"
 HillasReconstructor = "ctapipe.reco.hillas_reconstructor:HillasReconstructor"
+ShowerAxisLeastSquares = "ctapipe.reco.shower_axis_least_squares:ShowerAxisLeastSquares"
 DispReconstructor = "ctapipe.reco.sklearn:DispReconstructor"
 EnergyRegressor = "ctapipe.reco.sklearn:EnergyRegressor"
 ParticleClassifier = "ctapipe.reco.sklearn:ParticleClassifier"

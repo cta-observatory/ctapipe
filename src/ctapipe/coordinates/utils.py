@@ -45,7 +45,6 @@ def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
     return result
 
 
-@u.quantity_input(core_x=u.m, core_y=u.m, alt=u.rad, az=u.rad, distance=u.km)
 def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distance):
     """
     Get a point on the shower axis in AltAz frame as seen by a telescope at the given position.
