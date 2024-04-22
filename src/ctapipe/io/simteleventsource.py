@@ -630,7 +630,7 @@ class SimTelEventSource(EventSource):
 
                 # TODO: switch to warning or even an exception once
                 # we start relying on this.
-                self.log.info(
+                self.log.debug(
                     "Could not determine telescope from sim_telarray metadata,"
                     " guessing using builtin lookup-table: %d: %s",
                     tel_id,

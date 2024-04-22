@@ -36,9 +36,7 @@ def altaz_to_righthanded_cartesian(alt, az):
 
 
 @u.quantity_input(core_x=u.m, core_y=u.m, alt=u.rad, az=u.rad, distance=u.km)
-def get_point_on_shower_axis(
-    core_x, core_y, alt, az, telescope_position, slant_distance=5 * u.km
-):
+def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distance):
     """
     Get a point on the shower axis in AltAz frame as seen by a telescope at the given position.
 
@@ -65,7 +63,7 @@ def get_point_on_shower_axis(
     """
     impact = u.Quantity([core_x, core_y, _zero_m], unit=u.m)
     # move up the shower axis by slant_distance
-    point = impact + slant_distance * altaz_to_righthanded_cartesian(alt=alt, az=az)
+    point = impact + distance * altaz_to_righthanded_cartesian(alt=alt, az=az)
 
     # offset by telescope positions and convert to sperical
     # to get local AltAz for each telescope
