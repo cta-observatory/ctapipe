@@ -15,7 +15,7 @@ __all__ = [
 _zero_m = u.Quantity(0, u.m)
 
 
-def altaz_to_righthanded_cartesian(alt, az):
+def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
     """Turns an alt/az coordinate into a 3d direction in a right-handed coordinate
     system.  This is because azimuths are in a left-handed system.
 
@@ -28,11 +28,21 @@ def altaz_to_righthanded_cartesian(alt, az):
     az: u.Quantity
         azimuth
     """
+    # this is an optimization, shaves of ca. 50 % compared to handing over units
+    # to the erfa function
     if hasattr(az, "unit"):
         az = az.to_value(u.rad)
         alt = alt.to_value(u.rad)
 
-    return spherical_to_cartesian(-az, alt, 1.0)
+    unit = None
+    if hasattr(distance, "unit"):
+        unit = distance.unit
+        distance = distance.value
+
+    result = spherical_to_cartesian(-az, alt, distance)
+    if unit is not None:
+        return u.Quantity(result, unit=unit, copy=False)
+    return result
 
 
 @u.quantity_input(core_x=u.m, core_y=u.m, alt=u.rad, az=u.rad, distance=u.km)
@@ -63,7 +73,7 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     """
     impact = u.Quantity([core_x, core_y, _zero_m], unit=u.m)
     # move up the shower axis by slant_distance
-    point = impact + distance * altaz_to_righthanded_cartesian(alt=alt, az=az)
+    point = impact + altaz_to_righthanded_cartesian(alt=alt, az=az, distance=distance)
 
     # offset by telescope positions and convert to sperical
     # to get local AltAz for each telescope
