@@ -1,8 +1,10 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, CartesianRepresentation
-from astropy.coordinates.sky_coordinate import UnitSphericalRepresentation
+from astropy.coordinates import AltAz
+from erfa.ufunc import p2s as cartesian_to_spherical
 from erfa.ufunc import s2p as spherical_to_cartesian
+
+from .ground_frames import _get_xyz
 
 __all__ = [
     "altaz_to_righthanded_cartesian",
@@ -67,8 +69,6 @@ def get_point_on_shower_axis(
 
     # offset by telescope positions and convert to sperical
     # to get local AltAz for each telescope
-    cartesian = point[:, np.newaxis] - telescope_position.cartesian.xyz
-    spherical = CartesianRepresentation(cartesian).represent_as(
-        UnitSphericalRepresentation
-    )
-    return AltAz(alt=spherical.lat, az=-spherical.lon)
+    cartesian = point[np.newaxis, :] - _get_xyz(telescope_position).T
+    lon, lat, _ = cartesian_to_spherical(cartesian)
+    return AltAz(alt=lat, az=-lon, copy=False)
