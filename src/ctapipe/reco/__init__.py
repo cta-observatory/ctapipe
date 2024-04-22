@@ -10,6 +10,7 @@ from .reconstructor import (
     ReconstructionProperty,
     Reconstructor,
 )
+from .shower_axis_least_squares import ShowerAxisLeastSquares
 from .shower_processor import ShowerProcessor
 from .sklearn import (
     CrossValidator,
@@ -33,4 +34,5 @@ __all__ = [
     "StereoCombiner",
     "StereoMeanCombiner",
     "CrossValidator",
+    "ShowerAxisLeastSquares",
 ]
