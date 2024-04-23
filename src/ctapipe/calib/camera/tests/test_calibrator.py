@@ -157,7 +157,6 @@ def test_dl1_charge_calib(example_subarray):
     for n_channels in gain_channel:
         # Randomize times and create pulses
         time_offset = random.uniform(-10, +10, (n_channels, n_pixels))
-        y = np.zeros((n_channels, n_pixels, n_samples))
         y = norm.pdf(x, mid + time_offset[..., np.newaxis], pulse_sigma).astype(
             "float32"
         )
