@@ -491,6 +491,7 @@ def test_lst_image_cleaning(prod5_lst):
     neighbors_2 = geom.neighbors[core_pixel_2]
 
     # Set core pixel to 50 and first row of neighbors to 29.
+    # These two islands does not overlap.
     charge[neighbors_1] = 29
     charge[core_pixel_1] = 50
     charge[neighbors_2] = 29
