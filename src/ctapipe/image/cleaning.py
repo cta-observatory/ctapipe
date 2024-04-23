@@ -114,10 +114,11 @@ def tailcuts_clean(
 
 def bright_cleaning(image, threshold, fraction):
     """
-    Clean an image by removing pixels below
-    fraction * (mean charge in the 3 brightest pixels). Select no pixels
-    instead if the mean charge of the brightest pixels are below a
-    certain threshold.
+    Clean an image by removing pixels below a fraction of the mean charge
+    in the 3 brightest pixels.
+
+    Select no pixels instead if the mean charge of the brightest pixels
+    are below a certain threshold.
 
     Parameters
     ----------
@@ -156,7 +157,7 @@ def mars_cleaning_1st_pass(
     min_number_picture_neighbors=0,
 ):
     """
-    Clean an image by selection pixels that pass a three-threshold tail-cuts
+    Clean an image by select pixels that pass a three-threshold tail-cuts
     procedure.
     All thresholds are defined with respect to the pedestal
     dispersion. All pixels that have a signal higher than the core (picture)
