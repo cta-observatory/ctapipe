@@ -501,13 +501,10 @@ def test_lst_image_cleaning(prod5_lst):
         "picture_thresh": 45,
         "boundary_thresh": 20,
         "keep_isolated_pixels": True,
-        "apply_time_cleaning": False,
-        "time_limit": 3,
-        "apply_bright_cleaning": False,
+        "time_limit": None,
         "bright_cleaning_fraction": 0.9,
-        "bright_cleaning_threshold": 40,
+        "bright_cleaning_threshold": None,
         "largest_island_only": False,
-        "apply_pedestal_cleaning": False,
         "pedestal_factor": 2,
         "pedestal_std": None,
     }
@@ -521,7 +518,6 @@ def test_lst_image_cleaning(prod5_lst):
     # charge std.
     pedestal_std = np.ones(geom.n_pixels)
     pedestal_std[core_pixel_1] = 30
-    args["apply_pedestal_cleaning"] = True
     args["pedestal_std"] = pedestal_std
 
     mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
@@ -539,16 +535,16 @@ def test_lst_image_cleaning(prod5_lst):
     # deselect core_pixel_1 with time_delta_cleaning by setting all its neighbors
     # peak_time to 10
     peak_time[neighbors_1] = 10
-    args["apply_pedestal_cleaning"] = False
-    args["apply_time_cleaning"] = True
+    args["pedestal_std"] = None
+    args["time_limit"] = 3
 
     mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
     assert np.count_nonzero(mask) == 1 + 6 + 6
 
     # 3 brightest pixels are [50, 50, 29], so mean is 43. With a fraction of 0.9
     # all boundaries should be deselected
-    args["apply_time_cleaning"] = False
-    args["apply_bright_cleaning"] = True
+    args["time_limit"] = None
+    args["bright_cleaning_threshold"] = 40
 
     mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
     assert np.count_nonzero(mask) == 1 + 1
@@ -556,7 +552,7 @@ def test_lst_image_cleaning(prod5_lst):
     # Set neighbors of core_pixel_2 to 0 so largest_island_only should select only
     # core_pixel_1 with its neighbors
     charge[neighbors_2] = 0
-    args["apply_bright_cleaning"] = False
+    args["bright_cleaning_threshold"] = None
     args["largest_island_only"] = True
 
     mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
