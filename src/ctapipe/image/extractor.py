@@ -13,6 +13,7 @@ __all__ = [
     "NeighborPeakWindowSum",
     "BaselineSubtractedNeighborPeakWindowSum",
     "TwoPassWindowSum",
+    "VarianceExtractor",
     "extract_around_peak",
     "extract_sliding_window",
     "neighbor_average_maximum",
@@ -1295,6 +1296,21 @@ class TwoPassWindowSum(ImageExtractor):
             peak_time=pulse_time2.astype("float32"),
             is_valid=is_valid,
         )
+
+
+class VarianceExtractor(ImageExtractor):
+
+    """
+    Extractor that calculates
+    the variance of each waveform and
+    corrects for the relative gain.
+    """
+
+    def __call__(
+        self, waveforms, tel_id
+    ) -> DL1CameraContainer:
+        variance = np.nanvar(waveforms,axis=2)
+        return DL1CameraContainer(image=variance, peak_time=0, is_valid=True)
 
 
 def deconvolution_parameters(
