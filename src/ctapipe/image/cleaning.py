@@ -112,7 +112,7 @@ def tailcuts_clean(
         )
 
 
-def bright_cleaning(image, threshold=267, fraction=0.03):
+def bright_cleaning(image, threshold, fraction):
     """
     Clean an image by removing pixels below
     fraction * (mean charge in the 3 brightest pixels). Select no pixels
