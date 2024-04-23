@@ -63,7 +63,7 @@ def get_point_on_shower_axis(core_x, core_y, alt, az, telescope_position, distan
     telescope_position : GroundFrame
         Telescope position
     distance : u.Quantity[length]
-        Distance from along the shower axis from the ground of the point returned.
+        Distance along the shower axis from the ground of the point returned.
 
     Returns
     -------
