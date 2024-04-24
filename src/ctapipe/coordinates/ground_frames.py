@@ -46,11 +46,15 @@ def _earthlocation_to_altaz(location, reference_location):
 
 
 class GroundFrame(BaseCoordinateFrame):
-    """Ground coordinate frame.  The ground coordinate frame is a simple
-    cartesian frame describing the 3 dimensional position of objects
-    compared to the array ground level in relation to the nomial
-    centre of the array.  Typically this frame will be used for
-    describing the position on telescopes and equipment.
+    """Ground coordinate frame.
+
+    The ground coordinate frame is a simple cartesian frame describing the
+    3 dimensional position of objects compared to the array ground level
+    in relation to the nominal center of the array.
+
+    Typically this frame will be used for describing the position of telescopes,
+    equipment and shower impact coordinates.
+
     In this frame x points north, y points west and z is meters above array center.
 
     Frame attributes: None

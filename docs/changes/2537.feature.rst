@@ -1,0 +1,3 @@
+Add function ``ctapipe.coordinates.get_point_on_shower_axis``
+that computes a point on the shower axis in alt/az as seen
+from a telescope.
