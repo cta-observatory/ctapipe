@@ -1,6 +1,7 @@
 from functools import partial
 
 import astropy.units as u
+import numba
 import numpy as np
 from astropy.coordinates import AltAz, Latitude, Longitude
 from iminuit import Minuit
@@ -192,6 +193,7 @@ class ShowerAxisLeastSquares(Reconstructor):
         return loss
 
 
+@numba.vectorize(cache=True)
 def _point_to_line_distance(x0, y0, x1, y1, x2, y2):
     """
     Distance from a point to a line defined by two points.
