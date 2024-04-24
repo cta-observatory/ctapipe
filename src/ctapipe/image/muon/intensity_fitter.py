@@ -400,7 +400,7 @@ def build_negative_log_likelihood(
         # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
-        return neg_log_likelihood_approx(image, prediction, spe_width, pedestal)
+        return neg_log_likelihood_approx(image, prediction, spe_width, pedestal).sum()
 
     return negative_log_likelihood
 

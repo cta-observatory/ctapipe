@@ -32,6 +32,7 @@ from ..core import traits
 from .reconstructor import (
     HillasGeometryReconstructor,
     InvalidWidthException,
+    ReconstructionProperty,
     TooFewTelescopesException,
 )
 
@@ -88,19 +89,17 @@ class HillasIntersection(HillasGeometryReconstructor):
     for multiplicity 2 events.
     """
 
-    atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
-    ).tag(config=True)
-
     weighting = traits.CaselessStrEnum(
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
 
-    def __init__(self, subarray, **kwargs):
+    property = ReconstructionProperty.GEOMETRY
+
+    def __init__(self, subarray, atmosphere_profile=None, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
-        super().__init__(subarray, **kwargs)
+        super().__init__(subarray, atmosphere_profile, **kwargs)
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
@@ -421,8 +420,8 @@ class HillasIntersection(HillasGeometryReconstructor):
         hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        crossing_x, crossing_y = self.intersect_lines(
-            tel_x[:, 0], tel_y[:, 0], hillas1[0], tel_x[:, 1], tel_y[:, 1], hillas2[0]
+        crossing_y, crossing_x = self.intersect_lines(
+            tel_y[:, 0], tel_x[:, 0], hillas1[0], tel_y[:, 1], tel_x[:, 1], hillas2[0]
         )
 
         # Weight by chosen method

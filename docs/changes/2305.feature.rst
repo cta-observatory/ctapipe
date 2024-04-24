@@ -1,0 +1,8 @@
+Large updates to the Image Pixel-wise fit for Atmospheric Cherenkov Telescopes reconstruction method (https://doi.org/10.48550/arXiv.1403.2993)
+
+* ImPACT - General code clean up and optimisation. Now updated to work similarly to other reconstructors using the standardised interface, such that it can be used ctapipe-process. Significant improvements to tests too
+* ImPACT_utilities - Created new file to hold general usage functions, numba used in some areas for speedup
+* template_network_interpolator - Now works with templates with different zenith and azimuth angles
+* unstructured_interpolator - Significant speed improvements
+* pixel_likelihood - Constants added back to neg_log_likelihood_approx, these are quite important to obtaining a well normalised goodness of fit.
+* hillas_intersection - Fixed bug in core position being incorrectly calculated, fixed tests too
