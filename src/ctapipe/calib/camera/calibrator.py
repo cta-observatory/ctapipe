@@ -2,6 +2,7 @@
 Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
+from functools import cache
 
 import astropy.units as u
 import numpy as np
@@ -21,9 +22,16 @@ from ctapipe.image.reducer import DataVolumeReducer
 __all__ = ["CameraCalibrator"]
 
 
-def _get_invalid_pixels(n_pixels, pixel_status, selected_gain_channel):
-    broken_pixels = np.zeros(n_pixels, dtype=bool)
-    index = np.arange(n_pixels)
+@cache
+def _get_pixel_index(n_pixels):
+    """Cached version of ``np.arange(n_pixels)``"""
+    return np.arange(n_pixels)
+
+
+def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channel):
+    broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+
+    index = _get_pixel_index(n_pixels)
     masks = (
         pixel_status.hardware_failing_pixels,
         pixel_status.pedestal_failing_pixels,
@@ -31,7 +39,10 @@ def _get_invalid_pixels(n_pixels, pixel_status, selected_gain_channel):
     )
     for mask in masks:
         if mask is not None:
-            broken_pixels |= mask[selected_gain_channel, index]
+            if selected_gain_channel is not None:
+                broken_pixels |= mask[selected_gain_channel, index]
+            else:
+                broken_pixels |= mask
 
     return broken_pixels
 
@@ -188,7 +199,7 @@ class CameraCalibrator(TelescopeComponent):
         )
 
         dl0_waveform = r1.waveform.copy()
-        dl0_waveform[~signal_pixels] = 0
+        dl0_waveform[:, ~signal_pixels] = 0
 
         dl0_pixel_status = r1.pixel_status.copy()
         # set dvr pixel bit in pixel_status for pixels kept by DVR
@@ -211,24 +222,26 @@ class CameraCalibrator(TelescopeComponent):
         if self._check_dl0_empty(waveforms):
             return
 
-        n_pixels, n_samples = waveforms.shape
+        n_channels, n_pixels, n_samples = waveforms.shape
 
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
         broken_pixels = _get_invalid_pixels(
+            n_channels,
             n_pixels,
             event.mon.tel[tel_id].pixel_status,
             selected_gain_channel,
         )
+        pixel_index = _get_pixel_index(n_pixels)
 
         dl1_calib = event.calibration.tel[tel_id].dl1
-        time_shift = event.calibration.tel[tel_id].dl1.time_shift
         readout = self.subarray.tel[tel_id].camera.readout
 
         # subtract any remaining pedestal before extraction
         if dl1_calib.pedestal_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
-            # waveforms have shape (n_pixel, n_samples), pedestals (n_pixels, )
-            waveforms = waveforms - dl1_calib.pedestal_offset[:, np.newaxis]
+            # waveforms have shape (n_channels, n_pixel, n_samples), pedestals (n_pixels)
+            waveforms = waveforms.copy()
+            waveforms -= np.atleast_2d(dl1_calib.pedestal_offset)[..., np.newaxis]
 
         if n_samples == 1:
             # To handle ASTRI and dst
@@ -238,13 +251,18 @@ class CameraCalibrator(TelescopeComponent):
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
             dl1 = DL1CameraContainer(
-                image=waveforms[..., 0].astype(np.float32),
+                image=np.squeeze(waveforms).astype(np.float32),
                 peak_time=np.zeros(n_pixels, dtype=np.float32),
                 is_valid=True,
             )
         else:
             # shift waveforms if time_shift calibration is available
+            time_shift = dl1_calib.time_shift
+            remaining_shift = None
             if time_shift is not None:
+                if selected_gain_channel is not None:
+                    time_shift = time_shift[selected_gain_channel, pixel_index]
+
                 if self.apply_waveform_time_shift.tel[tel_id]:
                     sampling_rate = readout.sampling_rate.to_value(u.GHz)
                     time_shift_samples = time_shift * sampling_rate
@@ -264,11 +282,22 @@ class CameraCalibrator(TelescopeComponent):
             )
 
             # correct non-integer remainder of the shift if given
-            if self.apply_peak_time_shift.tel[tel_id] and time_shift is not None:
+            if self.apply_peak_time_shift.tel[tel_id] and remaining_shift is not None:
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+        if (
+            dl1_calib.relative_factor is not None
+            and dl1_calib.absolute_factor is not None
+        ):
+            if selected_gain_channel is None:
+                dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+            else:
+                corr = (
+                    dl1_calib.relative_factor[selected_gain_channel, pixel_index]
+                    / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
+                )
+                dl1.image *= corr
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:
@@ -309,21 +338,21 @@ def shift_waveforms(waveforms, time_shift_samples):
 
     Parameters
     ----------
-    waveforms: ndarray of shape (n_pixels, n_samples)
+    waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
         The waveforms to shift
-    time_shift_samples: ndarray of shape (n_pixels, )
+    time_shift_samples: ndarray
         The shift to apply in units of samples.
         Waveforms are shifted to the left by the smallest integer
         that minimizes inter-pixel differences.
 
     Returns
     -------
-    shifted_waveforms: ndarray of shape (n_pixels, n_samples)
+    shifted_waveforms: ndarray of shape (n_channels, n_pixels, n_samples)
         The shifted waveforms
-    remaining_shift: ndarray of shape (n_pixels, )
+    remaining_shift: ndarray
         The remaining shift after applying the integer shift to the waveforms.
     """
-    mean_shift = time_shift_samples.mean()
+    mean_shift = time_shift_samples.mean(axis=-1, keepdims=True)
     integer_shift = np.round(time_shift_samples - mean_shift).astype("int16")
     remaining_shift = time_shift_samples - integer_shift
     shifted_waveforms = _shift_waveforms_by_integer(waveforms, integer_shift)

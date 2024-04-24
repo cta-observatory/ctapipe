@@ -182,9 +182,11 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         """
 
         waveforms = event.r1.tel[self.tel_id].waveform
+        n_channels, n_pixels, _ = waveforms.shape
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
         broken_pixels = _get_invalid_pixels(
-            n_pixels=waveforms.shape[-2],
+            n_channels=n_channels,
+            n_pixels=n_pixels,
             pixel_status=event.mon.tel[self.tel_id].pixel_status,
             selected_gain_channel=selected_gain_channel,
         )
@@ -215,20 +217,15 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         if self.n_events_seen == self.sample_size:
             self.n_events_seen = 0
 
-        # real data
         trigger_time = event.trigger.time
-        if event.meta["origin"] != "hessio":
-            hardware_or_pedestal_mask = np.logical_or(
-                event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels,
-                event.mon.tel[self.tel_id].pixel_status.pedestal_failing_pixels,
-            )
-            pixel_mask = np.logical_or(
-                hardware_or_pedestal_mask,
-                event.mon.tel[self.tel_id].pixel_status.flatfield_failing_pixels,
-            )
-
-        else:  # patches for MC data
-            pixel_mask = np.zeros(waveform.shape[1], dtype=bool)
+        hardware_or_pedestal_mask = np.logical_or(
+            event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels,
+            event.mon.tel[self.tel_id].pixel_status.pedestal_failing_pixels,
+        )
+        pixel_mask = np.logical_or(
+            hardware_or_pedestal_mask,
+            event.mon.tel[self.tel_id].pixel_status.flatfield_failing_pixels,
+        )
 
         if self.n_events_seen == 0:
             self.time_start = trigger_time

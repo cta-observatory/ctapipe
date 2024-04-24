@@ -74,6 +74,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v4.0.0",
     "v5.0.0",
     "v5.1.0",
+    "v6.0.0",
 ]
 
 
@@ -651,6 +652,11 @@ class HDF5EventSource(EventSource):
 
                 if DataLevel.R1 in self.datalevels:
                     data.r1.tel[tel_id] = next(waveform_readers[key])
+
+                    # TODO: Delete if we drop support for datamodel versions < v6.0.0
+                    r1_waveform = data.r1.tel[tel_id].waveform
+                    if r1_waveform.ndim == 2:
+                        data.r1.tel[tel_id].waveform = r1_waveform[np.newaxis, ...]
 
                 if self.has_simulated_dl1:
                     simulated = data.simulation.tel[tel_id]

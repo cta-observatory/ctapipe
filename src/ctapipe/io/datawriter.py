@@ -48,8 +48,10 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v5.1.0"
+DATA_MODEL_VERSION = "v6.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v6.0.0: - Change R1- and DL0-waveform shape from (n_pixels, n_samples) to be always
+            (n_channels, n_pixels, n_samples).
 - v5.1.0: - Remove redundant 'is_valid' column in ``DispContainer``.
           - Rename content of ``DispContainer`` from 'norm' to 'parameter' and use the same
             default prefix ('disp') for all containers filled by ``DispReconstructor``.

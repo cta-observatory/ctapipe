@@ -18,6 +18,7 @@ Examples:
     >>> print(image.shape)
     (400,)
 """
+
 from abc import ABCMeta, abstractmethod
 
 import astropy.units as u
@@ -26,6 +27,7 @@ from numpy.random import default_rng
 from scipy.ndimage import convolve1d
 from scipy.stats import multivariate_normal, norm, skewnorm
 
+from ctapipe.calib.camera.gainselection import GainChannel
 from ctapipe.image.hillas import camera_to_shower_coordinates
 from ctapipe.utils import linalg
 
@@ -39,6 +41,7 @@ __all__ = [
 
 
 TOYMODEL_RNG = default_rng(0)
+VALID_GAIN_CHANNEL = {"HIGH", "LOW", "ALL"}
 
 
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
@@ -87,8 +90,8 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 class WaveformModel:
     @u.quantity_input(reference_pulse_sample_width=u.ns, sample_width=u.ns)
     def __init__(self, reference_pulse, reference_pulse_sample_width, sample_width):
-        """Generate a toy model waveform using the reference pulse shape of a
-        camera. Useful for testing image extraction algorithms.
+        """Generate a toy model waveform for each gain channel using the reference
+        pulse shape of a camera. Useful for testing image extraction algorithms.
 
         Does not include the electronic noise and the Excess Noise Factor of
         the photosensor, and therefore should not be used to make charge
@@ -99,23 +102,28 @@ class WaveformModel:
         reference_pulse_sample_width : u.Quantity[time]
             Sample width of the reference pulse shape
         reference_pulse : ndarray
-            Reference pulse shape
+            Reference pulse shape for each channel
         sample_width : u.Quantity[time]
             Sample width of the waveform
 
         """
+        self.n_channels = reference_pulse.shape[-2]
         self.upsampling = 10
         reference_pulse_sample_width = reference_pulse_sample_width.to_value(u.ns)
         sample_width_ns = sample_width.to_value(u.ns)
-        ref_max_sample = reference_pulse.size * reference_pulse_sample_width
+        ref_max_sample = reference_pulse[0].size * reference_pulse_sample_width
         reference_pulse_x = np.arange(0, ref_max_sample, reference_pulse_sample_width)
         self.ref_width_ns = sample_width_ns / self.upsampling
         self.ref_interp_x = np.arange(0, reference_pulse_x.max(), self.ref_width_ns)
-        self.ref_interp_y = np.interp(
-            self.ref_interp_x, reference_pulse_x, reference_pulse
-        )
-        self.ref_interp_y /= self.ref_interp_y.sum() * self.ref_width_ns
-        self.origin = self.ref_interp_y.argmax() - self.ref_interp_y.size // 2
+        self.ref_interp_y = np.zeros((self.n_channels, self.ref_interp_x.size))
+        for channel in range(self.n_channels):
+            self.ref_interp_y[channel] = np.interp(
+                self.ref_interp_x, reference_pulse_x, reference_pulse[channel]
+            )
+        self.ref_interp_y = (
+            self.ref_interp_y.T / (self.ref_interp_y.sum(-1) * self.ref_width_ns)
+        ).T
+        self.origin = self.ref_interp_y.argmax(-1) - self.ref_interp_y[0].size // 2
 
     def get_waveform(self, charge, time, n_samples):
         """Obtain the waveform toy model.
@@ -135,7 +143,7 @@ class WaveformModel:
         -------
         waveform : ndarray
             Toy model waveform
-            Shape (n_pixels, n_samples)
+            Shape (n_channels, n_pixels, n_samples)
 
         """
         n_pixels = charge.size
@@ -147,34 +155,52 @@ class WaveformModel:
         sample[outofrange] = 0
         charge[outofrange] = 0
         readout[np.arange(n_pixels), sample] = charge
-        convolved = convolve1d(
-            readout, self.ref_interp_y, mode="constant", origin=self.origin
-        )
+        convolved = np.zeros((self.n_channels, n_pixels, n_upsampled_samples))
+        for channel in range(self.n_channels):
+            convolved[channel] = convolve1d(
+                readout,
+                self.ref_interp_y[channel],
+                mode="constant",
+                origin=self.origin[channel],
+            )
         sampled = (
             convolved.reshape(
-                (n_pixels, convolved.shape[-1] // self.upsampling, self.upsampling)
+                (
+                    self.n_channels,
+                    n_pixels,
+                    convolved.shape[-1] // self.upsampling,
+                    self.upsampling,
+                )
             ).sum(-1)
             * self.ref_width_ns  # Waveform units: p.e.
         )
         return sampled
 
     @classmethod
-    def from_camera_readout(cls, readout, gain_channel=0):
+    def from_camera_readout(cls, readout, gain_channel="ALL"):
         """Create class from a `ctapipe.instrument.CameraReadout`.
 
         Parameters
         ----------
         readout : `ctapipe.instrument.CameraReadout`
-        gain_channel : int
-            The reference pulse gain channel to use
+        gain_channel : str
+            The reference pulse gain channel to use.
+            Choose between 'HIGH', 'LOW' and 'ALL'.
 
         Returns
         -------
         WaveformModel
 
         """
+        if gain_channel not in VALID_GAIN_CHANNEL:
+            raise ValueError(f"gain_channel must be one of {VALID_GAIN_CHANNEL}")
+
+        ref_pulse_shape = readout.reference_pulse_shape
+        if gain_channel != "ALL":
+            ref_pulse_shape = ref_pulse_shape[np.newaxis, GainChannel[gain_channel]]
+
         return cls(
-            readout.reference_pulse_shape[gain_channel],
+            ref_pulse_shape,
             readout.reference_pulse_sample_width,
             (1 / readout.sampling_rate).to(u.ns),
         )

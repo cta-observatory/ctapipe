@@ -1,6 +1,7 @@
 """
 Container structures for data that should be read or written to disk
 """
+
 import enum
 from functools import partial
 
@@ -483,16 +484,16 @@ class DL1CameraContainer(Container):
 
     image = Field(
         None,
-        "Numpy array of camera image, after waveform extraction." "Shape: (n_pixel)",
-        dtype=np.float32,
-        ndim=1,
+        "Numpy array of camera image, after waveform extraction."
+        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
+        "else: (n_channels, n_pixel)",
     )
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
-        "the extractor. Shape: (n_pixel, )",
-        dtype=np.float32,
-        ndim=1,
+        "the extractor."
+        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
+        "else: (n_channels, n_pixel)",
     )
     image_mask = Field(
         None,
@@ -533,23 +534,24 @@ class DL1CameraCalibrationContainer(Container):
         None,
         "Residual mean pedestal of the waveforms for each pixel."
         " This value is subtracted from the waveforms of each pixel before"
-        " the pulse extraction.",
+        " the pulse extraction. Shape: (n_channels, n_pixels)",
     )
     absolute_factor = Field(
-        1,
-        "Multiplicative coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel",
+        None,
+        "Multiplicative coefficients for the absolute calibration of extracted charge"
+        " into physical units (e.g. photoelectrons or photons) for each pixel."
+        " Shape: (n_channels, n_pixels)",
     )
     relative_factor = Field(
-        1,
-        "Multiplicative Coefficients for the relative correction between pixels to achieve a "
-        "uniform charge response (post absolute calibration) from a "
-        "uniform illumination.",
+        None,
+        "Multiplicative Coefficients for the relative correction between pixels to"
+        " achieve a uniform charge response (post absolute calibration) from a"
+        " uniform illumination. Shape: (n_channels, n_pixels)",
     )
     time_shift = Field(
         None,
-        "Additive coefficients for the timing correction before charge extraction "
-        "for each pixel",
+        "Additive coefficients for the timing correction before charge extraction"
+        " for each pixel. Shape: (n_channels, n_pixels)",
     )
 
 
@@ -559,7 +561,7 @@ class R0CameraContainer(Container):
     """
 
     waveform = Field(
-        None, ("numpy array containing ADC samples" "(n_channels, n_pixels, n_samples)")
+        None, ("numpy array containing ADC samples: (n_channels, n_pixels, n_samples)")
     )
 
 
@@ -586,7 +588,7 @@ class R1CameraContainer(Container):
         None,
         (
             "numpy array containing a set of images, one per ADC sample"
-            "Shape: (n_pixels, n_samples)"
+            "Shape: (n_channels, n_pixels, n_samples)"
         ),
     )
 
@@ -660,7 +662,7 @@ class DL0CameraContainer(Container):
         (
             "numpy array containing data volume reduced "
             "p.e. samples"
-            "(n_pixels, n_samples). Note this may be a masked array, "
+            "(n_channels, n_pixels, n_samples). Note this may be a masked array, "
             "if pixels or time slices are zero-suppressed"
         ),
     )
