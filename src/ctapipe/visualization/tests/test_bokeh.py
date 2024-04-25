@@ -55,6 +55,8 @@ def test_camera_image(example_event, example_subarray, tmp_path):
     display.image = np.random.normal(size=geom.n_pixels)
     assert np.all(display.image == image)
 
+    display.highlight_pixels(display.image > 0)
+
     output_path = tmp_path / "test.html"
     output_file(output_path)
     save(display.figure, filename=output_path)

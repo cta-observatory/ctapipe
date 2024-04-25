@@ -7,7 +7,7 @@ dependencies:
   - pip
   - astropy>=5.3,<7
   - black
-  - bokeh=2
+  - bokeh=3
   - nbsphinx
   - cython
   - graphviz

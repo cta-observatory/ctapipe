@@ -21,6 +21,7 @@ from bokeh.models import (
 )
 from bokeh.palettes import Greys256, Inferno256, Magma256, Viridis256, d3
 from bokeh.plotting import figure
+from bokeh.transform import transform
 from matplotlib.colors import to_hex
 
 from ..instrument import CameraGeometry, PixelShape
@@ -239,10 +240,10 @@ class BokehPlot(metaclass=ABCMeta):
             else:
                 raise ValueError(f"Unsupported norm {norm}")
 
-        self._color_mapper = norm(self.cmap)
+        self._color_mapper = norm(palette=self.cmap)
         if self._patches is not None:
-            color = dict(transform=self._color_mapper)
-            self._patches.glyph.update(fill_color=color, line_color=color)
+            color = transform("values", self._color_mapper)
+            self._patches.glyph.update(fill_color=color)
 
         if self._color_bar is not None:
             self._color_bar.update(color_mapper=self._color_mapper)
@@ -373,7 +374,7 @@ class CameraDisplay(BokehPlot):
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
 
-    def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
+    def highlight_pixels(self, pixels, color="green", linewidth=1, alpha=0.75):
         """
         Highlight the given pixels with a colored line around them
 
@@ -393,7 +394,7 @@ class CameraDisplay(BokehPlot):
         n_pixels = self._geometry.n_pixels
         pixels = np.asanyarray(pixels)
 
-        if pixels.dtype != np.bool:
+        if pixels.dtype != bool:
             selected = np.zeros(n_pixels, dtype=bool)
             selected[pixels] = True
             pixels = selected
@@ -454,7 +455,6 @@ class CameraDisplay(BokehPlot):
             3rd-order moment for directionality if known
         kwargs:
             any MatPlotLib style arguments to pass to the Ellipse patch
-
         """
         ellipse = Ellipse(
             x=centroid[0],
@@ -585,6 +585,15 @@ class ArrayDisplay(BokehPlot):
             frame_name = (frame or subarray.tel_coords.frame).__class__.__name__
             title = f"{subarray.name} ({frame_name})"
 
+        # color by type if no value given
+        if values is None:
+            types = list({str(t) for t in subarray.telescope_types})
+            cmap = cmap or d3["Category10"][10][: len(types)]
+            field = "type"
+        else:
+            cmap = "inferno"
+            field = "values"
+
         super().__init__(
             use_notebook=use_notebook,
             title=title,
@@ -595,15 +604,8 @@ class ArrayDisplay(BokehPlot):
             **figure_kwargs,
         )
 
-        # color by type if no value given
         if values is None:
-            types = list({str(t) for t in subarray.telescope_types})
-            cmap = cmap or d3["Category10"][10][: len(types)]
             self._color_mapper = CategoricalColorMapper(palette=cmap, factors=types)
-            field = "type"
-        else:
-            self.cmap = "inferno"
-            field = "values"
 
         self.frame = frame
         self.subarray = subarray
@@ -617,7 +619,7 @@ class ArrayDisplay(BokehPlot):
             alpha=alpha,
         )
 
-        color = dict(field=field, transform=self._color_mapper)
+        color = transform(field_name=field, transform=self._color_mapper)
         self._patches = self.figure.circle(
             x="x",
             y="y",
@@ -687,7 +689,7 @@ class ArrayDisplay(BokehPlot):
         if self._patches.glyph.fill_color["field"] == "type":
             self.norm = "lin"
             self.cmap = "inferno"
-            color = dict(field="values", transform=self._color_mapper)
+            color = transform(field_name="values", transform=self._color_mapper)
             self._patches.glyph.update(fill_color=color, line_color=color)
 
             # recreate color bar, updating does not work here
