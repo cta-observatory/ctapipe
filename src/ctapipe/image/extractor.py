@@ -1309,7 +1309,7 @@ class VarianceExtractor(ImageExtractor):
         self, waveforms, tel_id
     ) -> DL1CameraContainer:
         variance = np.nanvar(waveforms,axis=2)
-        return DL1CameraContainer(image=variance, peak_time=0, is_valid=True)
+        return DL1CameraContainer(image=variance, peak_time=None, is_valid=True)
 
 
 def deconvolution_parameters(
