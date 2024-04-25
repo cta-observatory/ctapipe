@@ -1616,14 +1616,18 @@ class FlashCamExtractor(ImageExtractor):
             tel_id: telescope.camera.readout.sampling_rate.to_value("GHz")
             for tel_id, telescope in subarray.tel.items()
         }
+        self._deconvolution_parameters = {}
 
-        def time_profile_pdf_gen(std_dev: float):
-            if std_dev == 0:
-                return None
-            return scipy.stats.norm(0.0, std_dev).pdf
+    def _get_deconvolution_parameters(self, tel_id):
+        if tel_id not in self._deconvolution_parameters:
+            tel = self.subarray.tel[tel_id]
 
-        self.deconvolution_pars = {
-            tel_id: deconvolution_parameters(
+            def time_profile_pdf_gen(std_dev: float):
+                if std_dev == 0:
+                    return None
+                return scipy.stats.norm(0.0, std_dev).pdf
+
+            self._deconvolution_parameters[tel_id] = deconvolution_parameters(
                 tel.camera,
                 self.upsampling.tel[tel_id],
                 self.window_width.tel[tel_id],
@@ -1632,8 +1636,7 @@ class FlashCamExtractor(ImageExtractor):
                 self.leading_edge_rel_descend_limit.tel[tel_id],
                 time_profile_pdf_gen(self.effective_time_profile_std.tel[tel_id]),
             )
-            for tel_id, tel in subarray.tel.items()
-        }
+        return self._deconvolution_parameters[tel_id]
 
     @staticmethod
     def clip(x, lo=0.0, hi=np.inf):
@@ -1650,7 +1653,7 @@ class FlashCamExtractor(ImageExtractor):
         leading_edge_timing = self.leading_edge_timing.tel[tel_id]
         leading_edge_rel_descend_limit = self.leading_edge_rel_descend_limit.tel[tel_id]
 
-        pole_zeros, gains, shifts, pz2ds = self.deconvolution_pars[tel_id]
+        pole_zeros, gains, shifts, pz2ds = self._get_deconvolution_parameters(tel_id)
         pz, gain, shift, pz2d = pole_zeros[0], gains[0], shifts[0], pz2ds[0]
 
         t_waveforms = deconvolve(waveforms, 0.0, upsampling, pz)
