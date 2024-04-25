@@ -1300,7 +1300,8 @@ class VarianceExtractor(ImageExtractor):
 
     """
     Extractor that calculates
-    the variance of each waveform
+    the variance of each sample waveform
+
     """
 
     def __call__(
