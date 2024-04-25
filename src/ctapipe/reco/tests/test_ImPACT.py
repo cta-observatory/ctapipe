@@ -177,7 +177,7 @@ class TestImPACT:
 
         impact_reco.get_hillas_mean()
 
-        seed, step, limits = create_seed(0.0, 0.0, 0.0, 0.0, 0.8)
+        seed, step, limits = create_seed(0.0, 0.0, 0.0, 0.0, 0.5)
         vals, error, chi2 = impact_reco.minimise(seed, step, limits)
         assert_allclose(vals[4], 1, rtol=0.05)
 
