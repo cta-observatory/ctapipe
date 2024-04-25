@@ -1,0 +1,1 @@
+Fix a possible out-of-bounds array access in the FlashCamExtractor.

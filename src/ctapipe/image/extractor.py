@@ -1531,7 +1531,7 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
         sum_ += waveforms[j]
         jsum += j * waveforms[j]
         j -= 1
-        if waveforms[j] > peak_amplitude:
+        if j >= 0 and waveforms[j] > peak_amplitude:
             descend_limit = rel_descend_limit * peak_amplitude
 
     j = peak_index + 1
@@ -1539,7 +1539,7 @@ def adaptive_centroid(waveforms, peak_index, rel_descend_limit, centroids):
         sum_ += waveforms[j]
         jsum += j * waveforms[j]
         j += 1
-        if waveforms[j] > peak_amplitude:
+        if j < n_samples and waveforms[j] > peak_amplitude:
             descend_limit = rel_descend_limit * peak_amplitude
 
     if sum_ != 0.0:
