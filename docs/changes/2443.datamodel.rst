@@ -1,6 +1,0 @@
-Remove redundant ``is_valid`` field in ``DispContainer`` and rename the remaining field.
-Use the same prefix for both containers filled by ``DispReconstructor``.
-
-Fix default name of ``DispReconstructor`` target column.
-
-Let ``HDF5EventSource`` load ``DispContainer``.

@@ -1,1 +1,0 @@
-Fix additional, unwanted columns being written into disp prediction output.

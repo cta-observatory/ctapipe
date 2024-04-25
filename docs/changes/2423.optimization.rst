@@ -1,3 +1,0 @@
-Load data and apply event and column selection in chunks in ``ctapipe-train-*``
-before merging afterwards.
-This reduces memory usage.

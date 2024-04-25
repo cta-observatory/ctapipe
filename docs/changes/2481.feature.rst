@@ -1,4 +1,0 @@
-Also load the new fixed pointing information in ``TableLoader``.
-
-Add option ``keep_order`` to ``ctapipe.io.astropy_helpers.join_allow_empty``
-that will keep the original order of rows when performing left or right joins.

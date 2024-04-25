@@ -1,1 +1,0 @@
-Add an ``AstroQuantity`` trait which can hold any ``astropy.units.Quantity``.

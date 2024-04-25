@@ -1,1 +1,0 @@
-Add ``cache=True`` to some numba-compiled functions which were missing it.

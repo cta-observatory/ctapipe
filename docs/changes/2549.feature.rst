@@ -1,1 +1,0 @@
-Update bokeh dependency to version 3.x.

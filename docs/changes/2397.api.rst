@@ -1,8 +1,0 @@
-``CameraGeometry.position_to_pix_index`` will now return the minimum integer value for invalid
-pixel coordinates instead of -1 due to the danger of using -1 as an index in python accessing
-the last element of a data array for invalid pixels.
-The function will now also no longer raise an error if the arguments are empty arrays and instead
-just return an empty index array.
-The function will also no longer log a warning in case of coordinates that do not match a camera pixel.
-The function is very low-level and if not finding a pixel at the tested position warrants a warning or
-is expected will depend on the calling code.

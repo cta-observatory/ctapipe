@@ -1,1 +1,0 @@
-The ``DispReconstructor`` now computes a score for how certain the prediction of the disp sign is.

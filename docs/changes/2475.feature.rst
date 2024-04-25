@@ -1,1 +1,0 @@
-Support astropy 6.0.
