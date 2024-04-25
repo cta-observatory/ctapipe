@@ -865,9 +865,7 @@ def test_write_default_container(cls, tmp_path):
         except ValueError as e:
             # some containers do not have writable members,
             # only subcontainers. For now, ignore them.
-            if "cannot create an empty data type" in str(e):
-                pytest.xfail()
-            else:
+            if "cannot create an empty data type" not in str(e):
                 raise
 
 
