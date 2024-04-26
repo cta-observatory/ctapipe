@@ -1,2 +1,0 @@
-The ``ctapipe`` source code repository now uses the ``src/``-based layout.
-This fixes the editable installation of ctapipe.

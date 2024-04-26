@@ -1,5 +1,0 @@
-Add support for interpolating a monitoring pointing table
-in ``TableLoader``. The corresponding table is not yet written by ``ctapipe``,
-but can be written by external tools.
-This is to enable analysis of real observations, where the pointing changes over time in
-alt/az.

@@ -1,6 +1,0 @@
-Properly transform pixel coordinates between ``CameraFrame``
-and ``TelescopeFrame`` in ``MuonIntensityFitter`` taking.
-Before, ``MuonIntensityFitter`` always used the equivalent focal
-length for transformations, now it is using the focal length
-attached to the ``CameraGeometry``, thus respecting the
-``focal_length_choice`` options of the event sources.

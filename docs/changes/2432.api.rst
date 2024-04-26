@@ -1,3 +1,0 @@
-Change the definition of the ``leakage_pixels_width_{1,2}`` image features
-to give the ratio of pixels at the border to the pixels after cleaning
-instead of to the total number of pixels of the camera.

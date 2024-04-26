@@ -1,1 +1,0 @@
-The CI system now reports to the CTA SonarQube instance for code quality tracking

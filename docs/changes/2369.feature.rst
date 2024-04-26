@@ -1,2 +1,0 @@
-Allow passing the matplotlib axes to the ``SubarrayDescription.peek`` function,
-fix warnings in case of layout engine being already defined.

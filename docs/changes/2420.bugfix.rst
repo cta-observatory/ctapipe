@@ -1,1 +1,0 @@
-Add docstring for ``ctapipe-train-disp-reconstructor``.

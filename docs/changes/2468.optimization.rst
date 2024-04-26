@@ -1,1 +1,0 @@
-Add ``true_impact_distance`` to the output of ``CrossValidator``.
