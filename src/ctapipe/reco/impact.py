@@ -75,6 +75,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     templates to perform a maximum likelihood fit for the shower axis,
     energy and height of maximum.
 
+    Besides the image information, there is also the option to use the time gradient of the pixels
+    across the image as additional information in the fit. This requires an additional set of templates
+
     Because this application is computationally intensive the usual
     advice to use astropy units for all quantities is ignored (as
     these slow down some computations), instead units within the class
@@ -101,7 +104,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     """
 
     use_time_gradient = traits.Bool(
-        default_value=False, help="Use time gradient in ImPACT reconstruction"
+        default_value=False,
+        help="Use time gradient in ImPACT reconstruction. Requires an extra set of time gradient templates",
     ).tag(config=True)
 
     root_dir = traits.Unicode(
