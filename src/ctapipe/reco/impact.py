@@ -210,29 +210,31 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask = event.dl1.tel[tel_id].image_mask
 
             # Dilate the images around the original cleaning to help the fit
-            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
-            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
-            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+            for _ in range(3):
+                mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+
             mask_dict[tel_id] = mask
 
         # Next, we look for geometry and energy seeds from previously applied reconstructors.
         # Both need to be present at elast once for ImPACT to run.
 
-        reconstructor_geometry_prediction = event.dl2.stereo.geometry
+        reco_geom_pred = event.dl2.stereo.geometry
 
-        valid_seed = False
-        for reco in reconstructor_geometry_prediction:
-            if reconstructor_geometry_prediction[reco].is_valid:
-                valid_seed = True
+        valid_geometry_seed = False
+        for geom_pred in reco_geom_pred.values():
+            if geom_pred.is_valid:
+                valid_geometry_seed = True
+                break
 
-        reconstructor_energy_prediction = event.dl2.stereo.energy
+        reco_energy_pred = event.dl2.stereo.energy
 
         valid_energy_seed = False
-        for reco in reconstructor_energy_prediction:
-            if reconstructor_energy_prediction[reco].is_valid:
+        for E_pred in reco_energy_pred.values():
+            if E_pred.is_valid:
                 valid_energy_seed = True
+                break
 
-        if valid_seed is False or valid_energy_seed is False:
+        if valid_geometry_seed is False or valid_energy_seed is False:
             event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
             event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
             self._store_impact_parameter(event)
@@ -241,8 +243,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         shower_result, energy_result = self.predict(
             hillas_dict=hillas_dict,
             subarray=self.subarray,
-            shower_seed=reconstructor_geometry_prediction,
-            energy_seed=reconstructor_energy_prediction,
+            shower_seed=reco_geom_pred,
+            energy_seed=reco_energy_pred,
             array_pointing=array_pointing,
             telescope_pointings=telescope_pointings,
             image_dict=image_dict,
