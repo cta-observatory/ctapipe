@@ -34,7 +34,11 @@ from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from traitlets import Bool, Int
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import (
+    DL1CameraContainer,
+    DL1PedestalVarianceContainer,
+    VarianceType,
+)
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -1308,9 +1312,9 @@ class VarianceExtractor(ImageExtractor):
 
     def __call__(
         self, waveforms, tel_id
-    ) -> DL1CameraContainer:
+    ) -> DL1PedestalVarianceContainer:
         variance = np.nanvar(waveforms,axis=2)
-        return DL1CameraContainer(image=variance, peak_time=None, is_valid=True)
+        return DL1CameraContainer(image=variance,method=VarianceType.SIMPLE)
 
 
 def deconvolution_parameters(
