@@ -100,12 +100,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
     """
 
-    minimiser = traits.CaselessStrEnum(
-        ["minuit", "l-BFGS"],
-        default_value="minuit",
-        help="name minimiser to use in the fit",
-    ).tag(config=True)
-
     use_time_gradient = traits.Bool(
         default_value=False, help="Use time gradient in ImPACT reconstruction"
     ).tag(config=True)
@@ -617,24 +611,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             final_sum += chi2
 
         return final_sum
-
-    def get_likelihood_min(self, x):
-        """Wrapper class around likelihood function for use with scipy
-        minimisers
-
-        Parameters
-        ----------
-        x: ndarray
-            Array of minimisation parameters
-
-        Returns
-        -------
-        float: Likelihood value of test position
-
-        """
-        val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
-
-        return val
 
     def set_event_properties(
         self,
