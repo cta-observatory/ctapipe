@@ -563,22 +563,20 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             time_gradients_uncertainty[time_gradients_uncertainty == 0] = 1e-6
 
             chi2 = 0
-            for telescope_index in range(self.time.shape[0]):
+            for telescope_index, (image, time) in enumerate(zip(self.image, self.time)):
                 time_mask = np.logical_and(
-                    np.invert(ma.getmask(self.image[telescope_index])),
-                    self.time[telescope_index] > 0,
+                    np.invert(ma.getmask(image)),
+                    time > 0,
                 )
-                time_mask = np.logical_and(
-                    time_mask, np.isfinite(self.time[telescope_index])
-                )
-                time_mask = np.logical_and(time_mask, self.image[telescope_index] > 5)
+                time_mask = np.logical_and(time_mask, np.isfinite(time))
+                time_mask = np.logical_and(time_mask, image > 5)
                 if (
                     np.sum(time_mask) > 3
                     and time_gradients_uncertainty[telescope_index] > 0
                 ):
                     time_slope = lts_linear_regression(
                         x=np.rad2deg(pix_x_rot[telescope_index][time_mask]),
-                        y=self.time[telescope_index][time_mask],
+                        y=time[time_mask],
                         samples=3,
                     )[0][0]
 
