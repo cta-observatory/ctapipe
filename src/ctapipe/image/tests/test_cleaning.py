@@ -480,7 +480,7 @@ def test_bright_cleaning():
     assert np.count_nonzero(mask) == 0
 
 
-def test_lst_image_cleaning(prod5_lst):
+def test_nsb_image_cleaning(prod5_lst):
     geom = prod5_lst.camera.geometry
     charge = np.zeros(geom.n_pixels, dtype=np.float32)
     peak_time = np.zeros(geom.n_pixels, dtype=np.float32)
@@ -510,7 +510,7 @@ def test_lst_image_cleaning(prod5_lst):
     }
 
     # return normal tailcuts cleaning result if every other step is None/False:
-    mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
     # 2 * (1 core and 6 boundary_pixels) should be selected
     assert np.count_nonzero(mask) == 2 * (1 + 6)
 
@@ -520,7 +520,7 @@ def test_lst_image_cleaning(prod5_lst):
     pedestal_std[core_pixel_1] = 30
     args["pedestal_std"] = pedestal_std
 
-    mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
     # only core_pixel_2 with its boundaries should be selected since
     # pedestal_std[core_pixel_1] * pedestal_factor > charge[core_pixel_1]
     assert np.count_nonzero(mask) == 1 + 6
@@ -529,7 +529,7 @@ def test_lst_image_cleaning(prod5_lst):
     pedestal_std[core_pixel_2] = 30
     args["pedestal_std"] = pedestal_std
 
-    mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
     assert np.count_nonzero(mask) == 0
 
     # deselect core_pixel_1 with time_delta_cleaning by setting all its neighbors
@@ -538,7 +538,7 @@ def test_lst_image_cleaning(prod5_lst):
     args["pedestal_std"] = None
     args["time_limit"] = 3
 
-    mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
     assert np.count_nonzero(mask) == 1 + 6 + 6
 
     # 3 brightest pixels are [50, 50, 29], so mean is 43. With a fraction of 0.9
@@ -546,7 +546,7 @@ def test_lst_image_cleaning(prod5_lst):
     args["time_limit"] = None
     args["bright_cleaning_threshold"] = 40
 
-    mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
     assert np.count_nonzero(mask) == 1 + 1
 
     # Set neighbors of core_pixel_2 to 0 so largest_island_only should select only
@@ -555,5 +555,5 @@ def test_lst_image_cleaning(prod5_lst):
     args["bright_cleaning_threshold"] = None
     args["largest_island_only"] = True
 
-    mask = cleaning.lst_image_cleaning(geom, charge, peak_time, **args)
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
     assert np.count_nonzero(mask) == 1 + 6

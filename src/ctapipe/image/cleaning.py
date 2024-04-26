@@ -495,7 +495,7 @@ def time_constrained_clean(
     return mask_core | mask_boundary
 
 
-def lst_image_cleaning(
+def nsb_image_cleaning(
     geom,
     image,
     arrival_times,
@@ -660,7 +660,7 @@ class ImageCleaner(TelescopeComponent):
 class TailcutsImageCleaner(ImageCleaner):
     """
     Clean images using the standard picture/boundary technique. See
-    `ctapipe.image.tailcuts_clean`
+    `ctapipe.image.tailcuts_clean`.
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
@@ -703,10 +703,15 @@ class TailcutsImageCleaner(ImageCleaner):
         )
 
 
-class LSTImageCleaner(TailcutsImageCleaner):
+class NSBImageCleaner(TailcutsImageCleaner):
     """
-    Clean images using lstchains image cleaning technique. See
+    Clean images based on lstchains image cleaning technique [1]_. See
     `ctapipe.image.lst_image_cleaning`
+
+    References
+    ----------
+    .. [1] https://arxiv.org/pdf/2306.12960
+
     """
 
     time_limit = FloatTelescopeParameter(
@@ -764,7 +769,7 @@ class LSTImageCleaner(TailcutsImageCleaner):
         if monitoring is not None:
             pedestal_std = monitoring.tel[tel_id].pedestal.charge_std
 
-        return lst_image_cleaning(
+        return nsb_image_cleaning(
             self.subarray.tel[tel_id].camera.geometry,
             image,
             arrival_times,
