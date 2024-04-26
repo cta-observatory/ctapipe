@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-
+Implementation of the ImPACT reconstruction algorithm
 """
 import copy
 from string import Template
@@ -84,6 +84,16 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     - Distance units in metres
     - Energy units in TeV
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        The telescope subarray to use for reconstruction
+    atmosphere_profile : ctapipe.AtmosphereDensityProfile
+        Density vs. altitude profile of the local atmosphere
+    dummy_reconstructor : bool, optional
+        Option to use a set of dummy templates. This can be used for testing the algorithm,
+        but for any actual reconstruction should be set to its default False
+
     References
     ----------
     .. [parsons14] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
@@ -125,10 +135,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     def __init__(
         self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
     ):
-        """
-        Create a new instance of ImPACTReconstructor
-        """
-
         if atmosphere_profile is None:
             raise TypeError(
                 "Argument 'atmosphere_profile' can not be 'None' for ImPACTReconstructor"
