@@ -1,9 +1,11 @@
+from heapq import nlargest
+
 import numpy as np
 from numba import njit
 
 from ..containers import StatisticsContainer
 
-__all__ = ["descriptive_statistics", "skewness", "kurtosis"]
+__all__ = ["n_largest", "descriptive_statistics", "skewness", "kurtosis"]
 
 
 @njit(cache=True)
@@ -92,3 +94,9 @@ def descriptive_statistics(
         skewness=skewness(values, mean=mean, std=std),
         kurtosis=kurtosis(values, mean=mean, std=std),
     )
+
+
+@njit
+def n_largest(n, array):
+    """return the n largest values of an array"""
+    return nlargest(n, array)

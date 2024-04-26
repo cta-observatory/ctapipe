@@ -28,6 +28,8 @@ from abc import abstractmethod
 
 import numpy as np
 
+from ctapipe.image.statistics import n_largest
+
 from ..containers import MonitoringCameraContainer
 from ..core import TelescopeComponent
 from ..core.traits import (
@@ -135,8 +137,7 @@ def bright_cleaning(image, threshold, fraction):
     A boolean mask of *clean* pixels.
 
     """
-    max_3_value_index = np.argsort(image)[-3:]
-    mean_3_max_signal = np.mean(image[max_3_value_index])
+    mean_3_max_signal = np.mean(n_largest(3, image))
 
     if mean_3_max_signal < threshold:
         return np.zeros(image.shape, dtype=bool)
