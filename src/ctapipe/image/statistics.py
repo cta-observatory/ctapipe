@@ -100,3 +100,16 @@ def descriptive_statistics(
 def n_largest(n, array):
     """return the n largest values of an array"""
     return nlargest(n, array)
+
+
+@njit
+def arg_n_largest(n, array):
+    """return the indices of the n largest values of an array"""
+    values = []
+    for i in range(len(array)):
+        values.append((array[i], i))
+    largest = n_largest(n, values)
+    idx = np.empty(n, dtype=np.int64)
+    for i in range(n):
+        idx[i] = largest[i][1]
+    return idx

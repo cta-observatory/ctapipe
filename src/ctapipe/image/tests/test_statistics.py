@@ -62,11 +62,23 @@ def test_return_type():
     assert isinstance(stats, PeakTimeStatisticsContainer)
 
 
-def test_nlargest():
+def test_n_largest():
     from ctapipe.image.statistics import n_largest
 
-    image = np.random.rand(1855)
+    rng = np.random.default_rng(0)
+    image = rng.random(1855)
     image[-3:] = 10
 
     largest_3 = n_largest(3, image)
     assert largest_3 == [10, 10, 10]
+
+
+def test_arg_n_largest():
+    from ctapipe.image.statistics import arg_n_largest
+
+    rng = np.random.default_rng(0)
+    image = rng.random(1855)
+    image[-3:] = 10
+
+    largest_3 = arg_n_largest(3, image)
+    assert (largest_3 == [1854, 1853, 1852]).all()

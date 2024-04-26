@@ -47,6 +47,7 @@ from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
 from .invalid_pixels import InvalidPixelHandler
 from .morphology import brightest_island, number_of_islands
+from .statistics import arg_n_largest
 from .timing import timing_parameters
 
 
@@ -585,11 +586,13 @@ class GlobalPeakWindowSum(ImageExtractor):
             ).argmax(axis=-1)
         else:
             n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
-            brightest = np.argsort(
-                waveforms.max(
-                    axis=-1, where=~broken_pixels[..., np.newaxis], initial=-np.inf
-                )
-            )[..., -n_pixels:]
+            n_channels = waveforms.shape[0]
+            brightest = np.empty((n_channels, n_pixels), dtype=np.int64)
+            waveforms_max = waveforms.max(
+                axis=-1, where=~broken_pixels[..., np.newaxis], initial=-np.inf
+            )
+            for channel in range(n_channels):
+                brightest[channel] = arg_n_largest(n_pixels, waveforms_max[channel])
 
             # average over brightest pixels then argmax over samples
             peak_index = (
