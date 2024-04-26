@@ -19,6 +19,7 @@ __all__ = [
     "DL0Container",
     "DL1CameraCalibrationContainer",
     "DL1CameraContainer",
+    "DL1PedestalVarianceContainer",
     "DL1Container",
     "DL2Container",
     "EventCalibrationContainer",
@@ -164,6 +165,16 @@ class EventType(enum.Enum):
     SUBARRAY = 32
 
     UNKNOWN = 255
+
+
+class VarianceType(enum.Enum):
+    """Enum of variance types used for the DL1PedestalVarianceContainer
+    """
+
+    #Simple variance of waveform
+    SIMPLE=0
+    #Variance of intgrated samples of a waveform
+    SAMPLE=1
 
 
 class PixelStatus(enum.IntFlag):
@@ -513,6 +524,28 @@ class DL1CameraContainer(Container):
 
     parameters = Field(
         None, description="Image parameters", type=ImageParametersContainer
+    )
+
+
+class DL1PedestalVarianceContainer(Container):
+    """
+    Storage of output of camera variance image e.g. 
+    the variance of each pixel composed as an image.
+    """
+
+    image = Field(
+        None,
+        "Numpy array of camera variance image"
+        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
+        "else: (n_channels, n_pixel)",
+    )
+
+    VarMethod = Field(
+        VarianceType.SIMPLE,
+        "Method by which the variance was calculated"
+        "This can either be a plain variance"
+        "or a variance of integrated samples",
+        type=VarianceType,
     )
 
 
