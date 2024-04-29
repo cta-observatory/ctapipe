@@ -14,7 +14,7 @@ from pyirf.sensitivity import calculate_sensitivity, estimate_background
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
-    PYIRF_SPECTRA,
+    SPECTRA,
     Background2dIrf,
     Background3dIrf,
     EffectiveAreaIrf,
@@ -53,7 +53,7 @@ class IrfTool(Tool):
     gamma_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
-        help="Name of the pyrif spectra used for the simulated gamma spectrum",
+        help="Name of the pyirf spectra used for the simulated gamma spectrum",
     ).tag(config=True)
     proton_file = traits.Path(
         default_value=None,
@@ -64,7 +64,7 @@ class IrfTool(Tool):
     proton_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
-        help="Name of the pyrif spectra used for the simulated proton spectrum",
+        help="Name of the pyirf spectra used for the simulated proton spectrum",
     ).tag(config=True)
     electron_file = traits.Path(
         default_value=None,
@@ -75,7 +75,7 @@ class IrfTool(Tool):
     electron_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
-        help="Name of the pyrif spectra used for the simulated electron spectrum",
+        help="Name of the pyirf spectra used for the simulated electron spectrum",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -178,7 +178,7 @@ class IrfTool(Tool):
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
-                target_spectrum=PYIRF_SPECTRA[self.gamma_target_spectrum],
+                target_spectrum=SPECTRA[self.gamma_target_spectrum],
             ),
         ]
         if self.do_background and self.proton_file:
@@ -187,7 +187,7 @@ class IrfTool(Tool):
                     parent=self,
                     kind="protons",
                     file=self.proton_file,
-                    target_spectrum=PYIRF_SPECTRA[self.proton_target_spectrum],
+                    target_spectrum=SPECTRA[self.proton_target_spectrum],
                 )
             )
         if self.do_background and self.electron_file:
@@ -196,7 +196,7 @@ class IrfTool(Tool):
                     parent=self,
                     kind="electrons",
                     file=self.electron_file,
-                    target_spectrum=PYIRF_SPECTRA[self.electron_target_spectrum],
+                    target_spectrum=SPECTRA[self.electron_target_spectrum],
                 )
             )
         if self.do_background and len(self.particles) == 1:
@@ -374,7 +374,7 @@ class IrfTool(Tool):
             sensitivity = calculate_sensitivity(
                 signal_hist, background_hist, alpha=self.alpha
             )
-            gamma_spectrum = PYIRF_SPECTRA[self.gamma_target_spectrum]
+            gamma_spectrum = SPECTRA[self.gamma_target_spectrum]
             # scale relative sensitivity by Crab flux to get the flux sensitivity
             sensitivity["flux_sensitivity"] = sensitivity[
                 "relative_sensitivity"
