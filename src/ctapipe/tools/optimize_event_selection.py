@@ -3,7 +3,7 @@ import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import Bool, Float, Integer, Unicode, flag
+from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
     PYIRF_SPECTRA,
     EventsLoader,
@@ -56,10 +56,10 @@ class IrfEventSelector(Tool):
         help="Output file storing optimization result",
     ).tag(config=True)
 
-    obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)
-    obs_time_unit = Unicode(
-        default_value="hour",
-        help="Unit used to specify observation time as an astropy unit string.",
+    obs_time = AstroQuantity(
+        default_value=50.0 * u.hour,
+        physical_type=u.physical.time,
+        help="Observation time in the form ``<value> <unit>``",
     ).tag(config=True)
 
     alpha = Float(
@@ -126,7 +126,7 @@ class IrfEventSelector(Tool):
         reduced_events = dict()
         for sel in self.particles:
             evs, cnt, meta = sel.load_preselected_events(
-                self.chunk_size, self.obs_time * u.Unit(self.obs_time_unit), self.bins
+                self.chunk_size, self.obs_time, self.bins
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
