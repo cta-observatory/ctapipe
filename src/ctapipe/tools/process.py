@@ -301,7 +301,6 @@ class ProcessorTool(Tool):
             disable=not self.progress_bar,
         ):
             self.log.debug("Processing event_id=%s", event.index.event_id)
-
             if not self.event_type_filter(event):
                 continue
 

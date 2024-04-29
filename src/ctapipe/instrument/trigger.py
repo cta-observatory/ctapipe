@@ -59,10 +59,16 @@ class SoftwareTrigger(TelescopeComponent):
     def __init__(self, subarray, *args, **kwargs):
         super().__init__(subarray, *args, **kwargs)
 
-        self._ids_by_type = {
-            str(type): set(self.subarray.get_tel_ids_for_type(type))
-            for type in self.subarray.telescope_types
-        }
+        # we are grouping telescopes by the str repr of the type
+        # this is needed since e.g. in prod6, LST-1 is slightly different
+        # from LST-2 to LST-4, but we still want the trigger to work with all
+        # LSTs
+        self._ids_by_type = {}
+        for tel in self.subarray.telescope_types:
+            tel_str = str(tel)
+            if tel_str not in self._ids_by_type:
+                self._ids_by_type[tel_str] = set()
+            self._ids_by_type[tel_str].update(self.subarray.get_tel_ids_for_type(tel))
 
     def __call__(self, event: ArrayEventContainer) -> bool:
         """
@@ -79,16 +85,14 @@ class SoftwareTrigger(TelescopeComponent):
         """
 
         tels_removed = set()
-        for tel_type in self.subarray.telescope_types:
-            tel_type_str = str(tel_type)
-            min_tels = self.min_telescopes_of_type.tel[tel_type_str]
+        for tel_type, tel_ids in self._ids_by_type.items():
+            min_tels = self.min_telescopes_of_type.tel[tel_type]
 
             # no need to check telescopes for which we have no min requirement
             if min_tels == 0:
                 continue
 
             tels_with_trigger = set(event.trigger.tels_with_trigger)
-            tel_ids = self._ids_by_type[tel_type_str]
             tels_in_event = tels_with_trigger.intersection(tel_ids)
 
             if len(tels_in_event) < min_tels:
@@ -96,7 +100,7 @@ class SoftwareTrigger(TelescopeComponent):
                     self.log.debug(
                         "Removing tel_id %d of type %s from event due to type requirement",
                         tel_id,
-                        tel_type_str,
+                        tel_type,
                     )
 
                     # remove from tels_with_trigger
