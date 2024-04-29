@@ -91,7 +91,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     ----------
     subarray : ctapipe.instrument.SubarrayDescription
         The telescope subarray to use for reconstruction
-    atmosphere_profile : ctapipe.AtmosphereDensityProfile
+    atmosphere_profile : ctapipe.atmosphere.AtmosphereDensityProfile
         Density vs. altitude profile of the local atmosphere
     dummy_reconstructor : bool, optional
         Option to use a set of dummy templates. This can be used for testing the algorithm,
