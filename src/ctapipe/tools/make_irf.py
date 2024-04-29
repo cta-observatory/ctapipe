@@ -12,7 +12,7 @@ from pyirf.io import create_rad_max_hdu
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
-from ..core.traits import Bool, Float, Integer, Unicode, flag
+from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
     PYIRF_SPECTRA,
     Background2dIrf,
@@ -91,10 +91,10 @@ class IrfTool(Tool):
         help="Output file",
     ).tag(config=True)
 
-    obs_time = Float(default_value=50.0, help="Observation time").tag(config=True)
-    obs_time_unit = Unicode(
-        default_value="hour",
-        help="Unit used to specify observation time as an astropy unit string.",
+    obs_time = AstroQuantity(
+        default_value=50.0 * u.hour,
+        physical_type=u.physical.time,
+        help="Observation time in the form ``<value> <unit>``",
     ).tag(config=True)
 
     alpha = Float(
@@ -201,7 +201,7 @@ class IrfTool(Tool):
             )
         if self.do_background and len(self.particles) == 1:
             raise RuntimeError(
-                "At least one electron or proton file required when speficying `do_background`."
+                "At least one electron or proton file required when specifying `do_background`."
             )
 
         if self.do_background:
@@ -385,7 +385,6 @@ class IrfTool(Tool):
         return hdus
 
     def start(self):
-
         reduced_events = dict()
         for sel in self.particles:
             # TODO: not very elegant to pass them this way, refactor later
@@ -393,7 +392,7 @@ class IrfTool(Tool):
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
             evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size,
-                self.obs_time * u.Unit(self.obs_time_unit),
+                self.obs_time,
                 self.fov_offset_bins,
             )
             reduced_events[sel.kind] = evs
@@ -433,14 +432,10 @@ class IrfTool(Tool):
         hdus = self._make_signal_irf_hdus(hdus)
         if self.do_background:
             hdus.append(
-                self.bkg.make_bkg2d_table_hdu(
-                    self.background_events, self.obs_time * u.Unit(self.obs_time_unit)
-                )
+                self.bkg.make_bkg2d_table_hdu(self.background_events, self.obs_time)
             )
             hdus.append(
-                self.bkg3.make_bkg3d_table_hdu(
-                    self.background_events, self.obs_time * u.Unit(self.obs_time_unit)
-                )
+                self.bkg3.make_bkg3d_table_hdu(self.background_events, self.obs_time)
             )
         self.hdus = hdus
 
