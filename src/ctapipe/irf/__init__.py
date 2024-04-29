@@ -1,6 +1,5 @@
 """Top level module for the irf functionality"""
 from .binning import FovOffsetBinning, OutputEnergyBinning, check_bins_in_range
-from .irf_classes import PYIRF_SPECTRA, Spectra
 from .irfs import (
     Background2dIrf,
     Background3dIrf,
@@ -9,7 +8,13 @@ from .irfs import (
     PsfIrf,
 )
 from .optimize import GridOptimizer, OptimizationResult, OptimizationResultStore
-from .select import EventPreProcessor, EventsLoader, ThetaCutsCalculator
+from .select import (
+    SPECTRA,
+    EventPreProcessor,
+    EventsLoader,
+    Spectra,
+    ThetaCutsCalculator,
+)
 
 __all__ = [
     "Background2dIrf",
@@ -26,6 +31,6 @@ __all__ = [
     "EventPreProcessor",
     "Spectra",
     "ThetaCutsCalculator",
-    "PYIRF_SPECTRA",
+    "SPECTRA",
     "check_bins_in_range",
 ]

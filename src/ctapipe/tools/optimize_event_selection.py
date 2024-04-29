@@ -5,7 +5,7 @@ from astropy.table import vstack
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
-    PYIRF_SPECTRA,
+    SPECTRA,
     EventsLoader,
     FovOffsetBinning,
     GridOptimizer,
@@ -24,7 +24,7 @@ class IrfEventSelector(Tool):
     gamma_sim_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
-        help="Name of the pyrif spectra used for the simulated gamma spectrum",
+        help="Name of the pyirf spectra used for the simulated gamma spectrum",
     ).tag(config=True)
     proton_file = traits.Path(
         default_value=None, directory_ok=False, help="Proton input filename and path"
@@ -32,7 +32,7 @@ class IrfEventSelector(Tool):
     proton_sim_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
-        help="Name of the pyrif spectra used for the simulated proton spectrum",
+        help="Name of the pyirf spectra used for the simulated proton spectrum",
     ).tag(config=True)
     electron_file = traits.Path(
         default_value=None, directory_ok=False, help="Electron input filename and path"
@@ -40,7 +40,7 @@ class IrfEventSelector(Tool):
     electron_sim_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
-        help="Name of the pyrif spectra used for the simulated electron spectrum",
+        help="Name of the pyirf spectra used for the simulated electron spectrum",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -103,19 +103,19 @@ class IrfEventSelector(Tool):
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
-                target_spectrum=PYIRF_SPECTRA[self.gamma_sim_spectrum],
+                target_spectrum=SPECTRA[self.gamma_sim_spectrum],
             ),
             EventsLoader(
                 parent=self,
                 kind="protons",
                 file=self.proton_file,
-                target_spectrum=PYIRF_SPECTRA[self.proton_sim_spectrum],
+                target_spectrum=SPECTRA[self.proton_sim_spectrum],
             ),
             EventsLoader(
                 parent=self,
                 kind="electrons",
                 file=self.electron_file,
-                target_spectrum=PYIRF_SPECTRA[self.electron_sim_spectrum],
+                target_spectrum=SPECTRA[self.electron_sim_spectrum],
             ),
         ]
 
