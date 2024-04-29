@@ -160,14 +160,15 @@ class IrfEventSelector(Tool):
             % (len(self.signal_events), len(self.background_events)),
         )
         result, ope_sens = self.go.optimize_gh_cut(
-            self.signal_events,
-            self.background_events,
-            self.alpha,
-            self.bins.fov_offset_min * u.deg,
-            self.bins.fov_offset_max * u.deg,
-            self.theta,
-            self.particles[0].epp,  # precuts are the same for all particle types
-            self.point_like,
+            signal=self.signal_events,
+            background=self.background_events,
+            alpha=self.alpha,
+            min_fov_radius=self.bins.fov_offset_min * u.deg,
+            max_fov_radius=self.bins.fov_offset_max * u.deg,
+            theta=self.theta,
+            precuts=self.particles[0].epp,  # identical precuts for all particle types
+            clf_prefix=self.particles[0].epp.gammaness_classifier,
+            point_like=self.point_like,
         )
 
         self.log.info("Writing results to %s" % self.output_path)

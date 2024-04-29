@@ -19,6 +19,7 @@ from ..irf import (
     Background3dIrf,
     EffectiveAreaIrf,
     EnergyMigrationIrf,
+    EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
     OptimizationResultStore,
@@ -388,7 +389,35 @@ class IrfTool(Tool):
         reduced_events = dict()
         for sel in self.particles:
             # TODO: not very elegant to pass them this way, refactor later
-            sel.epp.quality_criteria = self.opt_result.precuts.quality_criteria
+            if sel.epp.quality_criteria != self.opt_result.precuts.quality_criteria:
+                self.log.warning(
+                    "Precuts are different from precuts used for calculating "
+                    "g/h / theta cuts. Provided precuts:\n%s. "
+                    "\nUsing the same precuts as g/h / theta cuts:\n%s. "
+                    % (
+                        sel.epp.to_table(functions=True)["criteria", "func"],
+                        self.opt_result.precuts.to_table(functions=True)[
+                            "criteria", "func"
+                        ],
+                    )
+                )
+                sel.epp = EventPreProcessor(
+                    parent=sel,
+                    quality_criteria=self.opt_result.precuts.quality_criteria,
+                )
+
+            if sel.epp.gammaness_classifier != self.opt_result.gh_cuts.meta["CLFNAME"]:
+                self.log.warning(
+                    "G/H cuts are only valid for gammaness scores predicted by "
+                    "the same classifier model. Requested model: %s. "
+                    "Model used, so that g/h cuts are valid: %s."
+                    % (
+                        sel.epp.gammaness_classifier,
+                        self.opt_result.gh_cuts.meta["CLFNAME"],
+                    )
+                )
+                sel.epp.gammaness_classifier = self.opt_result.gh_cuts.meta["CLFNAME"]
+
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
             evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size,
