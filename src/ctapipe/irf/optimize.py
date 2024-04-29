@@ -52,18 +52,19 @@ class OptimizationResultStore:
 
         self._results = None
 
-    def set_result(self, gh_cuts, theta_cuts, valid_energy, valid_offset):
+    def set_result(self, gh_cuts, theta_cuts, valid_energy, valid_offset, clf_prefix):
         if not self._precuts:
             raise ValueError("Precuts must be defined before results can be saved")
 
-        gh_cuts.meta["extname"] = "GH_CUTS"
-        theta_cuts.meta["extname"] = "RAD_MAX"
+        gh_cuts.meta["EXTNAME"] = "GH_CUTS"
+        gh_cuts.meta["CLFNAME"] = clf_prefix
+        theta_cuts.meta["EXTNAME"] = "RAD_MAX"
 
         energy_lim_tab = QTable(rows=[valid_energy], names=["energy_min", "energy_max"])
-        energy_lim_tab.meta["extname"] = "VALID_ENERGY"
+        energy_lim_tab.meta["EXTNAME"] = "VALID_ENERGY"
 
         offset_lim_tab = QTable(rows=[valid_offset], names=["offset_min", "offset_max"])
-        offset_lim_tab.meta["extname"] = "VALID_OFFSET"
+        offset_lim_tab.meta["EXTNAME"] = "VALID_OFFSET"
 
         self._results = [gh_cuts, theta_cuts, energy_lim_tab, offset_lim_tab]
 
@@ -80,7 +81,7 @@ class OptimizationResultStore:
             names=["name", "cut_expr"],
             dtype=[np.unicode_, np.unicode_],
         )
-        cut_expr_tab.meta["extname"] = "QUALITY_CUTS_EXPR"
+        cut_expr_tab.meta["EXTNAME"] = "QUALITY_CUTS_EXPR"
 
         cut_expr_tab.write(output_name, format="fits", overwrite=overwrite)
 
@@ -95,8 +96,7 @@ class OptimizationResultStore:
             cut_expr_lst.remove((" ", " "))
         except ValueError:
             pass
-        precuts = QualityQuery()
-        precuts.quality_criteria = cut_expr_lst
+        precuts = QualityQuery(quality_criteria=cut_expr_lst)
         gh_cuts = QTable.read(file_name, hdu=2)
         theta_cuts = QTable.read(file_name, hdu=3)
         valid_energy = QTable.read(file_name, hdu=4)
@@ -158,6 +158,7 @@ class GridOptimizer(Component):
         max_fov_radius,
         theta,
         precuts,
+        clf_prefix,
         point_like,
     ):
         if not isinstance(max_fov_radius, u.Quantity):
@@ -223,6 +224,7 @@ class GridOptimizer(Component):
             theta_cuts,
             valid_energy=valid_energy,
             valid_offset=[min_fov_radius, max_fov_radius],
+            clf_prefix=clf_prefix,
         )
 
         return result_saver, opt_sens

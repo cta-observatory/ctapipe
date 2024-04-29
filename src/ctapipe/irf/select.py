@@ -18,7 +18,7 @@ from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
-from ..core.traits import Float, Integer, List, Unicode
+from ..core.traits import Float, Integer, List, Tuple, Unicode
 from ..io import TableLoader
 from ..irf import FovOffsetBinning
 
@@ -53,6 +53,7 @@ class EventPreProcessor(QualityQuery):
     ).tag(config=True)
 
     quality_criteria = List(
+        Tuple(Unicode(), Unicode()),
         default_value=[
             ("multiplicity 4", "np.count_nonzero(tels_with_trigger,axis=1) >= 4"),
             ("valid classifier", "RandomForestClassifier_is_valid"),
