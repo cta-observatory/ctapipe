@@ -21,6 +21,25 @@ To read this data, there are two high-level APIs available:
 - Event-wise using the `~ctapipe.io.HDF5EventSource`
 
 
+DL0 Data Format
+===============
+
+Trigger information is written below ``/dl0/event/``:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Group/Dataset
+      - Description
+      - Contents
+    * - ``subarray/trigger``
+      - subarray trigger information
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.SubarrayTriggerContainer`
+    * - ``telescope/trigger``
+      - telescope trigger information
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer`, :py:class:`~ctapipe.containers.TelescopeTriggerContainer`
+
+
 DL1 Data Format
 ===============
 
@@ -36,21 +55,15 @@ The following datasets will be written to the group ``/dl1/event/`` in the  outp
     * - Group/Dataset
       - Description
       - Contents
-    * - ``subarray``
-      - event-wise data pertaining to a subarray
-      - (group)
-    * - ``subarray/trigger``
-      - subarray trigger information
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.TriggerContainer`
     * - ``telescope/``
       - Per-telescope Per-event information
       - (group)
     * - ``telescope/images/tel_{TEL_ID:03d}``
       - tables of telescope images (one per telescope)
-      - :py:class:`~ctapipe.containers.TelEventIndexContainer`, :py:class:`~ctapipe.containers.DL1CameraContainer`
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer`, :py:class:`~ctapipe.containers.DL1TelescopeContainer`
     * - ``telescope/parameters/tel_{TEL_ID:03d}``
       - tables of image parameters (one per telescope)
-      - :py:class:`~ctapipe.containers.TelEventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`
 
 
 DL1/Monitoring Data Format
@@ -103,13 +116,18 @@ identifier of the algorithm (e.g. "HillasReconstructor"):
       - Contents
     * - ``geometry``
       - shower geometry reconstruction
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedGeometryContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedGeometryContainer`
     * - ``energy``
       - shower energy reconstruction
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
     * - ``particle_type``
       - shower classification parameters
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
+
+The table above describes subarray reconstructions. Telescope reconstructions use
+:py:class:`~ctapipe.containers.TelescopeEventIndexContainer` for indexing and also
+support ``impact`` (:py:class:`~ctapipe.containers.TelescopeImpactParameterContainer`)
+and ``disp`` (:py:class:`~ctapipe.containers.DispContainer`) as reconstruction types.
 
 
 Simulation Data Format
@@ -123,13 +141,13 @@ Simulation Data Format
       - Contents
     * - ``/simulation/event/subarray/shower``
       - true shower parameters from Monte-Carlo simulation
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.SimulatedShowerContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.SimulatedShowerContainer`
     * - ``/simulation/event/telescope/images/tel_{TEL_ID:03d}``
       - simulated camera images
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.SimulatedCameraContainer`
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer`, :py:class:`~ctapipe.containers.SimulationTelescopeContainer`
     * - ``/simulation/event/telescope/parameters/tel_{TEL_ID:03d}``
       - Parameters derived form the simulated camera images
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer`, :py:class:`~ctapipe.containers.ImageParametersContainer`
     * - ``/simulation/service/shower_distribution``
       - simulated shower distribution histograms
       - :py:class:`~ctapipe.containers.SimulatedShowerDistribution`
