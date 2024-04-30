@@ -106,7 +106,7 @@ def test_process_apply_classification(
     events = read_table(
         output, "/dl2/event/subarray/classification/ExtraTreesClassifier"
     )
-    trigger = read_table(output, "/dl1/event/subarray/trigger")
+    trigger = read_table(output, "/dl0/event/subarray/trigger")
     assert len(events) == len(trigger)
     assert "ExtraTreesClassifier_is_valid" in events.colnames
     assert "ExtraTreesClassifier_prediction" in events.colnames
@@ -169,7 +169,7 @@ def test_process_apply_disp(
     assert "disp_tel_is_valid" in tel_events.colnames
 
     events = read_table(output, "/dl2/event/subarray/geometry/disp")
-    trigger = read_table(output, "/dl1/event/subarray/trigger")
+    trigger = read_table(output, "/dl0/event/subarray/trigger")
     assert len(events) == len(trigger)
     assert "disp_alt" in events.colnames
     assert "disp_az" in events.colnames

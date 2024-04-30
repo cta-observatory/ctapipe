@@ -28,7 +28,7 @@ from abc import abstractmethod
 
 import numpy as np
 
-from ctapipe.containers import MonitoringCameraContainer
+from ctapipe.containers import TelescopeMonitoringContainer
 
 from ..core import TelescopeComponent
 from ..core.traits import (
@@ -470,9 +470,9 @@ class ImageCleaner(TelescopeComponent):
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: MonitoringCameraContainer = None,
+        monitoring: TelescopeMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Identify pixels with signal, and reject those with pure noise.
@@ -486,9 +486,9 @@ class ImageCleaner(TelescopeComponent):
             image pixel data corresponding to the camera geometry
         arrival_times: np.ndarray
             image of arrival time (not used in this method)
-        monitoring: `ctapipe.containers.MonitoringCameraContainer`
-            MonitoringCameraContainer to make use of additional parameters
-            from monitoring data e.g. pedestal std.
+        monitoring: `ctapipe.containers.TelescopeMonitoringContainer`
+            Monitoring information to make use of additional parameters
+            e.g. pedestal std.
 
         Returns
         -------
@@ -526,9 +526,9 @@ class TailcutsImageCleaner(ImageCleaner):
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: MonitoringCameraContainer = None,
+        monitoring: TelescopeMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
@@ -553,9 +553,9 @@ class MARSImageCleaner(TailcutsImageCleaner):
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: MonitoringCameraContainer = None,
+        monitoring: TelescopeMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
@@ -585,9 +585,9 @@ class FACTImageCleaner(TailcutsImageCleaner):
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: MonitoringCameraContainer = None,
+        monitoring: TelescopeMonitoringContainer | None = None,
     ) -> np.ndarray:
         """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
 
@@ -620,9 +620,9 @@ class TimeConstrainedImageCleaner(TailcutsImageCleaner):
         self,
         tel_id: int,
         image: np.ndarray,
-        arrival_times: np.ndarray = None,
+        arrival_times: np.ndarray | None = None,
         *,
-        monitoring: MonitoringCameraContainer = None,
+        monitoring: TelescopeMonitoringContainer | None = None,
     ) -> np.ndarray:
         """
         Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`

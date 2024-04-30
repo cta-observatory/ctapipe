@@ -28,37 +28,34 @@ def generate_dummy_dl2(event):
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
     for algo in algos:
-        for tel_id in event.dl1.tel:
-            event.dl2.tel[tel_id].geometry[algo] = ReconstructedGeometryContainer(
+        for tel_id, tel_event in event.tel.items():
+            tel_event.dl2.geometry[algo] = ReconstructedGeometryContainer(
                 alt=70 * u.deg,
                 az=120 * u.deg,
                 prefix=f"{algo}_tel",
             )
 
-            event.dl2.tel[tel_id].energy[algo] = ReconstructedEnergyContainer(
+            tel_event.dl2.energy[algo] = ReconstructedEnergyContainer(
                 energy=10 * u.TeV,
                 prefix=f"{algo}_tel",
             )
-            event.dl2.tel[tel_id].classification[
-                algo
-            ] = ParticleClassificationContainer(
+            tel_event.dl2.classification[algo] = ParticleClassificationContainer(
                 prediction=0.9,
                 prefix=f"{algo}_tel",
             )
 
-        event.dl2.stereo.geometry[algo] = ReconstructedGeometryContainer(
+        event.dl2.geometry[algo] = ReconstructedGeometryContainer(
             alt=72 * u.deg,
             az=121 * u.deg,
             telescopes=[1, 2, 4],
             prefix=algo,
         )
-
-        event.dl2.stereo.energy[algo] = ReconstructedEnergyContainer(
+        event.dl2.energy[algo] = ReconstructedEnergyContainer(
             energy=10 * u.TeV,
             telescopes=[1, 2, 4],
             prefix=algo,
         )
-        event.dl2.stereo.classification[algo] = ParticleClassificationContainer(
+        event.dl2.classification[algo] = ParticleClassificationContainer(
             prediction=0.9,
             telescopes=[1, 2, 4],
             prefix=algo,
@@ -198,13 +195,13 @@ def test_roundtrip(tmpdir: Path):
     # make sure it is readable by the event source and matches the images
 
     for event in EventSource(output_path):
-        for tel_id, dl1 in event.dl1.tel.items():
-            original_image = events[event.count].dl1.tel[tel_id].image
-            read_image = dl1.image
+        for tel_id, tel_event in event.tel.items():
+            original_image = events[event.count].tel[tel_id].dl1.image
+            read_image = tel_event.dl1.image
             assert np.allclose(original_image, read_image, atol=0.1)
 
-            original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
-            read_peaktime = dl1.peak_time
+            original_peaktime = events[event.count].tel[tel_id].dl1.peak_time
+            read_peaktime = tel_event.dl1.peak_time
             assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
 

@@ -5,13 +5,13 @@ from astropy.table import Table
 from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.containers import (
-    ArrayEventContainer,
+    DL2TelescopeContainer,
     HillasParametersContainer,
     ImageParametersContainer,
     ParticleClassificationContainer,
-    ReconstructedContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SubarrayEventContainer,
 )
 from ctapipe.reco.reconstructor import ReconstructionProperty
 from ctapipe.reco.stereo_combination import StereoMeanCombiner
@@ -152,10 +152,10 @@ def test_predict_mean_disp(mono_table):
 
 @pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
 def test_mean_prediction_single_event(weights):
-    event = ArrayEventContainer()
+    event = SubarrayEventContainer()
 
     for tel_id, intensity in zip((25, 125, 130), (100, 200, 400)):
-        event.dl1.tel[tel_id].parameters = ImageParametersContainer(
+        event.tel[tel_id].dl1.parameters = ImageParametersContainer(
             hillas=HillasParametersContainer(
                 intensity=intensity,
                 width=0.1 * u.deg,
@@ -163,7 +163,7 @@ def test_mean_prediction_single_event(weights):
             )
         )
 
-    event.dl2.tel[25] = ReconstructedContainer(
+    event.tel[25].dl2 = DL2TelescopeContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=10 * u.GeV, is_valid=True)
         },
@@ -176,7 +176,7 @@ def test_mean_prediction_single_event(weights):
             )
         },
     )
-    event.dl2.tel[125] = ReconstructedContainer(
+    event.tel[125].dl2 = DL2TelescopeContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=20 * u.GeV, is_valid=True)
         },
@@ -189,7 +189,7 @@ def test_mean_prediction_single_event(weights):
             )
         },
     )
-    event.dl2.tel[130] = ReconstructedContainer(
+    event.tel[130].dl2 = DL2TelescopeContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=0.04 * u.TeV, is_valid=True)
         },
@@ -222,11 +222,11 @@ def test_mean_prediction_single_event(weights):
     combine_classification(event)
     combine_geometry(event)
     if weights == "none":
-        assert u.isclose(event.dl2.stereo.energy["dummy"].energy, (70 / 3) * u.GeV)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 63.0738383 * u.deg)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 348.0716693 * u.deg)
+        assert u.isclose(event.dl2.energy["dummy"].energy, (70 / 3) * u.GeV)
+        assert u.isclose(event.dl2.geometry["dummy"].alt, 63.0738383 * u.deg)
+        assert u.isclose(event.dl2.geometry["dummy"].az, 348.0716693 * u.deg)
     elif weights == "intensity":
-        assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
-        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
-    assert event.dl2.stereo.classification["dummy"].prediction == 0.6
+        assert u.isclose(event.dl2.energy["dummy"].energy, 30 * u.GeV)
+        assert u.isclose(event.dl2.geometry["dummy"].alt, 60.9748605 * u.deg)
+        assert u.isclose(event.dl2.geometry["dummy"].az, 316.0365515 * u.deg)
+    assert event.dl2.classification["dummy"].prediction == 0.6

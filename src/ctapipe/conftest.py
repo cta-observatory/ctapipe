@@ -659,7 +659,7 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
     path = dl1_tmp_path / "dl1_mon_ponting.dl1.h5"
     shutil.copy(dl1_file, path)
 
-    events = read_table(path, "/dl1/event/subarray/trigger")
+    events = read_table(path, "/dl0/event/subarray/trigger")
     subarray = SubarrayDescription.from_hdf(path)
 
     # create some dummy monitoring data

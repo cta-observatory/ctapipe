@@ -21,32 +21,38 @@ from ..atmosphere import (
 )
 from ..calib.camera.gainselection import GainChannel, GainSelector
 from ..containers import (
-    ArrayEventContainer,
     CoordinateFrameType,
-    EventIndexContainer,
+    DL0SubarrayContainer,
+    DL0TelescopeContainer,
+    DL1CameraCalibrationContainer,
     EventType,
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
     PixelStatus,
     PixelStatusContainer,
-    PointingContainer,
     PointingMode,
-    R0CameraContainer,
-    R1CameraContainer,
+    R0TelescopeContainer,
+    R1TelescopeContainer,
     SchedulingBlockContainer,
     SchedulingBlockType,
-    SimulatedCameraContainer,
-    SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
+    SimulationSubarrayContainer,
+    SimulationTelescopeContainer,
+    SubarrayEventContainer,
+    SubarrayEventIndexContainer,
+    SubarrayPointingContainer,
+    SubarrayTriggerContainer,
+    TelescopeCalibrationContainer,
+    TelescopeEventContainer,
+    TelescopeEventIndexContainer,
     TelescopeImpactParameterContainer,
+    TelescopeMonitoringContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
-    TriggerContainer,
 )
 from ..coordinates import CameraFrame, shower_impact_distance
-from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
 from ..instrument import (
@@ -762,25 +768,22 @@ class SimTelEventSource(EventSource):
 
             obs_id = self.obs_id
 
-            trigger = self._fill_trigger_info(array_event)
-            if trigger.event_type == EventType.SUBARRAY:
+            array_trigger, tel_trigger = self._fill_trigger_info(array_event)
+            if array_trigger.event_type == EventType.SUBARRAY:
                 shower = self._fill_simulated_event_information(array_event)
             else:
                 shower = None
 
-            data = ArrayEventContainer(
-                simulation=SimulatedEventContainer(shower=shower),
-                pointing=self._fill_array_pointing(),
-                index=EventIndexContainer(obs_id=obs_id, event_id=event_id),
+            event = SubarrayEventContainer(
                 count=counter,
-                trigger=trigger,
+                simulation=SimulationSubarrayContainer(shower=shower),
+                dl0=DL0SubarrayContainer(trigger=array_trigger),
+                pointing=self._fill_array_pointing(),
+                index=SubarrayEventIndexContainer(obs_id=obs_id, event_id=event_id),
             )
-            data.meta["origin"] = "hessio"
-            data.meta["input_url"] = self.input_url
-            data.meta["max_events"] = self.max_events
-
-            telescope_events = array_event["telescope_events"]
-            tracking_positions = array_event["tracking_positions"]
+            event.meta["origin"] = "hessio"
+            event.meta["input_url"] = self.input_url
+            event.meta["max_events"] = self.max_events
 
             photoelectron_sums = array_event.get("photoelectron_sums")
             if photoelectron_sums is not None:
@@ -790,28 +793,29 @@ class SimTelEventSource(EventSource):
             else:
                 true_image_sums = np.full(self.n_telescopes_original, np.nan)
 
-            if data.simulation.shower is not None:
+            if event.simulation.shower is not None:
                 # compute impact distances of the shower to the telescopes
                 impact_distances = shower_impact_distance(
-                    shower_geom=data.simulation.shower, subarray=self.subarray
+                    shower_geom=event.simulation.shower, subarray=self.subarray
                 )
             else:
                 impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
+            telescope_events = array_event["telescope_events"]
+            tracking_positions = array_event["tracking_positions"]
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
                     adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
 
-                n_gains, n_pixels, n_samples = adc_samples.shape
                 true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
 
-                if data.simulation is not None:
-                    if data.simulation.shower is not None:
+                if event.simulation is not None:
+                    if event.simulation.shower is not None:
                         impact_container = TelescopeImpactParameterContainer(
                             distance=impact_distances[
                                 self.subarray.tel_index_array[tel_id]
@@ -824,19 +828,17 @@ class SimTelEventSource(EventSource):
                             prefix="true_impact",
                         )
 
-                    data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                    simulation = SimulationTelescopeContainer(
                         true_image_sum=true_image_sums[
                             self.telescope_indices_original[tel_id]
                         ],
                         true_image=true_image,
                         impact=impact_container,
                     )
+                else:
+                    simulation = None
 
-                data.pointing.tel[tel_id] = self._fill_event_pointing(
-                    tracking_positions[tel_id]
-                )
-
-                data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
+                r0 = R0TelescopeContainer(waveform=adc_samples)
 
                 cam_mon = array_event["camera_monitorings"][tel_id]
                 pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
@@ -844,14 +846,14 @@ class SimTelEventSource(EventSource):
 
                 # fill dc_to_pe and pedestal_per_sample info into monitoring
                 # container
-                mon = data.mon.tel[tel_id]
+                mon = TelescopeMonitoringContainer()
                 mon.calibration.dc_to_pe = dc_to_pe
                 mon.calibration.pedestal_per_sample = pedestal
                 mon.pixel_status = self._fill_mon_pixels_status(tel_id)
 
                 select_gain = self.select_gain is True or (
                     self.select_gain is None
-                    and trigger.event_type is EventType.SUBARRAY
+                    and array_trigger.event_type is EventType.SUBARRAY
                 )
                 if select_gain:
                     gain_selector = self.gain_selector
@@ -866,24 +868,43 @@ class SimTelEventSource(EventSource):
                     self.calib_scale,
                     self.calib_shift,
                 )
-
                 pixel_status = self._get_r1_pixel_status(
                     tel_id=tel_id,
                     selected_gain_channel=selected_gain_channel,
                 )
-                data.r1.tel[tel_id] = R1CameraContainer(
-                    event_type=trigger.event_type,
+                r1 = R1TelescopeContainer(
                     waveform=r1_waveform,
                     selected_gain_channel=selected_gain_channel,
                     pixel_status=pixel_status,
+                    event_type=tel_trigger[tel_id].event_type,
                 )
 
                 # get time_shift from laser calibration
                 time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
-                dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib
+                calibration = TelescopeCalibrationContainer(
+                    dl1=DL1CameraCalibrationContainer(
+                        time_shift=time_calib,
+                    )
+                )
 
-            yield data
+                event.tel[tel_id] = TelescopeEventContainer(
+                    index=TelescopeEventIndexContainer(
+                        obs_id=event.index.obs_id,
+                        event_id=event.index.event_id,
+                        tel_id=tel_id,
+                    ),
+                    r0=r0,
+                    r1=r1,
+                    dl0=DL0TelescopeContainer(
+                        trigger=tel_trigger[tel_id],
+                    ),
+                    simulation=simulation,
+                    mon=mon,
+                    pointing=self._fill_event_pointing(tracking_positions[tel_id]),
+                    calibration=calibration,
+                )
+
+            yield event
 
     def _get_r1_pixel_status(self, tel_id, selected_gain_channel):
         tel_desc = self.file_.telescope_descriptions[tel_id]
@@ -970,7 +991,13 @@ class SimTelEventSource(EventSource):
 
         central_time = parse_simtel_time(trigger["gps_time"])
 
-        tel = Map(TelescopeTriggerContainer)
+        array_trigger = SubarrayTriggerContainer(
+            event_type=event_type,
+            time=central_time,
+            tels_with_trigger=tels_with_trigger,
+        )
+
+        tel = {}
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
@@ -1002,25 +1029,21 @@ class SimTelEventSource(EventSource):
                 n_trigger_pixels=n_trigger_pixels,
                 trigger_pixels=trigger_pixels,
             )
-        return TriggerContainer(
-            event_type=event_type,
-            time=central_time,
-            tels_with_trigger=tels_with_trigger,
-            tel=tel,
-        )
+
+        return array_trigger, tel
 
     def _fill_array_pointing(self):
         if self.file_.header["tracking_mode"] == 0:
             az, alt = self.file_.header["direction"]
-            return PointingContainer(
-                array_altitude=u.Quantity(alt, u.rad),
-                array_azimuth=u.Quantity(az, u.rad),
+            return SubarrayPointingContainer(
+                altitude=u.Quantity(alt, u.rad),
+                azimuth=u.Quantity(az, u.rad),
             )
         else:
             ra, dec = self.file_.header["direction"]
-            return PointingContainer(
-                array_ra=u.Quantity(ra, u.rad),
-                array_dec=u.Quantity(dec, u.rad),
+            return SubarrayPointingContainer(
+                ra=u.Quantity(ra, u.rad),
+                dec=u.Quantity(dec, u.rad),
             )
 
     def _parse_simulation_header(self):
