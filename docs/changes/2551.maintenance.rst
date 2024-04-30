@@ -1,0 +1,1 @@
+A number of simple code cleanups in the ImPACT reconstructor code.

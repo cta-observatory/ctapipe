@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-
+Implementation of the ImPACT reconstruction algorithm
 """
 import copy
 from string import Template
@@ -75,6 +75,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     templates to perform a maximum likelihood fit for the shower axis,
     energy and height of maximum.
 
+    Besides the image information, there is also the option to use the time gradient of the pixels
+    across the image as additional information in the fit. This requires an additional set of templates
+
     Because this application is computationally intensive the usual
     advice to use astropy units for all quantities is ignored (as
     these slow down some computations), instead units within the class
@@ -84,20 +87,25 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     - Distance units in metres
     - Energy units in TeV
 
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        The telescope subarray to use for reconstruction
+    atmosphere_profile : ctapipe.atmosphere.AtmosphereDensityProfile
+        Density vs. altitude profile of the local atmosphere
+    dummy_reconstructor : bool, optional
+        Option to use a set of dummy templates. This can be used for testing the algorithm,
+        but for any actual reconstruction should be set to its default False
+
     References
     ----------
     .. [parsons14] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
 
     """
 
-    minimiser = traits.CaselessStrEnum(
-        ["minuit", "l-BFGS"],
-        default_value="minuit",
-        help="name minimiser to use in the fit",
-    ).tag(config=True)
-
     use_time_gradient = traits.Bool(
-        default_value=False, help="Use time gradient in ImPACT reconstruction"
+        default_value=False,
+        help="Use time gradient in ImPACT reconstruction. Requires an extra set of time gradient templates",
     ).tag(config=True)
 
     root_dir = traits.Unicode(
@@ -125,10 +133,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     def __init__(
         self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
     ):
-        """
-        Create a new instance of ImPACTReconstructor
-        """
-
         if atmosphere_profile is None:
             raise TypeError(
                 "Argument 'atmosphere_profile' can not be 'None' for ImPACTReconstructor"
@@ -204,29 +208,31 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask = event.dl1.tel[tel_id].image_mask
 
             # Dilate the images around the original cleaning to help the fit
-            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
-            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
-            mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+            for _ in range(3):
+                mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+
             mask_dict[tel_id] = mask
 
         # Next, we look for geometry and energy seeds from previously applied reconstructors.
         # Both need to be present at elast once for ImPACT to run.
 
-        reconstructor_geometry_prediction = event.dl2.stereo.geometry
+        reco_geom_pred = event.dl2.stereo.geometry
 
-        valid_seed = False
-        for reco in reconstructor_geometry_prediction:
-            if reconstructor_geometry_prediction[reco].is_valid:
-                valid_seed = True
+        valid_geometry_seed = False
+        for geom_pred in reco_geom_pred.values():
+            if geom_pred.is_valid:
+                valid_geometry_seed = True
+                break
 
-        reconstructor_energy_prediction = event.dl2.stereo.energy
+        reco_energy_pred = event.dl2.stereo.energy
 
         valid_energy_seed = False
-        for reco in reconstructor_energy_prediction:
-            if reconstructor_energy_prediction[reco].is_valid:
+        for E_pred in reco_energy_pred.values():
+            if E_pred.is_valid:
                 valid_energy_seed = True
+                break
 
-        if valid_seed is False or valid_energy_seed is False:
+        if valid_geometry_seed is False or valid_energy_seed is False:
             event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
             event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
             self._store_impact_parameter(event)
@@ -235,8 +241,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         shower_result, energy_result = self.predict(
             hillas_dict=hillas_dict,
             subarray=self.subarray,
-            shower_seed=reconstructor_geometry_prediction,
-            energy_seed=reconstructor_energy_prediction,
+            shower_seed=reco_geom_pred,
+            energy_seed=reco_energy_pred,
             array_pointing=array_pointing,
             telescope_pointings=telescope_pointings,
             image_dict=image_dict,
@@ -555,22 +561,20 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             time_gradients_uncertainty[time_gradients_uncertainty == 0] = 1e-6
 
             chi2 = 0
-            for telescope_index in range(self.time.shape[0]):
+            for telescope_index, (image, time) in enumerate(zip(self.image, self.time)):
                 time_mask = np.logical_and(
-                    np.invert(ma.getmask(self.image[telescope_index])),
-                    self.time[telescope_index] > 0,
+                    np.invert(ma.getmask(image)),
+                    time > 0,
                 )
-                time_mask = np.logical_and(
-                    time_mask, np.isfinite(self.time[telescope_index])
-                )
-                time_mask = np.logical_and(time_mask, self.image[telescope_index] > 5)
+                time_mask = np.logical_and(time_mask, np.isfinite(time))
+                time_mask = np.logical_and(time_mask, image > 5)
                 if (
                     np.sum(time_mask) > 3
                     and time_gradients_uncertainty[telescope_index] > 0
                 ):
                     time_slope = lts_linear_regression(
                         x=np.rad2deg(pix_x_rot[telescope_index][time_mask]),
-                        y=self.time[telescope_index][time_mask],
+                        y=time[time_mask],
                         samples=3,
                     )[0][0]
 
@@ -611,24 +615,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             final_sum += chi2
 
         return final_sum
-
-    def get_likelihood_min(self, x):
-        """Wrapper class around likelihood function for use with scipy
-        minimisers
-
-        Parameters
-        ----------
-        x: ndarray
-            Array of minimisation parameters
-
-        Returns
-        -------
-        float: Likelihood value of test position
-
-        """
-        val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
-
-        return val
 
     def set_event_properties(
         self,
