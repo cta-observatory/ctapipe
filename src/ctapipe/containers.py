@@ -57,6 +57,7 @@ __all__ = [
     "TriggerContainer",
     "WaveformCalibrationContainer",
     "StatisticsContainer",
+    "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
     "SchedulingBlockContainer",
@@ -412,24 +413,32 @@ class MorphologyContainer(Container):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics"""
+    """Store descriptive statistics of a sequence of images"""
 
     validity_start = Field(np.float32(nan), "start")
     validity_stop = Field(np.float32(nan), "stop")
+    mean = Field(np.float32(nan), "mean intensity")
+    median = Field(np.float32(nan), "median intensity")
+    median_outliers = Field(np.float32(nan), "median intensity")
+    std = Field(np.float32(nan), "standard deviation of intensity")
+    std_outliers = Field(np.float32(nan), "standard deviation intensity")
+
+class ImageStatisticsContainer(Container):
+    """Store descriptive image statistics"""
+
     max = Field(np.float32(nan), "value of pixel with maximum intensity")
     min = Field(np.float32(nan), "value of pixel with minimum intensity")
     mean = Field(np.float32(nan), "mean intensity")
-    median = Field(np.float32(nan), "median intensity")
     std = Field(np.float32(nan), "standard deviation of intensity")
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
 
 
-class IntensityStatisticsContainer(StatisticsContainer):
+class IntensityStatisticsContainer(ImageStatisticsContainer):
     default_prefix = "intensity"
 
 
-class PeakTimeStatisticsContainer(StatisticsContainer):
+class PeakTimeStatisticsContainer(ImageStatisticsContainer):
     default_prefix = "peak_time"
 
 

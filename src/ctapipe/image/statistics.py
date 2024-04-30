@@ -3,7 +3,7 @@ from heapq import nlargest
 import numpy as np
 from numba import float32, float64, guvectorize, int64, njit
 
-from ..containers import StatisticsContainer
+from ..containers import ImageStatisticsContainer
 
 __all__ = [
     "arg_n_largest",
@@ -88,8 +88,8 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 
 
 def descriptive_statistics(
-    values, container_class=StatisticsContainer
-) -> StatisticsContainer:
+    values, container_class=ImageStatisticsContainer
+) -> ImageStatisticsContainer:
     """compute intensity statistics of an image"""
     mean = values.mean()
     std = values.std()
