@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 import numpy as np
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import DL1TelescopeContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -178,15 +178,13 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             self.image_extractor_type = [("type", "*", name)]
             self.image_extractors[name] = image_extractor
 
-    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
+    def select_pixels(self, waveforms, tel_id, selected_gain_channel=None):
         camera_geom = self.subarray.tel[tel_id].camera.geometry
         # Pulse-integrate waveforms
         extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
         # do not treat broken pixels in data volume reduction
-        broken_pixels = np.zeros(
-            (waveforms.shape[-3], camera_geom.n_pixels), dtype=bool
-        )
-        dl1: DL1CameraContainer = extractor(
+        broken_pixels = np.zeros((waveforms.shape[0], camera_geom.n_pixels), dtype=bool)
+        dl1: DL1TelescopeContainer = extractor(
             waveforms,
             tel_id=tel_id,
             selected_gain_channel=selected_gain_channel,

@@ -12,10 +12,10 @@ from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
 from ..containers import (
-    ArrayEventContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SubarrayEventContainer,
 )
 from .telescope_event_handling import get_subarray_index, weighted_mean_std_ufunc
 from .utils import add_defaults_and_meta
@@ -48,7 +48,7 @@ class StereoCombiner(Component):
     ).tag(config=True)
 
     @abstractmethod
-    def __call__(self, event: ArrayEventContainer) -> None:
+    def __call__(self, event: SubarrayEventContainer) -> None:
         """
         Fill event container with stereo predictions.
         """
@@ -124,15 +124,14 @@ class StereoMeanCombiner(StereoCombiner):
         values = []
         weights = []
 
-        for tel_id, dl2 in event.dl2.tel.items():
+        for tel_id, tel_event in event.tel.items():
+            dl2 = tel_event.dl2
             mono = dl2.energy[self.prefix]
             if mono.is_valid:
                 values.append(mono.energy.to_value(u.TeV))
-                if tel_id not in event.dl1.tel:
+                if tel_event.dl1.parameters is None:
                     raise ValueError("No parameters for weighting available")
-                weights.append(
-                    self._calculate_weights(event.dl1.tel[tel_id].parameters)
-                )
+                weights.append(self._calculate_weights(tel_event.dl1.parameters))
                 ids.append(tel_id)
 
         if len(values) > 0:
@@ -154,7 +153,7 @@ class StereoMeanCombiner(StereoCombiner):
             mean = std = np.nan
             valid = False
 
-        event.dl2.stereo.energy[self.prefix] = ReconstructedEnergyContainer(
+        event.dl2.energy[self.prefix] = ReconstructedEnergyContainer(
             energy=u.Quantity(mean, u.TeV, copy=COPY_IF_NEEDED),
             energy_uncert=u.Quantity(std, u.TeV, copy=COPY_IF_NEEDED),
             telescopes=ids,
@@ -167,12 +166,14 @@ class StereoMeanCombiner(StereoCombiner):
         values = []
         weights = []
 
-        for tel_id, dl2 in event.dl2.tel.items():
+        for tel_id, tel_event in event.tel.items():
+            dl2 = tel_event.dl2
             mono = dl2.particle_type[self.prefix]
             if mono.is_valid:
                 values.append(mono.prediction)
-                dl1 = event.dl1.tel[tel_id].parameters
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                if tel_event.dl1.parameters is None:
+                    raise ValueError("No parameters for weighting available")
+                weights.append(self._calculate_weights(tel_event.dl1.parameters))
                 ids.append(tel_id)
 
         if len(values) > 0:
@@ -185,7 +186,7 @@ class StereoMeanCombiner(StereoCombiner):
         container = ParticleClassificationContainer(
             prediction=mean, telescopes=ids, is_valid=valid, prefix=self.prefix
         )
-        event.dl2.stereo.particle_type[self.prefix] = container
+        event.dl2.particle_type[self.prefix] = container
 
     def _combine_altaz(self, event):
         ids = []
@@ -193,13 +194,15 @@ class StereoMeanCombiner(StereoCombiner):
         az_values = []
         weights = []
 
-        for tel_id, dl2 in event.dl2.tel.items():
+        for tel_id, tel_event in event.tel.items():
+            dl2 = tel_event.dl2
             mono = dl2.geometry[self.prefix]
             if mono.is_valid:
                 alt_values.append(mono.alt)
                 az_values.append(mono.az)
-                dl1 = event.dl1.tel[tel_id].parameters
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                if tel_event.dl1.parameters is None:
+                    raise ValueError("No parameters for weighting available")
+                weights.append(self._calculate_weights(tel_event.dl1.parameters))
                 ids.append(tel_id)
 
         if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
@@ -227,7 +230,7 @@ class StereoMeanCombiner(StereoCombiner):
             std = np.nan
             valid = False
 
-        event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
+        event.dl2.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=mean_altaz.alt,
             az=mean_altaz.az,
             ang_distance_uncert=u.Quantity(np.rad2deg(std), u.deg, copy=COPY_IF_NEEDED),
@@ -236,7 +239,7 @@ class StereoMeanCombiner(StereoCombiner):
             prefix=self.prefix,
         )
 
-    def __call__(self, event: ArrayEventContainer) -> None:
+    def __call__(self, event: SubarrayEventContainer) -> None:
         """
         Calculate the mean prediction for a single array event.
         """
