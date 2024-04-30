@@ -213,10 +213,10 @@ def test_selected_subarray(
     energy_test.energy = 500 * u.GeV
     energy_test.is_valid = True
 
-    event.dl2.stereo.geometry["test"] = shower_test
-    event.dl2.stereo.energy["test_energy"] = energy_test
+    event.dl2.geometry["test"] = shower_test
+    event.dl2.energy["test_energy"] = energy_test
     reconstructor = ImPACTReconstructor(subarray, table_profile)
     reconstructor.root_dir = str(tmp_path)
     reconstructor(event)
-    assert event.dl2.stereo.geometry["ImPACTReconstructor"].is_valid
-    assert event.dl2.stereo.energy["ImPACTReconstructor"].is_valid
+    assert event.dl2.geometry["ImPACTReconstructor"].is_valid
+    assert event.dl2.energy["ImPACTReconstructor"].is_valid

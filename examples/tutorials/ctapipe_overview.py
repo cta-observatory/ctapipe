@@ -2,18 +2,13 @@
 Analyzing Events Using ctapipe
 ==============================
 
+Initially presented @ LST Analysis Bootcamp in Padova, 26.11.2018
+by Maximilian Linhoff (@maxnoe) & Kai A. Brügge (@mackaiver).
+
+Updated since to stay compatible with current ctapipe.
 """
-
-
-######################################################################
-# Initially presented @ LST Analysis Bootcamp
-# in Padova, 26.11.2018
-# by Maximilian Nöthe (@maxnoe) & Kai A. Brügge (@mackaiver)
-
-
-import tempfile
 import timeit
-from copy import deepcopy
+import tempfile
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -34,218 +29,197 @@ from ctapipe.image import (
     timing_parameters,
     toymodel,
 )
-from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.io import DataWriter, EventSource, TableLoader
 from ctapipe.reco import ShowerProcessor
 from ctapipe.utils.datasets import get_dataset_path
 from ctapipe.visualization import ArrayDisplay, CameraDisplay
 
 # %matplotlib inline
-
-######################################################################
+###############################################################################
 plt.rcParams["figure.figsize"] = (12, 8)
 plt.rcParams["font.size"] = 14
 plt.rcParams["figure.figsize"]
 
-
-######################################################################
+###############################################################################
 # General Information
 # -------------------
 #
 
-
-######################################################################
+###############################################################################
 # Design
-# ~~~~~~
+# ^^^^^^
 #
-# -  DL0 → DL3 analysis
+# - DL0 → DL3 analysis
 #
-# -  Currently some R0 → DL2 code to be able to analyze simtel files
+# - Currently some R0 → DL2 code to be able to analyze simtel files
 #
-# -  ctapipe is built upon the Scientific Python Stack, core dependencies
-#    are
+# - ctapipe is built upon the Scientific Python Stack, core dependencies
+#   are
 #
-#    -  numpy
-#    -  scipy
-#    -  astropy
-#    -  numba
+#      - numpy
+#      - scipy
+#      - astropy
+#      - numba
 #
 
-
-######################################################################
+###############################################################################
 # Development
-# ~~~~~~~~~~~~
+# ^^^^^^^^^^^
 #
-# -  ctapipe is developed as Open Source Software (BSD 3-Clause License)
-#    at https://github.com/cta-observatory/ctapipe
+# - ctapipe is developed as Open Source Software (BSD 3-Clause License)
+#   at https://github.com/cta-observatory/ctapipe
 #
-# -  We use the “Github-Workflow”:
+# - We use the “Github-Workflow”:
 #
-#    -  Few people (e.g. @kosack, @maxnoe) have write access to the main
-#       repository
-#    -  Contributors fork the main repository and work on branches
-#    -  Pull Requests are merged after Code Review and automatic execution
-#       of the test suite
+#    - Few people (e.g. @kosack, @maxnoe) have write access to the main
+#      repository
+#    - Contributors fork the main repository and work on branches
+#    - Pull Requests are merged after Code Review and automatic execution
+#      of the test suite
 #
-# -  Early development stage ⇒ backwards-incompatible API changes might
-#    and will happen
+# - Early development stage ⇒ backwards-incompatible API changes might
+#   and will happen
 #
 
-
-######################################################################
+###############################################################################
 # What’s there?
-# ~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^
 #
-# -  Reading simtel simulation files
-# -  Simple calibration, cleaning and feature extraction functions
-# -  Camera and Array plotting
-# -  Coordinate frames and transformations
-# -  Stereo-reconstruction using line intersections
+# - Reading simtel simulation files
+# - Simple calibration, cleaning and feature extraction functions
+# - Camera and Array plotting
+# - Coordinate frames and transformations
+# - Stereo-reconstruction using line intersections
+#
 #
 
-
-######################################################################
+###############################################################################
 # What’s still missing?
-# ~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^
 #
-# -  Good integration with machine learning techniques
-# -  IRF calculation
-# -  Documentation, e.g. formal definitions of coordinate frames
+# - IRF calculation
+# - Documentation, e.g. formal definitions of coordinate frames
 #
 
-
-######################################################################
+###############################################################################
 # What can you do?
-# ~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^
 #
-# -  Report issues
+# - Report issues
 #
-#    -  Hard to get started? Tell us where you are stuck
-#    -  Tell user stories
-#    -  Missing features
+#    - Hard to get started? Tell us where you are stuck
+#    - Tell user stories
+#    - Missing features
 #
 # -  Start contributing
 #
-#    -  ctapipe needs more workpower
-#    -  Implement new reconstruction features
+#    - ctapipe needs more workpower
+#    - Implement new reconstruction features
 #
 
-
-######################################################################
-# A simple hillas analysis
+###############################################################################
+# A simple Hillas analysis
 # ------------------------
 #
 
-
-######################################################################
 # Reading in simtel files
-# ~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^
 #
-
-
 input_url = get_dataset_path("gamma_prod5.simtel.zst")
-
+###############################################################################
 # EventSource() automatically detects what kind of file we are giving it,
-# if already supported by ctapipe
-source = EventSource(input_url, max_events=5)
+# if already supported by ctapipe or an installed plugin
+with EventSource(input_url, max_events=5) as source:
+    print(type(source))
 
-print(type(source))
-
-######################################################################
-for event in source:
-    print(
-        "Id: {}, E = {:1.3f}, Telescopes: {}".format(
-            event.count, event.simulation.shower.energy, len(event.r0.tel)
+    for event in source:
+        print(
+            "Id: {}, E = {:1.3f}, Telescopes: {}".format(
+                event.count, event.simulation.shower.energy, len(event.tel)
+            )
         )
-    )
 
-
-######################################################################
-# Each event is a ``DataContainer`` holding several ``Field``\ s of data,
+###############################################################################
+# Each event is a ``SubarrayEventContainer`` holding several ``Field`` s of data,
 # which can be containers or just numbers. Let’s look a one event:
-#
-
 event
 
-######################################################################
+###############################################################################
 source.subarray.camera_types
 
-######################################################################
-len(event.r0.tel), len(event.r1.tel)
+###############################################################################
+# Telescope-wise data is stored in ``TelescopeEventContainer``s
+# under ``.tel``, which is a mapping by telescope id:
+len(event.tel), event.tel.keys()
 
+###############################################################################
+event.tel[3]
 
-######################################################################
+###############################################################################
 # Data calibration
-# ~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^
 #
 # The ``CameraCalibrator`` calibrates the event (obtaining the ``dl1``
 # images).
-#
-
-
 calibrator = CameraCalibrator(subarray=source.subarray)
 
-######################################################################
+###############################################################################
 calibrator(event)
 
-
-######################################################################
+###############################################################################
 # Event displays
-# ~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^
 #
 # Let’s use ctapipe’s plotting facilities to plot the telescope images
-#
-
-event.dl1.tel.keys()
-
-######################################################################
 tel_id = 130
 
-######################################################################
+###############################################################################
 geometry = source.subarray.tel[tel_id].camera.geometry
-dl1 = event.dl1.tel[tel_id]
+dl1 = event.tel[tel_id].dl1
 
-geometry, dl1
+print(geometry)
+print(dl1)
 
-######################################################################
+###############################################################################
 dl1.image
 
-
-######################################################################
+###############################################################################
 display = CameraDisplay(geometry)
-
-# right now, there might be one image per gain channel.
-# This will change as soon as
 display.image = dl1.image
 display.add_colorbar()
 
-
-######################################################################
+###############################################################################
 # Image Cleaning
-# ~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^
 #
+# ctapipe allows most configuration options to be configured by telescope type.
+# The example below configures some of the parameters for the
+# `~ctapipe.image.TailcutsImageCleaner`:
 
-
-# unoptimized cleaning levels
-cleaning_level = {
-    "CHEC": (2, 4, 2),
-    "LSTCam": (3.5, 7, 2),
-    "FlashCam": (3.5, 7, 2),
-    "NectarCam": (4, 8, 2),
-}
-
-######################################################################
-boundary, picture, min_neighbors = cleaning_level[geometry.name]
-
-clean = tailcuts_clean(
-    geometry,
+###############################################################################
+print(source.subarray.telescope_types)
+###############################################################################
+cleaning = TailcutsImageCleaner(
+    source.subarray,
+    picture_threshold_pe=[
+        ("type", "*", 7),  # global default
+        ("type", "MST_MST_NectarCam", 8),
+        ("type", "SST_ASTRI_CHEC", 4),
+    ],
+    boundary_threshold_pe=[
+        ("type", "*", 3.5),
+        ("type", "MST_MST_NectarCam", 4),
+        ("type", "SST_ASTRI_CHEC", 2),
+    ],
+)
+###############################################################################
+image_mask = cleaning(
+    tel_id,
     dl1.image,
-    boundary_thresh=boundary,
-    picture_thresh=picture,
-    min_number_picture_neighbors=min_neighbors,
 )
 
-######################################################################
+###############################################################################
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
 
 d1 = CameraDisplay(geometry, ax=ax1)
@@ -253,6 +227,7 @@ d2 = CameraDisplay(geometry, ax=ax2)
 
 ax1.set_title("Image")
 d1.image = dl1.image
+d1.highlight_pixels(image_mask, color="w")
 d1.add_colorbar(ax=ax1)
 
 ax2.set_title("Pulse Time")
@@ -261,66 +236,57 @@ d2.cmap = "RdBu_r"
 d2.add_colorbar(ax=ax2)
 d2.set_limits_minmax(-20, 20)
 
-d1.highlight_pixels(clean, color="red", linewidth=1)
 
-
-######################################################################
+###############################################################################
 # Image Parameters
-# ~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^
 #
-
-
-hillas = hillas_parameters(geometry[clean], dl1.image[clean])
+hillas = hillas_parameters(geometry[image_mask], dl1.image[image_mask])
 
 print(hillas)
 
-######################################################################
-display = CameraDisplay(geometry)
-
-# set "unclean" pixels to 0
-cleaned = dl1.image.copy()
-cleaned[~clean] = 0.0
-
-display.image = cleaned
+###############################################################################
+plt.figure()
+display = CameraDisplay(geometry, image=dl1.image)
+display.highlight_pixels(image_mask, color="w")
 display.add_colorbar()
+display.overlay_moments(hillas, color="xkcd:red", n_sigma=2)
 
-display.overlay_moments(hillas, color="xkcd:red")
-
-######################################################################
-timing = timing_parameters(geometry, dl1.image, dl1.peak_time, hillas, clean)
-
+###############################################################################
+timing = timing_parameters(geometry, dl1.image, dl1.peak_time, hillas, image_mask)
 print(timing)
 
-######################################################################
+###############################################################################
 long, trans = camera_to_shower_coordinates(
     geometry.pix_x, geometry.pix_y, hillas.x, hillas.y, hillas.psi
 )
 
-plt.plot(long[clean], dl1.peak_time[clean], "o")
-plt.plot(long[clean], timing.slope * long[clean] + timing.intercept)
+plt.figure()
+plt.plot(long[image_mask], dl1.peak_time[image_mask], "o")
+plt.plot(long[image_mask], timing.slope * long[image_mask] + timing.intercept)
 
-######################################################################
-leakage = leakage_parameters(geometry, dl1.image, clean)
+###############################################################################
+leakage = leakage_parameters(geometry, dl1.image, image_mask)
 print(leakage)
 
-######################################################################
+###############################################################################
 disp = CameraDisplay(geometry)
 disp.image = dl1.image
 disp.highlight_pixels(geometry.get_border_pixel_mask(1), linewidth=2, color="xkcd:red")
 
-######################################################################
-n_islands, island_id = number_of_islands(geometry, clean)
+###############################################################################
+n_islands, island_id = number_of_islands(geometry, image_mask)
 
 print(n_islands)
 
-######################################################################
+###############################################################################
 conc = concentration_parameters(geometry, dl1.image, hillas)
 print(conc)
 
 
-######################################################################
+###############################################################################
 # Putting it all together / Stereo reconstruction
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # All these steps are now unified in several components configurable
 # through the config system, mainly:
@@ -358,50 +324,51 @@ image_processor_config = Config(
 )
 
 input_url = get_dataset_path("gamma_prod5.simtel.zst")
-source = EventSource(input_url)
-
-calibrator = CameraCalibrator(subarray=source.subarray)
-image_processor = ImageProcessor(
-    subarray=source.subarray, config=image_processor_config
-)
-shower_processor = ShowerProcessor(subarray=source.subarray)
-horizon_frame = AltAz()
-
 f = tempfile.NamedTemporaryFile(suffix=".hdf5")
 
-with DataWriter(source, output_path=f.name, overwrite=True, write_dl2=True) as writer:
-    for event in source:
-        energy = event.simulation.shower.energy
-        n_telescopes_r1 = len(event.r1.tel)
-        event_id = event.index.event_id
-        print(f"Id: {event_id}, E = {energy:1.3f}, Telescopes (R1): {n_telescopes_r1}")
+with EventSource(input_url) as source:
+    calibrator = CameraCalibrator(subarray=source.subarray)
+    image_processor = ImageProcessor(
+        subarray=source.subarray, config=image_processor_config
+    )
+    shower_processor = ShowerProcessor(subarray=source.subarray)
+    horizon_frame = AltAz()
 
-        calibrator(event)
-        image_processor(event)
-        shower_processor(event)
+    with DataWriter(
+        source, output_path=f.name, overwrite=True, write_dl2=True
+    ) as writer:
+        for event in source:
+            energy = event.simulation.shower.energy
+            n_telescopes = len(event.tel)
+            event_id = event.index.event_id
+            print(f"Id: {event_id}, E = {energy:1.3f}, Telescopes: {n_telescopes}")
 
-        stereo = event.dl2.stereo.geometry["HillasReconstructor"]
-        if stereo.is_valid:
-            print("  Alt: {:.2f}°".format(stereo.alt.deg))
-            print("  Az: {:.2f}°".format(stereo.az.deg))
-            print("  Hmax: {:.0f}".format(stereo.h_max))
-            print("  CoreX: {:.1f}".format(stereo.core_x))
-            print("  CoreY: {:.1f}".format(stereo.core_y))
-            print("  Multiplicity: {:d}".format(len(stereo.telescopes)))
+            calibrator(event)
+            image_processor(event)
+            shower_processor(event)
 
-        # save a nice event for plotting later
-        if event.count == 3:
-            plotting_event = deepcopy(event)
+            stereo = event.dl2.geometry["HillasReconstructor"]
+            if stereo.is_valid:
+                print("  Alt: {:.2f}°".format(stereo.alt.deg))
+                print("  Az: {:.2f}°".format(stereo.az.deg))
+                print("  Hmax: {:.0f}".format(stereo.h_max))
+                print("  CoreX: {:.1f}".format(stereo.core_x))
+                print("  CoreY: {:.1f}".format(stereo.core_y))
+                print("  Multiplicity: {:d}".format(len(stereo.telescopes)))
 
-        writer(event)
+            # save a nice event for plotting later
+            if event.count == 3:
+                plotting_event = event
+
+            writer(event)
 
 
-######################################################################
+###############################################################################
 loader = TableLoader(f.name)
 
 events = loader.read_subarray_events()
 
-######################################################################
+###############################################################################
 theta = angular_separation(
     events["HillasReconstructor_az"].quantity,
     events["HillasReconstructor_alt"].quantity,
@@ -414,21 +381,18 @@ plt.xlabel(r"$\theta² / deg²$")
 None
 
 
-######################################################################
+###############################################################################
 # ArrayDisplay
 # ------------
 #
 
+angle_offset = plotting_event.pointing.azimuth
 
-angle_offset = plotting_event.pointing.array_azimuth
-
-plotting_hillas = {
-    tel_id: dl1.parameters.hillas for tel_id, dl1 in plotting_event.dl1.tel.items()
-}
-
-plotting_core = {
-    tel_id: dl1.parameters.core.psi for tel_id, dl1 in plotting_event.dl1.tel.items()
-}
+plotting_hillas = {}
+plotting_core = {}
+for tel_id, tel_event in plotting_event.tel.items():
+    plotting_hillas[tel_id] = tel_event.dl1.parameters.hillas
+    plotting_core[tel_id] = tel_event.dl1.parameters.core.psi
 
 
 disp = ArrayDisplay(source.subarray)
@@ -444,8 +408,8 @@ plt.scatter(
     label="True Impact",
 )
 plt.scatter(
-    plotting_event.dl2.stereo.geometry["HillasReconstructor"].core_x,
-    plotting_event.dl2.stereo.geometry["HillasReconstructor"].core_y,
+    plotting_event.dl2.geometry["HillasReconstructor"].core_x,
+    plotting_event.dl2.geometry["HillasReconstructor"].core_y,
     s=200,
     c="r",
     marker="x",
@@ -453,13 +417,10 @@ plt.scatter(
 )
 
 plt.legend()
-# plt.xlim(-400, 400)
-# plt.ylim(-400, 400)
 
-
-######################################################################
+###############################################################################
 # Reading the LST dl1 data
-# ~~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 #
 
 loader = TableLoader(f.name)
@@ -470,7 +431,7 @@ dl1_table = loader.read_telescope_events(
     true_parameters=False,
 )
 
-######################################################################
+###############################################################################
 plt.scatter(
     np.log10(dl1_table["true_energy"].quantity / u.TeV),
     np.log10(dl1_table["hillas_intensity"]),
@@ -480,7 +441,7 @@ plt.ylabel("log10(intensity)")
 None
 
 
-######################################################################
+###############################################################################
 # Isn’t python slow?
 # ------------------
 #
@@ -497,41 +458,42 @@ None
 # **But: “Premature Optimization is the root of all evil” — Donald Knuth**
 #
 # So profile to find exactly what is slow.
-#
+
+###############################################################################
 # Why use python then?
-# ~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^
 #
 # -  Python works very well as *glue* for libraries of all kinds of
 #    languages
 # -  Python has a rich ecosystem for data science, physics, algorithms,
 #    astronomy
-#
+
+###############################################################################
 # Example: Number of Islands
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Find all groups of pixels, that survived the cleaning
-#
 
 
 geometry = loader.subarray.tel[1].camera.geometry
 
 
-######################################################################
+###############################################################################
 # Let’s create a toy images with several islands;
 #
 
-np.random.seed(42)
+rng = np.random.default_rng(42)
 
 image = np.zeros(geometry.n_pixels)
 
 
 for i in range(9):
     model = toymodel.Gaussian(
-        x=np.random.uniform(-0.8, 0.8) * u.m,
-        y=np.random.uniform(-0.8, 0.8) * u.m,
-        width=np.random.uniform(0.05, 0.075) * u.m,
-        length=np.random.uniform(0.1, 0.15) * u.m,
-        psi=np.random.uniform(0, 2 * np.pi) * u.rad,
+        x=rng.uniform(-0.8, 0.8) * u.m,
+        y=rng.uniform(-0.8, 0.8) * u.m,
+        width=rng.uniform(0.05, 0.075) * u.m,
+        length=rng.uniform(0.1, 0.15) * u.m,
+        psi=rng.uniform(0, 2 * np.pi) * u.rad,
     )
 
     new_image, sig, bg = model.generate_image(
@@ -539,23 +501,20 @@ for i in range(9):
     )
     image += new_image
 
-######################################################################
-clean = tailcuts_clean(
-    geometry,
-    image,
-    picture_thresh=10,
-    boundary_thresh=5,
-    min_number_picture_neighbors=2,
+###############################################################################
+image_mask = cleaning(
+    tel_id=1,
+    image=image,
 )
 
-######################################################################
+###############################################################################
 disp = CameraDisplay(geometry)
 disp.image = image
-disp.highlight_pixels(clean, color="xkcd:red", linewidth=1.5)
+disp.highlight_pixels(image_mask, color="xkcd:red", linewidth=1.5)
 disp.add_colorbar()
 
 
-######################################################################
+###############################################################################
 def num_islands_python(camera, clean):
     """A breadth first search to find connected islands of neighboring pixels in the cleaning set"""
 
@@ -594,11 +553,10 @@ def num_islands_python(camera, clean):
     return n_islands, island_ids
 
 
-######################################################################
-n_islands, island_ids = num_islands_python(geometry, clean)
+###############################################################################
+n_islands, island_ids = num_islands_python(geometry, image_mask)
 
-
-######################################################################
+###############################################################################
 cmap = plt.get_cmap("Paired")
 cmap = ListedColormap(cmap.colors[:n_islands])
 cmap.set_under("k")
@@ -609,11 +567,12 @@ disp.cmap = cmap
 disp.set_limits_minmax(0.5, n_islands + 0.5)
 disp.add_colorbar()
 
-######################################################################
-timeit.timeit(lambda: num_islands_python(geometry, clean), number=1000) / 1000
+###############################################################################
+timeit.timeit(lambda: num_islands_python(geometry, image_mask), number=1000) / 1000
+
+###############################################################################
 
 
-######################################################################
 def num_islands_scipy(geometry, clean):
     neighbors = geometry.neighbor_matrix_sparse
 
@@ -626,27 +585,22 @@ def num_islands_scipy(geometry, clean):
     return num_islands, island_ids
 
 
-######################################################################
-n_islands_s, island_ids_s = num_islands_scipy(geometry, clean)
+###############################################################################
+n_islands_s, island_ids_s = num_islands_scipy(geometry, image_mask)
 
-######################################################################
+###############################################################################
 disp = CameraDisplay(geometry)
 disp.image = island_ids_s
 disp.cmap = cmap
 disp.set_limits_minmax(0.5, n_islands_s + 0.5)
 disp.add_colorbar()
 
-######################################################################
-timeit.timeit(lambda: num_islands_scipy(geometry, clean), number=10000) / 10000
+###############################################################################
+timeit.timeit(lambda: num_islands_scipy(geometry, image_mask), number=10000) / 10000
 
-######################################################################
+###############################################################################
 # **A lot less code, and a factor 3 speed improvement**
 #
-
-
-######################################################################
 # Finally, current ctapipe implementation is using numba:
 #
-
-######################################################################
-timeit.timeit(lambda: number_of_islands(geometry, clean), number=100000) / 100000
+timeit.timeit(lambda: number_of_islands(geometry, image_mask), number=100000) / 100000

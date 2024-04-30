@@ -9,12 +9,13 @@ import numpy as np
 from ctapipe.coordinates import TelescopeFrame
 
 from ..containers import (
-    ArrayEventContainer,
     CameraHillasParametersContainer,
     CameraTimingParametersContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
+    SubarrayEventContainer,
+    TelescopeEventContainer,
     TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
@@ -62,6 +63,7 @@ class ImageQualityQuery(QualityQuery):
 class ImageProcessor(TelescopeComponent):
     """
     Takes DL1/Image data and cleans and parametrizes the images into DL1/parameters.
+
     Should be run after CameraCalibrator to produce all DL1 information.
     """
 
@@ -117,8 +119,9 @@ class ImageProcessor(TelescopeComponent):
                 for tel_id in self.subarray.tel
             }
 
-    def __call__(self, event: ArrayEventContainer):
-        self._process_telescope_event(event)
+    def __call__(self, event: SubarrayEventContainer):
+        for tel_event in event.tel.values():
+            self._process_telescope_event(tel_event)
 
     def _parameterize_image(
         self,
@@ -210,51 +213,50 @@ class ImageProcessor(TelescopeComponent):
         # parameterization
         return default
 
-    def _process_telescope_event(self, event):
+    def _process_telescope_event(self, tel_event: TelescopeEventContainer):
         """
-        Loop over telescopes and process the calibrated images into parameters
+        Process the calibrated image into parameters for a single telescope event.
         """
-        for tel_id, dl1_camera in event.dl1.tel.items():
-            if self.apply_image_modifier.tel[tel_id]:
-                dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
+        tel_id = tel_event.index.tel_id
+        dl1 = tel_event.dl1
 
-            dl1_camera.image_mask = self.clean(
-                tel_id=tel_id,
-                image=dl1_camera.image,
-                arrival_times=dl1_camera.peak_time,
-                monitoring=event.mon.tel[tel_id],
+        if self.apply_image_modifier.tel[tel_id]:
+            dl1.image = self.modify(tel_id=tel_id, image=dl1.image)
+
+        dl1.image_mask = self.clean(
+            tel_id=tel_id,
+            image=dl1.image,
+            arrival_times=dl1.peak_time,
+            monitoring=tel_event.mon,
+        )
+
+        dl1.parameters = self._parameterize_image(
+            tel_id=tel_id,
+            image=dl1.image,
+            signal_pixels=dl1.image_mask,
+            peak_time=dl1.peak_time,
+            default=self.default_image_container,
+        )
+
+        self.log.debug("params: %s", dl1.parameters.as_dict(recursive=True))
+
+        if (
+            tel_event.simulation is not None
+            and tel_event.simulation.true_image is not None
+        ):
+            simulation = tel_event.simulation
+            simulation.true_parameters = self._parameterize_image(
+                tel_id,
+                image=simulation.true_image,
+                signal_pixels=simulation.true_image > 0,
+                peak_time=None,  # true image from simulation has no peak time
+                default=DEFAULT_TRUE_IMAGE_PARAMETERS,
             )
+            for container in simulation.true_parameters.values():
+                if not container.prefix.startswith("true_"):
+                    container.prefix = f"true_{container.prefix}"
 
-            dl1_camera.parameters = self._parameterize_image(
-                tel_id=tel_id,
-                image=dl1_camera.image,
-                signal_pixels=dl1_camera.image_mask,
-                peak_time=dl1_camera.peak_time,
-                default=self.default_image_container,
+            self.log.debug(
+                "true image parameters: %s",
+                tel_event.simulation.true_parameters.as_dict(recursive=True),
             )
-
-            self.log.debug("params: %s", dl1_camera.parameters.as_dict(recursive=True))
-
-            if (
-                event.simulation is not None
-                and tel_id in event.simulation.tel
-                and event.simulation.tel[tel_id].true_image is not None
-            ):
-                sim_camera = event.simulation.tel[tel_id]
-                sim_camera.true_parameters = self._parameterize_image(
-                    tel_id,
-                    image=sim_camera.true_image,
-                    signal_pixels=sim_camera.true_image > 0,
-                    peak_time=None,  # true image from simulation has no peak time
-                    default=DEFAULT_TRUE_IMAGE_PARAMETERS,
-                )
-                for container in sim_camera.true_parameters.values():
-                    if not container.prefix.startswith("true_"):
-                        container.prefix = f"true_{container.prefix}"
-
-                self.log.debug(
-                    "sim params: %s",
-                    event.simulation.tel[tel_id].true_parameters.as_dict(
-                        recursive=True
-                    ),
-                )

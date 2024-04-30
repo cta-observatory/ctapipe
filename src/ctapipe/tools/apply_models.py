@@ -234,9 +234,12 @@ class ApplyModels(Tool):
         # potentially changes the order of the subarray events.
         # to ensure events are stored in the correct order,
         # we resort to trigger table order
-        trigger = read_table(
-            self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
-        )[["obs_id", "event_id"]]
+        trigger_table = "/dl1/event/subarray/trigger"
+        if trigger_table not in self.h5file.root:
+            trigger_table = "/dl0/event/subarray/trigger"
+        trigger = read_table(self.h5file, trigger_table, start=start, stop=stop)[
+            ["obs_id", "event_id"]
+        ]
         trigger["__sort_index__"] = np.arange(len(trigger))
 
         stereo_predictions = _join_subarray_events(trigger, stereo_predictions)

@@ -1,6 +1,6 @@
 import numpy as np
 
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import SubarrayEventContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import Integer, IntTelescopeParameter
 
@@ -70,7 +70,7 @@ class SoftwareTrigger(TelescopeComponent):
                 self._ids_by_type[tel_str] = set()
             self._ids_by_type[tel_str].update(self.subarray.get_tel_ids_for_type(tel))
 
-    def __call__(self, event: ArrayEventContainer) -> bool:
+    def __call__(self, event: SubarrayEventContainer) -> bool:
         """
         Remove telescope events that have not the required number of telescopes of
         a given type from the subarray event and decide if the event would
@@ -92,7 +92,7 @@ class SoftwareTrigger(TelescopeComponent):
             if min_tels == 0:
                 continue
 
-            tels_with_trigger = set(event.trigger.tels_with_trigger)
+            tels_with_trigger = set(event.dl0.trigger.tels_with_trigger)
             tels_in_event = tels_with_trigger.intersection(tel_ids)
 
             if len(tels_in_event) < min_tels:
@@ -107,24 +107,17 @@ class SoftwareTrigger(TelescopeComponent):
                     tels_removed.add(tel_id)
 
                     # remove any related data
-                    for container in event.values():
-                        if hasattr(container, "tel"):
-                            tel_map = container.tel
-                            if tel_id in tel_map:
-                                del tel_map[tel_id]
+                    del event.tel[tel_id]
 
         if len(tels_removed) > 0:
             # convert to array with correct dtype to have setdiff1d work correctly
             tels_removed = np.fromiter(tels_removed, np.uint16, len(tels_removed))
-            event.trigger.tels_with_trigger = np.setdiff1d(
-                event.trigger.tels_with_trigger, tels_removed, assume_unique=True
+            event.dl0.trigger.tels_with_trigger = np.setdiff1d(
+                event.dl0.trigger.tels_with_trigger, tels_removed, assume_unique=True
             )
 
-        if len(event.trigger.tels_with_trigger) < self.min_telescopes:
-            event.trigger.tels_with_trigger = []
-            # remove any related data
-            for container in event.values():
-                if hasattr(container, "tel"):
-                    container.tel.clear()
+        if len(event.dl0.trigger.tels_with_trigger) < self.min_telescopes:
+            event.dl0.trigger.tels_with_trigger = []
+            event.tel.clear()
             return False
         return True

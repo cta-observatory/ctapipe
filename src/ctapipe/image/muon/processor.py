@@ -4,9 +4,9 @@ High level muon analysis  (MuonProcessor Component)
 import numpy as np
 
 from ctapipe.containers import (
-    ArrayEventContainer,
+    MuonContainer,
     MuonParametersContainer,
-    MuonTelescopeContainer,
+    SubarrayEventContainer,
 )
 from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import QualityQuery, TelescopeComponent
@@ -21,7 +21,7 @@ from .features import (
 from .intensity_fitter import MuonIntensityFitter
 from .ring_fitter import MuonRingFitter
 
-INVALID = MuonTelescopeContainer()
+INVALID = MuonContainer()
 INVALID_PARAMETERS = MuonParametersContainer()
 
 __all__ = ["MuonProcessor"]
@@ -79,7 +79,10 @@ class RingQuery(QualityQuery):
 
 class MuonProcessor(TelescopeComponent):
     """
-    Takes cleaned images and extracts muon rings. Should be run after ImageProcessor.
+    Takes cleaned images and extracts muon rings.
+
+    Relies on image parameters for quality query, thus should be run after
+    the ImageProcessor.
     """
 
     completeness_threshold = FloatTelescopeParameter(
@@ -114,23 +117,20 @@ class MuonProcessor(TelescopeComponent):
 
         self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
 
-    def __call__(self, event: ArrayEventContainer):
-        for tel_id in event.dl1.tel:
-            self._process_telescope_event(event, tel_id)
+    def __call__(self, event: SubarrayEventContainer):
+        """
+        Process all telescope events of the given subarray event.
+        """
+        for tel_event in event.tel.values():
+            self._process_telescope_event(tel_event)
 
-    def _process_telescope_event(self, event, tel_id):
+    def _process_telescope_event(self, tel_event):
         """
         Extract and process a ring from a single image.
-
-        Parameters
-        ----------
-        event: ArrayEventContainer
-            Collection of all event information
-        tel_id: int
-            Telescope ID of the instrument that has measured the image
         """
-        event_index = event.index
-        event_id = event_index.event_id
+        index = tel_event.index
+        tel_id = index.tel_id
+        event_id = index.event_id
 
         if self.subarray.tel[tel_id].optics.n_mirrors != 1:
             self.log.warning(
@@ -139,11 +139,11 @@ class MuonProcessor(TelescopeComponent):
                 " not supported. Exclude dual mirror telescopes via setting"
                 " 'EventSource.allowed_tels'."
             )
-            event.muon.tel[tel_id] = INVALID
+            tel_event.muon = INVALID
             return
 
         self.log.debug(f"Processing event {event_id}, telescope {tel_id}")
-        dl1 = event.dl1.tel[tel_id]
+        dl1 = tel_event.dl1
         image = dl1.image
         mask = dl1.image_mask
         if mask is None:
@@ -152,7 +152,7 @@ class MuonProcessor(TelescopeComponent):
         checks = self.dl1_query(dl1_params=dl1.parameters)
 
         if not all(checks):
-            event.muon.tel[tel_id] = INVALID
+            tel_event.muon = INVALID
             return
 
         geometry = self.geometries[tel_id]
@@ -176,9 +176,7 @@ class MuonProcessor(TelescopeComponent):
 
         checks = self.ring_query(parameters=parameters, ring=ring, mask=mask)
         if not all(checks):
-            event.muon.tel[tel_id] = MuonTelescopeContainer(
-                parameters=parameters, ring=ring
-            )
+            tel_event.muon = MuonContainer(parameters=parameters, ring=ring)
             return
 
         efficiency = self.intensity_fitter(
@@ -197,7 +195,7 @@ class MuonProcessor(TelescopeComponent):
             f", efficiency={efficiency.optical_efficiency:.2%}"
         )
 
-        event.muon.tel[tel_id] = MuonTelescopeContainer(
+        tel_event.muon = MuonContainer(
             ring=ring, efficiency=efficiency, parameters=parameters
         )
 

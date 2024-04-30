@@ -273,7 +273,7 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
     )
 
     reconstructor(event)
-    result = event.dl2.stereo.geometry["HillasIntersection"]
+    result = event.dl2.geometry["HillasIntersection"]
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
 
@@ -287,14 +287,15 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
     allowed_tels = {1, 4}
     for tel_id in subarray.tel.keys():
         if tel_id not in allowed_tels:
-            event.dl1.tel.pop(tel_id, None)
-            event.trigger.tels_with_trigger = event.trigger.tels_with_trigger[
-                event.trigger.tels_with_trigger != tel_id
-            ]
+            event.tel.pop(tel_id, None)
+
+    event.dl0.trigger.tels_with_trigger = list(
+        set(event.dl0.trigger.tels_with_trigger).intersection(allowed_tels)
+    )
 
     subarray = subarray.select_subarray(allowed_tels)
 
     reconstructor = HillasIntersection(subarray)
     reconstructor(event)
-    result = event.dl2.stereo.geometry["HillasIntersection"]
+    result = event.dl2.geometry["HillasIntersection"]
     assert result.is_valid
