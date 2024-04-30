@@ -422,35 +422,22 @@ class MorphologyContainer(Container):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics of a chunk of images"""
+    """Store descriptive statistics of a sequence of images"""
 
-    n_events = Field(-1, "number of events used for the extraction of the statistics")
-    mean = Field(
-        None,
-        "mean of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    median = Field(
-        None,
-        "median of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    std = Field(
-        None,
-        "standard deviation of a pixel-wise quantity for each channel"
-        "Type: float; Shape: (n_channels, n_pixel)",
-    )
-
+validity_start = Field(np.float32(nan), "start")
+    validity_stop = Field(np.float32(nan), "stop")
+    mean = Field(np.float32(nan), "mean intensity")
+    median = Field(np.float32(nan), "median intensity")
+    median_outliers = Field(np.float32(nan), "median intensity")
+    std = Field(np.float32(nan), "standard deviation of intensity")
+    std_outliers = Field(np.float32(nan), "standard deviation intensity")
 
 class ImageStatisticsContainer(Container):
     """Store descriptive image statistics"""
 
-    validity_start = Field(np.float32(nan), "start")
-    validity_stop = Field(np.float32(nan), "stop")
     max = Field(np.float32(nan), "value of pixel with maximum intensity")
     min = Field(np.float32(nan), "value of pixel with minimum intensity")
     mean = Field(np.float32(nan), "mean intensity")
-    median = Field(np.float32(nan), "median intensity")
     std = Field(np.float32(nan), "standard deviation of intensity")
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
