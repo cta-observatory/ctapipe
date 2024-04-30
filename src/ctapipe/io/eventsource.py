@@ -11,11 +11,11 @@ from traitlets.config.loader import LazyConfigValue
 from ctapipe.atmosphere import AtmosphereDensityProfile
 
 from ..containers import (
-    ArrayEventContainer,
     ObservationBlockContainer,
     SchedulingBlockContainer,
     SimulatedShowerDistribution,
     SimulationConfigContainer,
+    SubarrayEventContainer,
 )
 from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
@@ -30,7 +30,7 @@ class EventSource(Component):
     """
     Parent class for EventSources.
 
-    EventSources read input files and generate `~ctapipe.containers.ArrayEventContainer`
+    EventSources read input files and generate `~ctapipe.containers.SubarrayEventContainer`
     instances when iterated over.
 
     A new EventSource should be created for each type of event file read
@@ -76,7 +76,7 @@ class EventSource(Component):
     0
     1
 
-    **NOTE**: EventSource implementations should not reuse the same ArrayEventContainer,
+    **NOTE**: EventSource implementations should not reuse the same SubarrayEventContainer,
     as these are mutable and may lead to errors when analyzing multiple events.
 
 
@@ -296,7 +296,7 @@ class EventSource(Component):
         return {}
 
     @abstractmethod
-    def _generator(self) -> Generator[ArrayEventContainer, None, None]:
+    def _generator(self) -> Generator[SubarrayEventContainer, None, None]:
         """
         Abstract method to be defined in child class.
 
