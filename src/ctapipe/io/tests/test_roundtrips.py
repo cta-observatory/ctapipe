@@ -40,7 +40,8 @@ def test_r1_simtel_broken_pixels(r1_file, extractor):
 
         n_checked = 0
         for event in source:
-            for tel_id, r1 in event.r1.tel.items():
+            for tel_id, tel_event in event.tel.items():
+                r1 = tel_event.r1
                 readout = source.subarray.tel[tel_id].camera.readout
 
                 assert r1.pixel_status is not None
@@ -65,6 +66,6 @@ def test_r1_simtel_broken_pixels(r1_file, extractor):
 
                 # check to dl1
                 calibrator(event)
-                assert event.dl1.tel[tel_id].image is not None
+                assert event.tel[tel_id].dl1.image is not None
 
         assert n_checked > 0

@@ -44,7 +44,7 @@ FOCAL_LENGTH_CHOICE = "--SimTelEventSource.focal_length_choice=EQUIVALENT"
         ("stage1_config.json",),
     ],
 )
-def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files):
+def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files, provenance):
     """check that we can read multiple formats of config file"""
     tool = ProcessorTool()
 
@@ -65,7 +65,7 @@ def test_read_yaml_toml_json_config(tmp_path, dl1_image_file, config_files):
     assert tool.write.curation_info.copyright == "YOUR-COPYRIGHT"
 
 
-def test_multiple_configs(dl1_image_file):
+def test_multiple_configs(dl1_image_file, provenance):
     """ensure a config file loaded later overwrites keys from an earlier one"""
     tool = ProcessorTool()
 
@@ -103,9 +103,11 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # check tables were written
     with tables.open_file(dl1b_from_dl1a_file, mode="r") as testfile:
+        assert testfile.root.dl0
+        assert testfile.root.dl0.event.subarray
+        assert testfile.root.dl0.event.telescope
         assert testfile.root.dl1
         assert testfile.root.dl1.event.telescope
-        assert testfile.root.dl1.event.subarray
         assert testfile.root.configuration.instrument.subarray.layout
         assert testfile.root.configuration.instrument.telescope.optics
         assert testfile.root.configuration.instrument.telescope.camera.geometry_0
@@ -525,7 +527,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         completeness = table["muonparameters_completeness"]
 
         for event in source:
-            muon = event.muon.tel[1]
+            muon = event.tel[1].muon
             assert u.isclose(muon.ring.radius, radius[event.count], equal_nan=True)
             assert np.isclose(
                 muon.parameters.completeness, completeness[event.count], equal_nan=True
@@ -632,10 +634,10 @@ def test_only_trigger_and_simulation(tmp_path):
     # high resolution timestamps
     with EventSource(output) as source:
         for e in source:
-            it = iter(e.trigger.tel.values())
-            tel1 = next(it)
-            tel2 = next(it)
-            diff = (tel1.time - tel2.time).to_value(u.ns)
+            it = iter(e.tel.values())
+            tel1 = next(it).dl0.trigger.time
+            tel2 = next(it).dl0.trigger.time
+            diff = (tel1 - tel2).to_value(u.ns)
             assert diff != 0
 
 

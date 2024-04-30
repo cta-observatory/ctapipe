@@ -4,7 +4,6 @@ Make a theta-square plot
 
 This is a basic example to analyze some events and make a
 :math:`\Theta^2` plot
-
 """
 
 # %matplotlib inline
@@ -43,7 +42,7 @@ for event in tqdm(source):
     image_processor(event)
     shower_processor(event)
 
-    reco_result = event.dl2.stereo.geometry["HillasReconstructor"]
+    reco_result = event.dl2.geometry["HillasReconstructor"]
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
@@ -55,14 +54,12 @@ for event in tqdm(source):
     # Appending all estimated off angles
     off_angles.append(off_angle.to(u.deg).value)
 
-
 ######################################################################
 # calculate theta square for angles which are not nan
 #
 
 off_angles = np.array(off_angles)
 thetasquare = off_angles[np.isfinite(off_angles)] ** 2
-
 
 ######################################################################
 # Plot the results

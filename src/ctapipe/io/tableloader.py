@@ -17,7 +17,9 @@ from ..exceptions import InputMissing
 from ..instrument import FocalLengthKind, SubarrayDescription
 from .astropy_helpers import join_allow_empty, read_table
 from .hdf5dataformat import (
+    DL0_SUBARRAY_TRIGGER_TABLE,
     DL0_TEL_POINTING_GROUP,
+    DL0_TEL_TRIGGER_TABLE,
     DL1_SUBARRAY_TRIGGER_TABLE,
     DL1_TEL_IMAGES_GROUP,
     DL1_TEL_MUON_GROUP,
@@ -291,7 +293,19 @@ class TableLoader(Component):
 
     def __len__(self):
         """Number of subarray events in input file"""
-        return self.h5file.root[DL1_SUBARRAY_TRIGGER_TABLE].shape[0]
+        return self.h5file.root[self._trigger_table].shape[0]
+
+    @property
+    def _trigger_table(self):
+        if DL1_SUBARRAY_TRIGGER_TABLE in self.h5file.root:
+            return DL1_SUBARRAY_TRIGGER_TABLE
+        return DL0_SUBARRAY_TRIGGER_TABLE
+
+    @property
+    def _tel_trigger_table(self):
+        if DL1_TEL_TRIGGER_TABLE in self.h5file.root:
+            return DL1_TEL_TRIGGER_TABLE
+        return DL0_TEL_TRIGGER_TABLE
 
     def _check_args(self, **kwargs):
         """
@@ -344,7 +358,7 @@ class TableLoader(Component):
         """
         table = read_table(
             self.h5file,
-            DL1_SUBARRAY_TRIGGER_TABLE,
+            self._trigger_table,
             start=start,
             stop=stop,
         )[["obs_id", "event_id"]]
@@ -449,8 +463,12 @@ class TableLoader(Component):
         observation_info = updated_args["observation_info"]
 
         table = read_table(
-            self.h5file, DL1_SUBARRAY_TRIGGER_TABLE, start=start, stop=stop
+            self.h5file,
+            self._trigger_table,
+            start=start,
+            stop=stop,
         )
+
         if keep_order:
             self._add_index_if_needed(table)
 
@@ -568,7 +586,7 @@ class TableLoader(Component):
 
         table = read_table(
             self.h5file,
-            DL1_TEL_TRIGGER_TABLE,
+            self._tel_trigger_table,
             condition=f"tel_id == {tel_id}",
             start=trigger_start,
             stop=trigger_stop,
@@ -886,7 +904,7 @@ class TableLoader(Component):
         """
         # we need to load the trigger table until "stop" to
         # know which telescopes participated in which events
-        table = self.h5file.root[DL1_SUBARRAY_TRIGGER_TABLE]
+        table = self.h5file.root[self._trigger_table]
         n_events = table.shape[0]
         n_telescopes = table.coldescrs["tels_with_trigger"].shape[0]
 
