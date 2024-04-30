@@ -7,7 +7,7 @@ from abc import abstractmethod
 import numpy as np
 from astropy import units as u
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import DL1TelescopeContainer
 from ctapipe.core import Component
 from ctapipe.core.traits import Int, List, Unicode
 from ctapipe.image.extractor import ImageExtractor
@@ -134,7 +134,7 @@ class PedestalCalculator(Component):
 
         Parameters
         ----------
-        event: ctapipe.containers.ArrayEventContainer
+        event: ctapipe.containers.SubarrayEventContainer
 
         Returns: True if the mon.tel[tel_id].pedestal is updated,
                  False otherwise
@@ -197,26 +197,27 @@ class PedestalIntegrator(PedestalCalculator):
         self.charges = None  # charge per event in sample
         self.sample_masked_pixels = None  # pixels tp be masked per event in sample
 
-    def _extract_charge(self, event) -> DL1CameraContainer:
+    def _extract_charge(self, event) -> DL1TelescopeContainer:
         """
         Extract the charge and the time from a pedestal event
 
         Parameters
         ----------
-        event: ArrayEventContainer
+        event: SubarrayEventContainer
             general event container
 
         Returns
         -------
-        DL1CameraContainer
+        DL1TelescopeContainer
         """
-        waveforms = event.r1.tel[self.tel_id].waveform
+        tel_event = event.tel[self.tel_id]
+        waveforms = tel_event.r1.waveform
         n_channels, n_pixels, _ = waveforms.shape
-        selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
+        selected_gain_channel = tel_event.r1.selected_gain_channel
         broken_pixels = _get_invalid_pixels(
             n_channels=n_channels,
             n_pixels=n_pixels,
-            pixel_status=event.mon.tel[self.tel_id].pixel_status,
+            pixel_status=tel_event.mon.pixel_status,
             selected_gain_channel=selected_gain_channel,
         )
         # Extract charge and time
@@ -225,7 +226,7 @@ class PedestalIntegrator(PedestalCalculator):
                 waveforms, self.tel_id, selected_gain_channel, broken_pixels
             )
         else:
-            return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
+            return DL1TelescopeContainer(image=0, peak_pos=0, is_valid=False)
 
     def calculate_pedestals(self, event):
         """
@@ -238,17 +239,18 @@ class PedestalIntegrator(PedestalCalculator):
         event : general event container
 
         """
+        tel_event = event.tel[self.tel_id]
         # initialize the np array at each cycle
-        waveform = event.r1.tel[self.tel_id].waveform
-        container = event.mon.tel[self.tel_id].pedestal
+        waveform = tel_event.r1.waveform
+        container = tel_event.mon.pedestal
 
         # re-initialize counter
         if self.n_events_seen == self.sample_size:
             self.n_events_seen = 0
 
         # real data
-        trigger_time = event.trigger.time
-        pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
+        trigger_time = tel_event.dl0.trigger.time
+        pixel_mask = tel_event.mon.pixel_status.hardware_failing_pixels
 
         if self.n_events_seen == 0:
             self.time_start = trigger_time
@@ -256,7 +258,7 @@ class PedestalIntegrator(PedestalCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        dl1: DL1CameraContainer = self._extract_charge(event)
+        dl1: DL1TelescopeContainer = self._extract_charge(event)
 
         if not dl1.is_valid:
             return False

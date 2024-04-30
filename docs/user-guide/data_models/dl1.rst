@@ -34,16 +34,16 @@ The following datasets will be written to the group ``/dl1/event/`` in the  outp
       - (group)
     * - ``subarray/trigger``
       - subarray trigger information
-      - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.TriggerContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer` +, :py:class:`~ctapipe.containers.SubarrayTriggerContainer`
     * - ``telescope/``
       - Per-telescope Per-event information
       - (group)
     * - ``telescope/parameters/tel_{TEL_ID:03d}``
       - tables of image parameters (one per telescope)
-      - :py:class:`~ctapipe.containers.TelEventIndexContainer` +, :py:class:`~ctapipe.containers.ImageParametersContainer`
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer` +, :py:class:`~ctapipe.containers.ImageParametersContainer`
     * - ``telescope/images/tel_{TEL_ID:03d}``
       - tables of telescope images (one per telescope)
-      - :py:class:`~ctapipe.containers.TelEventIndexContainer` +, :py:class:`~ctapipe.containers.DL1CameraContainer`
+      - :py:class:`~ctapipe.containers.TelescopeEventIndexContainer` +, :py:class:`~ctapipe.containers.DL1TelescopeContainer`
 
 
 DL2 Data Model
@@ -64,13 +64,13 @@ output file, where ``<algorithm>`` is the identifier of the algorithm (e.g.
       - Contents
     * - /geometry
       - shower geometry reconstruction
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedGeometryContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedGeometryContainer`
     * - /energy
       - shower energy reconstruction
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
     * - /classification
       - shower classification parameters
-      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
 
 
 Simulation Data Model
@@ -78,13 +78,13 @@ Simulation Data Model
 
     * - ``/simulation/event/subarray/shower``
       - true shower parameters from Monte-Carlo simulation
-      - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedShowerContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedShowerContainer`
     * - ``/simulation/event/telescope/images/tel_{TEL_ID:03d}``
       - simulated camera images
-      - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.SimulatedCameraContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer` +, :py:class:`~ctapipe.containers.SimulationTelescopeContainer`
     * - ``/simulation/event/telescope/parameters/tel_{TEL_ID:03d}``
       - Parameters derived form the simulated camera images
-      - :py:class:`~ctapipe.containers.EventIndexContainer` +, :py:class:`~ctapipe.containers.ImageParametersContainer`
+      - :py:class:`~ctapipe.containers.SubarrayEventIndexContainer` +, :py:class:`~ctapipe.containers.ImageParametersContainer`
     * - ``/simulation/service/shower_distribution``
       - simulated shower distribution histograms
       - :py:class:`~ctapipe.containers.SimulatedShowerDistribution`

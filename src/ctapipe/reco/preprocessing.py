@@ -16,7 +16,7 @@ from numpy.lib.recfunctions import structured_to_unstructured
 
 from ctapipe.coordinates import MissingFrameAttributeWarning, TelescopeFrame
 
-from ..containers import ArrayEventContainer
+from ..containers import SubarrayEventContainer
 
 LOG = logging.getLogger(__name__)
 
@@ -68,13 +68,13 @@ def table_to_X(table: Table, features: list[str], log=LOG):
 
 
 def collect_features(
-    event: ArrayEventContainer, tel_id: int, subarray_table=None
+    event: SubarrayEventContainer, tel_id: int, subarray_table=None
 ) -> Table:
     """Loop over all containers with features.
 
     Parameters
     ----------
-    event : ArrayEventContainer
+    event : SubarrayEventContainer
         The event container from which to collect the features
     tel_id : int
         The telscope id for which to collect the features
@@ -87,10 +87,11 @@ def collect_features(
     """
     features = {}
 
-    features.update(event.trigger.as_dict(recursive=False, flatten=True))
+    features.update(event.dl0.trigger.as_dict(recursive=False, flatten=True))
 
+    tel_event = event.tel[tel_id]
     features.update(
-        event.dl1.tel[tel_id].parameters.as_dict(
+        tel_event.dl1.parameters.as_dict(
             add_prefix=True,
             recursive=True,
             flatten=True,
@@ -98,7 +99,7 @@ def collect_features(
     )
 
     features.update(
-        event.dl2.tel[tel_id].as_dict(
+        tel_event.dl2.as_dict(
             add_prefix=True,
             recursive=True,
             flatten=True,
@@ -107,7 +108,7 @@ def collect_features(
     )
 
     features.update(
-        event.dl2.stereo.as_dict(
+        event.dl2.as_dict(
             add_prefix=True,
             recursive=True,
             flatten=True,

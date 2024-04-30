@@ -140,9 +140,9 @@ def test_gamma_file_prod2():
 
             for event in source:
                 if event.count == 0:
-                    assert event.r0.tel.keys() == {38, 47}
+                    assert event.tel.keys() == {38, 47}
                 elif event.count == 1:
-                    assert event.r0.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
+                    assert event.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
                 else:
                     break
 
@@ -176,16 +176,20 @@ def test_pointing():
         max_events=3,
         focal_length_choice="EQUIVALENT",
     ) as reader:
-        for e in reader:
-            assert np.isclose(e.pointing.array_altitude.to_value(u.deg), 70)
-            assert np.isclose(e.pointing.array_azimuth.to_value(u.deg), 0)
-            assert np.isnan(e.pointing.array_ra)
-            assert np.isnan(e.pointing.array_dec)
+        for array_event in reader:
+            assert np.isclose(array_event.pointing.altitude.to_value(u.deg), 70)
+            assert np.isclose(array_event.pointing.azimuth.to_value(u.deg), 0)
+            assert np.isnan(array_event.pointing.ra)
+            assert np.isnan(array_event.pointing.dec)
 
             # normal run, all telescopes point to the array direction
-            for pointing in e.pointing.tel.values():
-                assert u.isclose(e.pointing.array_azimuth, pointing.azimuth)
-                assert u.isclose(e.pointing.array_altitude, pointing.altitude)
+            for tel_event in array_event.tel.values():
+                assert u.isclose(
+                    tel_event.pointing.azimuth, array_event.pointing.azimuth
+                )
+                assert u.isclose(
+                    tel_event.pointing.altitude, array_event.pointing.altitude
+                )
 
 
 def test_allowed_telescopes():
@@ -199,11 +203,8 @@ def test_allowed_telescopes():
     ) as reader:
         assert not allowed_tels.symmetric_difference(reader.subarray.tel_ids)
         for event in reader:
-            assert set(event.r0.tel).issubset(allowed_tels)
-            assert set(event.r1.tel).issubset(allowed_tels)
-            assert set(event.dl0.tel).issubset(allowed_tels)
-            assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
-            assert set(event.pointing.tel).issubset(allowed_tels)
+            assert set(event.tel).issubset(allowed_tels)
+            assert set(event.dl0.trigger.tels_with_trigger).issubset(allowed_tels)
 
 
 def test_calibration_events():
@@ -232,7 +233,7 @@ def test_calibration_events():
         for event, expected_type, expected_id in zip_longest(
             reader, expected_types, expected_ids
         ):
-            assert event.trigger.event_type is expected_type
+            assert event.dl0.trigger.event_type is expected_type
             assert event.index.event_id == expected_id
 
 
@@ -244,11 +245,17 @@ def test_trigger_times():
     t0 = Time("2020-05-06T15:30:00")
     t1 = Time("2020-05-06T15:40:00")
 
-    for event in source:
-        assert t0 <= event.trigger.time <= t1
-        for tel_id, trigger in event.trigger.tel.items():
+    for array_event in source:
+        assert t0 <= array_event.dl0.trigger.time <= t1
+        for tel_event in array_event.tel.values():
             # test single telescope events triggered within 50 ns
-            assert 0 <= (trigger.time - event.trigger.time).to_value(u.ns) <= 50
+            assert (
+                0
+                <= (tel_event.dl0.trigger.time - array_event.dl0.trigger.time).to_value(
+                    u.ns
+                )
+                <= 50
+            )
 
 
 def test_true_image():
@@ -257,8 +264,8 @@ def test_true_image():
         focal_length_choice="EQUIVALENT",
     ) as reader:
         for event in reader:
-            for tel in event.simulation.tel.values():
-                assert np.count_nonzero(tel.true_image) > 0
+            for tel in event.tel.values():
+                assert np.count_nonzero(tel.simulation.true_image) > 0
 
 
 def test_instrument():
@@ -390,7 +397,7 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
         event = next(iter(source))
 
     # make sure we actually have data
-    assert len(event.r1.tel) > 0
+    assert len(event.tel) > 0
 
     calib_scale = 2.0
 
@@ -399,10 +406,10 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
     ) as source:
         event_scaled = next(iter(source))
 
-    for tel_id, r1 in event.r1.tel.items():
+    for tel_id, tel_event in event.tel.items():
         np.testing.assert_allclose(
-            r1.waveform[0],
-            event_scaled.r1.tel[tel_id].waveform[0] / calib_scale,
+            tel_event.r1.waveform[0],
+            event_scaled.tel[tel_id].r1.waveform[0] / calib_scale,
             rtol=0.1,
         )
 
@@ -413,10 +420,10 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
     ) as source:
         event_shifted = next(iter(source))
 
-    for tel_id, r1 in event.r1.tel.items():
+    for tel_id, tel_event in event.tel.items():
         np.testing.assert_allclose(
-            r1.waveform[0],
-            event_shifted.r1.tel[tel_id].waveform[0] - calib_shift,
+            tel_event.r1.waveform[0],
+            event_shifted.tel[tel_id].r1.waveform[0] - calib_shift,
             rtol=0.1,
         )
 
@@ -428,7 +435,7 @@ def test_true_image_sum():
         focal_length_choice="EQUIVALENT",
     ) as s:
         e = next(iter(s))
-        assert np.all(np.isnan(sim.true_image_sum) for sim in e.simulation.tel.values())
+        assert np.all(np.isnan(tel.simulation.true_image_sum) for tel in e.tel.values())
 
     with SimTelEventSource(
         calib_events_path,
@@ -437,11 +444,11 @@ def test_true_image_sum():
         e = next(iter(s))
 
         true_image_sums = {}
-        for tel_id, sim_camera in e.simulation.tel.items():
+        for tel_id, tel in e.tel.items():
             # since the test file contains both sums and individual pixel values
             # we can compare.
-            assert sim_camera.true_image_sum == sim_camera.true_image.sum()
-            true_image_sums[tel_id] = sim_camera.true_image_sum
+            assert tel.simulation.true_image_sum == tel.simulation.true_image.sum()
+            true_image_sums[tel_id] = tel.simulation.true_image_sum
 
     # check it also works with allowed_tels, since the values
     # are stored in a flat array in simtel
@@ -451,8 +458,8 @@ def test_true_image_sum():
         focal_length_choice="EQUIVALENT",
     ) as s:
         e = next(iter(s))
-        assert e.simulation.tel[2].true_image_sum == true_image_sums[2]
-        assert e.simulation.tel[3].true_image_sum == true_image_sums[3]
+        assert e.tel[2].simulation.true_image_sum == true_image_sums[2]
+        assert e.tel[3].simulation.true_image_sum == true_image_sums[3]
 
 
 def test_extracted_calibevents():

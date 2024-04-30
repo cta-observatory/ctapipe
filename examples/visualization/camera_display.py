@@ -343,9 +343,9 @@ with EventSource(
 ) as source:
     event = next(iter(source))
 
-tel_id = list(event.r0.tel.keys())[0]
+tel_id = next(iter(event.tel))
 geom = source.subarray.tel[tel_id].camera.geometry
-waveform = event.r0.tel[tel_id].waveform
+waveform = event.tel[tel_id].r0.waveform
 n_chan, n_pix, n_samp = waveform.shape
 
 

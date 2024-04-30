@@ -87,9 +87,11 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # check tables were written
     with tables.open_file(dl1b_from_dl1a_file, mode="r") as testfile:
+        assert testfile.root.dl0
+        assert testfile.root.dl0.event.subarray
+        assert testfile.root.dl0.event.telescope
         assert testfile.root.dl1
         assert testfile.root.dl1.event.telescope
-        assert testfile.root.dl1.event.subarray
         assert testfile.root.configuration.instrument.subarray.layout
         assert testfile.root.configuration.instrument.telescope.optics
         assert testfile.root.configuration.instrument.telescope.camera.geometry_0
@@ -445,7 +447,7 @@ def test_muon_reconstruction_simtel(tmp_path):
         completeness = table["muonparameters_completeness"]
 
         for event in source:
-            muon = event.muon.tel[1]
+            muon = event.tel[1].muon
             assert u.isclose(muon.ring.radius, radius[event.count], equal_nan=True)
             assert np.isclose(
                 muon.parameters.completeness, completeness[event.count], equal_nan=True

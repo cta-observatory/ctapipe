@@ -177,7 +177,7 @@ def test_table_loader_keeps_original_order(dl2_merged_file):
     from ctapipe.io.tableloader import TableLoader
 
     # check that the order is the same as in the file itself
-    trigger = read_table(dl2_merged_file, "/dl1/event/subarray/trigger")
+    trigger = read_table(dl2_merged_file, "/dl0/event/subarray/trigger")
     # check we actually have unsorted input
     assert not np.all(np.diff(trigger["obs_id"]) >= 0)
 
@@ -262,7 +262,7 @@ def test_chunked(dl2_shower_geometry_file):
     """Test chunked reading"""
     from ctapipe.io.tableloader import TableLoader, read_table
 
-    trigger = read_table(dl2_shower_geometry_file, "/dl1/event/subarray/trigger")
+    trigger = read_table(dl2_shower_geometry_file, "/dl0/event/subarray/trigger")
     n_events = len(trigger)
     n_read = 0
 
@@ -400,6 +400,7 @@ def test_order_merged():
 
     path = get_dataset_path("gamma_diffuse_dl2_train_small.dl2.h5")
 
+    # FIXME: old file, change to dl0 when updating
     trigger = read_table(path, "/dl1/event/subarray/trigger")
     tel_trigger = read_table(path, "/dl1/event/telescope/trigger")
     with TableLoader(path) as loader:

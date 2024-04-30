@@ -6,7 +6,7 @@ from astropy.time import Time
 from traitlets.config import Config
 
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import SubarrayEventContainer
 from ctapipe.instrument import SubarrayDescription
 
 
@@ -38,47 +38,47 @@ def test_flasherflatfieldcalculator(prod5_sst, reference_location):
         config=config,
     )
     # create one event
-    data = ArrayEventContainer()
-    data.meta["origin"] = "test"
-    data.trigger.time = Time.now()
+    event = SubarrayEventContainer()
+    event.meta["origin"] = "test"
+    event.dl0.trigger.time = Time.now()
 
     # initialize mon and r1 data
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
+    event.tel[tel_id].mon.pixel_status.hardware_failing_pixels = np.zeros(
         (n_gain, n_pixels), dtype=bool
     )
-    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels = np.zeros(
+    event.tel[tel_id].mon.pixel_status.pedestal_failing_pixels = np.zeros(
         (n_gain, n_pixels), dtype=bool
     )
-    data.mon.tel[tel_id].pixel_status.flatfield_failing_pixels = np.zeros(
+    event.tel[tel_id].mon.pixel_status.flatfield_failing_pixels = np.zeros(
         (n_gain, n_pixels), dtype=bool
     )
-    data.r1.tel[tel_id].waveform = np.zeros((n_gain, n_pixels, 40))
+    event.tel[tel_id].r1.waveform = np.zeros((n_gain, n_pixels, 40))
 
     # flat-field signal put == delta function of height ff_level at sample 20
-    data.r1.tel[tel_id].waveform[:, :, 20] = ff_level
-    print(data.r1.tel[tel_id].waveform[0, 0, 20])
+    event.tel[tel_id].r1.waveform[:, :, 20] = ff_level
+    print(event.tel[tel_id].r1.waveform[0, 0, 20])
 
     # First test: good event
     while ff_calculator.n_events_seen < n_events:
-        if ff_calculator.calculate_relative_gain(data):
-            assert data.mon.tel[tel_id].flatfield
+        if ff_calculator.calculate_relative_gain(event):
+            assert event.tel[tel_id].mon.flatfield
 
-            print(data.mon.tel[tel_id].flatfield)
-            assert np.mean(data.mon.tel[tel_id].flatfield.charge_median) == ff_level
-            assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_median) == 1
-            assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_std) == 0
+            print(event.tel[tel_id].mon.flatfield)
+            assert np.mean(event.tel[tel_id].mon.flatfield.charge_median) == ff_level
+            assert np.mean(event.tel[tel_id].mon.flatfield.relative_gain_median) == 1
+            assert np.mean(event.tel[tel_id].mon.flatfield.relative_gain_std) == 0
 
     # Second test: introduce some failing pixels
     failing_pixels_id = np.array([10, 20, 30, 40])
-    data.r1.tel[tel_id].waveform[:, failing_pixels_id, :] = 0
-    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels[
+    event.tel[tel_id].r1.waveform[:, failing_pixels_id, :] = 0
+    event.tel[tel_id].mon.pixel_status.pedestal_failing_pixels[
         :, failing_pixels_id
     ] = True
 
     while ff_calculator.n_events_seen < n_events:
-        if ff_calculator.calculate_relative_gain(data):
+        if ff_calculator.calculate_relative_gain(event):
             # working pixel have good gain
-            assert data.mon.tel[tel_id].flatfield.relative_gain_median[0, 0] == 1
+            assert event.tel[tel_id].mon.flatfield.relative_gain_median[0, 0] == 1
 
             # bad pixels do non influence the gain
-            assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_std) == 0
+            assert np.mean(event.tel[tel_id].mon.flatfield.relative_gain_std) == 0
