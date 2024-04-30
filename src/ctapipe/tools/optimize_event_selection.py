@@ -66,12 +66,9 @@ class IrfEventSelector(Tool):
         default_value=0.2, help="Ratio between size of on and off regions."
     ).tag(config=True)
 
-    point_like = Bool(
+    full_enclosure = Bool(
         False,
-        help=(
-            "Optimize both G/H separation cut and theta cut"
-            " for computing point-like IRFs"
-        ),
+        help="Compute only the G/H separation cut needed for full enclosure IRF.",
     ).tag(config=True)
 
     aliases = {
@@ -84,10 +81,10 @@ class IrfEventSelector(Tool):
 
     flags = {
         **flag(
-            "point-like",
-            "IrfEventSelector.point_like",
-            "Optimize both G/H separation cut and theta cut.",
-            "Optimize G/H separation cut without prior theta cut.",
+            "full-enclosure",
+            "IrfEventSelector.full_enclosure",
+            "Compute only the G/H separation cut.",
+            "Compute the G/H separation cut and the theta cut.",
         )
     }
 
@@ -168,11 +165,11 @@ class IrfEventSelector(Tool):
             theta=self.theta,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
-            point_like=self.point_like,
+            point_like=not self.full_enclosure,
         )
 
         self.log.info("Writing results to %s" % self.output_path)
-        if not self.point_like:
+        if self.full_enclosure:
             self.log.info("Writing dummy theta cut to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimization Result")
         result.write(self.output_path, self.overwrite)
