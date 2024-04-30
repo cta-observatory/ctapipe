@@ -1,3 +1,4 @@
+import gzip
 import pickle
 
 import numba
@@ -191,5 +192,5 @@ def create_dummy_templates(
 
                 template_dict[key] = template.T * pe
 
-    with open(output_file, "wb") as filehandler:
+    with gzip.open(output_file, "wb") as filehandler:
         pickle.dump(template_dict, filehandler)
