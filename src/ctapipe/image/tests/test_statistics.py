@@ -49,14 +49,14 @@ def test_kurtosis():
 
 
 def test_return_type():
-    from ctapipe.containers import PeakTimeStatisticsContainer, StatisticsContainer
+    from ctapipe.containers import PeakTimeStatisticsContainer, ImageStatisticsContainer
     from ctapipe.image import descriptive_statistics
 
     rng = np.random.default_rng(0)
     data = rng.normal(5, 2, 1000)
 
     stats = descriptive_statistics(data)
-    assert isinstance(stats, StatisticsContainer)
+    assert isinstance(stats, ImageStatisticsContainer)
 
     stats = descriptive_statistics(data, container_class=PeakTimeStatisticsContainer)
     assert isinstance(stats, PeakTimeStatisticsContainer)
