@@ -31,20 +31,21 @@ def test_image_processor(cleaner, example_event, example_subarray):
     calibrate(example_event)
     process_images(example_event)
 
-    for dl1tel in example_event.dl1.tel.values():
-        n_survived_pixels = dl1tel.image_mask.sum()
+    for tel_event in example_event.tel.values():
+        dl1 = tel_event.dl1
+        n_survived_pixels = dl1.image_mask.sum()
         assert isfinite(n_survived_pixels)
         if n_survived_pixels > 1:
-            assert isfinite(dl1tel.parameters.hillas.length.value)
-            dl1tel.parameters.hillas.length.to("deg")
-            assert isfinite(dl1tel.parameters.timing.slope.value)
-            assert isfinite(dl1tel.parameters.leakage.pixels_width_1)
-            assert isfinite(dl1tel.parameters.concentration.cog)
-            assert isfinite(dl1tel.parameters.morphology.n_pixels)
-            assert isfinite(dl1tel.parameters.intensity_statistics.max)
-            assert isfinite(dl1tel.parameters.peak_time_statistics.max)
+            assert isfinite(dl1.parameters.hillas.length.value)
+            dl1.parameters.hillas.length.to("deg")
+            assert isfinite(dl1.parameters.timing.slope.value)
+            assert isfinite(dl1.parameters.leakage.pixels_width_1)
+            assert isfinite(dl1.parameters.concentration.cog)
+            assert isfinite(dl1.parameters.morphology.n_pixels)
+            assert isfinite(dl1.parameters.intensity_statistics.max)
+            assert isfinite(dl1.parameters.peak_time_statistics.max)
         else:
-            assert np.isnan(dl1tel.parameters.hillas.length.value)
+            assert np.isnan(dl1.parameters.hillas.length.value)
 
     process_images.check_image.to_table()
 
@@ -66,18 +67,20 @@ def test_image_processor_camera_frame(cleaner, example_event, example_subarray):
     calibrate(event)
     process_images(event)
 
-    for dl1tel in event.dl1.tel.values():
-        n_survived_pixels = dl1tel.image_mask.sum()
+    assert event.tel.keys() == example_event.tel.keys()
+    for tel_event in event.tel.values():
+        dl1 = tel_event.dl1
+        n_survived_pixels = dl1.image_mask.sum()
         assert isfinite(n_survived_pixels)
         if n_survived_pixels > 1:
-            assert isfinite(dl1tel.parameters.hillas.length.value)
-            dl1tel.parameters.hillas.length.to("meter")
-            assert isfinite(dl1tel.parameters.timing.slope.value)
-            assert isfinite(dl1tel.parameters.leakage.pixels_width_1)
-            assert isfinite(dl1tel.parameters.concentration.cog)
-            assert isfinite(dl1tel.parameters.morphology.n_pixels)
-            assert isfinite(dl1tel.parameters.intensity_statistics.max)
-            assert isfinite(dl1tel.parameters.peak_time_statistics.max)
+            assert isfinite(dl1.parameters.hillas.length.value)
+            dl1.parameters.hillas.length.to("meter")
+            assert isfinite(dl1.parameters.timing.slope.value)
+            assert isfinite(dl1.parameters.leakage.pixels_width_1)
+            assert isfinite(dl1.parameters.concentration.cog)
+            assert isfinite(dl1.parameters.morphology.n_pixels)
+            assert isfinite(dl1.parameters.intensity_statistics.max)
+            assert isfinite(dl1.parameters.peak_time_statistics.max)
 
     process_images.check_image.to_table()
 
@@ -85,11 +88,12 @@ def test_image_processor_camera_frame(cleaner, example_event, example_subarray):
     # are in the correct frame
     event = deepcopy(example_event)
     calibrate(event)
-    for dl1 in event.dl1.tel.values():
-        dl1.image = np.zeros_like(dl1.image)
+    for tel_event in event.tel.values():
+        tel_event.dl1.image[:] = 0
 
     process_images(event)
-    for dl1 in event.dl1.tel.values():
+    for tel_event in event.tel.values():
+        dl1 = tel_event.dl1
         assert isinstance(dl1.parameters.hillas, CameraHillasParametersContainer)
         assert isinstance(dl1.parameters.timing, CameraTimingParametersContainer)
         assert np.isnan(dl1.parameters.hillas.length.value)
