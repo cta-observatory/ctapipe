@@ -25,7 +25,7 @@ from ctapipe.core.traits import (
 
 class StatisticsExtractor(TelescopeComponent):
 
-    sample_size = Int(2500, help="sample size").tag(config=True)
+    sample_size = Int(2500, help="Size of the sample used for the calculation of the statistical values").tag(config=True)
     image_median_cut_outliers = List(
         [-0.3, 0.3],
         help="Interval of accepted image values (fraction with respect to camera median value)",
@@ -58,6 +58,8 @@ class StatisticsExtractor(TelescopeComponent):
         dl1_table : ndarray
             dl1 table with images and times stored in a numpy array of shape
             (n_images, n_channels, n_pix).
+        masked_pixels_of_sample : ndarray
+            boolean array of masked pixels that are not available for processing
         col_name : string
             column name in the dl1 table
 
