@@ -9,7 +9,7 @@ from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
-from ..core.traits import Float
+from ..core.traits import Float, Integer
 
 
 class ResultValidRange:
@@ -138,17 +138,6 @@ class GridOptimizer(Component):
         default_value=5,
     ).tag(config=True)
 
-    def reco_energy_bins(self):
-        """
-        Creates bins per decade for reconstructed MC energy using pyirf function.
-        """
-        reco_energy = create_bins_per_decade(
-            self.reco_energy_min * u.TeV,
-            self.reco_energy_max * u.TeV,
-            self.reco_energy_n_bins_per_decade,
-        )
-        return reco_energy
-
     def optimize_gh_cut(
         self,
         signal,
@@ -166,7 +155,12 @@ class GridOptimizer(Component):
         if not isinstance(min_fov_radius, u.Quantity):
             raise ValueError("min_fov_radius has to have a unit")
 
-        reco_energy_bins = self.reco_energy_bins()
+        reco_energy_bins = create_bins_per_decade(
+            self.reco_energy_min * u.TeV,
+            self.reco_energy_max * u.TeV,
+            self.reco_energy_n_bins_per_decade,
+        )
+
         if point_like:
             initial_gh_cuts = calculate_percentile_cut(
                 signal["gh_score"],
@@ -218,10 +212,32 @@ class GridOptimizer(Component):
         )
         valid_energy = self._get_valid_energy_range(opt_sens)
 
+        # Re-calculate theta cut with optimized g/h cut
+        if point_like:
+            signal["selected_gh"] = evaluate_binned_cut(
+                signal["gh_score"],
+                signal["reco_energy"],
+                gh_cuts,
+                operator.ge,
+            )
+            theta_cuts_opt = theta.calculate_theta_cuts(
+                signal[signal["selected_gh"]]["theta"],
+                signal[signal["selected_gh"]]["reco_energy"],
+            )
+        else:
+            # TODO: Find a better solution for full enclosure than this dummy theta cut
+            theta_cuts_opt = QTable()
+            theta_cuts_opt["low"] = reco_energy_bins[:-1]
+            theta_cuts_opt["center"] = 0.5 * (
+                reco_energy_bins[:-1] + reco_energy_bins[1:]
+            )
+            theta_cuts_opt["high"] = reco_energy_bins[1:]
+            theta_cuts_opt["cut"] = max_fov_radius
+
         result_saver = OptimizationResultStore(precuts)
         result_saver.set_result(
             gh_cuts,
-            theta_cuts,
+            theta_cuts_opt,
             valid_energy=valid_energy,
             valid_offset=[min_fov_radius, max_fov_radius],
             clf_prefix=clf_prefix,
@@ -240,3 +256,81 @@ class GridOptimizer(Component):
             ]
         else:
             raise ValueError("Optimal significance curve has internal NaN bins")
+
+
+class ThetaCutsCalculator(Component):
+    """Compute percentile cuts on theta"""
+
+    theta_min_angle = Float(
+        default_value=-1, help="Smallest angular cut value allowed (-1 means no cut)"
+    ).tag(config=True)
+
+    theta_max_angle = Float(
+        default_value=0.32, help="Largest angular cut value allowed"
+    ).tag(config=True)
+
+    theta_min_counts = Integer(
+        default_value=10,
+        help="Minimum number of events in a bin to attempt to find a cut value",
+    ).tag(config=True)
+
+    theta_fill_value = Float(
+        default_value=0.32, help="Angular cut value used for bins with too few events"
+    ).tag(config=True)
+
+    theta_smoothing = Float(
+        default_value=None,
+        allow_none=True,
+        help="When given, the width (in units of bins) of gaussian smoothing applied (None)",
+    ).tag(config=True)
+
+    target_percentile = Float(
+        default_value=68,
+        help="Percent of events in each energy bin to keep after the theta cut",
+    ).tag(config=True)
+
+    reco_energy_min = Float(
+        help="Minimum value for Reco Energy bins in TeV units",
+        default_value=0.015,
+    ).tag(config=True)
+
+    reco_energy_max = Float(
+        help="Maximum value for Reco Energy bins in TeV units",
+        default_value=200,
+    ).tag(config=True)
+
+    reco_energy_n_bins_per_decade = Float(
+        help="Number of bins per decade for Reco Energy bins",
+        default_value=5,
+    ).tag(config=True)
+
+    def calculate_theta_cuts(self, theta, reco_energy, reco_energy_bins=None):
+        if reco_energy_bins is None:
+            reco_energy_bins = create_bins_per_decade(
+                self.reco_energy_min * u.TeV,
+                self.reco_energy_max * u.TeV,
+                self.reco_energy_n_bins_per_decade,
+            )
+
+        theta_min_angle = (
+            None if self.theta_min_angle < 0 else self.theta_min_angle * u.deg
+        )
+        theta_max_angle = (
+            None if self.theta_max_angle < 0 else self.theta_max_angle * u.deg
+        )
+        if self.theta_smoothing:
+            theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
+        else:
+            theta_smoothing = self.theta_smoothing
+
+        return calculate_percentile_cut(
+            theta,
+            reco_energy,
+            reco_energy_bins,
+            min_value=theta_min_angle,
+            max_value=theta_max_angle,
+            smoothing=theta_smoothing,
+            percentile=self.target_percentile,
+            fill_value=self.theta_fill_value * u.deg,
+            min_events=self.theta_min_counts,
+        )
