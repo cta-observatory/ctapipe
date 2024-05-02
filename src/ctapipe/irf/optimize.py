@@ -10,7 +10,7 @@ from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
-from ..core.traits import Float, Integer
+from ..core.traits import AstroQuantity, Float, Integer
 
 
 class ResultValidRange:
@@ -139,17 +139,19 @@ class GridOptimizer(Component):
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
 
-    reco_energy_min = Float(
-        help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.015,
+    reco_energy_min = AstroQuantity(
+        help="Minimum value for Reco Energy bins",
+        default_value=0.015 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_max = Float(
-        help="Maximum value for Reco Energy bins in TeV units",
-        default_value=200,
+    reco_energy_max = AstroQuantity(
+        help="Maximum value for Reco Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Float(
+    reco_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
@@ -172,8 +174,8 @@ class GridOptimizer(Component):
             raise ValueError("min_fov_radius has to have a unit")
 
         reco_energy_bins = create_bins_per_decade(
-            self.reco_energy_min * u.TeV,
-            self.reco_energy_max * u.TeV,
+            self.reco_energy_min.to(u.TeV),
+            self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
         )
 
@@ -272,12 +274,16 @@ class GridOptimizer(Component):
 class ThetaCutsCalculator(Component):
     """Compute percentile cuts on theta"""
 
-    theta_min_angle = Float(
-        default_value=-1, help="Smallest angular cut value allowed (-1 means no cut)"
+    theta_min_angle = AstroQuantity(
+        default_value=-1 * u.deg,
+        physical_type=u.physical.angle,
+        help="Smallest angular cut value allowed (-1 means no cut)",
     ).tag(config=True)
 
-    theta_max_angle = Float(
-        default_value=0.32, help="Largest angular cut value allowed"
+    theta_max_angle = AstroQuantity(
+        default_value=0.32 * u.deg,
+        physical_type=u.physical.angle,
+        help="Largest angular cut value allowed",
     ).tag(config=True)
 
     theta_min_counts = Integer(
@@ -285,8 +291,10 @@ class ThetaCutsCalculator(Component):
         help="Minimum number of events in a bin to attempt to find a cut value",
     ).tag(config=True)
 
-    theta_fill_value = Float(
-        default_value=0.32, help="Angular cut value used for bins with too few events"
+    theta_fill_value = AstroQuantity(
+        default_value=0.32 * u.deg,
+        physical_type=u.physical.angle,
+        help="Angular cut value used for bins with too few events",
     ).tag(config=True)
 
     theta_smoothing = Float(
@@ -300,17 +308,19 @@ class ThetaCutsCalculator(Component):
         help="Percent of events in each energy bin to keep after the theta cut",
     ).tag(config=True)
 
-    reco_energy_min = Float(
-        help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.015,
+    reco_energy_min = AstroQuantity(
+        help="Minimum value for Reco Energy bins",
+        default_value=0.015 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_max = Float(
-        help="Maximum value for Reco Energy bins in TeV units",
-        default_value=200,
+    reco_energy_max = AstroQuantity(
+        help="Maximum value for Reco Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Float(
+    reco_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
@@ -318,16 +328,16 @@ class ThetaCutsCalculator(Component):
     def calculate_theta_cuts(self, theta, reco_energy, reco_energy_bins=None):
         if reco_energy_bins is None:
             reco_energy_bins = create_bins_per_decade(
-                self.reco_energy_min * u.TeV,
-                self.reco_energy_max * u.TeV,
+                self.reco_energy_min.to(u.TeV),
+                self.reco_energy_max.to(u.TeV),
                 self.reco_energy_n_bins_per_decade,
             )
 
         theta_min_angle = (
-            None if self.theta_min_angle < 0 else self.theta_min_angle * u.deg
+            None if self.theta_min_angle < 0 * u.deg else self.theta_min_angle
         )
         theta_max_angle = (
-            None if self.theta_max_angle < 0 else self.theta_max_angle * u.deg
+            None if self.theta_max_angle < 0 * u.deg else self.theta_max_angle
         )
         if self.theta_smoothing:
             theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
@@ -342,6 +352,6 @@ class ThetaCutsCalculator(Component):
             max_value=theta_max_angle,
             smoothing=theta_smoothing,
             percentile=self.target_percentile,
-            fill_value=self.theta_fill_value * u.deg,
+            fill_value=self.theta_fill_value,
             min_events=self.theta_min_counts,
         )

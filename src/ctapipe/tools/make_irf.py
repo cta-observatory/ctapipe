@@ -38,6 +38,7 @@ class IrfTool(Tool):
         True,
         help="Compute background rate IRF using supplied files",
     ).tag(config=True)
+
     do_benchmarks = Bool(
         False,
         help="Produce IRF related benchmarks",
@@ -50,28 +51,33 @@ class IrfTool(Tool):
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
     ).tag(config=True)
+
     gamma_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
         help="Name of the pyirf spectra used for the simulated gamma spectrum",
     ).tag(config=True)
+
     proton_file = traits.Path(
         default_value=None,
         allow_none=True,
         directory_ok=False,
         help="Proton input filename and path",
     ).tag(config=True)
+
     proton_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
         help="Name of the pyirf spectra used for the simulated proton spectrum",
     ).tag(config=True)
+
     electron_file = traits.Path(
         default_value=None,
         allow_none=True,
         directory_ok=False,
         help="Electron input filename and path",
     ).tag(config=True)
+
     electron_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
@@ -341,7 +347,7 @@ class IrfTool(Tool):
                         self.opt_result.theta_cuts["high"][-1],
                     ),
                     fov_offset_bins=u.Quantity(
-                        [self.fov_offset_bins[0], self.fov_offset_bins[-1]]
+                        [self.bins.fov_offset_min, self.bins.fov_offset_max]
                     ),
                 )
             )
@@ -377,7 +383,7 @@ class IrfTool(Tool):
                 theta_cuts["center"] = 0.5 * (
                     self.reco_energy_bins[:-1] + self.reco_energy_bins[1:]
                 )
-                theta_cuts["cut"] = self.fov_offset_bins[-1]
+                theta_cuts["cut"] = self.bins.fov_offset_max
             else:
                 theta_cuts = self.opt_result.theta_cuts
 
@@ -390,8 +396,8 @@ class IrfTool(Tool):
                 reco_energy_bins=self.reco_energy_bins,
                 theta_cuts=theta_cuts,
                 alpha=self.alpha,
-                fov_offset_min=self.fov_offset_bins[0],
-                fov_offset_max=self.fov_offset_bins[-1],
+                fov_offset_min=self.bins.fov_offset_min,
+                fov_offset_max=self.bins.fov_offset_max,
             )
             sensitivity = calculate_sensitivity(
                 signal_hist, background_hist, alpha=self.alpha

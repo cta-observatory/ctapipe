@@ -21,22 +21,27 @@ class IrfEventSelector(Tool):
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
     ).tag(config=True)
+
     gamma_sim_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
         help="Name of the pyirf spectra used for the simulated gamma spectrum",
     ).tag(config=True)
+
     proton_file = traits.Path(
         default_value=None, directory_ok=False, help="Proton input filename and path"
     ).tag(config=True)
+
     proton_sim_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
         help="Name of the pyirf spectra used for the simulated proton spectrum",
     ).tag(config=True)
+
     electron_file = traits.Path(
         default_value=None, directory_ok=False, help="Electron input filename and path"
     ).tag(config=True)
+
     electron_sim_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
@@ -160,8 +165,8 @@ class IrfEventSelector(Tool):
             signal=self.signal_events,
             background=self.background_events,
             alpha=self.alpha,
-            min_fov_radius=self.bins.fov_offset_min * u.deg,
-            max_fov_radius=self.bins.fov_offset_max * u.deg,
+            min_fov_radius=self.bins.fov_offset_min,
+            max_fov_radius=self.bins.fov_offset_max,
             theta=self.theta,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,

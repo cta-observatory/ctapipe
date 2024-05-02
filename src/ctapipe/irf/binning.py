@@ -4,7 +4,7 @@ import numpy as np
 from pyirf.binning import create_bins_per_decade
 
 from ..core import Component
-from ..core.traits import Float, Integer
+from ..core.traits import AstroQuantity, Integer
 
 
 def check_bins_in_range(bins, range):
@@ -18,32 +18,36 @@ def check_bins_in_range(bins, range):
 class OutputEnergyBinning(Component):
     """Collects energy binning settings."""
 
-    true_energy_min = Float(
-        help="Minimum value for True Energy bins in TeV units",
-        default_value=0.005,
+    true_energy_min = AstroQuantity(
+        help="Minimum value for True Energy bins",
+        default_value=0.005 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_max = Float(
-        help="Maximum value for True Energy bins in TeV units",
-        default_value=200,
+    true_energy_max = AstroQuantity(
+        help="Maximum value for True Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_n_bins_per_decade = Float(
+    true_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
 
-    reco_energy_min = Float(
-        help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.015,
+    reco_energy_min = AstroQuantity(
+        help="Minimum value for Reco Energy bins",
+        default_value=0.015 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_max = Float(
-        help="Maximum value for Reco Energy bins in TeV units",
-        default_value=200,
+    reco_energy_max = AstroQuantity(
+        help="Maximum value for Reco Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Float(
+    reco_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for Reco Energy bins",
         default_value=5,
     ).tag(config=True)
@@ -53,8 +57,8 @@ class OutputEnergyBinning(Component):
         Creates bins per decade for true MC energy using pyirf function.
         """
         true_energy = create_bins_per_decade(
-            self.true_energy_min * u.TeV,
-            self.true_energy_max * u.TeV,
+            self.true_energy_min.to(u.TeV),
+            self.true_energy_max.to(u.TeV),
             self.true_energy_n_bins_per_decade,
         )
         return true_energy
@@ -64,8 +68,8 @@ class OutputEnergyBinning(Component):
         Creates bins per decade for reconstructed MC energy using pyirf function.
         """
         reco_energy = create_bins_per_decade(
-            self.reco_energy_min * u.TeV,
-            self.reco_energy_max * u.TeV,
+            self.reco_energy_min.to(u.TeV),
+            self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
         )
         return reco_energy
@@ -74,14 +78,16 @@ class OutputEnergyBinning(Component):
 class FovOffsetBinning(Component):
     """Collects FoV binning settings."""
 
-    fov_offset_min = Float(
-        help="Minimum value for FoV Offset bins in degrees",
-        default_value=0.0,
+    fov_offset_min = AstroQuantity(
+        help="Minimum value for FoV Offset bins",
+        default_value=0.0 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
-    fov_offset_max = Float(
-        help="Maximum value for FoV offset bins in degrees",
-        default_value=5.0,
+    fov_offset_max = AstroQuantity(
+        help="Maximum value for FoV offset bins",
+        default_value=5.0 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
     fov_offset_n_bins = Integer(
@@ -95,8 +101,8 @@ class FovOffsetBinning(Component):
         """
         fov_offset = (
             np.linspace(
-                self.fov_offset_min,
-                self.fov_offset_max,
+                self.fov_offset_min.to_value(u.deg),
+                self.fov_offset_max.to_value(u.deg),
                 self.fov_offset_n_bins + 1,
             )
             * u.deg
