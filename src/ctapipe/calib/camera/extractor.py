@@ -72,6 +72,7 @@ class StatisticsExtractor(TelescopeComponent):
         List StatisticsContainer:
             List of extracted statistics and validity ranges
         """
+        pass
 
 
 class PlainExtractor(StatisticsExtractor):
