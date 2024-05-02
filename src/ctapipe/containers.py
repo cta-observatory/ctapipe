@@ -415,13 +415,13 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics of a sequence of images"""
 
-    validity_start = Field(np.float32(nan), "start")
-    validity_stop = Field(np.float32(nan), "stop")
-    mean = Field(np.float32(nan), "mean intensity")
-    median = Field(np.float32(nan), "median intensity")
-    median_outliers = Field(np.float32(nan), "median intensity")
-    std = Field(np.float32(nan), "standard deviation of intensity")
-    std_outliers = Field(np.float32(nan), "standard deviation intensity")
+    validity_start = Field(np.float32(nan), "start of the validity range")
+    validity_stop = Field(np.float32(nan), "stop of the validity range")
+    mean = Field(np.float32(nan), "Channel-wise and pixel-wise mean")
+    median = Field(np.float32(nan), "Channel-wise and pixel-wise median")
+    median_outliers = Field(np.float32(nan), "Channel-wise and pixel-wise median outliers")
+    std = Field(np.float32(nan), "Channel-wise and pixel-wise standard deviation")
+    std_outliers = Field(np.float32(nan), "Channel-wise and pixel-wise standard deviation outliers")
 
 class ImageStatisticsContainer(Container):
     """Store descriptive image statistics"""
