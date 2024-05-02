@@ -19,35 +19,39 @@ from pyirf.irf import (
 )
 
 from ..core import Component
-from ..core.traits import Float, Integer
+from ..core.traits import AstroQuantity, Float, Integer
 
 
 class PsfIrf(Component):
     """Collects the functionality for generating PSF IRFs."""
 
-    true_energy_min = Float(
-        help="Minimum value for True Energy bins in TeV units",
-        default_value=0.005,
+    true_energy_min = AstroQuantity(
+        help="Minimum value for True Energy bins",
+        default_value=0.005 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_max = Float(
-        help="Maximum value for True Energy bins in TeV units",
-        default_value=200,
+    true_energy_max = AstroQuantity(
+        help="Maximum value for True Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_n_bins_per_decade = Float(
+    true_energy_n_bins_per_decade = Integer(
         help="Number of edges per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
 
-    source_offset_min = Float(
+    source_offset_min = AstroQuantity(
         help="Minimum value for Source offset for PSF IRF",
-        default_value=0,
+        default_value=0 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
-    source_offset_max = Float(
+    source_offset_max = AstroQuantity(
         help="Maximum value for Source offset for PSF IRF",
-        default_value=1,
+        default_value=1 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
     source_offset_n_bins = Integer(
@@ -58,14 +62,14 @@ class PsfIrf(Component):
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.true_energy_bins = create_bins_per_decade(
-            self.true_energy_min * u.TeV,
-            self.true_energy_max * u.TeV,
+            self.true_energy_min.to(u.TeV),
+            self.true_energy_max.to(u.TeV),
             self.true_energy_n_bins_per_decade,
         )
         self.source_offset_bins = (
             np.linspace(
-                self.source_offset_min,
-                self.source_offset_max,
+                self.source_offset_min.to_value(u.deg),
+                self.source_offset_max.to_value(u.deg),
                 self.source_offset_n_bins + 1,
             )
             * u.deg
@@ -90,29 +94,33 @@ class PsfIrf(Component):
 class Background3dIrf(Component):
     """Collects the functionality for generating 3D Background IRFs using square bins."""
 
-    reco_energy_min = Float(
-        help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.005,
+    reco_energy_min = AstroQuantity(
+        help="Minimum value for Reco Energy bins",
+        default_value=0.005 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_max = Float(
-        help="Maximum value for Reco Energy bins in TeV units",
-        default_value=200,
+    reco_energy_max = AstroQuantity(
+        help="Maximum value for Reco Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Float(
+    reco_energy_n_bins_per_decade = Integer(
         help="Number of edges per decade for Reco Energy bins",
         default_value=10,
     ).tag(config=True)
 
-    fov_offset_min = Float(
+    fov_offset_min = AstroQuantity(
         help="Minimum value for Field of View offset for background IRF",
-        default_value=0,
+        default_value=0 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
-    fov_offset_max = Float(
+    fov_offset_max = AstroQuantity(
         help="Maximum value for Field of View offset for background IRF",
-        default_value=1,
+        default_value=1 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
     fov_offset_n_bins = Integer(
@@ -123,14 +131,14 @@ class Background3dIrf(Component):
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.reco_energy_bins = create_bins_per_decade(
-            self.reco_energy_min * u.TeV,
-            self.reco_energy_max * u.TeV,
+            self.reco_energy_min.to(u.TeV),
+            self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
         )
         self.fov_offset_bins = (
             np.linspace(
-                self.fov_offset_min,
-                self.fov_offset_max,
+                self.fov_offset_min.to_value(u.deg),
+                self.fov_offset_max.to_value(u.deg),
                 self.fov_offset_n_bins + 1,
             )
             * u.deg
@@ -157,29 +165,33 @@ class Background3dIrf(Component):
 class Background2dIrf(Component):
     """Collects the functionality for generating 2D Background IRFs."""
 
-    reco_energy_min = Float(
-        help="Minimum value for Reco Energy bins in TeV units",
-        default_value=0.005,
+    reco_energy_min = AstroQuantity(
+        help="Minimum value for Reco Energy bins",
+        default_value=0.005 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_max = Float(
-        help="Maximum value for Reco Energy bins in TeV units",
-        default_value=200,
+    reco_energy_max = AstroQuantity(
+        help="Maximum value for Reco Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    reco_energy_n_bins_per_decade = Float(
+    reco_energy_n_bins_per_decade = Integer(
         help="Number of edges per decade for Reco Energy bins",
         default_value=10,
     ).tag(config=True)
 
-    fov_offset_min = Float(
+    fov_offset_min = AstroQuantity(
         help="Minimum value for Field of View offset for background IRF",
-        default_value=0,
+        default_value=0 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
-    fov_offset_max = Float(
+    fov_offset_max = AstroQuantity(
         help="Maximum value for Field of View offset for background IRF",
-        default_value=1,
+        default_value=1 * u.deg,
+        physical_type=u.physical.angle,
     ).tag(config=True)
 
     fov_offset_n_bins = Integer(
@@ -190,14 +202,14 @@ class Background2dIrf(Component):
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.reco_energy_bins = create_bins_per_decade(
-            self.reco_energy_min * u.TeV,
-            self.reco_energy_max * u.TeV,
+            self.reco_energy_min.to(u.TeV),
+            self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
         )
         self.fov_offset_bins = (
             np.linspace(
-                self.fov_offset_min,
-                self.fov_offset_max,
+                self.fov_offset_min.to_value(u.deg),
+                self.fov_offset_max.to_value(u.deg),
                 self.fov_offset_n_bins + 1,
             )
             * u.deg
@@ -239,17 +251,19 @@ class EnergyMigrationIrf(Component):
         default_value=31,
     ).tag(config=True)
 
-    true_energy_min = Float(
-        help="Minimum value for True Energy bins in TeV units",
-        default_value=0.005,
+    true_energy_min = AstroQuantity(
+        help="Minimum value for True Energy bins",
+        default_value=0.005 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_max = Float(
-        help="Maximum value for True Energy bins in TeV units",
-        default_value=200,
+    true_energy_max = AstroQuantity(
+        help="Maximum value for True Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_n_bins_per_decade = Float(
+    true_energy_n_bins_per_decade = Integer(
         help="Number of edges per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
@@ -260,8 +274,8 @@ class EnergyMigrationIrf(Component):
         """
         super().__init__(parent=parent, **kwargs)
         self.true_energy_bins = create_bins_per_decade(
-            self.true_energy_min * u.TeV,
-            self.true_energy_max * u.TeV,
+            self.true_energy_min.to(u.TeV),
+            self.true_energy_max.to(u.TeV),
             self.true_energy_n_bins_per_decade,
         )
         self.migration_bins = np.linspace(
@@ -290,17 +304,19 @@ class EnergyMigrationIrf(Component):
 class EffectiveAreaIrf(Component):
     """Collects the functionality for generating Effective Area IRFs."""
 
-    true_energy_min = Float(
-        help="Minimum value for True Energy bins in TeV units",
-        default_value=0.005,
+    true_energy_min = AstroQuantity(
+        help="Minimum value for True Energy bins",
+        default_value=0.005 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_max = Float(
-        help="Maximum value for True Energy bins in TeV units",
-        default_value=200,
+    true_energy_max = AstroQuantity(
+        help="Maximum value for True Energy bins",
+        default_value=200 * u.TeV,
+        physical_type=u.physical.energy,
     ).tag(config=True)
 
-    true_energy_n_bins_per_decade = Float(
+    true_energy_n_bins_per_decade = Integer(
         help="Number of bins per decade for True Energy bins",
         default_value=10,
     ).tag(config=True)
@@ -311,8 +327,8 @@ class EffectiveAreaIrf(Component):
         """
         super().__init__(parent=parent, **kwargs)
         self.true_energy_bins = create_bins_per_decade(
-            self.true_energy_min * u.TeV,
-            self.true_energy_max * u.TeV,
+            self.true_energy_min.to(u.TeV),
+            self.true_energy_max.to(u.TeV),
             self.true_energy_n_bins_per_decade,
         )
         self.sim_info = sim_info

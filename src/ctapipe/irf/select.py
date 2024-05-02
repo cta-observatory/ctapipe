@@ -260,7 +260,7 @@ class EventsLoader(Component):
         ):
             if isinstance(fov_bins, FovOffsetBinning):
                 spectrum = spectrum.integrate_cone(
-                    fov_bins.fov_offset_min * u.deg, fov_bins.fov_offset_max * u.deg
+                    fov_bins.fov_offset_min, fov_bins.fov_offset_max
                 )
             else:
                 spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[-1])
