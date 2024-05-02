@@ -20,7 +20,6 @@ from pyirf.irf import (
 
 from ..core import Component
 from ..core.traits import Float, Integer
-from .binning import check_bins_in_range
 
 
 class PsfIrf(Component):
@@ -56,14 +55,13 @@ class PsfIrf(Component):
         default_value=100,
     ).tag(config=True)
 
-    def __init__(self, parent, valid_offset, **kwargs):
+    def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.true_energy_bins = create_bins_per_decade(
             self.true_energy_min * u.TeV,
             self.true_energy_max * u.TeV,
             self.true_energy_n_bins_per_decade,
         )
-        self.valid_offset = valid_offset
         self.source_offset_bins = (
             np.linspace(
                 self.source_offset_min,
@@ -74,7 +72,6 @@ class PsfIrf(Component):
         )
 
     def make_psf_table_hdu(self, signal_events, fov_offset_bins):
-        check_bins_in_range(fov_offset_bins, self.valid_offset)
         psf = psf_table(
             events=signal_events,
             true_energy_bins=self.true_energy_bins,
@@ -123,14 +120,13 @@ class Background3dIrf(Component):
         default_value=1,
     ).tag(config=True)
 
-    def __init__(self, parent, valid_offset, **kwargs):
+    def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.reco_energy_bins = create_bins_per_decade(
             self.reco_energy_min * u.TeV,
             self.reco_energy_max * u.TeV,
             self.reco_energy_n_bins_per_decade,
         )
-        self.valid_offset = valid_offset
         self.fov_offset_bins = (
             np.linspace(
                 self.fov_offset_min,
@@ -139,7 +135,6 @@ class Background3dIrf(Component):
             )
             * u.deg
         )
-        # check_bins_in_range(self.fov_offset_bins, self.valid_offset)
 
     def make_bkg3d_table_hdu(self, bkg_events, obs_time):
         sel = bkg_events["selected"]
@@ -192,14 +187,13 @@ class Background2dIrf(Component):
         default_value=1,
     ).tag(config=True)
 
-    def __init__(self, parent, valid_offset, **kwargs):
+    def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.reco_energy_bins = create_bins_per_decade(
             self.reco_energy_min * u.TeV,
             self.reco_energy_max * u.TeV,
             self.reco_energy_n_bins_per_decade,
         )
-        self.valid_offset = valid_offset
         self.fov_offset_bins = (
             np.linspace(
                 self.fov_offset_min,
@@ -208,7 +202,6 @@ class Background2dIrf(Component):
             )
             * u.deg
         )
-        # check_bins_in_range(self.fov_offset_bins, self.valid_offset)
 
     def make_bkg2d_table_hdu(self, bkg_events, obs_time):
         sel = bkg_events["selected"]
