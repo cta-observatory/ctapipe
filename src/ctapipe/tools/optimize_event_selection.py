@@ -169,8 +169,6 @@ class IrfEventSelector(Tool):
         )
 
         self.log.info("Writing results to %s" % self.output_path)
-        if self.full_enclosure:
-            self.log.info("Writing dummy theta cut to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimization Result")
         result.write(self.output_path, self.overwrite)
 
