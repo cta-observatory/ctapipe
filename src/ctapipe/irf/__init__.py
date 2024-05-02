@@ -7,13 +7,17 @@ from .irfs import (
     EnergyMigrationIrf,
     PsfIrf,
 )
-from .optimize import GridOptimizer, OptimizationResult, OptimizationResultStore
+from .optimize import (
+    GridOptimizer,
+    OptimizationResult,
+    OptimizationResultStore,
+    ThetaCutsCalculator,
+)
 from .select import (
     SPECTRA,
     EventPreProcessor,
     EventsLoader,
     Spectra,
-    ThetaCutsCalculator,
 )
 
 __all__ = [

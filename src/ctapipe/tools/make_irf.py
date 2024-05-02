@@ -4,7 +4,7 @@ import operator
 import astropy.units as u
 import numpy as np
 from astropy.io import fits
-from astropy.table import QTable, vstack
+from astropy.table import vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
@@ -26,7 +26,6 @@ from ..irf import (
     OutputEnergyBinning,
     PsfIrf,
     Spectra,
-    ThetaCutsCalculator,
     check_bins_in_range,
 )
 
@@ -141,7 +140,6 @@ class IrfTool(Tool):
     }
 
     classes = [
-        ThetaCutsCalculator,
         EventsLoader,
         Background2dIrf,
         Background3dIrf,
@@ -153,7 +151,6 @@ class IrfTool(Tool):
     ]
 
     def setup(self):
-        self.theta = ThetaCutsCalculator(parent=self)
         self.e_bins = OutputEnergyBinning(parent=self)
         self.bins = FovOffsetBinning(parent=self)
 
@@ -224,7 +221,7 @@ class IrfTool(Tool):
             )
 
     def calculate_selections(self):
-        """Add the selection columns to the signal and optionally background tables"""
+        """Add the selection columns to the signal and optionally background tables."""
         self.signal_events["selected_gh"] = evaluate_binned_cut(
             self.signal_events["gh_score"],
             self.signal_events["reco_energy"],
@@ -232,30 +229,16 @@ class IrfTool(Tool):
             operator.ge,
         )
         if not self.full_enclosure:
-            self.theta_cuts_opt = self.theta.calculate_theta_cuts(
-                self.signal_events[self.signal_events["selected_gh"]]["theta"],
-                self.signal_events[self.signal_events["selected_gh"]]["reco_energy"],
-                self.reco_energy_bins,
-            )
             self.signal_events["selected_theta"] = evaluate_binned_cut(
                 self.signal_events["theta"],
                 self.signal_events["reco_energy"],
-                self.theta_cuts_opt,
+                self.opt_result.theta_cuts,
                 operator.le,
             )
             self.signal_events["selected"] = (
                 self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
             )
         else:
-            # Re-"calculate" the dummy theta cut because of potentially different reco energy binning
-            self.theta_cuts_opt = QTable()
-            self.theta_cuts_opt["low"] = self.reco_energy_bins[:-1]
-            self.theta_cuts_opt["center"] = 0.5 * (
-                self.reco_energy_bins[:-1] + self.reco_energy_bins[1:]
-            )
-            self.theta_cuts_opt["high"] = self.reco_energy_bins[1:]
-            self.theta_cuts_opt["cut"] = self.opt_result.valid_offset.max
-
             self.signal_events["selected"] = self.signal_events["selected_gh"]
 
         if self.do_background:
@@ -269,7 +252,7 @@ class IrfTool(Tool):
                 self.background_events["selected_theta"] = evaluate_binned_cut(
                     self.background_events["theta"],
                     self.background_events["reco_energy"],
-                    self.theta_cuts_opt,
+                    self.opt_result.theta_cuts,
                     operator.le,
                 )
                 self.background_events["selected"] = (
@@ -334,7 +317,7 @@ class IrfTool(Tool):
         )
         hdus.append(
             create_rad_max_hdu(
-                self.theta_cuts_opt["cut"].reshape(-1, 1),
+                self.opt_result.theta_cuts["cut"].reshape(-1, 1),
                 self.reco_energy_bins,
                 self.fov_offset_bins,
             )
@@ -367,7 +350,7 @@ class IrfTool(Tool):
             background_hist = estimate_background(
                 self.background_events[self.background_events["selected_gh"]],
                 reco_energy_bins=self.reco_energy_bins,
-                theta_cuts=self.theta_cuts_opt,
+                theta_cuts=self.opt_result.theta_cuts,
                 alpha=self.alpha,
                 fov_offset_min=self.fov_offset_bins[0],
                 fov_offset_max=self.fov_offset_bins[-1],
