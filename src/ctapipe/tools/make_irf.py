@@ -176,47 +176,36 @@ class IrfTool(Tool):
                 target_spectrum=SPECTRA[self.gamma_target_spectrum],
             ),
         ]
-        if self.do_background and self.proton_file:
-            self.particles.append(
-                EventsLoader(
-                    parent=self,
-                    kind="protons",
-                    file=self.proton_file,
-                    target_spectrum=SPECTRA[self.proton_target_spectrum],
-                )
-            )
-        if self.do_background and self.electron_file:
-            self.particles.append(
-                EventsLoader(
-                    parent=self,
-                    kind="electrons",
-                    file=self.electron_file,
-                    target_spectrum=SPECTRA[self.electron_target_spectrum],
-                )
-            )
-        if self.do_background and len(self.particles) == 1:
-            raise RuntimeError(
-                "At least one electron or proton file required when specifying `do_background`."
-            )
-
         if self.do_background:
-            self.bkg = Background2dIrf(
-                parent=self,
-                valid_offset=self.opt_result.valid_offset,
-            )
-            self.bkg3 = Background3dIrf(
-                parent=self,
-                valid_offset=self.opt_result.valid_offset,
-            )
+            if self.proton_file:
+                self.particles.append(
+                    EventsLoader(
+                        parent=self,
+                        kind="protons",
+                        file=self.proton_file,
+                        target_spectrum=SPECTRA[self.proton_target_spectrum],
+                    )
+                )
+            if self.electron_file:
+                self.particles.append(
+                    EventsLoader(
+                        parent=self,
+                        kind="electrons",
+                        file=self.electron_file,
+                        target_spectrum=SPECTRA[self.electron_target_spectrum],
+                    )
+                )
+            if len(self.particles) == 1:
+                raise RuntimeError(
+                    "At least one electron or proton file required when specifying `do_background`."
+                )
 
-        self.mig_matrix = EnergyMigrationIrf(
-            parent=self,
-        )
+            self.bkg = Background2dIrf(parent=self)
+            self.bkg3 = Background3dIrf(parent=self)
+
+        self.mig_matrix = EnergyMigrationIrf(parent=self)
         if self.full_enclosure:
-            self.psf = PsfIrf(
-                parent=self,
-                valid_offset=self.opt_result.valid_offset,
-            )
+            self.psf = PsfIrf(parent=self)
 
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
