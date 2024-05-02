@@ -1,7 +1,7 @@
 from heapq import nlargest
 
 import numpy as np
-from numba import njit
+from numba import float32, float64, guvectorize, int64, njit
 
 from ..containers import StatisticsContainer
 
@@ -102,14 +102,33 @@ def n_largest(n, array):
     return nlargest(n, array)
 
 
-@njit
-def arg_n_largest(n, array):
-    """return the indices of the n largest values of an array"""
+@guvectorize(
+    [
+        (int64[:], float64[:], int64[:]),
+        (int64[:], float32[:], int64[:]),
+    ],
+    "(n),(p)->(n)",
+    nopython=True,
+    cache=True,
+)
+def arg_n_largest_gu(dummy, array, idx):
+    """
+    Returns the indices of the len(dummy) largest values of an array.
+
+    Used by the `arg_n_largest` wrapper to return the indices of the n largest
+    values of an array.
+    """
     values = []
     for i in range(len(array)):
         values.append((array[i], i))
+    n = len(dummy)
     largest = n_largest(n, values)
-    idx = np.empty(n, dtype=np.int64)
     for i in range(n):
         idx[i] = largest[i][1]
+
+
+def arg_n_largest(n, array):
+    """Return the indices of the n largest values of an array"""
+    dummy = np.zeros(n, dtype=np.int64)
+    idx = arg_n_largest_gu(dummy, array)
     return idx

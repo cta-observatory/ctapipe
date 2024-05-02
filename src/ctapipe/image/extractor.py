@@ -586,13 +586,12 @@ class GlobalPeakWindowSum(ImageExtractor):
             ).argmax(axis=-1)
         else:
             n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
-            n_channels = waveforms.shape[0]
-            brightest = np.empty((n_channels, n_pixels), dtype=np.int64)
-            waveforms_max = waveforms.max(
-                axis=-1, where=~broken_pixels[..., np.newaxis], initial=-np.inf
+            brightest = arg_n_largest(
+                n_pixels,
+                waveforms.max(
+                    axis=-1, where=~broken_pixels[..., np.newaxis], initial=-np.inf
+                ),
             )
-            for channel in range(n_channels):
-                brightest[channel] = arg_n_largest(n_pixels, waveforms_max[channel])
 
             # average over brightest pixels then argmax over samples
             peak_index = (
