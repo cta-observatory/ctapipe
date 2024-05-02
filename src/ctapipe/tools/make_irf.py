@@ -4,7 +4,7 @@ import operator
 import astropy.units as u
 import numpy as np
 from astropy.io import fits
-from astropy.table import vstack
+from astropy.table import QTable, vstack
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
@@ -163,10 +163,7 @@ class IrfTool(Tool):
         check_bins_in_range(self.reco_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.fov_offset_bins, self.opt_result.valid_offset)
 
-        if (
-            not self.full_enclosure
-            and "n_events" not in self.opt_result.theta_cuts.colnames
-        ):
+        if not self.full_enclosure and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
                 "Computing a point-like IRF requires an (optimized) theta cut."
             )
@@ -215,6 +212,12 @@ class IrfTool(Tool):
         self.mig_matrix = EnergyMigrationIrf(
             parent=self,
         )
+        if self.full_enclosure:
+            self.psf = PsfIrf(
+                parent=self,
+                valid_offset=self.opt_result.valid_offset,
+            )
+
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
                 self.output_path.name.replace(".fits", "-benchmark.fits")
@@ -309,19 +312,33 @@ class IrfTool(Tool):
                 point_like=not self.full_enclosure,
             )
         )
-        hdus.append(
-            self.psf.make_psf_table_hdu(
-                signal_events=self.signal_events[self.signal_events["selected"]],
-                fov_offset_bins=self.fov_offset_bins,
+        if self.full_enclosure:
+            hdus.append(
+                self.psf.make_psf_table_hdu(
+                    signal_events=self.signal_events[self.signal_events["selected"]],
+                    fov_offset_bins=self.fov_offset_bins,
+                )
             )
-        )
-        hdus.append(
-            create_rad_max_hdu(
-                self.opt_result.theta_cuts["cut"].reshape(-1, 1),
-                self.reco_energy_bins,
-                self.fov_offset_bins,
+        else:
+            # TODO: Support fov binning
+            if self.bins.fov_offset_n_bins > 1:
+                self.log.warning(
+                    "Currently no fov binning is supported for RAD_MAX. "
+                    "Using `fov_offset_bins = [fov_offset_min, fov_offset_max]`."
+                )
+
+            hdus.append(
+                create_rad_max_hdu(
+                    rad_max=self.opt_result.theta_cuts["cut"].reshape(-1, 1),
+                    reco_energy_bins=np.append(
+                        self.opt_result.theta_cuts["low"],
+                        self.opt_result.theta_cuts["high"][-1],
+                    ),
+                    fov_offset_bins=u.Quantity(
+                        [self.fov_offset_bins[0], self.fov_offset_bins[-1]]
+                    ),
+                )
             )
-        )
         return hdus
 
     def _make_benchmark_hdus(self, hdus):
@@ -343,6 +360,21 @@ class IrfTool(Tool):
         hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
 
         if self.do_background:
+            if self.full_enclosure:
+                # Create a dummy theta cut since `pyirf.sensitivity.estimate_background`
+                # needs a theta cut atm.
+                self.log.info(
+                    "Using all signal events with `theta < fov_offset_max` "
+                    "to compute the sensitivity."
+                )
+                theta_cuts = QTable()
+                theta_cuts["center"] = 0.5 * (
+                    self.reco_energy_bins[:-1] + self.reco_energy_bins[1:]
+                )
+                theta_cuts["cut"] = self.fov_offset_bins[-1]
+            else:
+                theta_cuts = self.opt_result.theta_cuts
+
             signal_hist = create_histogram_table(
                 self.signal_events[self.signal_events["selected"]],
                 bins=self.reco_energy_bins,
@@ -350,7 +382,7 @@ class IrfTool(Tool):
             background_hist = estimate_background(
                 self.background_events[self.background_events["selected_gh"]],
                 reco_energy_bins=self.reco_energy_bins,
-                theta_cuts=self.opt_result.theta_cuts,
+                theta_cuts=theta_cuts,
                 alpha=self.alpha,
                 fov_offset_min=self.fov_offset_bins[0],
                 fov_offset_max=self.fov_offset_bins[-1],
@@ -424,7 +456,8 @@ class IrfTool(Tool):
                 " Therefore, the IRF is only calculated at a single point in the FoV."
                 " Changing `fov_offset_n_bins` to 1."
             )
-            self.fov_offset_bins.fov_offset_n_bins = 1
+            self.bins.fov_offset_n_bins = 1
+            self.fov_offset_bins = self.bins.fov_offset_bins()
 
         self.signal_events = reduced_events["gammas"]
         if self.do_background:
@@ -436,10 +469,6 @@ class IrfTool(Tool):
         self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
         self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
-        self.psf = PsfIrf(
-            parent=self,
-            valid_offset=self.opt_result.valid_offset,
-        )
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(hdus)
         if self.do_background:

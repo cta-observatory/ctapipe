@@ -3,6 +3,7 @@ import operator
 
 import astropy.units as u
 import numpy as np
+from astropy.io import fits
 from astropy.table import QTable, Table
 from pyirf.binning import create_bins_per_decade
 from pyirf.cut_optimization import optimize_gh_cut
@@ -27,13 +28,21 @@ class OptimizationResult:
         self.theta_cuts = theta
 
     def __repr__(self):
-        return (
-            f"<OptimizationResult with {len(self.gh_cuts)} G/H bins "
-            f"and {len(self.theta_cuts)} theta bins valid "
-            f"between {self.valid_offset.min} to {self.valid_offset.max} "
-            f"and {self.valid_energy.min} to {self.valid_energy.max} "
-            f"with {len(self.precuts.quality_criteria)} precuts>"
-        )
+        if self.theta_cuts is not None:
+            return (
+                f"<OptimizationResult with {len(self.gh_cuts)} G/H bins "
+                f"and {len(self.theta_cuts)} theta bins valid "
+                f"between {self.valid_offset.min} to {self.valid_offset.max} "
+                f"and {self.valid_energy.min} to {self.valid_energy.max} "
+                f"with {len(self.precuts.quality_criteria)} precuts>"
+            )
+        else:
+            return (
+                f"<OptimizationResult with {len(self.gh_cuts)} G/H bins valid "
+                f"between {self.valid_offset.min} to {self.valid_offset.max} "
+                f"and {self.valid_energy.min} to {self.valid_energy.max} "
+                f"with {len(self.precuts.quality_criteria)} precuts>"
+            )
 
 
 class OptimizationResultStore:
@@ -52,13 +61,14 @@ class OptimizationResultStore:
 
         self._results = None
 
-    def set_result(self, gh_cuts, theta_cuts, valid_energy, valid_offset, clf_prefix):
+    def set_result(
+        self, gh_cuts, valid_energy, valid_offset, clf_prefix, theta_cuts=None
+    ):
         if not self._precuts:
             raise ValueError("Precuts must be defined before results can be saved")
 
         gh_cuts.meta["EXTNAME"] = "GH_CUTS"
         gh_cuts.meta["CLFNAME"] = clf_prefix
-        theta_cuts.meta["EXTNAME"] = "RAD_MAX"
 
         energy_lim_tab = QTable(rows=[valid_energy], names=["energy_min", "energy_max"])
         energy_lim_tab.meta["EXTNAME"] = "VALID_ENERGY"
@@ -66,7 +76,11 @@ class OptimizationResultStore:
         offset_lim_tab = QTable(rows=[valid_offset], names=["offset_min", "offset_max"])
         offset_lim_tab.meta["EXTNAME"] = "VALID_OFFSET"
 
-        self._results = [gh_cuts, theta_cuts, energy_lim_tab, offset_lim_tab]
+        self._results = [gh_cuts, energy_lim_tab, offset_lim_tab]
+
+        if theta_cuts is not None:
+            theta_cuts.meta["EXTNAME"] = "RAD_MAX"
+            self._results += [theta_cuts]
 
     def write(self, output_name, overwrite=False):
         if not isinstance(self._results, list):
@@ -89,18 +103,20 @@ class OptimizationResultStore:
             table.write(output_name, format="fits", append=True)
 
     def read(self, file_name):
-        cut_expr_tab = Table.read(file_name, hdu=1)
-        cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
-        # TODO: this crudely fixes a problem when loading non empty tables, make it nicer
-        try:
-            cut_expr_lst.remove((" ", " "))
-        except ValueError:
-            pass
-        precuts = QualityQuery(quality_criteria=cut_expr_lst)
-        gh_cuts = QTable.read(file_name, hdu=2)
-        theta_cuts = QTable.read(file_name, hdu=3)
-        valid_energy = QTable.read(file_name, hdu=4)
-        valid_offset = QTable.read(file_name, hdu=5)
+        with fits.open(file_name) as hdul:
+            cut_expr_tab = Table.read(hdul[1])
+            cut_expr_lst = [(name, expr) for name, expr in cut_expr_tab.iterrows()]
+            # TODO: this crudely fixes a problem when loading non empty tables, make it nicer
+            try:
+                cut_expr_lst.remove((" ", " "))
+            except ValueError:
+                pass
+
+            precuts = QualityQuery(quality_criteria=cut_expr_lst)
+            gh_cuts = QTable.read(hdul[2])
+            valid_energy = QTable.read(hdul[3])
+            valid_offset = QTable.read(hdul[4])
+            theta_cuts = QTable.read(hdul[5]) if len(hdul) > 5 else None
 
         return OptimizationResult(
             precuts, valid_energy, valid_offset, gh_cuts, theta_cuts
@@ -183,16 +199,20 @@ class GridOptimizer(Component):
                 signal["reco_energy"][initial_gh_mask],
                 reco_energy_bins,
             )
+            self.log.info("Optimizing G/H separation cut for best sensitivity")
         else:
-            # TODO: Find a better solution for full enclosure than this dummy theta cut
-            self.log.info("Optimizing G/H separation cut without prior theta cut.")
+            # Create a dummy theta cut since `pyirf.cut_optimization.optimize_gh_cut`
+            # needs a theta cut atm.
             theta_cuts = QTable()
             theta_cuts["low"] = reco_energy_bins[:-1]
             theta_cuts["center"] = 0.5 * (reco_energy_bins[:-1] + reco_energy_bins[1:])
             theta_cuts["high"] = reco_energy_bins[1:]
             theta_cuts["cut"] = max_fov_radius
+            self.log.info(
+                "Optimizing G/H separation cut for best sensitivity "
+                "with `max_fov_radius` as theta cut."
+            )
 
-        self.log.info("Optimizing G/H separation cut for best sensitivity")
         gh_cut_efficiencies = np.arange(
             self.gh_cut_efficiency_step,
             self.max_gh_cut_efficiency + self.gh_cut_efficiency_step / 2,
@@ -224,23 +244,14 @@ class GridOptimizer(Component):
                 signal[signal["selected_gh"]]["theta"],
                 signal[signal["selected_gh"]]["reco_energy"],
             )
-        else:
-            # TODO: Find a better solution for full enclosure than this dummy theta cut
-            theta_cuts_opt = QTable()
-            theta_cuts_opt["low"] = reco_energy_bins[:-1]
-            theta_cuts_opt["center"] = 0.5 * (
-                reco_energy_bins[:-1] + reco_energy_bins[1:]
-            )
-            theta_cuts_opt["high"] = reco_energy_bins[1:]
-            theta_cuts_opt["cut"] = max_fov_radius
 
         result_saver = OptimizationResultStore(precuts)
         result_saver.set_result(
-            gh_cuts,
-            theta_cuts_opt,
+            gh_cuts=gh_cuts,
             valid_energy=valid_energy,
             valid_offset=[min_fov_radius, max_fov_radius],
             clf_prefix=clf_prefix,
+            theta_cuts=theta_cuts_opt if point_like else None,
         )
 
         return result_saver, opt_sens
