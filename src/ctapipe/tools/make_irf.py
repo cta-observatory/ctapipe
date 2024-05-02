@@ -212,64 +212,81 @@ class IrfTool(Tool):
                 self.output_path.name.replace(".fits", "-benchmark.fits")
             )
 
-    def calculate_selections(self):
-        """Add the selection columns to the signal and optionally background tables."""
-        self.signal_events["selected_gh"] = evaluate_binned_cut(
-            self.signal_events["gh_score"],
-            self.signal_events["reco_energy"],
+    def calculate_selections(self, reduced_events: dict) -> dict:
+        """
+        Add the selection columns to the signal and optionally background tables.
+
+        Parameters
+        ----------
+        reduced_events: dict
+            dict containing the signal (``"gammas"``) and optionally background
+            tables (``"protons"``, ``"electrons"``)
+
+        Returns
+        -------
+        dict
+            ``reduced_events`` with selection columns added.
+        """
+        reduced_events["gammas"]["selected_gh"] = evaluate_binned_cut(
+            reduced_events["gammas"]["gh_score"],
+            reduced_events["gammas"]["reco_energy"],
             self.opt_result.gh_cuts,
             operator.ge,
         )
         if not self.full_enclosure:
-            self.signal_events["selected_theta"] = evaluate_binned_cut(
-                self.signal_events["theta"],
-                self.signal_events["reco_energy"],
+            reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
+                reduced_events["gammas"]["theta"],
+                reduced_events["gammas"]["reco_energy"],
                 self.opt_result.theta_cuts,
                 operator.le,
             )
-            self.signal_events["selected"] = (
-                self.signal_events["selected_theta"] & self.signal_events["selected_gh"]
+            reduced_events["gammas"]["selected"] = (
+                reduced_events["gammas"]["selected_theta"]
+                & reduced_events["gammas"]["selected_gh"]
             )
         else:
-            self.signal_events["selected"] = self.signal_events["selected_gh"]
+            reduced_events["gammas"]["selected"] = reduced_events["gammas"][
+                "selected_gh"
+            ]
 
         if self.do_background:
-            self.background_events["selected_gh"] = evaluate_binned_cut(
-                self.background_events["gh_score"],
-                self.background_events["reco_energy"],
-                self.opt_result.gh_cuts,
-                operator.ge,
-            )
-            if not self.full_enclosure:
-                self.background_events["selected_theta"] = evaluate_binned_cut(
-                    self.background_events["theta"],
-                    self.background_events["reco_energy"],
-                    self.opt_result.theta_cuts,
-                    operator.le,
+            for bg_type in ("protons", "electrons"):
+                reduced_events[bg_type]["selected_gh"] = evaluate_binned_cut(
+                    reduced_events[bg_type]["gh_score"],
+                    reduced_events[bg_type]["reco_energy"],
+                    self.opt_result.gh_cuts,
+                    operator.ge,
                 )
-                self.background_events["selected"] = (
-                    self.background_events["selected_theta"]
-                    & self.background_events["selected_gh"]
-                )
-            else:
-                self.background_events["selected"] = self.background_events[
-                    "selected_gh"
-                ]
+                if not self.full_enclosure:
+                    reduced_events[bg_type]["selected_theta"] = evaluate_binned_cut(
+                        reduced_events[bg_type]["theta"],
+                        reduced_events[bg_type]["reco_energy"],
+                        self.opt_result.theta_cuts,
+                        operator.le,
+                    )
+                    reduced_events[bg_type]["selected"] = (
+                        reduced_events[bg_type]["selected_theta"]
+                        & reduced_events[bg_type]["selected_gh"]
+                    )
+                else:
+                    reduced_events[bg_type]["selected"] = reduced_events[bg_type][
+                        "selected_gh"
+                    ]
 
-        # TODO: maybe rework the above so we can give the number per
-        # species instead of the total background
         if self.do_background:
             self.log.debug(
-                "Keeping %d signal, %d background events"
+                "Keeping %d signal, %d proton events, and %d electron events"
                 % (
-                    sum(self.signal_events["selected"]),
-                    sum(self.background_events["selected"]),
+                    sum(reduced_events["gammas"]["selected"]),
+                    sum(reduced_events["protons"]["selected"]),
+                    sum(reduced_events["electrons"]["selected"]),
                 )
             )
         else:
             self.log.debug(
-                "Keeping %d signal events" % (sum(self.signal_events["selected"]))
+                "Keeping %d signal events" % (sum(reduced_events["gammas"]["selected"]))
             )
+        return reduced_events
 
     def _stack_background(self, reduced_events):
         bkgs = []
@@ -448,11 +465,11 @@ class IrfTool(Tool):
             self.bins.fov_offset_n_bins = 1
             self.fov_offset_bins = self.bins.fov_offset_bins()
 
+        reduced_events = self.calculate_selections(reduced_events)
+
         self.signal_events = reduced_events["gammas"]
         if self.do_background:
             self.background_events = self._stack_background(reduced_events)
-
-        self.calculate_selections()
 
         self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
         self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
