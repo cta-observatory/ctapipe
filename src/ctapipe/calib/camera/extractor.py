@@ -123,9 +123,6 @@ class PlainExtractor(StatisticsExtractor):
         # std over the sample per pixel
         pixel_std = np.ma.std(masked_images, axis=0)
 
-        # median of the median over the camera
-        median_of_pixel_median = np.ma.median(pixel_median, axis=1)
-
         # outliers from median
         image_median_outliers = np.logical_or(
             pixel_median < self.image_median_cut_outliers[0],
@@ -206,9 +203,6 @@ class SigmaClippingExtractor(StatisticsExtractor):
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
-        # median of the event images
-        image_median = np.ma.median(masked_images, axis=-1)
-
         # mean, median, and std over the sample per pixel
         max_sigma = self.sigma_clipping_max_sigma
         pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
@@ -225,9 +219,6 @@ class SigmaClippingExtractor(StatisticsExtractor):
         pixel_std = np.ma.array(pixel_std, mask=np.isnan(pixel_std))
 
         unused_values = np.abs(masked_images - pixel_mean) > (max_sigma * pixel_std)
-
-        # only warn for values discard in the sigma clipping, not those from before
-        outliers = unused_values & (~masked_images.mask)
 
         # add outliers identified by sigma clipping for following operations
         masked_images.mask |= unused_values
