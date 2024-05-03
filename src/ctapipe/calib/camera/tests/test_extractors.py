@@ -22,7 +22,7 @@ def test_extractors(example_subarray):
     plain_stats_list = plain_extractor(dl1_table=pedestal_dl1_table)
     sigmaclipping_stats_list = sigmaclipping_extractor(dl1_table=flatfield_dl1_table)
     
-    assert plain_stats_list[0].mean - 2.0) > 1.5) == False
+    assert np.any(np.abs(plain_stats_list[0].mean - 2.0) > 1.5) == False
     assert np.any(np.abs(sigmaclipping_stats_list[0].mean - 77.0) > 1.5) == False
                 
     assert np.any(np.abs(plain_stats_list[0].mean - 2.0) > 1.5) == False
