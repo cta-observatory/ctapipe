@@ -16,15 +16,14 @@ from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
     SPECTRA,
     Background2dIrf,
-    Background3dIrf,
-    EffectiveAreaIrf,
-    EnergyMigrationIrf,
+    EffectiveArea2dIrf,
+    EnergyMigration2dIrf,
     EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
     OptimizationResultStore,
     OutputEnergyBinning,
-    PsfIrf,
+    Psf3dIrf,
     Spectra,
     check_bins_in_range,
 )
@@ -55,7 +54,7 @@ class IrfTool(Tool):
     gamma_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
-        help="Name of the pyirf spectra used for the simulated gamma spectrum",
+        help="Name of the spectra used for the simulated gamma spectrum",
     ).tag(config=True)
 
     proton_file = traits.Path(
@@ -68,7 +67,7 @@ class IrfTool(Tool):
     proton_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
-        help="Name of the pyirf spectra used for the simulated proton spectrum",
+        help="Name of the spectra used for the simulated proton spectrum",
     ).tag(config=True)
 
     electron_file = traits.Path(
@@ -81,7 +80,7 @@ class IrfTool(Tool):
     electron_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
-        help="Name of the pyirf spectra used for the simulated electron spectrum",
+        help="Name of the spectra used for the simulated electron spectrum",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -148,12 +147,11 @@ class IrfTool(Tool):
     classes = [
         EventsLoader,
         Background2dIrf,
-        Background3dIrf,
-        EffectiveAreaIrf,
-        EnergyMigrationIrf,
+        EffectiveArea2dIrf,
+        EnergyMigration2dIrf,
+        Psf3dIrf,
         FovOffsetBinning,
         OutputEnergyBinning,
-        PsfIrf,
     ]
 
     def setup(self):
@@ -207,11 +205,16 @@ class IrfTool(Tool):
                 )
 
             self.bkg = Background2dIrf(parent=self)
-            self.bkg3 = Background3dIrf(parent=self)
+            check_bins_in_range(self.bkg.reco_energy_bins, self.opt_result.valid_energy)
+            check_bins_in_range(self.bkg.fov_offset_bins, self.opt_result.valid_offset)
 
-        self.mig_matrix = EnergyMigrationIrf(parent=self)
+        self.edisp = EnergyMigration2dIrf(parent=self)
+        check_bins_in_range(self.edisp.true_energy_bins, self.opt_result.valid_energy)
+        check_bins_in_range(self.edisp.fov_offset_bins, self.opt_result.valid_offset)
         if self.full_enclosure:
-            self.psf = PsfIrf(parent=self)
+            self.psf = Psf3dIrf(parent=self)
+            check_bins_in_range(self.psf.true_energy_bins, self.opt_result.valid_energy)
+            check_bins_in_range(self.psf.fov_offset_bins, self.opt_result.valid_offset)
 
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
@@ -310,25 +313,22 @@ class IrfTool(Tool):
 
     def _make_signal_irf_hdus(self, hdus):
         hdus.append(
-            self.aeff.make_effective_area_hdu(
-                signal_events=self.signal_events[self.signal_events["selected"]],
-                fov_offset_bins=self.fov_offset_bins,
+            self.aeff.make_aeff_hdu(
+                events=self.signal_events[self.signal_events["selected"]],
                 point_like=not self.full_enclosure,
                 signal_is_point_like=self.signal_is_point_like,
             )
         )
         hdus.append(
-            self.mig_matrix.make_energy_dispersion_hdu(
-                signal_events=self.signal_events[self.signal_events["selected"]],
-                fov_offset_bins=self.fov_offset_bins,
+            self.edisp.make_edisp_hdu(
+                events=self.signal_events[self.signal_events["selected"]],
                 point_like=not self.full_enclosure,
             )
         )
         if self.full_enclosure:
             hdus.append(
-                self.psf.make_psf_table_hdu(
-                    signal_events=self.signal_events[self.signal_events["selected"]],
-                    fov_offset_bins=self.fov_offset_bins,
+                self.psf.make_psf_hdu(
+                    events=self.signal_events[self.signal_events["selected"]],
                 )
             )
         else:
@@ -457,19 +457,39 @@ class IrfTool(Tool):
                 "Loaded %d %s events" % (reduced_events[f"{sel.kind}_count"], sel.kind)
             )
             if sel.kind == "gammas":
-                self.aeff = EffectiveAreaIrf(parent=self, sim_info=meta["sim_info"])
                 self.signal_is_point_like = (
                     meta["sim_info"].viewcone_max - meta["sim_info"].viewcone_min
                 ).value == 0
 
-        if self.signal_is_point_like:
-            self.log.info(
-                "The gamma input file contains point-like simulations."
-                " Therefore, the IRF is only calculated at a single point in the FoV."
-                " Changing `fov_offset_n_bins` to 1."
-            )
-            self.bins.fov_offset_n_bins = 1
-            self.fov_offset_bins = self.bins.fov_offset_bins()
+                if self.signal_is_point_like:
+                    self.log.info(
+                        "The gamma input file contains point-like simulations."
+                        " Therefore, the IRF is only calculated at a single point"
+                        " in the FoV. Changing `fov_offset_n_bins` to 1."
+                    )
+                    self.bins.fov_offset_n_bins = 1
+                    self.fov_offset_bins = self.bins.fov_offset_bins()
+                    self.edisp = EnergyMigration2dIrf(parent=self, fov_offset_n_bins=1)
+                    self.aeff = EffectiveArea2dIrf(
+                        parent=self, sim_info=meta["sim_info"], fov_offset_n_bins=1
+                    )
+                    if self.full_enclosure:
+                        self.psf = Psf3dIrf(parent=self, fov_offset_n_bins=1)
+
+                    if self.do_background:
+                        self.bkg = Background2dIrf(parent=self, fov_offset_n_bins=1)
+
+                else:
+                    self.aeff = EffectiveArea2dIrf(
+                        parent=self, sim_info=meta["sim_info"]
+                    )
+
+                check_bins_in_range(
+                    self.aeff.true_energy_bins, self.opt_result.valid_energy
+                )
+                check_bins_in_range(
+                    self.aeff.fov_offset_bins, self.opt_result.valid_offset
+                )
 
         reduced_events = self.calculate_selections(reduced_events)
 
@@ -485,10 +505,10 @@ class IrfTool(Tool):
         hdus = self._make_signal_irf_hdus(hdus)
         if self.do_background:
             hdus.append(
-                self.bkg.make_bkg2d_table_hdu(self.background_events, self.obs_time)
-            )
-            hdus.append(
-                self.bkg3.make_bkg3d_table_hdu(self.background_events, self.obs_time)
+                self.bkg.make_bkg_hdu(
+                    self.background_events[self.background_events["selected"]],
+                    self.obs_time,
+                )
             )
         self.hdus = hdus
 
