@@ -141,13 +141,13 @@ class GridOptimizer(Component):
 
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",
-        default_value=0.015 * u.TeV,
+        default_value=u.Quantity(0.015, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
     reco_energy_max = AstroQuantity(
         help="Maximum value for Reco Energy bins",
-        default_value=200 * u.TeV,
+        default_value=u.Quantity(150, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
@@ -310,13 +310,13 @@ class ThetaCutsCalculator(Component):
 
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",
-        default_value=0.015 * u.TeV,
+        default_value=u.Quantity(0.015, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
     reco_energy_max = AstroQuantity(
         help="Maximum value for Reco Energy bins",
-        default_value=200 * u.TeV,
+        default_value=u.Quantity(150, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 

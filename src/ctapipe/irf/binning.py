@@ -9,7 +9,10 @@ from ..core.traits import AstroQuantity, Integer
 
 def check_bins_in_range(bins, range):
     low = bins >= range.min
-    hig = bins <= range.max
+    # `pyirf.binning.create_bins_per_decade` includes the endpoint, if reasonably close.
+    # So different choices of `n_bins_per_decade` can lead to mismatches, if the same
+    # `*_energy_max` is chosen.
+    hig = bins <= range.max * 1.0000001
 
     if not all(low & hig):
         raise ValueError(f"Valid range is {range.min} to {range.max}, got {bins}")
@@ -20,13 +23,13 @@ class OutputEnergyBinning(Component):
 
     true_energy_min = AstroQuantity(
         help="Minimum value for True Energy bins",
-        default_value=0.005 * u.TeV,
+        default_value=0.015 * u.TeV,
         physical_type=u.physical.energy,
     ).tag(config=True)
 
     true_energy_max = AstroQuantity(
         help="Maximum value for True Energy bins",
-        default_value=200 * u.TeV,
+        default_value=150 * u.TeV,
         physical_type=u.physical.energy,
     ).tag(config=True)
 
@@ -43,7 +46,7 @@ class OutputEnergyBinning(Component):
 
     reco_energy_max = AstroQuantity(
         help="Maximum value for Reco Energy bins",
-        default_value=200 * u.TeV,
+        default_value=150 * u.TeV,
         physical_type=u.physical.energy,
     ).tag(config=True)
 

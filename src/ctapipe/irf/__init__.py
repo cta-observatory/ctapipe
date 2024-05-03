@@ -2,10 +2,16 @@
 from .binning import FovOffsetBinning, OutputEnergyBinning, check_bins_in_range
 from .irfs import (
     Background2dIrf,
-    Background3dIrf,
-    EffectiveAreaIrf,
-    EnergyMigrationIrf,
-    PsfIrf,
+    BackgroundIrfBase,
+    EffectiveArea2dIrf,
+    EffectiveAreaIrfBase,
+    EnergyMigration2dIrf,
+    EnergyMigrationIrfBase,
+    Irf2dBase,
+    IrfRecoEnergyBase,
+    IrfTrueEnergyBase,
+    Psf3dIrf,
+    PsfIrfBase,
 )
 from .optimize import (
     GridOptimizer,
@@ -21,11 +27,17 @@ from .select import (
 )
 
 __all__ = [
+    "Irf2dBase",
+    "IrfRecoEnergyBase",
+    "IrfTrueEnergyBase",
+    "PsfIrfBase",
+    "BackgroundIrfBase",
+    "EnergyMigrationIrfBase",
+    "EffectiveAreaIrfBase",
+    "Psf3dIrf",
     "Background2dIrf",
-    "Background3dIrf",
-    "EffectiveAreaIrf",
-    "EnergyMigrationIrf",
-    "PsfIrf",
+    "EnergyMigration2dIrf",
+    "EffectiveArea2dIrf",
     "OptimizationResult",
     "OptimizationResultStore",
     "GridOptimizer",
