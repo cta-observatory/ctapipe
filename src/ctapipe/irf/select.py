@@ -1,4 +1,4 @@
-"""Module containing classes related to eveent preprocessing and selection"""
+"""Module containing classes related to event preprocessing and selection"""
 from enum import Enum
 
 import astropy.units as u
