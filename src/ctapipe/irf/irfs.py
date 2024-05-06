@@ -19,6 +19,7 @@ from pyirf.irf import (
     energy_dispersion,
     psf_table,
 )
+from pyirf.simulations import SimulatedEventsInfo
 
 from ..core import Component
 from ..core.traits import AstroQuantity, Float, Integer
@@ -121,7 +122,7 @@ class PsfIrfBase(IrfTrueEnergyBase):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
-    def make_psf_hdu(self, events: QTable) -> BinTableHDU:
+    def make_psf_hdu(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         """
         Calculate the psf and create a fits binary table HDU in GAD format.
 
@@ -142,7 +143,9 @@ class BackgroundIrfBase(IrfRecoEnergyBase):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
-    def make_bkg_hdu(self, events: QTable, obs_time: u.Quantity) -> BinTableHDU:
+    def make_bkg_hdu(
+        self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
+    ) -> BinTableHDU:
         """
         Calculate the background rate and create a fits binary table HDU
         in GAD format.
@@ -185,7 +188,9 @@ class EnergyMigrationIrfBase(IrfTrueEnergyBase):
         )
 
     @abstractmethod
-    def make_edisp_hdu(self, events: QTable, point_like: bool) -> BinTableHDU:
+    def make_edisp_hdu(
+        self, events: QTable, point_like: bool, extname: str = "ENERGY MIGRATION"
+    ) -> BinTableHDU:
         """
         Calculate the energy dispersion and create a fits binary table HDU
         in GAD format.
@@ -204,13 +209,17 @@ class EnergyMigrationIrfBase(IrfTrueEnergyBase):
 class EffectiveAreaIrfBase(IrfTrueEnergyBase):
     """Base class for parameterizations of the effective area."""
 
-    def __init__(self, parent, sim_info, **kwargs):
+    def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.sim_info = sim_info
 
     @abstractmethod
     def make_aeff_hdu(
-        self, events: QTable, point_like: bool, signal_is_point_like: bool
+        self,
+        events: QTable,
+        point_like: bool,
+        signal_is_point_like: bool,
+        sim_info: SimulatedEventsInfo,
+        extname: str = "EFFECTIVE AREA",
     ) -> BinTableHDU:
         """
         Calculate the effective area and create a fits binary table HDU
@@ -234,18 +243,23 @@ class EffectiveArea2dIrf(EffectiveAreaIrfBase, Irf2dBase):
     of logarithmic true energy and field of view offset.
     """
 
-    def __init__(self, parent, sim_info, **kwargs):
-        super().__init__(parent=parent, sim_info=sim_info, **kwargs)
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent=parent, **kwargs)
 
     def make_aeff_hdu(
-        self, events: QTable, point_like: bool, signal_is_point_like: bool
+        self,
+        events: QTable,
+        point_like: bool,
+        signal_is_point_like: bool,
+        sim_info: SimulatedEventsInfo,
+        extname: str = "EFFECTIVE AREA",
     ) -> BinTableHDU:
         # For point-like gammas the effective area can only be calculated
         # at one point in the FoV.
         if signal_is_point_like:
             aeff = effective_area_per_energy(
                 selected_events=events,
-                simulation_info=self.sim_info,
+                simulation_info=sim_info,
                 true_energy_bins=self.true_energy_bins,
             )
             # +1 dimension for FOV offset
@@ -253,7 +267,7 @@ class EffectiveArea2dIrf(EffectiveAreaIrfBase, Irf2dBase):
         else:
             aeff = effective_area_per_energy_and_fov(
                 selected_events=events,
-                simulation_info=self.sim_info,
+                simulation_info=sim_info,
                 true_energy_bins=self.true_energy_bins,
                 fov_offset_bins=self.fov_offset_bins,
             )
@@ -263,7 +277,7 @@ class EffectiveArea2dIrf(EffectiveAreaIrfBase, Irf2dBase):
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
             point_like=point_like,
-            extname="EFFECTIVE AREA",
+            extname=extname,
         )
 
 
@@ -276,7 +290,9 @@ class EnergyMigration2dIrf(EnergyMigrationIrfBase, Irf2dBase):
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
-    def make_edisp_hdu(self, events: QTable, point_like: bool) -> BinTableHDU:
+    def make_edisp_hdu(
+        self, events: QTable, point_like: bool, extname: str = "ENERGY MIGRATION"
+    ) -> BinTableHDU:
         edisp = energy_dispersion(
             selected_events=events,
             true_energy_bins=self.true_energy_bins,
@@ -289,7 +305,7 @@ class EnergyMigration2dIrf(EnergyMigrationIrfBase, Irf2dBase):
             migration_bins=self.migration_bins,
             fov_offset_bins=self.fov_offset_bins,
             point_like=point_like,
-            extname="ENERGY MIGRATION",
+            extname=extname,
         )
 
 
@@ -302,7 +318,9 @@ class Background2dIrf(BackgroundIrfBase, Irf2dBase):
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
-    def make_bkg_hdu(self, events: QTable, obs_time: u.Quantity) -> BinTableHDU:
+    def make_bkg_hdu(
+        self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
+    ) -> BinTableHDU:
         background_rate = background_2d(
             events=events,
             reco_energy_bins=self.reco_energy_bins,
@@ -313,7 +331,7 @@ class Background2dIrf(BackgroundIrfBase, Irf2dBase):
             background_2d=background_rate,
             reco_energy_bins=self.reco_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
-            extname="BACKGROUND",
+            extname=extname,
         )
 
 
@@ -351,7 +369,7 @@ class Psf3dIrf(PsfIrfBase, Irf2dBase):
             u.deg,
         )
 
-    def make_psf_hdu(self, events: QTable) -> BinTableHDU:
+    def make_psf_hdu(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         psf = psf_table(
             events=events,
             true_energy_bins=self.true_energy_bins,
@@ -363,5 +381,5 @@ class Psf3dIrf(PsfIrfBase, Irf2dBase):
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
             source_offset_bins=self.source_offset_bins,
-            extname="PSF",
+            extname=extname,
         )
