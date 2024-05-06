@@ -19,12 +19,8 @@ from .optimize import (
     OptimizationResultStore,
     ThetaCutsCalculator,
 )
-from .select import (
-    SPECTRA,
-    EventPreProcessor,
-    EventsLoader,
-    Spectra,
-)
+from .select import EventPreProcessor, EventsLoader
+from .spectra import SPECTRA, Spectra
 
 __all__ = [
     "Irf2dBase",
