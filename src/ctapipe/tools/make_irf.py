@@ -15,15 +15,15 @@ from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
     SPECTRA,
-    Background2dIrf,
-    EffectiveArea2dIrf,
-    EnergyMigration2dIrf,
+    BackgroundIrfBase,
+    EffectiveAreaIrfBase,
+    EnergyMigrationIrfBase,
     EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
     OptimizationResultStore,
     OutputEnergyBinning,
-    Psf3dIrf,
+    PsfIrfBase,
     Spectra,
     check_bins_in_range,
 )
@@ -97,13 +97,37 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     obs_time = AstroQuantity(
-        default_value=50.0 * u.hour,
+        default_value=u.Quantity(50, u.hour),
         physical_type=u.physical.time,
         help="Observation time in the form ``<value> <unit>``",
     ).tag(config=True)
 
     alpha = Float(
         default_value=0.2, help="Ratio between size of on and off regions."
+    ).tag(config=True)
+
+    edisp_parameterization = traits.ComponentName(
+        EnergyMigrationIrfBase,
+        default_value="EnergyMigration2dIrf",
+        help="The parameterization of the energy migration to be used.",
+    ).tag(config=True)
+
+    aeff_parameterization = traits.ComponentName(
+        EffectiveAreaIrfBase,
+        default_value="EffectiveArea2dIrf",
+        help="The parameterization of the effective area to be used.",
+    ).tag(config=True)
+
+    psf_parameterization = traits.ComponentName(
+        PsfIrfBase,
+        default_value="Psf3dIrf",
+        help="The parameterization of the point spread function to be used.",
+    ).tag(config=True)
+
+    bkg_parameterization = traits.ComponentName(
+        BackgroundIrfBase,
+        default_value="Background2dIrf",
+        help="The parameterization of the background rate to be used.",
     ).tag(config=True)
 
     full_enclosure = Bool(
@@ -146,10 +170,10 @@ class IrfTool(Tool):
 
     classes = [
         EventsLoader,
-        Background2dIrf,
-        EffectiveArea2dIrf,
-        EnergyMigration2dIrf,
-        Psf3dIrf,
+        BackgroundIrfBase,
+        EffectiveAreaIrfBase,
+        EnergyMigrationIrfBase,
+        PsfIrfBase,
         FovOffsetBinning,
         OutputEnergyBinning,
     ]
@@ -204,15 +228,19 @@ class IrfTool(Tool):
                     "At least one electron or proton file required when specifying `do_background`."
                 )
 
-            self.bkg = Background2dIrf(parent=self)
+            self.bkg = BackgroundIrfBase.from_name(
+                self.bkg_parameterization, parent=self
+            )
             check_bins_in_range(self.bkg.reco_energy_bins, self.opt_result.valid_energy)
             check_bins_in_range(self.bkg.fov_offset_bins, self.opt_result.valid_offset)
 
-        self.edisp = EnergyMigration2dIrf(parent=self)
+        self.edisp = EnergyMigrationIrfBase.from_name(
+            self.edisp_parameterization, parent=self
+        )
         check_bins_in_range(self.edisp.true_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.edisp.fov_offset_bins, self.opt_result.valid_offset)
         if self.full_enclosure:
-            self.psf = Psf3dIrf(parent=self)
+            self.psf = PsfIrfBase.from_name(self.psf_parameterization, parent=self)
             check_bins_in_range(self.psf.true_energy_bins, self.opt_result.valid_energy)
             check_bins_in_range(self.psf.fov_offset_bins, self.opt_result.valid_offset)
 
@@ -469,19 +497,30 @@ class IrfTool(Tool):
                     )
                     self.bins.fov_offset_n_bins = 1
                     self.fov_offset_bins = self.bins.fov_offset_bins()
-                    self.edisp = EnergyMigration2dIrf(parent=self, fov_offset_n_bins=1)
-                    self.aeff = EffectiveArea2dIrf(
-                        parent=self, sim_info=meta["sim_info"], fov_offset_n_bins=1
+                    self.edisp = EnergyMigrationIrfBase.from_name(
+                        self.edisp_parameterization, parent=self, fov_offset_n_bins=1
+                    )
+                    self.aeff = EffectiveAreaIrfBase.from_name(
+                        self.aeff_parameterization,
+                        parent=self,
+                        sim_info=meta["sim_info"],
+                        fov_offset_n_bins=1,
                     )
                     if self.full_enclosure:
-                        self.psf = Psf3dIrf(parent=self, fov_offset_n_bins=1)
+                        self.psf = PsfIrfBase.from_name(
+                            self.psf_parameterization, parent=self, fov_offset_n_bins=1
+                        )
 
                     if self.do_background:
-                        self.bkg = Background2dIrf(parent=self, fov_offset_n_bins=1)
+                        self.bkg = BackgroundIrfBase.from_name(
+                            self.bkg_parameterization, parent=self, fov_offset_n_bins=1
+                        )
 
                 else:
-                    self.aeff = EffectiveArea2dIrf(
-                        parent=self, sim_info=meta["sim_info"]
+                    self.aeff = EffectiveAreaIrfBase.from_name(
+                        self.aeff_parameterization,
+                        parent=self,
+                        sim_info=meta["sim_info"],
                     )
 
                 check_bins_in_range(
