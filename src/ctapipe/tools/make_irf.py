@@ -239,6 +239,11 @@ class IrfTool(Tool):
         )
         check_bins_in_range(self.edisp.true_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.edisp.fov_offset_bins, self.opt_result.valid_offset)
+        self.aeff = EffectiveAreaIrfBase.from_name(
+            self.aeff_parameterization, parent=self
+        )
+        check_bins_in_range(self.aeff.true_energy_bins, self.opt_result.valid_energy)
+        check_bins_in_range(self.aeff.fov_offset_bins, self.opt_result.valid_offset)
         if self.full_enclosure:
             self.psf = PsfIrfBase.from_name(self.psf_parameterization, parent=self)
             check_bins_in_range(self.psf.true_energy_bins, self.opt_result.valid_energy)
@@ -339,12 +344,13 @@ class IrfTool(Tool):
             background = reduced_events[bkgs[0]]
         return background
 
-    def _make_signal_irf_hdus(self, hdus):
+    def _make_signal_irf_hdus(self, hdus, sim_info):
         hdus.append(
             self.aeff.make_aeff_hdu(
                 events=self.signal_events[self.signal_events["selected"]],
                 point_like=not self.full_enclosure,
                 signal_is_point_like=self.signal_is_point_like,
+                sim_info=sim_info,
             )
         )
         hdus.append(
@@ -481,6 +487,7 @@ class IrfTool(Tool):
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
+            reduced_events[f"{sel.kind}_meta"] = meta
             self.log.debug(
                 "Loaded %d %s events" % (reduced_events[f"{sel.kind}_count"], sel.kind)
             )
@@ -503,32 +510,16 @@ class IrfTool(Tool):
                     self.aeff = EffectiveAreaIrfBase.from_name(
                         self.aeff_parameterization,
                         parent=self,
-                        sim_info=meta["sim_info"],
                         fov_offset_n_bins=1,
                     )
                     if self.full_enclosure:
                         self.psf = PsfIrfBase.from_name(
                             self.psf_parameterization, parent=self, fov_offset_n_bins=1
                         )
-
                     if self.do_background:
                         self.bkg = BackgroundIrfBase.from_name(
                             self.bkg_parameterization, parent=self, fov_offset_n_bins=1
                         )
-
-                else:
-                    self.aeff = EffectiveAreaIrfBase.from_name(
-                        self.aeff_parameterization,
-                        parent=self,
-                        sim_info=meta["sim_info"],
-                    )
-
-                check_bins_in_range(
-                    self.aeff.true_energy_bins, self.opt_result.valid_energy
-                )
-                check_bins_in_range(
-                    self.aeff.fov_offset_bins, self.opt_result.valid_offset
-                )
 
         reduced_events = self.calculate_selections(reduced_events)
 
@@ -541,7 +532,9 @@ class IrfTool(Tool):
         self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
         hdus = [fits.PrimaryHDU()]
-        hdus = self._make_signal_irf_hdus(hdus)
+        hdus = self._make_signal_irf_hdus(
+            hdus, reduced_events["gammas_meta"]["sim_info"]
+        )
         if self.do_background:
             hdus.append(
                 self.bkg.make_bkg_hdu(
@@ -549,6 +542,30 @@ class IrfTool(Tool):
                     self.obs_time,
                 )
             )
+            if "protons" in reduced_events.keys():
+                hdus.append(
+                    self.aeff.make_aeff_hdu(
+                        events=reduced_events["protons"][
+                            reduced_events["protons"]["selected"]
+                        ],
+                        point_like=not self.full_enclosure,
+                        signal_is_point_like=False,
+                        sim_info=reduced_events["protons_meta"]["sim_info"],
+                        extname="EFFECTIVE AREA PROTONS",
+                    )
+                )
+            if "electrons" in reduced_events.keys():
+                hdus.append(
+                    self.aeff.make_aeff_hdu(
+                        events=reduced_events["electrons"][
+                            reduced_events["electrons"]["selected"]
+                        ],
+                        point_like=not self.full_enclosure,
+                        signal_is_point_like=False,
+                        sim_info=reduced_events["electrons_meta"]["sim_info"],
+                        extname="EFFECTIVE AREA ELECTRONS",
+                    )
+                )
         self.hdus = hdus
 
         if self.do_benchmarks:
