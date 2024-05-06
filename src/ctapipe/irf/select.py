@@ -1,18 +1,10 @@
 """Module containing classes related to event preprocessing and selection"""
-from enum import Enum
-
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import QTable, vstack
 from pyirf.simulations import SimulatedEventsInfo
-from pyirf.spectral import (
-    CRAB_HEGRA,
-    IRFDOC_ELECTRON_SPECTRUM,
-    IRFDOC_PROTON_SPECTRUM,
-    PowerLaw,
-    calculate_event_weights,
-)
+from pyirf.spectral import PowerLaw, calculate_event_weights
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
 from ..coordinates import NominalFrame
@@ -20,19 +12,6 @@ from ..core import Component, QualityQuery
 from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
 from ..irf import FovOffsetBinning
-
-
-class Spectra(Enum):
-    CRAB_HEGRA = 1
-    IRFDOC_ELECTRON_SPECTRUM = 2
-    IRFDOC_PROTON_SPECTRUM = 3
-
-
-SPECTRA = {
-    Spectra.CRAB_HEGRA: CRAB_HEGRA,
-    Spectra.IRFDOC_ELECTRON_SPECTRUM: IRFDOC_ELECTRON_SPECTRUM,
-    Spectra.IRFDOC_PROTON_SPECTRUM: IRFDOC_PROTON_SPECTRUM,
-}
 
 
 class EventPreProcessor(QualityQuery):
