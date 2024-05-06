@@ -5,7 +5,14 @@ from numba import float32, float64, guvectorize, int64, njit
 
 from ..containers import StatisticsContainer
 
-__all__ = ["n_largest", "descriptive_statistics", "skewness", "kurtosis"]
+__all__ = [
+    "arg_n_largest",
+    "arg_n_largest_gu",
+    "n_largest",
+    "descriptive_statistics",
+    "skewness",
+    "kurtosis",
+]
 
 
 @njit(cache=True)

@@ -157,8 +157,9 @@ def mars_cleaning_1st_pass(
     min_number_picture_neighbors=0,
 ):
     """
-    Clean an image by select pixels that pass a three-threshold tail-cuts
+    Clean an image by selecting pixels that pass a three-threshold tail-cuts
     procedure.
+
     All thresholds are defined with respect to the pedestal
     dispersion. All pixels that have a signal higher than the core (picture)
     threshold will be retained, along with all those above the boundary
