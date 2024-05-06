@@ -148,10 +148,7 @@ class EventsLoader(Component):
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
             sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
-            if self.kind == "gammas":
-                meta = {"sim_info": sim_info, "spectrum": spectrum}
-            else:
-                meta = None
+            meta = {"sim_info": sim_info, "spectrum": spectrum}
             bits = [header]
             n_raw_events = 0
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
