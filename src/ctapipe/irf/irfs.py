@@ -289,7 +289,7 @@ class EnergyMigration2dIrf(EnergyMigrationIrfBase, Irf2dBase):
             migration_bins=self.migration_bins,
             fov_offset_bins=self.fov_offset_bins,
             point_like=point_like,
-            extname="EDISP",
+            extname="ENERGY MIGRATION",
         )
 
 
