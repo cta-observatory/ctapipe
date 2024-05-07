@@ -351,9 +351,9 @@ class PercentileCuts(CutOptimizerBase):
         return result_saver
 
 
-class GridOptimizer(CutOptimizerBase):
+class PointSourceSensitivityOptimizer(CutOptimizerBase):
     """
-    Optimizes a G/H cut for maximum sensitivity and
+    Optimizes a G/H cut for maximum point source sensitivity and
     calculates a percentile cut on theta.
     """
 

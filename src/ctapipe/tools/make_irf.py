@@ -15,15 +15,15 @@ from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
     SPECTRA,
-    BackgroundIrfBase,
-    EffectiveAreaIrfBase,
-    EnergyMigrationIrfBase,
+    BackgroundRateMakerBase,
+    EffectiveAreaMakerBase,
+    EnergyMigrationMakerBase,
     EventPreProcessor,
     EventsLoader,
     FovOffsetBinning,
     OptimizationResultStore,
     OutputEnergyBinning,
-    PsfIrfBase,
+    PsfMakerBase,
     Spectra,
     check_bins_in_range,
 )
@@ -107,26 +107,26 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     edisp_parameterization = traits.ComponentName(
-        EnergyMigrationIrfBase,
-        default_value="EnergyMigration2dIrf",
+        EnergyMigrationMakerBase,
+        default_value="EnergyMigration2dMaker",
         help="The parameterization of the energy migration to be used.",
     ).tag(config=True)
 
     aeff_parameterization = traits.ComponentName(
-        EffectiveAreaIrfBase,
-        default_value="EffectiveArea2dIrf",
+        EffectiveAreaMakerBase,
+        default_value="EffectiveArea2dMaker",
         help="The parameterization of the effective area to be used.",
     ).tag(config=True)
 
     psf_parameterization = traits.ComponentName(
-        PsfIrfBase,
-        default_value="Psf3dIrf",
+        PsfMakerBase,
+        default_value="Psf3dMaker",
         help="The parameterization of the point spread function to be used.",
     ).tag(config=True)
 
     bkg_parameterization = traits.ComponentName(
-        BackgroundIrfBase,
-        default_value="Background2dIrf",
+        BackgroundRateMakerBase,
+        default_value="BackgroundRate2dMaker",
         help="The parameterization of the background rate to be used.",
     ).tag(config=True)
 
@@ -170,10 +170,10 @@ class IrfTool(Tool):
 
     classes = [
         EventsLoader,
-        BackgroundIrfBase,
-        EffectiveAreaIrfBase,
-        EnergyMigrationIrfBase,
-        PsfIrfBase,
+        BackgroundRateMakerBase,
+        EffectiveAreaMakerBase,
+        EnergyMigrationMakerBase,
+        PsfMakerBase,
         FovOffsetBinning,
         OutputEnergyBinning,
     ]
@@ -228,24 +228,24 @@ class IrfTool(Tool):
                     "At least one electron or proton file required when specifying `do_background`."
                 )
 
-            self.bkg = BackgroundIrfBase.from_name(
+            self.bkg = BackgroundRateMakerBase.from_name(
                 self.bkg_parameterization, parent=self
             )
             check_bins_in_range(self.bkg.reco_energy_bins, self.opt_result.valid_energy)
             check_bins_in_range(self.bkg.fov_offset_bins, self.opt_result.valid_offset)
 
-        self.edisp = EnergyMigrationIrfBase.from_name(
+        self.edisp = EnergyMigrationMakerBase.from_name(
             self.edisp_parameterization, parent=self
         )
         check_bins_in_range(self.edisp.true_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.edisp.fov_offset_bins, self.opt_result.valid_offset)
-        self.aeff = EffectiveAreaIrfBase.from_name(
+        self.aeff = EffectiveAreaMakerBase.from_name(
             self.aeff_parameterization, parent=self
         )
         check_bins_in_range(self.aeff.true_energy_bins, self.opt_result.valid_energy)
         check_bins_in_range(self.aeff.fov_offset_bins, self.opt_result.valid_offset)
         if self.full_enclosure:
-            self.psf = PsfIrfBase.from_name(self.psf_parameterization, parent=self)
+            self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
             check_bins_in_range(self.psf.true_energy_bins, self.opt_result.valid_energy)
             check_bins_in_range(self.psf.fov_offset_bins, self.opt_result.valid_offset)
 
@@ -504,20 +504,20 @@ class IrfTool(Tool):
                     )
                     self.bins.fov_offset_n_bins = 1
                     self.fov_offset_bins = self.bins.fov_offset_bins()
-                    self.edisp = EnergyMigrationIrfBase.from_name(
+                    self.edisp = EnergyMigrationMakerBase.from_name(
                         self.edisp_parameterization, parent=self, fov_offset_n_bins=1
                     )
-                    self.aeff = EffectiveAreaIrfBase.from_name(
+                    self.aeff = EffectiveAreaMakerBase.from_name(
                         self.aeff_parameterization,
                         parent=self,
                         fov_offset_n_bins=1,
                     )
                     if self.full_enclosure:
-                        self.psf = PsfIrfBase.from_name(
+                        self.psf = PsfMakerBase.from_name(
                             self.psf_parameterization, parent=self, fov_offset_n_bins=1
                         )
                     if self.do_background:
-                        self.bkg = BackgroundIrfBase.from_name(
+                        self.bkg = BackgroundRateMakerBase.from_name(
                             self.bkg_parameterization, parent=self, fov_offset_n_bins=1
                         )
 
