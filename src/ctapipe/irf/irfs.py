@@ -25,8 +25,8 @@ from ..core import Component
 from ..core.traits import AstroQuantity, Float, Integer
 
 
-class IrfTrueEnergyBase(Component):
-    """Base class for irf parameterizations binned in true energy."""
+class IrfMakerTrueEnergyBase(Component):
+    """Base class for creating irfs binned in true energy."""
 
     true_energy_min = AstroQuantity(
         help="Minimum value for True Energy bins",
@@ -54,8 +54,8 @@ class IrfTrueEnergyBase(Component):
         )
 
 
-class IrfRecoEnergyBase(Component):
-    """Base class for irf parameterizations binned in reconstructed energy."""
+class IrfMakerRecoEnergyBase(Component):
+    """Base class for creating irfs binned in reconstructed energy."""
 
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",
@@ -83,8 +83,8 @@ class IrfRecoEnergyBase(Component):
         )
 
 
-class Irf2dBase(Component):
-    """Base class for radially symmetric irf parameterizations."""
+class IrfMaker2dBase(Component):
+    """Base class for creating radially symmetric irfs."""
 
     fov_offset_min = AstroQuantity(
         help="Minimum value for FoV Offset bins",
@@ -115,8 +115,8 @@ class Irf2dBase(Component):
         )
 
 
-class PsfIrfBase(IrfTrueEnergyBase):
-    """Base class for parameterizations of the point spread function."""
+class PsfMakerBase(IrfMakerTrueEnergyBase):
+    """Base class for calculating the point spread function."""
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
@@ -136,8 +136,8 @@ class PsfIrfBase(IrfTrueEnergyBase):
         """
 
 
-class BackgroundIrfBase(IrfRecoEnergyBase):
-    """Base class for parameterizations of the background rate."""
+class BackgroundRateMakerBase(IrfMakerRecoEnergyBase):
+    """Base class for calculating the background rate."""
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
@@ -161,8 +161,8 @@ class BackgroundIrfBase(IrfRecoEnergyBase):
         """
 
 
-class EnergyMigrationIrfBase(IrfTrueEnergyBase):
-    """Base class for parameterizations of the energy migration."""
+class EnergyMigrationMakerBase(IrfMakerTrueEnergyBase):
+    """Base class for calculating the energy migration."""
 
     energy_migration_min = Float(
         help="Minimum value of Energy Migration matrix",
@@ -206,8 +206,8 @@ class EnergyMigrationIrfBase(IrfTrueEnergyBase):
         """
 
 
-class EffectiveAreaIrfBase(IrfTrueEnergyBase):
-    """Base class for parameterizations of the effective area."""
+class EffectiveAreaMakerBase(IrfMakerTrueEnergyBase):
+    """Base class for calculating the effective area."""
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
@@ -237,10 +237,10 @@ class EffectiveAreaIrfBase(IrfTrueEnergyBase):
         """
 
 
-class EffectiveArea2dIrf(EffectiveAreaIrfBase, Irf2dBase):
+class EffectiveArea2dMaker(EffectiveAreaMakerBase, IrfMaker2dBase):
     """
-    Radially symmetric parameterizations of the effective are in equidistant bins
-    of logarithmic true energy and field of view offset.
+    Creates a radially symmetric parameterizations of the effective area in equidistant
+    bins of logarithmic true energy and field of view offset.
     """
 
     def __init__(self, parent, **kwargs):
@@ -281,10 +281,10 @@ class EffectiveArea2dIrf(EffectiveAreaIrfBase, Irf2dBase):
         )
 
 
-class EnergyMigration2dIrf(EnergyMigrationIrfBase, Irf2dBase):
+class EnergyMigration2dMaker(EnergyMigrationMakerBase, IrfMaker2dBase):
     """
-    Radially symmetric parameterizations of the energy migration in equidistant
-    bins of logarithmic true energy and field of view offset.
+    Creates a radially symmetric parameterizations of the energy migration in
+    equidistant bins of logarithmic true energy and field of view offset.
     """
 
     def __init__(self, parent, **kwargs):
@@ -309,9 +309,9 @@ class EnergyMigration2dIrf(EnergyMigrationIrfBase, Irf2dBase):
         )
 
 
-class Background2dIrf(BackgroundIrfBase, Irf2dBase):
+class BackgroundRate2dMaker(BackgroundRateMakerBase, IrfMaker2dBase):
     """
-    Radially symmetric parameterization of the background rate in equidistant
+    Creates a radially symmetric parameterization of the background rate in equidistant
     bins of logarithmic reconstructed energy and field of view offset.
     """
 
@@ -335,9 +335,9 @@ class Background2dIrf(BackgroundIrfBase, Irf2dBase):
         )
 
 
-class Psf3dIrf(PsfIrfBase, Irf2dBase):
+class Psf3dMaker(PsfMakerBase, IrfMaker2dBase):
     """
-    Radially symmetric point spread function calculated in equidistant bins
+    Creates a radially symmetric point spread function calculated in equidistant bins
     of source offset, logarithmic true energy, and field of view offset.
     """
 
