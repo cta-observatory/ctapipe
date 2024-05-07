@@ -1,5 +1,6 @@
 """module containing optimization related functions and classes"""
 import operator
+from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
@@ -11,6 +12,7 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer
+from .select import EventPreProcessor
 
 
 class ResultValidRange:
@@ -123,21 +125,8 @@ class OptimizationResultStore:
         )
 
 
-class GridOptimizer(Component):
-    """Performs cut optimization"""
-
-    initial_gh_cut_efficency = Float(
-        default_value=0.4, help="Start value of gamma efficiency before optimization"
-    ).tag(config=True)
-
-    max_gh_cut_efficiency = Float(
-        default_value=0.8, help="Maximum gamma efficiency requested"
-    ).tag(config=True)
-
-    gh_cut_efficiency_step = Float(
-        default_value=0.1,
-        help="Stepsize used for scanning after optimal gammaness cut",
-    ).tag(config=True)
+class CutOptimizerBase(Component):
+    """Base class for cut optimization algorithms."""
 
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",
@@ -156,18 +145,248 @@ class GridOptimizer(Component):
         default_value=5,
     ).tag(config=True)
 
-    def optimize_gh_cut(
+    @abstractmethod
+    def optimize_cuts(
         self,
-        signal,
-        background,
-        alpha,
-        min_fov_radius,
-        max_fov_radius,
-        theta,
-        precuts,
-        clf_prefix,
-        point_like,
-    ):
+        signal: QTable,
+        background: QTable,
+        alpha: float,
+        min_fov_radius: u.Quantity,
+        max_fov_radius: u.Quantity,
+        precuts: EventPreProcessor,
+        clf_prefix: str,
+        point_like: bool,
+    ) -> OptimizationResultStore:
+        """
+        Optimize G/H (and optionally theta) cuts
+        and fill them in an ``OptimizationResult``.
+
+        Parameters
+        ----------
+        signal: astropy.table.QTable
+            Table containing signal events
+        background: astropy.table.QTable
+            Table containing background events
+        alpha: float
+            Size ratio of on region / off region
+        min_fov_radius: astropy.units.Quantity[angle]
+            Minimum distance from the fov center for background events
+            to be taken into account
+        max_fov_radius: astropy.units.Quantity[angle]
+            Maximum distance from the fov center for background events
+            to be taken into account
+        precuts: ctapipe.irf.EventPreProcessor
+            ``ctapipe.core.QualityQuery`` subclass containing preselection
+            criteria for events
+        clf_prefix: str
+            Prefix of the output from the G/H classifier for which the
+            cut will be optimized
+        point_like: bool
+            Whether a theta cut should be calculated (True) or only a
+            G/H cut (False)
+        """
+
+
+class GhPercentileCutCalculator(Component):
+    """Computes a percentile cut on gammaness."""
+
+    min_counts = Integer(
+        default_value=10,
+        help="Minimum number of events in a bin to attempt to find a cut value",
+    ).tag(config=True)
+
+    smoothing = Float(
+        default_value=None,
+        allow_none=True,
+        help="When given, the width (in units of bins) of gaussian smoothing applied",
+    ).tag(config=True)
+
+    target_percentile = Integer(
+        default_value=68,
+        help="Percent of events in each energy bin to keep after the G/H cut",
+    ).tag(config=True)
+
+    def calculate_gh_cut(self, gammaness, reco_energy, reco_energy_bins):
+        if self.smoothing and self.smoothing < 0:
+            self.smoothing = None
+
+        return calculate_percentile_cut(
+            gammaness,
+            reco_energy,
+            reco_energy_bins,
+            smoothing=self.smoothing,
+            percentile=self.target_percentile,
+            fill_value=gammaness.max(),
+            min_events=self.min_counts,
+        )
+
+
+class ThetaPercentileCutCalculator(Component):
+    """Computes a percentile cut on theta."""
+
+    theta_min_angle = AstroQuantity(
+        default_value=u.Quantity(-1, u.deg),
+        physical_type=u.physical.angle,
+        help="Smallest angular cut value allowed (-1 means no cut)",
+    ).tag(config=True)
+
+    theta_max_angle = AstroQuantity(
+        default_value=u.Quantity(0.32, u.deg),
+        physical_type=u.physical.angle,
+        help="Largest angular cut value allowed",
+    ).tag(config=True)
+
+    min_counts = Integer(
+        default_value=10,
+        help="Minimum number of events in a bin to attempt to find a cut value",
+    ).tag(config=True)
+
+    theta_fill_value = AstroQuantity(
+        default_value=u.Quantity(0.32, u.deg),
+        physical_type=u.physical.angle,
+        help="Angular cut value used for bins with too few events",
+    ).tag(config=True)
+
+    smoothing = Float(
+        default_value=None,
+        allow_none=True,
+        help="When given, the width (in units of bins) of gaussian smoothing applied",
+    ).tag(config=True)
+
+    target_percentile = Integer(
+        default_value=68,
+        help="Percent of events in each energy bin to keep after the theta cut",
+    ).tag(config=True)
+
+    def calculate_theta_cut(self, theta, reco_energy, reco_energy_bins):
+        if self.theta_min_angle < 0 * u.deg:
+            theta_min_angle = None
+        else:
+            theta_min_angle = self.theta_min_angle
+
+        if self.theta_max_angle < 0 * u.deg:
+            theta_max_angle = None
+        else:
+            theta_max_angle = self.theta_max_angle
+
+        if self.smoothing and self.smoothing < 0:
+            self.smoothing = None
+
+        return calculate_percentile_cut(
+            theta,
+            reco_energy,
+            reco_energy_bins,
+            min_value=theta_min_angle,
+            max_value=theta_max_angle,
+            smoothing=self.smoothing,
+            percentile=self.target_percentile,
+            fill_value=self.theta_fill_value,
+            min_events=self.min_counts,
+        )
+
+
+class PercentileCuts(CutOptimizerBase):
+    """
+    Calculates G/H separation cut based on the percentile of signal events
+    to keep in each bin.
+    Optionally also calculates a percentile cut on theta based on the signal
+    events surviving this G/H cut.
+    """
+
+    classes = [GhPercentileCutCalculator, ThetaPercentileCutCalculator]
+
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.gh = GhPercentileCutCalculator(parent=self)
+        self.theta = ThetaPercentileCutCalculator(parent=self)
+
+    def optimize_cuts(
+        self,
+        signal: QTable,
+        background: QTable,
+        alpha: float,
+        min_fov_radius: u.Quantity,
+        max_fov_radius: u.Quantity,
+        precuts: EventPreProcessor,
+        clf_prefix: str,
+        point_like: bool,
+    ) -> OptimizationResultStore:
+        if not isinstance(max_fov_radius, u.Quantity):
+            raise ValueError("max_fov_radius has to have a unit")
+        if not isinstance(min_fov_radius, u.Quantity):
+            raise ValueError("min_fov_radius has to have a unit")
+
+        reco_energy_bins = create_bins_per_decade(
+            self.reco_energy_min.to(u.TeV),
+            self.reco_energy_max.to(u.TeV),
+            self.reco_energy_n_bins_per_decade,
+        )
+        gh_cuts = self.gh.calculate_gh_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            reco_energy_bins,
+        )
+        if point_like:
+            gh_mask = evaluate_binned_cut(
+                signal["gh_score"],
+                signal["reco_energy"],
+                gh_cuts,
+                op=operator.ge,
+            )
+            theta_cuts = self.theta.calculate_theta_cut(
+                signal["theta"][gh_mask],
+                signal["reco_energy"][gh_mask],
+                reco_energy_bins,
+            )
+
+        result_saver = OptimizationResultStore(precuts)
+        result_saver.set_result(
+            gh_cuts=gh_cuts,
+            valid_energy=[self.reco_energy_min, self.reco_energy_max],
+            valid_offset=[min_fov_radius, max_fov_radius],
+            clf_prefix=clf_prefix,
+            theta_cuts=theta_cuts if point_like else None,
+        )
+
+        return result_saver
+
+
+class GridOptimizer(CutOptimizerBase):
+    """
+    Optimizes a G/H cut for maximum sensitivity and
+    calculates a percentile cut on theta.
+    """
+
+    classes = [ThetaPercentileCutCalculator]
+
+    initial_gh_cut_efficency = Float(
+        default_value=0.4, help="Start value of gamma efficiency before optimization"
+    ).tag(config=True)
+
+    max_gh_cut_efficiency = Float(
+        default_value=0.8, help="Maximum gamma efficiency requested"
+    ).tag(config=True)
+
+    gh_cut_efficiency_step = Float(
+        default_value=0.1,
+        help="Stepsize used for scanning after optimal gammaness cut",
+    ).tag(config=True)
+
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.theta = ThetaPercentileCutCalculator(parent=self)
+
+    def optimize_cuts(
+        self,
+        signal: QTable,
+        background: QTable,
+        alpha: float,
+        min_fov_radius: u.Quantity,
+        max_fov_radius: u.Quantity,
+        precuts: EventPreProcessor,
+        clf_prefix: str,
+        point_like: bool,
+    ) -> OptimizationResultStore:
         if not isinstance(max_fov_radius, u.Quantity):
             raise ValueError("max_fov_radius has to have a unit")
         if not isinstance(min_fov_radius, u.Quantity):
@@ -186,7 +405,7 @@ class GridOptimizer(Component):
                 bins=reco_energy_bins,
                 fill_value=0.0,
                 percentile=100 * (1 - self.initial_gh_cut_efficency),
-                min_events=25,
+                min_events=10,
                 smoothing=1,
             )
             initial_gh_mask = evaluate_binned_cut(
@@ -196,7 +415,7 @@ class GridOptimizer(Component):
                 op=operator.gt,
             )
 
-            theta_cuts = theta.calculate_theta_cuts(
+            theta_cuts = self.theta.calculate_theta_cut(
                 signal["theta"][initial_gh_mask],
                 signal["reco_energy"][initial_gh_mask],
                 reco_energy_bins,
@@ -242,9 +461,10 @@ class GridOptimizer(Component):
                 gh_cuts,
                 operator.ge,
             )
-            theta_cuts_opt = theta.calculate_theta_cuts(
+            theta_cuts_opt = self.theta.calculate_theta_cut(
                 signal[signal["selected_gh"]]["theta"],
                 signal[signal["selected_gh"]]["reco_energy"],
+                reco_energy_bins,
             )
 
         result_saver = OptimizationResultStore(precuts)
@@ -256,7 +476,7 @@ class GridOptimizer(Component):
             theta_cuts=theta_cuts_opt if point_like else None,
         )
 
-        return result_saver, opt_sens
+        return result_saver
 
     def _get_valid_energy_range(self, opt_sens):
         keep_mask = np.isfinite(opt_sens["significance"])
@@ -269,89 +489,3 @@ class GridOptimizer(Component):
             ]
         else:
             raise ValueError("Optimal significance curve has internal NaN bins")
-
-
-class ThetaCutsCalculator(Component):
-    """Compute percentile cuts on theta"""
-
-    theta_min_angle = AstroQuantity(
-        default_value=-1 * u.deg,
-        physical_type=u.physical.angle,
-        help="Smallest angular cut value allowed (-1 means no cut)",
-    ).tag(config=True)
-
-    theta_max_angle = AstroQuantity(
-        default_value=0.32 * u.deg,
-        physical_type=u.physical.angle,
-        help="Largest angular cut value allowed",
-    ).tag(config=True)
-
-    theta_min_counts = Integer(
-        default_value=10,
-        help="Minimum number of events in a bin to attempt to find a cut value",
-    ).tag(config=True)
-
-    theta_fill_value = AstroQuantity(
-        default_value=0.32 * u.deg,
-        physical_type=u.physical.angle,
-        help="Angular cut value used for bins with too few events",
-    ).tag(config=True)
-
-    theta_smoothing = Float(
-        default_value=None,
-        allow_none=True,
-        help="When given, the width (in units of bins) of gaussian smoothing applied (None)",
-    ).tag(config=True)
-
-    target_percentile = Float(
-        default_value=68,
-        help="Percent of events in each energy bin to keep after the theta cut",
-    ).tag(config=True)
-
-    reco_energy_min = AstroQuantity(
-        help="Minimum value for Reco Energy bins",
-        default_value=u.Quantity(0.015, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    reco_energy_max = AstroQuantity(
-        help="Maximum value for Reco Energy bins",
-        default_value=u.Quantity(150, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    reco_energy_n_bins_per_decade = Integer(
-        help="Number of bins per decade for Reco Energy bins",
-        default_value=5,
-    ).tag(config=True)
-
-    def calculate_theta_cuts(self, theta, reco_energy, reco_energy_bins=None):
-        if reco_energy_bins is None:
-            reco_energy_bins = create_bins_per_decade(
-                self.reco_energy_min.to(u.TeV),
-                self.reco_energy_max.to(u.TeV),
-                self.reco_energy_n_bins_per_decade,
-            )
-
-        theta_min_angle = (
-            None if self.theta_min_angle < 0 * u.deg else self.theta_min_angle
-        )
-        theta_max_angle = (
-            None if self.theta_max_angle < 0 * u.deg else self.theta_max_angle
-        )
-        if self.theta_smoothing:
-            theta_smoothing = None if self.theta_smoothing < 0 else self.theta_smoothing
-        else:
-            theta_smoothing = self.theta_smoothing
-
-        return calculate_percentile_cut(
-            theta,
-            reco_energy,
-            reco_energy_bins,
-            min_value=theta_min_angle,
-            max_value=theta_max_angle,
-            smoothing=theta_smoothing,
-            percentile=self.target_percentile,
-            fill_value=self.theta_fill_value,
-            min_events=self.theta_min_counts,
-        )
