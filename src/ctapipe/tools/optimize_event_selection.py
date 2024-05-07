@@ -72,7 +72,7 @@ class IrfEventSelector(Tool):
 
     optimization_algorithm = traits.ComponentName(
         CutOptimizerBase,
-        default_value="GridOptimizer",
+        default_value="PointSourceSensitivityOptimizer",
         help="The cut optimization algorithm to be used.",
     ).tag(config=True)
 
