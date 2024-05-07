@@ -6,11 +6,10 @@ from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
 from ..irf import (
     SPECTRA,
+    CutOptimizerBase,
     EventsLoader,
     FovOffsetBinning,
-    GridOptimizer,
     Spectra,
-    ThetaCutsCalculator,
 )
 
 
@@ -71,6 +70,12 @@ class IrfEventSelector(Tool):
         default_value=0.2, help="Ratio between size of on and off regions."
     ).tag(config=True)
 
+    optimization_algorithm = traits.ComponentName(
+        CutOptimizerBase,
+        default_value="GridOptimizer",
+        help="The cut optimization algorithm to be used.",
+    ).tag(config=True)
+
     full_enclosure = Bool(
         False,
         help="Compute only the G/H separation cut needed for full enclosure IRF.",
@@ -93,11 +98,12 @@ class IrfEventSelector(Tool):
         )
     }
 
-    classes = [GridOptimizer, ThetaCutsCalculator, FovOffsetBinning, EventsLoader]
+    classes = [CutOptimizerBase, FovOffsetBinning, EventsLoader]
 
     def setup(self):
-        self.go = GridOptimizer(parent=self)
-        self.theta = ThetaCutsCalculator(parent=self)
+        self.optimizer = CutOptimizerBase.from_name(
+            self.optimization_algorithm, parent=self
+        )
         self.bins = FovOffsetBinning(parent=self)
 
         self.particles = [
@@ -161,21 +167,22 @@ class IrfEventSelector(Tool):
             "Optimizing cuts using %d signal and %d background events"
             % (len(self.signal_events), len(self.background_events)),
         )
-        result, ope_sens = self.go.optimize_gh_cut(
+        result = self.optimizer.optimize_cuts(
             signal=self.signal_events,
             background=self.background_events,
             alpha=self.alpha,
             min_fov_radius=self.bins.fov_offset_min,
             max_fov_radius=self.bins.fov_offset_max,
-            theta=self.theta,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
             point_like=not self.full_enclosure,
         )
+        self.result = result
 
+    def finish(self):
         self.log.info("Writing results to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimization Result")
-        result.write(self.output_path, self.overwrite)
+        self.result.write(self.output_path, self.overwrite)
 
 
 def main():

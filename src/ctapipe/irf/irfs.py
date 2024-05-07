@@ -227,7 +227,7 @@ class EffectiveAreaIrfBase(IrfTrueEnergyBase):
 
         Parameters
         ----------
-        events: QTable
+        events: astropy.table.QTable
         point_like: bool
         signal_is_point_like: bool
 
