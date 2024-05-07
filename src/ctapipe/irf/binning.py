@@ -8,10 +8,10 @@ from ..core.traits import AstroQuantity, Integer
 
 
 def check_bins_in_range(bins, range):
-    low = bins >= range.min
     # `pyirf.binning.create_bins_per_decade` includes the endpoint, if reasonably close.
     # So different choices of `n_bins_per_decade` can lead to mismatches, if the same
-    # `*_energy_max` is chosen.
+    # `*_energy_{min,max}` is chosen.
+    low = bins >= range.min * 0.9999999
     hig = bins <= range.max * 1.0000001
 
     if not all(low & hig):

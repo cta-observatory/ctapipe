@@ -14,10 +14,13 @@ from .irfs import (
     PsfIrfBase,
 )
 from .optimize import (
+    CutOptimizerBase,
+    GhPercentileCutCalculator,
     GridOptimizer,
     OptimizationResult,
     OptimizationResultStore,
-    ThetaCutsCalculator,
+    PercentileCuts,
+    ThetaPercentileCutCalculator,
 )
 from .select import EventPreProcessor, EventsLoader
 from .spectra import SPECTRA, Spectra
@@ -36,13 +39,16 @@ __all__ = [
     "EffectiveArea2dIrf",
     "OptimizationResult",
     "OptimizationResultStore",
+    "CutOptimizerBase",
     "GridOptimizer",
+    "PercentileCuts",
     "OutputEnergyBinning",
     "FovOffsetBinning",
     "EventsLoader",
     "EventPreProcessor",
     "Spectra",
-    "ThetaCutsCalculator",
+    "GhPercentileCutCalculator",
+    "ThetaPercentileCutCalculator",
     "SPECTRA",
     "check_bins_in_range",
 ]
