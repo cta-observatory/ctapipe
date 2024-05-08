@@ -115,8 +115,10 @@ class ViewerMainWindow(QMainWindow):
         tel_id = int(tel_id)
         index = self.widget_index[tel_id]
         widget = self.camera_displays[index]
-        widget.display.image = self.current_event.dl1.tel[tel_id].image
+
         self.camera_display_stack.setCurrentIndex(index)
+        widget.display.image = self.current_event.dl1.tel[tel_id].image
+        widget.display.axes.figure.canvas.draw()
 
     def next(self):
         if self.current_event is not None:
