@@ -8,7 +8,6 @@ from ..irf import (
     SPECTRA,
     CutOptimizerBase,
     EventsLoader,
-    FovOffsetBinning,
     Spectra,
 )
 
@@ -98,14 +97,12 @@ class IrfEventSelector(Tool):
         )
     }
 
-    classes = [CutOptimizerBase, FovOffsetBinning, EventsLoader]
+    classes = [CutOptimizerBase, EventsLoader]
 
     def setup(self):
         self.optimizer = CutOptimizerBase.from_name(
             self.optimization_algorithm, parent=self
         )
-        self.bins = FovOffsetBinning(parent=self)
-
         self.particles = [
             EventsLoader(
                 parent=self,
@@ -134,7 +131,9 @@ class IrfEventSelector(Tool):
         reduced_events = dict()
         for sel in self.particles:
             evs, cnt, meta = sel.load_preselected_events(
-                self.chunk_size, self.obs_time, self.bins
+                self.chunk_size,
+                self.obs_time,
+                [self.optimizer.min_fov_offset, self.optimizer.max_fov_offset],
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
@@ -171,8 +170,6 @@ class IrfEventSelector(Tool):
             signal=self.signal_events,
             background=self.background_events,
             alpha=self.alpha,
-            min_fov_radius=self.bins.fov_offset_min,
-            max_fov_radius=self.bins.fov_offset_max,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
             point_like=not self.full_enclosure,

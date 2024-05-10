@@ -1,6 +1,5 @@
 """Collection of binning related functionality for the irf tools"""
 import astropy.units as u
-import numpy as np
 from pyirf.binning import create_bins_per_decade
 
 from ..core import Component
@@ -16,6 +15,12 @@ def check_bins_in_range(bins, range):
 
     if not all(low & hig):
         raise ValueError(f"Valid range is {range.min} to {range.max}, got {bins}")
+
+
+class ResultValidRange:
+    def __init__(self, bounds_table, prefix):
+        self.min = bounds_table[f"{prefix}_min"][0]
+        self.max = bounds_table[f"{prefix}_max"][0]
 
 
 class OutputEnergyBinning(Component):
@@ -76,38 +81,3 @@ class OutputEnergyBinning(Component):
             self.reco_energy_n_bins_per_decade,
         )
         return reco_energy
-
-
-class FovOffsetBinning(Component):
-    """Collects FoV binning settings."""
-
-    fov_offset_min = AstroQuantity(
-        help="Minimum value for FoV Offset bins",
-        default_value=0.0 * u.deg,
-        physical_type=u.physical.angle,
-    ).tag(config=True)
-
-    fov_offset_max = AstroQuantity(
-        help="Maximum value for FoV offset bins",
-        default_value=5.0 * u.deg,
-        physical_type=u.physical.angle,
-    ).tag(config=True)
-
-    fov_offset_n_bins = Integer(
-        help="Number of bins for FoV offset bins",
-        default_value=1,
-    ).tag(config=True)
-
-    def fov_offset_bins(self):
-        """
-        Creates bins for single/multiple FoV offset.
-        """
-        fov_offset = (
-            np.linspace(
-                self.fov_offset_min.to_value(u.deg),
-                self.fov_offset_max.to_value(u.deg),
-                self.fov_offset_n_bins + 1,
-            )
-            * u.deg
-        )
-        return fov_offset
