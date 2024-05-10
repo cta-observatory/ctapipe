@@ -292,29 +292,14 @@ class IrfTool(Tool):
                     self.opt_result.gh_cuts,
                     operator.ge,
                 )
-                if not self.full_enclosure:
-                    reduced_events[bg_type]["selected_theta"] = evaluate_binned_cut(
-                        reduced_events[bg_type]["theta"],
-                        reduced_events[bg_type]["reco_energy"],
-                        self.opt_result.theta_cuts,
-                        operator.le,
-                    )
-                    reduced_events[bg_type]["selected"] = (
-                        reduced_events[bg_type]["selected_theta"]
-                        & reduced_events[bg_type]["selected_gh"]
-                    )
-                else:
-                    reduced_events[bg_type]["selected"] = reduced_events[bg_type][
-                        "selected_gh"
-                    ]
 
         if self.do_background:
             self.log.debug(
                 "Keeping %d signal, %d proton events, and %d electron events"
                 % (
                     sum(reduced_events["gammas"]["selected"]),
-                    sum(reduced_events["protons"]["selected"]),
-                    sum(reduced_events["electrons"]["selected"]),
+                    sum(reduced_events["protons"]["selected_gh"]),
+                    sum(reduced_events["electrons"]["selected_gh"]),
                 )
             )
         else:
@@ -530,7 +515,7 @@ class IrfTool(Tool):
         if self.do_background:
             hdus.append(
                 self.bkg.make_bkg_hdu(
-                    self.background_events[self.background_events["selected"]],
+                    self.background_events[self.background_events["selected_gh"]],
                     self.obs_time,
                 )
             )
@@ -538,7 +523,7 @@ class IrfTool(Tool):
                 hdus.append(
                     self.aeff.make_aeff_hdu(
                         events=reduced_events["protons"][
-                            reduced_events["protons"]["selected"]
+                            reduced_events["protons"]["selected_gh"]
                         ],
                         point_like=not self.full_enclosure,
                         signal_is_point_like=False,
@@ -550,7 +535,7 @@ class IrfTool(Tool):
                 hdus.append(
                     self.aeff.make_aeff_hdu(
                         events=reduced_events["electrons"][
-                            reduced_events["electrons"]["selected"]
+                            reduced_events["electrons"]["selected_gh"]
                         ],
                         point_like=not self.full_enclosure,
                         signal_is_point_like=False,
