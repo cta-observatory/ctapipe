@@ -540,6 +540,17 @@ class DL1PedestalVarianceContainer(Container):
         "else: (n_channels, n_pixel)",
     )
 
+    trigger_time = Field(
+        None,
+        "Trigger time for this image"
+        "Will be needed by the startracker code later to determine ",
+    )
+
+    pointing = Field(default_factory=TelescopePointingContainer,
+        description="Telescope pointing for the startracker code",
+        )
+
+
     VarMethod = Field(
         VarianceType.SIMPLE,
         "Method by which the variance was calculated"
