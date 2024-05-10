@@ -11,7 +11,7 @@ from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
 from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
-from ..irf import FovOffsetBinning
+from .binning import ResultValidRange
 
 
 class EventPreProcessor(QualityQuery):
@@ -143,7 +143,7 @@ class EventsLoader(Component):
         self.kind = kind
         self.file = file
 
-    def load_preselected_events(self, chunk_size, obs_time, fov_bins):
+    def load_preselected_events(self, chunk_size, obs_time, valid_fov):
         opts = dict(dl2=True, simulated=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
@@ -155,7 +155,7 @@ class EventsLoader(Component):
                 selected = events[self.epp.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 selected = self.make_derived_columns(
-                    selected, spectrum, obs_conf, fov_bins
+                    selected, spectrum, obs_conf, valid_fov
                 )
                 bits.append(selected)
                 n_raw_events += len(events)
@@ -191,7 +191,7 @@ class EventsLoader(Component):
             obs,
         )
 
-    def make_derived_columns(self, events, spectrum, obs_conf, fov_bins):
+    def make_derived_columns(self, events, spectrum, obs_conf, valid_fov):
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
             assert all(obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
@@ -234,12 +234,10 @@ class EventsLoader(Component):
                 spectrum.normalization.unit * u.sr
             )
         ):
-            if isinstance(fov_bins, FovOffsetBinning):
-                spectrum = spectrum.integrate_cone(
-                    fov_bins.fov_offset_min, fov_bins.fov_offset_max
-                )
+            if isinstance(valid_fov, ResultValidRange):
+                spectrum = spectrum.integrate_cone(valid_fov.min, valid_fov.max)
             else:
-                spectrum = spectrum.integrate_cone(fov_bins[0], fov_bins[-1])
+                spectrum = spectrum.integrate_cone(valid_fov[0], valid_fov[-1])
 
         events["weight"] = calculate_event_weights(
             events["true_energy"],

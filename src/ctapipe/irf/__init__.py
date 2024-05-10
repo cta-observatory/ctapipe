@@ -1,5 +1,5 @@
 """Top level module for the irf functionality"""
-from .binning import FovOffsetBinning, OutputEnergyBinning, check_bins_in_range
+from .binning import OutputEnergyBinning, ResultValidRange, check_bins_in_range
 from .irfs import (
     BackgroundRate2dMaker,
     BackgroundRateMakerBase,
@@ -37,13 +37,13 @@ __all__ = [
     "BackgroundRate2dMaker",
     "EnergyMigration2dMaker",
     "EffectiveArea2dMaker",
+    "ResultValidRange",
     "OptimizationResult",
     "OptimizationResultStore",
     "CutOptimizerBase",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
     "OutputEnergyBinning",
-    "FovOffsetBinning",
     "EventsLoader",
     "EventPreProcessor",
     "Spectra",
