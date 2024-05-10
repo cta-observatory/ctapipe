@@ -12,13 +12,8 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer
+from .binning import ResultValidRange
 from .select import EventPreProcessor
-
-
-class ResultValidRange:
-    def __init__(self, bounds_table, prefix):
-        self.min = bounds_table[f"{prefix}_min"]
-        self.max = bounds_table[f"{prefix}_max"]
 
 
 class OptimizationResult:
@@ -145,14 +140,30 @@ class CutOptimizerBase(Component):
         default_value=5,
     ).tag(config=True)
 
+    min_fov_offset = AstroQuantity(
+        help=(
+            "Minimum distance from the fov center for background events "
+            "to be taken into account"
+        ),
+        default_value=u.Quantity(0, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    max_fov_offset = AstroQuantity(
+        help=(
+            "Maximum distance from the fov center for background events "
+            "to be taken into account"
+        ),
+        default_value=u.Quantity(5, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
     @abstractmethod
     def optimize_cuts(
         self,
         signal: QTable,
         background: QTable,
         alpha: float,
-        min_fov_radius: u.Quantity,
-        max_fov_radius: u.Quantity,
         precuts: EventPreProcessor,
         clf_prefix: str,
         point_like: bool,
@@ -169,12 +180,6 @@ class CutOptimizerBase(Component):
             Table containing background events
         alpha: float
             Size ratio of on region / off region
-        min_fov_radius: astropy.units.Quantity[angle]
-            Minimum distance from the fov center for background events
-            to be taken into account
-        max_fov_radius: astropy.units.Quantity[angle]
-            Maximum distance from the fov center for background events
-            to be taken into account
         precuts: ctapipe.irf.EventPreProcessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events
@@ -305,17 +310,10 @@ class PercentileCuts(CutOptimizerBase):
         signal: QTable,
         background: QTable,
         alpha: float,
-        min_fov_radius: u.Quantity,
-        max_fov_radius: u.Quantity,
         precuts: EventPreProcessor,
         clf_prefix: str,
         point_like: bool,
     ) -> OptimizationResultStore:
-        if not isinstance(max_fov_radius, u.Quantity):
-            raise ValueError("max_fov_radius has to have a unit")
-        if not isinstance(min_fov_radius, u.Quantity):
-            raise ValueError("min_fov_radius has to have a unit")
-
         reco_energy_bins = create_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
@@ -343,7 +341,7 @@ class PercentileCuts(CutOptimizerBase):
         result_saver.set_result(
             gh_cuts=gh_cuts,
             valid_energy=[self.reco_energy_min, self.reco_energy_max],
-            valid_offset=[min_fov_radius, max_fov_radius],
+            valid_offset=[self.min_fov_offset, self.max_fov_offset],
             clf_prefix=clf_prefix,
             theta_cuts=theta_cuts if point_like else None,
         )
@@ -381,17 +379,10 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         signal: QTable,
         background: QTable,
         alpha: float,
-        min_fov_radius: u.Quantity,
-        max_fov_radius: u.Quantity,
         precuts: EventPreProcessor,
         clf_prefix: str,
         point_like: bool,
     ) -> OptimizationResultStore:
-        if not isinstance(max_fov_radius, u.Quantity):
-            raise ValueError("max_fov_radius has to have a unit")
-        if not isinstance(min_fov_radius, u.Quantity):
-            raise ValueError("min_fov_radius has to have a unit")
-
         reco_energy_bins = create_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
@@ -428,7 +419,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             theta_cuts["low"] = reco_energy_bins[:-1]
             theta_cuts["center"] = 0.5 * (reco_energy_bins[:-1] + reco_energy_bins[1:])
             theta_cuts["high"] = reco_energy_bins[1:]
-            theta_cuts["cut"] = max_fov_radius
+            theta_cuts["cut"] = self.max_fov_offset
             self.log.info(
                 "Optimizing G/H separation cut for best sensitivity "
                 "with `max_fov_radius` as theta cut."
@@ -448,8 +439,8 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             op=operator.ge,
             theta_cuts=theta_cuts,
             alpha=alpha,
-            fov_offset_max=max_fov_radius,
-            fov_offset_min=min_fov_radius,
+            fov_offset_max=self.max_fov_offset,
+            fov_offset_min=self.min_fov_offset,
         )
         valid_energy = self._get_valid_energy_range(opt_sens)
 
@@ -471,7 +462,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         result_saver.set_result(
             gh_cuts=gh_cuts,
             valid_energy=valid_energy,
-            valid_offset=[min_fov_radius, max_fov_radius],
+            valid_offset=[self.min_fov_offset, self.max_fov_offset],
             clf_prefix=clf_prefix,
             theta_cuts=theta_cuts_opt if point_like else None,
         )

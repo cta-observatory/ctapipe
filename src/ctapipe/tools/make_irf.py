@@ -20,7 +20,6 @@ from ..irf import (
     EnergyMigrationMakerBase,
     EventPreProcessor,
     EventsLoader,
-    FovOffsetBinning,
     OptimizationResultStore,
     OutputEnergyBinning,
     PsfMakerBase,
@@ -174,22 +173,16 @@ class IrfTool(Tool):
         EffectiveAreaMakerBase,
         EnergyMigrationMakerBase,
         PsfMakerBase,
-        FovOffsetBinning,
         OutputEnergyBinning,
     ]
 
     def setup(self):
         self.e_bins = OutputEnergyBinning(parent=self)
-        self.bins = FovOffsetBinning(parent=self)
-
         self.opt_result = OptimizationResultStore().read(self.cuts_file)
 
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
-        self.fov_offset_bins = self.bins.fov_offset_bins()
-
         check_bins_in_range(self.reco_energy_bins, self.opt_result.valid_energy)
-        check_bins_in_range(self.fov_offset_bins, self.opt_result.valid_offset)
 
         if not self.full_enclosure and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
@@ -367,12 +360,10 @@ class IrfTool(Tool):
             )
         else:
             # TODO: Support fov binning
-            if self.bins.fov_offset_n_bins > 1:
-                self.log.warning(
-                    "Currently no fov binning is supported for RAD_MAX. "
-                    "Using `fov_offset_bins = [fov_offset_min, fov_offset_max]`."
-                )
-
+            self.log.debug(
+                "Currently no fov binning is supported for RAD_MAX. "
+                "Using `fov_offset_bins = [valid_offset.min, valid_offset.max]`."
+            )
             hdus.append(
                 create_rad_max_hdu(
                     rad_max=self.opt_result.theta_cuts["cut"].reshape(-1, 1),
@@ -381,7 +372,11 @@ class IrfTool(Tool):
                         self.opt_result.theta_cuts["high"][-1],
                     ),
                     fov_offset_bins=u.Quantity(
-                        [self.bins.fov_offset_min, self.bins.fov_offset_max]
+                        [
+                            self.opt_result.valid_offset.min.to_value(u.deg),
+                            self.opt_result.valid_offset.max.to_value(u.deg),
+                        ],
+                        u.deg,
                     ),
                 )
             )
@@ -417,7 +412,7 @@ class IrfTool(Tool):
                 theta_cuts["center"] = 0.5 * (
                     self.reco_energy_bins[:-1] + self.reco_energy_bins[1:]
                 )
-                theta_cuts["cut"] = self.bins.fov_offset_max
+                theta_cuts["cut"] = self.opt_result.valid_offset.max
             else:
                 theta_cuts = self.opt_result.theta_cuts
 
@@ -430,8 +425,8 @@ class IrfTool(Tool):
                 reco_energy_bins=self.reco_energy_bins,
                 theta_cuts=theta_cuts,
                 alpha=self.alpha,
-                fov_offset_min=self.bins.fov_offset_min,
-                fov_offset_max=self.bins.fov_offset_max,
+                fov_offset_min=self.opt_result.valid_offset.min,
+                fov_offset_max=self.opt_result.valid_offset.max,
             )
             sensitivity = calculate_sensitivity(
                 signal_hist, background_hist, alpha=self.alpha
@@ -483,7 +478,7 @@ class IrfTool(Tool):
             evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size,
                 self.obs_time,
-                self.fov_offset_bins,
+                self.opt_result.valid_offset,
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
@@ -502,8 +497,6 @@ class IrfTool(Tool):
                         " Therefore, the IRF is only calculated at a single point"
                         " in the FoV. Changing `fov_offset_n_bins` to 1."
                     )
-                    self.bins.fov_offset_n_bins = 1
-                    self.fov_offset_bins = self.bins.fov_offset_bins()
                     self.edisp = EnergyMigrationMakerBase.from_name(
                         self.edisp_parameterization, parent=self, fov_offset_n_bins=1
                     )
@@ -529,7 +522,6 @@ class IrfTool(Tool):
 
         self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
         self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
-        self.log.debug("FoV offset bins: %s" % str(self.fov_offset_bins))
 
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(
