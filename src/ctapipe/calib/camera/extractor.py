@@ -5,8 +5,8 @@ Extraction algorithms to compute the statistics from a sequence of images
 __all__ = [
     "StatisticsExtractor",
     "PlainExtractor",
+    "StarVarianceExtractor",
     "SigmaClippingExtractor",
-    "StarExtractor",
 ]
 
 
@@ -15,8 +15,6 @@ from abc import abstractmethod
 import numpy as np
 import scipy.stats
 from astropy.stats import sigma_clipped_stats
-from astropy.coordinates import EarthLocation, SkyCoord, Angle
-from astroquery.vizier import Vizier
 
 from ctapipe.core import TelescopeComponent
 from ctapipe.containers import StatisticsContainer
@@ -144,7 +142,7 @@ class PlainExtractor(StatisticsExtractor):
         )
 
 
-class StarExtractor(StatisticsExtractor):
+class StarVarianceExtractor(StatisticsExtractor):
     """
     Extracts pointing information from a series of variance images
     using the startracker functions  
@@ -158,28 +156,8 @@ class StarExtractor(StatisticsExtractor):
     def __init__():
 
     def __call__(
-        self, variance_table, initial_pointing, PSF_model
+        self, variance_table, trigger_table, initial_pointing, PSF_model
     ):
-
-    def _stars_in_FOV(
-        self, pointing
-    ):
-
-        stars = Vizier.query_region(pointing, radius=Angle(2.0, "deg"),catalog='NOMAD')[0]
-
-        for star in stars:
-
-            star_coords = SkyCoord(star['RAJ2000'], star['DEJ2000'], unit='deg', frame='icrs')
-            star_coords = star_coords.transform_to(camera_frame)
-            central_pixel = self.camera_geometry.transform_to(camera_frame).position_to_pix_index(
-
-    def _star_extraction(
-        self,
-    ):
-        camera_frame = EngineeringCameraFrame(
-            telescope_pointing=current_pointing,
-            focal_length=self.focal_length,
-            obstime=time.utc,
 
         
 
