@@ -59,6 +59,7 @@ class ArrayDisplay:
         try:
             import matplotlib.pyplot as plt
             from matplotlib.collections import PatchCollection
+            from matplotlib.colors import ListedColormap, Normalize
             from matplotlib.lines import Line2D
             from matplotlib.patches import Circle
         except ModuleNotFoundError:
@@ -75,7 +76,6 @@ class ArrayDisplay:
         self.frame = frame
 
         # set up colors per telescope type
-        tel_types = [str(tel) for tel in subarray.tels.values()]
         if radius is None:
             # set radius to the mirror radius (so big tels appear big)
             radius = [
@@ -85,55 +85,57 @@ class ArrayDisplay:
 
             self.radii = radius
         else:
-            self.radii = np.ones(len(tel_types)) * radius
+            self.radii = np.ones(len(subarray)) * radius
 
         if title is None:
             title = subarray.name
 
+        tel_types = list({str(tel) for tel in subarray.telescope_types})
+        self.tel_type_idx = np.array(
+            [tel_types.index(str(tel)) for tel in self.subarray.tel.values()]
+        )
+
         # get default matplotlib color cycle (depends on the current style)
         color_cycle = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
-
-        # map a color to each telescope type:
-        tel_type_to_color = {}
-        for tel_type in list(set(tel_types)):
-            tel_type_to_color[tel_type] = next(color_cycle)
-
-        tel_color = [tel_type_to_color[ttype] for ttype in tel_types]
+        cmap = ListedColormap([next(color_cycle) for _ in tel_types])
+        cmap.set_bad("gray")
+        norm = Normalize(vmin=-0.5, vmax=len(tel_types) - 0.5)
 
         patches = []
-        for x, y, r, c in zip(
+        for x, y, r in zip(
             list(self.tel_coords.x.to_value("m")),
             list(self.tel_coords.y.to_value("m")),
             list(radius),
-            tel_color,
         ):
-            patches.append(Circle(xy=(x, y), radius=r, fill=True, color=c, alpha=alpha))
+            patches.append(Circle(xy=(x, y), radius=r, fill=True, alpha=alpha))
 
         # build the legend:
-        legend_elements = []
-        for ttype in list(set(tel_types)):
-            color = tel_type_to_color[ttype]
-            legend_elements.append(
+        self.legend_elements = []
+        for i, tel_type in enumerate(tel_types):
+            self.legend_elements.append(
                 Line2D(
                     [0],
                     [0],
                     marker="o",
-                    color=color,
-                    label=ttype,
+                    color=cmap(norm(i)),
+                    label=tel_type,
                     markersize=10,
                     alpha=alpha,
                     linewidth=0,
                 )
             )
-        self.axes.legend(handles=legend_elements)
+        self.legend = self.axes.legend(handles=self.legend_elements)
 
         self.add_radial_grid()
 
         # create the plot
-        self.tel_colors = tel_color
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
+        self.telescopes.set_edgecolor(cmap(norm(self.tel_type_idx)))
         self.telescopes.set_linewidth(2.0)
+        self.telescopes.set_cmap(cmap)
+        self.telescopes.set_norm(norm)
+        self.telescopes.set_array(self.tel_type_idx)
 
         self.axes.add_collection(self.telescopes)
         self.axes.set_aspect(1.0)
@@ -141,8 +143,8 @@ class ArrayDisplay:
         xunit = self.tel_coords.x.unit.to_string("latex")
         yunit = self.tel_coords.y.unit.to_string("latex")
         xname, yname, _ = frame.get_representation_component_names().keys()
-        self.axes.set_xlabel(f"{xname} [{xunit}] $\\rightarrow$")
-        self.axes.set_ylabel(f"{yname} [{yunit}] $\\rightarrow$")
+        self.axes.set_xlabel(f"{xname} / {xunit} $\\rightarrow$")
+        self.axes.set_ylabel(f"{yname} / {yunit} $\\rightarrow$")
         self._labels = []
         self._quiver = None
         self.axes.autoscale_view()
