@@ -1,5 +1,6 @@
 from queue import Empty
 
+import astropy.units as u
 import numpy as np
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
@@ -20,7 +21,7 @@ from matplotlib.backends import backend_qtagg  # isort: skip
 from matplotlib.figure import Figure  # isort: skip
 
 from ..containers import ArrayEventContainer
-from ..coordinates import EastingNorthingFrame
+from ..coordinates import EastingNorthingFrame, GroundFrame
 from .mpl_array import ArrayDisplay
 from .mpl_camera import CameraDisplay
 
@@ -112,24 +113,64 @@ class SubarrayDataWidget(QWidget):
 
         self.ax = self.fig.add_subplot(1, 1, 1)
         self.display = ArrayDisplay(
-            subarray, axes=self.ax, frame=EastingNorthingFrame()
+            subarray,
+            axes=self.ax,
+            frame=EastingNorthingFrame(),
         )
         self.display.add_labels()
+        self.display.telescopes.set_linewidth(0)
 
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
+        self.tel_types = self.display.telescopes.get_array().astype(float)
 
-        self.true_impact = None
-        self.reco_impacts = []
+        (self.true_impact,) = self.ax.plot(
+            [],
+            [],
+            marker="x",
+            linestyle="",
+            ms=15,
+            color="k",
+            label="true impact",
+        )
+        self.display.legend_elements.append(self.true_impact)
+        self.ax.legend(handles=self.display.legend_elements)
+        self.reco_impacts = {}
 
     def update_event(self, event):
-        self.current_event = event
-
-        trigger_pattern = np.zeros(len(self.subarray))
-        trigger_pattern[event.trigger.tels_wit_trigger] = 1
+        trigger_pattern = self.tel_types.copy()
+        mask = self.subarray.tel_ids_to_mask(event.trigger.tels_with_trigger)
+        trigger_pattern[~mask] = np.nan
         self.display.values = trigger_pattern
-        self.display.telescopes.set_cmap("inferno")
+
+        if (sim := event.simulation) is not None and (shower := sim.shower) is not None:
+            impact = GroundFrame(shower.core_x, shower.core_y, 0 * u.m)
+            impact = impact.transform_to(self.display.frame)
+            x = impact.easting.to_value(u.m)
+            y = impact.northing.to_value(u.m)
+            self.true_impact.set_data(x, y)
+
+        for key, reco in event.dl2.stereo.geometry.items():
+            if key not in self.reco_impacts:
+                (marker,) = self.ax.plot(
+                    [],
+                    [],
+                    marker="x",
+                    linestyle="",
+                    ms=15,
+                    label=key,
+                )
+                self.reco_impacts[key] = marker
+                self.display.legend_elements.append(marker)
+                self.ax.legend(handles=self.display.legend_elements)
+
+            impact = GroundFrame(reco.core_x, reco.core_y, 0 * u.m)
+            impact = impact.transform_to(self.display.frame)
+            x = impact.easting.to_value(u.m)
+            y = impact.northing.to_value(u.m)
+            self.reco_impacts[key].set_data(x, y)
+
         self.canvas.draw()
 
 
@@ -184,6 +225,7 @@ class ViewerMainWindow(QMainWindow):
             label += f", E={event.simulation.shower.energy:.3f}"
 
         self.label.setText(label)
+        self.subarray_data.update_event(event)
         self.tel_data.update_event(event)
 
     def next(self):
