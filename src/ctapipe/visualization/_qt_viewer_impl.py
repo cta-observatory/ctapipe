@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QStackedLayout,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -36,31 +37,21 @@ class CameraDisplayWidget(QWidget):
         self.setLayout(layout)
 
 
-class ViewerMainWindow(QMainWindow):
-    new_event_signal = Signal()
-
-    def __init__(self, subarray, queue, **kwargs):
+class DL1Widget(QWidget):
+    def __init__(self, subarray, **kwargs):
         super().__init__(**kwargs)
         self.subarray = subarray
-        self.queue = queue
         self.current_event = None
-        self.setWindowTitle("ctapipe event display")
 
         layout = QVBoxLayout()
 
         top = QHBoxLayout()
-        self.label = QLabel(self)
-        top.addWidget(self.label)
-
-        tel_selector_layout = QHBoxLayout()
         label = QLabel(text="tel_id: ")
         label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
-        tel_selector_layout.addWidget(label)
+        top.addWidget(label)
         self.tel_selector = QComboBox(self)
         self.tel_selector.currentTextChanged.connect(self.update_tel_image)
-        tel_selector_layout.addWidget(self.tel_selector)
-        top.addLayout(tel_selector_layout)
-
+        top.addWidget(self.tel_selector)
         layout.addLayout(top)
 
         self.camera_displays = []
@@ -76,6 +67,59 @@ class ViewerMainWindow(QMainWindow):
                 self.widget_index[tel_id] = i
 
         layout.addLayout(self.camera_display_stack)
+        self.setLayout(layout)
+
+    def update_tel_image(self, tel_id):
+        # tel_selector.clear also calls this, but with an empty tel_id
+        if tel_id == "":
+            return
+
+        tel_id = int(tel_id)
+        index = self.widget_index[tel_id]
+        widget = self.camera_displays[index]
+
+        self.camera_display_stack.setCurrentIndex(index)
+        widget.display.image = self.current_event.dl1.tel[tel_id].image
+        widget.display.axes.figure.canvas.draw()
+
+    def update_event(self, event):
+        self.current_event = event
+
+        if event.dl1 is not None:
+            tels_with_image = [
+                str(tel_id)
+                for tel_id, dl1 in event.dl1.tel.items()
+                if dl1.image is not None
+            ]
+            self.tel_selector.clear()
+            self.tel_selector.addItems(tels_with_image)
+            self.tel_selector.setCurrentIndex(0)
+
+
+class ViewerMainWindow(QMainWindow):
+    new_event_signal = Signal()
+
+    def __init__(self, subarray, queue, **kwargs):
+        super().__init__(**kwargs)
+        self.subarray = subarray
+        self.queue = queue
+        self.current_event = None
+        self.setWindowTitle("ctapipe event display")
+
+        layout = QVBoxLayout()
+
+        top = QHBoxLayout()
+        self.label = QLabel(self)
+        self.label.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignCenter
+        )
+        top.addWidget(self.label)
+        layout.addLayout(top)
+
+        tabs = QTabWidget()
+        self.dl1 = DL1Widget(subarray)
+        tabs.addTab(self.dl1, "DL1")
+        layout.addWidget(tabs)
 
         self.next_button = QPushButton("Next Event", parent=self)
         self.next_button.pressed.connect(self.next)
@@ -100,29 +144,7 @@ class ViewerMainWindow(QMainWindow):
             label += f", E={event.simulation.shower.energy:.3f}"
 
         self.label.setText(label)
-
-        if event.dl1 is not None:
-            tels_with_image = [
-                str(tel_id)
-                for tel_id, dl1 in event.dl1.tel.items()
-                if dl1.image is not None
-            ]
-            self.tel_selector.clear()
-            self.tel_selector.addItems(tels_with_image)
-            self.tel_selector.setCurrentIndex(0)
-
-    def update_tel_image(self, tel_id):
-        # tel_selector.clear also calls this, but with an empty tel_id
-        if tel_id == "":
-            return
-
-        tel_id = int(tel_id)
-        index = self.widget_index[tel_id]
-        widget = self.camera_displays[index]
-
-        self.camera_display_stack.setCurrentIndex(index)
-        widget.display.image = self.current_event.dl1.tel[tel_id].image
-        widget.display.axes.figure.canvas.draw()
+        self.dl1.update_event(event)
 
     def next(self):
         if self.current_event is not None:
