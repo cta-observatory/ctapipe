@@ -1,4 +1,4 @@
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -52,9 +52,14 @@ class ViewerMainWindow(QMainWindow):
         self.label = QLabel(self)
         top.addWidget(self.label)
 
+        tel_selector_layout = QHBoxLayout()
+        label = QLabel(text="tel_id: ")
+        label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
+        tel_selector_layout.addWidget(label)
         self.tel_selector = QComboBox(self)
         self.tel_selector.currentTextChanged.connect(self.update_tel_image)
-        top.addWidget(self.tel_selector)
+        tel_selector_layout.addWidget(self.tel_selector)
+        top.addLayout(tel_selector_layout)
 
         layout.addLayout(top)
 
@@ -90,14 +95,11 @@ class ViewerMainWindow(QMainWindow):
         if event is None:
             return
 
+        label = f"obs_id: {event.index.obs_id}" f", event_id: {event.index.event_id}"
         if event.simulation is not None and event.simulation.shower is not None:
-            self.label.setText(
-                f"obs_id: {event.index.obs_id}"
-                f", event_id: {event.index.event_id}"
-                f", E={event.simulation.shower.energy:.3f}"
-            )
-        else:
-            self.label.setText(f"event_id: {event.index.event_id}")
+            label += f", E={event.simulation.shower.energy:.3f}"
+
+        self.label.setText(label)
 
         if event.dl1 is not None:
             tels_with_image = [
