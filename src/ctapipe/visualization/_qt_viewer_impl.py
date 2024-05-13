@@ -2,6 +2,7 @@ from queue import Empty
 
 import astropy.units as u
 import numpy as np
+from PySide6 import QtGui
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QApplication,
@@ -213,6 +214,10 @@ class ViewerMainWindow(QMainWindow):
         self.event_thread.start()
 
         self.new_event_signal.connect(self.update_event)
+
+        # set window size slightly smaller than available desktop space
+        size = QtGui.QGuiApplication.primaryScreen().availableGeometry().size()
+        self.resize(0.9 * size)
 
     def update_event(self, event):
         if event is None:
