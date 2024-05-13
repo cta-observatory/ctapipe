@@ -1,3 +1,5 @@
+from queue import Empty
+
 import numpy as np
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
@@ -17,6 +19,8 @@ from PySide6.QtWidgets import (
 from matplotlib.backends import backend_qtagg  # isort: skip
 from matplotlib.figure import Figure  # isort: skip
 
+from ..containers import ArrayEventContainer
+from ..coordinates import EastingNorthingFrame
 from .mpl_array import ArrayDisplay
 from .mpl_camera import CameraDisplay
 
@@ -107,7 +111,10 @@ class SubarrayDataWidget(QWidget):
         self.canvas = backend_qtagg.FigureCanvasQTAgg(self.fig)
 
         self.ax = self.fig.add_subplot(1, 1, 1)
-        self.display = ArrayDisplay(subarray, axes=self.ax)
+        self.display = ArrayDisplay(
+            subarray, axes=self.ax, frame=EastingNorthingFrame()
+        )
+        self.display.add_labels()
 
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -122,12 +129,12 @@ class SubarrayDataWidget(QWidget):
         trigger_pattern = np.zeros(len(self.subarray))
         trigger_pattern[event.trigger.tels_wit_trigger] = 1
         self.display.values = trigger_pattern
-        self.display.telescopes.cmap = "inferno"
+        self.display.telescopes.set_cmap("inferno")
         self.canvas.draw()
 
 
 class ViewerMainWindow(QMainWindow):
-    new_event_signal = Signal()
+    new_event_signal = Signal(ArrayEventContainer)
 
     def __init__(self, subarray, queue, **kwargs):
         super().__init__(**kwargs)
@@ -166,10 +173,11 @@ class ViewerMainWindow(QMainWindow):
 
         self.new_event_signal.connect(self.update_event)
 
-    def update_event(self):
-        event = self.current_event
+    def update_event(self, event):
         if event is None:
             return
+
+        self.current_event = event
 
         label = f"obs_id: {event.index.obs_id}" f", event_id: {event.index.event_id}"
         if event.simulation is not None and event.simulation.shower is not None:
@@ -182,17 +190,34 @@ class ViewerMainWindow(QMainWindow):
         if self.current_event is not None:
             self.queue.task_done()
 
+    def closeEvent(self, event):
+        self.event_thread.stop_signal.emit()
+        self.event_thread.wait()
+        self.next()
+        super().closeEvent(event)
+
 
 class EventLoop(QThread):
+    stop_signal = Signal()
+
     def __init__(self, display):
         super().__init__()
         self.display = display
+        self.closed = False
+        self.stop_signal.connect(self.close)
+
+    def close(self):
+        self.closed = True
 
     def run(self):
-        while True:
-            event = self.display.queue.get()
-            self.display.current_event = event
-            self.display.new_event_signal.emit()
+        while not self.closed:
+            try:
+                event = self.display.queue.get(timeout=0.1)
+                self.display.new_event_signal.emit(event)
+            except Empty:
+                continue
+            except ValueError:
+                break
 
 
 def viewer_main(subarray, queue):
