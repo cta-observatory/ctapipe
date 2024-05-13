@@ -44,6 +44,7 @@ class ViewerMainWindow(QMainWindow):
         self.subarray = subarray
         self.queue = queue
         self.current_event = None
+        self.setWindowTitle("ctapipe event display")
 
         layout = QVBoxLayout()
 
@@ -91,7 +92,8 @@ class ViewerMainWindow(QMainWindow):
 
         if event.simulation is not None and event.simulation.shower is not None:
             self.label.setText(
-                f"event_id: {event.index.event_id}"
+                f"obs_id: {event.index.obs_id}"
+                f", event_id: {event.index.event_id}"
                 f", E={event.simulation.shower.energy:.3f}"
             )
         else:
