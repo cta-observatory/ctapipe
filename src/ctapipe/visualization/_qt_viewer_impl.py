@@ -1,3 +1,4 @@
+import numpy as np
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QApplication,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
 from matplotlib.backends import backend_qtagg  # isort: skip
 from matplotlib.figure import Figure  # isort: skip
 
+from .mpl_array import ArrayDisplay
 from .mpl_camera import CameraDisplay
 
 
@@ -37,7 +39,7 @@ class CameraDisplayWidget(QWidget):
         self.setLayout(layout)
 
 
-class DL1Widget(QWidget):
+class TelescopeDataWidget(QWidget):
     def __init__(self, subarray, **kwargs):
         super().__init__(**kwargs)
         self.subarray = subarray
@@ -96,6 +98,34 @@ class DL1Widget(QWidget):
             self.tel_selector.setCurrentIndex(0)
 
 
+class SubarrayDataWidget(QWidget):
+    def __init__(self, subarray, **kwargs):
+        super().__init__(**kwargs)
+        self.subarray = subarray
+
+        self.fig = Figure(layout="constrained")
+        self.canvas = backend_qtagg.FigureCanvasQTAgg(self.fig)
+
+        self.ax = self.fig.add_subplot(1, 1, 1)
+        self.display = ArrayDisplay(subarray, axes=self.ax)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
+
+        self.true_impact = None
+        self.reco_impacts = []
+
+    def update_event(self, event):
+        self.current_event = event
+
+        trigger_pattern = np.zeros(len(self.subarray))
+        trigger_pattern[event.trigger.tels_wit_trigger] = 1
+        self.display.values = trigger_pattern
+        self.display.telescopes.cmap = "inferno"
+        self.canvas.draw()
+
+
 class ViewerMainWindow(QMainWindow):
     new_event_signal = Signal()
 
@@ -117,8 +147,10 @@ class ViewerMainWindow(QMainWindow):
         layout.addLayout(top)
 
         tabs = QTabWidget()
-        self.dl1 = DL1Widget(subarray)
-        tabs.addTab(self.dl1, "DL1")
+        self.subarray_data = SubarrayDataWidget(subarray)
+        tabs.addTab(self.subarray_data, "Subarray Data")
+        self.tel_data = TelescopeDataWidget(subarray)
+        tabs.addTab(self.tel_data, "Telescope Data")
         layout.addWidget(tabs)
 
         self.next_button = QPushButton("Next Event", parent=self)
@@ -144,7 +176,7 @@ class ViewerMainWindow(QMainWindow):
             label += f", E={event.simulation.shower.energy:.3f}"
 
         self.label.setText(label)
-        self.dl1.update_event(event)
+        self.tel_data.update_event(event)
 
     def next(self):
         if self.current_event is not None:
