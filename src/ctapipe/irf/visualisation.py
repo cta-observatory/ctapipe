@@ -83,7 +83,7 @@ def plot_2D_table_with_col_stats(
     },
 ):
     """Function to draw 2d histogram along with columnwise statistics
-    the conten values shown depending on stat_kind:
+    the plotted errorbars shown depending on stat_kind:
         0 -> mean + standard deviation
         1 -> median + standard deviation
         2 -> median + user specified quantiles around median (default 0.1 to 0.9)
@@ -295,7 +295,6 @@ def plot_hist2D(
     norm="log",
     cmap="viridis",
 ):
-
     if isinstance(hist, u.Quantity):
         hist = hist.value
 
