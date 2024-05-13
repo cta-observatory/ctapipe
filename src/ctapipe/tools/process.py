@@ -31,6 +31,7 @@ from ..io.hdf5dataformat import (
 )
 from ..reco import Reconstructor, ShowerProcessor
 from ..utils import EventTypeFilter
+from ..visualization import EventViewer
 
 COMPATIBLE_DATALEVELS = [
     DataLevel.R1,
@@ -106,6 +107,13 @@ class ProcessorTool(Tool):
         default_value=[],
     ).tag(config=True)
 
+    event_viewer_name = ComponentName(
+        EventViewer,
+        default_value="QTEventViewer",
+    ).tag(config=True)
+
+    open_viewer = Bool(False, help="Open EventViewer").tag(config=True)
+
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("o", "output"): "DataWriter.output_path",
@@ -163,6 +171,12 @@ class ProcessorTool(Tool):
             "store DL1/Event/Telescope muon parameters in output",
             "don't store DL1/Event/Telescope muon parameters in output",
         ),
+        **flag(
+            "viewer",
+            "ProcessorTool.open_viewer",
+            "Open EventViewer",
+            "Do not open EventViewer",
+        ),
         "camera-frame": (
             {"ImageProcessor": {"use_telescope_frame": False}},
             "Use camera frame for image parameters instead of telescope frame",
@@ -190,6 +204,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(ImageModifier)
         + classes_with_traits(EventTypeFilter)
         + classes_with_traits(Reconstructor)
+        + classes_with_traits(EventViewer)
     )
 
     def setup(self):
@@ -258,6 +273,11 @@ class ProcessorTool(Tool):
             self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)
+
+        if self.open_viewer:
+            self.event_viewer = EventViewer.from_name(self.event_viewer_name, subarray)
+        else:
+            self.event_viewer = None
 
     @property
     def should_compute_dl2(self):
@@ -379,6 +399,9 @@ class ProcessorTool(Tool):
 
             if self.should_compute_dl2:
                 self.process_shower(event)
+
+            if self.event_viewer is not None:
+                self.event_viewer(event)
 
             self.write(event)
 
