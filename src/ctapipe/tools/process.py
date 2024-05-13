@@ -109,7 +109,7 @@ class ProcessorTool(Tool):
 
     event_viewer_name = ComponentName(
         EventViewer,
-        default_value="QTEventViewer",
+        default_value="QtEventViewer",
     ).tag(config=True)
 
     open_viewer = Bool(False, help="Open EventViewer").tag(config=True)
