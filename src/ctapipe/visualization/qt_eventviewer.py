@@ -31,6 +31,10 @@ class QtEventViewer(EventViewer):
         super().__init__(subarray=subarray, **kwargs)
 
         self.queue = JoinableQueue()
+        # don't wait for the GUI process to consume the queue at exit
+        self.queue.cancel_join_thread()
+
+        # qt GUIs need to run as main thread -> subprocess
         self.gui_process = Process(
             target=viewer_main,
             args=(
@@ -42,10 +46,13 @@ class QtEventViewer(EventViewer):
         self.gui_process.start()
 
     def __call__(self, event: ArrayEventContainer):
-        self.queue.join()
-        self.queue.put(event)
+        # if the user closed the viewer window, we just continue processing events
+        # and this becomes a no-op
+        if self.gui_process.is_alive():
+            self.queue.join()
+            self.queue.put(event)
 
     def close(self):
-        self.queue.join()
         self.queue.close()
-        self.gui_process.terminate()
+        if self.gui_process.is_alive():
+            self.gui_process.terminate()
