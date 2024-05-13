@@ -179,18 +179,3 @@ jobs:
 
       - name: Build docs
         run: make doc
-
-      - name: Deploy to github pages
-        # only run on push to master
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        uses: JamesIves/github-pages-deploy-action@v4.6.0
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: docs/_build/html
-          CLEAN: true
-          SINGLE_COMMIT: true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: docs
-          path: docs/_build/html
