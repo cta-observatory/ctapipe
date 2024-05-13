@@ -44,6 +44,10 @@ class OptimizationResult:
 
 class OptimizationResultStore:
     def __init__(self, precuts=None):
+        self._init_precuts(precuts)
+        self._results = None
+
+    def _init_precuts(self, precuts):
         if precuts:
             if isinstance(precuts, QualityQuery):
                 self._precuts = precuts.quality_criteria
@@ -55,8 +59,6 @@ class OptimizationResultStore:
                 self._precuts = list(precuts)
         else:
             self._precuts = None
-
-        self._results = None
 
     def set_result(
         self, gh_cuts, valid_energy, valid_offset, clf_prefix, theta_cuts=None
