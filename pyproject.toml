@@ -37,7 +37,7 @@ dependencies = [
     "numpy >=1.23,<3.0.0a0",
     "packaging",
     "psutil",
-    "pyirf",
+    "pyirf >0.10.1",
     "pyyaml >=5.1",
     "requests",
     "scikit-learn !=1.4.0", # 1.4.0 breaks with astropy tables, before and after works
