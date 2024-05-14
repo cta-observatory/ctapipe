@@ -6,7 +6,7 @@ from ..core import Component
 from ..core.traits import AstroQuantity, Integer
 
 
-def check_bins_in_range(bins, range):
+def check_bins_in_range(bins, range, source="result"):
     # `pyirf.binning.create_bins_per_decade` includes the endpoint, if reasonably close.
     # So different choices of `n_bins_per_decade` can lead to mismatches, if the same
     # `*_energy_{min,max}` is chosen.
@@ -14,7 +14,9 @@ def check_bins_in_range(bins, range):
     hig = bins <= range.max * 1.0000001
 
     if not all(low & hig):
-        raise ValueError(f"Valid range is {range.min} to {range.max}, got {bins}")
+        raise ValueError(
+            f"Valid range for {source} is {range.min} to {range.max}, got {bins}"
+        )
 
 
 class ResultValidRange:

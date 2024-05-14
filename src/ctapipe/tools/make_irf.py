@@ -226,23 +226,47 @@ class IrfTool(Tool):
             self.bkg = BackgroundRateMakerBase.from_name(
                 self.bkg_parameterization, parent=self
             )
-            check_bins_in_range(self.bkg.reco_energy_bins, self.opt_result.valid_energy)
-            check_bins_in_range(self.bkg.fov_offset_bins, self.opt_result.valid_offset)
+            check_bins_in_range(
+                self.bkg.reco_energy_bins,
+                self.opt_result.valid_energy,
+                "background energy reco",
+            )
+            check_bins_in_range(
+                self.bkg.fov_offset_bins,
+                self.opt_result.valid_offset,
+                "background fov offset",
+            )
 
         self.edisp = EnergyMigrationMakerBase.from_name(
             self.edisp_parameterization, parent=self
         )
-        check_bins_in_range(self.edisp.true_energy_bins, self.opt_result.valid_energy)
-        check_bins_in_range(self.edisp.fov_offset_bins, self.opt_result.valid_offset)
+        check_bins_in_range(
+            self.edisp.true_energy_bins,
+            self.opt_result.valid_energy,
+            "Edisp energy true",
+        )
+        check_bins_in_range(
+            self.edisp.fov_offset_bins, self.opt_result.valid_offset, "Edisp fov offset"
+        )
         self.aeff = EffectiveAreaMakerBase.from_name(
             self.aeff_parameterization, parent=self
         )
-        check_bins_in_range(self.aeff.true_energy_bins, self.opt_result.valid_energy)
-        check_bins_in_range(self.aeff.fov_offset_bins, self.opt_result.valid_offset)
+        check_bins_in_range(
+            self.aeff.true_energy_bins, self.opt_result.valid_energy, "Aeff energy true"
+        )
+        check_bins_in_range(
+            self.aeff.fov_offset_bins, self.opt_result.valid_offset, "Aeff fov offset"
+        )
         if self.full_enclosure:
             self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
-            check_bins_in_range(self.psf.true_energy_bins, self.opt_result.valid_energy)
-            check_bins_in_range(self.psf.fov_offset_bins, self.opt_result.valid_offset)
+            check_bins_in_range(
+                self.psf.true_energy_bins,
+                self.opt_result.valid_energy,
+                "PSF energy true",
+            )
+            check_bins_in_range(
+                self.psf.fov_offset_bins, self.opt_result.valid_offset, "PSF fov offset"
+            )
 
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
