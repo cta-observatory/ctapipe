@@ -5,7 +5,6 @@ import astropy.units as u
 import numpy as np
 from astropy.io.fits import BinTableHDU
 from astropy.table import QTable
-from pyirf.binning import create_bins_per_decade
 from pyirf.io import (
     create_aeff2d_hdu,
     create_background_2d_hdu,
@@ -23,6 +22,7 @@ from pyirf.simulations import SimulatedEventsInfo
 
 from ..core import Component
 from ..core.traits import AstroQuantity, Float, Integer
+from .binning import make_bins_per_decade
 
 
 class IrfMakerTrueEnergyBase(Component):
@@ -47,7 +47,7 @@ class IrfMakerTrueEnergyBase(Component):
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.true_energy_bins = create_bins_per_decade(
+        self.true_energy_bins = make_bins_per_decade(
             self.true_energy_min.to(u.TeV),
             self.true_energy_max.to(u.TeV),
             self.true_energy_n_bins_per_decade,
@@ -76,7 +76,7 @@ class IrfMakerRecoEnergyBase(Component):
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.reco_energy_bins = create_bins_per_decade(
+        self.reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,

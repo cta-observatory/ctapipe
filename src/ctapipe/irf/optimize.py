@@ -6,13 +6,12 @@ import astropy.units as u
 import numpy as np
 from astropy.io import fits
 from astropy.table import QTable, Table
-from pyirf.binning import create_bins_per_decade
 from pyirf.cut_optimization import optimize_gh_cut
 from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer
-from .binning import ResultValidRange
+from .binning import ResultValidRange, make_bins_per_decade
 from .select import EventPreProcessor
 
 
@@ -316,7 +315,7 @@ class PercentileCuts(CutOptimizerBase):
         clf_prefix: str,
         point_like: bool,
     ) -> OptimizationResultStore:
-        reco_energy_bins = create_bins_per_decade(
+        reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
@@ -385,7 +384,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         clf_prefix: str,
         point_like: bool,
     ) -> OptimizationResultStore:
-        reco_energy_bins = create_bins_per_decade(
+        reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
