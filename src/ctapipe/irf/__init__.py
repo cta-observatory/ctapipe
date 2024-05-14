@@ -1,5 +1,10 @@
 """Top level module for the irf functionality"""
-from .binning import OutputEnergyBinning, ResultValidRange, check_bins_in_range
+from .binning import (
+    OutputEnergyBinning,
+    ResultValidRange,
+    check_bins_in_range,
+    make_bins_per_decade,
+)
 from .irfs import (
     BackgroundRate2dMaker,
     BackgroundRateMakerBase,
@@ -51,4 +56,5 @@ __all__ = [
     "ThetaPercentileCutCalculator",
     "SPECTRA",
     "check_bins_in_range",
+    "make_bins_per_decade",
 ]
