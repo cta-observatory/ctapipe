@@ -1,10 +1,12 @@
 import json
+from copy import deepcopy
 
 import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
 from ctapipe.containers import ArrayEventContainer
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
 
 
@@ -235,3 +237,68 @@ def test_software_trigger_simtel_process(tmp_path):
         )
 
     assert len(events_no_trigger) > len(events_trigger)
+
+
+def test_different_telescope_type_same_string(subarray_prod5_paranal):
+    """
+    Test that for a subarray that contains two different telescope types
+    with the same string representation, the subarray trigger is working
+    as expected, treating these telescopes as a single group.
+    """
+    from ctapipe.instrument.trigger import SoftwareTrigger
+
+    lst234 = deepcopy(subarray_prod5_paranal.tel[2])
+    # make LST-1 slightly different from LSTs 2-4
+    lst1 = deepcopy(subarray_prod5_paranal.tel[1])
+    lst1.optics.mirror_area *= 0.9
+
+    assert lst1 != lst234
+
+    subarray = SubarrayDescription(
+        name="test",
+        tel_positions={
+            tel_id: subarray_prod5_paranal.positions[tel_id] for tel_id in (1, 2, 3, 4)
+        },
+        tel_descriptions={
+            1: lst1,
+            2: lst234,
+            3: lst234,
+            4: lst234,
+        },
+        reference_location=subarray_prod5_paranal.reference_location,
+    )
+
+    trigger = SoftwareTrigger(
+        subarray=subarray,
+        min_telescopes=2,
+        min_telescopes_of_type=[
+            ("type", "*", 0),
+            ("type", "LST*", 2),
+        ],
+    )
+
+    # all four LSTs, nothing to change
+    event = ArrayEventContainer()
+    event.trigger.tels_with_trigger = [1, 2, 3, 4]
+    assert trigger(event)
+    assert_equal(event.trigger.tels_with_trigger, [1, 2, 3, 4])
+
+    # two LSTs, nothing to change
+    event = ArrayEventContainer()
+    event.trigger.tels_with_trigger = [1, 2]
+    assert trigger(event)
+    assert_equal(event.trigger.tels_with_trigger, [1, 2])
+
+    # two LSTs, nothing to change
+    event = ArrayEventContainer()
+    event.trigger.tels_with_trigger = [1, 3]
+    assert trigger(event)
+    assert_equal(event.trigger.tels_with_trigger, [1, 3])
+
+    # one LST, remove
+    event = ArrayEventContainer()
+    event.trigger.tels_with_trigger = [
+        1,
+    ]
+    assert not trigger(event)
+    assert_equal(event.trigger.tels_with_trigger, [])
