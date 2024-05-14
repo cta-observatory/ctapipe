@@ -10,12 +10,10 @@ from ..core.traits import AstroQuantity, Integer
 
 logger = logging.getLogger(__name__)
 
+
 def check_bins_in_range(bins, range, source="result", raise_error=True):
-    # `pyirf.binning.create_bins_per_decade` includes the endpoint, if reasonably close.
-    # So different choices of `n_bins_per_decade` can lead to mismatches, if the same
-    # `*_energy_{min,max}` is chosen.
-    low = bins >= range.min * 0.9999999
-    hig = bins <= range.max * 1.0000001
+    low = bins >= range.min
+    hig = bins <= range.max
 
     if not all(low & hig):
         with np.printoptions(edgeitems=2, threshold=6, precision=4):
