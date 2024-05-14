@@ -1,4 +1,5 @@
 """Tool to generate IRFs"""
+
 import operator
 
 import astropy.units as u
@@ -40,6 +41,11 @@ class IrfTool(Tool):
     do_benchmarks = Bool(
         False,
         help="Produce IRF related benchmarks",
+    ).tag(config=True)
+
+    range_check_error = Bool(
+        True,
+        help="Raise error if asking for IRFs outside range where cut optimisation is valid",
     ).tag(config=True)
 
     cuts_file = traits.Path(
@@ -184,7 +190,11 @@ class IrfTool(Tool):
 
         self.reco_energy_bins = self.e_bins.reco_energy_bins()
         self.true_energy_bins = self.e_bins.true_energy_bins()
-        check_bins_in_range(self.reco_energy_bins, self.opt_result.valid_energy)
+        check_bins_in_range(
+            self.reco_energy_bins,
+            self.opt_result.valid_energy,
+            raise_error=self.range_check_error,
+        )
 
         if not self.full_enclosure and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
@@ -230,11 +240,13 @@ class IrfTool(Tool):
                 self.bkg.reco_energy_bins,
                 self.opt_result.valid_energy,
                 "background energy reco",
+                raise_error=self.range_check_error,
             )
             check_bins_in_range(
                 self.bkg.fov_offset_bins,
                 self.opt_result.valid_offset,
                 "background fov offset",
+                raise_error=self.range_check_error,
             )
 
         self.edisp = EnergyMigrationMakerBase.from_name(
@@ -244,18 +256,28 @@ class IrfTool(Tool):
             self.edisp.true_energy_bins,
             self.opt_result.valid_energy,
             "Edisp energy true",
+            raise_error=self.range_check_error,
         )
         check_bins_in_range(
-            self.edisp.fov_offset_bins, self.opt_result.valid_offset, "Edisp fov offset"
+            self.edisp.fov_offset_bins,
+            self.opt_result.valid_offset,
+            "Edisp fov offset",
+            raise_error=self.range_check_error,
         )
         self.aeff = EffectiveAreaMakerBase.from_name(
             self.aeff_parameterization, parent=self
         )
         check_bins_in_range(
-            self.aeff.true_energy_bins, self.opt_result.valid_energy, "Aeff energy true"
+            self.aeff.true_energy_bins,
+            self.opt_result.valid_energy,
+            "Aeff energy true",
+            raise_error=self.range_check_error,
         )
         check_bins_in_range(
-            self.aeff.fov_offset_bins, self.opt_result.valid_offset, "Aeff fov offset"
+            self.aeff.fov_offset_bins,
+            self.opt_result.valid_offset,
+            "Aeff fov offset",
+            raise_error=self.range_check_error,
         )
         if self.full_enclosure:
             self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
@@ -263,9 +285,13 @@ class IrfTool(Tool):
                 self.psf.true_energy_bins,
                 self.opt_result.valid_energy,
                 "PSF energy true",
+                raise_error=self.range_check_error,
             )
             check_bins_in_range(
-                self.psf.fov_offset_bins, self.opt_result.valid_offset, "PSF fov offset"
+                self.psf.fov_offset_bins,
+                self.opt_result.valid_offset,
+                "PSF fov offset",
+                raise_error=self.range_check_error,
             )
 
         if self.do_benchmarks:
