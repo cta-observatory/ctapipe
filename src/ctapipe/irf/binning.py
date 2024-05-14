@@ -1,19 +1,35 @@
 """Collection of binning related functionality for the irf tools"""
+
+import logging
+
 import astropy.units as u
 import numpy as np
 
 from ..core import Component
 from ..core.traits import AstroQuantity, Integer
 
+logger = logging.getLogger(__name__)
 
-def check_bins_in_range(bins, range, source="result"):
-    low = bins >= range.min
-    hig = bins <= range.max
+def check_bins_in_range(bins, range, source="result", raise_error=True):
+    # `pyirf.binning.create_bins_per_decade` includes the endpoint, if reasonably close.
+    # So different choices of `n_bins_per_decade` can lead to mismatches, if the same
+    # `*_energy_{min,max}` is chosen.
+    low = bins >= range.min * 0.9999999
+    hig = bins <= range.max * 1.0000001
 
     if not all(low & hig):
-        raise ValueError(
-            f"Valid range for {source} is {range.min} to {range.max}, got {bins}"
-        )
+        with np.printoptions(edgeitems=2, threshold=6, precision=4):
+            bins = np.array2string(bins)
+            min_val = np.array2string(range.min)
+            max_val = np.array2string(range.max)
+            if raise_error:
+                raise ValueError(
+                    f"Valid range for {source} is {min_val} to {max_val}, got {bins}"
+                )
+            else:
+                logger.warning(
+                    f"Valid range for {source} is {min_val} to {max_val}, got {bins}",
+                )
 
 
 @u.quantity_input(e_min=u.TeV, e_max=u.TeV)
