@@ -12,7 +12,7 @@ from pyirf.io import create_rad_max_hdu
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
-from ..core.traits import AstroQuantity, Bool, Float, Integer, flag
+from ..core.traits import AstroQuantity, Bool, Float, Integer, classes_with_traits, flag
 from ..irf import (
     SPECTRA,
     BackgroundRateMakerBase,
@@ -167,14 +167,16 @@ class IrfTool(Tool):
         ),
     }
 
-    classes = [
-        EventsLoader,
-        BackgroundRateMakerBase,
-        EffectiveAreaMakerBase,
-        EnergyMigrationMakerBase,
-        PsfMakerBase,
-        OutputEnergyBinning,
-    ]
+    classes = (
+        [
+            EventsLoader,
+            OutputEnergyBinning,
+        ]
+        + classes_with_traits(BackgroundRateMakerBase)
+        + classes_with_traits(EffectiveAreaMakerBase)
+        + classes_with_traits(EnergyMigrationMakerBase)
+        + classes_with_traits(PsfMakerBase)
+    )
 
     def setup(self):
         self.e_bins = OutputEnergyBinning(parent=self)
