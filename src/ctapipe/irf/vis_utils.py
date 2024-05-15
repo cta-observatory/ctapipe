@@ -49,7 +49,7 @@ def get_2d_hist_from_table(x_prefix, y_prefix, table, column):
 
 
 def get_bin_centers(bins):
-    return np.convolve(bins, kernel=[0.5, 0.5], mode="valid")
+    return np.convolve(bins, [0.5, 0.5], mode="valid")
 
 
 def get_x_bin_values_with_rebinning(num_rebin, xbins, xcent, mat_vals, density):
