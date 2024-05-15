@@ -57,7 +57,7 @@ def plot_2d_table_with_col_stats(
 
     mat_vals, xbins, ybins = get_2d_hist_from_table(x_prefix, y_prefix, table, column)
     xcent = get_bin_centers(xbins)
-    rebin_x, rebin_xcent, rebin_hist = get_x_bin_values_with_rebinning(
+    rebin_x, rebin_xcent, rebin_hist, density = get_x_bin_values_with_rebinning(
         num_rebin, xbins, xcent, mat_vals, density
     )
 
@@ -84,7 +84,7 @@ def plot_2d_table_with_col_stats(
         x_label,
         y_label,
         density,
-        mpl_args,
+        mpl_args=mpl_args,
         lbl_prefix="",
     )
     return ax
@@ -114,7 +114,7 @@ def plot_2d_table_col_stats(
 
     mat_vals, xbins, ybins = get_2d_hist_from_table(x_prefix, y_prefix, table, column)
     xcent = get_bin_centers(xbins)
-    rebin_x, rebin_xcent, rebin_hist = get_x_bin_values_with_rebinning(
+    rebin_x, rebin_xcent, rebin_hist, density = get_x_bin_values_with_rebinning(
         num_rebin, xbins, xcent, mat_vals, density
     )
 
@@ -208,6 +208,7 @@ def plot_hist2d(
     yscale="linear",
     norm="log",
     cmap="viridis",
+    colorbar=False,
 ):
     if isinstance(hist, u.Quantity):
         hist = hist.value
@@ -218,4 +219,6 @@ def plot_hist2d(
     xg, yg = np.meshgrid(xedges, yedges)
     out = ax.pcolormesh(xg, yg, hist, norm=norm, cmap=cmap)
     ax.set(xscale=xscale, xlabel=xlabel, yscale=yscale, ylabel=ylabel)
+    if colorbar:
+        plt.colorbar(out)
     return out
