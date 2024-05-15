@@ -279,20 +279,19 @@ class IrfTool(Tool):
             "Aeff fov offset",
             raise_error=self.range_check_error,
         )
-        if self.full_enclosure:
-            self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
-            check_bins_in_range(
-                self.psf.true_energy_bins,
-                self.opt_result.valid_energy,
-                "PSF energy true",
-                raise_error=self.range_check_error,
-            )
-            check_bins_in_range(
-                self.psf.fov_offset_bins,
-                self.opt_result.valid_offset,
-                "PSF fov offset",
-                raise_error=self.range_check_error,
-            )
+        self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
+        check_bins_in_range(
+            self.psf.true_energy_bins,
+            self.opt_result.valid_energy,
+            "PSF energy true",
+            raise_error=self.range_check_error,
+        )
+        check_bins_in_range(
+            self.psf.fov_offset_bins,
+            self.opt_result.valid_offset,
+            "PSF fov offset",
+            raise_error=self.range_check_error,
+        )
 
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
@@ -389,16 +388,15 @@ class IrfTool(Tool):
                 point_like=not self.full_enclosure,
             )
         )
-        if self.full_enclosure:
-            hdus.append(
-                self.psf.make_psf_hdu(
-                    events=self.signal_events[self.signal_events["selected"]],
-                )
+        hdus.append(
+            self.psf.make_psf_hdu(
+                events=self.signal_events[self.signal_events["selected"]],
             )
-        else:
+        )
+        if not self.full_enclosure:
             # TODO: Support fov binning
             self.log.debug(
-                "Currently no fov binning is supported for RAD_MAX. "
+                "Currently multiple fov binns is not supported for RAD_MAX. "
                 "Using `fov_offset_bins = [valid_offset.min, valid_offset.max]`."
             )
             hdus.append(
@@ -529,7 +527,7 @@ class IrfTool(Tool):
                 ).value == 0
 
                 if self.signal_is_point_like:
-                    self.log.info(
+                    self.log.warning(
                         "The gamma input file contains point-like simulations."
                         " Therefore, the IRF is only calculated at a single point"
                         " in the FoV. Changing `fov_offset_n_bins` to 1."
@@ -542,10 +540,9 @@ class IrfTool(Tool):
                         parent=self,
                         fov_offset_n_bins=1,
                     )
-                    if self.full_enclosure:
-                        self.psf = PsfMakerBase.from_name(
-                            self.psf_parameterization, parent=self, fov_offset_n_bins=1
-                        )
+                    self.psf = PsfMakerBase.from_name(
+                        self.psf_parameterization, parent=self, fov_offset_n_bins=1
+                    )
                     if self.do_background:
                         self.bkg = BackgroundRateMakerBase.from_name(
                             self.bkg_parameterization, parent=self, fov_offset_n_bins=1
