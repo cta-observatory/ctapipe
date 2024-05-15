@@ -1,6 +1,0 @@
-Fix ``SoftwareTrigger`` not correctly handling different telescope
-types that have the same string representation, e.g. the four LSTs
-in prod6 files.
-
-Telescopes that have the same string representation now always are treated
-as one group in ``SoftwareTrigger``.

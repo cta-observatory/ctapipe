@@ -1,4 +1,27 @@
-Ctapipe v0.21.0 (2024-04-25)
+ctapipe v0.21.1 (2024-05-15)
+============================
+
+This is a small bug fix and maintenance release for 0.21.0.
+
+
+Bug Fixes
+---------
+
+- Fix ``SoftwareTrigger`` not correctly handling different telescope
+  types that have the same string representation, e.g. the four LSTs
+  in prod6 files.
+
+  Telescopes that have the same string representation now always are treated
+  as one group in ``SoftwareTrigger``. [`#2552 <https://github.com/cta-observatory/ctapipe/pull/2552>`__]
+
+
+Maintenance
+-----------
+
+- A number of simple code cleanups in the ImPACT reconstructor code. [`#2551 <https://github.com/cta-observatory/ctapipe/pull/2551>`__]
+
+
+ctapipe v0.21.0 (2024-04-25)
 ============================
 
 
