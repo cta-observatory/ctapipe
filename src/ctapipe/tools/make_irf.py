@@ -11,7 +11,6 @@ from pyirf.io import create_rad_max_hdu
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
-    SPECTRA,
     AngularResolutionMaker,
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
@@ -193,7 +192,7 @@ class IrfTool(Tool):
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
-                target_spectrum=SPECTRA[self.gamma_target_spectrum],
+                target_spectrum=self.gamma_target_spectrum,
             ),
         ]
         if self.do_background:
@@ -203,7 +202,7 @@ class IrfTool(Tool):
                         parent=self,
                         kind="protons",
                         file=self.proton_file,
-                        target_spectrum=SPECTRA[self.proton_target_spectrum],
+                        target_spectrum=self.proton_target_spectrum,
                     )
                 )
             if self.electron_file:
@@ -212,7 +211,7 @@ class IrfTool(Tool):
                         parent=self,
                         kind="electrons",
                         file=self.electron_file,
-                        target_spectrum=SPECTRA[self.electron_target_spectrum],
+                        target_spectrum=self.electron_target_spectrum,
                     )
                 )
             if len(self.particles) == 1:

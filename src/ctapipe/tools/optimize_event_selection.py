@@ -5,7 +5,6 @@ from astropy.table import vstack
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, classes_with_traits, flag
 from ..irf import (
-    SPECTRA,
     CutOptimizerBase,
     EventsLoader,
     Spectra,
@@ -108,19 +107,19 @@ class IrfEventSelector(Tool):
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
-                target_spectrum=SPECTRA[self.gamma_sim_spectrum],
+                target_spectrum=self.gamma_sim_spectrum,
             ),
             EventsLoader(
                 parent=self,
                 kind="protons",
                 file=self.proton_file,
-                target_spectrum=SPECTRA[self.proton_sim_spectrum],
+                target_spectrum=self.proton_sim_spectrum,
             ),
             EventsLoader(
                 parent=self,
                 kind="electrons",
                 file=self.electron_file,
-                target_spectrum=SPECTRA[self.electron_sim_spectrum],
+                target_spectrum=self.electron_sim_spectrum,
             ),
         ]
 
