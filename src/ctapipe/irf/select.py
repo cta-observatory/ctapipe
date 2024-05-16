@@ -1,8 +1,10 @@
 """Module containing classes related to event preprocessing and selection"""
+from pathlib import Path
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import QTable, vstack
+from astropy.table import QTable, Table, vstack
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import PowerLaw, calculate_event_weights
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
@@ -12,6 +14,7 @@ from ..core import Component, QualityQuery
 from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
 from .binning import ResultValidRange
+from .spectra import SPECTRA, Spectra
 
 
 class EventPreProcessor(QualityQuery):
@@ -48,7 +51,7 @@ class EventPreProcessor(QualityQuery):
         default_value=[],
     ).tag(config=True)
 
-    def normalise_column_names(self, events):
+    def normalise_column_names(self, events: Table) -> QTable:
         keep_columns = [
             "obs_id",
             "event_id",
@@ -74,7 +77,7 @@ class EventPreProcessor(QualityQuery):
         events.rename_columns(rename_from, rename_to)
         return events
 
-    def make_empty_table(self):
+    def make_empty_table(self) -> QTable:
         """This function defines the columns later functions expect to be present in the event table"""
         columns = [
             "obs_id",
@@ -135,15 +138,17 @@ class EventPreProcessor(QualityQuery):
 class EventsLoader(Component):
     classes = [EventPreProcessor]
 
-    def __init__(self, kind, file, target_spectrum, **kwargs):
+    def __init__(self, kind: str, file: Path, target_spectrum: Spectra, **kwargs):
         super().__init__(**kwargs)
 
         self.epp = EventPreProcessor(parent=self)
-        self.target_spectrum = target_spectrum
+        self.target_spectrum = SPECTRA[target_spectrum]
         self.kind = kind
         self.file = file
 
-    def load_preselected_events(self, chunk_size, obs_time, valid_fov):
+    def load_preselected_events(
+        self, chunk_size: int, obs_time: u.Quantity, valid_fov
+    ) -> tuple[QTable, int, dict]:
         opts = dict(dl2=True, simulated=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
@@ -164,7 +169,9 @@ class EventsLoader(Component):
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table, n_raw_events, meta
 
-    def get_metadata(self, loader, obs_time):
+    def get_metadata(
+        self, loader: TableLoader, obs_time: u.Quantity
+    ) -> tuple[SimulatedEventsInfo, PowerLaw, Table]:
         obs = loader.read_observation_information()
         sim = loader.read_simulation_configuration()
         show = loader.read_shower_distribution()
@@ -191,7 +198,9 @@ class EventsLoader(Component):
             obs,
         )
 
-    def make_derived_columns(self, events, spectrum, obs_conf, valid_fov):
+    def make_derived_columns(
+        self, events: QTable, spectrum: PowerLaw, obs_conf: Table, valid_fov
+    ) -> QTable:
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
             assert all(obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
