@@ -1,29 +1,27 @@
 """Tool to generate IRFs"""
-
 import operator
 
 import astropy.units as u
 import numpy as np
 from astropy.io import fits
 from astropy.table import QTable, vstack
-from pyirf.benchmarks import angular_resolution, energy_bias_resolution
-from pyirf.binning import create_histogram_table
 from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
-from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core import Provenance, Tool, ToolConfigurationError, traits
-from ..core.traits import AstroQuantity, Bool, Float, Integer, classes_with_traits, flag
+from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
     SPECTRA,
+    AngularResolutionMaker,
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
+    EnergyBiasResolutionMaker,
     EnergyMigrationMakerBase,
     EventPreProcessor,
     EventsLoader,
     OptimizationResultStore,
-    OutputEnergyBinning,
     PsfMakerBase,
+    SensitivityMaker,
     Spectra,
     check_bins_in_range,
 )
@@ -107,10 +105,6 @@ class IrfTool(Tool):
         help="Observation time in the form ``<value> <unit>``",
     ).tag(config=True)
 
-    alpha = Float(
-        default_value=0.2, help="Ratio between size of on and off regions."
-    ).tag(config=True)
-
     edisp_parameterization = traits.ComponentName(
         EnergyMigrationMakerBase,
         default_value="EnergyMigration2dMaker",
@@ -176,7 +170,9 @@ class IrfTool(Tool):
     classes = (
         [
             EventsLoader,
-            OutputEnergyBinning,
+            AngularResolutionMaker,
+            EnergyBiasResolutionMaker,
+            SensitivityMaker,
         ]
         + classes_with_traits(BackgroundRateMakerBase)
         + classes_with_traits(EffectiveAreaMakerBase)
@@ -185,16 +181,7 @@ class IrfTool(Tool):
     )
 
     def setup(self):
-        self.e_bins = OutputEnergyBinning(parent=self)
         self.opt_result = OptimizationResultStore().read(self.cuts_file)
-
-        self.reco_energy_bins = self.e_bins.reco_energy_bins()
-        self.true_energy_bins = self.e_bins.true_energy_bins()
-        check_bins_in_range(
-            self.reco_energy_bins,
-            self.opt_result.valid_energy,
-            raise_error=self.range_check_error,
-        )
 
         if not self.full_enclosure and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
@@ -236,6 +223,7 @@ class IrfTool(Tool):
             self.bkg = BackgroundRateMakerBase.from_name(
                 self.bkg_parameterization, parent=self
             )
+            # TODO: Loop over all these bin checks or change `check_bins_in_range`
             check_bins_in_range(
                 self.bkg.reco_energy_bins,
                 self.opt_result.valid_energy,
@@ -296,6 +284,29 @@ class IrfTool(Tool):
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
                 self.output_path.name.replace(".fits", "-benchmark.fits")
+            )
+            self.ang_res = AngularResolutionMaker(parent=self)
+            check_bins_in_range(
+                self.ang_res.true_energy_bins
+                if self.ang_res.use_true_energy
+                else self.ang_res.reco_energy_bins,
+                self.opt_result.valid_energy,
+                "Angular resolution energy",
+                raise_error=self.range_check_error,
+            )
+            self.bias_res = EnergyBiasResolutionMaker(parent=self)
+            check_bins_in_range(
+                self.bias_res.true_energy_bins,
+                self.opt_result.valid_energy,
+                "Bias resolution energy",
+                raise_error=self.range_check_error,
+            )
+            self.sens = SensitivityMaker(parent=self)
+            check_bins_in_range(
+                self.sens.reco_energy_bins,
+                self.opt_result.valid_energy,
+                "Sensitivity energy",
+                raise_error=self.range_check_error,
             )
 
     def calculate_selections(self, reduced_events: dict) -> dict:
@@ -418,23 +429,16 @@ class IrfTool(Tool):
         return hdus
 
     def _make_benchmark_hdus(self, hdus):
-        bias_resolution = energy_bias_resolution(
-            self.signal_events[self.signal_events["selected"]],
-            self.true_energy_bins,
-            bias_function=np.mean,
-            energy_type="true",
+        hdus.append(
+            self.bias_res.make_bias_resolution_hdu(
+                events=self.signal_events[self.signal_events["selected"]],
+            )
         )
-        hdus.append(fits.BinTableHDU(bias_resolution, name="ENERGY_BIAS_RESOLUTION"))
-
-        # Here we use reconstructed energy instead of true energy for the sake of
-        # current pipelines comparisons
-        ang_res = angular_resolution(
-            self.signal_events[self.signal_events["selected_gh"]],
-            self.reco_energy_bins,
-            energy_type="reco",
+        hdus.append(
+            self.ang_res.make_angular_resolution_hdu(
+                events=self.signal_events[self.signal_events["selected_gh"]],
+            )
         )
-        hdus.append(fits.BinTableHDU(ang_res, name="ANGULAR_RESOLUTION"))
-
         if self.do_background:
             if self.full_enclosure:
                 # Create a dummy theta cut since `pyirf.sensitivity.estimate_background`
@@ -445,35 +449,24 @@ class IrfTool(Tool):
                 )
                 theta_cuts = QTable()
                 theta_cuts["center"] = 0.5 * (
-                    self.reco_energy_bins[:-1] + self.reco_energy_bins[1:]
+                    self.sens.reco_energy_bins[:-1] + self.sens.reco_energy_bins[1:]
                 )
                 theta_cuts["cut"] = self.opt_result.valid_offset.max
             else:
                 theta_cuts = self.opt_result.theta_cuts
 
-            signal_hist = create_histogram_table(
-                self.signal_events[self.signal_events["selected"]],
-                bins=self.reco_energy_bins,
+            hdus.append(
+                self.sens.make_sensitivity_hdu(
+                    signal_events=self.signal_events[self.signal_events["selected"]],
+                    background_events=self.background_events[
+                        self.background_events["selected_gh"]
+                    ],
+                    theta_cut=theta_cuts,
+                    fov_offset_min=self.opt_result.valid_offset.min,
+                    fov_offset_max=self.opt_result.valid_offset.max,
+                    gamma_spectrum=self.gamma_target_spectrum,
+                )
             )
-            background_hist = estimate_background(
-                self.background_events[self.background_events["selected_gh"]],
-                reco_energy_bins=self.reco_energy_bins,
-                theta_cuts=theta_cuts,
-                alpha=self.alpha,
-                fov_offset_min=self.opt_result.valid_offset.min,
-                fov_offset_max=self.opt_result.valid_offset.max,
-            )
-            sensitivity = calculate_sensitivity(
-                signal_hist, background_hist, alpha=self.alpha
-            )
-            gamma_spectrum = SPECTRA[self.gamma_target_spectrum]
-            # scale relative sensitivity by Crab flux to get the flux sensitivity
-            sensitivity["flux_sensitivity"] = sensitivity[
-                "relative_sensitivity"
-            ] * gamma_spectrum(sensitivity["reco_energy_center"])
-
-            hdus.append(fits.BinTableHDU(sensitivity, name="SENSITIVITY"))
-
         return hdus
 
     def start(self):
@@ -526,36 +519,33 @@ class IrfTool(Tool):
                     meta["sim_info"].viewcone_max - meta["sim_info"].viewcone_min
                 ).value == 0
 
-                if self.signal_is_point_like:
-                    self.log.warning(
-                        "The gamma input file contains point-like simulations."
-                        " Therefore, the IRF is only calculated at a single point"
-                        " in the FoV. Changing `fov_offset_n_bins` to 1."
-                    )
-                    self.edisp = EnergyMigrationMakerBase.from_name(
-                        self.edisp_parameterization, parent=self, fov_offset_n_bins=1
-                    )
-                    self.aeff = EffectiveAreaMakerBase.from_name(
-                        self.aeff_parameterization,
-                        parent=self,
-                        fov_offset_n_bins=1,
-                    )
-                    self.psf = PsfMakerBase.from_name(
-                        self.psf_parameterization, parent=self, fov_offset_n_bins=1
-                    )
-                    if self.do_background:
-                        self.bkg = BackgroundRateMakerBase.from_name(
-                            self.bkg_parameterization, parent=self, fov_offset_n_bins=1
-                        )
+        if self.signal_is_point_like:
+            self.log.warning(
+                "The gamma input file contains point-like simulations."
+                " Therefore, the IRF is only calculated at a single point"
+                " in the FoV. Changing `fov_offset_n_bins` to 1."
+            )
+            self.edisp = EnergyMigrationMakerBase.from_name(
+                self.edisp_parameterization, parent=self, fov_offset_n_bins=1
+            )
+            self.aeff = EffectiveAreaMakerBase.from_name(
+                self.aeff_parameterization,
+                parent=self,
+                fov_offset_n_bins=1,
+            )
+            self.psf = PsfMakerBase.from_name(
+                self.psf_parameterization, parent=self, fov_offset_n_bins=1
+            )
+            if self.do_background:
+                self.bkg = BackgroundRateMakerBase.from_name(
+                    self.bkg_parameterization, parent=self, fov_offset_n_bins=1
+                )
 
         reduced_events = self.calculate_selections(reduced_events)
 
         self.signal_events = reduced_events["gammas"]
         if self.do_background:
             self.background_events = self._stack_background(reduced_events)
-
-        self.log.debug("True Energy bins: %s" % str(self.true_energy_bins.value))
-        self.log.debug("Reco Energy bins: %s" % str(self.reco_energy_bins.value))
 
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(

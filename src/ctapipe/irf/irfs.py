@@ -20,102 +20,11 @@ from pyirf.irf import (
 )
 from pyirf.simulations import SimulatedEventsInfo
 
-from ..core import Component
 from ..core.traits import AstroQuantity, Float, Integer
-from .binning import make_bins_per_decade
+from .binning import FoVOffsetBinsBase, RecoEnergyBinsBase, TrueEnergyBinsBase
 
 
-class IrfMakerTrueEnergyBase(Component):
-    """Base class for creating irfs binned in true energy."""
-
-    true_energy_min = AstroQuantity(
-        help="Minimum value for True Energy bins",
-        default_value=u.Quantity(0.015, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    true_energy_max = AstroQuantity(
-        help="Maximum value for True Energy bins",
-        default_value=u.Quantity(150, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    true_energy_n_bins_per_decade = Integer(
-        help="Number of edges per decade for True Energy bins",
-        default_value=10,
-    ).tag(config=True)
-
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent=parent, **kwargs)
-        self.true_energy_bins = make_bins_per_decade(
-            self.true_energy_min.to(u.TeV),
-            self.true_energy_max.to(u.TeV),
-            self.true_energy_n_bins_per_decade,
-        )
-
-
-class IrfMakerRecoEnergyBase(Component):
-    """Base class for creating irfs binned in reconstructed energy."""
-
-    reco_energy_min = AstroQuantity(
-        help="Minimum value for Reco Energy bins",
-        default_value=u.Quantity(0.015, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    reco_energy_max = AstroQuantity(
-        help="Maximum value for Reco Energy bins",
-        default_value=u.Quantity(150, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    reco_energy_n_bins_per_decade = Integer(
-        help="Number of edges per decade for Reco Energy bins",
-        default_value=10,
-    ).tag(config=True)
-
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent=parent, **kwargs)
-        self.reco_energy_bins = make_bins_per_decade(
-            self.reco_energy_min.to(u.TeV),
-            self.reco_energy_max.to(u.TeV),
-            self.reco_energy_n_bins_per_decade,
-        )
-
-
-class IrfMaker2dBase(Component):
-    """Base class for creating radially symmetric irfs."""
-
-    fov_offset_min = AstroQuantity(
-        help="Minimum value for FoV Offset bins",
-        default_value=u.Quantity(0, u.deg),
-        physical_type=u.physical.angle,
-    ).tag(config=True)
-
-    fov_offset_max = AstroQuantity(
-        help="Maximum value for FoV offset bins",
-        default_value=u.Quantity(5, u.deg),
-        physical_type=u.physical.angle,
-    ).tag(config=True)
-
-    fov_offset_n_bins = Integer(
-        help="Number of FoV offset bins",
-        default_value=1,
-    ).tag(config=True)
-
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent=parent, **kwargs)
-        self.fov_offset_bins = u.Quantity(
-            np.linspace(
-                self.fov_offset_min.to_value(u.deg),
-                self.fov_offset_max.to_value(u.deg),
-                self.fov_offset_n_bins + 1,
-            ),
-            u.deg,
-        )
-
-
-class PsfMakerBase(IrfMakerTrueEnergyBase):
+class PsfMakerBase(TrueEnergyBinsBase):
     """Base class for calculating the point spread function."""
 
     def __init__(self, parent, **kwargs):
@@ -129,6 +38,9 @@ class PsfMakerBase(IrfMakerTrueEnergyBase):
         Parameters
         ----------
         events: astropy.table.QTable
+            Reconstructed events to be used.
+        extname: str
+            Name for the BinTableHDU.
 
         Returns
         -------
@@ -136,7 +48,7 @@ class PsfMakerBase(IrfMakerTrueEnergyBase):
         """
 
 
-class BackgroundRateMakerBase(IrfMakerRecoEnergyBase):
+class BackgroundRateMakerBase(RecoEnergyBinsBase):
     """Base class for calculating the background rate."""
 
     def __init__(self, parent, **kwargs):
@@ -153,7 +65,12 @@ class BackgroundRateMakerBase(IrfMakerRecoEnergyBase):
         Parameters
         ----------
         events: astropy.table.QTable
+            Reconstructed events to be used.
         obs_time: astropy.units.Quantity[time]
+            Observation time. This must match with how the individual event
+            weights are calculated.
+        extname: str
+            Name for the BinTableHDU.
 
         Returns
         -------
@@ -161,7 +78,7 @@ class BackgroundRateMakerBase(IrfMakerRecoEnergyBase):
         """
 
 
-class EnergyMigrationMakerBase(IrfMakerTrueEnergyBase):
+class EnergyMigrationMakerBase(TrueEnergyBinsBase):
     """Base class for calculating the energy migration."""
 
     energy_migration_min = Float(
@@ -198,7 +115,12 @@ class EnergyMigrationMakerBase(IrfMakerTrueEnergyBase):
         Parameters
         ----------
         events: astropy.table.QTable
+            Reconstructed events to be used.
         point_like: bool
+            If a direction cut was applied on ``events``, pass ``True``, else ``False``
+            for a full-enclosure energy dispersion.
+        extname: str
+            Name for the BinTableHDU.
 
         Returns
         -------
@@ -206,7 +128,7 @@ class EnergyMigrationMakerBase(IrfMakerTrueEnergyBase):
         """
 
 
-class EffectiveAreaMakerBase(IrfMakerTrueEnergyBase):
+class EffectiveAreaMakerBase(TrueEnergyBinsBase):
     """Base class for calculating the effective area."""
 
     def __init__(self, parent, **kwargs):
@@ -228,8 +150,17 @@ class EffectiveAreaMakerBase(IrfMakerTrueEnergyBase):
         Parameters
         ----------
         events: astropy.table.QTable
+            Reconstructed events to be used.
         point_like: bool
+            If a direction cut was applied on ``events``, pass ``True``, else ``False``
+            for a full-enclosure effective area.
         signal_is_point_like: bool
+            If ``events`` were simulated only at a single point in the field of view,
+            pass ``True``, else ``False``.
+        sim_info: pyirf.simulations.SimulatedEventsInfoa
+            The overall statistics of the simulated events.
+        extname: str
+            Name of the BinTableHDU.
 
         Returns
         -------
@@ -237,7 +168,7 @@ class EffectiveAreaMakerBase(IrfMakerTrueEnergyBase):
         """
 
 
-class EffectiveArea2dMaker(EffectiveAreaMakerBase, IrfMaker2dBase):
+class EffectiveArea2dMaker(EffectiveAreaMakerBase, FoVOffsetBinsBase):
     """
     Creates a radially symmetric parameterizations of the effective area in equidistant
     bins of logarithmic true energy and field of view offset.
@@ -281,7 +212,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, IrfMaker2dBase):
         )
 
 
-class EnergyMigration2dMaker(EnergyMigrationMakerBase, IrfMaker2dBase):
+class EnergyMigration2dMaker(EnergyMigrationMakerBase, FoVOffsetBinsBase):
     """
     Creates a radially symmetric parameterizations of the energy migration in
     equidistant bins of logarithmic true energy and field of view offset.
@@ -309,7 +240,7 @@ class EnergyMigration2dMaker(EnergyMigrationMakerBase, IrfMaker2dBase):
         )
 
 
-class BackgroundRate2dMaker(BackgroundRateMakerBase, IrfMaker2dBase):
+class BackgroundRate2dMaker(BackgroundRateMakerBase, FoVOffsetBinsBase):
     """
     Creates a radially symmetric parameterization of the background rate in equidistant
     bins of logarithmic reconstructed energy and field of view offset.
@@ -335,7 +266,7 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, IrfMaker2dBase):
         )
 
 
-class Psf3dMaker(PsfMakerBase, IrfMaker2dBase):
+class Psf3dMaker(PsfMakerBase, FoVOffsetBinsBase):
     """
     Creates a radially symmetric point spread function calculated in equidistant bins
     of source offset, logarithmic true energy, and field of view offset.

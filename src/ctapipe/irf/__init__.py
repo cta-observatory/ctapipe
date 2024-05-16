@@ -1,7 +1,14 @@
 """Top level module for the irf functionality"""
+from .benchmarks import (
+    AngularResolutionMaker,
+    EnergyBiasResolutionMaker,
+    SensitivityMaker,
+)
 from .binning import (
-    OutputEnergyBinning,
+    FoVOffsetBinsBase,
+    RecoEnergyBinsBase,
     ResultValidRange,
+    TrueEnergyBinsBase,
     check_bins_in_range,
     make_bins_per_decade,
 )
@@ -12,9 +19,6 @@ from .irfs import (
     EffectiveAreaMakerBase,
     EnergyMigration2dMaker,
     EnergyMigrationMakerBase,
-    IrfMaker2dBase,
-    IrfMakerRecoEnergyBase,
-    IrfMakerTrueEnergyBase,
     Psf3dMaker,
     PsfMakerBase,
 )
@@ -31,9 +35,12 @@ from .select import EventPreProcessor, EventsLoader
 from .spectra import SPECTRA, Spectra
 
 __all__ = [
-    "IrfMaker2dBase",
-    "IrfMakerRecoEnergyBase",
-    "IrfMakerTrueEnergyBase",
+    "AngularResolutionMaker",
+    "EnergyBiasResolutionMaker",
+    "SensitivityMaker",
+    "TrueEnergyBinsBase",
+    "RecoEnergyBinsBase",
+    "FoVOffsetBinsBase",
     "PsfMakerBase",
     "BackgroundRateMakerBase",
     "EnergyMigrationMakerBase",
@@ -48,7 +55,6 @@ __all__ = [
     "CutOptimizerBase",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
-    "OutputEnergyBinning",
     "EventsLoader",
     "EventPreProcessor",
     "Spectra",
