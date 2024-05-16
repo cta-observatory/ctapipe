@@ -66,18 +66,18 @@ class ResultValidRange:
         self.max = bounds_table[f"{prefix}_max"][0]
 
 
-class OutputEnergyBinning(Component):
-    """Collects energy binning settings."""
+class TrueEnergyBinsBase(Component):
+    """Base class for creating irfs or benchmarks binned in true energy."""
 
     true_energy_min = AstroQuantity(
         help="Minimum value for True Energy bins",
-        default_value=0.015 * u.TeV,
+        default_value=u.Quantity(0.015, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
     true_energy_max = AstroQuantity(
         help="Maximum value for True Energy bins",
-        default_value=150 * u.TeV,
+        default_value=u.Quantity(150, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
@@ -86,15 +86,27 @@ class OutputEnergyBinning(Component):
         default_value=10,
     ).tag(config=True)
 
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.true_energy_bins = make_bins_per_decade(
+            self.true_energy_min.to(u.TeV),
+            self.true_energy_max.to(u.TeV),
+            self.true_energy_n_bins_per_decade,
+        )
+
+
+class RecoEnergyBinsBase(Component):
+    """Base class for creating irfs or benchmarks binned in reconstructed energy."""
+
     reco_energy_min = AstroQuantity(
         help="Minimum value for Reco Energy bins",
-        default_value=0.015 * u.TeV,
+        default_value=u.Quantity(0.015, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
     reco_energy_max = AstroQuantity(
         help="Maximum value for Reco Energy bins",
-        default_value=150 * u.TeV,
+        default_value=u.Quantity(150, u.TeV),
         physical_type=u.physical.energy,
     ).tag(config=True)
 
@@ -103,24 +115,42 @@ class OutputEnergyBinning(Component):
         default_value=5,
     ).tag(config=True)
 
-    def true_energy_bins(self):
-        """
-        Creates bins per decade for true MC energy using pyirf function.
-        """
-        true_energy = make_bins_per_decade(
-            self.true_energy_min.to(u.TeV),
-            self.true_energy_max.to(u.TeV),
-            self.true_energy_n_bins_per_decade,
-        )
-        return true_energy
-
-    def reco_energy_bins(self):
-        """
-        Creates bins per decade for reconstructed MC energy using pyirf function.
-        """
-        reco_energy = make_bins_per_decade(
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
         )
-        return reco_energy
+
+
+class FoVOffsetBinsBase(Component):
+    """Base class for creating radially symmetric irfs or benchmarks."""
+
+    fov_offset_min = AstroQuantity(
+        help="Minimum value for FoV Offset bins",
+        default_value=u.Quantity(0, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    fov_offset_max = AstroQuantity(
+        help="Maximum value for FoV offset bins",
+        default_value=u.Quantity(5, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    fov_offset_n_bins = Integer(
+        help="Number of FoV offset bins",
+        default_value=1,
+    ).tag(config=True)
+
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.fov_offset_bins = u.Quantity(
+            np.linspace(
+                self.fov_offset_min.to_value(u.deg),
+                self.fov_offset_max.to_value(u.deg),
+                self.fov_offset_n_bins + 1,
+            ),
+            u.deg,
+        )
