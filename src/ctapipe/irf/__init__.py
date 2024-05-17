@@ -1,8 +1,11 @@
 """Top level module for the irf functionality"""
 from .benchmarks import (
-    AngularResolutionMaker,
-    EnergyBiasResolutionMaker,
-    SensitivityMaker,
+    AngularResolution2dMaker,
+    AngularResolutionMakerBase,
+    EnergyBiasResolution2dMaker,
+    EnergyBiasResolutionMakerBase,
+    Sensitivity2dMaker,
+    SensitivityMakerBase,
 )
 from .binning import (
     FoVOffsetBinsBase,
@@ -35,9 +38,12 @@ from .select import EventPreProcessor, EventsLoader
 from .spectra import SPECTRA, Spectra
 
 __all__ = [
-    "AngularResolutionMaker",
-    "EnergyBiasResolutionMaker",
-    "SensitivityMaker",
+    "AngularResolutionMakerBase",
+    "AngularResolution2dMaker",
+    "EnergyBiasResolutionMakerBase",
+    "EnergyBiasResolution2dMaker",
+    "SensitivityMakerBase",
+    "Sensitivity2dMaker",
     "TrueEnergyBinsBase",
     "RecoEnergyBinsBase",
     "FoVOffsetBinsBase",
