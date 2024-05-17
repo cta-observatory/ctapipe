@@ -11,16 +11,16 @@ from pyirf.io import create_rad_max_hdu
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
-    AngularResolutionMaker,
+    AngularResolutionMakerBase,
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
-    EnergyBiasResolutionMaker,
+    EnergyBiasResolutionMakerBase,
     EnergyMigrationMakerBase,
     EventPreProcessor,
     EventsLoader,
     OptimizationResultStore,
     PsfMakerBase,
-    SensitivityMaker,
+    SensitivityMakerBase,
     Spectra,
     check_bins_in_range,
 )
@@ -128,6 +128,27 @@ class IrfTool(Tool):
         help="The parameterization of the background rate to be used.",
     ).tag(config=True)
 
+    energy_bias_res_parameterization = traits.ComponentName(
+        EnergyBiasResolutionMakerBase,
+        default_value="EnergyBiasResolution2dMaker",
+        help=(
+            "The parameterization of the bias and resolution benchmark "
+            "for the energy prediction."
+        ),
+    ).tag(config=True)
+
+    ang_res_parameterization = traits.ComponentName(
+        AngularResolutionMakerBase,
+        default_value="AngularResolution2dMaker",
+        help="The parameterization of the angular resolution benchmark.",
+    ).tag(config=True)
+
+    sens_parameterization = traits.ComponentName(
+        SensitivityMakerBase,
+        default_value="Sensitivity2dMaker",
+        help="The parameterization of the point source sensitivity benchmark.",
+    ).tag(config=True)
+
     full_enclosure = Bool(
         False,
         help=(
@@ -169,14 +190,14 @@ class IrfTool(Tool):
     classes = (
         [
             EventsLoader,
-            AngularResolutionMaker,
-            EnergyBiasResolutionMaker,
-            SensitivityMaker,
         ]
         + classes_with_traits(BackgroundRateMakerBase)
         + classes_with_traits(EffectiveAreaMakerBase)
         + classes_with_traits(EnergyMigrationMakerBase)
         + classes_with_traits(PsfMakerBase)
+        + classes_with_traits(AngularResolutionMakerBase)
+        + classes_with_traits(EnergyBiasResolutionMakerBase)
+        + classes_with_traits(SensitivityMakerBase)
     )
 
     def setup(self):
@@ -284,7 +305,9 @@ class IrfTool(Tool):
             self.b_output = self.output_path.with_name(
                 self.output_path.name.replace(".fits", "-benchmark.fits")
             )
-            self.ang_res = AngularResolutionMaker(parent=self)
+            self.ang_res = AngularResolutionMakerBase.from_name(
+                self.ang_res_parameterization, parent=self
+            )
             check_bins_in_range(
                 self.ang_res.true_energy_bins
                 if self.ang_res.use_true_energy
@@ -293,18 +316,40 @@ class IrfTool(Tool):
                 "Angular resolution energy",
                 raise_error=self.range_check_error,
             )
-            self.bias_res = EnergyBiasResolutionMaker(parent=self)
+            check_bins_in_range(
+                self.ang_res.fov_offset_bins,
+                self.opt_result.valid_offset,
+                "Angular resolution fov offset",
+                raise_error=self.range_check_error,
+            )
+            self.bias_res = EnergyBiasResolutionMakerBase.from_name(
+                self.energy_bias_res_parameterization, parent=self
+            )
             check_bins_in_range(
                 self.bias_res.true_energy_bins,
                 self.opt_result.valid_energy,
                 "Bias resolution energy",
                 raise_error=self.range_check_error,
             )
-            self.sens = SensitivityMaker(parent=self)
+            check_bins_in_range(
+                self.bias_res.fov_offset_bins,
+                self.opt_result.valid_offset,
+                "Bias resolution fov offset",
+                raise_error=self.range_check_error,
+            )
+            self.sens = SensitivityMakerBase.from_name(
+                self.sens_parameterization, parent=self
+            )
             check_bins_in_range(
                 self.sens.reco_energy_bins,
                 self.opt_result.valid_energy,
                 "Sensitivity energy",
+                raise_error=self.range_check_error,
+            )
+            check_bins_in_range(
+                self.sens.fov_offset_bins,
+                self.opt_result.valid_offset,
+                "Sensitivity fov offset",
                 raise_error=self.range_check_error,
             )
 
@@ -461,8 +506,6 @@ class IrfTool(Tool):
                         self.background_events["selected_gh"]
                     ],
                     theta_cut=theta_cuts,
-                    fov_offset_min=self.opt_result.valid_offset.min,
-                    fov_offset_max=self.opt_result.valid_offset.max,
                     gamma_spectrum=self.gamma_target_spectrum,
                 )
             )
@@ -538,6 +581,18 @@ class IrfTool(Tool):
             if self.do_background:
                 self.bkg = BackgroundRateMakerBase.from_name(
                     self.bkg_parameterization, parent=self, fov_offset_n_bins=1
+                )
+            if self.do_benchmarks:
+                self.ang_res = AngularResolutionMakerBase.from_name(
+                    self.ang_res_parameterization, parent=self, fov_offset_n_bins=1
+                )
+                self.bias_res = EnergyBiasResolutionMakerBase.from_name(
+                    self.energy_bias_res_parameterization,
+                    parent=self,
+                    fov_offset_n_bins=1,
+                )
+                self.sens = SensitivityMakerBase.from_name(
+                    self.sens_parameterization, parent=self, fov_offset_n_bins=1
                 )
 
         reduced_events = self.calculate_selections(reduced_events)
