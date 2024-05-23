@@ -143,19 +143,22 @@ class StarVarianceExtractor(StatisticsExtractor):
     using the startracker functions  
     """
 
-    min_star_magnitude = Float(
-        0.1,
-        help="Minimum magnitude of stars to be used. Set to appropriate value to avoid ",
+    sigma_clipping_max_sigma = Int(
+        default_value=4,
+        help="Maximal value for the sigma clipping outlier removal",
+    ).tag(config=True)
+    sigma_clipping_iterations = Int(
+        default_value=5,
+        help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
     def __init__():
 
     def __call__(
-        self, variance_table, trigger_table, initial_pointing, PSF_model
+        self, variance_table
     ):
 
         
-
 
 class SigmaClippingExtractor(StatisticsExtractor):
     """
