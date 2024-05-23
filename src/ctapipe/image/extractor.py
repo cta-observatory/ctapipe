@@ -1311,10 +1311,10 @@ class VarianceExtractor(ImageExtractor):
     """
 
     def __call__(
-        self, waveforms, tel_id, trigger_time, pointing
+        self, waveforms, tel_id, trigger_time
     ) -> DL1PedestalVarianceContainer:
         variance = np.nanvar(waveforms,axis=2)
-        return DL1CameraContainer(image=variance, method=VarianceType.SIMPLE, trigger_time=trigger_time, pointing=pointing)
+        return DL1PedestalVarianceContainer(image=variance, method=VarianceType.SIMPLE, trigger_time=trigger_time)
 
 
 def deconvolution_parameters(
