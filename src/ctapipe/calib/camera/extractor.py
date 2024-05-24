@@ -141,8 +141,9 @@ class PlainExtractor(StatisticsExtractor):
 
 class StarVarianceExtractor(StatisticsExtractor):
     """
-    Extracts pointing information from a series of variance images
-    using the startracker functions  
+    Generating average variance images from a set 
+    of variance images for the startracker 
+    pointing calibration  
     """
 
     sigma_clipping_max_sigma = Int(
@@ -160,7 +161,43 @@ class StarVarianceExtractor(StatisticsExtractor):
         self, variance_table
     ):
 
-        
+        image_chunks = (
+            variance_table["image"].data[i : i + self.sample_size] 
+            for i in range(0, len(variance_table["image"].data), self.sample_size)
+            )
+
+        time_chunks = (
+            variance_table["trigger_times"].data[i : i + self.sample_size]
+            for i in range(0, len(variance_table["trigger_times"].data), self.sample_size)
+            )
+
+        stats_list = []
+
+        for images, times in zip(image_chunks, time_chunks):
+
+            stats_list.append(
+                self._sigmaclipping_extraction(images, times)
+            )
+        return stats_list
+
+    def _sigmaclipping_extraction(
+    self, images, times
+    )->StatisticsContainer:
+
+        pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
+            images,
+            sigma=self.sigma_clipping_max_sigma,
+            maxiters=self.sigma_clipping_iterations,
+            cenfunc="mean",
+            axis=0,
+        )
+
+        return StatisticsContainer(
+            validity_start=times[0],
+            validity_stop=times[-1],
+            mean=pixel_mean.filled(np.nan),
+            median=pixel_median.filled(np.nan)
+        )
 
 class SigmaClippingExtractor(StatisticsExtractor):
     """
