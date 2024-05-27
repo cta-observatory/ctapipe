@@ -180,7 +180,7 @@ class StarVarianceExtractor(StatisticsExtractor):
 
     def _sigmaclipping_extraction(
     self, images, times
-    )->StatisticsContainer:
+    )->VarianceStatisticsContainer:
 
         pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
             images,
@@ -190,11 +190,10 @@ class StarVarianceExtractor(StatisticsExtractor):
             axis=0,
         )
 
-        return StatisticsContainer(
+        return VarianceStatisticsContainer(
             validity_start=times[0],
             validity_stop=times[-1],
-            mean=pixel_mean.filled(np.nan),
-            median=pixel_median.filled(np.nan)
+            mean=pixel_mean.filled(np.nan)
         )
 
 class SigmaClippingExtractor(StatisticsExtractor):
