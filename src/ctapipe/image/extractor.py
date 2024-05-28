@@ -1305,8 +1305,7 @@ class TwoPassWindowSum(ImageExtractor):
 class VarianceExtractor(ImageExtractor):
 
     """
-    Extractor that calculates
-    the variance of each sample waveform
+    Calculates the variance of each sample waveform
 
     """
 
