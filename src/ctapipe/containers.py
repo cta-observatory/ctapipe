@@ -57,7 +57,6 @@ __all__ = [
     "TriggerContainer",
     "WaveformCalibrationContainer",
     "StatisticsContainer",
-    "VarianceStatisticsContainer",
     "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
@@ -424,12 +423,6 @@ class StatisticsContainer(Container):
     std = Field(np.float32(nan), "Channel-wise and pixel-wise standard deviation")
     std_outliers = Field(np.float32(nan), "Channel-wise and pixel-wise standard deviation outliers")
 
-class VarianceStatisticsContainer(Container):
-     """Store descriptive statistics of a sequence of variance images"""
-
-     validity_start = Field(np.float32(nan), "start of the validity range")
-     validity_stop = Field(np.float32(nan), "stop of the validity range")
-     mean = Field(np.float32(nan), "Channel-wise and pixel-wise mean")
 
 class ImageStatisticsContainer(Container):
     """Store descriptive image statistics"""
