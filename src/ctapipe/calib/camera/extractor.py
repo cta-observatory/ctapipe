@@ -51,7 +51,7 @@ class StatisticsExtractor(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def __call__(
+    def _extract(
         self, dl1_table, masked_pixels_of_sample=None, col_name="image"
     ) -> list:
         """
@@ -82,7 +82,7 @@ class PlainExtractor(StatisticsExtractor):
     using numpy and scipy functions
     """
 
-    def __call__(
+    def _extract(
         self, dl1_table, masked_pixels_of_sample=None, col_name="image"
     ) -> list:
 
@@ -150,7 +150,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def __call__(
+    def _extract(
         self, dl1_table, masked_pixels_of_sample=None, col_name="image"
     ) -> list:
 
