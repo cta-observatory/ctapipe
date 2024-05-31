@@ -60,7 +60,7 @@ class StatisticsExtractor(TelescopeComponent):
         Parameters
         ----------
         dl1_table : ndarray
-            dl1 table with images and times stored in a numpy array of shape
+            dl1 table with images and timestamps stored in a numpy array of shape
             (n_images, n_channels, n_pix).
         masked_pixels_of_sample : ndarray
             boolean array of masked pixels that are not available for processing
@@ -139,11 +139,11 @@ class SigmaClippingExtractor(StatisticsExtractor):
     using astropy's sigma clipping functions
     """
 
-    sigma_clipping_max_sigma = Int(
+    max_sigma = Int(
         default_value=4,
         help="Maximal value for the sigma clipping outlier removal",
     ).tag(config=True)
-    sigma_clipping_iterations = Int(
+    iterations = Int(
         default_value=5,
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
@@ -178,11 +178,10 @@ class SigmaClippingExtractor(StatisticsExtractor):
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
         # mean, median, and std over the sample per pixel
-        max_sigma = self.sigma_clipping_max_sigma
         pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
             masked_images,
-            sigma=max_sigma,
-            maxiters=self.sigma_clipping_iterations,
+            sigma=self.max_sigma,
+            maxiters=self.iterations,
             cenfunc="mean",
             axis=0,
         )
@@ -192,7 +191,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         pixel_median = np.ma.array(pixel_median, mask=np.isnan(pixel_median))
         pixel_std = np.ma.array(pixel_std, mask=np.isnan(pixel_std))
 
-        unused_values = np.abs(masked_images - pixel_mean) > (max_sigma * pixel_std)
+        unused_values = np.abs(masked_images - pixel_mean) > (self.max_sigma * pixel_std)
 
         # add outliers identified by sigma clipping for following operations
         masked_images.mask |= unused_values
