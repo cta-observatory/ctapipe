@@ -50,8 +50,7 @@ class StatisticsExtractor(TelescopeComponent):
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-    @abstractmethod
-    def _extract(
+    def __call__(
         self, dl1_table, masked_pixels_of_sample=None, col_name="image"
     ) -> list:
         """
@@ -75,17 +74,6 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and validity ranges
         """
 
-
-class PlainExtractor(StatisticsExtractor):
-    """
-    Extractor the statistics from a sequence of images
-    using numpy and scipy functions
-    """
-
-    def _extract(
-        self, dl1_table, masked_pixels_of_sample=None, col_name="image"
-    ) -> list:
-
         # in python 3.12 itertools.batched can be used
         image_chunks = (
             dl1_table[col_name].data[i : i + self.sample_size]
@@ -100,11 +88,23 @@ class PlainExtractor(StatisticsExtractor):
         stats_list = []
         for images, times in zip(image_chunks, time_chunks):
             stats_list.append(
-                self._plain_extraction(images, times, masked_pixels_of_sample)
+                self._extract(images, times, masked_pixels_of_sample)
             )
         return stats_list
 
-    def _plain_extraction(
+    @abstractmethod
+    def _extract(
+        self, images, times, masked_pixels_of_sample
+    ) -> StatisticsContainer:
+        pass
+
+class PlainExtractor(StatisticsExtractor):
+    """
+    Extractor the statistics from a sequence of images
+    using numpy and scipy functions
+    """
+
+    def _extract(
         self, images, times, masked_pixels_of_sample
     ) -> StatisticsContainer:
 
@@ -151,28 +151,6 @@ class SigmaClippingExtractor(StatisticsExtractor):
     ).tag(config=True)
 
     def _extract(
-        self, dl1_table, masked_pixels_of_sample=None, col_name="image"
-    ) -> list:
-
-        # in python 3.12 itertools.batched can be used
-        image_chunks = (
-            dl1_table[col_name].data[i : i + self.sample_size]
-            for i in range(0, len(dl1_table[col_name].data), self.sample_size)
-        )
-        time_chunks = (
-            dl1_table["time"][i : i + self.sample_size]
-            for i in range(0, len(dl1_table["time"]), self.sample_size)
-        )
-
-        # Calculate the statistics from a sequence of images
-        stats_list = []
-        for images, times in zip(image_chunks, time_chunks):
-            stats_list.append(
-                self._sigmaclipping_extraction(images, times, masked_pixels_of_sample)
-            )
-        return stats_list
-
-    def _sigmaclipping_extraction(
         self, images, times, masked_pixels_of_sample
     ) -> StatisticsContainer:
 
