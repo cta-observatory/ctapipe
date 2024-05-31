@@ -22,8 +22,8 @@ def test_extractors(example_subarray):
     pedestal_dl1_table = QTable([times, pedestal_dl1_data], names=("time", "image"))
     flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
 
-    plain_stats_list = plain_extractor(dl1_table=pedestal_dl1_table)
-    sigmaclipping_stats_list = sigmaclipping_extractor(dl1_table=flatfield_dl1_table)
+    plain_stats_list = plain_extractor._extract(dl1_table=pedestal_dl1_table)
+    sigmaclipping_stats_list = sigmaclipping_extractor._extract(dl1_table=flatfield_dl1_table)
 
     assert np.any(np.abs(plain_stats_list[0].mean - 2.0) > 1.5) is False
     assert np.any(np.abs(sigmaclipping_stats_list[0].mean - 77.0) > 1.5) is False
@@ -50,7 +50,7 @@ def test_check_outliers(example_subarray):
     flatfield_dl1_data[:, 0, 120] = 120.0
     flatfield_dl1_data[:, 1, 67] = 120.0
     flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
-    sigmaclipping_stats_list = sigmaclipping_extractor(dl1_table=flatfield_dl1_table)
+    sigmaclipping_stats_list = sigmaclipping_extractor._extract(dl1_table=flatfield_dl1_table)
 
     # check if outliers where detected correctly
     assert sigmaclipping_stats_list[0].median_outliers[0][120] is True
