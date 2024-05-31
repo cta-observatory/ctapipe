@@ -4,20 +4,22 @@ Tests for StatisticsExtractor and related functions
 
 from astropy.table import QTable
 import numpy as np
-
+import pytest
 from ctapipe.calib.camera.extractor import PlainExtractor, SigmaClippingExtractor
 
-@pytest.fixture
-    def test_plainextractor(example_subarray):
-        return PlainExtractor(
-            subarray=example_subarray, sample_size=2500
-        )
+@pytest.fixture(name="test_plainextractor")
+def fixture_test_plainextractor(example_subarray):
+    """test the PlainExtractor"""
+    return PlainExtractor(
+        subarray=example_subarray, sample_size=2500
+    )
 
-@pytest.fixture
-    def test_sigmaclippingextractor(example_subarray):
-        return SigmaClippingExtractor(
-            subarray=example_subarray, sample_size=2500
-        )
+@pytest.fixture(name="test_sigmaclippingextractor")
+def fixture_test_sigmaclippingextractor(example_subarray):
+    """test the SigmaClippingExtractor"""
+    return SigmaClippingExtractor(
+        subarray=example_subarray, sample_size=2500
+    )
 
 def test_extractors(test_plainextractor, test_sigmaclippingextractor):
     """test basic functionality of the StatisticsExtractors"""
@@ -29,8 +31,8 @@ def test_extractors(test_plainextractor, test_sigmaclippingextractor):
     pedestal_dl1_table = QTable([times, pedestal_dl1_data], names=("time", "image"))
     flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
 
-    plain_stats_list = test_plainextractor._extract(dl1_table=pedestal_dl1_table)
-    sigmaclipping_stats_list = test_sigmaclippingextractor._extract(
+    plain_stats_list = test_plainextractor(dl1_table=pedestal_dl1_table)
+    sigmaclipping_stats_list = test_sigmaclippingextractor(
         dl1_table=flatfield_dl1_table
     )
 
@@ -56,7 +58,7 @@ def test_check_outliers(test_sigmaclippingextractor):
     flatfield_dl1_data[:, 0, 120] = 120.0
     flatfield_dl1_data[:, 1, 67] = 120.0
     flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
-    sigmaclipping_stats_list = sigmaclipping_extractor._extract(
+    sigmaclipping_stats_list = test_sigmaclippingextractor(
         dl1_table=flatfield_dl1_table
     )
 
