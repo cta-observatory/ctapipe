@@ -5,15 +5,12 @@ Extraction algorithms to compute the statistics from a sequence of images
 __all__ = [
     "StatisticsExtractor",
     "PlainExtractor",
-    "StarVarianceExtractor",
     "SigmaClippingExtractor",
 ]
-
 
 from abc import abstractmethod
 
 import numpy as np
-import scipy.stats
 from astropy.stats import sigma_clipped_stats
 
 from ctapipe.core import TelescopeComponent
@@ -22,10 +19,9 @@ from ctapipe.core.traits import (
     Int,
     List,
 )
-from ctapipe.coordinates import EngineeringCameraFrame
-
 
 class StatisticsExtractor(TelescopeComponent):
+    """Base StatisticsExtractor component"""
 
     sample_size = Int(
         2500,
@@ -33,11 +29,13 @@ class StatisticsExtractor(TelescopeComponent):
     ).tag(config=True)
     image_median_cut_outliers = List(
         [-0.3, 0.3],
-        help="Interval of accepted image values (fraction with respect to camera median value)",
+        help="""Interval of accepted image values \\
+                (fraction with respect to camera median value)""",
     ).tag(config=True)
     image_std_cut_outliers = List(
         [-3, 3],
-        help="Interval (number of std) of accepted image standard deviation around camera median value",
+        help="""Interval (number of std) of accepted image standard deviation \\
+                around camera median value""",
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
@@ -76,7 +74,6 @@ class StatisticsExtractor(TelescopeComponent):
 
             List of extracted statistics and validity ranges
         """
-        pass
 
 
 class PlainExtractor(StatisticsExtractor):
@@ -136,66 +133,6 @@ class PlainExtractor(StatisticsExtractor):
             median=pixel_median.filled(np.nan),
             median_outliers=image_median_outliers.filled(True),
             std=pixel_std.filled(np.nan),
-        )
-
-
-class StarVarianceExtractor(StatisticsExtractor):
-    """
-    Generating average variance images from a set 
-    of variance images for the startracker 
-    pointing calibration  
-    """
-
-    sigma_clipping_max_sigma = Int(
-        default_value=4,
-        help="Maximal value for the sigma clipping outlier removal",
-    ).tag(config=True)
-    sigma_clipping_iterations = Int(
-        default_value=5,
-        help="Number of iterations for the sigma clipping outlier removal",
-    ).tag(config=True)
-
-    def __init__():
-
-    def __call__(
-        self, variance_table
-    ):
-
-        image_chunks = (
-            variance_table["image"].data[i : i + self.sample_size] 
-            for i in range(0, len(variance_table["image"].data), self.sample_size)
-            )
-
-        time_chunks = (
-            variance_table["trigger_times"].data[i : i + self.sample_size]
-            for i in range(0, len(variance_table["trigger_times"].data), self.sample_size)
-            )
-
-        stats_list = []
-
-        for images, times in zip(image_chunks, time_chunks):
-
-            stats_list.append(
-                self._sigmaclipping_extraction(images, times)
-            )
-        return stats_list
-
-    def _sigmaclipping_extraction(
-    self, images, times
-    )->VarianceStatisticsContainer:
-
-        pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
-            images,
-            sigma=self.sigma_clipping_max_sigma,
-            maxiters=self.sigma_clipping_iterations,
-            cenfunc="mean",
-            axis=0,
-        )
-
-        return VarianceStatisticsContainer(
-            validity_start=times[0],
-            validity_stop=times[-1],
-            mean=pixel_mean.filled(np.nan)
         )
 
 class SigmaClippingExtractor(StatisticsExtractor):
@@ -275,18 +212,26 @@ class SigmaClippingExtractor(StatisticsExtractor):
         image_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
         image_median_outliers = np.logical_or(
             image_deviation
-            < self.image_median_cut_outliers[0] * median_of_pixel_median[:, np.newaxis],
+            < self.image_median_cut_outliers[0] # pylint: disable=unsubscriptable-object
+            * median_of_pixel_median[
+                :, np.newaxis
+            ],
             image_deviation
-            > self.image_median_cut_outliers[1] * median_of_pixel_median[:, np.newaxis],
+            > self.image_median_cut_outliers[1] # pylint: disable=unsubscriptable-object
+            * median_of_pixel_median[
+                :, np.newaxis
+            ],
         )
 
         # outliers from standard deviation
         deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
         image_std_outliers = np.logical_or(
             deviation
-            < self.image_std_cut_outliers[0] * std_of_pixel_std[:, np.newaxis],
+            < self.image_std_cut_outliers[0] # pylint: disable=unsubscriptable-object
+            * std_of_pixel_std[:, np.newaxis],
             deviation
-            > self.image_std_cut_outliers[1] * std_of_pixel_std[:, np.newaxis],
+            > self.image_std_cut_outliers[1] # pylint: disable=unsubscriptable-object
+            * std_of_pixel_std[:, np.newaxis],
         )
 
         return StatisticsContainer(
