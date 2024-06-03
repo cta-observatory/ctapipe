@@ -498,7 +498,7 @@ def test_nsb_image_cleaning(prod5_lst):
     charge[core_pixel_2] = 50
 
     args = {
-        "picture_thresh": 45,
+        "picture_thresh_min": 45,
         "boundary_thresh": 20,
         "keep_isolated_pixels": True,
         "time_limit": None,

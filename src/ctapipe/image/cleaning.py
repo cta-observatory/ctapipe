@@ -499,7 +499,7 @@ def nsb_image_cleaning(
     geom,
     image,
     arrival_times,
-    picture_thresh=8,
+    picture_thresh_min=8,
     boundary_thresh=4,
     min_number_picture_neighbors=2,
     keep_isolated_pixels=False,
@@ -515,7 +515,7 @@ def nsb_image_cleaning(
     Clean an image in 5 Steps:
 
     1) Get picture thresholds for `tailcuts_clean` in step 2) from interleaved
-        pedestal events `pedestal_std` is not None.
+        pedestal events if `pedestal_std` is not None.
     2) Apply tailcuts image cleaning algorithm - `ctapipe.image.cleaning.tailcuts_clean`.
     3) Apply time_delta_cleaning algorithm -
         `ctapipe.image.cleaning.apply_time_delta_cleaning` if time_limit is not None.
@@ -529,14 +529,16 @@ def nsb_image_cleaning(
     geom : ctapipe.instrument.CameraGeometry
         Camera geometry information
     image : np.ndarray
-        pixel charges
+        Pixel charges
     arrival_times : np.ndarray
         Pixel timing information
-    picture_thresh : float | np.ndarray
-        threshold above which all pixels are retained. Used for `tailcuts_clean`.
+    picture_thresh_min : float | np.ndarray
+        Defines the minimum value used for the picture threshold for `tailcuts_clean`.
+        The threshold used will be at least this value, or higher if `pedestal_std`
+        and `pedestal_factor` are set.
     boundary_thresh : float | np.ndarray
-        threshold above which pixels are retained if they have a neighbor
-        already above the picture_thresh. Used for `tailcuts_clean`.
+        Threshold above which pixels are retained if they have a neighbor
+        already above the picture_thresh_min. Used for `tailcuts_clean`.
     min_number_picture_neighbors : int
         A picture pixel survives cleaning only if it has at least this number
         of picture neighbors. This has no effect in case keep_isolated_pixels is True.
@@ -553,12 +555,12 @@ def nsb_image_cleaning(
         A selected pixel needs at least this number of (already selected) neighbors
         that arrived within a given time_limit to itself to survive this cleaning.
     bright_cleaning_fraction : float
-        `fraction` parameter for `bright_cleaning`. Pixels below
+        Fraction parameter for `bright_cleaning`. Pixels below
         fraction * (average charge in the 3 brightest pixels) will be removed from
         the cleaned image. Set `bright_cleaning_threshold` to None if no
         `bright_cleaning` should be applied.
     bright_cleaning_threshold : float
-        `threshold` parameter for `bright_cleaning`. Minimum average charge
+        Threshold parameter for `bright_cleaning`. Minimum average charge
         in the 3 brightest pixels to apply the cleaning. Set to None if no
         `bright_cleaning` should be applied.
     largest_island_only : bool
@@ -567,9 +569,13 @@ def nsb_image_cleaning(
         Factor for interleaved pedestal cleaning. It is multiplied by the
         pedestal standard deviation for each pixel to calculate pixelwise picture
         threshold parameters for `tailcuts_clean` considering the current background.
+        Has no effect if `pedestal_std` is set to None.
     pedestal_std : np.ndarray | None
         Pedestal standard deviation for each pixel. See
-        `ctapipe.containers.PedestalContainer`
+        `ctapipe.containers.PedestalContainer`. Used to calculate pixelwise picture
+        threshold parameters for `tailcuts_clean` by multiplying it with `pedestal_factor`
+        and clip (limit) the product with picture_thresh_min. If set to None, only
+        `picture_thresh_min` is used to set the picture threshold for `tailcuts_clean`.
 
     Returns
     -------
@@ -577,9 +583,10 @@ def nsb_image_cleaning(
 
     """
     # Step 1
+    picture_thresh = picture_thresh_min
     if pedestal_std is not None:
         pedestal_threshold = pedestal_std * pedestal_factor
-        picture_thresh = np.clip(pedestal_threshold, picture_thresh, None)
+        picture_thresh = np.clip(pedestal_threshold, picture_thresh_min, None)
 
     # Step 2
     mask = tailcuts_clean(
@@ -706,7 +713,7 @@ class TailcutsImageCleaner(ImageCleaner):
 class NSBImageCleaner(TailcutsImageCleaner):
     """
     Clean images based on lstchains image cleaning technique [1]_. See
-    `ctapipe.image.lst_image_cleaning`
+    `ctapipe.image.nsb_image_cleaning`
 
     References
     ----------
@@ -725,19 +732,19 @@ class NSBImageCleaner(TailcutsImageCleaner):
         default_value=1,
         help="Used for `time_delta_cleaning`."
         " A selected pixel needs at least this number of (already selected) neighbors"
-        " that arrived within a given time_limit to itself to survive this cleaning.",
+        " that arrived within a given `time_limit` to itself to survive this cleaning.",
     ).tag(config=True)
 
     bright_cleaning_fraction = FloatTelescopeParameter(
         default_value=0.03,
-        help="`fraction` parameter for `bright_cleaning`. Pixels below"
+        help="Fraction parameter for `bright_cleaning`. Pixels below"
         " fraction * (average charge in the 3 brightest pixels) will be removed from"
         " the cleaned image",
     ).tag(config=True)
 
     bright_cleaning_threshold = FloatTelescopeParameter(
         default_value=267,
-        help="`threshold` parameter for `bright_cleaning`. Minimum average charge"
+        help="Threshold parameter for `bright_cleaning`. Minimum average charge"
         " in the 3 brightest pixels to apply the cleaning. Set to None if no"
         " `bright_cleaning` should be applied.",
         allow_none=True,
@@ -773,7 +780,7 @@ class NSBImageCleaner(TailcutsImageCleaner):
             self.subarray.tel[tel_id].camera.geometry,
             image,
             arrival_times,
-            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            picture_thresh_min=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
