@@ -1315,7 +1315,7 @@ class VarianceExtractor(ImageExtractor):
             image=variance,
             VarMethod=VarianceType.SIMPLE,
             is_valid=True,
-            trigger_time=np.float32(trigger_time),
+            time=np.float32(trigger_time),
         )
 
 

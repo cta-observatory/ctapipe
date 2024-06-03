@@ -538,7 +538,7 @@ class DL1PedestalVarianceContainer(Container):
         "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
         "else: (n_channels, n_pixel)",
     )
-    trigger_time = Field(
+    time = Field(
         None,
         "Trigger time for this variance image" "Value is a float",
     )
