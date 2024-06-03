@@ -168,13 +168,12 @@ class EventType(enum.Enum):
 
 
 class VarianceType(enum.Enum):
-    """Enum of variance types used for the DL1PedestalVarianceContainer
-    """
+    """Enum of variance types used for the DL1PedestalVarianceContainer"""
 
-    #Simple variance of waveform
-    SIMPLE=0
-    #Variance of intgrated samples of a waveform
-    SAMPLE=1
+    # Simple variance of waveform
+    SIMPLE = 0
+    # Variance of integrated samples of a waveform
+    SAMPLE = 1
 
 
 class PixelStatus(enum.IntFlag):
@@ -529,7 +528,7 @@ class DL1CameraContainer(Container):
 
 class DL1PedestalVarianceContainer(Container):
     """
-    Storage of output of camera variance image e.g. 
+    Storage of output of camera variance image e.g.
     the variance of each pixel composed as an image.
     """
 
@@ -539,24 +538,24 @@ class DL1PedestalVarianceContainer(Container):
         "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
         "else: (n_channels, n_pixel)",
     )
-
     trigger_time = Field(
         None,
-        "Trigger time for this image"
-        "Will be needed by the startracker code later to determine ",
+        "Trigger time for this variance image" "Value is a float",
     )
-
-    pointing = Field(default_factory=TelescopePointingContainer,
-        description="Telescope pointing for the startracker code",
-        )
-
-
     VarMethod = Field(
         VarianceType.SIMPLE,
         "Method by which the variance was calculated"
         "This can either be a plain variance"
         "or a variance of integrated samples",
         type=VarianceType,
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if image extraction succeeded, False if failed "
+            "or in the case of TwoPass methods, that the first "
+            "pass only was returned."
+        ),
     )
 
 
