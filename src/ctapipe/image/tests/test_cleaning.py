@@ -471,13 +471,13 @@ def test_bright_cleaning():
     image[50:65] = 30
 
     threshold = 90
-    mask = cleaning.bright_cleaning(image, threshold, fraction)
+    mask = cleaning.bright_cleaning(image, threshold, fraction, n_pixels=3)
     assert np.count_nonzero(mask) == 3 + 10
     # test that it doesn't select any pixels if mean of the 3 brightest pixels
     # is below threshold
     threshold = 110
-    mask = cleaning.bright_cleaning(image, threshold, fraction)
-    assert np.count_nonzero(mask) == 0
+    mask = cleaning.bright_cleaning(image, threshold, fraction, n_pixels=3)
+    assert np.count_nonzero(~mask) == 0
 
 
 def test_nsb_image_cleaning(prod5_lst):

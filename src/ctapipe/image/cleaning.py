@@ -113,12 +113,12 @@ def tailcuts_clean(
         )
 
 
-def bright_cleaning(image, threshold, fraction):
+def bright_cleaning(image, threshold, fraction, n_pixels=3):
     """
     Clean an image by removing pixels below a fraction of the mean charge
-    in the 3 brightest pixels.
+    in the `n_pixels` brightest pixels.
 
-    Select no pixels instead if the mean charge of the brightest pixels
+    No pixels are removed instead if the mean charge of the brightest pixels
     are below a certain threshold.
 
     Parameters
@@ -137,12 +137,12 @@ def bright_cleaning(image, threshold, fraction):
     A boolean mask of *clean* pixels.
 
     """
-    mean_3_max_signal = np.mean(n_largest(3, image))
+    mean_brightest_signal = np.mean(n_largest(n_pixels, image))
 
-    if mean_3_max_signal < threshold:
-        return np.zeros(image.shape, dtype=bool)
+    if mean_brightest_signal < threshold:
+        return np.ones(image.shape, dtype=bool)
 
-    threshold_brightest = fraction * mean_3_max_signal
+    threshold_brightest = fraction * mean_brightest_signal
     mask = image >= threshold_brightest
 
     return mask
