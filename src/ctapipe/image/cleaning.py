@@ -126,11 +126,13 @@ def bright_cleaning(image, threshold, fraction, n_pixels=3):
     image : np.ndarray
         pixel charges
     threshold : float
-        Minimum average charge in the 3 brightest pixels to apply
+        Minimum average charge in the `n_pixels` brightest pixels to apply
         cleaning
     fraction : float
-        Pixels below fraction * (average charge in the 3 brightest pixels)
+        Pixels below fraction * (average charge in the `n_pixels` brightest pixels)
         will be removed from the cleaned image
+    n_pixels : int
+        Consider this number of the brightest pixels to calculate the mean charge
 
     Returns
     -------
@@ -505,6 +507,7 @@ def nsb_image_cleaning(
     keep_isolated_pixels=False,
     time_limit=None,
     time_num_neighbors=1,
+    bright_cleaning_n_pixels=3,
     bright_cleaning_fraction=0.03,
     bright_cleaning_threshold=None,
     largest_island_only=False,
@@ -514,7 +517,7 @@ def nsb_image_cleaning(
     """
     Clean an image in 5 Steps:
 
-    1) Get picture thresholds for `tailcuts_clean` in step 2) from interleaved
+    1) Get pixelwise picture thresholds for `tailcuts_clean` in step 2) from interleaved
         pedestal events if `pedestal_std` is not None.
     2) Apply tailcuts image cleaning algorithm - `ctapipe.image.cleaning.tailcuts_clean`.
     3) Apply time_delta_cleaning algorithm -
@@ -554,15 +557,20 @@ def nsb_image_cleaning(
         Used for `time_delta_cleaning`.
         A selected pixel needs at least this number of (already selected) neighbors
         that arrived within a given time_limit to itself to survive this cleaning.
+    bright_cleaning_n_pixels : int
+        Consider this number of the brightest pixels for calculating the mean charge.
+        Pixels below fraction * (mean charge in the `bright_cleaning_n_pixels`
+        brightest pixels) will be removed from the cleaned image. Set
+        `bright_cleaning_threshold` to None if no `bright_cleaning` should be applied.
     bright_cleaning_fraction : float
         Fraction parameter for `bright_cleaning`. Pixels below
-        fraction * (average charge in the 3 brightest pixels) will be removed from
-        the cleaned image. Set `bright_cleaning_threshold` to None if no
-        `bright_cleaning` should be applied.
+        fraction * (mean charge in the `bright_cleaning_n_pixels` brightest pixels)
+        will be removed from the cleaned image. Set `bright_cleaning_threshold` to None
+        if no `bright_cleaning` should be applied.
     bright_cleaning_threshold : float
-        Threshold parameter for `bright_cleaning`. Minimum average charge
-        in the 3 brightest pixels to apply the cleaning. Set to None if no
-        `bright_cleaning` should be applied.
+        Threshold parameter for `bright_cleaning`. Minimum mean charge
+        in the `bright_cleaning_n_pixels` brightest pixels to apply the cleaning.
+        Set to None if no `bright_cleaning` should be applied.
     largest_island_only : bool
         Set to true to get only largest island.
     pedestal_factor : float
@@ -574,7 +582,7 @@ def nsb_image_cleaning(
         Pedestal standard deviation for each pixel. See
         `ctapipe.containers.PedestalContainer`. Used to calculate pixelwise picture
         threshold parameters for `tailcuts_clean` by multiplying it with `pedestal_factor`
-        and clip (limit) the product with picture_thresh_min. If set to None, only
+        and clip (limit) the product with `picture_thresh_min`. If set to None, only
         `picture_thresh_min` is used to set the picture threshold for `tailcuts_clean`.
 
     Returns
@@ -614,7 +622,10 @@ def nsb_image_cleaning(
     # Step 4
     if bright_cleaning_threshold is not None:
         mask &= bright_cleaning(
-            image, bright_cleaning_threshold, bright_cleaning_fraction
+            image,
+            bright_cleaning_threshold,
+            bright_cleaning_fraction,
+            bright_cleaning_n_pixels,
         )
 
     # Step 5
@@ -735,18 +746,28 @@ class NSBImageCleaner(TailcutsImageCleaner):
         " that arrived within a given `time_limit` to itself to survive this cleaning.",
     ).tag(config=True)
 
+    bright_cleaning_n_pixels = IntTelescopeParameter(
+        default_value=3,
+        help="Consider this number of the brightest pixels for calculating the"
+        " mean charge. Pixels below fraction * (mean charge in the"
+        " `bright_cleaning_n_pixels` brightest pixels) will be removed from the"
+        " cleaned image. Set `bright_cleaning_threshold` to None if no"
+        " `bright_cleaning` should be applied.",
+    ).tag(config=True)
+
     bright_cleaning_fraction = FloatTelescopeParameter(
         default_value=0.03,
         help="Fraction parameter for `bright_cleaning`. Pixels below"
-        " fraction * (average charge in the 3 brightest pixels) will be removed from"
-        " the cleaned image",
+        " fraction * (mean charge in the `bright_cleaning_n_pixels` brightest pixels)"
+        " will be removed from the cleaned image. Set `bright_cleaning_threshold` to"
+        " None if no `bright_cleaning` should be applied.",
     ).tag(config=True)
 
     bright_cleaning_threshold = FloatTelescopeParameter(
         default_value=267,
-        help="Threshold parameter for `bright_cleaning`. Minimum average charge"
-        " in the 3 brightest pixels to apply the cleaning. Set to None if no"
-        " `bright_cleaning` should be applied.",
+        help="Threshold parameter for `bright_cleaning`. Minimum mean charge"
+        " in the `bright_cleaning_n_pixels` brightest pixels to apply the cleaning."
+        " Set to None if no `bright_cleaning` should be applied.",
         allow_none=True,
     ).tag(config=True)
 
@@ -757,8 +778,12 @@ class NSBImageCleaner(TailcutsImageCleaner):
     pedestal_factor = FloatTelescopeParameter(
         default_value=2.5,
         help="Factor for interleaved pedestal cleaning. It is multiplied by the"
-        " pedestal standard deviation for each pixel to calculate pixelwise picture"
-        " threshold parameters for `tailcuts_clean` considering the current background.",
+        " pedestal standard deviation for each pixel to calculate pixelwise upper limit"
+        " picture thresholds and clip them with `picture_thresh_pe` of"
+        " `TailcutsImageCleaner` for `tailcuts_clean` considering the current background."
+        " If no pedestal standard deviation is given, interleaved pedestal cleaning is"
+        " not applied and `picture_thresh_pe` of `TailcutsImageCleaner` is used alone"
+        " instead.",
     ).tag(config=True)
 
     def __call__(
@@ -770,7 +795,7 @@ class NSBImageCleaner(TailcutsImageCleaner):
         monitoring: MonitoringCameraContainer = None,
     ) -> np.ndarray:
         """
-        Apply LST image cleaning. See `ImageCleaner.__call__()`
+        Apply NSB image cleaning used by lstchain. See `ImageCleaner.__call__()`
         """
         pedestal_std = None
         if monitoring is not None:

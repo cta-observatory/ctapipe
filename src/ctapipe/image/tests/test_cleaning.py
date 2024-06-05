@@ -502,6 +502,7 @@ def test_nsb_image_cleaning(prod5_lst):
         "boundary_thresh": 20,
         "keep_isolated_pixels": True,
         "time_limit": None,
+        "bright_cleaning_n_pixels": 3,
         "bright_cleaning_fraction": 0.9,
         "bright_cleaning_threshold": None,
         "largest_island_only": False,
