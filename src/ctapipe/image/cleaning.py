@@ -356,7 +356,7 @@ def fact_image_cleaning(
         pixel timing information
     picture_threshold : float | np.ndarray
         threshold above which all pixels are retained
-    boundary_threshold : float | array
+    boundary_threshold : float | np.ndarray
         threshold above which pixels are retained if they have a neighbor
         already above the picture_thresh
     min_number_neighbors : int
@@ -439,9 +439,9 @@ def time_constrained_clean(
         pixel charges
     arrival_times : np.ndarray
         pixel timing information
-    picture_threshold : float | array
+    picture_threshold : float | np.ndarray
         threshold above which all pixels are retained
-    boundary_threshold : float | array
+    boundary_threshold : float | np.ndarray
         threshold above which pixels are retained if they have a neighbor
         already above the picture_thresh
     time_limit_core : int | float
