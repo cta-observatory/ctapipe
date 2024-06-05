@@ -457,3 +457,104 @@ def test_time_constrained_clean(prod5_lst):
     )
     test_mask[noise_boundary] = 0
     assert (test_mask == mask_reco).all()
+
+
+def test_bright_cleaning():
+    n_pixels = 1855
+    fraction = 0.5
+    image = np.zeros(n_pixels)
+    # set 3 bright pixels to 100 so mean of them is 100 as well
+    image[:3] = 100
+    # 10 pixels above fraction * mean
+    image[10:20] = 60
+    # 15 pixels below fraction * mean
+    image[50:65] = 30
+
+    threshold = 90
+    mask = cleaning.bright_cleaning(image, threshold, fraction, n_pixels=3)
+    assert np.count_nonzero(mask) == 3 + 10
+    # test that it doesn't select any pixels if mean of the 3 brightest pixels
+    # is below threshold
+    threshold = 110
+    mask = cleaning.bright_cleaning(image, threshold, fraction, n_pixels=3)
+    assert np.count_nonzero(~mask) == 0
+
+
+def test_nsb_image_cleaning(prod5_lst):
+    geom = prod5_lst.camera.geometry
+    charge = np.zeros(geom.n_pixels, dtype=np.float32)
+    peak_time = np.zeros(geom.n_pixels, dtype=np.float32)
+
+    core_pixel_1 = 100
+    neighbors_1 = geom.neighbors[core_pixel_1]
+    core_pixel_2 = 1100
+    neighbors_2 = geom.neighbors[core_pixel_2]
+
+    # Set core pixel to 50 and first row of neighbors to 29.
+    # These two islands does not overlap.
+    charge[neighbors_1] = 29
+    charge[core_pixel_1] = 50
+    charge[neighbors_2] = 29
+    charge[core_pixel_2] = 50
+
+    args = {
+        "picture_thresh_min": 45,
+        "boundary_thresh": 20,
+        "keep_isolated_pixels": True,
+        "time_limit": None,
+        "bright_cleaning_n_pixels": 3,
+        "bright_cleaning_fraction": 0.9,
+        "bright_cleaning_threshold": None,
+        "largest_island_only": False,
+        "pedestal_factor": 2,
+        "pedestal_std": None,
+    }
+
+    # return normal tailcuts cleaning result if every other step is None/False:
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
+    # 2 * (1 core and 6 boundary_pixels) should be selected
+    assert np.count_nonzero(mask) == 2 * (1 + 6)
+
+    # Test that tailcuts core threshold is adapted correctly with the pedestal
+    # charge std.
+    pedestal_std = np.ones(geom.n_pixels)
+    pedestal_std[core_pixel_1] = 30
+    args["pedestal_std"] = pedestal_std
+
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
+    # only core_pixel_2 with its boundaries should be selected since
+    # pedestal_std[core_pixel_1] * pedestal_factor > charge[core_pixel_1]
+    assert np.count_nonzero(mask) == 1 + 6
+
+    # if no pixel survives tailcuts cleaning it should not select any pixel
+    pedestal_std[core_pixel_2] = 30
+    args["pedestal_std"] = pedestal_std
+
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
+    assert np.count_nonzero(mask) == 0
+
+    # deselect core_pixel_1 with time_delta_cleaning by setting all its neighbors
+    # peak_time to 10
+    peak_time[neighbors_1] = 10
+    args["pedestal_std"] = None
+    args["time_limit"] = 3
+
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
+    assert np.count_nonzero(mask) == 1 + 6 + 6
+
+    # 3 brightest pixels are [50, 50, 29], so mean is 43. With a fraction of 0.9
+    # all boundaries should be deselected
+    args["time_limit"] = None
+    args["bright_cleaning_threshold"] = 40
+
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
+    assert np.count_nonzero(mask) == 1 + 1
+
+    # Set neighbors of core_pixel_2 to 0 so largest_island_only should select only
+    # core_pixel_1 with its neighbors
+    charge[neighbors_2] = 0
+    args["bright_cleaning_threshold"] = None
+    args["largest_island_only"] = True
+
+    mask = cleaning.nsb_image_cleaning(geom, charge, peak_time, **args)
+    assert np.count_nonzero(mask) == 1 + 6
