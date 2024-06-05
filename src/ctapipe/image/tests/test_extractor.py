@@ -720,7 +720,6 @@ def test_dtype(Extractor, subarray):
     if Extractor is VarianceExtractor:
         var = extractor(waveforms, tel_id, 0.0)
         assert var.image.dtype == np.float32
-        assert var.trigger_time.dtype == np.float32
         return
 
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
