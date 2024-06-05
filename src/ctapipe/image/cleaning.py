@@ -811,6 +811,7 @@ class NSBImageCleaner(TailcutsImageCleaner):
             keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
             time_limit=self.time_limit.tel[tel_id],
             time_num_neighbors=self.time_num_neighbors.tel[tel_id],
+            bright_cleaning_n_pixels=self.bright_cleaning_n_pixels.tel[tel_id],
             bright_cleaning_fraction=self.bright_cleaning_fraction.tel[tel_id],
             bright_cleaning_threshold=self.bright_cleaning_threshold.tel[tel_id],
             largest_island_only=self.largest_island_only.tel[tel_id],
