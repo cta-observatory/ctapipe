@@ -71,7 +71,7 @@ class EventPreProcessor(QualityQuery):
         rename_from = []
         rename_to = []
         # We never enter the loop if rename_columns is empty
-        for new, old in self.rename_columns:
+        for old, new in self.rename_columns:
             if new in standard_renames.keys():
                 self.log.warning(
                     f"Column '{old}' will be used as '{new}' "
