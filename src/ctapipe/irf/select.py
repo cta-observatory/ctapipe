@@ -1,4 +1,5 @@
 """Module containing classes related to event preprocessing and selection"""
+
 from pathlib import Path
 
 import astropy.units as u
@@ -24,10 +25,12 @@ class EventPreProcessor(QualityQuery):
         default_value="RandomForestRegressor",
         help="Prefix of the reco `_energy` column",
     ).tag(config=True)
+
     geometry_reconstructor = Unicode(
         default_value="HillasReconstructor",
         help="Prefix of the `_alt` and `_az` reco geometry columns",
     ).tag(config=True)
+
     gammaness_classifier = Unicode(
         default_value="RandomForestClassifier",
         help="Prefix of the classifier `_prediction` column",
@@ -47,7 +50,7 @@ class EventPreProcessor(QualityQuery):
     rename_columns = List(
         help="List containing translation pairs new and old column names"
         "used when processing input with names differing from the CTA prod5b format"
-        "Ex: [('valid_geom','HillasReconstructor_is_valid')]",
+        "Ex: [('alt_from_new_algorithm','reco_alt')]",
         default_value=[],
     ).tag(config=True)
 
@@ -59,18 +62,39 @@ class EventPreProcessor(QualityQuery):
             "true_az",
             "true_alt",
         ]
-        rename_from = [
-            f"{self.energy_reconstructor}_energy",
-            f"{self.geometry_reconstructor}_az",
-            f"{self.geometry_reconstructor}_alt",
-            f"{self.gammaness_classifier}_prediction",
-        ]
-        rename_to = ["reco_energy", "reco_az", "reco_alt", "gh_score"]
-
+        standard_renames = {
+            "reco_energy": f"{self.energy_reconstructor}_energy",
+            "reco_az": f"{self.geometry_reconstructor}_az",
+            "reco_alt": f"{self.geometry_reconstructor}_alt",
+            "gh_score": f"{self.gammaness_classifier}_prediction",
+        }
+        rename_from = []
+        rename_to = []
         # We never enter the loop if rename_columns is empty
         for new, old in self.rename_columns:
+            if new in standard_renames.keys():
+                self.log.warning(
+                    f"Column '{old}' will be used as '{new}' "
+                    f"instead of {standard_renames[new]}."
+                )
+                standard_renames.pop(new)
+
             rename_from.append(old)
             rename_to.append(new)
+
+        for new, old in standard_renames.items():
+            if old in events.colnames:
+                rename_from.append(old)
+                rename_to.append(new)
+
+        # check that all needed reco columns are defined
+        for c in ["reco_energy", "reco_az", "reco_alt", "gh_score"]:
+            if c not in rename_to:
+                raise ValueError(
+                    f"No column corresponding to {c} is defined in "
+                    f"EventPreProcessor.rename_columns and {standard_renames[c]} "
+                    "is not in the given data."
+                )
 
         keep_columns.extend(rename_from)
         events = QTable(events[keep_columns], copy=False)
@@ -78,7 +102,10 @@ class EventPreProcessor(QualityQuery):
         return events
 
     def make_empty_table(self) -> QTable:
-        """This function defines the columns later functions expect to be present in the event table"""
+        """
+        This function defines the columns later functions expect to be present
+        in the event table.
+        """
         columns = [
             "obs_id",
             "event_id",
