@@ -6,9 +6,16 @@ from functools import cache
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import Angle, SkyCoord
+from astroquery.vizier import Vizier
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
+from ctapipe.containers import (
+    DL0CameraContainer,
+    DL1CameraContainer,
+    PixelStatus,
+    StarContainer,
+)
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -19,6 +26,8 @@ from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
 
+Vizier.ROW_LIMIT = -1
+
 __all__ = ["CameraCalibrator"]
 
 
@@ -26,6 +35,57 @@ __all__ = ["CameraCalibrator"]
 def _get_pixel_index(n_pixels):
     """Cached version of ``np.arange(n_pixels)``"""
     return np.arange(n_pixels)
+
+
+def cart2pol(x, y):
+    """
+    Convert cartesian coordinates to polar
+
+    :param float x: X coordinate [m]
+    :param float y: Y coordinate [m]
+
+    :return: Tuple (r, φ)[m, rad]
+    """
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return (rho, phi)
+
+
+def _process_varimage(varimage, relative_gain, camera_frame, geometry, pointing):
+    # apply gain correction to image
+
+    image = np.divide(varimage.image, np.square(relative_gain))
+
+    timestamp = (varimage.validity_start - varimage.validity_stop) / 2
+
+    # then get all stars in fov
+
+    stars = Vizier.query_region(pointing, radius=Angle(2.0, "deg"), catalog="NOMAD")[0]
+
+    # get the star coordinates
+
+    for star in stars:
+        star_coords = SkyCoord(
+            star["RAJ2000"], star["DEJ2000"], unit="deg", frame="icrs"
+        )
+
+        star_coords = star_coords.transform_to(camera_frame)
+
+        rho, phi = cart2pol(star_coords.x.to_value(u.m), star_coords.y.to_value(u.m))
+
+        # now put everything so far in a star container
+
+        single_star = StarContainer(
+            label=star["NOMAD1"],
+            magnitude=star["Bmag"],
+            expected_x=star_coords.x,
+            expected_y=star_coords.y,
+            expected_r=rho * u.m,
+            expected_phi=phi * u.rad,
+            timestamp=timestamp,
+        )
+
+    return (image, timestamp, single_star)
 
 
 def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channel):
