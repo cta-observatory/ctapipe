@@ -11,15 +11,15 @@ from ..core.traits import AstroQuantity, Integer
 logger = logging.getLogger(__name__)
 
 
-def check_bins_in_range(bins, range, source="result", raise_error=True):
-    low = bins >= range.min
-    hig = bins <= range.max
+def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
+    low = bins >= valid_range.min
+    hig = bins <= valid_range.max
 
     if not all(low & hig):
         with np.printoptions(edgeitems=2, threshold=6, precision=4):
             bins = np.array2string(bins)
-            min_val = np.array2string(range.min)
-            max_val = np.array2string(range.max)
+            min_val = np.array2string(valid_range.min)
+            max_val = np.array2string(valid_range.max)
             if raise_error:
                 raise ValueError(
                     f"Valid range for {source} is {min_val} to {max_val}, got {bins}"
