@@ -1,6 +1,7 @@
 """Tool to generate IRFs"""
 
 import operator
+from functools import partial
 
 import astropy.units as u
 import numpy as np
@@ -209,6 +210,16 @@ class IrfTool(Tool):
                 "Computing a point-like IRF requires an (optimized) theta cut."
             )
 
+        check_e_bins = partial(
+            check_bins_in_range,
+            valid_range=self.opt_result.valid_energy,
+            raise_error=self.range_check_error,
+        )
+        check_fov_offset_bins = partial(
+            check_bins_in_range,
+            valid_range=self.opt_result.valid_offset,
+            raise_error=self.range_check_error,
+        )
         self.particles = [
             EventsLoader(
                 parent=self,
@@ -244,63 +255,31 @@ class IrfTool(Tool):
             self.bkg = BackgroundRateMakerBase.from_name(
                 self.bkg_parameterization, parent=self
             )
-            # TODO: Loop over all these bin checks or change `check_bins_in_range`
-            check_bins_in_range(
-                self.bkg.reco_energy_bins,
-                self.opt_result.valid_energy,
-                "background energy reco",
-                raise_error=self.range_check_error,
+            check_e_bins(
+                bins=self.bkg.reco_energy_bins, source="background reco energy"
             )
-            check_bins_in_range(
-                self.bkg.fov_offset_bins,
-                self.opt_result.valid_offset,
-                "background fov offset",
-                raise_error=self.range_check_error,
+            check_fov_offset_bins(
+                bins=self.bkg.fov_offset_bins, source="background fov offset"
             )
 
         self.edisp = EnergyMigrationMakerBase.from_name(
             self.edisp_parameterization, parent=self
         )
-        check_bins_in_range(
-            self.edisp.true_energy_bins,
-            self.opt_result.valid_energy,
-            "Edisp energy true",
-            raise_error=self.range_check_error,
-        )
-        check_bins_in_range(
-            self.edisp.fov_offset_bins,
-            self.opt_result.valid_offset,
-            "Edisp fov offset",
-            raise_error=self.range_check_error,
+        check_e_bins(bins=self.edisp.true_energy_bins, source="Edisp true energy")
+        check_fov_offset_bins(
+            bins=self.edisp.fov_offset_bins, source="Edisp fov offset"
         )
         self.aeff = EffectiveAreaMakerBase.from_name(
             self.aeff_parameterization, parent=self
         )
-        check_bins_in_range(
-            self.aeff.true_energy_bins,
-            self.opt_result.valid_energy,
-            "Aeff energy true",
-            raise_error=self.range_check_error,
-        )
-        check_bins_in_range(
-            self.aeff.fov_offset_bins,
-            self.opt_result.valid_offset,
-            "Aeff fov offset",
-            raise_error=self.range_check_error,
-        )
+        check_e_bins(bins=self.aeff.true_energy_bins, source="Aeff true energy")
+        check_fov_offset_bins(bins=self.aeff.fov_offset_bins, source="Aeff fov offset")
+
         if self.full_enclosure:
             self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
-            check_bins_in_range(
-                self.psf.true_energy_bins,
-                self.opt_result.valid_energy,
-                "PSF energy true",
-                raise_error=self.range_check_error,
-            )
-            check_bins_in_range(
-                self.psf.fov_offset_bins,
-                self.opt_result.valid_offset,
-                "PSF fov offset",
-                raise_error=self.range_check_error,
+            check_e_bins(bins=self.psf.true_energy_bins, source="PSF true energy")
+            check_fov_offset_bins(
+                bins=self.psf.fov_offset_bins, source="PSF fov offset"
             )
 
         if self.do_benchmarks:
@@ -310,49 +289,34 @@ class IrfTool(Tool):
             self.ang_res = AngularResolutionMakerBase.from_name(
                 self.ang_res_parameterization, parent=self
             )
-            check_bins_in_range(
-                self.ang_res.true_energy_bins
+            check_e_bins(
+                bins=self.ang_res.true_energy_bins
                 if self.ang_res.use_true_energy
                 else self.ang_res.reco_energy_bins,
-                self.opt_result.valid_energy,
-                "Angular resolution energy",
-                raise_error=self.range_check_error,
+                source="Angular resolution energy",
             )
-            check_bins_in_range(
-                self.ang_res.fov_offset_bins,
-                self.opt_result.valid_offset,
-                "Angular resolution fov offset",
-                raise_error=self.range_check_error,
+            check_fov_offset_bins(
+                bins=self.ang_res.fov_offset_bins,
+                source="Angular resolution fov offset",
             )
             self.bias_res = EnergyBiasResolutionMakerBase.from_name(
                 self.energy_bias_res_parameterization, parent=self
             )
-            check_bins_in_range(
-                self.bias_res.true_energy_bins,
-                self.opt_result.valid_energy,
-                "Bias resolution energy",
-                raise_error=self.range_check_error,
+            check_e_bins(
+                bins=self.bias_res.true_energy_bins,
+                source="Bias resolution true energy",
             )
-            check_bins_in_range(
-                self.bias_res.fov_offset_bins,
-                self.opt_result.valid_offset,
-                "Bias resolution fov offset",
-                raise_error=self.range_check_error,
+            check_fov_offset_bins(
+                bins=self.bias_res.fov_offset_bins, source="Bias resolution fov offset"
             )
             self.sens = SensitivityMakerBase.from_name(
                 self.sens_parameterization, parent=self
             )
-            check_bins_in_range(
-                self.sens.reco_energy_bins,
-                self.opt_result.valid_energy,
-                "Sensitivity energy",
-                raise_error=self.range_check_error,
+            check_e_bins(
+                bins=self.sens.reco_energy_bins, source="Sensitivity reco energy"
             )
-            check_bins_in_range(
-                self.sens.fov_offset_bins,
-                self.opt_result.valid_offset,
-                "Sensitivity fov offset",
-                raise_error=self.range_check_error,
+            check_fov_offset_bins(
+                bins=self.sens.fov_offset_bins, source="Sensitivity fov offset"
             )
 
     def calculate_selections(self, reduced_events: dict) -> dict:
