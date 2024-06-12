@@ -51,7 +51,11 @@ class StatisticsExtractor(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
     def __call__(
-        self, dl1_table, masked_pixels_of_sample=None, col_name="image"
+        self,
+        dl1_table,
+        masked_pixels_of_sample=None,
+        sample_shift=None,
+        col_name="image",
     ) -> list:
         """
         Call the relevant functions to extract the statistics
@@ -64,6 +68,8 @@ class StatisticsExtractor(TelescopeComponent):
             (n_images, n_channels, n_pix).
         masked_pixels_of_sample : ndarray
             boolean array of masked pixels that are not available for processing
+        sample_shift : int
+            number of samples to shift the extraction sequence
         col_name : string
             column name in the dl1 table
 
@@ -74,14 +80,19 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and validity ranges
         """
 
+        # If no sample_shift is provided, the sample_shift is set to self.sample_size
+        # meaning that the samples are not overlapping.
+        if sample_shift is None:
+            sample_shift = self.sample_size
+
         # in python 3.12 itertools.batched can be used
         image_chunks = (
             dl1_table[col_name].data[i : i + self.sample_size]
-            for i in range(0, len(dl1_table[col_name].data), self.sample_size)
+            for i in range(0, len(dl1_table[col_name].data), sample_shift)
         )
         time_chunks = (
             dl1_table["time"][i : i + self.sample_size]
-            for i in range(0, len(dl1_table["time"]), self.sample_size)
+            for i in range(0, len(dl1_table["time"]), sample_shift)
         )
 
         # Calculate the statistics from a sequence of images
@@ -171,7 +182,9 @@ class SigmaClippingExtractor(StatisticsExtractor):
         pixel_median = np.ma.array(pixel_median, mask=np.isnan(pixel_median))
         pixel_std = np.ma.array(pixel_std, mask=np.isnan(pixel_std))
 
-        unused_values = np.abs(masked_images - pixel_mean) > (self.max_sigma * pixel_std)
+        unused_values = np.abs(masked_images - pixel_mean) > (
+            self.max_sigma * pixel_std
+        )
 
         # add outliers identified by sigma clipping for following operations
         masked_images.mask |= unused_values
