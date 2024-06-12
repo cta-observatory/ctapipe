@@ -111,21 +111,33 @@ class CalibrationCalculator(TelescopeComponent):
 
         Parameters
         ----------
-        Source : EventSource
-            EventSource containing the events interleaved calibration events
-            from which the coefficients are to be calculated
+        data_url : str
+            URL where the events are stored from which the calibration coefficients
+            are to be calculated
         tel_id : int
-            The telescope id. Used to obtain to correct traitlet configuration
-            and instrument properties
+            The telescope id.
         """
 
-    def _check_req_data(self, url, tel_id, caltype):
+    def _check_req_data(self, url, tel_id, calibration_type):
+        """
+        Check if the prerequisite calibration data exists in the files
+
+        Parameters
+        ----------
+        url : str
+            URL of file that is to be tested
+        tel_id : int
+            The telescope id.
+        calibration_type : str
+            Name of the field that is to be looked for e.g. flatfield or
+            gain
+        """
         with EventSource(url, max_events=1) as source:
             event = next(iter(source))
 
-        caldata = getattr(event.mon.tel[tel_id], caltype)
+        calibration_data = getattr(event.mon.tel[tel_id], calibration_type)
 
-        if caldata is None:
+        if calibration_data is None:
             return False
 
         return True
@@ -208,7 +220,7 @@ class PointingCalculator(CalibrationCalculator):
         7.0, help="Maximal magnitude of the star to be considered in the " "analysis"
     ).tag(config=True)
 
-    PSFModel_type = TelescopeParameter(
+    psf_model_type = TelescopeParameter(
         trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
         default_value="PlainExtractor",
         help="Name of the PSFModel Subclass to be used.",
@@ -224,7 +236,7 @@ class PointingCalculator(CalibrationCalculator):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self.psf = PSFModel.from_name(
-            self.PSFModel_type, subarray=self.subarray, parent=self
+            self.pas_model_type, subarray=self.subarray, parent=self
         )
 
         self.location = EarthLocation(
@@ -264,7 +276,7 @@ class PointingCalculator(CalibrationCalculator):
 
         stars_in_fov = stars_in_fov[stars_in_fov["Bmag"] < self.max_star_magnitude]
 
-    def _calibrate_varimages(self, varimages, gain):
+    def _calibrate_var_images(self, varimages, gain):
         pass
         # So, here i need to match up the validity periods of the relative gain to the variance images
 
