@@ -13,6 +13,7 @@ import pickle
 
 import numpy as np
 from astropy.coordinates import Angle, EarthLocation, SkyCoord
+from astroquery.vizier import Vizier
 from numba import float32, float64, guvectorize, int64
 
 from ctapipe.calib.camera.extractor import StatisticsExtractor
@@ -23,23 +24,16 @@ from ctapipe.core.traits import (
     ComponentName,
     Dict,
     Float,
-    Int,
     Integer,
-    Path,
     TelescopeParameter,
 )
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.psf_model import PSFModel
 from ctapipe.image.reducer import DataVolumeReducer
-from ctapipe.io import EventSource, TableLoader
+from ctapipe.io import EventSource
 
-__all__ = [
-    "CalibrationCalculator",
-    "TwoPassStatisticsCalculator",
-    "PointingCalculator",
-    "CameraCalibrator",
-]
+__all__ = ["CameraCalibrator", "CalibrationCalculator"]
 
 
 @cache
@@ -83,14 +77,13 @@ class CalibrationCalculator(TelescopeComponent):
         help="Name of the StatisticsExtractor subclass to be used.",
     ).tag(config=True)
 
-    output_path = Path(help="output filename").tag(config=True)
+    # sample_size, how do i do this without copying the StatisticsExtractor traitlets? is this needed?
 
     def __init__(
         self,
         subarray,
         config=None,
         parent=None,
-        stats_extractor=None,
         **kwargs,
     ):
         """
@@ -107,157 +100,89 @@ class CalibrationCalculator(TelescopeComponent):
         parent: ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
-        stats_extractor: ctapipe.calib.camera.extractor.StatisticsExtractor
-            The StatisticsExtractor to use. If None, the default via the
-            configuration system will be constructed.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
-        self.stats_extractor = {}
-
-        if stats_extractor is None:
-            for _, _, name in self.stats_extractor_type:
-                self.stats_extractor[name] = StatisticsExtractor.from_name(
-                    name, subarray=self.subarray, parent=self
-                )
-        else:
-            name = stats_extractor.__class__.__name__
-            self.stats_extractor_type = [("type", "*", name)]
-            self.stats_extractor[name] = stats_extractor
+        self.stats_extractor = StatisticsExtractor.from_name(
+            self.stats_extractor_type, subarray=self.subarray, parent=self
+        )
 
     @abstractmethod
-    def __call__(self, input_url, tel_id):
+    def __call__(self, data_url, tel_id):
         """
         Call the relevant functions to calculate the calibration coefficients
         for a given set of events
 
         Parameters
         ----------
-        input_url : str
-            URL where the events are stored from which the calibration coefficients
-            are to be calculated
+        Source : EventSource
+            EventSource containing the events interleaved calibration events
+            from which the coefficients are to be calculated
         tel_id : int
-            The telescope id
+            The telescope id. Used to obtain to correct traitlet configuration
+            and instrument properties
         """
 
+    def _check_req_data(self, url, tel_id, caltype):
+        with EventSource(url, max_events=1) as source:
+            event = next(iter(source))
 
-class TwoPassStatisticsCalculator(CalibrationCalculator):
+        caldata = getattr(event.mon.tel[tel_id], caltype)
+
+        if caldata is None:
+            return False
+
+        return True
+
+
+class PedestalCalculator(CalibrationCalculator):
     """
-    Component to calculate statistics from calibration events.
+    Component to calculate pedestals from interleaved skyfield events.
+
+    Attributes
+    ----------
+    stats_extractor: str
+        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
     """
-    
-    faulty_pixels_threshold = Float(
-        0.1,
-        help="Percentage of faulty pixels over the camera to conduct second pass with refined shift of the chunk",
-    ).tag(config=True)
-    chunk_shift = Int(
-        100,
-        help="Number of samples to shift the extraction chunk for the calculation of the statistical values",
-    ).tag(config=True)
-    
-    def __call__(
+
+    def __init__(
         self,
-        input_url,
-        tel_id,
-        col_name="image",
+        subarray,
+        config=None,
+        parent=None,
+        **kwargs,
     ):
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-        # Read the whole dl1-like images of pedestal and flat-field data with the TableLoader
-        input_data = TableLoader(input_url=input_url)
-        dl1_table = input_data.read_telescope_events_by_id(
-            telescopes=tel_id,
-            dl1_images=True,
-            dl1_parameters=False,
-            dl1_muons=False,
-            dl2=False,
-            simulated=False,
-            true_images=False,
-            true_parameters=False,
-            instrument=False,
-            pointing=False,
-        )
-        # Get the extractor
-        extractor = self.stats_extractor[self.stats_extractor_type.tel[tel_id]]
-
-        # First pass through the whole provided dl1 data
-        stats_list_firstpass = extractor(dl1_table=dl1_table[tel_id], col_name=col_name)
-
-        # Second pass
-        stats_list = []
-        faultless_previous_chunk = False
-        for chunk_nr, stats in enumerate(stats_list_firstpass):
-
-            # Append faultless stats from the previous chunk
-            if faultless_previous_chunk:
-                stats_list.append(stats_list_firstpass[chunk_nr - 1])
-
-            # Detect faulty pixels over all gain channels
-            outlier_mask = np.logical_or(
-                stats.median_outliers[0], stats.std_outliers[0]
-            )
-            if len(stats.median_outliers) == 2:
-                outlier_mask = np.logical_or(
-                    outlier_mask,
-                    np.logical_or(stats.median_outliers[1], stats.std_outliers[1]),
-                )
-            # Detect faulty chunks by calculating the fraction of faulty pixels over the camera and checking if the threshold is exceeded.
-            if (
-                np.count_nonzero(outlier_mask) / len(outlier_mask)
-                > self.faulty_pixels_threshold
-            ):
-                slice_start, slice_stop = self._get_slice_range(
-                    chunk_nr=chunk_nr,
-                    chunk_size=extractor.chunk_size,
-                    faultless_previous_chunk=faultless_previous_chunk,
-                    last_chunk=len(stats_list_firstpass) - 1,
-                    last_element=len(dl1_table[tel_id]) - 1,
-                )
-                # The two last chunks can be faulty, therefore the length of the sliced table would be smaller than the size of a chunk.
-                if slice_stop - slice_start > extractor.chunk_size:
-                    # Slice the dl1 table according to the previously caluclated start and stop.
-                    dl1_table_sliced = dl1_table[tel_id][slice_start:slice_stop]
-                    # Run the stats extractor on the sliced dl1 table with a chunk_shift
-                    # to remove the period of trouble (carflashes etc.) as effectively as possible.
-                    stats_list_secondpass = extractor(
-                        dl1_table=dl1_table_sliced, chunk_shift=self.chunk_shift
-                    )
-                    # Extend the final stats list by the stats list of the second pass.
-                    stats_list.extend(stats_list_secondpass)
-                else:
-                    # Store the last chunk in case the two last chunks are faulty.
-                    stats_list.append(stats_list_firstpass[chunk_nr])
-                # Set the boolean to False to track this chunk as faulty for the next iteration.
-                faultless_previous_chunk = False
-            else:
-                # Set the boolean to True to track this chunk as faultless for the next iteration.
-                faultless_previous_chunk = True
-
-        # Open the output file and store the final stats list.
-        with open(self.output_path, "wb") as f:
-            pickle.dump(stats_list, f)
+    def __call__(self, data_url, tel_id):
+        pass
 
 
-    def _get_slice_range(
+class GainCalculator(CalibrationCalculator):
+    """
+    Component to calculate the relative gain from interleaved flatfield events.
+
+    Attributes
+    ----------
+    stats_extractor: str
+        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
+    """
+
+    def __init__(
         self,
-        chunk_nr,
-        chunk_size,
-        faultless_previous_chunk,
-        last_chunk,
-        last_element,
+        subarray,
+        config=None,
+        parent=None,
+        **kwargs,
     ):
-        slice_start = 0
-        if chunk_nr > 0:
-            slice_start = (
-                chunk_size * (chunk_nr - 1) + self.chunk_shift
-                if faultless_previous_chunk
-                else chunk_size * chunk_nr + self.chunk_shift
-            )
-        slice_stop = last_element
-        if chunk_nr < last_chunk:
-            slice_stop = chunk_size * (chunk_nr + 2) - self.chunk_shift - 1
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-        return slice_start, slice_stop
+    def __call__(self, data_url, tel_id):
+        if self._check_req_data(data_url, tel_id, "pedestal"):
+            raise KeyError(
+                "Pedestals not found. Pedestal calculation needs to be performed first."
+            )
 
 
 class PointingCalculator(CalibrationCalculator):
@@ -288,7 +213,7 @@ class PointingCalculator(CalibrationCalculator):
         7.0, help="Maximal magnitude of the star to be considered in the " "analysis"
     ).tag(config=True)
 
-    psf_model_type = TelescopeParameter(
+    PSFModel_type = TelescopeParameter(
         trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
         default_value="PlainExtractor",
         help="Name of the PSFModel Subclass to be used.",
@@ -303,11 +228,8 @@ class PointingCalculator(CalibrationCalculator):
     ):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-        # TODO: Currently not in the dependency list of ctapipe
-        from astroquery.vizier import Vizier
-
         self.psf = PSFModel.from_name(
-            self.pas_model_type, subarray=self.subarray, parent=self
+            self.PSFModel_type, subarray=self.subarray, parent=self
         )
 
         self.location = EarthLocation(
@@ -341,66 +263,14 @@ class PointingCalculator(CalibrationCalculator):
                 location=self.location,
             )
 
-        with TableLoader(url) as loader:
-            loader.read_telescope_events_by_id(
-                telescopes=[tel_id], dl1_parameters=True, observation_info=True
-            )
-
         stars_in_fov = Vizier.query_region(
             self.pointing, radius=Angle(2.0, "deg"), catalog="NOMAD"
         )[0]
 
         stars_in_fov = stars_in_fov[stars_in_fov["Bmag"] < self.max_star_magnitude]
 
-    def _check_req_data(self, url, tel_id, calibration_type):
-        """
-        Check if the prerequisite calibration data exists in the files
-
-        Parameters
-        ----------
-        url : str
-            URL of file that is to be tested
-        tel_id : int
-            The telescope id.
-        calibration_type : str
-            Name of the field that is to be looked for e.g. flatfield or
-            gain
-        """
-        with EventSource(url, max_events=1) as source:
-            event = next(iter(source))
-
-        calibration_data = getattr(event.mon.tel[tel_id], calibration_type)
-
-        if calibration_data is None:
-            return False
-
-        return True
-
-    def _calibrate_var_images(self, var_images, gain):
-        # So, here i need to match up the validity periods of the relative gain to the variance images
-        gain_to_variance = np.zeros(
-            len(var_images)
-        )  # this array will map the gain values to accumulated variance images
-
-        for i in np.arange(
-            1, len(var_images)
-        ):  # the first pairing is 0 -> 0, so start at 1
-            for j in np.arange(len(gain), 0):
-                if var_images[i].validity_start > gain[j].validity_start or j == len(
-                    var_images
-                ):
-                    gain_to_variance[i] = j
-                    break
-
-        for i, var_image in enumerate(var_images):
-            var_images[i].image = np.divide(
-                var_image.image,
-                np.square(
-                    gain[gain_to_variance[i]]
-                ),  # Here i will need to adjust the code based on how the containers for gain will work
-            )
-
-        return var_images
+    def _calibrate_varimages(self, varimages, gain):
+        pass
 
 
 class CameraCalibrator(TelescopeComponent):

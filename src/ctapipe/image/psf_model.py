@@ -10,30 +10,15 @@ import numpy as np
 from scipy.stats import laplace, laplace_asymmetric
 from traitlets import List
 
+from ctapipe.core import TelescopeComponent
 
-class PSFModel:
-    def __init__(self, **kwargs):
-        """
-        Base component to describe image distortion due to the optics of the different cameras.
-        """
 
-    @classmethod
-    def from_name(cls, name, **kwargs):
+class PSFModel(TelescopeComponent):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
-        Obtain an instance of a subclass via its name
-
-        Parameters
-        ----------
-        name : str
-            Name of the subclass to obtain
-
-        Returns
-        -------
-        Instance
-            Instance of subclass to this class
+        Base Component to describe image distortion due to the optics of the different cameras.
         """
-        requested_subclass = cls.non_abstract_subclasses()[name]
-        return requested_subclass(**kwargs)
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
     @abstractmethod
     def pdf(self, *args):
