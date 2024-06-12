@@ -11,14 +11,14 @@ from ctapipe.calib.camera.extractor import PlainExtractor, SigmaClippingExtracto
 def fixture_test_plainextractor(example_subarray):
     """test the PlainExtractor"""
     return PlainExtractor(
-        subarray=example_subarray, sample_size=2500
+        subarray=example_subarray, chunk_size=2500
     )
 
 @pytest.fixture(name="test_sigmaclippingextractor")
 def fixture_test_sigmaclippingextractor(example_subarray):
     """test the SigmaClippingExtractor"""
     return SigmaClippingExtractor(
-        subarray=example_subarray, sample_size=2500
+        subarray=example_subarray, chunk_size=2500
     )
 
 def test_extractors(test_plainextractor, test_sigmaclippingextractor):
@@ -67,3 +67,20 @@ def test_check_outliers(test_sigmaclippingextractor):
     assert sigmaclipping_stats_list[0].median_outliers[1][67] is True
     assert sigmaclipping_stats_list[1].median_outliers[0][120] is True
     assert sigmaclipping_stats_list[1].median_outliers[1][67] is True
+    
+
+def test_check_chunk_shift(test_sigmaclippingextractor):
+    """test the chunk shift option and the boundary case for the last chunk"""
+
+    times = np.linspace(60117.911, 60117.9258, num=5000)
+    flatfield_dl1_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
+    # insert outliers
+    flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
+    sigmaclipping_stats_list = test_sigmaclippingextractor(
+        dl1_table=flatfield_dl1_table,
+        chunk_shift=2000
+    )
+
+    # check if three chunks are used for the extraction
+    assert len(sigmaclipping_stats_list) == 3
+
