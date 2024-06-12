@@ -13,12 +13,13 @@ from abc import abstractmethod
 import numpy as np
 from astropy.stats import sigma_clipped_stats
 
-from ctapipe.core import TelescopeComponent
 from ctapipe.containers import StatisticsContainer
+from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     Int,
     List,
 )
+
 
 class StatisticsExtractor(TelescopeComponent):
     """Base StatisticsExtractor component"""
@@ -90,8 +91,9 @@ class StatisticsExtractor(TelescopeComponent):
                     dl1_table[col_name].data[i : i + self.chunk_size]
                     if i + self.chunk_size <= len(dl1_table[col_name])
                     else dl1_table[col_name].data[
-                        len(dl1_table[col_name].data)
-                        - self.chunk_size : len(dl1_table[col_name].data)
+                        len(dl1_table[col_name].data) - self.chunk_size : len(
+                            dl1_table[col_name].data
+                        )
                     ]
                 )
                 for i in range(0, len(dl1_table[col_name].data), chunk_shift)
@@ -108,10 +110,9 @@ class StatisticsExtractor(TelescopeComponent):
         return stats_list
 
     @abstractmethod
-    def _extract(
-        self, images, times, masked_pixels_of_sample
-    ) -> StatisticsContainer:
+    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
         pass
+
 
 class PlainExtractor(StatisticsExtractor):
     """
@@ -119,10 +120,7 @@ class PlainExtractor(StatisticsExtractor):
     using numpy and scipy functions
     """
 
-    def _extract(
-        self, images, times, masked_pixels_of_sample
-    ) -> StatisticsContainer:
-
+    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -150,6 +148,7 @@ class PlainExtractor(StatisticsExtractor):
             std=pixel_std.filled(np.nan),
         )
 
+
 class SigmaClippingExtractor(StatisticsExtractor):
     """
     Extracts the statistics from a chunk of images
@@ -165,10 +164,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def _extract(
-        self, images, times, masked_pixels_of_sample
-    ) -> StatisticsContainer:
-
+    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -206,25 +202,21 @@ class SigmaClippingExtractor(StatisticsExtractor):
         image_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
         image_median_outliers = np.logical_or(
             image_deviation
-            < self.image_median_cut_outliers[0] # pylint: disable=unsubscriptable-object
-            * median_of_pixel_median[
-                :, np.newaxis
-            ],
+            < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
+            * median_of_pixel_median[:, np.newaxis],
             image_deviation
-            > self.image_median_cut_outliers[1] # pylint: disable=unsubscriptable-object
-            * median_of_pixel_median[
-                :, np.newaxis
-            ],
+            > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
+            * median_of_pixel_median[:, np.newaxis],
         )
 
         # outliers from standard deviation
         deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
         image_std_outliers = np.logical_or(
             deviation
-            < self.image_std_cut_outliers[0] # pylint: disable=unsubscriptable-object
+            < self.image_std_cut_outliers[0]  # pylint: disable=unsubscriptable-object
             * std_of_pixel_std[:, np.newaxis],
             deviation
-            > self.image_std_cut_outliers[1] # pylint: disable=unsubscriptable-object
+            > self.image_std_cut_outliers[1]  # pylint: disable=unsubscriptable-object
             * std_of_pixel_std[:, np.newaxis],
         )
 
