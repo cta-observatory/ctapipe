@@ -49,7 +49,7 @@ def test_kurtosis():
 
 
 def test_return_type():
-    from ctapipe.containers import PeakTimeStatisticsContainer, ImageStatisticsContainer
+    from ctapipe.containers import ImageStatisticsContainer, PeakTimeStatisticsContainer
     from ctapipe.image import descriptive_statistics
 
     rng = np.random.default_rng(0)
