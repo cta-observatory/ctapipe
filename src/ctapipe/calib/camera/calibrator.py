@@ -266,6 +266,7 @@ class PointingCalculator(CalibrationCalculator):
 
     def _calibrate_varimages(self, varimages, gain):
         pass
+        # So, here i need to match up the validity periods of the relative gain to the variance images
 
 
 class CameraCalibrator(TelescopeComponent):
