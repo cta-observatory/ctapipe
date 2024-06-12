@@ -2,24 +2,33 @@
 Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
+from abc import abstractmethod
 from functools import cache
 
 import astropy.units as u
 import numpy as np
+from astropy.coordinates import Angle, EarthLocation, SkyCoord
+from astroquery.vizier import Vizier
 from numba import float32, float64, guvectorize, int64
 
+from ctapipe.calib.camera.extractor import StatisticsExtractor
 from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
+    Dict,
+    Float,
+    Integer,
     TelescopeParameter,
 )
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
+from ctapipe.image.psf_model import PSFModel
 from ctapipe.image.reducer import DataVolumeReducer
+from ctapipe.io import EventSource
 
-__all__ = ["CameraCalibrator"]
+__all__ = ["CameraCalibrator", "CalibrationCalculator"]
 
 
 @cache
@@ -45,6 +54,218 @@ def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channe
                 broken_pixels |= mask
 
     return broken_pixels
+
+
+class CalibrationCalculator(TelescopeComponent):
+    """
+    Base component for various calibration calculators
+
+    Attributes
+    ----------
+    stats_extractor: str
+        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
+    """
+
+    stats_extractor_type = TelescopeParameter(
+        trait=ComponentName(StatisticsExtractor, default_value="PlainExtractor"),
+        default_value="PlainExtractor",
+        help="Name of the StatisticsExtractor subclass to be used.",
+    ).tag(config=True)
+
+    # sample_size, how do i do this without copying the StatisticsExtractor traitlets? is this needed?
+
+    def __init__(
+        self,
+        subarray,
+        config=None,
+        parent=None,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray. Provides information about the
+            camera which are useful in calibration. Also required for
+            configuring the TelescopeParameter traitlets.
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            This is mutually exclusive with passing a ``parent``.
+        parent: ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy,
+            this is mutually exclusive with passing ``config``
+        """
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+        self.subarray = subarray
+
+        self.stats_extractor = StatisticsExtractor.from_name(
+            self.stats_extractor_type, subarray=self.subarray, parent=self
+        )
+
+    @abstractmethod
+    def __call__(self, data_url, tel_id):
+        """
+        Call the relevant functions to calculate the calibration coefficients
+        for a given set of events
+
+        Parameters
+        ----------
+        Source : EventSource
+            EventSource containing the events interleaved calibration events
+            from which the coefficients are to be calculated
+        tel_id : int
+            The telescope id. Used to obtain to correct traitlet configuration
+            and instrument properties
+        """
+
+    def _check_req_data(self, url, tel_id, caltype):
+        with EventSource(url, max_events=1) as source:
+            event = next(iter(source))
+
+        caldata = getattr(event.mon.tel[tel_id], caltype)
+
+        if caldata is None:
+            return False
+
+        return True
+
+
+class PedestalCalculator(CalibrationCalculator):
+    """
+    Component to calculate pedestals from interleaved skyfield events.
+
+    Attributes
+    ----------
+    stats_extractor: str
+        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
+    """
+
+    def __init__(
+        self,
+        subarray,
+        config=None,
+        parent=None,
+        **kwargs,
+    ):
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+
+    def __call__(self, data_url, tel_id):
+        pass
+
+
+class GainCalculator(CalibrationCalculator):
+    """
+    Component to calculate the relative gain from interleaved flatfield events.
+
+    Attributes
+    ----------
+    stats_extractor: str
+        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
+    """
+
+    def __init__(
+        self,
+        subarray,
+        config=None,
+        parent=None,
+        **kwargs,
+    ):
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+
+    def __call__(self, data_url, tel_id):
+        if self._check_req_data(data_url, tel_id, "pedestal"):
+            raise KeyError(
+                "Pedestals not found. Pedestal calculation needs to be performed first."
+            )
+
+
+class PointingCalculator(CalibrationCalculator):
+    """
+    Component to calculate pointing corrections from interleaved skyfield events.
+
+    Attributes
+    ----------
+    stats_extractor: str
+        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
+    telescope_location: dict
+        The location of the telescope for which the pointing correction is to be calculated
+    """
+
+    telescope_location = Dict(
+        {"longitude": 342.108612, "latitude": 28.761389, "elevation": 2147},
+        help="Telescope location, longitude and latitude should be expressed in deg, "
+        "elevation - in meters",
+    ).tag(config=True)
+
+    min_star_prominence = Integer(
+        3,
+        help="Minimal star prominence over the background in terms of "
+        "NSB variance std deviations",
+    ).tag(config=True)
+
+    max_star_magnitude = Float(
+        7.0, help="Maximal magnitude of the star to be considered in the " "analysis"
+    ).tag(config=True)
+
+    PSFModel_type = TelescopeParameter(
+        trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
+        default_value="PlainExtractor",
+        help="Name of the PSFModel Subclass to be used.",
+    ).tag(config=True)
+
+    def __init__(
+        self,
+        subarray,
+        config=None,
+        parent=None,
+        **kwargs,
+    ):
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+
+        self.psf = PSFModel.from_name(
+            self.PSFModel_type, subarray=self.subarray, parent=self
+        )
+
+        self.location = EarthLocation(
+            lon=self.telescope_location["longitude"] * u.deg,
+            lat=self.telescope_location["latitude"] * u.deg,
+            height=self.telescope_location["elevation"] * u.m,
+        )
+
+    def __call__(self, url, tel_id):
+        if self._check_req_data(url, tel_id, "flatfield"):
+            raise KeyError(
+                "Relative gain not found. Gain calculation needs to be performed first."
+            )
+
+        self.tel_id = tel_id
+
+        with EventSource(url, max_events=1) as src:
+            self.camera_geometry = src.subarray.tel[self.tel_id].camera.geometry
+            self.focal_length = src.subarray.tel[
+                self.tel_id
+            ].optics.equivalent_focal_length
+            self.pixel_radius = self.camera_geometry.pixel_width[0]
+
+            event = next(iter(src))
+
+            self.pointing = SkyCoord(
+                az=event.pointing.tel[self.telescope_id].azimuth,
+                alt=event.pointing.tel[self.telescope_id].altitude,
+                frame="altaz",
+                obstime=event.trigger.time.utc,
+                location=self.location,
+            )
+
+        stars_in_fov = Vizier.query_region(
+            self.pointing, radius=Angle(2.0, "deg"), catalog="NOMAD"
+        )[0]
+
+        stars_in_fov = stars_in_fov[stars_in_fov["Bmag"] < self.max_star_magnitude]
+
+    def _calibrate_varimages(self, varimages, gain):
+        pass
 
 
 class CameraCalibrator(TelescopeComponent):
