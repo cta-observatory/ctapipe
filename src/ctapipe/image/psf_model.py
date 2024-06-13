@@ -14,7 +14,7 @@ from traitlets import List
 class PSFModel:
     def __init__(self, **kwargs):
         """
-        Base Component to describe image distortion due to the optics of the different cameras.
+        Base component to describe image distortion due to the optics of the different cameras.
         """
 
     @classmethod
