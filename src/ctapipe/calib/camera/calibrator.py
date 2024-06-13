@@ -276,9 +276,28 @@ class PointingCalculator(CalibrationCalculator):
 
         stars_in_fov = stars_in_fov[stars_in_fov["Bmag"] < self.max_star_magnitude]
 
-    def _calibrate_var_images(self, varimages, gain):
-        pass
+    def _calibrate_var_images(self, var_images, gain):
         # So, here i need to match up the validity periods of the relative gain to the variance images
+        gain_to_variance = np.zeros(
+            len(var_images)
+        )  # this array will map the gain values to accumulated variance images
+
+        for i in np.arange(
+            1, len(var_images)
+        ):  # the first pairing is 0 -> 0, so start at 1
+            for j in np.arange(len(gain), 0):
+                if var_images[i].validity_start > gain[j].validity_start or j == len(
+                    var_images
+                ):
+                    gain_to_variance[i] = j
+                    break
+
+        for i, var_image in enumerate(var_images):
+            var_images[i].image = np.divide(
+                var_image.image, np.square(gain[gain_to_variance[i]])
+            )
+
+        return var_images
 
 
 class CameraCalibrator(TelescopeComponent):
