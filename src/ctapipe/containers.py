@@ -413,15 +413,35 @@ class MorphologyContainer(Container):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics of a sequence of images"""
+    """Store descriptive statistics of a chunk of images"""
 
-    validity_start = Field(np.float32(nan), "start of the validity range")
-    validity_stop = Field(np.float32(nan), "stop of the validity range")
-    mean = Field(np.float32(nan), "Channel-wise and pixel-wise mean")
-    median = Field(np.float32(nan), "Channel-wise and pixel-wise median")
-    median_outliers = Field(np.float32(nan), "Channel-wise and pixel-wise median outliers")
-    std = Field(np.float32(nan), "Channel-wise and pixel-wise standard deviation")
-    std_outliers = Field(np.float32(nan), "Channel-wise and pixel-wise standard deviation outliers")
+    extraction_start = Field(np.float32(nan), "start of the extraction chunk")
+    extraction_stop = Field(np.float32(nan), "stop of the extraction chunk")
+    mean = Field(
+        None,
+        "mean of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    median = Field(
+        None,
+        "median of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    median_outliers = Field(
+        None,
+        "outliers from the median distribution of a pixel-wise quantity for each channel"
+        "Type: binary mask; Shape: (n_channels, n_pixel)",
+    )
+    std = Field(
+        None,
+        "standard deviation of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    std_outliers = Field(
+        None,
+        "outliers from the standard deviation distribution of a pixel-wise quantity for each channel"
+        "Type: binary mask; Shape: (n_channels, n_pixel)",
+    )
 
 
 class ImageStatisticsContainer(Container):
@@ -433,6 +453,7 @@ class ImageStatisticsContainer(Container):
     std = Field(np.float32(nan), "standard deviation of intensity")
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
+
 
 class IntensityStatisticsContainer(ImageStatisticsContainer):
     default_prefix = "intensity"
