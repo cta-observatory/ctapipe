@@ -33,7 +33,7 @@ def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
 @u.quantity_input(e_min=u.TeV, e_max=u.TeV)
 def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
     """
-    Create energy bins with at least ``bins_per_decade`` bins per decade.
+    Create energy bins with at least ``n_bins_per_decade`` bins per decade.
     The number of bins is calculated as
     ``n_bins = ceil((log10(e_max) - log10(e_min)) * n_bins_per_decade)``.
 
@@ -57,7 +57,7 @@ def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
 
     n_bins = int(np.ceil((log_upper - log_lower) * n_bins_per_decade))
 
-    return u.Quantity(np.logspace(log_lower, log_upper, n_bins), unit, copy=False)
+    return u.Quantity(np.logspace(log_lower, log_upper, n_bins + 1), unit, copy=False)
 
 
 class ResultValidRange:
