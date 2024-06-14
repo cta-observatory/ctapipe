@@ -6,7 +6,7 @@ import pytest
 from astropy.table import QTable
 
 
-def test_check_bins_in_range(caplog):
+def test_check_bins_in_range(tmp_path):
     from ctapipe.irf import ResultValidRange, check_bins_in_range
 
     valid_range = ResultValidRange(
@@ -35,9 +35,13 @@ def test_check_bins_in_range(caplog):
     with pytest.raises(ValueError, match="Valid range for"):
         check_bins_in_range(bins, valid_range)
 
-    with caplog.at_level(logging.WARNING):
-        check_bins_in_range(bins, valid_range, raise_error=False)
-        assert "Valid range for result is" in caplog.text
+    logger = logging.getLogger("ctapipe.irf.binning")
+    logpath = tmp_path / "test_check_bins_in_range.log"
+    handler = logging.FileHandler(logpath)
+    logger.addHandler(handler)
+
+    check_bins_in_range(bins, valid_range, raise_error=False)
+    assert "Valid range for result is" in logpath.read_text()
 
 
 def test_make_bins_per_decade():
