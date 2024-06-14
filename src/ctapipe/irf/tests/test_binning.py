@@ -64,7 +64,7 @@ def test_make_bins_per_decade():
 
 
 def test_true_energy_bins_base():
-    from ctapipe.irf import TrueEnergyBinsBase
+    from ctapipe.irf.binning import TrueEnergyBinsBase
 
     binning = TrueEnergyBinsBase(
         true_energy_min=0.02 * u.TeV,
@@ -81,7 +81,7 @@ def test_true_energy_bins_base():
 
 
 def test_reco_energy_bins_base():
-    from ctapipe.irf import RecoEnergyBinsBase
+    from ctapipe.irf.binning import RecoEnergyBinsBase
 
     binning = RecoEnergyBinsBase(
         reco_energy_min=0.02 * u.TeV,
@@ -98,7 +98,7 @@ def test_reco_energy_bins_base():
 
 
 def test_fov_offset_bins_base():
-    from ctapipe.irf import FoVOffsetBinsBase
+    from ctapipe.irf.binning import FoVOffsetBinsBase
 
     binning = FoVOffsetBinsBase(
         # use default for fov_offset_min
