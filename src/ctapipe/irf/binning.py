@@ -12,6 +12,24 @@ logger = logging.getLogger(__name__)
 
 
 def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
+    """
+    Check whether ``bins`` are within a ``valid_range`` and either warn
+    or raise an error if not.
+
+    Parameters
+    ----------
+    bins: u.Quantity
+        The bins to be checked.
+    valid_range: ctapipe.irf.ResultValidRange
+        Range for which bins are valid.
+        E.g. the range in which G/H cuts are calculated.
+    source: str
+        Description of which bins are being checked to give useful
+        warnings/ error messages.
+    raise_error: bool
+        Whether to raise an error (True) or give a warning (False) if
+        ``bins`` exceed ``valid_range``.
+    """
     low = bins >= valid_range.min
     hig = bins <= valid_range.max
 
