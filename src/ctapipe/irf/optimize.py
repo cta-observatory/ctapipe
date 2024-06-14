@@ -301,7 +301,7 @@ class PercentileCuts(CutOptimizerBase):
 
     classes = [GhPercentileCutCalculator, ThetaPercentileCutCalculator]
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.gh = GhPercentileCutCalculator(parent=self)
         self.theta = ThetaPercentileCutCalculator(parent=self)
@@ -371,7 +371,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.theta = ThetaPercentileCutCalculator(parent=self)
 

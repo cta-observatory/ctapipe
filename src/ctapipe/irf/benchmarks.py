@@ -34,7 +34,7 @@ class EnergyBiasResolutionMakerBase(TrueEnergyBinsBase):
     Base class for calculating the bias and resolution of the energy prediciton.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
@@ -63,7 +63,7 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, FoVOffsetBinsBa
     true energy and fov offset.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     def make_bias_resolution_hdu(
@@ -103,7 +103,7 @@ class AngularResolutionMakerBase(TrueEnergyBinsBase, RecoEnergyBinsBase):
         help="Use true energy instead of reconstructed energy for energy binning.",
     ).tag(config=True)
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
@@ -132,7 +132,7 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, FoVOffsetBinsBase):
     and fov offset.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     def make_angular_resolution_hdu(
@@ -176,7 +176,7 @@ class SensitivityMakerBase(RecoEnergyBinsBase):
         default_value=0.2, help="Ratio between size of the on and the off region."
     ).tag(config=True)
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
@@ -217,7 +217,7 @@ class Sensitivity2dMaker(SensitivityMakerBase, FoVOffsetBinsBase):
     and fov offset.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     def make_sensitivity_hdu(

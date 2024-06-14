@@ -27,7 +27,7 @@ from .binning import FoVOffsetBinsBase, RecoEnergyBinsBase, TrueEnergyBinsBase
 class PsfMakerBase(TrueEnergyBinsBase):
     """Base class for calculating the point spread function."""
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
@@ -51,7 +51,7 @@ class PsfMakerBase(TrueEnergyBinsBase):
 class BackgroundRateMakerBase(RecoEnergyBinsBase):
     """Base class for calculating the background rate."""
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
@@ -96,7 +96,7 @@ class EnergyMigrationMakerBase(TrueEnergyBinsBase):
         default_value=30,
     ).tag(config=True)
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.migration_bins = np.linspace(
             self.energy_migration_min,
@@ -131,7 +131,7 @@ class EnergyMigrationMakerBase(TrueEnergyBinsBase):
 class EffectiveAreaMakerBase(TrueEnergyBinsBase):
     """Base class for calculating the effective area."""
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     @abstractmethod
@@ -174,7 +174,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, FoVOffsetBinsBase):
     bins of logarithmic true energy and field of view offset.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     def make_aeff_hdu(
@@ -218,7 +218,7 @@ class EnergyMigration2dMaker(EnergyMigrationMakerBase, FoVOffsetBinsBase):
     equidistant bins of logarithmic true energy and field of view offset.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     def make_edisp_hdu(
@@ -246,7 +246,7 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, FoVOffsetBinsBase):
     bins of logarithmic reconstructed energy and field of view offset.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
     def make_bkg_hdu(
@@ -289,7 +289,7 @@ class Psf3dMaker(PsfMakerBase, FoVOffsetBinsBase):
         default_value=100,
     ).tag(config=True)
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.source_offset_bins = u.Quantity(
             np.linspace(
