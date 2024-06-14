@@ -35,9 +35,9 @@ def test_check_bins_in_range(caplog):
     with pytest.raises(ValueError, match="Valid range for"):
         check_bins_in_range(bins, valid_range)
 
-    caplog.set_level(logging.WARNING, logger="ctapipe")
-    check_bins_in_range(bins, valid_range, raise_error=False)
-    assert "Valid range for result is" in caplog.text
+    with caplog.at_level(logging.WARNING):
+        check_bins_in_range(bins, valid_range, raise_error=False)
+        assert "Valid range for result is" in caplog.text
 
 
 def test_make_bins_per_decade():
