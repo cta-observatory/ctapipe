@@ -31,7 +31,7 @@ from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.psf_model import PSFModel
 from ctapipe.image.reducer import DataVolumeReducer
-from ctapipe.io import EventSource
+from ctapipe.io import EventSource, TableLoader
 
 __all__ = ["CameraCalibrator", "CalibrationCalculator"]
 
@@ -275,6 +275,11 @@ class PointingCalculator(CalibrationCalculator):
                 location=self.location,
             )
 
+        with TableLoader(url) as loader:
+            loader.read_telescope_events_by_id(
+                telescopes=[tel_id], dl1_parameters=True, observation_info=True
+            )
+
         stars_in_fov = Vizier.query_region(
             self.pointing, radius=Angle(2.0, "deg"), catalog="NOMAD"
         )[0]
@@ -299,7 +304,10 @@ class PointingCalculator(CalibrationCalculator):
 
         for i, var_image in enumerate(var_images):
             var_images[i].image = np.divide(
-                var_image.image, np.square(gain[gain_to_variance[i]])
+                var_image.image,
+                np.square(
+                    gain[gain_to_variance[i]]
+                ),  # Here i will need to adjust the code based on how the containers for gain will work
             )
 
         return var_images
