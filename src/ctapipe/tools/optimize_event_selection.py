@@ -1,14 +1,12 @@
 """Tool to generate selections for IRFs production"""
+
 import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, classes_with_traits, flag
-from ..irf import (
-    CutOptimizerBase,
-    EventsLoader,
-    Spectra,
-)
+from ..irf import EventsLoader, Spectra
+from ..irf.optimize import CutOptimizerBase
 
 
 class IrfEventSelector(Tool):

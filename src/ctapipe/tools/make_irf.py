@@ -13,18 +13,22 @@ from pyirf.io import create_rad_max_hdu
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
-    AngularResolutionMakerBase,
-    BackgroundRateMakerBase,
-    EffectiveAreaMakerBase,
-    EnergyBiasResolutionMakerBase,
-    EnergyMigrationMakerBase,
     EventPreProcessor,
     EventsLoader,
     OptimizationResultStore,
-    PsfMakerBase,
-    SensitivityMakerBase,
     Spectra,
     check_bins_in_range,
+)
+from ..irf.benchmarks import (
+    AngularResolutionMakerBase,
+    EnergyBiasResolutionMakerBase,
+    SensitivityMakerBase,
+)
+from ..irf.irfs import (
+    BackgroundRateMakerBase,
+    EffectiveAreaMakerBase,
+    EnergyMigrationMakerBase,
+    PsfMakerBase,
 )
 
 
