@@ -120,7 +120,7 @@ class StatisticsExtractor(TelescopeComponent):
 
 class PlainExtractor(StatisticsExtractor):
     """
-    Extractor the statistics from a chunk of images
+    Extract the statistics from a chunk of images
     using numpy and scipy functions
     """
 
@@ -155,7 +155,7 @@ class PlainExtractor(StatisticsExtractor):
 
 class SigmaClippingExtractor(StatisticsExtractor):
     """
-    Extracts the statistics from a chunk of images
+    Extract the statistics from a chunk of images
     using astropy's sigma clipping functions
     """
 
