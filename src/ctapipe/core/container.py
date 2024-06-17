@@ -197,11 +197,10 @@ class Field:
                 )
         else:
             # not a numpy array
-            if self.dtype is not None:
-                if not isinstance(value, self.dtype.type):
-                    raise FieldValidationError(
-                        f"{errorstr} Should have numpy dtype {self.dtype}"
-                    )
+            if self.dtype is not None and not isinstance(value, self.dtype.type):
+                raise FieldValidationError(
+                    f"{errorstr} Should have numpy dtype {self.dtype}"
+                )
 
 
 class DeprecatedField(Field):

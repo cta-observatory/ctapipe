@@ -67,10 +67,8 @@ class FeatureGenerator(Component):
         for result, name in zip(self.engine(lookup), self._feature_names):
             if name in table.colnames:
                 raise FeatureGeneratorException(f"{name} is already a column of table.")
-            try:
-                table[name] = result
-            except Exception as err:
-                raise err
+
+            table[name] = result
 
         return table
 

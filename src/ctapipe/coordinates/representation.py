@@ -45,7 +45,7 @@ class PlanarRepresentation(BaseRepresentation):
         x = self.attr_classes["x"](x, copy=copy)
         y = self.attr_classes["y"](y, copy=copy)
 
-        if not (x.unit.physical_type == y.unit.physical_type):
+        if x.unit.physical_type != y.unit.physical_type:
             raise u.UnitsError("x and y should have matching physical types")
 
         try:

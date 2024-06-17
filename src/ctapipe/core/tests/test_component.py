@@ -133,7 +133,7 @@ def test_component_kwarg_setting():
 
     # Invalid type
     with pytest.raises(TraitError):
-        comp = ExampleComponent(param="badvalue")
+        ExampleComponent(param="badvalue")
 
     # Invalid traitlet
     with pytest.raises(TraitError):
