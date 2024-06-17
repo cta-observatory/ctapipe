@@ -63,7 +63,7 @@ class StatisticsExtractor(TelescopeComponent):
 
         Parameters
         ----------
-        dl1_table : ndarray
+        dl1_table : astropy.table.QTable
             dl1 table with images and timestamps stored in a numpy array of shape
             (n_images, n_channels, n_pix).
         masked_pixels_of_sample : ndarray
