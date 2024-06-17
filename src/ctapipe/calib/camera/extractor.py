@@ -64,14 +64,13 @@ class StatisticsExtractor(TelescopeComponent):
         Parameters
         ----------
         dl1_table : astropy.table.QTable
-            dl1 table with images and timestamps stored in a numpy array of shape
-            (n_images, n_channels, n_pix).
+            DL1 table with images of shape (n_images, n_channels, n_pix) and timestamps of shape (n_images, ) stored in an astropy QTable
         masked_pixels_of_sample : ndarray
-            boolean array of masked pixels that are not available for processing
+            boolean array of masked pixels of shape (n_pix, ) that are not available for processing
         chunk_shift : int
             number of samples to shift the extraction chunk
         col_name : string
-            column name in the dl1 table
+            column name in the DL1 table
 
         Returns
         -------
@@ -79,6 +78,11 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and extraction chunks
         """
 
+        # Check if the length of the dl1 table is greater than the size of the chunk.
+        if len(dl1_table[col_name]) < self.chunk_size:
+            raise ValueError(
+                f"The length of the DL1 table '{len(dl1_table[col_name])}' must be greater than the size of the chunk '{self.chunk_size}'."
+            )
         # If no chunk_shift is provided, the chunk_shift is set to self.chunk_size
         # meaning that the extraction chunks are not overlapping.
         if chunk_shift is None:
