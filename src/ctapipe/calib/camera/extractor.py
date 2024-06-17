@@ -78,10 +78,10 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and extraction chunks
         """
 
-        # Check if the length of the dl1 table is greater than the size of the chunk.
+        # Check if the length of the dl1 table is greater or equal than the size of the chunk.
         if len(dl1_table[col_name]) < self.chunk_size:
             raise ValueError(
-                f"The length of the DL1 table '{len(dl1_table[col_name])}' must be greater than the size of the chunk '{self.chunk_size}'."
+                f"The length of the DL1 table '{len(dl1_table[col_name])}' must be greater or equal than the size of the chunk '{self.chunk_size}'."
             )
         # If no chunk_shift is provided, the chunk_shift is set to self.chunk_size
         # meaning that the extraction chunks are not overlapping.
