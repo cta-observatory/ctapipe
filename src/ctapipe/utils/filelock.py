@@ -35,3 +35,8 @@ class FileLock:
     def __exit__(self, exc_type, exc_value, traceback):
         if self.path.exists():
             self.path.unlink()
+
+    @classmethod
+    def for_path(cls, path, **kwargs):
+        """Create a filelock for path by appending ``.lock`` to the name"""
+        return cls(path=path.with_suffix(path.suffix + ".lock"), **kwargs)

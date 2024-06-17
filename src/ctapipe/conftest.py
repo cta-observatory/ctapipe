@@ -219,7 +219,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
     output = dl2_tmp_path / "gamma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -243,7 +243,7 @@ def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_pa
     output = dl2_tmp_path / "gamma_lapalma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -267,7 +267,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
     output = dl2_tmp_path / "proton.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -292,7 +292,7 @@ def dl2_merged_file(dl2_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_
     output = dl2_tmp_path / "merged.training.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -315,7 +315,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -338,7 +338,7 @@ def dl1_divergent_file(dl1_tmp_path):
     output = dl1_tmp_path / "gamma_divergent.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -361,7 +361,7 @@ def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_camera_frame.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -385,7 +385,7 @@ def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
     output = dl2_tmp_path / "gamma_no_dl1.dl2.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -411,7 +411,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_images.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -437,7 +437,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
     output = dl1_tmp_path / "gamma_parameters.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -461,7 +461,7 @@ def dl1_muon_file(dl1_tmp_path):
     output = dl1_tmp_path / "muons.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -488,7 +488,7 @@ def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
     output = dl1_tmp_path / "muon_output.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -514,7 +514,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
 
     output = dl1_tmp_path / "proton.dl1.h5"
 
-    with FileLock(output.with_suffix(output.suffix + ".lock")):
+    with FileLock.for_path(output):
         if output.is_file():
             return output
 
@@ -539,7 +539,7 @@ def energy_regressor_path(model_tmp_path):
 
     out_file = model_tmp_path / "energy.pkl"
 
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock.for_path(out_file):
         if out_file.is_file():
             return out_file
 
@@ -600,7 +600,7 @@ def particle_classifier_path(model_tmp_path, gamma_train_clf, proton_train_clf):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock.for_path(out_file):
         if out_file.is_file():
             return out_file
 
@@ -626,7 +626,7 @@ def disp_reconstructor_path(model_tmp_path, gamma_train_clf):
     from ctapipe.tools.train_disp_reconstructor import TrainDispReconstructor
 
     out_file = model_tmp_path / "disp_reconstructor.pkl"
-    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+    with FileLock.for_path(out_file):
         if out_file.is_file():
             return out_file
 
