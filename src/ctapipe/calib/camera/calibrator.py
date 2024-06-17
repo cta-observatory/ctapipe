@@ -322,7 +322,6 @@ class CameraCalibrator(TelescopeComponent):
         event : container
             A `~ctapipe.containers.ArrayEventContainer` event container
         """
-        # TODO: How to handle different calibrations depending on tel_id?
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
         for tel_id in tel.keys():
             self._calibrate_dl0(event, tel_id)
