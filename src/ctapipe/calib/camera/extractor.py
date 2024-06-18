@@ -186,13 +186,6 @@ class SigmaClippingExtractor(StatisticsExtractor):
         pixel_median = np.ma.array(pixel_median, mask=np.isnan(pixel_median))
         pixel_std = np.ma.array(pixel_std, mask=np.isnan(pixel_std))
 
-        unused_values = np.abs(masked_images - pixel_mean) > (
-            self.max_sigma * pixel_std
-        )
-
-        # add outliers identified by sigma clipping for following operations
-        masked_images.mask |= unused_values
-
         # median of the median over the camera
         median_of_pixel_median = np.ma.median(pixel_median, axis=1)
 
