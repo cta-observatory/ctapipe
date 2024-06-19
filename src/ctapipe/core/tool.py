@@ -1,4 +1,5 @@
 """Classes to handle configurable command-line user interfaces."""
+
 import html
 import logging
 import logging.config
@@ -445,6 +446,12 @@ class Tool(Application):
                 exit_status = 1  # any other error
                 if raises:
                     raise
+            except SystemExit as err:
+                exit_status = err.code
+                self.log.exception("Caught SystemExit with exit code %s", exit_status)
+                Provenance().finish_activity(
+                    activity_name=self.name, status="SystemExit"
+                )
             finally:
                 if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                     self.write_provenance()
