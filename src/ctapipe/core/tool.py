@@ -256,7 +256,7 @@ class Tool(Application):
         self.update_config(self.cli_config)
         self.update_logging_config()
 
-        self.log.info(f"ctapipe version {self.version_string}")
+        self.log.info("ctapipe version %s", self.version_string)
 
     def load_config_file(self, path: str | pathlib.Path) -> None:
         """
@@ -406,7 +406,7 @@ class Tool(Application):
 
         with self._exit_stack:
             try:
-                self.log.info(f"Starting: {self.name}")
+                self.log.info("Starting: %s", self.name)
                 Provenance().start_activity(self.name)
 
                 self.initialize(argv)
@@ -414,7 +414,7 @@ class Tool(Application):
                 self.setup()
                 self.is_setup = True
 
-                self.log.debug(f"CONFIG: {self.get_current_config()}")
+                self.log.debug("CONFIG: %s", self.get_current_config())
                 Provenance().add_config(self.get_current_config())
 
                 # check for any traitlets warnings using our custom handler
@@ -426,7 +426,7 @@ class Tool(Application):
 
                 self.start()
                 self.finish()
-                self.log.info(f"Finished: {self.name}")
+                self.log.info("Finished: %s", self.name)
                 Provenance().finish_activity(activity_name=self.name)
             except (ToolConfigurationError, TraitError) as err:
                 self.log.error("%s", err)
@@ -441,7 +441,7 @@ class Tool(Application):
                 )
                 exit_status = 130  # Script terminated by Control-C
             except Exception as err:
-                self.log.exception(f"Caught unexpected exception: {err}")
+                self.log.exception("Caught unexpected exception: %s", err)
                 Provenance().finish_activity(activity_name=self.name, status="error")
                 exit_status = 1  # any other error
                 if raises:
