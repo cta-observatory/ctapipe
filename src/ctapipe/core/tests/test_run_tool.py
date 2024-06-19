@@ -1,5 +1,5 @@
-from subprocess import CalledProcessError
 import sys
+from subprocess import CalledProcessError
 
 import pytest
 
