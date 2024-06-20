@@ -452,13 +452,18 @@ class Tool(Application):
                 if raises:
                     raise
             except SystemExit as err:
-                exit_status = err.code
-                self.log.exception("Caught SystemExit with exit code %s", exit_status)
-                Provenance().finish_activity(
-                    activity_name=self.name,
-                    status="partial_success",
-                    exit_code=exit_status,
-                )
+                if raises:
+                    raise  # do not re-intercept in tests
+                else:
+                    exit_status = err.code
+                    self.log.exception(
+                        "Caught SystemExit with exit code %s", exit_status
+                    )
+                    Provenance().finish_activity(
+                        activity_name=self.name,
+                        status="partial_success",
+                        exit_code=exit_status,
+                    )
             finally:
                 if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                     self.write_provenance()
