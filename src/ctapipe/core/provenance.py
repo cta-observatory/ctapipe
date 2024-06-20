@@ -4,6 +4,7 @@ Provenance-related functionality
 TODO: have this register whenever ctapipe is loaded
 
 """
+
 import json
 import logging
 import os
@@ -145,7 +146,7 @@ class Provenance(metaclass=Singleton):
             activity.name,
         )
 
-    def finish_activity(self, status="completed", activity_name=None):
+    def finish_activity(self, status="completed", exit_code=0, activity_name=None):
         """end the current activity"""
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
@@ -155,7 +156,7 @@ class Provenance(metaclass=Singleton):
                 )
             )
 
-        activity.finish(status)
+        activity.finish(status, exit_code)
         self._finished_activities.append(activity)
         log.debug(f"finished activity: {activity.name}")
 
@@ -221,11 +222,13 @@ class _ActivityProvenance:
         self._prov = {
             "activity_name": activity_name,
             "activity_uuid": str(uuid.uuid4()),
+            "status": "partial_success",
             "start": {},
             "stop": {},
             "system": {},
             "input": [],
             "output": [],
+            "exit_code": None,
         }
         self.name = activity_name
 
@@ -268,7 +271,7 @@ class _ActivityProvenance:
         """add a dictionary of configuration parameters to this activity"""
         self._prov["config"] = config
 
-    def finish(self, status="completed"):
+    def finish(self, status="success", exit_code=0):
         """record final provenance information, normally called at shutdown."""
         self._prov["stop"].update(_sample_cpu_and_memory())
 
@@ -276,6 +279,7 @@ class _ActivityProvenance:
         t_start = Time(self._prov["start"]["time_utc"], format="isot")
         t_stop = Time(self._prov["stop"]["time_utc"], format="isot")
         self._prov["status"] = status
+        self._prov["exit_code"] = exit_code
         self._prov["duration_min"] = (t_stop - t_start).to("min").value
 
     @property

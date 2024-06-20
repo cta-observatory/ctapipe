@@ -432,25 +432,32 @@ class Tool(Application):
                 self.log.error("%s", err)
                 self.log.error("Use --help for more info")
                 exit_status = 2  # wrong cmd line parameter
+                Provenance().finish_activity(
+                    activity_name=self.name, status="error", exit_code=exit_status
+                )
                 if raises:
                     raise
             except KeyboardInterrupt:
                 self.log.warning("WAS INTERRUPTED BY CTRL-C")
-                Provenance().finish_activity(
-                    activity_name=self.name, status="interrupted"
-                )
                 exit_status = 130  # Script terminated by Control-C
+                Provenance().finish_activity(
+                    activity_name=self.name, status="interrupted", exit_code=exit_status
+                )
             except Exception as err:
                 self.log.exception("Caught unexpected exception: %s", err)
-                Provenance().finish_activity(activity_name=self.name, status="error")
                 exit_status = 1  # any other error
+                Provenance().finish_activity(
+                    activity_name=self.name, status="error", exit_code=exit_status
+                )
                 if raises:
                     raise
             except SystemExit as err:
                 exit_status = err.code
                 self.log.exception("Caught SystemExit with exit code %s", exit_status)
                 Provenance().finish_activity(
-                    activity_name=self.name, status="SystemExit"
+                    activity_name=self.name,
+                    status="partial_success",
+                    exit_code=exit_status,
                 )
             finally:
                 if not {"-h", "--help", "--help-all"}.intersection(self.argv):
