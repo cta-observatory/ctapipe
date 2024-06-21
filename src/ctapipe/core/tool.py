@@ -461,7 +461,7 @@ class Tool(Application):
                     )
                     Provenance().finish_activity(
                         activity_name=self.name,
-                        status="partial_success",
+                        status="error",
                         exit_code=exit_status,
                     )
             finally:
