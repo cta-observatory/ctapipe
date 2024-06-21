@@ -222,7 +222,7 @@ class _ActivityProvenance:
         self._prov = {
             "activity_name": activity_name,
             "activity_uuid": str(uuid.uuid4()),
-            "status": "partial_success",
+            "status": "running",
             "start": {},
             "stop": {},
             "system": {},
