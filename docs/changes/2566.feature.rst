@@ -1,0 +1,7 @@
+Add ``SystemExit`` handling at the ``ctapipe.core.Tool`` level
+
+If a ``SystemExit`` with a custom error code is generated during the tool execution,
+the tool will be terminated gracefully and the error code will be preserved and propagated.
+
+The ``Activity`` statuses have been updated to ``["running", "success", "interrupted", "error"]``.
+The ``"running"`` status is assigned at init.
