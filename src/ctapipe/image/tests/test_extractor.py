@@ -19,6 +19,7 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     SlidingWindowMaxSum,
     TwoPassWindowSum,
+    VarianceExtractor,
     __filtfilt_fast,
     adaptive_centroid,
     deconvolve,
@@ -408,6 +409,9 @@ def test_extractors(Extractor, toymodels, request):
             extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
         return
 
+    if Extractor is VarianceExtractor:
+        return
+
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid
     if dl1.image.ndim == 1:
@@ -423,7 +427,7 @@ def test_extractors(Extractor, toymodels, request):
 @pytest.mark.parametrize("Extractor", extractors)
 def test_integration_correction_off(Extractor, toymodels, request):
     # full waveform extractor does not have an integration correction
-    if Extractor is FullWaveformSum:
+    if Extractor is FullWaveformSum or Extractor is VarianceExtractor:
         return
 
     (
@@ -713,7 +717,14 @@ def test_dtype(Extractor, subarray):
     extractor = Extractor(subarray=subarray)
     n_channels, n_pixels, _ = waveforms.shape
     broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
+    if Extractor is VarianceExtractor:
+        var = extractor(waveforms, tel_id, 0.0)
+        assert var.image.dtype == np.float32
+        assert var.trigger_time.dtype == np.float32
+        return
+
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+
     assert dl1.image.dtype == np.float32
     assert dl1.peak_time.dtype == np.float32
 

@@ -13,6 +13,7 @@ __all__ = [
     "NeighborPeakWindowSum",
     "BaselineSubtractedNeighborPeakWindowSum",
     "TwoPassWindowSum",
+    "VarianceExtractor",
     "extract_around_peak",
     "extract_sliding_window",
     "neighbor_average_maximum",
@@ -33,7 +34,11 @@ from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from traitlets import Bool, Int
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import (
+    DL1CameraContainer,
+    DL1PedestalVarianceContainer,
+    VarianceType,
+)
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -1292,6 +1297,23 @@ class TwoPassWindowSum(ImageExtractor):
             image=charge2.astype("float32"),
             peak_time=pulse_time2.astype("float32"),
             is_valid=is_valid,
+        )
+
+
+class VarianceExtractor(ImageExtractor):
+
+    """
+    Calculates the variance of each sample waveform
+
+    """
+
+    def __call__(self, waveforms, tel_id, trigger_time) -> DL1PedestalVarianceContainer:
+        variance = np.nanvar(waveforms, dtype="float32", axis=2)
+        return DL1PedestalVarianceContainer(
+            image=variance,
+            VarMethod=VarianceType.SIMPLE,
+            is_valid=True,
+            trigger_time=np.float32(trigger_time),
         )
 
 
