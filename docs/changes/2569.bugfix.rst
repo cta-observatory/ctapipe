@@ -1,0 +1,1 @@
+Replace deprecated usage of scipy sparse matrices, adds support for scipy 1.14.

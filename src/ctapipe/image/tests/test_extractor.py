@@ -296,7 +296,7 @@ def test_neighbor_average_peakpos(toymodels, request):
     )
 
     pixel = 0
-    _, nei_pixel = np.where(neighbors[pixel].A)
+    _, nei_pixel = np.nonzero(neighbors[pixel].toarray())
     expected_average = waveforms[:, nei_pixel].sum(1) / len(nei_pixel)
     expected_peak_pos = np.argmax(expected_average, axis=-1)
     for ichannel in range(waveforms.shape[-3]):
@@ -312,7 +312,7 @@ def test_neighbor_average_peakpos(toymodels, request):
     )
 
     pixel = 1
-    _, nei_pixel = np.where(neighbors[pixel].A)
+    _, nei_pixel = np.nonzero(neighbors[pixel].toarray())
     nei_pixel = np.concatenate([nei_pixel, [pixel] * local_weight])
     expected_average = waveforms[:, nei_pixel].sum(1) / len(nei_pixel)
     expected_peak_pos = np.argmax(expected_average, axis=-1)

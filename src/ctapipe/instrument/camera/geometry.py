@@ -708,7 +708,7 @@ class CameraGeometry:
 
     @lazyproperty
     def neighbor_matrix(self):
-        return self.neighbor_matrix_sparse.A
+        return self.neighbor_matrix_sparse.toarray()
 
     @lazyproperty
     def max_neighbors(self):
@@ -941,7 +941,7 @@ class CameraGeometry:
             warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
             if width == 1:
-                n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
+                n_neighbors = np.asarray(self.neighbor_matrix_sparse.sum(axis=0))[0]
                 max_neighbors = n_neighbors.max()
                 mask = n_neighbors < max_neighbors
             else:
