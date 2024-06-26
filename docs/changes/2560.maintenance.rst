@@ -1,1 +1,0 @@
-made plugin detection less verbose in logs: DEBUG level used instead of INFO
