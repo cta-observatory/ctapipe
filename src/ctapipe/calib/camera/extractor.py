@@ -91,7 +91,7 @@ class StatisticsExtractor(TelescopeComponent):
         ):
             outlier_check = "NOISE"
         else:
-            raise Exception(
+            raise ValueError(
                 "Invalid input data. Only dl1-like images of claibration events are accepted!"
             )
 

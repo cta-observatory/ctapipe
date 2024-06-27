@@ -105,3 +105,30 @@ def test_check_chunk_shift(test_sigmaclippingextractor):
 
     # check if three chunks are used for the extraction
     assert len(sigmaclipping_stats_list) == 3
+
+
+def test_check_input(test_sigmaclippingextractor):
+    """test the input dl1 data"""
+
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
+    )
+    flatfield_dl1_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
+    # Insert one event with wrong event type
+    flatfield_event_type = np.full((5000,), 0)
+    flatfield_event_type[0] = 2
+    flatfield_dl1_table = Table(
+        [times, flatfield_dl1_data, flatfield_event_type],
+        names=("time_mono", "image", "event_type"),
+    )
+    with pytest.raises(ValueError):
+        _ = test_sigmaclippingextractor(dl1_table=flatfield_dl1_table, chunk_shift=2000)
+
+    # Construct event_type column for cosmic events
+    cosmic_event_type = np.full((5000,), 32)
+    cosmic_dl1_table = Table(
+        [times, flatfield_dl1_data, cosmic_event_type],
+        names=("time_mono", "image", "event_type"),
+    )
+    with pytest.raises(ValueError):
+        _ = test_sigmaclippingextractor(dl1_table=cosmic_dl1_table, chunk_shift=2000)
