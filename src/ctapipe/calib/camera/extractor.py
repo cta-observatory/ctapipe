@@ -171,6 +171,7 @@ class PlainExtractor(StatisticsExtractor):
             median=pixel_median.filled(np.nan),
             median_outliers=image_median_outliers.filled(True),
             std=pixel_std.filled(np.nan),
+            std_outliers=np.full(np.shape(image_median_outliers), False),
         )
 
 
