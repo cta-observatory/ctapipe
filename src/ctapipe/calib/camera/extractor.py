@@ -63,8 +63,10 @@ class StatisticsExtractor(TelescopeComponent):
 
         Parameters
         ----------
-        dl1_table : astropy.table.QTable
-            DL1 table with images of shape (n_images, n_channels, n_pix) and timestamps of shape (n_images, ) stored in an astropy QTable
+        dl1_table : astropy.table.Table
+            DL1 table with images of shape (n_images, n_channels, n_pix),
+            timestamps of shape (n_images, ), and event type (n_images, )
+            stored in an astropy Table
         masked_pixels_of_sample : ndarray
             boolean array of masked pixels of shape (n_pix, ) that are not available for processing
         chunk_shift : int
@@ -78,10 +80,25 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and extraction chunks
         """
 
+        # Check if the provided data contains an unique type of calibration events
+        # and if the events contain signal or noise.
+        if np.all(dl1_table["event_type"] == 0) or np.all(dl1_table["event_type"] == 1):
+            outlier_check = "SIGNAL"
+        elif (
+            np.all(dl1_table["event_type"] == 2)
+            or np.all(dl1_table["event_type"] == 3)
+            or np.all(dl1_table["event_type"] == 4)
+        ):
+            outlier_check = "NOISE"
+        else:
+            raise Exception(
+                "Invalid input data. Only dl1-like images of claibration events are accepted!"
+            )
+
         # Check if the length of the dl1 table is greater or equal than the size of the chunk.
         if len(dl1_table[col_name]) < self.chunk_size:
             raise ValueError(
-                f"The length of the DL1 table '{len(dl1_table[col_name])}' must be greater or equal than the size of the chunk '{self.chunk_size}'."
+                f"The length of the DL1 table ({len(dl1_table[col_name])}) must be greater or equal than the size of the chunk ({self.chunk_size})."
             )
         # If no chunk_shift is provided, the chunk_shift is set to self.chunk_size
         # meaning that the extraction chunks are not overlapping.
@@ -89,32 +106,34 @@ class StatisticsExtractor(TelescopeComponent):
             chunk_shift = self.chunk_size
 
         # Function to split table data into appropriated chunks
-        def _get_chunks(col_name):
+        def _get_chunks(dl1_table_data):
             return [
                 (
-                    dl1_table[col_name].data[i : i + self.chunk_size]
-                    if i + self.chunk_size <= len(dl1_table[col_name])
-                    else dl1_table[col_name].data[
-                        len(dl1_table[col_name].data) - self.chunk_size : len(
-                            dl1_table[col_name].data
-                        )
+                    dl1_table_data[i : i + self.chunk_size]
+                    if i + self.chunk_size <= len(dl1_table_data)
+                    else dl1_table_data[
+                        len(dl1_table_data) - self.chunk_size : len(dl1_table_data)
                     ]
                 )
-                for i in range(0, len(dl1_table[col_name].data), chunk_shift)
+                for i in range(0, len(dl1_table_data), chunk_shift)
             ]
 
         # Get the chunks for the timestamps and selected column name
-        time_chunks = _get_chunks("time")
-        image_chunks = _get_chunks(col_name)
+        time_chunks = _get_chunks(dl1_table["time_mono"])
+        image_chunks = _get_chunks(dl1_table[col_name].data)
 
         # Calculate the statistics from a chunk of images
         stats_list = []
         for images, times in zip(image_chunks, time_chunks):
-            stats_list.append(self._extract(images, times, masked_pixels_of_sample))
+            stats_list.append(
+                self._extract(images, times, masked_pixels_of_sample, outlier_check)
+            )
         return stats_list
 
     @abstractmethod
-    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def _extract(
+        self, images, times, masked_pixels_of_sample, outlier_check
+    ) -> StatisticsContainer:
         pass
 
 
@@ -124,7 +143,9 @@ class PlainExtractor(StatisticsExtractor):
     using numpy and scipy functions
     """
 
-    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def _extract(
+        self, images, times, masked_pixels_of_sample, outlier_check
+    ) -> StatisticsContainer:
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -168,7 +189,9 @@ class SigmaClippingExtractor(StatisticsExtractor):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def _extract(
+        self, images, times, masked_pixels_of_sample, outlier_check
+    ) -> StatisticsContainer:
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -197,14 +220,24 @@ class SigmaClippingExtractor(StatisticsExtractor):
 
         # outliers from median
         image_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
-        image_median_outliers = np.logical_or(
-            image_deviation
-            < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
-            * median_of_pixel_median[:, np.newaxis],
-            image_deviation
-            > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
-            * median_of_pixel_median[:, np.newaxis],
-        )
+        if outlier_check == "SIGNAL":
+            image_median_outliers = np.logical_or(
+                image_deviation
+                < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
+                * median_of_pixel_median[:, np.newaxis],
+                image_deviation
+                > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
+                * median_of_pixel_median[:, np.newaxis],
+            )
+        elif outlier_check == "NOISE":
+            image_median_outliers = np.logical_or(
+                image_deviation
+                < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
+                * std_of_pixel_std[:, np.newaxis],
+                image_deviation
+                > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
+                * std_of_pixel_std[:, np.newaxis],
+            )
 
         # outliers from standard deviation
         deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
