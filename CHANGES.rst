@@ -1,3 +1,34 @@
+ctapipe v0.21.2 (2024-06-26)
+============================
+
+A small bugfix release to add support for scipy 1.14.
+
+Also contains a small new feature regarding exit code handling in ``Tool``.
+
+Bug Fixes
+---------
+
+- Replace deprecated usage of scipy sparse matrices, adds support for scipy 1.14. [`#2569 <https://github.com/cta-observatory/ctapipe/pull/2569>`__]
+
+
+New Features
+------------
+
+- Add ``SystemExit`` handling at the ``ctapipe.core.Tool`` level
+
+  If a ``SystemExit`` with a custom error code is generated during the tool execution,
+  the tool will be terminated gracefully and the error code will be preserved and propagated.
+
+  The ``Activity`` statuses have been updated to ``["running", "success", "interrupted", "error"]``.
+  The ``"running"`` status is assigned at init. [`#2566 <https://github.com/cta-observatory/ctapipe/pull/2566>`__]
+
+
+Maintenance
+-----------
+
+- made plugin detection less verbose in logs: DEBUG level used instead of INFO [`#2560 <https://github.com/cta-observatory/ctapipe/pull/2560>`__]
+
+
 ctapipe v0.21.1 (2024-05-15)
 ============================
 
