@@ -28,15 +28,10 @@ class StatisticsExtractor(TelescopeComponent):
         2500,
         help="Size of the chunk used for the calculation of the statistical values",
     ).tag(config=True)
-    image_median_cut_outliers = List(
+    median_cut_outliers = List(
         [-0.3, 0.3],
-        help="""Interval of accepted image values \\
+        help="""Interval of accepted values \\
                 (fraction with respect to camera median value)""",
-    ).tag(config=True)
-    image_std_cut_outliers = List(
-        [-3, 3],
-        help="""Interval (number of std) of accepted image standard deviation \\
-                around camera median value""",
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
@@ -107,7 +102,7 @@ class StatisticsExtractor(TelescopeComponent):
 
         # Function to split table data into appropriated chunks
         def _get_chunks(dl1_table_data):
-            return [
+            return (
                 (
                     dl1_table_data[i : i + self.chunk_size]
                     if i + self.chunk_size <= len(dl1_table_data)
@@ -116,7 +111,7 @@ class StatisticsExtractor(TelescopeComponent):
                     ]
                 )
                 for i in range(0, len(dl1_table_data), chunk_shift)
-            ]
+            )
 
         # Get the chunks for the timestamps and selected column name
         time_chunks = _get_chunks(dl1_table["time_mono"])
@@ -126,12 +121,12 @@ class StatisticsExtractor(TelescopeComponent):
         stats_list = []
         for images, times in zip(image_chunks, time_chunks):
             stats_list.append(
-                self._extract(images, times, masked_pixels_of_sample, outlier_check)
+                self.extract(images, times, masked_pixels_of_sample, outlier_check)
             )
         return stats_list
 
     @abstractmethod
-    def _extract(
+    def extract(
         self, images, times, masked_pixels_of_sample, outlier_check
     ) -> StatisticsContainer:
         pass
@@ -143,7 +138,7 @@ class PlainExtractor(StatisticsExtractor):
     using numpy and scipy functions
     """
 
-    def _extract(
+    def extract(
         self, images, times, masked_pixels_of_sample, outlier_check
     ) -> StatisticsContainer:
         # ensure numpy array
@@ -159,9 +154,9 @@ class PlainExtractor(StatisticsExtractor):
         pixel_std = np.ma.std(masked_images, axis=0)
 
         # outliers from median
-        image_median_outliers = np.logical_or(
-            pixel_median < self.image_median_cut_outliers[0],
-            pixel_median > self.image_median_cut_outliers[1],
+        median_outliers = np.logical_or(
+            pixel_median < self.median_cut_outliers[0],
+            pixel_median > self.median_cut_outliers[1],
         )
 
         return StatisticsContainer(
@@ -169,9 +164,9 @@ class PlainExtractor(StatisticsExtractor):
             extraction_stop=times[-1],
             mean=pixel_mean.filled(np.nan),
             median=pixel_median.filled(np.nan),
-            median_outliers=image_median_outliers.filled(True),
+            median_outliers=median_outliers.filled(True),
             std=pixel_std.filled(np.nan),
-            std_outliers=np.full(np.shape(image_median_outliers), False),
+            std_outliers=np.full(np.shape(median_outliers), False),
         )
 
 
@@ -180,6 +175,12 @@ class SigmaClippingExtractor(StatisticsExtractor):
     Extract the statistics from a chunk of images
     using astropy's sigma clipping functions
     """
+
+    std_cut_outliers = List(
+        [-3, 3],
+        help="""Interval of accepted standard deviation \\
+                around camera median value""",
+    ).tag(config=True)
 
     max_sigma = Int(
         default_value=4,
@@ -190,7 +191,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def _extract(
+    def extract(
         self, images, times, masked_pixels_of_sample, outlier_check
     ) -> StatisticsContainer:
         # ensure numpy array
@@ -220,34 +221,34 @@ class SigmaClippingExtractor(StatisticsExtractor):
         std_of_pixel_std = np.ma.std(pixel_std, axis=1)
 
         # outliers from median
-        image_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
+        median_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
         if outlier_check == "SIGNAL":
-            image_median_outliers = np.logical_or(
-                image_deviation
-                < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
+            median_outliers = np.logical_or(
+                median_deviation
+                < self.median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
                 * median_of_pixel_median[:, np.newaxis],
-                image_deviation
-                > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
+                median_deviation
+                > self.median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
                 * median_of_pixel_median[:, np.newaxis],
             )
         elif outlier_check == "NOISE":
-            image_median_outliers = np.logical_or(
-                image_deviation
-                < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
+            median_outliers = np.logical_or(
+                median_deviation
+                < self.median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
                 * std_of_pixel_std[:, np.newaxis],
-                image_deviation
-                > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
+                median_deviation
+                > self.median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
                 * std_of_pixel_std[:, np.newaxis],
             )
 
         # outliers from standard deviation
-        deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
-        image_std_outliers = np.logical_or(
-            deviation
-            < self.image_std_cut_outliers[0]  # pylint: disable=unsubscriptable-object
+        std_deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
+        std_outliers = np.logical_or(
+            std_deviation
+            < self.std_cut_outliers[0]  # pylint: disable=unsubscriptable-object
             * std_of_pixel_std[:, np.newaxis],
-            deviation
-            > self.image_std_cut_outliers[1]  # pylint: disable=unsubscriptable-object
+            std_deviation
+            > self.std_cut_outliers[1]  # pylint: disable=unsubscriptable-object
             * std_of_pixel_std[:, np.newaxis],
         )
 
@@ -256,7 +257,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
             extraction_stop=times[-1],
             mean=pixel_mean.filled(np.nan),
             median=pixel_median.filled(np.nan),
-            median_outliers=image_median_outliers.filled(True),
+            median_outliers=median_outliers.filled(True),
             std=pixel_std.filled(np.nan),
-            std_outliers=image_std_outliers.filled(True),
+            std_outliers=std_outliers.filled(True),
         )
