@@ -4,7 +4,8 @@ Tests for StatisticsExtractor and related functions
 
 import numpy as np
 import pytest
-from astropy.table import QTable
+from astropy.table import Table
+from astropy.time import Time
 
 from ctapipe.calib.camera.extractor import PlainExtractor, SigmaClippingExtractor
 
@@ -24,12 +25,22 @@ def fixture_test_sigmaclippingextractor(example_subarray):
 def test_extractors(test_plainextractor, test_sigmaclippingextractor):
     """test basic functionality of the StatisticsExtractors"""
 
-    times = np.linspace(60117.911, 60117.9258, num=5000)
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
+    )
     pedestal_dl1_data = np.random.normal(2.0, 5.0, size=(5000, 2, 1855))
+    pedestal_event_type = np.full((5000,), 2)
     flatfield_dl1_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
+    flatfield_event_type = np.full((5000,), 0)
 
-    pedestal_dl1_table = QTable([times, pedestal_dl1_data], names=("time", "image"))
-    flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
+    pedestal_dl1_table = Table(
+        [times, pedestal_dl1_data, pedestal_event_type],
+        names=("time_mono", "image", "event_type"),
+    )
+    flatfield_dl1_table = Table(
+        [times, flatfield_dl1_data, flatfield_event_type],
+        names=("time_mono", "image", "event_type"),
+    )
 
     plain_stats_list = test_plainextractor(dl1_table=pedestal_dl1_table)
     sigmaclipping_stats_list = test_sigmaclippingextractor(
@@ -52,12 +63,18 @@ def test_extractors(test_plainextractor, test_sigmaclippingextractor):
 def test_check_outliers(test_sigmaclippingextractor):
     """test detection ability of outliers"""
 
-    times = np.linspace(60117.911, 60117.9258, num=5000)
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
+    )
     flatfield_dl1_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
+    flatfield_event_type = np.full((5000,), 0)
     # insert outliers
     flatfield_dl1_data[:, 0, 120] = 120.0
     flatfield_dl1_data[:, 1, 67] = 120.0
-    flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
+    flatfield_dl1_table = Table(
+        [times, flatfield_dl1_data, flatfield_event_type],
+        names=("time_mono", "image", "event_type"),
+    )
     sigmaclipping_stats_list = test_sigmaclippingextractor(
         dl1_table=flatfield_dl1_table
     )
@@ -72,10 +89,16 @@ def test_check_outliers(test_sigmaclippingextractor):
 def test_check_chunk_shift(test_sigmaclippingextractor):
     """test the chunk shift option and the boundary case for the last chunk"""
 
-    times = np.linspace(60117.911, 60117.9258, num=5000)
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
+    )
     flatfield_dl1_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
+    flatfield_event_type = np.full((5000,), 0)
     # insert outliers
-    flatfield_dl1_table = QTable([times, flatfield_dl1_data], names=("time", "image"))
+    flatfield_dl1_table = Table(
+        [times, flatfield_dl1_data, flatfield_event_type],
+        names=("time_mono", "image", "event_type"),
+    )
     sigmaclipping_stats_list = test_sigmaclippingextractor(
         dl1_table=flatfield_dl1_table, chunk_shift=2000
     )
