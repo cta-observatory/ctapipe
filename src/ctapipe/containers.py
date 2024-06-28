@@ -415,8 +415,8 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics of a chunk of images"""
 
-    extraction_start = Field(np.float32(nan), "start of the extraction chunk")
-    extraction_stop = Field(np.float32(nan), "stop of the extraction chunk")
+    extraction_start = Field(NAN_TIME, "start of the extraction chunk")
+    extraction_stop = Field(NAN_TIME, "stop of the extraction chunk")
     mean = Field(
         None,
         "mean of a pixel-wise quantity for each channel"
