@@ -110,7 +110,7 @@ class StatisticsExtractor(TelescopeComponent):
                         len(dl1_table_data) - self.chunk_size : len(dl1_table_data)
                     ]
                 )
-                for i in range(0, len(dl1_table_data), chunk_shift)
+                for i in range(0, len(dl1_table_data) - self.chunk_size, chunk_shift)
             )
 
         # Get the chunks for the timestamps and selected column name
