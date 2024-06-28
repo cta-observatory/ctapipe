@@ -95,27 +95,31 @@ class StatisticsExtractor(TelescopeComponent):
             raise ValueError(
                 f"The length of the DL1 table ({len(dl1_table[col_name])}) must be greater or equal than the size of the chunk ({self.chunk_size})."
             )
-        # If no chunk_shift is provided, the chunk_shift is set to self.chunk_size
-        # meaning that the extraction chunks are not overlapping.
-        if chunk_shift is None:
-            chunk_shift = self.chunk_size
 
         # Function to split table data into appropriated chunks
-        def _get_chunks(dl1_table_data):
-            return (
-                (
-                    dl1_table_data[i : i + self.chunk_size]
-                    if i + self.chunk_size <= len(dl1_table_data)
-                    else dl1_table_data[
-                        len(dl1_table_data) - self.chunk_size : len(dl1_table_data)
-                    ]
+        def _get_chunks(dl1_table_data, chunk_shift):
+            if chunk_shift is None:
+                return (
+                    (
+                        dl1_table_data[i : i + self.chunk_size]
+                        if i + self.chunk_size <= len(dl1_table_data)
+                        else dl1_table_data[
+                            len(dl1_table_data) - self.chunk_size : len(dl1_table_data)
+                        ]
+                    )
+                    for i in range(0, len(dl1_table_data), self.chunk_size)
                 )
-                for i in range(0, len(dl1_table_data) - self.chunk_size, chunk_shift)
-            )
+            else:
+                return (
+                    dl1_table_data[i : i + self.chunk_size]
+                    for i in range(
+                        0, len(dl1_table_data) - self.chunk_size, chunk_shift
+                    )
+                )
 
         # Get the chunks for the timestamps and selected column name
-        time_chunks = _get_chunks(dl1_table["time_mono"])
-        image_chunks = _get_chunks(dl1_table[col_name].data)
+        time_chunks = _get_chunks(dl1_table["time_mono"], chunk_shift)
+        image_chunks = _get_chunks(dl1_table[col_name].data, chunk_shift)
 
         # Calculate the statistics from a chunk of images
         stats_list = []
