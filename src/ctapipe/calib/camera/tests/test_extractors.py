@@ -94,7 +94,6 @@ def test_check_chunk_shift(test_sigmaclippingextractor):
     )
     flatfield_dl1_data = np.random.normal(77.0, 10.0, size=(5500, 2, 1855))
     flatfield_event_type = np.full((5500,), 0)
-    # insert outliers
     flatfield_dl1_table = Table(
         [times, flatfield_dl1_data, flatfield_event_type],
         names=("time_mono", "image", "event_type"),
@@ -105,8 +104,9 @@ def test_check_chunk_shift(test_sigmaclippingextractor):
         dl1_table=flatfield_dl1_table, chunk_shift=2000
     )
 
-    # check if three chunks are used for the extraction
+    # check if three chunks are used for the extraction as the last chunk overflows
     assert len(stats_list) == 3
+    # check if two chunks are used for the extraction as the last chunk is dropped
     assert len(stats_list_chunk_shift) == 2
 
 
