@@ -57,6 +57,7 @@ __all__ = [
     "TriggerContainer",
     "WaveformCalibrationContainer",
     "StatisticsContainer",
+    "ImageStatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
     "SchedulingBlockContainer",
@@ -412,7 +413,39 @@ class MorphologyContainer(Container):
 
 
 class StatisticsContainer(Container):
-    """Store descriptive statistics"""
+    """Store descriptive statistics of a chunk of images"""
+
+    extraction_start = Field(NAN_TIME, "start of the extraction chunk")
+    extraction_stop = Field(NAN_TIME, "stop of the extraction chunk")
+    mean = Field(
+        None,
+        "mean of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    median = Field(
+        None,
+        "median of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    median_outliers = Field(
+        None,
+        "outliers from the median distribution of a pixel-wise quantity for each channel"
+        "Type: binary mask; Shape: (n_channels, n_pixel)",
+    )
+    std = Field(
+        None,
+        "standard deviation of a pixel-wise quantity for each channel"
+        "Type: float; Shape: (n_channels, n_pixel)",
+    )
+    std_outliers = Field(
+        None,
+        "outliers from the standard deviation distribution of a pixel-wise quantity for each channel"
+        "Type: binary mask; Shape: (n_channels, n_pixel)",
+    )
+
+
+class ImageStatisticsContainer(Container):
+    """Store descriptive image statistics"""
 
     max = Field(np.float32(nan), "value of pixel with maximum intensity")
     min = Field(np.float32(nan), "value of pixel with minimum intensity")
@@ -422,11 +455,11 @@ class StatisticsContainer(Container):
     kurtosis = Field(nan, "kurtosis of intensity")
 
 
-class IntensityStatisticsContainer(StatisticsContainer):
+class IntensityStatisticsContainer(ImageStatisticsContainer):
     default_prefix = "intensity"
 
 
-class PeakTimeStatisticsContainer(StatisticsContainer):
+class PeakTimeStatisticsContainer(ImageStatisticsContainer):
     default_prefix = "peak_time"
 
 
