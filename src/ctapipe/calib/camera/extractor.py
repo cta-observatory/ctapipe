@@ -22,28 +22,15 @@ from ctapipe.core.traits import (
 
 
 class StatisticsExtractor(TelescopeComponent):
-    """Base StatisticsExtractor component"""
+    """
+    Base component to handle the extraction of the statistics from a dl1 table
+    containing charges, peak times and/or charge variances (images).
+    """
 
     chunk_size = Int(
         2500,
         help="Size of the chunk used for the calculation of the statistical values",
     ).tag(config=True)
-    median_cut_outliers = List(
-        [-0.3, 0.3],
-        help="""Interval of accepted values \\
-                (fraction with respect to camera median value)""",
-    ).tag(config=True)
-
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
-        """
-        Base component to handle the extraction of the statistics
-        from a chunk of charges and pulse times (images).
-
-        Parameters
-        ----------
-        kwargs
-        """
-        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
     def __call__(
         self,
@@ -53,8 +40,8 @@ class StatisticsExtractor(TelescopeComponent):
         col_name="image",
     ) -> list:
         """
-        Call the relevant functions to extract the statistics
-        for the particular extractor.
+        Prepare the extraction chunks and call the relevant function of the particular extractor
+        to extract the statistical values.
 
         Parameters
         ----------
@@ -75,7 +62,7 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and extraction chunks
         """
 
-        # Check if the provided data contains an unique type of calibration events
+        # Check if the provided data contains a unique type of calibration events
         # and if the events contain signal or noise.
         if np.all(dl1_table["event_type"] == 0) or np.all(dl1_table["event_type"] == 1):
             outlier_check = "SIGNAL"
@@ -87,7 +74,7 @@ class StatisticsExtractor(TelescopeComponent):
             outlier_check = "NOISE"
         else:
             raise ValueError(
-                "Invalid input data. Only dl1-like images of claibration events are accepted!"
+                "Invalid input data. Only dl1-like images of calibration events are accepted!"
             )
 
         # Check if the length of the dl1 table is greater or equal than the size of the chunk.
@@ -138,9 +125,14 @@ class StatisticsExtractor(TelescopeComponent):
 
 class PlainExtractor(StatisticsExtractor):
     """
-    Extract the statistics from a chunk of images
+    Extract the statistics from a chunk of peak time images
     using numpy and scipy functions
     """
+
+    time_median_cut_outliers = List(
+        [0, 60],
+        help="Interval (in waveform samples) of accepted median peak time values",
+    ).tag(config=True)
 
     def extract(
         self, images, times, masked_pixels_of_sample, outlier_check
@@ -148,19 +140,19 @@ class PlainExtractor(StatisticsExtractor):
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
-        # median over the sample per pixel
+        # median over the chunk per pixel
         pixel_median = np.ma.median(masked_images, axis=0)
 
-        # mean over the sample per pixel
+        # mean over the chunk per pixel
         pixel_mean = np.ma.mean(masked_images, axis=0)
 
-        # std over the sample per pixel
+        # std over the chunk per pixel
         pixel_std = np.ma.std(masked_images, axis=0)
 
         # outliers from median
         median_outliers = np.logical_or(
-            pixel_median < self.median_cut_outliers[0],
-            pixel_median > self.median_cut_outliers[1],
+            pixel_median < self.time_median_cut_outliers[0],
+            pixel_median > self.time_median_cut_outliers[1],
         )
 
         return StatisticsContainer(
@@ -176,16 +168,18 @@ class PlainExtractor(StatisticsExtractor):
 
 class SigmaClippingExtractor(StatisticsExtractor):
     """
-    Extract the statistics from a chunk of images
+    Extract the statistics from a chunk of charge or variance images
     using astropy's sigma clipping functions
     """
 
+    median_cut_outliers = List(
+        [-0.3, 0.3],
+        help="Interval of accepted median values with respect to the camera median value of the pixel medians",
+    ).tag(config=True)
     std_cut_outliers = List(
         [-3, 3],
-        help="""Interval of accepted standard deviation \\
-                around camera median value""",
+        help="Interval of accepted standard deviations with respect to the camera median value of the pixel standard deviations",
     ).tag(config=True)
-
     max_sigma = Int(
         default_value=4,
         help="Maximal value for the sigma clipping outlier removal",
@@ -201,7 +195,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
-        # mean, median, and std over the sample per pixel
+        # mean, median, and std over the chunk per pixel
         pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
             masked_images,
             sigma=self.max_sigma,
