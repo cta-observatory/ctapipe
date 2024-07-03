@@ -406,7 +406,7 @@ intersphinx_mapping = {
     "psutil": ("https://psutil.readthedocs.io/en/stable/", None),
     "pytables": ("https://www.pytables.org/", None),
     "pytest": ("https://docs.pytest.org/en/stable/", None),
-    "python": ("https://docs.python.org/3.12", None),
+    "python": ("https://docs.python.org/3/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "setuptools": ("https://setuptools.pypa.io/en/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
