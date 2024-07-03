@@ -140,10 +140,6 @@ def _info_tools():
     print("the following can be executed by typing ctapipe-<toolname>:")
     print("")
 
-    # TODO: how to get a one-line description or
-    # full help text from the docstring or ArgumentParser?
-    # This is the function names, we want the command-line names
-    # that are defined in setup.py !???
     from textwrap import TextWrapper
 
     from ctapipe.tools.utils import get_all_descriptions
