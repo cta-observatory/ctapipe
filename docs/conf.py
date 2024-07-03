@@ -186,6 +186,9 @@ sphinx_gallery_conf = {
     "default_thumb_file": "_static/ctapipe_logo.png",
     "pypandoc": True,
     "matplotlib_animations": True,
+    "reference_url": {
+        "ctapipe": None,
+    },
 }
 
 
@@ -391,7 +394,6 @@ texinfo_documents = [
 intersphinx_mapping = {
     "astropy": ("https://docs.astropy.org/en/stable/", None),
     "bokeh": ("https://docs.bokeh.org/en/latest/", None),
-    "ctapipe": ("https://ctapipe.readthedocs.io/en/stable/", None),
     "cython": ("https://docs.cython.org/en/stable/", None),
     "iminuit": ("https://scikit-hep.org/iminuit/", None),
     "ipywidgets": ("https://ipywidgets.readthedocs.io/en/stable/", None),
