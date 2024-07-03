@@ -637,9 +637,9 @@ class SimTelEventSource(EventSource):
                     )
                 except ValueError:
                     telescope = unknown_telescope(mirror_area, n_pixels)
-                self.log.warning(
-                    "Could not determine telescope from sim_telarray metadata,"
-                    " guessing using builtin lookup-table: %d: %s",
+                self.log.info(
+                    "Could not determine telescope type from sim_telarray metadata,"
+                    " guessing using builtin lookup-table: tel_id %d: %s",
                     tel_id,
                     telescope,
                 )
