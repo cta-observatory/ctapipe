@@ -387,17 +387,26 @@ texinfo_documents = [
     )
 ]
 
-# Example configuration for intersphinx: refer to the Python standard library.
+# Configuration for intersphinx
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.10", None),
-    "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "astropy": ("https://docs.astropy.org/en/latest/", None),
-    "pytables": ("https://www.pytables.org/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
-    "matplotlib": ("https://matplotlib.org/stable", None),
-    "cython": ("https://docs.cython.org/en/latest/", None),
+    "astropy": ("https://docs.astropy.org/en/stable/", None),
+    "bokeh": ("https://docs.bokeh.org/en/latest/", None),
+    "ctapipe": ("https://ctapipe.readthedocs.io/en/stable/", None),
+    "cython": ("https://docs.cython.org/en/stable/", None),
     "iminuit": ("https://scikit-hep.org/iminuit/", None),
+    "ipywidgets": ("https://ipywidgets.readthedocs.io/en/stable/", None),
+    "joblib": ("https://joblib.readthedocs.io/en/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "numba": ("https://numba.readthedocs.io/en/stable/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "psutil": ("https://psutil.readthedocs.io/en/stable/", None),
+    "pytables": ("https://www.pytables.org/", None),
+    "pytest": ("https://docs.pytest.org/en/stable/", None),
+    "python": ("https://docs.python.org/3.12", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "setuptools": ("https://setuptools.pypa.io/en/stable/", None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
 
