@@ -186,6 +186,7 @@ sphinx_gallery_conf = {
     "default_thumb_file": "_static/ctapipe_logo.png",
     "pypandoc": True,
     "matplotlib_animations": True,
+    # Marks ctapipe as the current module for resolving intersphinx references
     "reference_url": {
         "ctapipe": None,
     },
