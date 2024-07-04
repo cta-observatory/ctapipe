@@ -10,19 +10,19 @@ from astropy.time import Time
 from ctapipe.calib.camera.extractor import PlainExtractor, SigmaClippingExtractor
 
 
-@pytest.fixture(name="test_plainextractor")
-def fixture_test_plainextractor(example_subarray):
+@pytest.fixture()
+def plain_extractor(example_subarray):
     """test the PlainExtractor"""
     return PlainExtractor(subarray=example_subarray, chunk_size=2500)
 
 
-@pytest.fixture(name="test_sigmaclippingextractor")
-def fixture_test_sigmaclippingextractor(example_subarray):
+@pytest.fixture()
+def sigmaclipping_extractor(example_subarray):
     """test the SigmaClippingExtractor"""
     return SigmaClippingExtractor(subarray=example_subarray, chunk_size=2500)
 
 
-def test_extractors(test_plainextractor, test_sigmaclippingextractor):
+def test_extractors(plain_extractor, sigmaclipping_extractor):
     """test basic functionality of the StatisticsExtractors"""
 
     # Create dummy data for testing
@@ -48,11 +48,11 @@ def test_extractors(test_plainextractor, test_sigmaclippingextractor):
         names=("time_mono", "peak_time", "event_type"),
     )
     # Extract the statistical values
-    pedestal_stats_list = test_sigmaclippingextractor(dl1_table=pedestal_dl1_table)
-    flatfield_charge_stats_list = test_sigmaclippingextractor(
+    pedestal_stats_list = sigmaclipping_extractor(dl1_table=pedestal_dl1_table)
+    flatfield_charge_stats_list = sigmaclipping_extractor(
         dl1_table=flatfield_charge_dl1_table
     )
-    flatfield_time_stats_list = test_plainextractor(
+    flatfield_time_stats_list = plain_extractor(
         dl1_table=flatfield_time_dl1_table, col_name="peak_time"
     )
     # check if the calculated statistical values are reasonable
@@ -70,7 +70,7 @@ def test_extractors(test_plainextractor, test_sigmaclippingextractor):
     assert not np.any(np.abs(flatfield_time_stats_list[0].std - 5.0) > 1.5)
 
 
-def test_check_outliers(test_sigmaclippingextractor):
+def test_check_outliers(sigmaclipping_extractor):
     """test detection ability of outliers"""
 
     # Create dummy data for testing
@@ -88,9 +88,7 @@ def test_check_outliers(test_sigmaclippingextractor):
         names=("time_mono", "image", "event_type"),
     )
     # Extract the statistical values
-    sigmaclipping_stats_list = test_sigmaclippingextractor(
-        dl1_table=flatfield_dl1_table
-    )
+    sigmaclipping_stats_list = sigmaclipping_extractor(dl1_table=flatfield_dl1_table)
     # check if outliers where detected correctly
     assert sigmaclipping_stats_list[0].median_outliers[0][120]
     assert sigmaclipping_stats_list[0].median_outliers[1][67]
@@ -98,7 +96,7 @@ def test_check_outliers(test_sigmaclippingextractor):
     assert sigmaclipping_stats_list[1].median_outliers[1][67]
 
 
-def test_check_chunk_shift(test_sigmaclippingextractor):
+def test_check_chunk_shift(sigmaclipping_extractor):
     """test the chunk shift option and the boundary case for the last chunk"""
 
     # Create dummy data for testing
@@ -113,8 +111,8 @@ def test_check_chunk_shift(test_sigmaclippingextractor):
         names=("time_mono", "image", "event_type"),
     )
     # Extract the statistical values
-    stats_list = test_sigmaclippingextractor(dl1_table=flatfield_dl1_table)
-    stats_list_chunk_shift = test_sigmaclippingextractor(
+    stats_list = sigmaclipping_extractor(dl1_table=flatfield_dl1_table)
+    stats_list_chunk_shift = sigmaclipping_extractor(
         dl1_table=flatfield_dl1_table, chunk_shift=2000
     )
     # check if three chunks are used for the extraction as the last chunk overflows
@@ -123,7 +121,7 @@ def test_check_chunk_shift(test_sigmaclippingextractor):
     assert len(stats_list_chunk_shift) == 2
 
 
-def test_check_input(test_sigmaclippingextractor):
+def test_check_input(sigmaclipping_extractor):
     """test the input dl1 data"""
 
     # Create dummy data for testing
@@ -141,7 +139,7 @@ def test_check_input(test_sigmaclippingextractor):
     )
     # Try to extract the statistical values, which results in a ValueError
     with pytest.raises(ValueError):
-        _ = test_sigmaclippingextractor(dl1_table=flatfield_dl1_table)
+        _ = sigmaclipping_extractor(dl1_table=flatfield_dl1_table)
 
     # Construct event_type column for cosmic events
     cosmic_event_type = np.full((5000,), 32)
@@ -152,4 +150,4 @@ def test_check_input(test_sigmaclippingextractor):
     )
     # Try to extract the statistical values, which results in a ValueError
     with pytest.raises(ValueError):
-        _ = test_sigmaclippingextractor(dl1_table=cosmic_dl1_table)
+        _ = sigmaclipping_extractor(dl1_table=cosmic_dl1_table)
