@@ -23,6 +23,7 @@ from ctapipe.core.traits import (
     ComponentName,
     Dict,
     Float,
+    Int,
     Integer,
     Path,
     TelescopeParameter,
@@ -35,7 +36,7 @@ from ctapipe.io import EventSource, TableLoader
 
 __all__ = [
     "CalibrationCalculator",
-    "StatisticsCalculator",
+    "TwoPassStatisticsCalculator",
     "PointingCalculator",
     "CameraCalibrator",
 ]
@@ -126,7 +127,7 @@ class CalibrationCalculator(TelescopeComponent):
             self.stats_extractor[name] = stats_extractor
 
     @abstractmethod
-    def __call__(self, input_url, tel_id, faulty_pixels_threshold, chunk_shift):
+    def __call__(self, input_url, tel_id):
         """
         Call the relevant functions to calculate the calibration coefficients
         for a given set of events
@@ -138,25 +139,28 @@ class CalibrationCalculator(TelescopeComponent):
             are to be calculated
         tel_id : int
             The telescope id
-        faulty_pixels_threshold: float
-            percentage of faulty pixels over the camera to conduct second pass with refined shift of the chunk
-        chunk_shift : int
-            number of samples to shift the extraction chunk
         """
 
 
-class StatisticsCalculator(CalibrationCalculator):
+class TwoPassStatisticsCalculator(CalibrationCalculator):
     """
     Component to calculate statistics from calibration events.
     """
-
+    
+    faulty_pixels_threshold = Float(
+        0.1,
+        help="Percentage of faulty pixels over the camera to conduct second pass with refined shift of the chunk",
+    ).tag(config=True)
+    chunk_shift = Int(
+        100,
+        help="Number of samples to shift the extraction chunk for the calculation of the statistical values",
+    ).tag(config=True)
+    
     def __call__(
         self,
         input_url,
         tel_id,
         col_name="image",
-        faulty_pixels_threshold=0.1,
-        chunk_shift=100,
     ):
 
         # Read the whole dl1-like images of pedestal and flat-field data with the TableLoader
@@ -200,12 +204,11 @@ class StatisticsCalculator(CalibrationCalculator):
             # Detect faulty chunks by calculating the fraction of faulty pixels over the camera and checking if the threshold is exceeded.
             if (
                 np.count_nonzero(outlier_mask) / len(outlier_mask)
-                > faulty_pixels_threshold
+                > self.faulty_pixels_threshold
             ):
                 slice_start, slice_stop = self._get_slice_range(
                     chunk_nr=chunk_nr,
                     chunk_size=extractor.chunk_size,
-                    chunk_shift=chunk_shift,
                     faultless_previous_chunk=faultless_previous_chunk,
                     last_chunk=len(stats_list_firstpass) - 1,
                     last_element=len(dl1_table[tel_id]) - 1,
@@ -217,7 +220,7 @@ class StatisticsCalculator(CalibrationCalculator):
                     # Run the stats extractor on the sliced dl1 table with a chunk_shift
                     # to remove the period of trouble (carflashes etc.) as effectively as possible.
                     stats_list_secondpass = extractor(
-                        dl1_table=dl1_table_sliced, chunk_shift=chunk_shift
+                        dl1_table=dl1_table_sliced, chunk_shift=self.chunk_shift
                     )
                     # Extend the final stats list by the stats list of the second pass.
                     stats_list.extend(stats_list_secondpass)
@@ -239,7 +242,6 @@ class StatisticsCalculator(CalibrationCalculator):
         self,
         chunk_nr,
         chunk_size,
-        chunk_shift,
         faultless_previous_chunk,
         last_chunk,
         last_element,
@@ -247,13 +249,13 @@ class StatisticsCalculator(CalibrationCalculator):
         slice_start = 0
         if chunk_nr > 0:
             slice_start = (
-                chunk_size * (chunk_nr - 1) + chunk_shift
+                chunk_size * (chunk_nr - 1) + self.chunk_shift
                 if faultless_previous_chunk
-                else chunk_size * chunk_nr + chunk_shift
+                else chunk_size * chunk_nr + self.chunk_shift
             )
         slice_stop = last_element
         if chunk_nr < last_chunk:
-            slice_stop = chunk_size * (chunk_nr + 2) - chunk_shift - 1
+            slice_stop = chunk_size * (chunk_nr + 2) - self.chunk_shift - 1
 
         return slice_start, slice_stop
 
