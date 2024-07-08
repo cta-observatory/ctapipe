@@ -453,9 +453,8 @@ class Tool(Application):
                     raise
             except SystemExit as err:
                 exit_status = err.code
-                if (
-                    exit_status != 0
-                ):  # Do nothing if SystemExit was called with the exit code 0 (e.g. with -h option)
+                # Do nothing if SystemExit was called with the exit code 0 (e.g. with -h option)
+                if exit_status != 0:
                     if raises:
                         raise  # do not re-intercept in tests
                     else:
