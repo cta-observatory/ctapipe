@@ -53,7 +53,7 @@ jobs:
                archive_format: 'zip',
             });
             let fs = require('fs');
-            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/medplum-code-coverage.zip`, Buffer.from(download.data));
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/ctapipe-coverage-report.zip`, Buffer.from(download.data));
 
       - name: 'Unzip code coverage'
         run: unzip ctapipe-coverage-report.zip -d coverage
