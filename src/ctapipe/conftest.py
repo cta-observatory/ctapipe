@@ -20,11 +20,14 @@ from ctapipe.utils.datasets import resource_file
 from ctapipe.utils.filelock import FileLock
 
 PYTEST_HEADER_MODULES.clear()
+PYTEST_HEADER_MODULES["astropy"] = "astropy"
 PYTEST_HEADER_MODULES["eventio"] = "eventio"
+PYTEST_HEADER_MODULES["iminuit"] = "iminuit"
+PYTEST_HEADER_MODULES["numpy"] = "numpy"
 PYTEST_HEADER_MODULES["numpy"] = "numpy"
 PYTEST_HEADER_MODULES["scipy"] = "scipy"
-PYTEST_HEADER_MODULES["astropy"] = "astropy"
-PYTEST_HEADER_MODULES["numba"] = "numba"
+PYTEST_HEADER_MODULES["tables"] = "tables"
+PYTEST_HEADER_MODULES["traitlets"] = "traitlets"
 
 # names of camera geometries available on the data server
 camera_names = [
