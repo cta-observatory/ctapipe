@@ -19,15 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
-      - name: Info
-        run: |
-          echo "Running Sonarqube action for PR ${PR_NUMBER} of ${REPOSITORY}:${PR_BRANCH} to ${PR_TARGET}"
-        env:
-          REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
-          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-          PR_BRANCH: ${{ github.event.workflow_run.pull_requests[0].head.ref }}
-          PR_TARGET: ${{ github.event.workflow_run.pull_requests[0].base.ref }}
-
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.workflow_run.head_repository.full_name }}
@@ -61,6 +52,11 @@ jobs:
       - name: Check artifact
         run: ls -l coverage
 
+      - name: Set environment
+        run: |
+          cat coverage/sonar_env >> "$GITHUB_ENV"
+          cat coverage/sonar_env
+
       - name: Sonarqube Scan
         uses: SonarSource/sonarqube-scan-action@v2
         env:
@@ -70,6 +66,6 @@ jobs:
         with:
           args: >
             -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
-            -Dsonar.pullrequest.key=${{ github.event.workflow_run.pull_requests[0].number }}
-            -Dsonar.pullrequest.branch=${{ github.event.workflow_run.pull_requests[0].head.ref }}
-            -Dsonar.pullrequest.base=${{ github.event.workflow_run.pull_requests[0].base.ref }}
+            -Dsonar.pullrequest.key=${PR_NUMBER}
+            -Dsonar.pullrequest.branch=${SOURCE_BRANCH}
+            -Dsonar.pullrequest.base=${TARGET_BRANCH}
