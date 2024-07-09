@@ -15,7 +15,6 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
-  SONAR_HOST_URL: https://sonar-cta-dpps.zeuthen.desy.de
 
 jobs:
   lint:
