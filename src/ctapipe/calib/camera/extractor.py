@@ -70,22 +70,17 @@ class StatisticsExtractor(TelescopeComponent):
 
         # Function to split the dl1 table into appropriated chunks
         def _get_chunks(dl1_table, chunk_shift):
-            if chunk_shift is None:
-                return (
-                    (
-                        dl1_table[i : i + self.chunk_size]
-                        if i + self.chunk_size <= len(dl1_table)
-                        else dl1_table[
-                            len(dl1_table) - self.chunk_size : len(dl1_table)
-                        ]
-                    )
-                    for i in range(0, len(dl1_table), self.chunk_size)
-                )
-            else:
-                return (
-                    dl1_table[i : i + self.chunk_size]
-                    for i in range(0, len(dl1_table) - self.chunk_size, chunk_shift)
-                )
+            # Calculate the range step: Use chunk_shift if provided, otherwise use chunk_size
+            step = chunk_shift if chunk_shift is not None else self.chunk_size
+
+            # Generate chunks that do not overflow
+            for i in range(0, len(dl1_table), step):
+                if i + self.chunk_size <= len(dl1_table):
+                    yield dl1_table[i : i + self.chunk_size]
+
+            # If chunk_shift is None, ensure the last chunk is of size chunk_size, if needed
+            if chunk_shift is None and len(dl1_table) % self.chunk_size != 0:
+                yield dl1_table[-self.chunk_size :]
 
         # Get the chunks of the dl1 table
         dl1_chunks = _get_chunks(dl1_table, chunk_shift)
