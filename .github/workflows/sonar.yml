@@ -7,16 +7,27 @@
 # Adapted from https://github.com/medplum/medplum/
 
 name: Sonar
+
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
+
 jobs:
   sonar:
     name: Sonar
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
+      - name: Info
+        run: |
+          echo "Running Sonarqube action for PR ${PR_NUMBER} of ${REPOSITORY}:${PR_BRANCH} to ${PR_TARGET}"
+        env:
+          REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          PR_BRANCH: ${{ github.event.workflow_run.pull_requests[0].head.ref }}
+          PR_TARGET: ${{ github.event.workflow_run.pull_requests[0].base.ref }}
+
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.workflow_run.head_repository.full_name }}
