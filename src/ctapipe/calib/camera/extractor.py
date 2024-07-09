@@ -62,10 +62,10 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and extraction chunks
         """
 
-        # Check if the length of the dl1 table is greater or equal than the size of the chunk.
-        if len(dl1_table[col_name]) < self.chunk_size:
+        # Check if the statistics of the dl1 table is sufficient to extract at least one chunk.
+        if len(dl1_table) < self.chunk_size:
             raise ValueError(
-                f"The length of the DL1 table ({len(dl1_table[col_name])}) must be greater or equal than the size of the chunk ({self.chunk_size})."
+                f"The length of the provided DL1 table ({len(dl1_table)}) is insufficient to meet the required statistics for a single extraction chunk of size ({self.chunk_size})."
             )
 
         # Function to split the dl1 table into appropriated chunks
