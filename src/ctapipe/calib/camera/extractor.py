@@ -68,35 +68,36 @@ class StatisticsExtractor(TelescopeComponent):
                 f"The length of the DL1 table ({len(dl1_table[col_name])}) must be greater or equal than the size of the chunk ({self.chunk_size})."
             )
 
-        # Function to split table data into appropriated chunks
-        def _get_chunks(dl1_table_data, chunk_shift):
+        # Function to split the dl1 table into appropriated chunks
+        def _get_chunks(dl1_table, chunk_shift):
             if chunk_shift is None:
                 return (
                     (
-                        dl1_table_data[i : i + self.chunk_size]
-                        if i + self.chunk_size <= len(dl1_table_data)
-                        else dl1_table_data[
-                            len(dl1_table_data) - self.chunk_size : len(dl1_table_data)
+                        dl1_table[i : i + self.chunk_size]
+                        if i + self.chunk_size <= len(dl1_table)
+                        else dl1_table[
+                            len(dl1_table) - self.chunk_size : len(dl1_table)
                         ]
                     )
-                    for i in range(0, len(dl1_table_data), self.chunk_size)
+                    for i in range(0, len(dl1_table), self.chunk_size)
                 )
             else:
                 return (
-                    dl1_table_data[i : i + self.chunk_size]
-                    for i in range(
-                        0, len(dl1_table_data) - self.chunk_size, chunk_shift
-                    )
+                    dl1_table[i : i + self.chunk_size]
+                    for i in range(0, len(dl1_table) - self.chunk_size, chunk_shift)
                 )
 
-        # Get the chunks for the timestamps and selected column name
-        time_chunks = _get_chunks(dl1_table["time_mono"], chunk_shift)
-        image_chunks = _get_chunks(dl1_table[col_name].data, chunk_shift)
+        # Get the chunks of the dl1 table
+        dl1_chunks = _get_chunks(dl1_table, chunk_shift)
 
         # Calculate the statistics from a chunk of images
-        stats_list = []
-        for images, times in zip(image_chunks, time_chunks):
-            stats_list.append(self.extract(images, times, masked_pixels_of_sample))
+        stats_list = [
+            self.extract(
+                chunk[col_name].data, chunk["time_mono"], masked_pixels_of_sample
+            )
+            for chunk in dl1_chunks
+        ]
+
         return stats_list
 
     @abstractmethod
@@ -216,10 +217,10 @@ class SigmaClippingExtractor(StatisticsExtractor):
         if self.outlier_method == "median":
             median_outliers = np.logical_or(
                 median_deviation
-                < self.median_outliers_interval[0]  # pylint: disable=unsubscriptable-object
+                < self.median_outliers_interval[0]
                 * cam_median_of_pix_median[:, np.newaxis],
                 median_deviation
-                > self.median_outliers_interval[1]  # pylint: disable=unsubscriptable-object
+                > self.median_outliers_interval[1]
                 * cam_median_of_pix_median[:, np.newaxis],
             )
         elif self.outlier_method == "standard_deviation":
@@ -227,10 +228,10 @@ class SigmaClippingExtractor(StatisticsExtractor):
             cam_std_of_pix_median = np.ma.std(pix_median, axis=1)
             median_outliers = np.logical_or(
                 median_deviation
-                < self.median_outliers_interval[0]  # pylint: disable=unsubscriptable-object
+                < self.median_outliers_interval[0]
                 * cam_std_of_pix_median[:, np.newaxis],
                 median_deviation
-                > self.median_outliers_interval[1]  # pylint: disable=unsubscriptable-object
+                > self.median_outliers_interval[1]
                 * cam_std_of_pix_median[:, np.newaxis],
             )
 
@@ -238,11 +239,9 @@ class SigmaClippingExtractor(StatisticsExtractor):
         std_deviation = pix_std - cam_median_of_pix_std[:, np.newaxis]
         std_outliers = np.logical_or(
             std_deviation
-            < self.std_outliers_interval[0]  # pylint: disable=unsubscriptable-object
-            * cam_std_of_pix_std[:, np.newaxis],
+            < self.std_outliers_interval[0] * cam_std_of_pix_std[:, np.newaxis],
             std_deviation
-            > self.std_outliers_interval[1]  # pylint: disable=unsubscriptable-object
-            * cam_std_of_pix_std[:, np.newaxis],
+            > self.std_outliers_interval[1] * cam_std_of_pix_std[:, np.newaxis],
         )
 
         return StatisticsContainer(
