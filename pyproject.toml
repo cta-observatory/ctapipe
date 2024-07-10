@@ -153,6 +153,7 @@ norecursedirs = [
 [tool.coverage.run]
 include = ["src/*"]
 relative_files = true
+omit = ["src/ctapipe/_version.py"]
 
 [tool.towncrier]
     package = "ctapipe"
