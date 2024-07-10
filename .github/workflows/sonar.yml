@@ -66,6 +66,6 @@ jobs:
         with:
           args: >
             -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
-            -Dsonar.pullrequest.key=${PR_NUMBER}
-            -Dsonar.pullrequest.branch=${SOURCE_BRANCH}
-            -Dsonar.pullrequest.base=${TARGET_BRANCH}
+            -Dsonar.pullrequest.key=${{ env.PR_NUMBER }}
+            -Dsonar.pullrequest.branch=${{ env.SOURCE_BRANCH }}
+            -Dsonar.pullrequest.base=${{ env.TARGET_BRANCH }}
