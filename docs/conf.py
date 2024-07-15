@@ -26,7 +26,7 @@ import os
 import sys
 from pathlib import Path
 
-from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+from sphinx_gallery.sorting import ExplicitOrder
 
 import ctapipe
 
@@ -177,7 +177,7 @@ sphinx_gallery_conf = {
             "../examples/visualization",
         ]
     ),
-    "within_subsection_order": FileNameSortKey,
+    "within_subsection_order": "FileNameSortKey",
     "nested_sections": False,
     "filename_pattern": r".*\.py",
     "copyfile_regex": r".*\.png",
@@ -205,7 +205,6 @@ master_doc = "index"
 # have all links automatically associated with the right domain.
 default_role = "py:obj"
 
-suppress_warnings = ["ref.citation"]  # ignore citation not referenced warnings
 
 # General information about the project.
 
@@ -415,7 +414,9 @@ intersphinx_mapping = {
 
 
 # workaround for sphinx-gallery-conf not being cacheable and warning resulting in docs failure
-suppress_warnings = ["config.cache"]
+suppress_warnings = [
+    "intersphinx.external",
+]
 
 bibtex_bibfiles = ["references.bib"]
 bibtex_encoding = "utf8"
