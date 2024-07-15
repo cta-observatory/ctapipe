@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Implementation of the ImPACT reconstruction algorithm
 """
@@ -178,21 +177,21 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         Parameters
         ----------
         event : container
-            `ctapipe.containers.ArrayEventContainer`
+            `ctapipe.containers.SubarrayEventContainer`
         """
 
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
-            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
-            event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
+            event.dl2.geometry[self.__class__.__name__] = INVALID_GEOMETRY
+            event.dl2.energy[self.__class__.__name__] = INVALID_ENERGY
             self._store_impact_parameter(event)
             return
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
-            az=event.pointing.array_azimuth,
-            alt=event.pointing.array_altitude,
+            az=event.pointing.azimuth,
+            alt=event.pointing.altitude,
             frame=AltAz(),
         )
 
@@ -202,10 +201,11 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # Finally get the telescope images and and the selection masks
         mask_dict, image_dict, time_dict = {}, {}, {}
         for tel_id in hillas_dict.keys():
-            image = event.dl1.tel[tel_id].image
+            dl1 = event.tel[tel_id].dl1
+            image = dl1.image
             image_dict[tel_id] = image
-            time_dict[tel_id] = event.dl1.tel[tel_id].peak_time
-            mask = event.dl1.tel[tel_id].image_mask
+            time_dict[tel_id] = dl1.peak_time
+            mask = dl1.image_mask
 
             # Dilate the images around the original cleaning to help the fit
             for _ in range(3):
@@ -216,15 +216,14 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # Next, we look for geometry and energy seeds from previously applied reconstructors.
         # Both need to be present at elast once for ImPACT to run.
 
-        reco_geom_pred = event.dl2.stereo.geometry
-
+        reco_geom_pred = event.dl2.geometry
         valid_geometry_seed = False
         for geom_pred in reco_geom_pred.values():
             if geom_pred.is_valid:
                 valid_geometry_seed = True
                 break
 
-        reco_energy_pred = event.dl2.stereo.energy
+        reco_energy_pred = event.dl2.energy
 
         valid_energy_seed = False
         for E_pred in reco_energy_pred.values():
@@ -233,8 +232,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
                 break
 
         if valid_geometry_seed is False or valid_energy_seed is False:
-            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID_GEOMETRY
-            event.dl2.stereo.energy[self.__class__.__name__] = INVALID_ENERGY
+            event.dl2.geometry[self.__class__.__name__] = INVALID_GEOMETRY
+            event.dl2.energy[self.__class__.__name__] = INVALID_ENERGY
             self._store_impact_parameter(event)
             return
 
@@ -249,8 +248,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             mask_dict=mask_dict,
             time_dict=time_dict,
         )
-        event.dl2.stereo.geometry[self.__class__.__name__] = shower_result
-        event.dl2.stereo.energy[self.__class__.__name__] = energy_result
+        event.dl2.geometry[self.__class__.__name__] = shower_result
+        event.dl2.energy[self.__class__.__name__] = energy_result
 
         self._store_impact_parameter(event)
 

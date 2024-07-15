@@ -81,20 +81,20 @@ def test_collect_features(example_event, example_subarray):
     image_processor(event)
     shower_processor(event)
 
-    tel_id = next(iter(event.dl2.tel))
+    tel_id, tel_event = next(iter(event.tel.items()))
     tab = collect_features(event, tel_id=tel_id)
 
     k = "HillasReconstructor"
-    impact = event.dl2.tel[tel_id].impact[k]
+    impact = tel_event.dl2.impact[k]
     assert tab[f"{k}_tel_impact_distance"].quantity[0] == impact.distance
 
-    geometry = event.dl2.stereo.geometry[k]
+    geometry = event.dl2.geometry[k]
     assert tab[f"{k}_az"].quantity[0] == geometry.az
 
-    hillas = event.dl1.tel[tel_id].parameters.hillas
+    hillas = tel_event.dl1.parameters.hillas
     assert tab["hillas_intensity"].quantity[0] == hillas.intensity
 
-    leakage = event.dl1.tel[tel_id].parameters.leakage
+    leakage = tel_event.dl1.parameters.leakage
     assert tab["leakage_intensity_width_1"].quantity[0] == leakage.intensity_width_1
 
     tab = collect_features(

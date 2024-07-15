@@ -4,17 +4,13 @@ Coordinates usage in ctapipe
 
 """
 
-import copy
-
 import astropy.units as u
 import matplotlib.pyplot as plt
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 
 from ctapipe.coordinates import CameraFrame, NominalFrame, TelescopeFrame
-from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
-from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
 # %matplotlib inline
@@ -24,35 +20,27 @@ from ctapipe.visualization import CameraDisplay
 plt.rcParams["figure.figsize"] = (12, 8)
 plt.rcParams["font.size"] = 16
 
-
 ######################################################################
 # Open test dataset
 # -----------------
 #
 
-filename = get_dataset_path("gamma_prod5.simtel.zst")
-source = EventSource(filename)
-
-events = [copy.deepcopy(event) for event in source]
-event = events[4]
-
-layout = set(source.subarray.tel_ids)
-
+with EventSource("dataset://gamma_prod5.simtel.zst") as source:
+    events = [event for event in source]
+    event = events[4]
+    subarray = source.subarray
+    layout = set(subarray.tel_ids)
 
 ######################################################################
 # Choose event with LST
-# ~~~~~~~~~~~~~~~~~~~~~
-#
-
 
 ######################################################################
 # This ensures that the telescope is not “parked” (as it would be in an
 # event where it is not triggered) but is actually pointing to a source.
 #
 
-print(f"Telescope with data: {event.r1.tel.keys()}")
+print(f"Telescope with data: {event.tel.keys()}")
 tel_id = 3
-
 
 ######################################################################
 # AltAz
@@ -69,20 +57,18 @@ tel_id = 3
 # oriented East of North (i.e., N=0°, E=90°).
 #
 
-
 obstime = Time("2013-11-01T03:00")
 location = EarthLocation.of_site("Roque de los Muchachos")
 
 altaz = AltAz(location=location, obstime=obstime)
 
 array_pointing = SkyCoord(
-    alt=event.pointing.array_azimuth,
-    az=event.pointing.array_altitude,
+    alt=event.pointing.azimuth,
+    az=event.pointing.altitude,
     frame=altaz,
 )
 
 print(array_pointing)
-
 
 ######################################################################
 # CameraFrame
@@ -93,28 +79,28 @@ print(array_pointing)
 # The camera frame is a 2d cartesian frame, describing position of objects
 # in the focal plane of the telescope.
 #
-# The frame is defined as in H.E.S.S., starting at the horizon, the
-# telescope is pointed to magnetic north in azimuth and then up to zenith.
+# The frame is defined as in ``sim_telarray``, starting at the horizon, the
+# telescope is pointed North in azimuth and then up to zenith.
 #
-# Now, x points north and y points west, so in this orientation, the
-# camera coordinates line up with the CORSIKA ground coordinate system.
+# Now, x points North and y points West, so in this orientation, the
+# camera coordinates line up with the ground coordinate system.
 #
 # MAGIC and FACT use a different camera coordinate system: Standing at the
 # dish, looking at the camera, x points right, y points up. To transform
-# MAGIC/FACT to ctapipe, do x’ = -y, y’ = -x.
+# MAGIC/FACT to ctapipe, do x’ = -y, y’ = -x. This frame is implemented in
+# ctapipe as `~ctapipe.coordinates.EngineeringCameraFrame`.
 #
 # **Typical usage**: Position of pixels in the focal plane.
-#
 
-geometry = source.subarray.tel[tel_id].camera.geometry
+geometry = subarray.tel[tel_id].camera.geometry
 pix_x = geometry.pix_x
 pix_y = geometry.pix_y
-focal_length = source.subarray.tel[tel_id].optics.equivalent_focal_length
+focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
 ######################################################################
 telescope_pointing = SkyCoord(
-    alt=event.pointing.tel[tel_id].altitude,
-    az=event.pointing.tel[tel_id].azimuth,
+    alt=event.tel[tel_id].pointing.altitude,
+    az=event.tel[tel_id].pointing.azimuth,
     frame=altaz,
 )
 
@@ -135,14 +121,12 @@ plt.xlabel(f"x / {cam_coords.x.unit}")
 plt.ylabel(f"y / {cam_coords.y.unit}")
 plt.axis("square")
 
-
 ######################################################################
 # The implementation of the coordinate system with astropy makes it easier
 # to use time of the observation and location of the observing site, to
 # understand, for example which stars are visible during a certain night
 # and how they might be visible in the camera.
 #
-
 
 location = EarthLocation.of_site("Roque de los Muchachos")
 obstime = Time("2018-11-01T04:00")
@@ -161,7 +145,6 @@ camera_frame = CameraFrame(
 )
 
 
-subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
 cam = subarray.tel[1].camera.geometry
 fig, ax = plt.subplots()
 display = CameraDisplay(cam, ax=ax)
@@ -187,7 +170,6 @@ for i, name in enumerate(["crab nebula", "o tau", "zet tau"]):
     )
 
 plt.show()
-
 
 ######################################################################
 # TelescopeFrame
@@ -215,8 +197,6 @@ telescope_frame = TelescopeFrame(
 telescope_coords = cam_coords.transform_to(telescope_frame)
 
 ######################################################################
-wrap_angle = telescope_pointing.az + 180 * u.deg
-
 plt.axis("equal")
 plt.scatter(
     telescope_coords.fov_lon.deg, telescope_coords.fov_lat.deg, alpha=0.2, color="gray"
@@ -239,7 +219,6 @@ for i, name in enumerate(["crab nebula", "o tau", "zet tau"]):
 plt.xlabel("fov_lon / {}".format(telescope_coords.altaz.az.unit))
 plt.ylabel("fov_lat / {}".format(telescope_coords.altaz.alt.unit))
 
-
 ######################################################################
 # NominalFrame
 # ------------
@@ -253,7 +232,6 @@ plt.ylabel("fov_lat / {}".format(telescope_coords.altaz.alt.unit))
 # in this frame - 3D reconstruction (``HillasReconstructor``) doesn’t need
 # this frame
 #
-
 
 ######################################################################
 # Let’s play a bit with 3 LSTs with divergent pointing
@@ -344,16 +322,14 @@ plt.show()
 # **Typical usage**: positions of telescopes on the ground (x, y, z)
 #
 
-source.subarray.peek()
-
+subarray.peek()
 
 ######################################################################
 # In case a layout is selected, the following line will produce a
 # different output from the picture above.
 #
 
-source.subarray.select_subarray(layout, name="Prod3b layout").peek()
-
+subarray.select_subarray(layout, name="Prod5 layout").peek()
 
 ######################################################################
 # .. figure:: ground_frame.png
@@ -361,18 +337,15 @@ source.subarray.select_subarray(layout, name="Prod3b layout").peek()
 #
 #    Ground Frame
 
-
 ######################################################################
 # In this image all the telescope from the ``gamma_test.simtel.gz`` file
 # are plotted as spheres in the GroundFrame.
 #
 
-
 ######################################################################
 # TiltedGroundFrame
 # -----------------
 #
-
 
 ######################################################################
 # Tilted ground coordinate frame.
@@ -386,13 +359,11 @@ source.subarray.select_subarray(layout, name="Prod3b layout").peek()
 # This frame is used for the reconstruction of the shower core position.
 #
 
-
 ######################################################################
 # .. figure:: tilted_ground_frame.png
 #    :alt: Tilted Ground Frame
 #
 #    Tilted Ground Frame
-
 
 ######################################################################
 # This image picture both the telescopes in the GroundFrame (red) and in

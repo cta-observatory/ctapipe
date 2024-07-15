@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
+from ctapipe.containers import SubarrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Provenance, QualityQuery, TelescopeComponent
 from ctapipe.core.traits import Integer, List
 
@@ -90,7 +90,7 @@ class Reconstructor(TelescopeComponent):
         self.atmosphere_profile = atmosphere_profile
 
     @abstractmethod
-    def __call__(self, event: ArrayEventContainer):
+    def __call__(self, event: SubarrayEventContainer):
         """
         Perform stereo reconstruction on event.
 
@@ -99,7 +99,7 @@ class Reconstructor(TelescopeComponent):
 
         Parameters
         ----------
-        event : `ctapipe.containers.ArrayEventContainer`
+        event : `ctapipe.containers.SubarrayEventContainer`
             The event, needs to have dl1 parameters.
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
@@ -161,9 +161,9 @@ class HillasGeometryReconstructor(Reconstructor):
 
     def _create_hillas_dict(self, event):
         hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.quality_query(parameters=dl1.parameters))
+            tel_id: tel_event.dl1.parameters.hillas
+            for tel_id, tel_event in event.tel.items()
+            if all(self.quality_query(parameters=tel_event.dl1.parameters))
         }
 
         if len(hillas_dict) < 2:
@@ -186,16 +186,17 @@ class HillasGeometryReconstructor(Reconstructor):
     def _get_telescope_pointings(event):
         return {
             tel_id: SkyCoord(
-                alt=event.pointing.tel[tel_id].altitude,
-                az=event.pointing.tel[tel_id].azimuth,
+                alt=tel_event.pointing.altitude,
+                az=tel_event.pointing.azimuth,
                 frame=AltAz(),
             )
-            for tel_id in event.dl1.tel.keys()
+            for tel_id, tel_event in event.tel.items()
         }
 
     def _store_impact_parameter(self, event):
         """Compute and store the impact parameter for each reconstruction."""
-        geometry = event.dl2.stereo.geometry[self.__class__.__name__]
+        key = self.__class__.__name__
+        geometry = event.dl2.geometry[key]
 
         if geometry.is_valid:
             impact_distances = shower_impact_distance(
@@ -207,12 +208,10 @@ class HillasGeometryReconstructor(Reconstructor):
             impact_distances = u.Quantity(np.full(n_tels, np.nan), u.m)
 
         default_prefix = TelescopeImpactParameterContainer.default_prefix
-        prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
-        for tel_id in event.trigger.tels_with_trigger:
+        prefix = f"{key}_tel_{default_prefix}"
+        for tel_id, tel_event in event.tel.items():
             tel_index = self.subarray.tel_indices[tel_id]
-            event.dl2.tel[tel_id].impact[
-                self.__class__.__name__
-            ] = TelescopeImpactParameterContainer(
+            tel_event.dl2.impact[key] = TelescopeImpactParameterContainer(
                 distance=impact_distances[tel_index],
                 prefix=prefix,
             )

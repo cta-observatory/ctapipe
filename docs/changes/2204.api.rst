@@ -1,0 +1,23 @@
+CEP-002 has been implemented. This is a major API breaking change,
+as the whole event container structure of ctapipe has been updated.
+
+The main change is the inversion of the hierarchy of telescopes
+and data levels.
+
+Before, the data level came first and then below that
+were mappings for each telescope:
+
+.. code:: python
+
+   event.dl1.tel[tel_id].parameters.hillas
+
+Whereas now, the subarray event has a collection of telescope events,
+which then contain the different data levels:
+
+.. code:: python
+
+   event.tel[tel_id].dl1.parameters.hillas
+
+Fore more details, see :ref:`cep-002`.
+
+With this, also the container structure itself has been largely refactored.

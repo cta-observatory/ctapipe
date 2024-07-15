@@ -12,9 +12,9 @@ from ctapipe import containers
 from ctapipe.containers import (
     HillasParametersContainer,
     LeakageContainer,
-    R0CameraContainer,
+    R0TelescopeContainer,
     SimulatedShowerContainer,
-    TelEventIndexContainer,
+    TelescopeEventIndexContainer,
 )
 from ctapipe.core.container import Container, Field
 from ctapipe.io import read_table
@@ -27,7 +27,7 @@ def test_h5_file(tmp_path_factory):
     """Test hdf5 file with some tables for the reader tests"""
     path = tmp_path_factory.mktemp("hdf5") / "test.h5"
 
-    r0 = R0CameraContainer()
+    r0 = R0TelescopeContainer()
     shower = SimulatedShowerContainer()
     r0.waveform = np.random.uniform(size=(50, 10))
     r0.meta["test_attribute"] = 3.14159
@@ -93,12 +93,12 @@ def test_append_container(tmp_path):
     with HDF5TableWriter(path, mode="w") as writer:
         for event_id in range(10):
             hillas = HillasParametersContainer()
-            index = TelEventIndexContainer(obs_id=1, event_id=event_id, tel_id=1)
+            index = TelescopeEventIndexContainer(obs_id=1, event_id=event_id, tel_id=1)
             writer.write("data", [index, hillas])
 
     with HDF5TableWriter(path, mode="a") as writer:
         for event_id in range(10):
-            index = TelEventIndexContainer(obs_id=2, event_id=event_id, tel_id=1)
+            index = TelescopeEventIndexContainer(obs_id=2, event_id=event_id, tel_id=1)
             hillas = HillasParametersContainer()
             writer.write("data", [index, hillas])
 
@@ -381,8 +381,8 @@ def test_read_container(test_h5_file):
         # test supplying a single container as well as an
         # iterable with one entry only
         simtab = reader.read("/R0/sim_shower", (SimulatedShowerContainer,))
-        r0tab1 = reader.read("/R0/tel_001", R0CameraContainer)
-        r0tab2 = reader.read("/R0/tel_002", R0CameraContainer)
+        r0tab1 = reader.read("/R0/tel_001", R0TelescopeContainer)
+        r0tab2 = reader.read("/R0/tel_002", R0TelescopeContainer)
 
         # read all 3 tables in sync
         for _ in range(3):

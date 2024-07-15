@@ -88,40 +88,40 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
 
     hillas_reconstructor(event)
     # test the container is actually there and not only created by Map
-    assert "HillasReconstructor" in event.dl2.stereo.geometry
-    result = event.dl2.stereo.geometry["HillasReconstructor"]
+    assert "HillasReconstructor" in event.dl2.geometry
+    result = event.dl2.geometry["HillasReconstructor"]
     assert result.is_valid
 
     # copy event container to modify it
     invalid_event = deepcopy(original_event)
 
     # overwrite all image parameters but the last one with dummy ones
-    for tel_id in list(invalid_event.dl1.tel.keys())[:-1]:
-        invalid_event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+    for tel_id in list(invalid_event.tel)[:-1]:
+        invalid_event.tel[tel_id].dl1.parameters.hillas = HillasParametersContainer()
 
     hillas_reconstructor(invalid_event)
     # test the container is actually there and not only created by Map
-    assert "HillasReconstructor" in invalid_event.dl2.stereo.geometry
-    result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
+    assert "HillasReconstructor" in invalid_event.dl2.geometry
+    result = invalid_event.dl2.geometry["HillasReconstructor"]
     assert not result.is_valid
 
-    tel_id = list(invalid_event.dl1.tel.keys())[-1]
+    tel_id = next(iter(invalid_event.tel))
     # Now use the original event, but overwrite the last width to 0
     invalid_event = deepcopy(original_event)
-    invalid_event.dl1.tel[tel_id].parameters.hillas.width = 0 * u.m
+    invalid_event.tel[tel_id].dl1.parameters.hillas.width = 0 * u.m
     hillas_reconstructor(invalid_event)
     # test the container is actually there and not only created by Map
-    assert "HillasReconstructor" in invalid_event.dl2.stereo.geometry
-    result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
+    assert "HillasReconstructor" in invalid_event.dl2.geometry
+    result = invalid_event.dl2.geometry["HillasReconstructor"]
     assert not result.is_valid
 
     # Now use the original event, but overwrite the last width to NaN
     invalid_event = deepcopy(original_event)
-    invalid_event.dl1.tel[tel_id].parameters.hillas.width = np.nan * u.m
+    invalid_event.tel[tel_id].dl1.parameters.hillas.width = np.nan * u.m
     hillas_reconstructor(invalid_event)
     # test the container is actually there and not only created by Map
-    assert "HillasReconstructor" in invalid_event.dl2.stereo.geometry
-    result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
+    assert "HillasReconstructor" in invalid_event.dl2.geometry
+    result = invalid_event.dl2.geometry["HillasReconstructor"]
     assert not result.is_valid
 
 
@@ -146,8 +146,8 @@ def test_reconstruction_against_simulation_telescope_frame(
     image_processor(event)
     reconstructor(event)
     # test the container is actually there and not only created by Map
-    assert "HillasReconstructor" in event.dl2.stereo.geometry
-    result = event.dl2.stereo.geometry["HillasReconstructor"]
+    assert "HillasReconstructor" in event.dl2.geometry
+    result = event.dl2.geometry["HillasReconstructor"]
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
@@ -183,7 +183,7 @@ def test_reconstruction_against_simulation_camera_frame(
     calib(event)
     image_processor(event)
     reconstructor(event)
-    result = event.dl2.stereo.geometry[reconstructor.__class__.__name__]
+    result = event.dl2.geometry[reconstructor.__class__.__name__]
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
@@ -249,11 +249,9 @@ def test_CameraFrame_against_TelescopeFrame(filename):
         image_processor_camera_frame(event_camera_frame)
 
         reconstructor(event_camera_frame)
-        result_camera_frame = event_camera_frame.dl2.stereo.geometry[
-            "HillasReconstructor"
-        ]
+        result_camera_frame = event_camera_frame.dl2.geometry["HillasReconstructor"]
         reconstructor(event_telescope_frame)
-        result_telescope_frame = event_telescope_frame.dl2.stereo.geometry[
+        result_telescope_frame = event_telescope_frame.dl2.geometry[
             "HillasReconstructor"
         ]
 

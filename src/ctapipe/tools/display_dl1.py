@@ -72,8 +72,8 @@ class ImagePlotter(Component):
             self.pdf = self._exit_stack.enter_context(PdfPages(self.output_path))
 
     def plot(self, event, tel_id):
-        image = event.dl1.tel[tel_id].image
-        peak_time = event.dl1.tel[tel_id].peak_time
+        image = event.tel[tel_id].dl1.image
+        peak_time = event.tel[tel_id].dl1.peak_time
 
         if self._current_tel != tel_id:
             self._current_tel = tel_id
@@ -192,16 +192,15 @@ class DisplayDL1Calib(Tool):
         for event in self.eventsource:
             self.calibrator(event)
 
-            tel_list = event.dl1.tel.keys()
-
-            tel_list = event.dl1.tel.keys()
+            tels = event.tel.keys()
             if self.telescope:
-                if self.telescope not in tel_list:
+                if self.telescope not in tels:
                     continue
-                tel_list = [self.telescope]
 
-            for tel_id in tel_list:
-                if all(self.quality_query(dl1=event.dl1.tel[tel_id])):
+                tels = [self.telescope]
+
+            for tel_id in tels:
+                if all(self.quality_query(dl1=event.tel[tel_id].dl1)):
                     self.plotter.plot(event, tel_id)
 
     def finish(self):

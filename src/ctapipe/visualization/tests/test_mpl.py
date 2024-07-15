@@ -14,6 +14,7 @@ from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
+    TelescopeEventContainer,
 )
 from ctapipe.coordinates.telescope_frame import TelescopeFrame
 from ctapipe.instrument import PixelShape, SubarrayDescription
@@ -157,11 +158,10 @@ def test_camera_display_multiple(prod5_lst_cam, tmp_path):
 def test_array_display(prod5_mst_nectarcam, reference_location):
     """check that we can do basic array display functionality"""
     from ctapipe.containers import (
-        ArrayEventContainer,
         CoreParametersContainer,
-        DL1CameraContainer,
-        DL1Container,
+        DL1TelescopeContainer,
         ImageParametersContainer,
+        SubarrayEventContainer,
     )
     from ctapipe.image import timing_parameters
     from ctapipe.visualization.mpl_array import ArrayDisplay
@@ -182,15 +182,15 @@ def test_array_display(prod5_mst_nectarcam, reference_location):
 
     # Create a fake event containing telescope-wise information about
     # the image directions projected on the ground
-    event = ArrayEventContainer()
-    event.dl1 = DL1Container()
-    event.dl1.tel = {1: DL1CameraContainer(), 2: DL1CameraContainer()}
-    event.dl1.tel[1].parameters = ImageParametersContainer()
-    event.dl1.tel[2].parameters = ImageParametersContainer()
-    event.dl1.tel[2].parameters.core = CoreParametersContainer()
-    event.dl1.tel[1].parameters.core = CoreParametersContainer()
-    event.dl1.tel[1].parameters.core.psi = u.Quantity(2.0, unit=u.deg)
-    event.dl1.tel[2].parameters.core.psi = u.Quantity(1.0, unit=u.deg)
+    event = SubarrayEventContainer()
+    for tel_id, psi in zip((1, 2), (2 * u.deg, 1 * u.deg)):
+        event.tel[tel_id] = TelescopeEventContainer(
+            dl1=DL1TelescopeContainer(
+                parameters=ImageParametersContainer(
+                    core=CoreParametersContainer(psi=psi),
+                )
+            )
+        )
 
     ad = ArrayDisplay(subarray=sub)
     ad.set_vector_rho_phi(1 * u.m, 90 * u.deg)
@@ -230,7 +230,8 @@ def test_array_display(prod5_mst_nectarcam, reference_location):
     )
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
     core_dict = {
-        tel_id: dl1.parameters.core.psi for tel_id, dl1 in event.dl1.tel.items()
+        tel_id: tel_event.dl1.parameters.core.psi
+        for tel_id, tel_event in event.tel.items()
     }
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
@@ -346,8 +347,8 @@ def test_overlay_coord(tmp_path, subarray_and_event_gamma_off_axis_500_gev):
     calib(event)
 
     pointing = AltAz(
-        alt=event.pointing.array_altitude,
-        az=event.pointing.array_azimuth,
+        alt=event.pointing.altitude,
+        az=event.pointing.azimuth,
     )
 
     # add pointing here, so the transform to CameraFrame / TelescopeFrame works
@@ -359,7 +360,7 @@ def test_overlay_coord(tmp_path, subarray_and_event_gamma_off_axis_500_gev):
     )
 
     geometry = subarray.tel[1].camera.geometry
-    image = event.dl1.tel[1].image
+    image = event.tel[1].dl1.image
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), layout="constrained")
 

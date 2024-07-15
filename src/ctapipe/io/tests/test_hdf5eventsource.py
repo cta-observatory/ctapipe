@@ -79,14 +79,14 @@ def test_simulation_info(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
             assert np.isfinite(event.simulation.shower.energy)
-            for tel in event.simulation.tel:
-                assert tel in event.simulation.tel
-                assert event.simulation.tel[tel].true_image is not None
+            for tel_event in event.tel.values():
+                assert tel_event.simulation is not None
+                assert tel_event.simulation.true_image is not None
                 reco_lons.append(
-                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
+                    tel_event.simulation.true_parameters.hillas.fov_lon.value
                 )
                 reco_concentrations.append(
-                    event.simulation.tel[tel].true_parameters.concentration.core
+                    tel_event.simulation.true_parameters.concentration.core
                 )
     assert not np.isnan(reco_lons).all()
     assert sum(np.isnan(reco_lons)) == sum(np.isnan(reco_concentrations))
@@ -96,8 +96,8 @@ def test_dl1_a_only_data(dl1_image_file):
     with HDF5EventSource(input_url=dl1_image_file) as source:
         assert source.datalevels == (DataLevel.DL1_IMAGES,)
         for event in source:
-            for tel in event.dl1.tel:
-                assert event.dl1.tel[tel].image.any()
+            for tel_event in event.tel.values():
+                assert tel_event.dl1.image.any()
 
 
 def test_dl1_b_only_data(dl1_parameters_file):
@@ -106,12 +106,12 @@ def test_dl1_b_only_data(dl1_parameters_file):
     with HDF5EventSource(input_url=dl1_parameters_file) as source:
         assert source.datalevels == (DataLevel.DL1_PARAMETERS,)
         for event in source:
-            for tel in event.dl1.tel:
+            for tel_event in event.tel.values():
                 reco_lons.append(
-                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
+                    tel_event.simulation.true_parameters.hillas.fov_lon.value
                 )
                 reco_concentrations.append(
-                    event.simulation.tel[tel].true_parameters.concentration.core
+                    tel_event.simulation.true_parameters.concentration.core
                 )
     assert not np.isnan(reco_lons).all()
     assert sum(np.isnan(reco_lons)) == sum(np.isnan(reco_concentrations))
@@ -122,14 +122,15 @@ def test_dl1_data(dl1_file):
     reco_concentrations = []
     with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
-            for tel in event.dl1.tel:
-                assert event.dl1.tel[tel].image.any()
+            for tel_event in event.tel.values():
+                assert tel_event.dl1.image.any()
                 reco_lons.append(
-                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
+                    tel_event.simulation.true_parameters.hillas.fov_lon.value
                 )
                 reco_concentrations.append(
-                    event.simulation.tel[tel].true_parameters.concentration.core
+                    tel_event.simulation.true_parameters.concentration.core
                 )
+
     assert not np.isnan(reco_lons).all()
     assert sum(np.isnan(reco_lons)) == sum(np.isnan(reco_concentrations))
 
@@ -137,12 +138,11 @@ def test_dl1_data(dl1_file):
 def test_pointing(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
-            assert np.isclose(event.pointing.array_azimuth.to_value(u.deg), 0)
-            assert np.isclose(event.pointing.array_altitude.to_value(u.deg), 70)
-            assert event.pointing.tel
-            for tel in event.pointing.tel:
-                assert np.isclose(event.pointing.tel[tel].azimuth.to_value(u.deg), 0)
-                assert np.isclose(event.pointing.tel[tel].altitude.to_value(u.deg), 70)
+            assert np.isclose(event.pointing.azimuth.to_value(u.deg), 0)
+            assert np.isclose(event.pointing.altitude.to_value(u.deg), 70)
+            for tel_event in event.tel.values():
+                assert np.isclose(tel_event.pointing.azimuth.to_value(u.deg), 0)
+                assert np.isclose(tel_event.pointing.altitude.to_value(u.deg), 70)
 
 
 def test_pointing_divergent(dl1_divergent_file):
@@ -157,34 +157,34 @@ def test_pointing_divergent(dl1_divergent_file):
         for event, simtel_event in zip_longest(source, simtel_source):
             assert event.index.event_id == simtel_event.index.event_id
             assert u.isclose(
-                event.pointing.array_azimuth,
-                simtel_event.pointing.array_azimuth,
+                event.pointing.azimuth,
+                simtel_event.pointing.azimuth,
             )
             assert u.isclose(
-                event.pointing.array_altitude,
-                simtel_event.pointing.array_altitude,
+                event.pointing.altitude,
+                simtel_event.pointing.altitude,
             )
-            assert event.pointing.tel.keys() == simtel_event.pointing.tel.keys()
-            for tel in event.pointing.tel:
+            assert event.tel.keys() == simtel_event.tel.keys()
+            for tel_id in event.tel:
                 assert u.isclose(
-                    event.pointing.tel[tel].azimuth,
-                    simtel_event.pointing.tel[tel].azimuth,
+                    event.tel[tel_id].pointing.azimuth,
+                    simtel_event.tel[tel_id].pointing.azimuth,
                 )
                 assert u.isclose(
-                    event.pointing.tel[tel].altitude,
-                    simtel_event.pointing.tel[tel].altitude,
+                    event.tel[tel_id].pointing.altitude,
+                    simtel_event.tel[tel_id].pointing.altitude,
                 )
 
 
 def test_read_r1(r1_hdf5_file):
-    print(r1_hdf5_file)
     with HDF5EventSource(input_url=r1_hdf5_file) as source:
         e = None
 
         assert source.datalevels == (DataLevel.R1,)
 
         for e in source:
-            pass
+            for tel_event in e.tel.values():
+                assert tel_event.r1.waveform is not None
 
         assert e is not None
         assert e.count == 3
@@ -198,8 +198,8 @@ def test_trigger_allowed_tels(dl1_proton_file):
         i = 0
         for i, e in enumerate(s):
             assert e.count == i
-            assert set(e.trigger.tels_with_trigger) == e.trigger.tel.keys()
-            assert len(e.trigger.tels_with_trigger) > 1
+            assert set(e.dl0.trigger.tels_with_trigger) == e.tel.keys()
+            assert len(e.dl0.trigger.tels_with_trigger) > 1
 
         assert i == 1
 
@@ -215,18 +215,18 @@ def test_read_dl2(dl2_shower_geometry_file):
         )
 
         e = next(iter(s))
-        assert algorithm in e.dl2.stereo.geometry
-        assert e.dl2.stereo.geometry[algorithm].alt is not None
-        assert e.dl2.stereo.geometry[algorithm].az is not None
-        assert e.dl2.stereo.geometry[algorithm].telescopes is not None
-        assert e.dl2.stereo.geometry[algorithm].prefix == algorithm
+        assert algorithm in e.dl2.geometry
+        assert e.dl2.geometry[algorithm].alt is not None
+        assert e.dl2.geometry[algorithm].az is not None
+        assert e.dl2.geometry[algorithm].telescopes is not None
+        assert e.dl2.geometry[algorithm].prefix == algorithm
 
-        tel_mask = e.dl2.stereo.geometry[algorithm].telescopes
+        tel_mask = e.dl2.geometry[algorithm].telescopes
         tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
         for tel_id in tel_ids:
-            assert tel_id in e.dl2.tel
-            assert algorithm in e.dl2.tel[tel_id].impact
-            impact = e.dl2.tel[tel_id].impact[algorithm]
+            assert tel_id in e.tel
+            assert algorithm in e.tel[tel_id].dl2.impact
+            impact = e.tel[tel_id].dl2.impact[algorithm]
             assert impact.prefix == algorithm + "_tel_impact"
             assert impact.distance is not None
 
@@ -235,7 +235,8 @@ def test_dl1_camera_frame(dl1_camera_frame_file):
     with HDF5EventSource(dl1_camera_frame_file) as s:
         tel_id = None
         for e in s:
-            for tel_id, dl1 in e.dl1.tel.items():
+            for tel_id, tel_event in e.tel.items():
+                dl1 = tel_event.dl1
                 assert isinstance(
                     dl1.parameters.hillas, CameraHillasParametersContainer
                 )
@@ -244,7 +245,7 @@ def test_dl1_camera_frame(dl1_camera_frame_file):
                 )
                 assert dl1.parameters.hillas.intensity is not None
 
-            for tel_id, sim in e.simulation.tel.items():
+                sim = tel_event.simulation
                 assert isinstance(
                     sim.true_parameters.hillas, CameraHillasParametersContainer
                 )
@@ -258,7 +259,6 @@ def test_interpolate_pointing(dl1_mon_pointing_file):
 
     with HDF5EventSource(dl1_mon_pointing_file) as source:
         for e in source:
-            assert set(e.pointing.tel.keys()) == set(e.trigger.tels_with_trigger)
-            for pointing in e.pointing.tel.values():
-                assert not np.isnan(pointing.azimuth)
-                assert not np.isnan(pointing.altitude)
+            for tel_event in e.tel.values():
+                assert not np.isnan(tel_event.pointing.azimuth)
+                assert not np.isnan(tel_event.pointing.altitude)

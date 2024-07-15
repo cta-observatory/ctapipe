@@ -902,18 +902,17 @@ def test_flashcam_extractor(toymodel_mst_fc, prod5_gamma_simtel_path):
         subarray = source.subarray
         extractor = FlashCamExtractor(subarray)
 
-        def is_flashcam(tel_id):
+        def is_flashcam(kv):
+            tel_id = kv[0]
             return subarray.tel[tel_id].camera.name == "FlashCam"
 
         for event in source:
-            for tel_id in filter(is_flashcam, event.trigger.tels_with_trigger):
-                true_charge = event.simulation.tel[tel_id].true_image
+            for tel_id, tel_event in filter(is_flashcam, event.tel.items()):
+                true_charge = tel_event.simulation.true_image
 
-                waveforms = event.r1.tel[tel_id].waveform
-                selected_gain_channel = np.zeros(waveforms.shape[-2], dtype=np.int64)
-                broken_pixels = event.mon.tel[
-                    tel_id
-                ].pixel_status.hardware_failing_pixels
+                waveforms = tel_event.r1.waveform
+                selected_gain_channel = np.zeros(waveforms.shape[0], dtype=np.int64)
+                broken_pixels = tel_event.mon.pixel_status.hardware_failing_pixels
 
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid

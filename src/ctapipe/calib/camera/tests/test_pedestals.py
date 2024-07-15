@@ -11,7 +11,7 @@ from ctapipe.calib.camera.pedestals import (
     PedestalIntegrator,
     calc_pedestals_from_traces,
 )
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import SubarrayEventContainer
 from ctapipe.instrument import SubarrayDescription
 
 
@@ -40,23 +40,23 @@ def test_pedestal_integrator(prod5_sst, reference_location):
         tel_id=tel_id,
     )
     # create one event
-    data = ArrayEventContainer()
-    data.meta["origin"] = "test"
-    data.trigger.time = Time.now()
+    event = SubarrayEventContainer()
+    event.meta["origin"] = "test"
+    event.dl0.trigger.time = Time.now()
 
     # fill the values necessary for the pedestal calculation
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
+    event.tel[tel_id].mon.pixel_status.hardware_failing_pixels = np.zeros(
         (n_gain, n_pixels), dtype=bool
     )
-    data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
+    event.tel[tel_id].r1.waveform = np.full((2, n_pixels, 40), ped_level)
 
     while ped_calculator.n_events_seen < n_events:
-        if ped_calculator.calculate_pedestals(data):
-            assert data.mon.tel[tel_id].pedestal
-            assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (
+        if ped_calculator.calculate_pedestals(event):
+            assert event.tel[tel_id].mon.pedestal
+            assert np.mean(event.tel[tel_id].mon.pedestal.charge_median) == (
                 ped_calculator.extractor.window_width.tel[0] * ped_level
             )
-            assert np.mean(data.mon.tel[tel_id].pedestal.charge_std) == 0
+            assert np.mean(event.tel[tel_id].mon.pedestal.charge_std) == 0
 
 
 def test_calc_pedestals_from_traces():
