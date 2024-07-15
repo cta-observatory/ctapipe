@@ -456,9 +456,11 @@ class Tool(Application):
                 # Do nothing if SystemExit was called with the exit code 0 (e.g. with -h option)
                 if exit_status != 0:
                     if raises:
-                        raise  # do not re-intercept in tests
+                        raise RuntimeError(
+                            f"Tool unexpectedly exited with status code {exit_status}"
+                        ) from err
                     else:
-                        self.log.exception(
+                        self.log.critical(
                             "Caught SystemExit with exit code %s", exit_status
                         )
                         Provenance().finish_activity(
