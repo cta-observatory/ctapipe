@@ -1,0 +1,1 @@
+Fix error message for non-existent config files.
