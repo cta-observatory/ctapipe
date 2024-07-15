@@ -33,7 +33,7 @@ test:
 	pytest
 
 doc:
-	cd docs && $(MAKE) html SPHINXOPTS="-W --keep-going -n --color"
+	$(MAKE) -C docs html SPHINXOPTS="-W --keep-going -n --color"
 	@echo "------------------------------------------------"
 	@echo "Documentation is in: docs/_build/html/index.html"
 
