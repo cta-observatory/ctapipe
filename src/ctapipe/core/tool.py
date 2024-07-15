@@ -150,15 +150,15 @@ class Tool(Application):
         trait=Path(
             exists=True,
             directory_ok=False,
-            help=(
-                "List of configuration files with parameters to load "
-                "in addition to command-line parameters. "
-                "The order listed is the order of precedence (later config parameters "
-                "overwrite earlier ones), however parameters specified on the "
-                "command line always have the highest precedence. "
-                "Config files may be in JSON, YAML, TOML, or Python format"
-            ),
-        )
+        ),
+        help=(
+            "List of configuration files with parameters to load "
+            "in addition to command-line parameters. "
+            "The order listed is the order of precedence (later config parameters "
+            "overwrite earlier ones), however parameters specified on the "
+            "command line always have the highest precedence. "
+            "Config files may be in JSON, YAML, TOML, or Python format"
+        ),
     ).tag(config=True)
 
     log_config = Dict(default_value={}).tag(config=True)
