@@ -68,7 +68,7 @@ docs = [
     "nbsphinx",
     "numpydoc",
     "sphinx-design",
-    "sphinx-gallery",
+    "sphinx-gallery >= 0.16.0",
     "sphinxcontrib-bibtex",
     "jupyter",
     "notebook",
