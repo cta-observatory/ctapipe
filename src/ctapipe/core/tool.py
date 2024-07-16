@@ -453,21 +453,19 @@ class Tool(Application):
                     raise
             except SystemExit as err:
                 exit_status = err.code
-                # Do nothing if SystemExit was called with the exit code 0 (e.g. with -h option)
-                if exit_status != 0:
-                    if raises:
-                        raise RuntimeError(
-                            f"Tool unexpectedly exited with status code {exit_status}"
-                        ) from err
-                    else:
-                        self.log.critical(
-                            "Caught SystemExit with exit code %s", exit_status
-                        )
-                        Provenance().finish_activity(
-                            activity_name=self.name,
-                            status="error",
-                            exit_code=exit_status,
-                        )
+                if exit_status == 0:
+                    # finish normally
+                    Provenance().finish_activity(activity_name=self.name)
+                else:
+                    # finish with error
+                    self.log.critical(
+                        "Caught SystemExit with exit code %s", exit_status
+                    )
+                    Provenance().finish_activity(
+                        activity_name=self.name,
+                        status="error",
+                        exit_code=exit_status,
+                    )
             finally:
                 if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                     self.write_provenance()
