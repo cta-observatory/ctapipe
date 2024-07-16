@@ -486,6 +486,17 @@ class ImageParametersContainer(Container):
 
 
 class DL1CameraContainer(Container):
+    """
+    Storage of output of camera calibration e.g the final calibrated
+    image in intensity units and the pulse time.
+    """
+
+    image = Field(
+        None,
+        "Numpy array of camera image, after waveform extraction."
+        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
+        "else: (n_channels, n_pixel)",
+    )
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
