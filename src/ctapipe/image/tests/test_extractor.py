@@ -718,7 +718,7 @@ def test_dtype(Extractor, subarray):
     n_channels, n_pixels, _ = waveforms.shape
     broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     if Extractor is VarianceExtractor:
-        var = extractor(waveforms, tel_id, 0.0)
+        var = extractor(waveforms, tel_id, None, None)
         assert var.image.dtype == np.float32
         return
 
