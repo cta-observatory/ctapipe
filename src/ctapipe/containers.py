@@ -19,7 +19,6 @@ __all__ = [
     "DL0Container",
     "DL1CameraCalibrationContainer",
     "DL1CameraContainer",
-    "DL1PedestalVarianceContainer",
     "DL1Container",
     "DL2Container",
     "EventCalibrationContainer",
@@ -168,12 +167,12 @@ class EventType(enum.Enum):
 
 
 class VarianceType(enum.Enum):
-    """Enum of variance types used for the DL1PedestalVarianceContainer"""
+    """Enum of variance types used for the VarianceContainer"""
 
     # Simple variance of waveform
-    SIMPLE = 0
+    WAVEFORM = 0
     # Variance of integrated samples of a waveform
-    SAMPLE = 1
+    INTEGRATED = 1
 
 
 class PixelStatus(enum.IntFlag):
@@ -487,17 +486,6 @@ class ImageParametersContainer(Container):
 
 
 class DL1CameraContainer(Container):
-    """
-    Storage of output of camera calibration e.g the final calibrated
-    image in intensity units and the pulse time.
-    """
-
-    image = Field(
-        None,
-        "Numpy array of camera image, after waveform extraction."
-        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
-        "else: (n_channels, n_pixel)",
-    )
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
@@ -520,42 +508,8 @@ class DL1CameraContainer(Container):
             "pass only was returned."
         ),
     )
-
     parameters = Field(
         None, description="Image parameters", type=ImageParametersContainer
-    )
-
-
-class DL1PedestalVarianceContainer(Container):
-    """
-    Storage of output of camera variance image e.g.
-    the variance of each pixel composed as an image.
-    """
-
-    image = Field(
-        None,
-        "Numpy array of camera variance image"
-        "Shape: (n_pixel) if n_channels is 1 or data is gain selected"
-        "else: (n_channels, n_pixel)",
-    )
-    time = Field(
-        None,
-        "Trigger time for this variance image" "Value is a float",
-    )
-    VarMethod = Field(
-        VarianceType.SIMPLE,
-        "Method by which the variance was calculated"
-        "This can either be a plain variance"
-        "or a variance of integrated samples",
-        type=VarianceType,
-    )
-    is_valid = Field(
-        False,
-        (
-            "True if image extraction succeeded, False if failed "
-            "or in the case of TwoPass methods, that the first "
-            "pass only was returned."
-        ),
     )
 
 

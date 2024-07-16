@@ -36,7 +36,6 @@ from traitlets import Bool, Int
 
 from ctapipe.containers import (
     DL1CameraContainer,
-    DL1PedestalVarianceContainer,
     VarianceType,
 )
 from ctapipe.core import TelescopeComponent
@@ -1309,14 +1308,14 @@ class VarianceExtractor(ImageExtractor):
 
     """
 
-    def __call__(self, waveforms, tel_id, trigger_time) -> DL1PedestalVarianceContainer:
-        variance = np.nanvar(waveforms, dtype="float32", axis=2)
-        return DL1PedestalVarianceContainer(
-            image=variance,
-            VarMethod=VarianceType.SIMPLE,
-            is_valid=True,
-            time=trigger_time,
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
+        container = DL1CameraContainer(
+            image=np.nanvar(waveforms, dtype="float32", axis=2),
         )
+        container.meta["ExtractionMethod"] = str(VarianceType.WAVEFORM)
+        return container
 
 
 def deconvolution_parameters(
