@@ -1,2 +1,2 @@
-A new ImageExtractor called ``VarianceExtractor`` was added with a corresponding container
-called ``DL1PedestalVarianceContainer``. These will be used for the startracker code later.
+A new ImageExtractor called ``VarianceExtractor`` was added
+An Enum class was added to containers.py that is used in the metadata of the VarianceExtractor output
