@@ -15,11 +15,7 @@ from astropy.stats import sigma_clipped_stats
 
 from ctapipe.containers import StatisticsContainer
 from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import (
-    CaselessStrEnum,
-    Int,
-    List,
-)
+from ctapipe.core.traits import Int
 
 
 class StatisticsExtractor(TelescopeComponent):
@@ -102,75 +98,32 @@ class StatisticsExtractor(TelescopeComponent):
 
 class PlainExtractor(StatisticsExtractor):
     """
-    Extract the statistics from a chunk of peak time images
-    using numpy and scipy functions
+    Extract the statistics from a chunk of images using numpy functions
     """
 
-    time_median_cut_outliers = List(
-        [0, 60],
-        help="Interval (in waveform samples) of accepted median peak time values",
-    ).tag(config=True)
-
     def extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
-        # ensure numpy array
+        # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
-        # median over the chunk per pixel
-        pixel_median = np.ma.median(masked_images, axis=0)
-
-        # mean over the chunk per pixel
+        # Calculate the mean, median, and std over the chunk per pixel
         pixel_mean = np.ma.mean(masked_images, axis=0)
-
-        # std over the chunk per pixel
+        pixel_median = np.ma.median(masked_images, axis=0)
         pixel_std = np.ma.std(masked_images, axis=0)
-
-        # outliers from median
-        median_outliers = np.logical_or(
-            pixel_median < self.time_median_cut_outliers[0],
-            pixel_median > self.time_median_cut_outliers[1],
-        )
 
         return StatisticsContainer(
             extraction_start=times[0],
             extraction_stop=times[-1],
             mean=pixel_mean.filled(np.nan),
             median=pixel_median.filled(np.nan),
-            median_outliers=median_outliers.filled(True),
             std=pixel_std.filled(np.nan),
-            std_outliers=np.full(np.shape(median_outliers), False),
         )
 
 
 class SigmaClippingExtractor(StatisticsExtractor):
     """
-    Extract the statistics from a chunk of charge or variance images
-    using astropy's sigma clipping functions
+    Extract the statistics from a chunk of images using astropy's sigma clipping functions
     """
 
-    median_outliers_interval = List(
-        [-0.3, 0.3],
-        help=(
-            "Interval of the multiplicative factor for detecting outliers based on"
-            "the deviation of the median distribution."
-            "- If `outlier_method` is `median`, the factors are multiplied by"
-            "  the camera median of pixel medians to set the thresholds for identifying outliers."
-            "- If `outlier_method` is `standard_deviation`, the factors are multiplied by"
-            "  the camera standard deviation of pixel medians to set the thresholds for identifying outliers."
-        ),
-    ).tag(config=True)
-    outlier_method = CaselessStrEnum(
-        values=["median", "standard_deviation"],
-        help="Method used for detecting outliers based on the deviation of the median distribution",
-    ).tag(config=True)
-    std_outliers_interval = List(
-        [-3, 3],
-        help=(
-            "Interval of the multiplicative factor for detecting outliers based on"
-            "the deviation of the standard deviation distribution."
-            "The factors are multiplied by the camera standard deviation of pixel standard deviations"
-            "to set the thresholds for identifying outliers."
-        ),
-    ).tag(config=True)
     max_sigma = Int(
         default_value=4,
         help="Maximal value for the sigma clipping outlier removal",
@@ -185,7 +138,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
         # Calculate the mean, median, and std over the chunk per pixel
-        pix_mean, pix_median, pix_std = sigma_clipped_stats(
+        pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
             masked_images,
             sigma=self.max_sigma,
             maxiters=self.iterations,
@@ -193,58 +146,10 @@ class SigmaClippingExtractor(StatisticsExtractor):
             axis=0,
         )
 
-        # Mask pixels without defined statistical values
-        pix_mean = np.ma.array(pix_mean, mask=np.isnan(pix_mean))
-        pix_median = np.ma.array(pix_median, mask=np.isnan(pix_median))
-        pix_std = np.ma.array(pix_std, mask=np.isnan(pix_std))
-
-        # Camera median of the pixel medians
-        cam_median_of_pix_median = np.ma.median(pix_median, axis=1)
-
-        # Camera median of the pixel stds
-        cam_median_of_pix_std = np.ma.median(pix_std, axis=1)
-
-        # Camera std of the pixel stds
-        cam_std_of_pix_std = np.ma.std(pix_std, axis=1)
-
-        # Detect outliers based on the deviation of the median distribution
-        median_deviation = pix_median - cam_median_of_pix_median[:, np.newaxis]
-        if self.outlier_method == "median":
-            median_outliers = np.logical_or(
-                median_deviation
-                < self.median_outliers_interval[0]
-                * cam_median_of_pix_median[:, np.newaxis],
-                median_deviation
-                > self.median_outliers_interval[1]
-                * cam_median_of_pix_median[:, np.newaxis],
-            )
-        elif self.outlier_method == "standard_deviation":
-            # Camera std of pixel medians
-            cam_std_of_pix_median = np.ma.std(pix_median, axis=1)
-            median_outliers = np.logical_or(
-                median_deviation
-                < self.median_outliers_interval[0]
-                * cam_std_of_pix_median[:, np.newaxis],
-                median_deviation
-                > self.median_outliers_interval[1]
-                * cam_std_of_pix_median[:, np.newaxis],
-            )
-
-        # Detect outliers based on the deviation of the standard deviation distribution
-        std_deviation = pix_std - cam_median_of_pix_std[:, np.newaxis]
-        std_outliers = np.logical_or(
-            std_deviation
-            < self.std_outliers_interval[0] * cam_std_of_pix_std[:, np.newaxis],
-            std_deviation
-            > self.std_outliers_interval[1] * cam_std_of_pix_std[:, np.newaxis],
-        )
-
         return StatisticsContainer(
             extraction_start=times[0],
             extraction_stop=times[-1],
-            mean=pix_mean.filled(np.nan),
-            median=pix_median.filled(np.nan),
-            median_outliers=median_outliers.filled(True),
-            std=pix_std.filled(np.nan),
-            std_outliers=std_outliers.filled(True),
+            mean=pixel_mean,
+            median=pixel_median,
+            std=pixel_std,
         )

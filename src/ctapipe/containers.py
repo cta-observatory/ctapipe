@@ -427,20 +427,10 @@ class StatisticsContainer(Container):
         "median of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
     )
-    median_outliers = Field(
-        None,
-        "outliers from the median distribution of a pixel-wise quantity for each channel"
-        "Type: binary mask; Shape: (n_channels, n_pixel)",
-    )
     std = Field(
         None,
         "standard deviation of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    std_outliers = Field(
-        None,
-        "outliers from the standard deviation distribution of a pixel-wise quantity for each channel"
-        "Type: binary mask; Shape: (n_channels, n_pixel)",
     )
 
 

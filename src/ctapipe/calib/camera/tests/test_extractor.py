@@ -33,11 +33,9 @@ def test_extractors(example_subarray):
         names=("time_mono", "peak_time"),
     )
     # Initialize the extractors
-    ped_extractor = SigmaClippingExtractor(
-        subarray=example_subarray, chunk_size=2500, outlier_method="standard_deviation"
-    )
+    ped_extractor = SigmaClippingExtractor(subarray=example_subarray, chunk_size=2500)
     ff_charge_extractor = SigmaClippingExtractor(
-        subarray=example_subarray, chunk_size=2500, outlier_method="median"
+        subarray=example_subarray, chunk_size=2500
     )
     ff_time_extractor = PlainExtractor(subarray=example_subarray, chunk_size=2500)
 
@@ -62,35 +60,6 @@ def test_extractors(example_subarray):
     assert not np.any(np.abs(ff_time_stats_list[0].std - 5.0) > 1.5)
 
 
-def test_check_outliers(example_subarray):
-    """test detection ability of outliers"""
-
-    # Create dummy data for testing
-    times = Time(
-        np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
-    )
-    ff_dl1_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
-    # Insert outliers
-    ff_dl1_data[:, 0, 120] = 120.0
-    ff_dl1_data[:, 1, 67] = 120.0
-    # Create dl1 table
-    ff_dl1_table = Table(
-        [times, ff_dl1_data],
-        names=("time_mono", "image"),
-    )
-    # Initialize the extractor
-    ff_charge_extractor = SigmaClippingExtractor(
-        subarray=example_subarray, chunk_size=2500, outlier_method="median"
-    )
-    # Extract the statistical values
-    ff_charge_stats_list = ff_charge_extractor(dl1_table=ff_dl1_table)
-    # Check if outliers where detected correctly
-    assert ff_charge_stats_list[0].median_outliers[0][120]
-    assert ff_charge_stats_list[0].median_outliers[1][67]
-    assert ff_charge_stats_list[1].median_outliers[0][120]
-    assert ff_charge_stats_list[1].median_outliers[1][67]
-
-
 def test_check_chunk_shift(example_subarray):
     """test the chunk shift option and the boundary case for the last chunk"""
 
@@ -106,7 +75,7 @@ def test_check_chunk_shift(example_subarray):
     )
     # Initialize the extractor
     ff_charge_extractor = SigmaClippingExtractor(
-        subarray=example_subarray, chunk_size=2500, outlier_method="median"
+        subarray=example_subarray, chunk_size=2500
     )
     # Extract the statistical values
     stats_list = ff_charge_extractor(dl1_table=ff_dl1_table)
