@@ -390,7 +390,6 @@ def test_tool_raises():
     class ToolCustomExceptionNoExitCode(Tool):
         name = "CustomException"
         description = "This tool raises a custom exception without an exit code."
-        custom_exceptions = (CustomErrorNoExitCode,)
 
         def start(self):
             raise CustomErrorNoExitCode("This is a custom exception.")
@@ -398,7 +397,6 @@ def test_tool_raises():
     class ToolCustomExceptionWithExitCode(Tool):
         name = "CustomException"
         description = "This tool raises a custom exception with a custom exit code."
-        custom_exceptions = (CustomErrorWithExitCode,)
 
         def start(self):
             raise CustomErrorWithExitCode("This is a custom exception.")

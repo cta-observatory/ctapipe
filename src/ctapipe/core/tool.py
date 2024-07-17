@@ -102,10 +102,6 @@ class Tool(Application):
             # Which classes are registered for configuration
             classes = [MyComponent, AdvancedComponent, SecondaryMyComponent]
 
-            # Tuple with the custom exceptions the tool can raise (optional)
-            # If the exception has an exit_code attribute, it will be used
-            custom_exceptions = (MyCustomError, MyOtherError)
-
             # local configuration parameters
             iterations = Integer(5,help="Number of times to run",
                                  allow_none=False).tag(config=True)
@@ -184,8 +180,6 @@ class Tool(Application):
     _log_formatter_cls = ColoredFormatter
 
     provenance_log = Path(directory_ok=False).tag(config=True)
-
-    custom_exceptions = ()
 
     @default("provenance_log")
     def _default_provenance_log(self):
@@ -449,22 +443,12 @@ class Tool(Application):
                 Provenance().finish_activity(
                     activity_name=self.name, status="interrupted", exit_code=exit_status
                 )
-            except self.custom_exceptions as err:
-                self.log.exception("Caught custom exception: %s", err)
-                if hasattr(err, "exit_code"):
-                    exit_status = err.exit_code
-                else:
-                    exit_status = 1
-                Provenance().finish_activity(
-                    activity_name=self.name,
-                    status="error",
-                    exit_code=exit_status,
-                )
-                if raises:
-                    raise
             except Exception as err:
-                self.log.exception("Caught unexpected exception: %s", err)
-                exit_status = 1  # any other error
+                exit_status = getattr(err, "exit_code", 1)
+                if exit_status == 1:
+                    self.log.exception("Caught unexpected exception: %s", err)
+                else:
+                    self.log.error("Caught exception: %s", err)
                 Provenance().finish_activity(
                     activity_name=self.name, status="error", exit_code=exit_status
                 )
@@ -472,20 +456,19 @@ class Tool(Application):
                     raise
             except SystemExit as err:
                 exit_status = err.code
-                if (
-                    exit_status != 0
-                ):  # Do nothing if SystemExit was called with the exit code 0 (e.g. with -h option)
-                    if raises:
-                        raise  # do not re-intercept in tests
-                    else:
-                        self.log.exception(
-                            "Caught SystemExit with exit code %s", exit_status
-                        )
-                        Provenance().finish_activity(
-                            activity_name=self.name,
-                            status="error",
-                            exit_code=exit_status,
-                        )
+                if exit_status == 0:
+                    # Finish normally
+                    Provenance().finish_activity(activity_name=self.name)
+                else:
+                    # Finish with error
+                    self.log.critical(
+                        "Caught SystemExit with exit code %s", exit_status
+                    )
+                    Provenance().finish_activity(
+                        activity_name=self.name,
+                        status="error",
+                        exit_code=exit_status,
+                    )
             finally:
                 if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                     self.write_provenance()
