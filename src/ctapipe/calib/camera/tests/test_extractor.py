@@ -62,7 +62,7 @@ def test_extractors(example_subarray):
     assert not np.any(np.abs(time_stats[times[0]].std - 5.0) > 1.5)
 
 
-def test_check_chunk_shift(example_subarray):
+def test_chunk_shift(example_subarray):
     """test the chunk shift option and the boundary case for the last chunk"""
 
     # Create dummy data for testing
@@ -90,3 +90,37 @@ def test_check_chunk_shift(example_subarray):
     # Check if ValueError is raised when the chunk_shift is smaller than the chunk_size
     with pytest.raises(ValueError):
         _ = extractor(table=charge_table, chunk_shift=3000)
+
+
+def test_with_outliers(example_subarray):
+    """test the robustness of the extractors in the presence of outliers"""
+
+    # Create dummy data for testing
+    times = Time(
+        np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
+    )
+    ped_data = np.random.normal(2.0, 5.0, size=(5000, 2, 1855))
+    # Insert fake outliers that will skrew the mean value
+    ped_data[12, 0, :] = 100000.0
+    ped_data[16, 0, :] = 100000.0
+    ped_data[18, 1, :] = 100000.0
+    ped_data[28, 1, :] = 100000.0
+    # Create table
+    ped_table = Table(
+        [times, ped_data],
+        names=("time_mono", "image"),
+    )
+    # Initialize the extractors
+    sigmaclipping_extractor = SigmaClippingExtractor(
+        subarray=example_subarray, chunk_size=2500
+    )
+    plain_extractor = PlainExtractor(subarray=example_subarray, chunk_size=2500)
+
+    # Extract the statistical values
+    sigmaclipping_chunk_stats = sigmaclipping_extractor(table=ped_table)
+    plain_chunk_stats = plain_extractor(table=ped_table)
+
+    # Check if SigmaClippingExtractor is robust to a few fake outliers as expected
+    assert not np.any(np.abs(sigmaclipping_chunk_stats[times[0]].mean - 2.0) > 1.5)
+    # Check if PlainExtractor is not robust to a few fake outliers as expected
+    assert np.any(np.abs(plain_chunk_stats[times[0]].mean - 2.0) > 1.5)
