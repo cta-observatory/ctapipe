@@ -20,8 +20,8 @@ from ctapipe.core.traits import Int
 
 class StatisticsExtractor(TelescopeComponent):
     """
-    Base component to handle the extraction of the statistics from a dl1 table
-    containing charges, peak times and/or charge variances (images).
+    Base component to handle the extraction of the statistics from a table
+    containing e.g. charges, peak times and/or charge variances (images).
     """
 
     chunk_size = Int(
@@ -31,13 +31,15 @@ class StatisticsExtractor(TelescopeComponent):
 
     def __call__(
         self,
-        dl1_table,
+        table,
         masked_pixels_of_sample=None,
         chunk_shift=None,
         col_name="image",
     ) -> list:
         """
-        Divides the input DL1 table into overlapping or non-overlapping chunks of size `chunk_size`
+        Divide table into chunks and extract the statistical values.
+
+        This function divides the input table into overlapping or non-overlapping chunks of size `chunk_size`
         and call the relevant function of the particular extractor to extract the statistical values.
         The chunks are generated in a way that ensures they do not overflow the bounds of the table.
         - If `chunk_shift` is None, extraction chunks will not overlap, but the last chunk is ensured to be
@@ -48,15 +50,15 @@ class StatisticsExtractor(TelescopeComponent):
 
         Parameters
         ----------
-        dl1_table : astropy.table.Table
-            DL1 table with images of shape (n_images, n_channels, n_pix)
+        table : astropy.table.Table
+            table with images of shape (n_images, n_channels, n_pix)
             and timestamps of shape (n_images, ) stored in an astropy Table
         masked_pixels_of_sample : ndarray, optional
             boolean array of masked pixels of shape (n_pix, ) that are not available for processing
         chunk_shift : int, optional
             number of samples to shift between the start of consecutive extraction chunks
         col_name : string
-            column name in the DL1 table
+            column name in the table
 
         Returns
         -------
@@ -64,40 +66,45 @@ class StatisticsExtractor(TelescopeComponent):
             List of extracted statistics and extraction chunks
         """
 
-        # Check if the statistics of the dl1 table is sufficient to extract at least one chunk.
-        if len(dl1_table) < self.chunk_size:
+        # Check if the statistics of the table is sufficient to extract at least one chunk.
+        if len(table) < self.chunk_size:
             raise ValueError(
-                f"The length of the provided DL1 table ({len(dl1_table)}) is insufficient to meet the required statistics for a single extraction chunk of size ({self.chunk_size})."
+                f"The length of the provided table ({len(table)}) is insufficient to meet the required statistics for a single extraction chunk of size ({self.chunk_size})."
+            )
+        # Check if the chunk_shift is smaller than the chunk_size
+        if chunk_shift is None and chunk_shift > self.chunk_size:
+            raise ValueError(
+                f"The chunk_shift ({chunk_shift}) must be smaller than the chunk_size ({self.chunk_size})."
             )
 
-        # Function to split the dl1 table into appropriated chunks
-        def _get_chunks(dl1_table, chunk_shift):
+        # Function to split the table into appropriated chunks
+        def _get_chunks(table, chunk_shift):
             # Calculate the range step: Use chunk_shift if provided, otherwise use chunk_size
             step = chunk_shift or self.chunk_size
 
             # Generate chunks that do not overflow
-            for i in range(0, len(dl1_table) - self.chunk_size + 1, step):
-                yield dl1_table[i : i + self.chunk_size]
+            for i in range(0, len(table) - self.chunk_size + 1, step):
+                yield table[i : i + self.chunk_size]
 
             # If chunk_shift is None, ensure the last chunk is of size chunk_size, if needed
-            if chunk_shift is None and len(dl1_table) % self.chunk_size != 0:
-                yield dl1_table[-self.chunk_size :]
+            if chunk_shift is None and len(table) % self.chunk_size != 0:
+                yield table[-self.chunk_size :]
 
-        # Get the chunks of the dl1 table
-        dl1_chunks = _get_chunks(dl1_table, chunk_shift)
+        # Get the chunks of the table
+        chunks = _get_chunks(table, chunk_shift)
 
         # Calculate the statistics from a chunk of images
-        stats_list = [
-            self.extract(
-                chunk[col_name].data, chunk["time_mono"], masked_pixels_of_sample
+        chunk_stats = {
+            chunk["time_mono"][0]: self.extract(
+                chunk[col_name].data, masked_pixels_of_sample
             )
-            for chunk in dl1_chunks
-        ]
+            for chunk in chunks
+        }
 
-        return stats_list
+        return chunk_stats
 
     @abstractmethod
-    def extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
         pass
 
 
@@ -106,7 +113,7 @@ class PlainExtractor(StatisticsExtractor):
     Extract the statistics from a chunk of images using numpy functions
     """
 
-    def extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -116,8 +123,6 @@ class PlainExtractor(StatisticsExtractor):
         pixel_std = np.ma.std(masked_images, axis=0)
 
         return StatisticsContainer(
-            extraction_start=times[0],
-            extraction_stop=times[-1],
             mean=pixel_mean.filled(np.nan),
             median=pixel_median.filled(np.nan),
             std=pixel_std.filled(np.nan),
@@ -138,7 +143,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -152,8 +157,6 @@ class SigmaClippingExtractor(StatisticsExtractor):
         )
 
         return StatisticsContainer(
-            extraction_start=times[0],
-            extraction_stop=times[-1],
             mean=pixel_mean,
             median=pixel_median,
             std=pixel_std,
