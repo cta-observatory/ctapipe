@@ -135,7 +135,7 @@ xfail_strict = true
 astropy_header = true
 
 # print summary of failed tests, force errors if settings are misspelled
-addopts = ["-ra", "--strict-config", "--strict-markers"]
+addopts = ["-ra", "--strict-config", "--strict-markers", "--glob-ignore=src/ctapipe/_dev_version"]
 
 filterwarnings = [
     "error::DeprecationWarning",
