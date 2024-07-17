@@ -30,6 +30,8 @@ ignore_traits = {
 
 
 def test_all_traitlets_configurable():
+    skip_modules = {"_dev_version", "tests"}
+
     def find_all_traitlets(module, missing_config=None):
         module_name = module.__name__
 
@@ -37,6 +39,11 @@ def test_all_traitlets_configurable():
             missing_config = defaultdict(set)
 
         for submodule_info in pkgutil.iter_modules(module.__path__):
+            submodule = submodule_info.name
+
+            if submodule.startswith("test_") or submodule in skip_modules:
+                continue
+
             submodule = importlib.import_module(module_name + "." + submodule_info.name)
 
             if submodule_info.ispkg:
@@ -63,7 +70,8 @@ def test_all_traitlets_configurable():
         return missing_config
 
     missing_config = find_all_traitlets(ctapipe)
-    # if the test files, we need to know which failed
-    for name, missing in missing_config.items():
-        print("Class", name, "is missing .tag(config=True) for traitlets:", *missing)
-    assert len(missing_config) == 0
+    msg = "\n".join(
+        f"Class {name} is missing .tag(config=True) for traitlets: {missing}"
+        for name, missing in missing_config.items()
+    )
+    assert len(missing_config) == 0, msg
