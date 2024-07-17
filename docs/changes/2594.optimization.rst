@@ -1,0 +1,5 @@
+Update exception handling in tools
+
+- Remove ``SystemExit`` handling in ``Tool.run()``
+- Add a possibility to register custom exceptions and handle them in ``Tool.run()``
+  with the preservation of the exit code.
