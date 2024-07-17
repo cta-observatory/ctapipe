@@ -460,6 +460,8 @@ class Tool(Application):
                     # Finish normally
                     Provenance().finish_activity(activity_name=self.name)
                 else:
+                    if raises:
+                        raise
                     # Finish with error
                     self.log.critical(
                         "Caught SystemExit with exit code %s", exit_status
