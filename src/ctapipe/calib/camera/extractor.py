@@ -37,18 +37,24 @@ class StatisticsExtractor(TelescopeComponent):
         col_name="image",
     ) -> list:
         """
-        Prepare the extraction chunks and call the relevant function of the particular extractor
-        to extract the statistical values.
+        Divides the input DL1 table into overlapping or non-overlapping chunks of size `chunk_size`
+        and call the relevant function of the particular extractor to extract the statistical values.
+        The chunks are generated in a way that ensures they do not overflow the bounds of the table.
+        - If `chunk_shift` is None, extraction chunks will not overlap, but the last chunk is ensured to be
+        of size `chunk_size`, even if it means the last two chunks will overlap.
+        - If `chunk_shift` is provided, it will determine the number of samples to shift between the start
+        of consecutive chunks resulting in an overlap of extraction chunks. Chunks that overflows the bounds
+        of the table are not considered.
 
         Parameters
         ----------
         dl1_table : astropy.table.Table
             DL1 table with images of shape (n_images, n_channels, n_pix)
             and timestamps of shape (n_images, ) stored in an astropy Table
-        masked_pixels_of_sample : ndarray
+        masked_pixels_of_sample : ndarray, optional
             boolean array of masked pixels of shape (n_pix, ) that are not available for processing
-        chunk_shift : int
-            number of samples to shift the extraction chunk
+        chunk_shift : int, optional
+            number of samples to shift between the start of consecutive extraction chunks
         col_name : string
             column name in the DL1 table
 
@@ -67,12 +73,11 @@ class StatisticsExtractor(TelescopeComponent):
         # Function to split the dl1 table into appropriated chunks
         def _get_chunks(dl1_table, chunk_shift):
             # Calculate the range step: Use chunk_shift if provided, otherwise use chunk_size
-            step = chunk_shift if chunk_shift is not None else self.chunk_size
+            step = chunk_shift or self.chunk_size
 
             # Generate chunks that do not overflow
-            for i in range(0, len(dl1_table), step):
-                if i + self.chunk_size <= len(dl1_table):
-                    yield dl1_table[i : i + self.chunk_size]
+            for i in range(0, len(dl1_table) - self.chunk_size + 1, step):
+                yield dl1_table[i : i + self.chunk_size]
 
             # If chunk_shift is None, ensure the last chunk is of size chunk_size, if needed
             if chunk_shift is None and len(dl1_table) % self.chunk_size != 0:
