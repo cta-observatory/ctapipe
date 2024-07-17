@@ -381,12 +381,41 @@ def test_tool_raises():
         def start(self):
             raise ValueError("1 does not equal 0.")
 
+    class CustomErrorNoExitCode(Exception):
+        pass
+
+    class CustomErrorWithExitCode(Exception):
+        exit_code = 42
+
+    class ToolCustomExceptionNoExitCode(Tool):
+        name = "CustomException"
+        description = "This tool raises a custom exception without an exit code."
+        custom_exceptions = (CustomErrorNoExitCode,)
+
+        def start(self):
+            raise CustomErrorNoExitCode("This is a custom exception.")
+
+    class ToolCustomExceptionWithExitCode(Tool):
+        name = "CustomException"
+        description = "This tool raises a custom exception with a custom exit code."
+        custom_exceptions = (CustomErrorWithExitCode,)
+
+        def start(self):
+            raise CustomErrorWithExitCode("This is a custom exception.")
+
     assert run_tool(ToolGood(), raises=True) == 0
 
     assert run_tool(ToolBad(), raises=False) == 1
 
+    assert run_tool(ToolCustomExceptionNoExitCode(), raises=False) == 1
+
+    assert run_tool(ToolCustomExceptionWithExitCode(), raises=False) == 42
+
     with pytest.raises(ValueError):
         run_tool(ToolBad(), raises=True)
+
+    with pytest.raises(CustomErrorNoExitCode):
+        run_tool(ToolCustomExceptionNoExitCode(), raises=True)
 
 
 def test_exit_stack():
