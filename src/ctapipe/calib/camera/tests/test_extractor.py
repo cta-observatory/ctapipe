@@ -3,6 +3,7 @@ Tests for StatisticsExtractor and related functions
 """
 
 import numpy as np
+import pytest
 from astropy.table import Table
 from astropy.time import Time
 
@@ -83,3 +84,9 @@ def test_check_chunk_shift(example_subarray):
     assert len(chunk_stats) == 3
     # Check if two chunks are used for the extraction as the last chunk is dropped
     assert len(chunk_stats_shift) == 2
+    # Check if ValueError is raised when the chunk_size is larger than the length of table
+    with pytest.raises(ValueError):
+        _ = extractor(table=charge_table[1000:1500])
+    # Check if ValueError is raised when the chunk_shift is smaller than the chunk_size
+    with pytest.raises(ValueError):
+        _ = extractor(table=charge_table, chunk_shift=3000)

@@ -72,7 +72,7 @@ class StatisticsExtractor(TelescopeComponent):
                 f"The length of the provided table ({len(table)}) is insufficient to meet the required statistics for a single extraction chunk of size ({self.chunk_size})."
             )
         # Check if the chunk_shift is smaller than the chunk_size
-        if chunk_shift is None and chunk_shift > self.chunk_size:
+        if chunk_shift is not None and chunk_shift > self.chunk_size:
             raise ValueError(
                 f"The chunk_shift ({chunk_shift}) must be smaller than the chunk_size ({self.chunk_size})."
             )
