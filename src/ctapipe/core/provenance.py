@@ -306,7 +306,7 @@ class _ActivityProvenance:
 def _get_python_packages():
     return [
         {"name": p.name, "version": p.version}
-        for p in sorted(distributions(), key=lambda d: d.name)
+        for p in sorted(distributions(), key=lambda d: (d.name or "").lower())
     ]
 
 
