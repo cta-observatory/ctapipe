@@ -143,7 +143,6 @@ def test_events_loader(gamma_diffuse_full_reco_file):
     events, count, meta = loader.load_preselected_events(
         chunk_size=10000,
         obs_time=u.Quantity(50, u.h),
-        valid_fov=u.Quantity([0, 1], u.deg),
     )
 
     columns = [
@@ -163,9 +162,12 @@ def test_events_loader(gamma_diffuse_full_reco_file):
         "theta",
         "true_source_fov_offset",
         "reco_source_fov_offset",
-        "weight",
     ]
     assert columns.sort() == events.colnames.sort()
 
+    assert isinstance(count, int)
     assert isinstance(meta["sim_info"], SimulatedEventsInfo)
     assert isinstance(meta["spectrum"], PowerLaw)
+
+    events = loader.make_event_weights(events, meta["spectrum"], (0 * u.deg, 1 * u.deg))
+    assert "weight" in events.colnames
