@@ -351,11 +351,11 @@ def test_quantity_tool(capsys):
         run_tool(tool, ["--MyTool.energy=5 m"], raises=True)
 
     captured = capsys.readouterr()
-    assert (
-        captured.err.split(":")[-1]
-        == f" Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
-        + f" Expected {u.physical.energy}.\n"
+    expected = (
+        f" Given quantity is of physical type {u.get_physical_type(5 * u.m)}."
+        f" Expected {u.physical.energy}.\n"
     )
+    assert expected in captured.err
 
 
 def test_quantity_none():
