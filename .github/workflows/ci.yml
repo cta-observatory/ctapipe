@@ -129,6 +129,16 @@ jobs:
           pip freeze
           pip list
 
+      - name: debug distributions
+        run: |
+          python -c '
+          from importlib.metadata import distributions
+          for dist in distributions():
+              if dist.name is None:
+                  print("ERROR: Found dist without name")
+                  print(dist.metadata.json)
+          '
+
       - name: ctapipe-info
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         run: |
