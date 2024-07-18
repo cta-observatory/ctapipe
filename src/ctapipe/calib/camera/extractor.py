@@ -9,9 +9,11 @@ __all__ = [
 ]
 
 from abc import abstractmethod
+from collections import defaultdict
 
 import numpy as np
 from astropy.stats import sigma_clipped_stats
+from astropy.table import Table
 
 from ctapipe.containers import StatisticsContainer
 from ctapipe.core import TelescopeComponent
@@ -35,7 +37,7 @@ class StatisticsExtractor(TelescopeComponent):
         masked_pixels_of_sample=None,
         chunk_shift=None,
         col_name="image",
-    ) -> dict:
+    ) -> Table:
         """
         Divide table into chunks and extract the statistical values.
 
@@ -62,9 +64,9 @@ class StatisticsExtractor(TelescopeComponent):
 
         Returns
         -------
-        dict
-            dictionary where keys are the first timestamp of each chunk and values are `StatisticsContainer`
-            instances containing the extracted statistics (mean, median, std) for that chunk.
+        astropy.table.Table
+            table containing the start and end values as timestamps and event IDs
+            as well as the extracted statistics (mean, median, std) for each chunk
         """
 
         # Check if the statistics of the table is sufficient to extract at least one chunk.
@@ -91,18 +93,19 @@ class StatisticsExtractor(TelescopeComponent):
             if chunk_shift is None and len(table) % self.chunk_size != 0:
                 yield table[-self.chunk_size :]
 
-        # Get the chunks of the table
-        chunks = _get_chunks(table, chunk_shift)
+        # Calculate the statistics for each chunk of images
+        data = defaultdict(list)
+        for chunk in _get_chunks(table, chunk_shift):
+            stats = self.extract(chunk[col_name].data, masked_pixels_of_sample)
+            data["time_start"].append(chunk["time_mono"][0])
+            data["time_end"].append(chunk["time_mono"][-1])
+            data["event_id_start"].append(chunk["event_id"][0])
+            data["event_id_end"].append(chunk["event_id"][-1])
+            data["mean"].append(stats.mean)
+            data["median"].append(stats.median)
+            data["std"].append(stats.std)
 
-        # Calculate the statistics from a chunk of images
-        chunk_stats = {
-            chunk["time_mono"][0]: self.extract(
-                chunk[col_name].data, masked_pixels_of_sample
-            )
-            for chunk in chunks
-        }
-
-        return chunk_stats
+        return Table(data)
 
     @abstractmethod
     def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
@@ -119,14 +122,14 @@ class PlainExtractor(StatisticsExtractor):
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
         # Calculate the mean, median, and std over the chunk per pixel
-        pixel_mean = np.ma.mean(masked_images, axis=0)
-        pixel_median = np.ma.median(masked_images, axis=0)
-        pixel_std = np.ma.std(masked_images, axis=0)
+        pixel_mean = np.ma.mean(masked_images, axis=0).filled(np.nan)
+        pixel_median = np.ma.median(masked_images, axis=0).filled(np.nan)
+        pixel_std = np.ma.std(masked_images, axis=0).filled(np.nan)
 
         return StatisticsContainer(
-            mean=pixel_mean.filled(np.nan),
-            median=pixel_median.filled(np.nan),
-            std=pixel_std.filled(np.nan),
+            mean=pixel_mean,
+            median=pixel_median,
+            std=pixel_std,
         )
 
 
