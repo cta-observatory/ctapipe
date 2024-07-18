@@ -14,7 +14,6 @@ from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
 from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
-from .binning import ResultValidRange
 from .spectra import SPECTRA, Spectra
 
 
@@ -123,7 +122,6 @@ class EventPreProcessor(QualityQuery):
             "theta",
             "true_source_fov_offset",
             "reco_source_fov_offset",
-            "weight",
         ]
         units = {
             "true_energy": u.TeV,
@@ -174,7 +172,7 @@ class EventsLoader(Component):
         self.file = file
 
     def load_preselected_events(
-        self, chunk_size: int, obs_time: u.Quantity, valid_fov
+        self, chunk_size: int, obs_time: u.Quantity
     ) -> tuple[QTable, int, dict]:
         opts = dict(dl2=True, simulated=True)
         with TableLoader(self.file, parent=self, **opts) as load:
@@ -186,9 +184,7 @@ class EventsLoader(Component):
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 selected = events[self.epp.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
-                selected = self.make_derived_columns(
-                    selected, spectrum, obs_conf, valid_fov
-                )
+                selected = self.make_derived_columns(selected, obs_conf)
                 bits.append(selected)
                 n_raw_events += len(events)
 
@@ -225,9 +221,7 @@ class EventsLoader(Component):
             obs,
         )
 
-    def make_derived_columns(
-        self, events: QTable, spectrum: PowerLaw, obs_conf: Table, valid_fov
-    ) -> QTable:
+    def make_derived_columns(self, events: QTable, obs_conf: Table) -> QTable:
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
             assert all(obs_conf["subarray_pointing_frame"] == 0)
             # Lets suppose 0 means ALTAZ
@@ -264,21 +258,25 @@ class EventsLoader(Component):
         events["reco_fov_lon"] = -reco_nominal.fov_lon  # minus for GADF
         events["reco_fov_lat"] = reco_nominal.fov_lat
 
+        return events
+
+    def make_event_weights(
+        self,
+        events: QTable,
+        spectrum: PowerLaw,
+        fov_range: tuple[u.Quantity, u.Quantity],
+    ) -> QTable:
         if (
             self.kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
                 spectrum.normalization.unit * u.sr
             )
         ):
-            if isinstance(valid_fov, ResultValidRange):
-                spectrum = spectrum.integrate_cone(valid_fov.min, valid_fov.max)
-            else:
-                spectrum = spectrum.integrate_cone(valid_fov[0], valid_fov[-1])
+            spectrum = spectrum.integrate_cone(fov_range[0], fov_range[1])
 
         events["weight"] = calculate_event_weights(
             events["true_energy"],
             target_spectrum=self.target_spectrum,
             simulated_spectrum=spectrum,
         )
-
         return events

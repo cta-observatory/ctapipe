@@ -483,19 +483,21 @@ class IrfTool(Tool):
                 sel.epp.gammaness_classifier = self.opt_result.gh_cuts.meta["CLFNAME"]
 
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
-            # TODO: This fov range is only used for the event weights for the sensitivity calculation.
-            # This should only be done if `do_benchmarks == True` and for each fov bin
-            # for which the sensitivity is calculated.
-            if self.do_benchmarks:
-                valid_fov = [self.sens.fov_offset_min, self.sens.fov_offset_max]
-            else:
-                valid_fov = [0, 5] * u.deg
+            evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
+            # Only calculate event weights if sensitivity should be computed
+            if self.do_benchmarks and self.do_background:
+                evs["weight"] = 1.0
+                for i in range(len(self.sens.fov_offset_bins) - 1):
+                    low = self.sens.fov_offset_bins[i]
+                    high = self.sens.fov_offset_bins[i + 1]
+                    fov_mask = evs["true_source_fov_offset"] >= low
+                    fov_mask &= evs["true_source_fov_offset"] < high
+                    evs[fov_mask] = sel.make_event_weights(
+                        evs[fov_mask],
+                        meta["spectrum"],
+                        (low, high),
+                    )
 
-            evs, cnt, meta = sel.load_preselected_events(
-                chunk_size=self.chunk_size,
-                obs_time=self.obs_time,
-                valid_fov=valid_fov,
-            )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
             reduced_events[f"{sel.kind}_meta"] = meta

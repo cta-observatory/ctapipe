@@ -57,7 +57,7 @@ class IrfEventSelector(Tool):
     ).tag(config=True)
 
     obs_time = AstroQuantity(
-        default_value=50.0 * u.hour,
+        default_value=u.Quantity(50, u.hour),
         physical_type=u.physical.time,
         help="Observation time in the form ``<value> <unit>``",
     ).tag(config=True)
@@ -122,16 +122,19 @@ class IrfEventSelector(Tool):
         ]
 
     def start(self):
-        # TODO: this event loading code seems to be largely repeated between all the tools,
-        # try to refactor to a common solution
-
         reduced_events = dict()
         for sel in self.particles:
-            evs, cnt, meta = sel.load_preselected_events(
-                self.chunk_size,
-                self.obs_time,
-                [self.optimizer.min_bkg_fov_offset, self.optimizer.max_bkg_fov_offset],
-            )
+            evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
+            if self.optimization_algorithm == "PointSourceSensitivityOptimizer":
+                evs = sel.make_event_weights(
+                    evs,
+                    meta["spectrum"],
+                    (
+                        self.optimizer.min_bkg_fov_offset,
+                        self.optimizer.max_bkg_fov_offset,
+                    ),
+                )
+
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
             if sel.kind == "gammas":
