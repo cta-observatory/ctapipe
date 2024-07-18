@@ -35,7 +35,7 @@ class StatisticsExtractor(TelescopeComponent):
         masked_pixels_of_sample=None,
         chunk_shift=None,
         col_name="image",
-    ) -> list:
+    ) -> dict:
         """
         Divide table into chunks and extract the statistical values.
 
@@ -62,8 +62,9 @@ class StatisticsExtractor(TelescopeComponent):
 
         Returns
         -------
-        List StatisticsContainer:
-            List of extracted statistics and extraction chunks
+        dict
+            dictionary where keys are the first timestamp of each chunk and values are `StatisticsContainer`
+            instances containing the extracted statistics (mean, median, std) for that chunk.
         """
 
         # Check if the statistics of the table is sufficient to extract at least one chunk.
