@@ -22,6 +22,7 @@ them (as in `Activity.from_provenance()`)
     some_astropy_table.write("output.ecsv")
 
 """
+import gzip
 import os
 import uuid
 import warnings
@@ -29,6 +30,8 @@ from collections import OrderedDict, defaultdict
 from contextlib import ExitStack
 
 import tables
+from astropy.io import fits
+from astropy.table import Table
 from astropy.time import Time
 from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
@@ -45,7 +48,8 @@ __all__ = [
     "Activity",
     "Instrument",
     "write_to_hdf5",
-    "read_metadata",
+    "read_hdf5_metadata",
+    "read_reference_metadata",
 ]
 
 
@@ -295,6 +299,12 @@ class Reference(HasTraits):
             instrument=Instrument(**kwargs["instrument"]),
         )
 
+    @classmethod
+    def from_fits(cls, header):
+        # for now, just use from_dict, but we might need special handling
+        # of some keys
+        return cls.from_dict(header)
+
     def __repr__(self):
         return str(self.to_dict())
 
@@ -320,27 +330,72 @@ def write_to_hdf5(metadata, h5file, path="/"):
             node._v_attrs[key] = value  # pylint: disable=protected-access
 
 
-def read_metadata(h5file, path="/"):
+def read_hdf5_metadata(h5file, path="/"):
     """
-    Read metadata from an hdf5 file
-
-    Parameters
-    ----------
-    h5filename: string, Path, or `tables.file.File`
-        hdf5 file
-    path: string
-        default: '/' is the path to ctapipe global metadata
-
-    Returns
-    -------
-    metadata: dictionary
+    Read hdf5 attributes into a dict
     """
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
 
         node = h5file.get_node(path)
-        metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
-        return metadata
+        return {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
 
-    raise OSError("Could not read metadata")
+
+def read_reference_metadata(path):
+    """Read CTAO data product metadata from path
+
+    File is first opened to determine file format, then the metadata
+    is read. Supported are currently FITS and HDF5.
+    """
+    header_bytes = 8
+    with open(path, "rb") as f:
+        first_bytes = f.read(header_bytes)
+
+    if first_bytes.startswith(b"\x1f\x8b"):
+        with gzip.open(path, "rb") as f:
+            first_bytes = f.read(header_bytes)
+
+    if first_bytes.startswith(b"\x89HDF"):
+        return _read_reference_metadata_hdf5(path)
+
+    if first_bytes.startswith(b"SIMPLE"):
+        return _read_reference_metadata_fits(path)
+
+    if first_bytes.startswith(b"# %ECSV"):
+        return Reference.from_dict(Table.read(path).meta)
+
+    raise ValueError(
+        f"'{path}' is not one of the supported file formats: fits, hdf5, ecsv"
+    )
+
+
+def _read_reference_metadata_hdf5(h5file, path="/"):
+    meta = read_hdf5_metadata(h5file, path)
+    return Reference.from_dict(meta)
+
+
+def _read_reference_metadata_ecsv(path):
+    return Reference.from_dict(Table.read(path).meta)
+
+
+def _read_reference_metadata_fits(fitsfile, hdu: int | str = 0):
+    """
+    Read reference metadata from a fits file
+
+    Parameters
+    ----------
+    fitsfile: string, Path, or `tables.file.File`
+        hdf5 file
+    hdu: int or str
+        HDU index or name.
+
+    Returns
+    -------
+    reference_metadata: Reference
+    """
+    with ExitStack() as stack:
+        if not isinstance(fitsfile, fits.HDUList):
+            fitsfile = stack.enter_context(fits.open(fitsfile))
+
+        return Reference.from_fits(fitsfile[hdu].header)

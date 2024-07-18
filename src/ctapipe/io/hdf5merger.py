@@ -247,7 +247,7 @@ class HDF5Merger(Component):
 
     def _read_meta(self, h5file):
         try:
-            return metadata.Reference.from_dict(metadata.read_metadata(h5file))
+            return metadata.read_reference_metadata_hdf5(h5file)
         except Exception:
             raise CannotMerge(
                 f"CTA Reference meta not found in input file: {h5file.filename}"
