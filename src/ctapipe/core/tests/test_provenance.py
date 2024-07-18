@@ -4,6 +4,7 @@ import pytest
 
 from ctapipe.core import Provenance
 from ctapipe.core.provenance import _ActivityProvenance
+from ctapipe.io.metadata import Reference
 
 
 @pytest.fixture
@@ -15,19 +16,18 @@ def provenance(monkeypatch):
     prov = Provenance()
     monkeypatch.setattr(prov, "_activities", [])
     monkeypatch.setattr(prov, "_finished_activities", [])
-
-    prov.start_activity("test1")
-    prov.add_input_file("input.txt")
-    prov.add_output_file("output.txt")
-    prov.start_activity("test2")
-    prov.add_input_file("input_a.txt")
-    prov.add_input_file("input_b.txt")
-    prov.finish_activity("test2")
-    prov.finish_activity("test1")
     return prov
 
 
 def test_provenance_activity_names(provenance):
+    provenance.start_activity("test1")
+    provenance.add_input_file("input.txt")
+    provenance.add_output_file("output.txt")
+    provenance.start_activity("test2")
+    provenance.add_input_file("input_a.txt")
+    provenance.add_input_file("input_b.txt")
+    provenance.finish_activity("test2")
+    provenance.finish_activity("test1")
     assert set(provenance.finished_activity_names) == {"test2", "test1"}
 
 
@@ -52,6 +52,8 @@ def test_provenence_contextmanager():
 
 
 def test_provenance_json(provenance: Provenance):
+    provenance.start_activity("test1")
+    provenance.finish_activity("test1")
     data = json.loads(provenance.as_json())
 
     activity = data[0]
@@ -60,3 +62,17 @@ def test_provenance_json(provenance: Provenance):
     packages = activity["system"]["python"].get("packages")
     assert isinstance(packages, list)
     assert any(p["name"] == "numpy" for p in packages)
+
+
+def test_provenance_input_reference_meta(provenance: Provenance, dl1_file):
+    provenance.start_activity("test1")
+    provenance.add_input_file(dl1_file, "events")
+    provenance.finish_activity("test1")
+    data = json.loads(provenance.as_json())
+
+    inputs = data[0]["input"]
+    assert len(inputs) == 1
+    input_meta = inputs[0]
+    assert "reference_meta" in input_meta
+    assert "CTA PRODUCT ID" in input_meta["reference_meta"]
+    Reference.from_dict(input_meta["reference_meta"])

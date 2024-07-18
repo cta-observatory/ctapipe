@@ -11,6 +11,7 @@ import os
 import platform
 import sys
 import uuid
+import warnings
 from collections import UserList
 from contextlib import contextmanager
 from importlib import import_module
@@ -55,6 +56,10 @@ def get_module_version(name):
             return "unknown"
     except ImportError:
         return "not installed"
+
+
+class MissingReferenceMetadata(UserWarning):
+    """Warning raised if reference metadata could not be read from input file."""
 
 
 class Provenance(metaclass=Singleton):
@@ -251,12 +256,18 @@ class _ActivityProvenance:
         role: str
             role name that this input satisfies
         """
-        self._prov["input"].append(dict(url=url, role=role))
+        reference_meta = self._get_reference_meta(url=url)
+        self._prov["input"].append(
+            dict(url=url, role=role, reference_meta=reference_meta)
+        )
 
     def register_output(self, url, role=None):
         """
         Add a URL of a file to the list of outputs (can be a filename or full
         url, if no URL specifier is given, assume 'file://')
+
+        Should only be called once the file is finalized, so that reference metadata
+        can be read.
 
         Parameters
         ----------
@@ -265,7 +276,10 @@ class _ActivityProvenance:
         role: str
             role name that this output satisfies
         """
-        self._prov["output"].append(dict(url=url, role=role))
+        reference_meta = self._get_reference_meta(url=url)
+        self._prov["output"].append(
+            dict(url=url, role=role, reference_meta=reference_meta)
+        )
 
     def register_config(self, config):
         """add a dictionary of configuration parameters to this activity"""
@@ -301,6 +315,18 @@ class _ActivityProvenance:
     @property
     def provenance(self):
         return self._prov
+
+    def _get_reference_meta(self, url):
+        # here to prevent circular imports / top-level cross-dependencies
+        from ..io.metadata import read_reference_metadata
+
+        try:
+            return read_reference_metadata(url).to_dict()
+        except Exception:
+            warnings.warn(
+                f"Could not read reference metadata for input file: {url}",
+                MissingReferenceMetadata,
+            )
 
 
 def _get_python_packages():
