@@ -1,4 +1,5 @@
 """module containing optimization related functions and classes"""
+
 import operator
 from abc import abstractmethod
 
@@ -141,7 +142,7 @@ class CutOptimizerBase(Component):
         default_value=5,
     ).tag(config=True)
 
-    min_fov_offset = AstroQuantity(
+    min_bkg_fov_offset = AstroQuantity(
         help=(
             "Minimum distance from the fov center for background events "
             "to be taken into account"
@@ -150,7 +151,7 @@ class CutOptimizerBase(Component):
         physical_type=u.physical.angle,
     ).tag(config=True)
 
-    max_fov_offset = AstroQuantity(
+    max_bkg_fov_offset = AstroQuantity(
         help=(
             "Maximum distance from the fov center for background events "
             "to be taken into account"
@@ -342,11 +343,11 @@ class PercentileCuts(CutOptimizerBase):
         result_saver.set_result(
             gh_cuts=gh_cuts,
             valid_energy=[self.reco_energy_min, self.reco_energy_max],
-            valid_offset=[self.min_fov_offset, self.max_fov_offset],
+            # A single set of cuts is calculated for the whole fov atm
+            valid_offset=[0 * u.deg, np.inf * u.deg],
             clf_prefix=clf_prefix,
             theta_cuts=theta_cuts if point_like else None,
         )
-
         return result_saver
 
 
@@ -420,10 +421,10 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             theta_cuts["low"] = reco_energy_bins[:-1]
             theta_cuts["center"] = 0.5 * (reco_energy_bins[:-1] + reco_energy_bins[1:])
             theta_cuts["high"] = reco_energy_bins[1:]
-            theta_cuts["cut"] = self.max_fov_offset
+            theta_cuts["cut"] = self.max_bkg_fov_offset
             self.log.info(
                 "Optimizing G/H separation cut for best sensitivity "
-                "with `max_fov_radius` as theta cut."
+                "with `max_bkg_fov_offset` as theta cut."
             )
 
         gh_cut_efficiencies = np.arange(
@@ -431,7 +432,6 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             self.max_gh_cut_efficiency + self.gh_cut_efficiency_step / 2,
             self.gh_cut_efficiency_step,
         )
-
         opt_sens, gh_cuts = optimize_gh_cut(
             signal,
             background,
@@ -440,8 +440,8 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             op=operator.ge,
             theta_cuts=theta_cuts,
             alpha=alpha,
-            fov_offset_max=self.max_fov_offset,
-            fov_offset_min=self.min_fov_offset,
+            fov_offset_max=self.max_bkg_fov_offset,
+            fov_offset_min=self.min_bkg_fov_offset,
         )
         valid_energy = self._get_valid_energy_range(opt_sens)
 
@@ -463,11 +463,11 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         result_saver.set_result(
             gh_cuts=gh_cuts,
             valid_energy=valid_energy,
-            valid_offset=[self.min_fov_offset, self.max_fov_offset],
+            # A single set of cuts is calculated for the whole fov atm
+            valid_offset=[0 * u.deg, np.inf * u.deg],
             clf_prefix=clf_prefix,
             theta_cuts=theta_cuts_opt if point_like else None,
         )
-
         return result_saver
 
     def _get_valid_energy_range(self, opt_sens):

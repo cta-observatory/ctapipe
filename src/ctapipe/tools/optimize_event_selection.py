@@ -130,7 +130,7 @@ class IrfEventSelector(Tool):
             evs, cnt, meta = sel.load_preselected_events(
                 self.chunk_size,
                 self.obs_time,
-                [self.optimizer.min_fov_offset, self.optimizer.max_fov_offset],
+                [self.optimizer.min_bkg_fov_offset, self.optimizer.max_bkg_fov_offset],
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt

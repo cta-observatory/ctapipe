@@ -47,7 +47,7 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     range_check_error = Bool(
-        True,
+        False,
         help="Raise error if asking for IRFs outside range where cut optimisation is valid",
     ).tag(config=True)
 
@@ -219,11 +219,6 @@ class IrfTool(Tool):
             valid_range=self.opt_result.valid_energy,
             raise_error=self.range_check_error,
         )
-        check_fov_offset_bins = partial(
-            check_bins_in_range,
-            valid_range=self.opt_result.valid_offset,
-            raise_error=self.range_check_error,
-        )
         self.particles = [
             EventsLoader(
                 parent=self,
@@ -262,29 +257,16 @@ class IrfTool(Tool):
             check_e_bins(
                 bins=self.bkg.reco_energy_bins, source="background reco energy"
             )
-            check_fov_offset_bins(
-                bins=self.bkg.fov_offset_bins, source="background fov offset"
-            )
 
         self.edisp = EnergyMigrationMakerBase.from_name(
             self.edisp_parameterization, parent=self
         )
-        check_e_bins(bins=self.edisp.true_energy_bins, source="Edisp true energy")
-        check_fov_offset_bins(
-            bins=self.edisp.fov_offset_bins, source="Edisp fov offset"
-        )
         self.aeff = EffectiveAreaMakerBase.from_name(
             self.aeff_parameterization, parent=self
         )
-        check_e_bins(bins=self.aeff.true_energy_bins, source="Aeff true energy")
-        check_fov_offset_bins(bins=self.aeff.fov_offset_bins, source="Aeff fov offset")
 
         if self.full_enclosure:
             self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
-            check_e_bins(bins=self.psf.true_energy_bins, source="PSF true energy")
-            check_fov_offset_bins(
-                bins=self.psf.fov_offset_bins, source="PSF fov offset"
-            )
 
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
@@ -293,34 +275,19 @@ class IrfTool(Tool):
             self.ang_res = AngularResolutionMakerBase.from_name(
                 self.ang_res_parameterization, parent=self
             )
-            check_e_bins(
-                bins=self.ang_res.true_energy_bins
-                if self.ang_res.use_true_energy
-                else self.ang_res.reco_energy_bins,
-                source="Angular resolution energy",
-            )
-            check_fov_offset_bins(
-                bins=self.ang_res.fov_offset_bins,
-                source="Angular resolution fov offset",
-            )
+            if not self.ang_res.use_true_energy:
+                check_e_bins(
+                    bins=self.ang_res.reco_energy_bins,
+                    source="Angular resolution energy",
+                )
             self.bias_res = EnergyBiasResolutionMakerBase.from_name(
                 self.energy_bias_res_parameterization, parent=self
-            )
-            check_e_bins(
-                bins=self.bias_res.true_energy_bins,
-                source="Bias resolution true energy",
-            )
-            check_fov_offset_bins(
-                bins=self.bias_res.fov_offset_bins, source="Bias resolution fov offset"
             )
             self.sens = SensitivityMakerBase.from_name(
                 self.sens_parameterization, parent=self
             )
             check_e_bins(
                 bins=self.sens.reco_energy_bins, source="Sensitivity reco energy"
-            )
-            check_fov_offset_bins(
-                bins=self.sens.fov_offset_bins, source="Sensitivity fov offset"
             )
 
     def calculate_selections(self, reduced_events: dict) -> dict:
@@ -466,7 +433,7 @@ class IrfTool(Tool):
                 theta_cuts["center"] = 0.5 * (
                     self.sens.reco_energy_bins[:-1] + self.sens.reco_energy_bins[1:]
                 )
-                theta_cuts["cut"] = self.opt_result.valid_offset.max
+                theta_cuts["cut"] = self.sens.fov_offset_max
             else:
                 theta_cuts = self.opt_result.theta_cuts
 
@@ -516,10 +483,18 @@ class IrfTool(Tool):
                 sel.epp.gammaness_classifier = self.opt_result.gh_cuts.meta["CLFNAME"]
 
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
+            # TODO: This fov range is only used for the event weights for the sensitivity calculation.
+            # This should only be done if `do_benchmarks == True` and for each fov bin
+            # for which the sensitivity is calculated.
+            if self.do_benchmarks:
+                valid_fov = [self.sens.fov_offset_min, self.sens.fov_offset_max]
+            else:
+                valid_fov = [0, 5] * u.deg
+
             evs, cnt, meta = sel.load_preselected_events(
-                self.chunk_size,
-                self.obs_time,
-                self.opt_result.valid_offset,
+                chunk_size=self.chunk_size,
+                obs_time=self.obs_time,
+                valid_fov=valid_fov,
             )
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt
