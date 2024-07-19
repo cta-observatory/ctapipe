@@ -38,7 +38,7 @@ dependencies = [
     "joblib",
     "matplotlib ~=3.0",
     "numba >=0.56",
-    "numpy ~=1.16",
+    "numpy >=1.23,<3.0.0a0",
     "psutil",
     "pyyaml >=5.1",
     "requests",
