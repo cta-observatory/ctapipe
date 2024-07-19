@@ -304,9 +304,17 @@ class _ActivityProvenance:
 
 
 def _get_python_packages():
+    def _sortkey(dist):
+        """Sort packages by name, case insensitive"""
+        # get is needed to avoid errors / deprecation warning
+        # in case packages with broken metadata are in the system
+        # see e.g. https://github.com/pypa/setuptools/issues/4482
+        return dist.metadata.get("Name", "").lower()
+
     return [
-        {"name": p.name, "version": p.version}
-        for p in sorted(distributions(), key=lambda d: (d.name or "").lower())
+        {"name": p.name, "version": p.metadata.get("Version", "<unknown>")}
+        for p in sorted(distributions(), key=_sortkey)
+        if p.metadata.get("Name") is not None
     ]
 
 
