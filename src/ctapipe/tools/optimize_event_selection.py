@@ -24,7 +24,13 @@ class IrfEventSelector(Tool):
     ).tag(config=True)
 
     proton_file = traits.Path(
-        default_value=None, directory_ok=False, help="Proton input filename and path"
+        default_value=None,
+        directory_ok=False,
+        allow_none=True,
+        help=(
+            "Proton input filename and path. "
+            "Not needed, if ``optimization_algorithm = 'PercentileCuts'``."
+        ),
     ).tag(config=True)
 
     proton_sim_spectrum = traits.UseEnum(
@@ -34,7 +40,13 @@ class IrfEventSelector(Tool):
     ).tag(config=True)
 
     electron_file = traits.Path(
-        default_value=None, directory_ok=False, help="Electron input filename and path"
+        default_value=None,
+        directory_ok=False,
+        allow_none=True,
+        help=(
+            "Electron input filename and path. "
+            "Not needed, if ``optimization_algorithm = 'PercentileCuts'``."
+        ),
     ).tag(config=True)
 
     electron_sim_spectrum = traits.UseEnum(
@@ -106,20 +118,25 @@ class IrfEventSelector(Tool):
                 kind="gammas",
                 file=self.gamma_file,
                 target_spectrum=self.gamma_sim_spectrum,
-            ),
-            EventsLoader(
-                parent=self,
-                kind="protons",
-                file=self.proton_file,
-                target_spectrum=self.proton_sim_spectrum,
-            ),
-            EventsLoader(
-                parent=self,
-                kind="electrons",
-                file=self.electron_file,
-                target_spectrum=self.electron_sim_spectrum,
-            ),
+            )
         ]
+        if self.optimization_algorithm != "PercentileCuts":
+            self.particles.append(
+                EventsLoader(
+                    parent=self,
+                    kind="protons",
+                    file=self.proton_file,
+                    target_spectrum=self.proton_sim_spectrum,
+                )
+            )
+            self.particles.append(
+                EventsLoader(
+                    parent=self,
+                    kind="electrons",
+                    file=self.electron_file,
+                    target_spectrum=self.electron_sim_spectrum,
+                )
+            )
 
     def start(self):
         reduced_events = dict()
@@ -141,34 +158,42 @@ class IrfEventSelector(Tool):
                 self.sim_info = meta["sim_info"]
                 self.gamma_spectrum = meta["spectrum"]
 
-        self.log.debug(
-            "Loaded %d gammas, %d protons, %d electrons"
-            % (
-                reduced_events["gammas_count"],
-                reduced_events["protons_count"],
-                reduced_events["electrons_count"],
-            )
-        )
-        self.log.debug(
-            "Keeping %d gammas, %d protons, %d electrons"
-            % (
-                len(reduced_events["gammas"]),
-                len(reduced_events["protons"]),
-                len(reduced_events["electrons"]),
-            )
-        )
         self.signal_events = reduced_events["gammas"]
-        self.background_events = vstack(
-            [reduced_events["protons"], reduced_events["electrons"]]
-        )
 
-        self.log.info(
-            "Optimizing cuts using %d signal and %d background events"
-            % (len(self.signal_events), len(self.background_events)),
-        )
+        if self.optimization_algorithm == "PercentileCuts":
+            self.log.debug("Loaded %d gammas" % reduced_events["gammas_count"])
+            self.log.debug("Keeping %d gammas" % len(reduced_events["gammas"]))
+            self.log.info("Optimizing cuts using %d signal" % len(self.signal_events))
+        else:
+            self.log.debug(
+                "Loaded %d gammas, %d protons, %d electrons"
+                % (
+                    reduced_events["gammas_count"],
+                    reduced_events["protons_count"],
+                    reduced_events["electrons_count"],
+                )
+            )
+            self.log.debug(
+                "Keeping %d gammas, %d protons, %d electrons"
+                % (
+                    len(reduced_events["gammas"]),
+                    len(reduced_events["protons"]),
+                    len(reduced_events["electrons"]),
+                )
+            )
+            self.background_events = vstack(
+                [reduced_events["protons"], reduced_events["electrons"]]
+            )
+            self.log.info(
+                "Optimizing cuts using %d signal and %d background events"
+                % (len(self.signal_events), len(self.background_events)),
+            )
+
         result = self.optimizer.optimize_cuts(
             signal=self.signal_events,
-            background=self.background_events,
+            background=self.background_events
+            if self.optimization_algorithm != "PercentileCuts"
+            else None,
             alpha=self.alpha,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
