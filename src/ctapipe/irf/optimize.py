@@ -222,7 +222,7 @@ class GhPercentileCutCalculator(Component):
             reco_energy,
             reco_energy_bins,
             smoothing=self.smoothing,
-            percentile=self.target_percentile,
+            percentile=100 - self.target_percentile,
             fill_value=gammaness.max(),
             min_events=self.min_counts,
         )
