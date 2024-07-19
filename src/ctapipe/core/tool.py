@@ -446,10 +446,7 @@ class Tool(Application):
             except Exception as err:
                 current_exception = err
                 exit_status = getattr(err, "exit_code", 1)
-                if exit_status == 1:
-                    self.log.exception("Caught unexpected exception: %s", err)
-                else:
-                    self.log.error("Caught exception: %s", err)
+                self.log.exception("Caught unexpected exception: %s", err)
                 Provenance().finish_activity(
                     activity_name=self.name, status="error", exit_code=exit_status
                 )
