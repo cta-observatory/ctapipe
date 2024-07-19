@@ -1,6 +1,7 @@
 """
 common pytest fixtures for tests in ctapipe
 """
+
 import shutil
 from copy import deepcopy
 
@@ -707,3 +708,79 @@ def provenance(monkeypatch):
     monkeypatch.setattr(prov, "_activities", [])
     monkeypatch.setattr(prov, "_finished_activities", [])
     return prov
+
+
+@pytest.fixture(scope="session")
+def gamma_diffuse_full_reco_file(
+    gamma_train_clf,
+    particle_classifier_path,
+    model_tmp_path,
+):
+    """
+    Energy reconstruction and geometric origin reconstruction have already been done.
+    """
+    from ctapipe.tools.apply_models import ApplyModels
+
+    output_path = model_tmp_path / "gamma_diffuse_full_reco.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={gamma_train_clf}",
+            f"--output={output_path}",
+            f"--reconstructor={particle_classifier_path}",
+            "--no-dl1-parameters",
+            "--StereoMeanCombiner.weights=konrad",
+        ],
+        raises=True,
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
+def proton_full_reco_file(
+    proton_train_clf,
+    particle_classifier_path,
+    model_tmp_path,
+):
+    """
+    Energy reconstruction and geometric origin reconstruction have already been done.
+    """
+    from ctapipe.tools.apply_models import ApplyModels
+
+    output_path = model_tmp_path / "proton_full_reco.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={proton_train_clf}",
+            f"--output={output_path}",
+            f"--reconstructor={particle_classifier_path}",
+            "--no-dl1-parameters",
+            "--StereoMeanCombiner.weights=konrad",
+        ],
+        raises=True,
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
+def irf_events_loader_test_config():
+    from traitlets.config import Config
+
+    return Config(
+        {
+            "EventPreProcessor": {
+                "energy_reconstructor": "ExtraTreesRegressor",
+                "geometry_reconstructor": "HillasReconstructor",
+                "gammaness_classifier": "ExtraTreesClassifier",
+                "quality_criteria": [
+                    (
+                        "multiplicity 4",
+                        "np.count_nonzero(tels_with_trigger,axis=1) >= 4",
+                    ),
+                    ("valid classifier", "ExtraTreesClassifier_is_valid"),
+                    ("valid geom reco", "HillasReconstructor_is_valid"),
+                    ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+                ],
+            }
+        }
+    )

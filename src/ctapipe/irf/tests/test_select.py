@@ -3,9 +3,6 @@ import pytest
 from astropy.table import Table
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import PowerLaw
-from traitlets.config import Config
-
-from ctapipe.core.tool import run_tool
 
 
 @pytest.fixture(scope="module")
@@ -24,58 +21,6 @@ def dummy_table():
             "az_geom": [12.5, 13, 11.8, 15.1, 14.7, 12.8] * u.deg,
         }
     )
-
-
-@pytest.fixture(scope="module")
-def gamma_diffuse_full_reco_file(
-    gamma_train_clf,
-    particle_classifier_path,
-    model_tmp_path,
-):
-    """
-    Energy reconstruction and geometric origin reconstruction have already been done.
-    """
-    from ctapipe.tools.apply_models import ApplyModels
-
-    output_path = model_tmp_path / "gamma_diffuse_full_reco.dl2.h5"
-    run_tool(
-        ApplyModels(),
-        argv=[
-            f"--input={gamma_train_clf}",
-            f"--output={output_path}",
-            f"--reconstructor={particle_classifier_path}",
-            "--no-dl1-parameters",
-            "--StereoMeanCombiner.weights=konrad",
-        ],
-        raises=True,
-    )
-    return output_path
-
-
-@pytest.fixture(scope="module")
-def proton_full_reco_file(
-    proton_train_clf,
-    particle_classifier_path,
-    model_tmp_path,
-):
-    """
-    Energy reconstruction and geometric origin reconstruction have already been done.
-    """
-    from ctapipe.tools.apply_models import ApplyModels
-
-    output_path = model_tmp_path / "proton_full_reco.dl2.h5"
-    run_tool(
-        ApplyModels(),
-        argv=[
-            f"--input={proton_train_clf}",
-            f"--output={output_path}",
-            f"--reconstructor={particle_classifier_path}",
-            "--no-dl1-parameters",
-            "--StereoMeanCombiner.weights=konrad",
-        ],
-        raises=True,
-    )
-    return output_path
 
 
 def test_normalise_column_names(dummy_table):
@@ -113,29 +58,11 @@ def test_normalise_column_names(dummy_table):
         norm_table = epp.normalise_column_names(dummy_table)
 
 
-def test_events_loader(gamma_diffuse_full_reco_file):
+def test_events_loader(gamma_diffuse_full_reco_file, irf_events_loader_test_config):
     from ctapipe.irf import EventsLoader, Spectra
 
-    config = Config(
-        {
-            "EventPreProcessor": {
-                "energy_reconstructor": "ExtraTreesRegressor",
-                "geometry_reconstructor": "HillasReconstructor",
-                "gammaness_classifier": "ExtraTreesClassifier",
-                "quality_criteria": [
-                    (
-                        "multiplicity 4",
-                        "np.count_nonzero(tels_with_trigger,axis=1) >= 4",
-                    ),
-                    ("valid classifier", "ExtraTreesClassifier_is_valid"),
-                    ("valid geom reco", "HillasReconstructor_is_valid"),
-                    ("valid energy reco", "ExtraTreesRegressor_is_valid"),
-                ],
-            }
-        }
-    )
     loader = EventsLoader(
-        config=config,
+        config=irf_events_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
