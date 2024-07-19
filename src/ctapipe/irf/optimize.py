@@ -464,7 +464,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             gh_cuts=gh_cuts,
             valid_energy=valid_energy,
             # A single set of cuts is calculated for the whole fov atm
-            valid_offset=[0 * u.deg, np.inf * u.deg],
+            valid_offset=[self.min_bkg_fov_offset, self.max_bkg_fov_offset],
             clf_prefix=clf_prefix,
             theta_cuts=theta_cuts_opt if point_like else None,
         )
