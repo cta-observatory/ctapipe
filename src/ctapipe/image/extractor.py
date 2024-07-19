@@ -1302,11 +1302,7 @@ class TwoPassWindowSum(ImageExtractor):
 
 
 class VarianceExtractor(ImageExtractor):
-
-    """
-    Calculates the variance of each sample waveform
-
-    """
+    """Calculate the variance over samples in each waveform."""
 
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
