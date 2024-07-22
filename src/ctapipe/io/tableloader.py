@@ -14,7 +14,7 @@ from astropy.utils.decorators import lazyproperty
 from ..core import Component, Provenance, traits
 from ..instrument import FocalLengthKind, SubarrayDescription
 from .astropy_helpers import join_allow_empty, read_table
-from .pointing import PointingInterpolator
+from .interpolating import Interpolator
 
 __all__ = ["TableLoader"]
 
@@ -248,7 +248,7 @@ class TableLoader(Component):
 
         Provenance().add_input_file(self.input_url, role="Event data")
 
-        self._pointing_interpolator = PointingInterpolator(
+        self._pointing_interpolator = Interpolator(
             h5file=self.h5file,
             parent=self,
         )
