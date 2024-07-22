@@ -106,10 +106,8 @@ class Interpolator(Component):
             self.interp_options["bounds_error"] = False
             self.interp_options["fill_value"] = np.nan
 
-        self._alt_interpolators = {}
-        self._az_interpolators = {}
-        self._ped_interpolators = {}
-        self._gain_interpolators = {}
+        self._interpolators = {}
+        self._secondary_interpolators = {}
 
     def add_table(self, tel_id, input_table):
         """
@@ -167,15 +165,17 @@ class Interpolator(Component):
             az = np.unwrap(az)
             alt = input_table["altitude"].quantity.to_value(u.rad)
             mjd = input_table["time"].tai.mjd
-            self._az_interpolators[tel_id] = interp1d(mjd, az, **self.interp_options)
-            self._alt_interpolators[tel_id] = interp1d(mjd, alt, **self.interp_options)
+            self._interpolators[tel_id] = interp1d(mjd, az, **self.interp_options)
+            self._secondary_interpolators[tel_id] = interp1d(
+                mjd, alt, **self.interp_options
+            )
 
         elif self.parameter_type == "pedestal":
             time = input_table["time"]
 
             ped = input_table["pedestal"]
 
-            self._ped_interpolators[tel_id] = StepInterpolator(
+            self._interpolators[tel_id] = StepInterpolator(
                 time, ped, **self.interp_options
             )
 
@@ -184,7 +184,7 @@ class Interpolator(Component):
 
             gain = input_table["gain"]
 
-            self._gain_interpolators[tel_id] = StepInterpolator(
+            self._interpolators[tel_id] = StepInterpolator(
                 time, gain, **self.interp_options
             )
 
@@ -192,11 +192,11 @@ class Interpolator(Component):
         if table_location is None:
             table_location = f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}"
 
-        pointing_table = read_table(
+        input_table = read_table(
             self.h5file,
             table_location,
         )
-        self.add_table(tel_id, pointing_table)
+        self.add_table(tel_id, input_table)
 
     def __call__(self, tel_id, time):
         """
@@ -217,16 +217,7 @@ class Interpolator(Component):
             interpolated azimuth angle
         """
 
-        if not any(
-            [
-                tel_id in x
-                for x in (
-                    self._az_interpolators,
-                    self._ped_interpolators,
-                    self._gain_interpolators,
-                )
-            ]
-        ):
+        if tel_id not in self._interpolators:
             if self.h5file is not None:
                 self._read_parameter_table(tel_id)
             else:
@@ -234,14 +225,12 @@ class Interpolator(Component):
 
         if self.parameter_type == "pointing":
             mjd = time.tai.mjd
-            az = u.Quantity(self._az_interpolators[tel_id](mjd), u.rad, copy=False)
-            alt = u.Quantity(self._alt_interpolators[tel_id](mjd), u.rad, copy=False)
+            az = u.Quantity(self._interpolators[tel_id](mjd), u.rad, copy=False)
+            alt = u.Quantity(
+                self._secondary_interpolators[tel_id](mjd), u.rad, copy=False
+            )
             return alt, az
 
-        elif self.parameter_type == "pedestal":
-            ped = self._ped_interpolators[tel_id](time)
-            return ped
-
-        elif self.parameter_type == "gain":
-            gain = self._gain_interpolators[tel_id](time)
-            return gain
+        elif self.parameter_type in ("pedestal", "gain"):
+            cal = self._interpolators[tel_id](time)
+            return cal
