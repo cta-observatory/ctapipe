@@ -94,6 +94,7 @@ class StatisticsExtractor(TelescopeComponent):
                 yield table[-self.chunk_size :]
 
         # Calculate the statistics for each chunk of images
+        units = {col: table[col_name].unit for col in ("mean", "median", "std")}
         data = defaultdict(list)
         for chunk in _get_chunks(table, chunk_shift):
             stats = self.extract(chunk[col_name].data, masked_pixels_of_sample)
@@ -105,7 +106,7 @@ class StatisticsExtractor(TelescopeComponent):
             data["median"].append(stats.median)
             data["std"].append(stats.std)
 
-        return Table(data)
+        return Table(data, units=units)
 
     @abstractmethod
     def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
