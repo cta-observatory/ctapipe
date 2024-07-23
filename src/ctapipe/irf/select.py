@@ -122,6 +122,7 @@ class EventPreProcessor(QualityQuery):
             "theta",
             "true_source_fov_offset",
             "reco_source_fov_offset",
+            "weight",
         ]
         units = {
             "true_energy": u.TeV,
@@ -257,7 +258,7 @@ class EventsLoader(Component):
         reco_nominal = reco.transform_to(nominal)
         events["reco_fov_lon"] = -reco_nominal.fov_lon  # minus for GADF
         events["reco_fov_lat"] = reco_nominal.fov_lat
-
+        events["weight"] = 1.0
         return events
 
     def make_event_weights(
