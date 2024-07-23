@@ -117,10 +117,12 @@ class Interpolator(Component):
         ----------
         tel_id : int
             Telescope id
-        pointing_table : astropy.table.Table
+        input_table : astropy.table.Table
             Table of pointing values, expected columns
             are ``time`` as ``Time`` column, ``azimuth`` and ``altitude``
-            as quantity columns.
+            as quantity columns for pointing and pointing correction data.
+            For pedestal data the quantity column is expected as
+            ``pedestal`` and for gain data as ``gain``.
         """
 
         if "gain" in set(input_table.colnames):
@@ -188,8 +190,8 @@ class Interpolator(Component):
                 time, gain, **self.interp_options
             )
 
-    def _read_parameter_table(self, tel_id, table_location=None):
-        if table_location is None:
+    def _read_parameter_table(self, tel_id, table_location="pointing"):
+        if table_location == "pointing":
             table_location = f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}"
 
         input_table = read_table(
