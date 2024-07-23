@@ -484,12 +484,12 @@ class IrfTool(Tool):
 
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
-            # Only calculate event weights if sensitivity should be computed
-            if self.do_benchmarks and self.do_background:
-                evs["weight"] = 1.0
-                for i in range(len(self.sens.fov_offset_bins) - 1):
-                    low = self.sens.fov_offset_bins[i]
-                    high = self.sens.fov_offset_bins[i + 1]
+            # Only calculate real event weights if sensitivity or background should be computed
+            if self.do_benchmarks or self.do_background:
+                fov_conf = self.bkg if self.do_background else self.sens
+                for i in range(fov_conf.fov_offset_n_bins):
+                    low = fov_conf.fov_offset_bins[i]
+                    high = fov_conf.fov_offset_bins[i + 1]
                     fov_mask = evs["true_source_fov_offset"] >= low
                     fov_mask &= evs["true_source_fov_offset"] < high
                     evs[fov_mask] = sel.make_event_weights(
