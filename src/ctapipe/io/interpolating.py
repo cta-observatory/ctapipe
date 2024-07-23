@@ -125,35 +125,8 @@ class Interpolator(Component):
             ``pedestal`` and for gain data as ``gain``.
         """
 
-        if "gain" in set(input_table.colnames):
-            self.parameter_type = "gain"
-            # here i want to detect if the table contains pointing, gain or pedestal information
-            # can this be a loop? Should this be a function?
-            missing = {"time", "gain"} - set(input_table.colnames)
-            if len(missing) > 0:
-                raise ValueError(f"Table is missing required column(s): {missing}")
+        self._identify_data(input_table)
 
-        elif "pedestal" in set(input_table.colnames):
-            self.parameter_type = "pedestal"
-            missing = {"time", "pedestal"} - set(input_table.colnames)
-            if len(missing) > 0:
-                raise ValueError(f"Table is missing required column(s): {missing}")
-
-        elif "azimuth" in set(input_table.colnames):
-            self.parameter_type = "pointing"
-            missing = {"time", "azimuth", "altitude"} - set(input_table.colnames)
-            if len(missing) > 0:
-                raise ValueError(f"Table is missing required column(s): {missing}")
-
-            for col in ("azimuth", "altitude"):
-                unit = input_table[col].unit
-                if unit is None or not u.rad.is_equivalent(unit):
-                    raise ValueError(f"{col} must have units compatible with 'rad'")
-
-            if not isinstance(input_table["time"], Time):
-                raise TypeError(
-                    "'time' column of pointing table must be astropy.time.Time"
-                )
         # sort first, so it's not done twice for each interpolator
         input_table.sort("time")
         if self.parameter_type == "pointing":
@@ -172,23 +145,44 @@ class Interpolator(Component):
                 mjd, alt, **self.interp_options
             )
 
-        elif self.parameter_type == "pedestal":
+        elif self.parameter_type in ("pedestal", "gain"):
             time = input_table["time"]
-
-            ped = input_table["pedestal"]
+            if self.parameter_type == "gain":
+                cal = input_table["gain"]
+            else:
+                cal = input_table["pedestal"]
 
             self._interpolators[tel_id] = StepInterpolator(
-                time, ped, **self.interp_options
+                time, cal, **self.interp_options
             )
 
-        elif self.parameter_type == "gain":
-            time = input_table["time"]
+    def _identify_data(self, input_table):
+        missing = {}
 
-            gain = input_table["gain"]
+        if "gain" in set(input_table.colnames):
+            self.parameter_type = "gain"
+            # here i want to detect if the table contains pointing, gain or pedestal information
+            # can this be a loop? Should this be a function?
+            missing = {"time", "gain"} - set(input_table.colnames)
 
-            self._interpolators[tel_id] = StepInterpolator(
-                time, gain, **self.interp_options
-            )
+        elif "pedestal" in set(input_table.colnames):
+            self.parameter_type = "pedestal"
+            missing = {"time", "pedestal"} - set(input_table.colnames)
+
+        elif "azimuth" in set(input_table.colnames):
+            self.parameter_type = "pointing"
+            missing = {"time", "azimuth", "altitude"} - set(input_table.colnames)
+            for col in ("azimuth", "altitude"):
+                unit = input_table[col].unit
+                if unit is None or not u.rad.is_equivalent(unit):
+                    raise ValueError(f"{col} must have units compatible with 'rad'")
+
+            if not isinstance(input_table["time"], Time):
+                raise TypeError(
+                    "'time' column of pointing table must be astropy.time.Time"
+                )
+        if len(missing) > 0:
+            raise ValueError(f"Table is missing required column(s): {missing}")
 
     def _read_parameter_table(self, tel_id, table_location="pointing"):
         if table_location == "pointing":

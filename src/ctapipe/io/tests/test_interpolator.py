@@ -176,13 +176,15 @@ def test_bounds():
     interpolator_pedestal.add_table(1, table_pedestal)
     interpolator_gain.add_table(1, table_gain)
 
-    with pytest.raises(ValueError, match="below the interpolation range"):
+    error_message = "below the interpolation range"
+
+    with pytest.raises(ValueError, match=error_message):
         interpolator_pointing(tel_id=1, time=t0 - 0.1 * u.s)
 
-    with pytest.raises(ValueError, match="below the interpolation range"):
+    with pytest.raises(ValueError, match=error_message):
         interpolator_pedestal(tel_id=1, time=-0.1)
 
-    with pytest.raises(ValueError, match="below the interpolation range"):
+    with pytest.raises(ValueError, match=error_message):
         interpolator_gain(tel_id=1, time=-0.1)
 
     with pytest.raises(ValueError, match="above the interpolation range"):
