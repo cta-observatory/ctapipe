@@ -107,14 +107,14 @@ class Interpolator(Component):
     def __call__(self, tel_id, time):
         if tel_id not in self._interpolators:
             if self.h5file is not None:
-                self._read_parameter_table(tel_id)
+                self._read_parameter_table(tel_id)  # might need to be removed
             else:
                 raise KeyError(f"No table available for tel_id {tel_id}")
 
+    @abstractmethod
     def _read_parameter_table(self, tel_id):
         pass  # this method is called when you try to interpolate, but no table has been added.
         # It will try adding a table from the hdf5 file specified in __init__
-        # Each type of interpolator will need to get the data from a different point in the file
 
 
 class PointingInterpolator(Interpolator):
@@ -244,3 +244,10 @@ class CalibrationInterpolator(Interpolator):
         time = input_table["time"]
         cal = input_table[par_name]
         self._interpolators[tel_id] = StepFunction(time, cal, **self.interp_options)
+
+    def _read_parameter_table(self, tel_id):
+        input_table = read_table(
+            self.h5file,
+            f"/dl0/calibration/tel_{tel_id:03d}",  # needs to be updated once we determine where calibration data is put, might remove method from base class
+        )
+        self.add_table(tel_id, input_table)

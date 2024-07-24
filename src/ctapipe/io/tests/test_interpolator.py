@@ -5,48 +5,13 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
+from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
+
 t0 = Time("2022-01-01T00:00:00")
-
-
-def test_simple():
-    """Test interpolator"""
-    from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
-
-    table = Table(
-        {
-            "time": t0 + np.arange(0.0, 10.1, 2.0) * u.s,
-            "azimuth": np.linspace(0.0, 10.0, 6) * u.deg,
-            "altitude": np.linspace(70.0, 60.0, 6) * u.deg,
-        },
-    )
-
-    table_cal = Table(
-        {
-            "time": np.arange(0.0, 10.1, 2.0),
-            "pedestal": np.reshape(np.random.normal(4.0, 1.0, 1850 * 6), (6, 1850)),
-        },
-    )
-
-    interpolator = PointingInterpolator()
-    interpolator_cal = CalibrationInterpolator()
-    interpolator.add_table(1, table)
-    interpolator_cal.add_table(1, table_cal, "pedestal")
-
-    alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)
-    assert u.isclose(alt, 69 * u.deg)
-    assert u.isclose(az, 1 * u.deg)
-
-    pedestal = interpolator_cal(tel_id=1, time=1.0)
-    assert all(pedestal == table_cal["pedestal"][0])
-    with pytest.raises(KeyError):
-        interpolator(tel_id=2, time=t0 + 1 * u.s)
-    with pytest.raises(KeyError):
-        interpolator_cal(tel_id=2, time=1.0)
 
 
 def test_azimuth_switchover():
     """Test pointing interpolation"""
-    from ctapipe.io.interpolating import PointingInterpolator
 
     table = Table(
         {
@@ -66,7 +31,6 @@ def test_azimuth_switchover():
 
 def test_invalid_input():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.interpolating import PointingInterpolator
 
     wrong_time = Table(
         {
@@ -102,8 +66,8 @@ def test_invalid_input():
 
 
 def test_hdf5(tmp_path):
+    """Test writing interpolated data to file"""
     from ctapipe.io import write_table
-    from ctapipe.io.interpolating import PointingInterpolator
 
     table = Table(
         {
@@ -124,7 +88,7 @@ def test_hdf5(tmp_path):
 
 def test_bounds():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
+    from ctapipe.io.interpolating import PointingInterpolator
 
     table_pointing = Table(
         {
@@ -157,6 +121,17 @@ def test_bounds():
     with pytest.raises(ValueError, match="above the interpolation range"):
         interpolator_pointing(tel_id=1, time=t0 + 10.2 * u.s)
 
+    alt, az = interpolator_pointing(tel_id=1, time=t0 + 1 * u.s)
+    assert u.isclose(alt, 69 * u.deg)
+    assert u.isclose(az, 1 * u.deg)
+
+    pedestal = interpolator_cal(tel_id=1, time=1.0)
+    assert all(pedestal == table_cal["pedestal"][0])
+    with pytest.raises(KeyError):
+        interpolator_pointing(tel_id=2, time=t0 + 1 * u.s)
+    with pytest.raises(KeyError):
+        interpolator_cal(tel_id=2, time=1.0)
+
     interpolator_pointing = PointingInterpolator(bounds_error=False)
     interpolator_cal = CalibrationInterpolator(bounds_error=False)
     interpolator_pointing.add_table(1, table_pointing)
@@ -169,12 +144,12 @@ def test_bounds():
 
     assert all(np.isnan(interpolator_cal(tel_id=1, time=-0.1)))
 
-    interpolator = PointingInterpolator(bounds_error=False, extrapolate=True)
-    interpolator.add_table(1, table_pointing)
-    alt, az = interpolator(tel_id=1, time=t0 - 1 * u.s)
+    interpolator_pointing = PointingInterpolator(bounds_error=False, extrapolate=True)
+    interpolator_pointing.add_table(1, table_pointing)
+    alt, az = interpolator_pointing(tel_id=1, time=t0 - 1 * u.s)
     assert u.isclose(alt, 71 * u.deg)
     assert u.isclose(az, -1 * u.deg)
 
-    alt, az = interpolator(tel_id=1, time=t0 + 11 * u.s)
+    alt, az = interpolator_pointing(tel_id=1, time=t0 + 11 * u.s)
     assert u.isclose(alt, 59 * u.deg)
     assert u.isclose(az, 11 * u.deg)
