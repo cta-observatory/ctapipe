@@ -150,7 +150,8 @@ class Reconstructor(TelescopeComponent):
         for attr, value in kwargs.items():
             setattr(instance, attr, value)
 
-        Provenance().add_input_file(path, role="reconstructor")
+        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
+        Provenance().add_input_file(path, role="reconstructor", add_meta=False)
         return instance
 
 

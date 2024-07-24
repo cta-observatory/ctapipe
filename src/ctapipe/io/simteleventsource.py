@@ -345,8 +345,12 @@ def read_atmosphere_profile_from_simtel(
 
     if isinstance(simtelfile, str | Path):
         context_manager = SimTelFile(simtelfile)
+        # FIXME: simtel files currently do not have CTAO reference
+        # metadata, should be set to True once we store metadata
         Provenance().add_input_file(
-            filename=simtelfile, role="ctapipe.atmosphere.AtmosphereDensityProfile"
+            filename=simtelfile,
+            role="ctapipe.atmosphere.AtmosphereDensityProfile",
+            add_meta=False,
         )
 
     else:
