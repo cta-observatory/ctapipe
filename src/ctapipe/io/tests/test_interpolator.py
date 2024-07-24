@@ -5,12 +5,12 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
+t0 = Time("2022-01-01T00:00:00")
+
 
 def test_simple():
     """Test interpolator"""
     from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
-
-    t0 = Time("2022-01-01T00:00:00")
 
     table = Table(
         {
@@ -47,8 +47,6 @@ def test_simple():
 def test_azimuth_switchover():
     """Test pointing interpolation"""
     from ctapipe.io.interpolating import PointingInterpolator
-
-    t0 = Time("2022-01-01T00:00:00")
 
     table = Table(
         {
@@ -107,8 +105,6 @@ def test_hdf5(tmp_path):
     from ctapipe.io import write_table
     from ctapipe.io.interpolating import PointingInterpolator
 
-    t0 = Time("2022-01-01T00:00:00")
-
     table = Table(
         {
             "time": t0 + np.arange(0.0, 10.1, 2.0) * u.s,
@@ -129,8 +125,6 @@ def test_hdf5(tmp_path):
 def test_bounds():
     """Test invalid pointing tables raise nice errors"""
     from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
-
-    t0 = Time("2022-01-01T00:00:00")
 
     table_pointing = Table(
         {

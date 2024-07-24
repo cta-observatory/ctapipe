@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Any
 
 import astropy.units as u
@@ -99,15 +100,21 @@ class Interpolator(Component):
         self._interpolators = {}
         self._secondary_interpolators = {}
 
+    @abstractmethod
     def add_table(self, tel_id, input_table):
-        # sort first, so it's not done twice for each interpolator
-        input_table.sort("time")
+        pass
 
     def __call__(self, tel_id, time):
-        pass
+        if tel_id not in self._interpolators:
+            if self.h5file is not None:
+                self._read_parameter_table(tel_id)
+            else:
+                raise KeyError(f"No table available for tel_id {tel_id}")
 
     def _read_parameter_table(self, tel_id):
-        pass
+        pass  # this method is called when you try to interpolate, but no table has been added.
+        # It will try adding a table from the hdf5 file specified in __init__
+        # Each type of interpolator will need to get the data from a different point in the file
 
 
 class PointingInterpolator(Interpolator):
@@ -130,11 +137,7 @@ class PointingInterpolator(Interpolator):
             interpolated azimuth angle
         """
 
-        if tel_id not in self._interpolators:
-            if self.h5file is not None:
-                self._read_parameter_table(tel_id)
-            else:
-                raise KeyError(f"No table available for tel_id {tel_id}")
+        super().__call__(tel_id, time)
 
         mjd = time.tai.mjd
         az = u.Quantity(self._interpolators[tel_id](mjd), u.rad, copy=False)
@@ -165,6 +168,8 @@ class PointingInterpolator(Interpolator):
 
         if not isinstance(input_table["time"], Time):
             raise TypeError("'time' column of pointing table must be astropy.time.Time")
+
+        input_table.sort("time")
 
         az = input_table["azimuth"].quantity.to_value(u.rad)
         # prepare azimuth for interpolation by "unwrapping": i.e. turning
@@ -199,7 +204,7 @@ class CalibrationInterpolator(Interpolator):
         tel_id : int
             telescope id
         time : astropy.time.Time
-            time for which to interpolate the pointing
+            time for which to interpolate the calibration data
 
         Returns
         -------
@@ -207,16 +212,12 @@ class CalibrationInterpolator(Interpolator):
             interpolated calibration quantity
         """
 
-        if tel_id not in self._interpolators:
-            if self.h5file is not None:
-                self._read_parameter_table(tel_id)
-            else:
-                raise KeyError(f"No table available for tel_id {tel_id}")
+        super().__call__(tel_id, time)
 
         cal = self._interpolators[tel_id](time)
         return cal
 
-    def add_table(self, tel_id, input_table, par_name):
+    def add_table(self, tel_id, input_table, par_name="pedestal"):
         """
         Add a table to this interpolator
 
@@ -230,6 +231,9 @@ class CalibrationInterpolator(Interpolator):
             parameter column is given through the variable ``par_name``
         par_name : str
             Name of the parameter that is to be interpolated
+            ``pedestal`` is used for pedestals, ``gain`` for gain
+            can also be the name of statistical parameters to
+            interpolate the content of StatisticsContainers
         """
 
         missing = {"time", par_name} - set(input_table.colnames)
