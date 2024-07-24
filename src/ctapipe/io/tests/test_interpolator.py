@@ -8,7 +8,7 @@ from astropy.time import Time
 
 def test_simple():
     """Test interpolator"""
-    from ctapipe.io.interpolating import Interpolator
+    from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
 
     t0 = Time("2022-01-01T00:00:00")
 
@@ -20,48 +20,33 @@ def test_simple():
         },
     )
 
-    table_pedestal = Table(
+    table_cal = Table(
         {
             "time": np.arange(0.0, 10.1, 2.0),
             "pedestal": np.reshape(np.random.normal(4.0, 1.0, 1850 * 6), (6, 1850)),
         },
     )
 
-    table_gain = Table(
-        {
-            "time": np.arange(0.0, 10.1, 2.0),
-            "gain": np.reshape(np.random.normal(1.0, 0.2, 1850 * 6), (6, 1850)),
-        },
-    )
-
-    interpolator = Interpolator()
-    interpolator_pedestal = Interpolator()
-    interpolator_gain = Interpolator()
+    interpolator = PointingInterpolator()
+    interpolator_cal = CalibrationInterpolator()
     interpolator.add_table(1, table)
-    interpolator_pedestal.add_table(1, table_pedestal)
-    interpolator_gain.add_table(1, table_gain)
+    interpolator_cal.add_table(1, table_cal, "pedestal")
 
     alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)
     assert u.isclose(alt, 69 * u.deg)
     assert u.isclose(az, 1 * u.deg)
 
-    pedestal = interpolator_pedestal(tel_id=1, time=1.0)
-    assert all(pedestal == table_pedestal["pedestal"][0])
-
-    gain = interpolator_gain(tel_id=1, time=1.0)
-    assert all(gain == table_gain["gain"][0])
-
+    pedestal = interpolator_cal(tel_id=1, time=1.0)
+    assert all(pedestal == table_cal["pedestal"][0])
     with pytest.raises(KeyError):
         interpolator(tel_id=2, time=t0 + 1 * u.s)
     with pytest.raises(KeyError):
-        interpolator_pedestal(tel_id=2, time=1.0)
-    with pytest.raises(KeyError):
-        interpolator_gain(tel_id=2, time=1.0)
+        interpolator_cal(tel_id=2, time=1.0)
 
 
 def test_azimuth_switchover():
     """Test pointing interpolation"""
-    from ctapipe.io.interpolating import Interpolator
+    from ctapipe.io.interpolating import PointingInterpolator
 
     t0 = Time("2022-01-01T00:00:00")
 
@@ -73,7 +58,7 @@ def test_azimuth_switchover():
         },
     )
 
-    interpolator = Interpolator()
+    interpolator = PointingInterpolator()
     interpolator.add_table(1, table)
 
     alt, az = interpolator(tel_id=1, time=t0 + 0.5 * u.s)
@@ -83,7 +68,7 @@ def test_azimuth_switchover():
 
 def test_invalid_input():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.interpolating import Interpolator
+    from ctapipe.io.interpolating import PointingInterpolator
 
     wrong_time = Table(
         {
@@ -93,7 +78,7 @@ def test_invalid_input():
         }
     )
 
-    interpolator = Interpolator()
+    interpolator = PointingInterpolator()
     with pytest.raises(TypeError, match="astropy.time.Time"):
         interpolator.add_table(1, wrong_time)
 
@@ -120,7 +105,7 @@ def test_invalid_input():
 
 def test_hdf5(tmp_path):
     from ctapipe.io import write_table
-    from ctapipe.io.interpolating import Interpolator
+    from ctapipe.io.interpolating import PointingInterpolator
 
     t0 = Time("2022-01-01T00:00:00")
 
@@ -135,7 +120,7 @@ def test_hdf5(tmp_path):
     path = tmp_path / "pointing.h5"
     write_table(table, path, "/dl0/monitoring/telescope/pointing/tel_001")
     with tables.open_file(path) as h5file:
-        interpolator = Interpolator(h5file)
+        interpolator = PointingInterpolator(h5file)
         alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)
         assert u.isclose(alt, 69 * u.deg)
         assert u.isclose(az, 1 * u.deg)
@@ -143,7 +128,7 @@ def test_hdf5(tmp_path):
 
 def test_bounds():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.interpolating import Interpolator
+    from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
 
     t0 = Time("2022-01-01T00:00:00")
 
@@ -155,26 +140,17 @@ def test_bounds():
         },
     )
 
-    table_pedestal = Table(
+    table_cal = Table(
         {
             "time": np.arange(0.0, 10.1, 2.0),
             "pedestal": np.reshape(np.random.normal(4.0, 1.0, 1850 * 6), (6, 1850)),
         },
     )
 
-    table_gain = Table(
-        {
-            "time": np.arange(0.0, 10.1, 2.0),
-            "gain": np.reshape(np.random.normal(1.0, 0.2, 1850 * 6), (6, 1850)),
-        },
-    )
-
-    interpolator_pointing = Interpolator()
-    interpolator_pedestal = Interpolator()
-    interpolator_gain = Interpolator()
+    interpolator_pointing = PointingInterpolator()
+    interpolator_cal = CalibrationInterpolator()
     interpolator_pointing.add_table(1, table_pointing)
-    interpolator_pedestal.add_table(1, table_pedestal)
-    interpolator_gain.add_table(1, table_gain)
+    interpolator_cal.add_table(1, table_cal, "pedestal")
 
     error_message = "below the interpolation range"
 
@@ -182,30 +158,24 @@ def test_bounds():
         interpolator_pointing(tel_id=1, time=t0 - 0.1 * u.s)
 
     with pytest.raises(ValueError, match=error_message):
-        interpolator_pedestal(tel_id=1, time=-0.1)
-
-    with pytest.raises(ValueError, match=error_message):
-        interpolator_gain(tel_id=1, time=-0.1)
+        interpolator_cal(tel_id=1, time=-0.1)
 
     with pytest.raises(ValueError, match="above the interpolation range"):
         interpolator_pointing(tel_id=1, time=t0 + 10.2 * u.s)
 
-    interpolator_pointing = Interpolator(bounds_error=False)
-    interpolator_pedestal = Interpolator(bounds_error=False)
-    interpolator_gain = Interpolator(bounds_error=False)
+    interpolator_pointing = PointingInterpolator(bounds_error=False)
+    interpolator_cal = CalibrationInterpolator(bounds_error=False)
     interpolator_pointing.add_table(1, table_pointing)
-    interpolator_pedestal.add_table(1, table_pedestal)
-    interpolator_gain.add_table(1, table_gain)
+    interpolator_cal.add_table(1, table_cal, "pedestal")
 
     for dt in (-0.1, 10.1) * u.s:
         alt, az = interpolator_pointing(tel_id=1, time=t0 + dt)
         assert np.isnan(alt.value)
         assert np.isnan(az.value)
 
-    assert all(np.isnan(interpolator_pedestal(tel_id=1, time=-0.1)))
-    assert all(np.isnan(interpolator_gain(tel_id=1, time=-0.1)))
+    assert all(np.isnan(interpolator_cal(tel_id=1, time=-0.1)))
 
-    interpolator = Interpolator(bounds_error=False, extrapolate=True)
+    interpolator = PointingInterpolator(bounds_error=False, extrapolate=True)
     interpolator.add_table(1, table_pointing)
     alt, az = interpolator(tel_id=1, time=t0 - 1 * u.s)
     assert u.isclose(alt, 71 * u.deg)

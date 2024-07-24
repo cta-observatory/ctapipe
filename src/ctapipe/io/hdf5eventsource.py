@@ -52,7 +52,7 @@ from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
-from .interpolating import Interpolator
+from .interpolating import PointingInterpolator
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
 __all__ = ["HDF5EventSource"]
@@ -585,7 +585,7 @@ class HDF5EventSource(EventSource):
 
         pointing_interpolator = None
         if POINTING_GROUP in self.file_.root:
-            pointing_interpolator = Interpolator(
+            pointing_interpolator = PointingInterpolator(
                 h5file=self.file_,
                 parent=self,
             )

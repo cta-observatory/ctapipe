@@ -11,7 +11,7 @@ from ctapipe.core import Component, traits
 from .astropy_helpers import read_table
 
 
-class StepInterpolator:
+class StepFunction:
 
     """
     Step function Interpolator for the gain and pedestals
@@ -60,16 +60,12 @@ class StepInterpolator:
 
 class Interpolator(Component):
     """
-    Interpolate pointing and calibration parameters from a monitoring table to a given timestamp.
+    Interpolator parent class.
 
     Parameters
     ----------
     h5file : None | tables.File
         A open hdf5 file with read access.
-    table_location: | str
-        location where the monitoring data is expected to be stored in that file
-    interpolation_method: | str
-        method of interpolation to be used
     """
 
     bounds_error = traits.Bool(
@@ -83,18 +79,12 @@ class Interpolator(Component):
         default_value=False,
     ).tag(config=True)
 
-    def __init__(
-        self, h5file=None, table_location=None, interpolation_method=None, **kwargs
-    ):
+    def __init__(self, h5file=None, **kwargs):
         super().__init__(**kwargs)
 
         if h5file is not None and not isinstance(h5file, tables.File):
             raise TypeError("h5file must be a tables.File")
         self.h5file = h5file
-
-        if table_location is not None and not isinstance(table_location, str):
-            raise TypeError("table_location must be a string")
-        self.table_location = table_location
 
         self.interp_options: dict[str, Any] = dict(assume_sorted=True, copy=False)
         if self.bounds_error:
@@ -110,90 +100,17 @@ class Interpolator(Component):
         self._secondary_interpolators = {}
 
     def add_table(self, tel_id, input_table):
-        """
-        Add a table to this interpolator
-
-        Parameters
-        ----------
-        tel_id : int
-            Telescope id
-        input_table : astropy.table.Table
-            Table of pointing values, expected columns
-            are ``time`` as ``Time`` column, ``azimuth`` and ``altitude``
-            as quantity columns for pointing and pointing correction data.
-            For pedestal data the quantity column is expected as
-            ``pedestal`` and for gain data as ``gain``.
-        """
-
-        self._identify_data(input_table)
-
         # sort first, so it's not done twice for each interpolator
         input_table.sort("time")
-        if self.parameter_type == "pointing":
-            az = input_table["azimuth"].quantity.to_value(u.rad)
-            # prepare azimuth for interpolation by "unwrapping": i.e. turning
-            # [359, 1] into [359, 361]. This assumes that if we get values like
-            # [359, 1] the telescope moved 2 degrees through 0, not 358 degrees
-            # the other way around. This should be true for all telescopes given
-            # the sampling speed of pointing values and their maximum movement speed.
-            # No telescope can turn more than 180° in 2 seconds.
-            az = np.unwrap(az)
-            alt = input_table["altitude"].quantity.to_value(u.rad)
-            mjd = input_table["time"].tai.mjd
-            self._interpolators[tel_id] = interp1d(mjd, az, **self.interp_options)
-            self._secondary_interpolators[tel_id] = interp1d(
-                mjd, alt, **self.interp_options
-            )
 
-        elif self.parameter_type in ("pedestal", "gain"):
-            time = input_table["time"]
-            if self.parameter_type == "gain":
-                cal = input_table["gain"]
-            else:
-                cal = input_table["pedestal"]
+    def __call__(self, tel_id, time):
+        pass
 
-            self._interpolators[tel_id] = StepInterpolator(
-                time, cal, **self.interp_options
-            )
+    def _read_parameter_table(self, tel_id):
+        pass
 
-    def _identify_data(self, input_table):
-        missing = {}
 
-        if "gain" in set(input_table.colnames):
-            self.parameter_type = "gain"
-            # here i want to detect if the table contains pointing, gain or pedestal information
-            # can this be a loop? Should this be a function?
-            missing = {"time", "gain"} - set(input_table.colnames)
-
-        elif "pedestal" in set(input_table.colnames):
-            self.parameter_type = "pedestal"
-            missing = {"time", "pedestal"} - set(input_table.colnames)
-
-        elif "azimuth" in set(input_table.colnames):
-            self.parameter_type = "pointing"
-            missing = {"time", "azimuth", "altitude"} - set(input_table.colnames)
-            for col in ("azimuth", "altitude"):
-                unit = input_table[col].unit
-                if unit is None or not u.rad.is_equivalent(unit):
-                    raise ValueError(f"{col} must have units compatible with 'rad'")
-
-            if not isinstance(input_table["time"], Time):
-                raise TypeError(
-                    "'time' column of pointing table must be astropy.time.Time"
-                )
-        if len(missing) > 0:
-            raise ValueError(f"Table is missing required column(s): {missing}")
-
-    def _read_parameter_table(self, tel_id, table_location="pointing"):
-        if table_location == "pointing":
-            table_location = f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}"
-
-        input_table = read_table(
-            self.h5file,
-            table_location,
-        )
-        self.add_table(tel_id, input_table)
-
+class PointingInterpolator(Interpolator):
     def __call__(self, tel_id, time):
         """
         Interpolate alt/az for given time and tel_id.
@@ -219,14 +136,107 @@ class Interpolator(Component):
             else:
                 raise KeyError(f"No table available for tel_id {tel_id}")
 
-        if self.parameter_type == "pointing":
-            mjd = time.tai.mjd
-            az = u.Quantity(self._interpolators[tel_id](mjd), u.rad, copy=False)
-            alt = u.Quantity(
-                self._secondary_interpolators[tel_id](mjd), u.rad, copy=False
-            )
-            return alt, az
+        mjd = time.tai.mjd
+        az = u.Quantity(self._interpolators[tel_id](mjd), u.rad, copy=False)
+        alt = u.Quantity(self._secondary_interpolators[tel_id](mjd), u.rad, copy=False)
+        return alt, az
 
-        elif self.parameter_type in ("pedestal", "gain"):
-            cal = self._interpolators[tel_id](time)
-            return cal
+    def add_table(self, tel_id, input_table):
+        """
+        Add a table to this interpolator
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope id
+        input_table : astropy.table.Table
+            Table of pointing values, expected columns
+            are ``time`` as ``Time`` column, ``azimuth`` and ``altitude``
+            as quantity columns for pointing and pointing correction data.
+        """
+
+        missing = {"time", "azimuth", "altitude"} - set(input_table.colnames)
+        if len(missing) > 0:
+            raise ValueError(f"Table is missing required column(s): {missing}")
+        for col in ("azimuth", "altitude"):
+            unit = input_table[col].unit
+            if unit is None or not u.rad.is_equivalent(unit):
+                raise ValueError(f"{col} must have units compatible with 'rad'")
+
+        if not isinstance(input_table["time"], Time):
+            raise TypeError("'time' column of pointing table must be astropy.time.Time")
+
+        az = input_table["azimuth"].quantity.to_value(u.rad)
+        # prepare azimuth for interpolation by "unwrapping": i.e. turning
+        # [359, 1] into [359, 361]. This assumes that if we get values like
+        # [359, 1] the telescope moved 2 degrees through 0, not 358 degrees
+        # the other way around. This should be true for all telescopes given
+        # the sampling speed of pointing values and their maximum movement speed.
+        # No telescope can turn more than 180° in 2 seconds.
+        az = np.unwrap(az)
+        alt = input_table["altitude"].quantity.to_value(u.rad)
+        mjd = input_table["time"].tai.mjd
+        self._interpolators[tel_id] = interp1d(mjd, az, **self.interp_options)
+        self._secondary_interpolators[tel_id] = interp1d(
+            mjd, alt, **self.interp_options
+        )
+
+    def _read_parameter_table(self, tel_id):
+        input_table = read_table(
+            self.h5file,
+            f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}",
+        )
+        self.add_table(tel_id, input_table)
+
+
+class CalibrationInterpolator(Interpolator):
+    def __call__(self, tel_id, time):
+        """
+        Interpolate pedestal or gain for a given time and tel_id.
+
+        Parameters
+        ----------
+        tel_id : int
+            telescope id
+        time : astropy.time.Time
+            time for which to interpolate the pointing
+
+        Returns
+        -------
+        cal : array [float]
+            interpolated calibration quantity
+        """
+
+        if tel_id not in self._interpolators:
+            if self.h5file is not None:
+                self._read_parameter_table(tel_id)
+            else:
+                raise KeyError(f"No table available for tel_id {tel_id}")
+
+        cal = self._interpolators[tel_id](time)
+        return cal
+
+    def add_table(self, tel_id, input_table, par_name):
+        """
+        Add a table to this interpolator
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope id
+        input_table : astropy.table.Table
+            Table of pointing values, expected columns
+            are ``time`` as ``Time`` column. The calibration
+            parameter column is given through the variable ``par_name``
+        par_name : str
+            Name of the parameter that is to be interpolated
+        """
+
+        missing = {"time", par_name} - set(input_table.colnames)
+        if len(missing) > 0:
+            raise ValueError(f"Table is missing required column(s): {missing}")
+
+        input_table.sort("time")
+        time = input_table["time"]
+        cal = input_table[par_name]
+        self._interpolators[tel_id] = StepFunction(time, cal, **self.interp_options)
