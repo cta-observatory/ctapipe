@@ -484,19 +484,17 @@ class IrfTool(Tool):
 
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
-            # Only calculate real event weights if sensitivity or background should be computed
-            if self.do_benchmarks or self.do_background:
-                fov_conf = self.bkg if self.do_background else self.sens
-                for i in range(fov_conf.fov_offset_n_bins):
-                    low = fov_conf.fov_offset_bins[i]
-                    high = fov_conf.fov_offset_bins[i + 1]
-                    fov_mask = evs["true_source_fov_offset"] >= low
-                    fov_mask &= evs["true_source_fov_offset"] < high
-                    evs[fov_mask] = sel.make_event_weights(
-                        evs[fov_mask],
-                        meta["spectrum"],
-                        (low, high),
+            # Only calculate event weights if background or sensitivity should be calculated.
+            if self.do_background:
+                # Sensitivity is only calculated, if do_background and do_benchmarks is true.
+                if self.do_benchmarks:
+                    evs = sel.make_event_weights(
+                        evs, meta["spectrum"], self.sens.fov_offset_bins
                     )
+                # If only background should be calculated,
+                # only calculate weights for protons and electrons.
+                elif sel.kind in ("protons", "electrons"):
+                    evs = sel.make_event_weights(evs, meta["spectrum"])
 
             reduced_events[sel.kind] = evs
             reduced_events[f"{sel.kind}_count"] = cnt

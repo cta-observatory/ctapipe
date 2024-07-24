@@ -122,7 +122,6 @@ class EventPreProcessor(QualityQuery):
             "theta",
             "true_source_fov_offset",
             "reco_source_fov_offset",
-            "weight",
         ]
         units = {
             "true_energy": u.TeV,
@@ -258,14 +257,13 @@ class EventsLoader(Component):
         reco_nominal = reco.transform_to(nominal)
         events["reco_fov_lon"] = -reco_nominal.fov_lon  # minus for GADF
         events["reco_fov_lat"] = reco_nominal.fov_lat
-        events["weight"] = 1.0
         return events
 
     def make_event_weights(
         self,
         events: QTable,
         spectrum: PowerLaw,
-        fov_range: tuple[u.Quantity, u.Quantity],
+        fov_offset_bins: u.Quantity | None = None,
     ) -> QTable:
         if (
             self.kind == "gammas"
@@ -273,11 +271,28 @@ class EventsLoader(Component):
                 spectrum.normalization.unit * u.sr
             )
         ):
-            spectrum = spectrum.integrate_cone(fov_range[0], fov_range[1])
+            if fov_offset_bins is None:
+                raise ValueError(
+                    "gamma_target_spectrum is point-like, but no fov offset bins "
+                    "for the integration of the simulated diffuse spectrum was given."
+                )
 
-        events["weight"] = calculate_event_weights(
-            events["true_energy"],
-            target_spectrum=self.target_spectrum,
-            simulated_spectrum=spectrum,
-        )
+            events["weight"] = 1.0
+
+            for low, high in zip(fov_offset_bins[:-1], fov_offset_bins[1:]):
+                fov_mask = events["true_source_fov_offset"] >= low
+                fov_mask &= events["true_source_fov_offset"] < high
+
+                events[fov_mask]["weight"] = calculate_event_weights(
+                    events[fov_mask]["true_energy"],
+                    target_spectrum=self.target_spectrum,
+                    simulated_spectrum=spectrum.integrate_cone(low, high),
+                )
+        else:
+            events["weight"] = calculate_event_weights(
+                events["true_energy"],
+                target_spectrum=self.target_spectrum,
+                simulated_spectrum=spectrum,
+            )
+
         return events
