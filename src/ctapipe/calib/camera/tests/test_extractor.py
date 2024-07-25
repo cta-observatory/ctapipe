@@ -18,9 +18,10 @@ def test_extractors(example_subarray):
         np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
     )
     event_ids = np.linspace(35, 725000, num=5000, dtype=int)
-    ped_data = np.random.normal(2.0, 5.0, size=(5000, 2, 1855))
-    charge_data = np.random.normal(77.0, 10.0, size=(5000, 2, 1855))
-    time_data = np.random.normal(18.0, 5.0, size=(5000, 2, 1855))
+    rng = np.random.default_rng(0)
+    ped_data = rng.normal(2.0, 5.0, size=(5000, 2, 1855))
+    charge_data = rng.normal(77.0, 10.0, size=(5000, 2, 1855))
+    time_data = rng.normal(18.0, 5.0, size=(5000, 2, 1855))
     # Create tables
     ped_table = Table(
         [times, event_ids, ped_data],
@@ -78,7 +79,8 @@ def test_chunk_shift(example_subarray):
         np.linspace(60117.911, 60117.9258, num=5500), scale="tai", format="mjd"
     )
     event_ids = np.linspace(35, 725000, num=5500, dtype=int)
-    charge_data = np.random.normal(77.0, 10.0, size=(5500, 2, 1855))
+    rng = np.random.default_rng(0)
+    charge_data = rng.normal(77.0, 10.0, size=(5500, 2, 1855))
     # Create table
     charge_table = Table(
         [times, event_ids, charge_data],
@@ -109,7 +111,8 @@ def test_with_outliers(example_subarray):
         np.linspace(60117.911, 60117.9258, num=5000), scale="tai", format="mjd"
     )
     event_ids = np.linspace(35, 725000, num=5000, dtype=int)
-    ped_data = np.random.normal(2.0, 5.0, size=(5000, 2, 1855))
+    rng = np.random.default_rng(0)
+    ped_data = rng.normal(2.0, 5.0, size=(5000, 2, 1855))
     # Insert fake outliers that will skrew the mean value
     ped_data[12, 0, :] = 100000.0
     ped_data[16, 0, :] = 100000.0
