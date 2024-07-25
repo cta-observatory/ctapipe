@@ -60,6 +60,15 @@ class StepFunction:
 
 
 class Interpolator(Component):
+    """
+    Interpolator parent class.
+
+    Parameters
+    ----------
+    h5file : None | tables.File
+        A open hdf5 file with read access.
+    """
+
     bounds_error = traits.Bool(
         default_value=True,
         help="If true, raises an exception when trying to extrapolate out of the given table",
@@ -74,15 +83,6 @@ class Interpolator(Component):
     table_location = None
 
     def __init__(self, h5file=None, **kwargs):
-        """
-        Interpolator parent class.
-
-        Parameters
-        ----------
-        h5file : None | tables.File
-            A open hdf5 file with read access.
-        """
-
         super().__init__(**kwargs)
 
         if h5file is not None and not isinstance(h5file, tables.File):
