@@ -58,17 +58,17 @@ def test_extractors(example_subarray):
 
     # Check if the calculated statistical values are reasonable
     # for a camera with two gain channels
-    assert not np.any(np.abs(ped_stats[0]["mean"] - 2.0) > 1.5)
-    assert not np.any(np.abs(charge_stats[0]["mean"] - 77.0) > 1.5)
-    assert not np.any(np.abs(time_stats[0]["mean"] - 18.0) > 1.5)
+    np.testing.assert_allclose(ped_stats[0]["mean"], 2.0, atol=1.5)
+    np.testing.assert_allclose(charge_stats[0]["mean"], 77.0, atol=1.5)
+    np.testing.assert_allclose(time_stats[0]["mean"], 18.0, atol=1.5)
 
-    assert not np.any(np.abs(ped_stats[1]["median"] - 2.0) > 1.5)
-    assert not np.any(np.abs(charge_stats[1]["median"] - 77.0) > 1.5)
-    assert not np.any(np.abs(time_stats[1]["median"] - 18.0) > 1.5)
+    np.testing.assert_allclose(ped_stats[1]["median"], 2.0, atol=1.5)
+    np.testing.assert_allclose(charge_stats[1]["median"], 77.0, atol=1.5)
+    np.testing.assert_allclose(time_stats[1]["median"], 18.0, atol=1.5)
 
-    assert not np.any(np.abs(ped_stats[0]["std"] - 5.0) > 1.5)
-    assert not np.any(np.abs(charge_stats[0]["std"] - 10.0) > 1.5)
-    assert not np.any(np.abs(time_stats[0]["std"] - 5.0) > 1.5)
+    np.testing.assert_allclose(ped_stats[0]["std"], 5.0, atol=1.5)
+    np.testing.assert_allclose(charge_stats[0]["std"], 10.0, atol=1.5)
+    np.testing.assert_allclose(time_stats[0]["std"], 5.0, atol=1.5)
 
 
 def test_chunk_shift(example_subarray):
@@ -134,6 +134,8 @@ def test_with_outliers(example_subarray):
     plain_chunk_stats = plain_extractor(table=ped_table)
 
     # Check if SigmaClippingExtractor is robust to a few fake outliers as expected
-    assert not np.any(np.abs(sigmaclipping_chunk_stats[0]["mean"] - 2.0) > 1.5)
+    np.testing.assert_allclose(sigmaclipping_chunk_stats[0]["mean"], 2.0, atol=1.5)
+
     # Check if PlainExtractor is not robust to a few fake outliers as expected
-    assert np.any(np.abs(plain_chunk_stats[0]["mean"] - 2.0) > 1.5)
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(plain_chunk_stats[0]["mean"], 2.0, atol=1.5)
