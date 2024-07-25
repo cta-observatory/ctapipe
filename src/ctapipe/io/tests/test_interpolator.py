@@ -5,7 +5,7 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.io.interpolating import CalibrationInterpolator, PointingInterpolator
+from ctapipe.io.interpolation import CalibrationInterpolator, PointingInterpolator
 
 t0 = Time("2022-01-01T00:00:00")
 
@@ -88,7 +88,6 @@ def test_hdf5(tmp_path):
 
 def test_bounds():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.interpolating import PointingInterpolator
 
     table_pointing = Table(
         {

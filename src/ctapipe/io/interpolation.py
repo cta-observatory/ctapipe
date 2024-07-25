@@ -80,6 +80,8 @@ class Interpolator(Component):
         default_value=False,
     ).tag(config=True)
 
+    table_location = None
+
     def __init__(self, h5file=None, **kwargs):
         super().__init__(**kwargs)
 
@@ -98,26 +100,30 @@ class Interpolator(Component):
             self.interp_options["fill_value"] = np.nan
 
         self._interpolators = {}
-        self._secondary_interpolators = {}
 
     @abstractmethod
     def add_table(self, tel_id, input_table):
         pass
 
-    def __call__(self, tel_id, time):
+    def _check_interpolators(self, tel_id):
         if tel_id not in self._interpolators:
             if self.h5file is not None:
                 self._read_parameter_table(tel_id)  # might need to be removed
             else:
                 raise KeyError(f"No table available for tel_id {tel_id}")
 
-    @abstractmethod
     def _read_parameter_table(self, tel_id):
-        pass  # this method is called when you try to interpolate, but no table has been added.
-        # It will try adding a table from the hdf5 file specified in __init__
+        input_table = read_table(
+            self.h5file,
+            self.table_location + f"/tel_{tel_id:03d}",
+        )
+        print(self.table_location + f"/tel_{tel_id:03d}")
+        self.add_table(tel_id, input_table)
 
 
 class PointingInterpolator(Interpolator):
+    table_location = "/dl0/monitoring/telescope/pointing"
+
     def __call__(self, tel_id, time):
         """
         Interpolate alt/az for given time and tel_id.
@@ -137,11 +143,11 @@ class PointingInterpolator(Interpolator):
             interpolated azimuth angle
         """
 
-        super().__call__(tel_id, time)
+        self._check_interpolators(tel_id)
 
         mjd = time.tai.mjd
-        az = u.Quantity(self._interpolators[tel_id](mjd), u.rad, copy=False)
-        alt = u.Quantity(self._secondary_interpolators[tel_id](mjd), u.rad, copy=False)
+        az = u.Quantity(self._interpolators[tel_id]["az"](mjd), u.rad, copy=False)
+        alt = u.Quantity(self._interpolators[tel_id]["alt"](mjd), u.rad, copy=False)
         return alt, az
 
     def add_table(self, tel_id, input_table):
@@ -181,20 +187,14 @@ class PointingInterpolator(Interpolator):
         az = np.unwrap(az)
         alt = input_table["altitude"].quantity.to_value(u.rad)
         mjd = input_table["time"].tai.mjd
-        self._interpolators[tel_id] = interp1d(mjd, az, **self.interp_options)
-        self._secondary_interpolators[tel_id] = interp1d(
-            mjd, alt, **self.interp_options
-        )
-
-    def _read_parameter_table(self, tel_id):
-        input_table = read_table(
-            self.h5file,
-            f"/dl0/monitoring/telescope/pointing/tel_{tel_id:03d}",
-        )
-        self.add_table(tel_id, input_table)
+        self._interpolators[tel_id] = {}
+        self._interpolators[tel_id]["az"] = interp1d(mjd, az, **self.interp_options)
+        self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
 
 
 class CalibrationInterpolator(Interpolator):
+    table_location = "dl1/calibration"  # TBD
+
     def __call__(self, tel_id, time):
         """
         Interpolate pedestal or gain for a given time and tel_id.
@@ -212,9 +212,9 @@ class CalibrationInterpolator(Interpolator):
             interpolated calibration quantity
         """
 
-        super().__call__(tel_id, time)
+        self._check_interpolators(tel_id)
 
-        cal = self._interpolators[tel_id](time)
+        cal = self._interpolators[tel_id][self.par_name](time)
         return cal
 
     def add_table(self, tel_id, input_table, par_name="pedestal"):
@@ -240,14 +240,12 @@ class CalibrationInterpolator(Interpolator):
         if len(missing) > 0:
             raise ValueError(f"Table is missing required column(s): {missing}")
 
+        self.par_name = par_name
+
         input_table.sort("time")
         time = input_table["time"]
         cal = input_table[par_name]
-        self._interpolators[tel_id] = StepFunction(time, cal, **self.interp_options)
-
-    def _read_parameter_table(self, tel_id):
-        input_table = read_table(
-            self.h5file,
-            f"/dl0/calibration/tel_{tel_id:03d}",  # needs to be updated once we determine where calibration data is put, might remove method from base class
+        self._interpolators[tel_id] = {}
+        self._interpolators[tel_id][par_name] = StepFunction(
+            time, cal, **self.interp_options
         )
-        self.add_table(tel_id, input_table)
