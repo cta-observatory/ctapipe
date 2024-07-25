@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import Any
 
 import astropy.units as u
@@ -59,7 +59,7 @@ class StepFunction:
             return self.values[i - 1]
 
 
-class Interpolator(Component):
+class Interpolator(Component, metaclass=ABCMeta):
     """
     Interpolator parent class.
 
@@ -81,6 +81,8 @@ class Interpolator(Component):
     ).tag(config=True)
 
     table_location = None
+    required_columns = set()
+    expected_units = {}
 
     def __init__(self, h5file=None, **kwargs):
         super().__init__(**kwargs)
@@ -103,7 +105,34 @@ class Interpolator(Component):
 
     @abstractmethod
     def add_table(self, tel_id, input_table):
+        """
+        Add a table to this interpolator
+        This method reads input tables and creates instances of the needed interpolators
+        to be added to _interpolators. The first index of _interpolators needs to be
+        tel_id, the second needs to be the name of the parameter that is to be interpolated
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope id
+        input_table : astropy.table.Table
+            Table of pointing values, expected columns
+            are always ``time`` as ``Time`` column and other columns for the data
+            that is to be interpolated
+        """
+
         pass
+
+    def _check_tables(self, input_table):
+        missing = self.required_columns - set(input_table.colnames)
+        if len(missing) > 0:
+            raise ValueError(f"Table is missing required column(s): {missing}")
+        for col in self.expected_units:
+            unit = input_table[col].unit
+            if unit is None or not self.expected_units[col].is_equivalent(unit):
+                raise ValueError(
+                    f"{col} must have units compatible with '{self.expected_units[col].name}'"
+                )
 
     def _check_interpolators(self, tel_id):
         if tel_id not in self._interpolators:
@@ -115,9 +144,8 @@ class Interpolator(Component):
     def _read_parameter_table(self, tel_id):
         input_table = read_table(
             self.h5file,
-            self.table_location + f"/tel_{tel_id:03d}",
+            f"{self.table_location}/tel_{tel_id:03d}",
         )
-        print(self.table_location + f"/tel_{tel_id:03d}")
         self.add_table(tel_id, input_table)
 
 
@@ -127,6 +155,8 @@ class PointingInterpolator(Interpolator):
     """
 
     table_location = "/dl0/monitoring/telescope/pointing"
+    required_columns = {"time", "azimuth", "altitude"}
+    expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
     def __call__(self, tel_id, time):
         """
@@ -168,13 +198,7 @@ class PointingInterpolator(Interpolator):
             as quantity columns for pointing and pointing correction data.
         """
 
-        missing = {"time", "azimuth", "altitude"} - set(input_table.colnames)
-        if len(missing) > 0:
-            raise ValueError(f"Table is missing required column(s): {missing}")
-        for col in ("azimuth", "altitude"):
-            unit = input_table[col].unit
-            if unit is None or not u.rad.is_equivalent(unit):
-                raise ValueError(f"{col} must have units compatible with 'rad'")
+        self._check_tables(input_table)
 
         if not isinstance(input_table["time"], Time):
             raise TypeError("'time' column of pointing table must be astropy.time.Time")
@@ -244,11 +268,11 @@ class CalibrationInterpolator(Interpolator):
             interpolate the content of StatisticsContainers
         """
 
-        missing = {"time", par_name} - set(input_table.colnames)
-        if len(missing) > 0:
-            raise ValueError(f"Table is missing required column(s): {missing}")
-
         self.par_name = par_name
+
+        self.required_columns = {"time", par_name}
+
+        self._check_tables(input_table)
 
         input_table.sort("time")
         time = input_table["time"]
