@@ -122,6 +122,10 @@ class Interpolator(Component):
 
 
 class PointingInterpolator(Interpolator):
+    """
+    Interpolator for pointing and pointing correction data
+    """
+
     table_location = "/dl0/monitoring/telescope/pointing"
 
     def __call__(self, tel_id, time):
@@ -193,6 +197,10 @@ class PointingInterpolator(Interpolator):
 
 
 class CalibrationInterpolator(Interpolator):
+    """
+    Interpolator for calibration data
+    """
+
     table_location = "dl1/calibration"  # TBD
 
     def __call__(self, tel_id, time):
