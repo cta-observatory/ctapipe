@@ -17,7 +17,7 @@ def test_range_based_outlier_detection(example_subarray):
 
     # Create dummy data for testing
     rng = np.random.default_rng(0)
-    # Distribution mimicks the mean values of peak times of flat-field events
+    # Distribution mimics the mean values of peak times of flat-field events
     mean = rng.normal(18.0, 0.4, size=(50, 2, 1855))
     # Insert outliers
     mean[12, 0, 120] = 3.0
@@ -45,7 +45,7 @@ def test_median_based_outlier_detection(example_subarray):
 
     # Create dummy data for testing
     rng = np.random.default_rng(0)
-    # Distribution mimicks the median values of charge images of flat-field events
+    # Distribution mimics the median values of charge images of flat-field events
     median = rng.normal(77.0, 0.6, size=(50, 2, 1855))
     # Insert outliers
     median[12, 0, 120] = 1.2
@@ -73,9 +73,9 @@ def test_std_based_outlier_detection(example_subarray):
 
     # Create dummy data for testing
     rng = np.random.default_rng(0)
-    # Distribution mimicks the std values of charge images of flat-field events
+    # Distribution mimics the std values of charge images of flat-field events
     ff_std = rng.normal(10.0, 2.0, size=(50, 2, 1855))
-    # Distribution mimicks the median values of charge images of pedestal events
+    # Distribution mimics the median values of charge images of pedestal events
     ped_median = rng.normal(2.0, 1.5, size=(50, 2, 1855))
     # Insert outliers
     ff_std[12, 0, 120] = 45.5
