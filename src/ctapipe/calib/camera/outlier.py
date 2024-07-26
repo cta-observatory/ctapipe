@@ -44,12 +44,12 @@ class OutlierDetection(TelescopeComponent):
         ----------
         column : astropy.table.Column
             column with chunk-wise extracted statistics (mean, median, or std)
-            of shape (n_channels, n_pix)
+            of shape (n_entries, n_channels, n_pix)
 
         Returns
         -------
         boolean mask
-            mask of outliers of shape (n_channels, n_pix)
+            mask of outliers of shape (n_entries, n_channels, n_pix)
         """
         pass
 
