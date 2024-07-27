@@ -3,10 +3,10 @@ Outlier detection algorithms to identify faulty pixels
 """
 
 __all__ = [
-    "OutlierDetection",
-    "RangeBasedOutlierDetection",
-    "MedianBasedOutlierDetection",
-    "StdBasedOutlierDetection",
+    "OutlierDetector",
+    "RangeBasedOutlierDetector",
+    "MedianBasedOutlierDetector",
+    "StdBasedOutlierDetector",
 ]
 
 from abc import abstractmethod
@@ -17,7 +17,7 @@ from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import List
 
 
-class OutlierDetection(TelescopeComponent):
+class OutlierDetector(TelescopeComponent):
     """
     Base class for outlier detection algorithms.
     """
@@ -54,9 +54,9 @@ class OutlierDetection(TelescopeComponent):
         pass
 
 
-class RangeBasedOutlierDetection(OutlierDetection):
+class RangeBasedOutlierDetector(OutlierDetector):
     """
-    Remove outliers based on a valid range.
+    Detect outliers based on a valid range.
 
     The interval `outliers_interval` corresponds to a range of valid statistical values.
     """
@@ -70,7 +70,7 @@ class RangeBasedOutlierDetection(OutlierDetection):
         return outliers
 
 
-class MedianBasedOutlierDetection(OutlierDetection):
+class MedianBasedOutlierDetector(OutlierDetector):
     """
     Detect outliers based on the deviation from the camera median.
 
@@ -90,7 +90,7 @@ class MedianBasedOutlierDetection(OutlierDetection):
         return outliers
 
 
-class StdBasedOutlierDetection(OutlierDetection):
+class StdBasedOutlierDetector(OutlierDetector):
     """
     Detect outliers based on the deviation from the camera standard deviation.
 
