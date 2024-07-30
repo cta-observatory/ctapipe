@@ -88,7 +88,7 @@ class Tool(Application):
     in case of exceptions.
 
     User-defined code can raise custom exceptions both in the components
-    or in the tool methods. If these custom exceptions have an `exit_code` attribute,
+    or in the tool methods. If these custom exceptions have an ``exit_code`` attribute,
     it will be propagated to the final exit code of the tool.
 
     .. code:: python
