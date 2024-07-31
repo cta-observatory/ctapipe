@@ -112,7 +112,7 @@ class Interpolator(Component, metaclass=ABCMeta):
         tel_id, the second needs to be the name of the parameter that is to be interpolated
 
         Parameters
-        ----------
+        -.---------
         tel_id : int
             Telescope id
         input_table : astropy.table.Table
@@ -129,10 +129,18 @@ class Interpolator(Component, metaclass=ABCMeta):
             raise ValueError(f"Table is missing required column(s): {missing}")
         for col in self.expected_units:
             unit = input_table[col].unit
-            if unit is None or not self.expected_units[col].is_equivalent(unit):
-                raise ValueError(
-                    f"{col} must have units compatible with '{self.expected_units[col].name}'"
-                )
+            if unit is None:
+                if self.expected_units[col] is not None:
+                    raise ValueError(
+                        f"{col} must have units compatible with '{self.expected_units[col].name}'"
+                    )
+            elif not self.expected_units[col].is_equivalent(unit):
+                if self.expected_units[col] is None:
+                    raise ValueError(f"{col} must have units compatible with 'None'")
+                else:
+                    raise ValueError(
+                        f"{col} must have units compatible with '{self.expected_units[col].name}'"
+                    )
 
     def _check_interpolators(self, tel_id):
         if tel_id not in self._interpolators:
