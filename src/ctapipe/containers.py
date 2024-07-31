@@ -415,6 +415,7 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics of a chunk of images"""
 
+    n_events = Field(-1, "number of events used for the extraction of the statistics")
     mean = Field(
         None,
         "mean of a pixel-wise quantity for each channel"

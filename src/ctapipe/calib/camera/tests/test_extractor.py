@@ -51,10 +51,12 @@ def test_extractors(example_subarray):
     time_stats = ff_time_extractor(table=time_table, col_name="peak_time")
 
     # Check if the start and end values are properly set for the timestamps and event IDs
+    # and if the number of events used for the extraction of the statistics is equal the size of the chunk
     assert ped_stats[0]["time_start"] == times[0]
     assert time_stats[0]["event_id_start"] == event_ids[0]
     assert ped_stats[1]["time_end"] == times[-1]
     assert time_stats[1]["event_id_end"] == event_ids[-1]
+    np.testing.assert_allclose(ped_stats["n_events"], chunk_size)
 
     # Check if the calculated statistical values are reasonable
     # for a camera with two gain channels

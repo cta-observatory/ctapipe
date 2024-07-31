@@ -102,6 +102,7 @@ class StatisticsExtractor(TelescopeComponent):
             data["time_end"].append(chunk["time_mono"][-1])
             data["event_id_start"].append(chunk["event_id"][0])
             data["event_id_end"].append(chunk["event_id"][-1])
+            data["n_events"].append(stats.n_events)
             data["mean"].append(stats.mean)
             data["median"].append(stats.median)
             data["std"].append(stats.std)
@@ -128,6 +129,7 @@ class PlainExtractor(StatisticsExtractor):
         pixel_std = np.ma.std(masked_images, axis=0).filled(np.nan)
 
         return StatisticsContainer(
+            n_events=masked_images.shape[0],
             mean=pixel_mean,
             median=pixel_median,
             std=pixel_std,
@@ -162,6 +164,7 @@ class SigmaClippingExtractor(StatisticsExtractor):
         )
 
         return StatisticsContainer(
+            n_events=masked_images.shape[0],
             mean=pixel_mean,
             median=pixel_median,
             std=pixel_std,
