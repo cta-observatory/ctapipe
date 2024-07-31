@@ -7,7 +7,7 @@ import pytest
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.calib.camera.extractor import PlainExtractor, SigmaClippingExtractor
+from ctapipe.monitoring.extractor import PlainExtractor, SigmaClippingExtractor
 
 
 def test_extractors(example_subarray):
