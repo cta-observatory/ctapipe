@@ -16,6 +16,8 @@ class StepFunction:
 
     """
     Step function Interpolator for the gain and pedestals
+    Interpolates data so that for each time the value from the closest previous
+    point given.
 
     Parameters
     ----------
@@ -80,7 +82,7 @@ class Interpolator(Component, metaclass=ABCMeta):
         default_value=False,
     ).tag(config=True)
 
-    table_location = None
+    telescope_data_group = None
     required_columns = set()
     expected_units = {}
 
@@ -152,7 +154,7 @@ class Interpolator(Component, metaclass=ABCMeta):
     def _read_parameter_table(self, tel_id):
         input_table = read_table(
             self.h5file,
-            f"{self.table_location}/tel_{tel_id:03d}",
+            f"{self.telescope_data_group}/tel_{tel_id:03d}",
         )
         self.add_table(tel_id, input_table)
 
@@ -162,7 +164,7 @@ class PointingInterpolator(Interpolator):
     Interpolator for pointing and pointing correction data
     """
 
-    table_location = "/dl0/monitoring/telescope/pointing"
+    telescope_data_group = "/dl0/monitoring/telescope/pointing"
     required_columns = {"time", "azimuth", "altitude"}
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
@@ -228,12 +230,12 @@ class PointingInterpolator(Interpolator):
         self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
 
 
-class CalibrationInterpolator(Interpolator):
+class GainInterpolator(Interpolator):
     """
-    Interpolator for calibration data
+    Interpolator for relative gain data
     """
 
-    table_location = "dl1/calibration"  # TBD
+    telescope_data_group = "dl1/calibration/gain"  # TBD
 
     def __call__(self, tel_id, time):
         """
@@ -248,16 +250,16 @@ class CalibrationInterpolator(Interpolator):
 
         Returns
         -------
-        cal : array [float]
-            interpolated calibration quantity
+        gain : array [float]
+            interpolated relative gain
         """
 
         self._check_interpolators(tel_id)
 
-        cal = self._interpolators[tel_id][self.par_name](time)
-        return cal
+        gain = self._interpolators[tel_id]["gain"](time)
+        return gain
 
-    def add_table(self, tel_id, input_table, par_name="pedestal"):
+    def add_table(self, tel_id, input_table):
         """
         Add a table to this interpolator
 
@@ -267,25 +269,74 @@ class CalibrationInterpolator(Interpolator):
             Telescope id
         input_table : astropy.table.Table
             Table of pointing values, expected columns
-            are ``time`` as ``Time`` column. The calibration
-            parameter column is given through the variable ``par_name``
-        par_name : str
-            Name of the parameter that is to be interpolated
-            ``pedestal`` is used for pedestals, ``gain`` for gain
-            can also be the name of statistical parameters to
-            interpolate the content of StatisticsContainers
+            are ``time`` as ``Time`` column and "gain"
+            for the relative gain data
         """
 
-        self.par_name = par_name
-
-        self.required_columns = {"time", par_name}
+        self.required_columns = {"time", "gain"}
 
         self._check_tables(input_table)
 
         input_table.sort("time")
         time = input_table["time"]
-        cal = input_table[par_name]
+        gain = input_table["gain"]
         self._interpolators[tel_id] = {}
-        self._interpolators[tel_id][par_name] = StepFunction(
-            time, cal, **self.interp_options
+        self._interpolators[tel_id]["gain"] = StepFunction(
+            time, gain, **self.interp_options
+        )
+
+
+class PedestalInterpolator(Interpolator):
+    """
+    Interpolator for Pedestal data
+    """
+
+    telescope_data_group = "dl1/calibration/pedestal"  # TBD
+
+    def __call__(self, tel_id, time):
+        """
+        Interpolate pedestal or gain for a given time and tel_id.
+
+        Parameters
+        ----------
+        tel_id : int
+            telescope id
+        time : astropy.time.Time
+            time for which to interpolate the calibration data
+
+        Returns
+        -------
+        pedestal : array [float]
+            interpolated pedestal values
+        """
+
+        self._check_interpolators(tel_id)
+
+        pedestal = self._interpolators[tel_id]["pedestal"](time)
+        return pedestal
+
+    def add_table(self, tel_id, input_table):
+        """
+        Add a table to this interpolator
+
+        Parameters
+        ----------
+        tel_id : int
+            Telescope id
+        input_table : astropy.table.Table
+            Table of pointing values, expected columns
+            are ``time`` as ``Time`` column and "pedestal"
+            for the pedestal data
+        """
+
+        self.required_columns = {"time", "pedestal"}
+
+        self._check_tables(input_table)
+
+        input_table.sort("time")
+        time = input_table["time"]
+        pedestal = input_table["pedestal"]
+        self._interpolators[tel_id] = {}
+        self._interpolators[tel_id]["pedestal"] = StepFunction(
+            time, pedestal, **self.interp_options
         )
