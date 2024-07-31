@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from traitlets.config import Config
 
+from ctapipe.containers import MonitoringCameraContainer
 from ctapipe.image import ImageCleaner
 from ctapipe.instrument import SubarrayDescription
 
@@ -41,6 +42,11 @@ def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
         reference_location=reference_location,
     )
 
+    monitoring = MonitoringCameraContainer()
+    monitoring.pedestal.charge_std = np.ones(
+        prod5_mst_nectarcam.camera.geometry.n_pixels
+    )
+
     clean = ImageCleaner.from_name(method, config=config, subarray=subarray)
 
     image = np.zeros_like(
@@ -51,7 +57,7 @@ def test_image_cleaner(method, prod5_mst_nectarcam, reference_location):
     image[31:40] = 8.0
     times = np.linspace(-5, 10, image.shape[0])
 
-    mask = clean(tel_id=1, image=image, arrival_times=times)
+    mask = clean(tel_id=1, image=image, arrival_times=times, monitoring=monitoring)
 
     # we're not testing the algorithm here, just that it does something (for the
     # algorithm tests, see test_cleaning.py
