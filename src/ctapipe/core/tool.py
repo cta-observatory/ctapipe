@@ -87,6 +87,9 @@ class Tool(Application):
     executing. This happens after the ``finish`` method has run or
     in case of exceptions.
 
+    User-defined code can raise custom exceptions both in the components
+    or in the tool methods. If these custom exceptions have an ``exit_code`` attribute,
+    it will be propagated to the final exit code of the tool.
 
     .. code:: python
 
@@ -403,6 +406,7 @@ class Tool(Application):
         #  https://tldp.org/LDP/abs/html/exitcodes.html
 
         exit_status = 0
+        current_exception = None
 
         with self._exit_stack:
             try:
@@ -429,14 +433,13 @@ class Tool(Application):
                 self.log.info("Finished: %s", self.name)
                 Provenance().finish_activity(activity_name=self.name)
             except (ToolConfigurationError, TraitError) as err:
+                current_exception = err
                 self.log.error("%s", err)
                 self.log.error("Use --help for more info")
                 exit_status = 2  # wrong cmd line parameter
                 Provenance().finish_activity(
                     activity_name=self.name, status="error", exit_code=exit_status
                 )
-                if raises:
-                    raise
             except KeyboardInterrupt:
                 self.log.warning("WAS INTERRUPTED BY CTRL-C")
                 exit_status = 130  # Script terminated by Control-C
@@ -444,31 +447,33 @@ class Tool(Application):
                     activity_name=self.name, status="interrupted", exit_code=exit_status
                 )
             except Exception as err:
+                current_exception = err
+                exit_status = getattr(err, "exit_code", 1)
                 self.log.exception("Caught unexpected exception: %s", err)
-                exit_status = 1  # any other error
                 Provenance().finish_activity(
                     activity_name=self.name, status="error", exit_code=exit_status
                 )
-                if raises:
-                    raise
             except SystemExit as err:
                 exit_status = err.code
-                # Do nothing if SystemExit was called with the exit code 0 (e.g. with -h option)
-                if exit_status != 0:
-                    if raises:
-                        raise  # do not re-intercept in tests
-                    else:
-                        self.log.exception(
-                            "Caught SystemExit with exit code %s", exit_status
-                        )
-                        Provenance().finish_activity(
-                            activity_name=self.name,
-                            status="error",
-                            exit_code=exit_status,
-                        )
+                if exit_status == 0:
+                    # Finish normally
+                    Provenance().finish_activity(activity_name=self.name)
+                else:
+                    # Finish with error
+                    current_exception = err
+                    self.log.critical(
+                        "Caught SystemExit with exit code %s", exit_status
+                    )
+                    Provenance().finish_activity(
+                        activity_name=self.name,
+                        status="error",
+                        exit_code=exit_status,
+                    )
             finally:
                 if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                     self.write_provenance()
+                if raises and current_exception:
+                    raise current_exception
 
         self.exit(exit_status)
 
