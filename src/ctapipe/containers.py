@@ -166,6 +166,15 @@ class EventType(enum.Enum):
     UNKNOWN = 255
 
 
+class VarianceType(enum.Enum):
+    """Enum of variance types used for the VarianceContainer"""
+
+    # Simple variance of waveform
+    WAVEFORM = 0
+    # Variance of integrated samples of a waveform
+    INTEGRATED = 1
+
+
 class PixelStatus(enum.IntFlag):
     """
     Pixel status information
@@ -510,7 +519,6 @@ class DL1CameraContainer(Container):
             "pass only was returned."
         ),
     )
-
     parameters = Field(
         None, description="Image parameters", type=ImageParametersContainer
     )

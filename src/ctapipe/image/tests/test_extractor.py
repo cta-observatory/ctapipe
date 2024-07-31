@@ -19,6 +19,7 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     SlidingWindowMaxSum,
     TwoPassWindowSum,
+    VarianceExtractor,
     __filtfilt_fast,
     adaptive_centroid,
     deconvolve,
@@ -281,6 +282,17 @@ def test_extract_around_peak_charge_expected():
     assert_equal(charge, n_samples)
 
 
+def test_variance_extractor(toymodel):
+    _, subarray, _, _, _, _ = toymodel
+    # make dummy data with known variance
+    rng = np.random.default_rng(0)
+    var_data = rng.normal(2.0, 5.0, size=(2, 1855, 5000))
+    extractor = ImageExtractor.from_name("VarianceExtractor", subarray=subarray)
+
+    variance = extractor(var_data, 0, None, None).image
+    np.testing.assert_allclose(variance, np.var(var_data, axis=2), rtol=1e-3)
+
+
 @pytest.mark.parametrize("toymodels", camera_toymodels)
 def test_neighbor_average_peakpos(toymodels, request):
     waveforms, subarray, tel_id, _, _, _ = request.getfixturevalue(toymodels)
@@ -408,6 +420,9 @@ def test_extractors(Extractor, toymodels, request):
             extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
         return
 
+    if Extractor is VarianceExtractor:
+        return
+
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid
     if dl1.image.ndim == 1:
@@ -423,7 +438,7 @@ def test_extractors(Extractor, toymodels, request):
 @pytest.mark.parametrize("Extractor", extractors)
 def test_integration_correction_off(Extractor, toymodels, request):
     # full waveform extractor does not have an integration correction
-    if Extractor is FullWaveformSum:
+    if Extractor in (FullWaveformSum, VarianceExtractor):
         return
 
     (
@@ -714,8 +729,11 @@ def test_dtype(Extractor, subarray):
     n_channels, n_pixels, _ = waveforms.shape
     broken_pixels = np.zeros((n_channels, n_pixels), dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+
+    if Extractor is not VarianceExtractor:
+        assert dl1.peak_time.dtype == np.float32
+
     assert dl1.image.dtype == np.float32
-    assert dl1.peak_time.dtype == np.float32
 
 
 def test_global_peak_window_sum_with_pixel_fraction(subarray):
