@@ -51,6 +51,12 @@ How To Make a Release?
    Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be
    available from the version dropdown once the documentation is built.
 
+   Update the ``AUTHORS`` file using the following command:
+
+   .. code-block:: console
+
+      $ bash -c "git shortlog -sne | grep -v dependabot | sed -E 's/^\s+[0-9]+\s+//' > AUTHORS"
+
 2. Create a new github release, a good starting point should already be made by the
    release drafter plugin.
 
