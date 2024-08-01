@@ -41,12 +41,12 @@ class StatisticsExtractor(TelescopeComponent):
         """
         Divide table into chunks and extract the statistical values.
 
-        This function divides the input table into overlapping or non-overlapping chunks of size `chunk_size`
+        This function divides the input table into overlapping or non-overlapping chunks of size ``chunk_size``
         and call the relevant function of the particular extractor to extract the statistical values.
         The chunks are generated in a way that ensures they do not overflow the bounds of the table.
-        - If `chunk_shift` is None, extraction chunks will not overlap, but the last chunk is ensured to be
+        - If ``chunk_shift`` is None, extraction chunks will not overlap, but the last chunk is ensured to be
         of size `chunk_size`, even if it means the last two chunks will overlap.
-        - If `chunk_shift` is provided, it will determine the number of samples to shift between the start
+        - If ``chunk_shift`` is provided, it will determine the number of samples to shift between the start
         of consecutive chunks resulting in an overlap of extraction chunks. Chunks that overflows the bounds
         of the table are not considered.
 
