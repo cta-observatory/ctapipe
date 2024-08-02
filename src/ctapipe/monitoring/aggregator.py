@@ -1,11 +1,17 @@
 """
-Extraction algorithms to compute the statistics from a chunk of images
+Algorithms to compute aggregated time-series statistics from columns of an event table.
+
+These classes take as input an events table, divide it into time chunks, which
+may optionally overlap, and compute various aggregated statistics for each
+chunk.  The statistics include the count, mean, median, and standard deviation. The result
+is a monitoring table with columns describing the start and stop time of the chunk
+and the aggregated statistic values.
 """
 
 __all__ = [
-    "StatisticsExtractor",
-    "PlainExtractor",
-    "SigmaClippingExtractor",
+    "StatisticsAggregator",
+    "PlainAggregator",
+    "SigmaClippingAggregator",
 ]
 
 from abc import abstractmethod
@@ -20,15 +26,15 @@ from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import Int
 
 
-class StatisticsExtractor(TelescopeComponent):
+class StatisticsAggregator(TelescopeComponent):
     """
-    Base component to handle the extraction of the statistics from a table
+    Base component to handle the computation of aggregated statistic values from a table
     containing e.g. charges, peak times and/or charge variances (images).
     """
 
     chunk_size = Int(
         2500,
-        help="Size of the chunk used for the calculation of the statistical values",
+        help="Size of the chunk used for the computation of aggregated statistic values",
     ).tag(config=True)
 
     def __call__(
@@ -39,26 +45,26 @@ class StatisticsExtractor(TelescopeComponent):
         col_name="image",
     ) -> Table:
         """
-        Divide table into chunks and extract the statistical values.
+        Divide table into chunks and compute aggregated statistic values.
 
         This function divides the input table into overlapping or non-overlapping chunks of size ``chunk_size``
-        and call the relevant function of the particular extractor to extract the statistical values.
+        and call the relevant function of the particular aggregator to compute aggregated statistic values.
         The chunks are generated in a way that ensures they do not overflow the bounds of the table.
-        - If ``chunk_shift`` is None, extraction chunks will not overlap, but the last chunk is ensured to be
+        - If ``chunk_shift`` is None, chunks will not overlap, but the last chunk is ensured to be
         of size `chunk_size`, even if it means the last two chunks will overlap.
         - If ``chunk_shift`` is provided, it will determine the number of samples to shift between the start
-        of consecutive chunks resulting in an overlap of extraction chunks. Chunks that overflows the bounds
+        of consecutive chunks resulting in an overlap of chunks. Chunks that overflows the bounds
         of the table are not considered.
 
         Parameters
         ----------
         table : astropy.table.Table
             table with images of shape (n_images, n_channels, n_pix)
-            and timestamps of shape (n_images, ) stored in an astropy Table
+            and timestamps of shape (n_images, )
         masked_pixels_of_sample : ndarray, optional
             boolean array of masked pixels of shape (n_pix, ) that are not available for processing
         chunk_shift : int, optional
-            number of samples to shift between the start of consecutive extraction chunks
+            number of samples to shift between the start of consecutive chunks
         col_name : string
             column name in the table
 
@@ -66,13 +72,13 @@ class StatisticsExtractor(TelescopeComponent):
         -------
         astropy.table.Table
             table containing the start and end values as timestamps and event IDs
-            as well as the extracted statistics (mean, median, std) for each chunk
+            as well as the aggregated statistic values (mean, median, std) for each chunk
         """
 
-        # Check if the statistics of the table is sufficient to extract at least one chunk.
+        # Check if the statistics of the table is sufficient to compute at least one complete chunk.
         if len(table) < self.chunk_size:
             raise ValueError(
-                f"The length of the provided table ({len(table)}) is insufficient to meet the required statistics for a single extraction chunk of size ({self.chunk_size})."
+                f"The length of the provided table ({len(table)}) is insufficient to meet the required statistics for a single chunk of size ({self.chunk_size})."
             )
         # Check if the chunk_shift is smaller than the chunk_size
         if chunk_shift is not None and chunk_shift > self.chunk_size:
@@ -93,11 +99,11 @@ class StatisticsExtractor(TelescopeComponent):
             if chunk_shift is None and len(table) % self.chunk_size != 0:
                 yield table[-self.chunk_size :]
 
-        # Calculate the statistics for each chunk of images
+        # Compute aggregated statistic values for each chunk of images
         units = {col: table[col_name].unit for col in ("mean", "median", "std")}
         data = defaultdict(list)
         for chunk in _get_chunks(table, chunk_shift):
-            stats = self.extract(chunk[col_name].data, masked_pixels_of_sample)
+            stats = self.compute_stats(chunk[col_name].data, masked_pixels_of_sample)
             data["time_start"].append(chunk["time_mono"][0])
             data["time_end"].append(chunk["time_mono"][-1])
             data["event_id_start"].append(chunk["event_id"][0])
@@ -110,20 +116,20 @@ class StatisticsExtractor(TelescopeComponent):
         return Table(data, units=units)
 
     @abstractmethod
-    def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
         pass
 
 
-class PlainExtractor(StatisticsExtractor):
+class PlainAggregator(StatisticsAggregator):
     """
-    Extract the statistics from a chunk of images using numpy functions
+    Compute aggregated statistic values from a chunk of images using numpy functions
     """
 
-    def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
-        # Calculate the mean, median, and std over the chunk per pixel
+        # Compute the mean, median, and std over the chunk per pixel
         pixel_mean = np.ma.mean(masked_images, axis=0).filled(np.nan)
         pixel_median = np.ma.median(masked_images, axis=0).filled(np.nan)
         pixel_std = np.ma.std(masked_images, axis=0).filled(np.nan)
@@ -136,9 +142,9 @@ class PlainExtractor(StatisticsExtractor):
         )
 
 
-class SigmaClippingExtractor(StatisticsExtractor):
+class SigmaClippingAggregator(StatisticsAggregator):
     """
-    Extract the statistics from a chunk of images using astropy's sigma clipping functions
+    Compute aggregated statistic values from a chunk of images using astropy's sigma clipping functions
     """
 
     max_sigma = Int(
@@ -150,11 +156,11 @@ class SigmaClippingExtractor(StatisticsExtractor):
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def extract(self, images, masked_pixels_of_sample) -> StatisticsContainer:
+    def compute_stats(self, images, masked_pixels_of_sample) -> StatisticsContainer:
         # Mask broken pixels
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
-        # Calculate the mean, median, and std over the chunk per pixel
+        # Compute the mean, median, and std over the chunk per pixel
         pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
             masked_images,
             sigma=self.max_sigma,
