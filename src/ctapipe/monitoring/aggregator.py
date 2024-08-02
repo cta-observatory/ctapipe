@@ -3,7 +3,7 @@ Algorithms to compute aggregated time-series statistics from columns of an event
 
 These classes take as input an events table, divide it into time chunks, which
 may optionally overlap, and compute various aggregated statistics for each
-chunk.  The statistics include the count, mean, median, and standard deviation. The result
+chunk. The statistics include the count, mean, median, and standard deviation. The result
 is a monitoring table with columns describing the start and stop time of the chunk
 and the aggregated statistic values.
 """
