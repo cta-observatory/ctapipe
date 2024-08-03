@@ -5,7 +5,7 @@ Tests for OutlierDetector and related functions
 import numpy as np
 from astropy.table import Table
 
-from ctapipe.calib.camera.outlier import (
+from ctapipe.monitoring.outlier import (
     MedianBasedOutlierDetector,
     RangeBasedOutlierDetector,
     StdBasedOutlierDetector,
