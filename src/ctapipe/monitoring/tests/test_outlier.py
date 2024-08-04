@@ -6,14 +6,14 @@ import numpy as np
 from astropy.table import Table
 
 from ctapipe.monitoring.outlier import (
-    MedianBasedOutlierDetector,
-    RangeBasedOutlierDetector,
-    StdBasedOutlierDetector,
+    MedianOutlierDetector,
+    RangeOutlierDetector,
+    StdOutlierDetector,
 )
 
 
-def test_range_based_detection(example_subarray):
-    """test the RangeBasedOutlierDetector"""
+def test_range_detection(example_subarray):
+    """test the RangeOutlierDetector"""
 
     # Create dummy data for testing
     rng = np.random.default_rng(0)
@@ -27,9 +27,7 @@ def test_range_based_detection(example_subarray):
     # Initialize the outlier detector based on the range of valid values
     # In this test, the interval [15, 25] corresponds to the range (in waveform samples)
     # of accepted mean (or median) values of peak times of flat-field events
-    detector = RangeBasedOutlierDetector(
-        subarray=example_subarray, outliers_interval=[15, 25]
-    )
+    detector = RangeOutlierDetector(subarray=example_subarray, validity_range=[15, 25])
     # Detect outliers
     outliers = detector(table["mean"])
     # Construct the expected outliers
@@ -40,8 +38,8 @@ def test_range_based_detection(example_subarray):
     np.testing.assert_array_equal(outliers, expected_outliers)
 
 
-def test_median_based_detection(example_subarray):
-    """test the MedianBasedOutlierDetector"""
+def test_median_detection(example_subarray):
+    """test the MedianOutlierDetector"""
 
     # Create dummy data for testing
     rng = np.random.default_rng(0)
@@ -55,8 +53,8 @@ def test_median_based_detection(example_subarray):
     # Initialize the outlier detector based on the deviation from the camera median
     # In this test, the interval [-0.9, 8] corresponds to multiplication factors
     # typical used for the median values of charge images of flat-field events
-    detector = MedianBasedOutlierDetector(
-        subarray=example_subarray, outliers_interval=[-0.9, 8]
+    detector = MedianOutlierDetector(
+        subarray=example_subarray, median_range_factors=[-0.9, 8]
     )
     # Detect outliers
     outliers = detector(table["median"])
@@ -68,8 +66,8 @@ def test_median_based_detection(example_subarray):
     np.testing.assert_array_equal(outliers, expected_outliers)
 
 
-def test_std_based_detection(example_subarray):
-    """test the StdBasedOutlierDetector"""
+def test_std_detection(example_subarray):
+    """test the StdOutlierDetector"""
 
     # Create dummy data for testing
     rng = np.random.default_rng(0)
@@ -88,8 +86,8 @@ def test_std_based_detection(example_subarray):
     # In this test, the interval [-15, 15] corresponds to multiplication factors
     # typical used for the std values of charge images of flat-field events
     # and median (and std) values of charge images of pedestal events
-    detector = StdBasedOutlierDetector(
-        subarray=example_subarray, outliers_interval=[-15, 15]
+    detector = StdOutlierDetector(
+        subarray=example_subarray, std_range_factors=[-15, 15]
     )
     ff_outliers = detector(ff_table["std"])
     ped_outliers = detector(ped_table["median"])
