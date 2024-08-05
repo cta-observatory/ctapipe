@@ -86,8 +86,8 @@ class MedianOutlierDetector(OutlierDetector):
         trait=Float(),
         default_value=[-1.0, 1.0],
         help=(
-            "Defines the range of acceptable values (lower, upper) in units of medians. "
-            "Values whose deviation to the camera median lays outside of this range will be flagged as outliers."
+            "Defines the range of acceptable values (lower, upper) as fractional deviations from the mean. "
+            "Values outside of this range will be flagged as outliers."
         ),
         minlen=2,
         maxlen=2,
@@ -118,7 +118,7 @@ class StdOutlierDetector(OutlierDetector):
         default_value=[-1.0, 1.0],
         help=(
             "Defines the range of acceptable values (lower, upper) in units of standard deviations. "
-            "Values whose deviation to the camera median lays outside of this range will be flagged as outliers."
+            "Values outside of this range will be flagged as outliers."
         ),
         minlen=2,
         maxlen=2,
