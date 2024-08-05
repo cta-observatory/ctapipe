@@ -58,8 +58,8 @@ class RangeOutlierDetector(OutlierDetector):
         trait=traits.Float(),
         default_value=[1.0, 2.0],
         help=(
-            "Range of valid statistic values (in units of the image value). "
-            "Values outside the range are identified as outliers."
+            "Defines the range of acceptable values (lower, upper) in units of image values. "
+            "Values outside this range will be flagged as outliers."
         ),
         minlen=2,
         maxlen=2,
@@ -86,9 +86,8 @@ class MedianOutlierDetector(OutlierDetector):
         trait=traits.Float(),
         default_value=[-1.0, 1.0],
         help=(
-            "Multiplicative factors (unitless) applied to the camera median "
-            "of the provided statistic values to define a valid range based on the "
-            "deviation of the values to its camera median."
+            "Defines the range of acceptable values (lower, upper) in units of medians. "
+            "Values whose deviation to the camera median lays outside of this range will be flagged as outliers."
         ),
         minlen=2,
         maxlen=2,
@@ -118,9 +117,8 @@ class StdOutlierDetector(OutlierDetector):
         trait=traits.Float(),
         default_value=[-1.0, 1.0],
         help=(
-            "Multiplicative factors (unitless) applied to the camera standard deviation "
-            "of the provided statistic values to define a valid range based on the "
-            "deviation of the values to its camera median."
+            "Defines the range of acceptable values (lower, upper) in units of standard deviations. "
+            "Values whose deviation to the camera median lays outside of this range will be flagged as outliers."
         ),
         minlen=2,
         maxlen=2,
