@@ -27,7 +27,9 @@ def test_range_detection(example_subarray):
     # Initialize the outlier detector based on the range of valid values
     # In this test, the interval [15, 25] corresponds to the range (in waveform samples)
     # of accepted mean (or median) values of peak times of flat-field events
-    detector = RangeOutlierDetector(subarray=example_subarray, validity_range=[15, 25])
+    detector = RangeOutlierDetector(
+        subarray=example_subarray, validity_range=[15.0, 25.0]
+    )
     # Detect outliers
     outliers = detector(table["mean"])
     # Construct the expected outliers
@@ -54,7 +56,7 @@ def test_median_detection(example_subarray):
     # In this test, the interval [-0.9, 8] corresponds to multiplication factors
     # typical used for the median values of charge images of flat-field events
     detector = MedianOutlierDetector(
-        subarray=example_subarray, median_range_factors=[-0.9, 8]
+        subarray=example_subarray, median_range_factors=[-0.9, 8.0]
     )
     # Detect outliers
     outliers = detector(table["median"])
@@ -87,7 +89,7 @@ def test_std_detection(example_subarray):
     # typical used for the std values of charge images of flat-field events
     # and median (and std) values of charge images of pedestal events
     detector = StdOutlierDetector(
-        subarray=example_subarray, std_range_factors=[-15, 15]
+        subarray=example_subarray, std_range_factors=[-15.0, 15.0]
     )
     ff_outliers = detector(ff_table["std"])
     ped_outliers = detector(ped_table["median"])

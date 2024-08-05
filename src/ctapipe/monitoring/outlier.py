@@ -13,7 +13,7 @@ from abc import abstractmethod
 
 import numpy as np
 
-from ctapipe.core import TelescopeComponent
+from ctapipe.core import TelescopeComponent, traits
 from ctapipe.core.traits import List
 
 
@@ -55,11 +55,14 @@ class RangeOutlierDetector(OutlierDetector):
     """
 
     validity_range = List(
-        [1.0, 2.0],
+        trait=traits.Float(),
+        default_value=[1.0, 2.0],
         help=(
             "Range of valid statistic values (in units of the image value)."
             "Values outside the range are identified as outliers."
         ),
+        minlen=2,
+        maxlen=2,
     ).tag(config=True)
 
     def __call__(self, column):
@@ -80,12 +83,15 @@ class MedianOutlierDetector(OutlierDetector):
     """
 
     median_range_factors = List(
-        [-1.0, 1.0],
+        trait=traits.Float(),
+        default_value=[-1.0, 1.0],
         help=(
             "Multiplicative factors (unitless) applied to the camera median"
             "of the provided statistic values to define a valid range based on the"
             "deviation of the values to its camera median."
         ),
+        minlen=2,
+        maxlen=2,
     ).tag(config=True)
 
     def __call__(self, column):
@@ -109,12 +115,15 @@ class StdOutlierDetector(OutlierDetector):
     """
 
     std_range_factors = List(
-        [-1.0, 1.0],
+        trait=traits.Float(),
+        default_value=[-1.0, 1.0],
         help=(
             "Multiplicative factors (unitless) applied to the camera standard deviation"
             "of the provided statistic values to define a valid range based on the"
             "deviation of the values to its camera median."
         ),
+        minlen=2,
+        maxlen=2,
     ).tag(config=True)
 
     def __call__(self, column):
