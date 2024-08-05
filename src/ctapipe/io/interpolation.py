@@ -114,13 +114,13 @@ class Interpolator(Component, metaclass=ABCMeta):
         tel_id, the second needs to be the name of the parameter that is to be interpolated
 
         Parameters
-        -.---------
+        ----------
         tel_id : int
             Telescope id
         input_table : astropy.table.Table
             Table of pointing values, expected columns
-            are always ``time`` as ``Time`` column and other columns for the data
-            that is to be interpolated
+            are always ``time`` as ``Time`` column and
+            other columns for the data that is to be interpolated
         """
 
         pass
