@@ -165,7 +165,7 @@ class PointingInterpolator(Interpolator):
     """
 
     telescope_data_group = "/dl0/monitoring/telescope/pointing"
-    required_columns = {"time", "azimuth", "altitude"}
+    required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
     def __call__(self, tel_id, time):
@@ -230,16 +230,16 @@ class PointingInterpolator(Interpolator):
         self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
 
 
-class GainInterpolator(Interpolator):
+class FlatFieldInterpolator(Interpolator):
     """
-    Interpolator for relative gain data
+    Interpolator for flatfield data
     """
 
     telescope_data_group = "dl1/calibration/gain"  # TBD
 
     def __call__(self, tel_id, time):
         """
-        Interpolate pedestal or gain for a given time and tel_id.
+        Interpolate flatfield data for a given time and tel_id.
 
         Parameters
         ----------
@@ -250,14 +250,14 @@ class GainInterpolator(Interpolator):
 
         Returns
         -------
-        gain : array [float]
-            interpolated relative gain
+        ffield : array [float]
+            interpolated flatfield data
         """
 
         self._check_interpolators(tel_id)
 
-        gain = self._interpolators[tel_id]["gain"](time)
-        return gain
+        ffield = self._interpolators[tel_id]["gain"](time)
+        return ffield
 
     def add_table(self, tel_id, input_table):
         """
@@ -270,10 +270,10 @@ class GainInterpolator(Interpolator):
         input_table : astropy.table.Table
             Table of pointing values, expected columns
             are ``time`` as ``Time`` column and "gain"
-            for the relative gain data
+            for the flatfield data
         """
 
-        self.required_columns = {"time", "gain"}
+        self.required_columns = frozenset(["time", "gain"])  # TBD
 
         self._check_tables(input_table)
 
@@ -329,7 +329,7 @@ class PedestalInterpolator(Interpolator):
             for the pedestal data
         """
 
-        self.required_columns = {"time", "pedestal"}
+        self.required_columns = frozenset(["time", "pedestal"])  # TBD
 
         self._check_tables(input_table)
 

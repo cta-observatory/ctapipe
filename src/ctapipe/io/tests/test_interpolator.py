@@ -6,7 +6,7 @@ from astropy.table import Table
 from astropy.time import Time
 
 from ctapipe.io.interpolation import (
-    GainInterpolator,
+    FlatFieldInterpolator,
     PedestalInterpolator,
     PointingInterpolator,
 )
@@ -108,7 +108,7 @@ def test_bounds():
         },
     )
 
-    table_gain = Table(
+    table_flatfield = Table(
         {
             "time": np.arange(0.0, 10.1, 2.0),
             "gain": np.reshape(np.random.normal(1.0, 1.0, 1850 * 6), (6, 1850)),
@@ -117,10 +117,10 @@ def test_bounds():
 
     interpolator_pointing = PointingInterpolator()
     interpolator_pedestal = PedestalInterpolator()
-    interpolator_gain = GainInterpolator()
+    interpolator_flatfield = FlatFieldInterpolator()
     interpolator_pointing.add_table(1, table_pointing)
     interpolator_pedestal.add_table(1, table_pedestal)
-    interpolator_gain.add_table(1, table_gain)
+    interpolator_flatfield.add_table(1, table_flatfield)
 
     error_message = "below the interpolation range"
 
@@ -131,7 +131,7 @@ def test_bounds():
         interpolator_pedestal(tel_id=1, time=-0.1)
 
     with pytest.raises(ValueError, match=error_message):
-        interpolator_gain(tel_id=1, time=-0.1)
+        interpolator_flatfield(tel_id=1, time=-0.1)
 
     with pytest.raises(ValueError, match="above the interpolation range"):
         interpolator_pointing(tel_id=1, time=t0 + 10.2 * u.s)
@@ -142,21 +142,21 @@ def test_bounds():
 
     pedestal = interpolator_pedestal(tel_id=1, time=1.0)
     assert all(pedestal == table_pedestal["pedestal"][0])
-    gain = interpolator_gain(tel_id=1, time=1.0)
-    assert all(gain == table_gain["gain"][0])
+    flatfield = interpolator_flatfield(tel_id=1, time=1.0)
+    assert all(flatfield == table_flatfield["gain"][0])
     with pytest.raises(KeyError):
         interpolator_pointing(tel_id=2, time=t0 + 1 * u.s)
     with pytest.raises(KeyError):
         interpolator_pedestal(tel_id=2, time=1.0)
     with pytest.raises(KeyError):
-        interpolator_gain(tel_id=2, time=1.0)
+        interpolator_flatfield(tel_id=2, time=1.0)
 
     interpolator_pointing = PointingInterpolator(bounds_error=False)
     interpolator_pedestal = PedestalInterpolator(bounds_error=False)
-    interpolator_gain = GainInterpolator(bounds_error=False)
+    interpolator_flatfield = FlatFieldInterpolator(bounds_error=False)
     interpolator_pointing.add_table(1, table_pointing)
     interpolator_pedestal.add_table(1, table_pedestal)
-    interpolator_gain.add_table(1, table_gain)
+    interpolator_flatfield.add_table(1, table_flatfield)
 
     for dt in (-0.1, 10.1) * u.s:
         alt, az = interpolator_pointing(tel_id=1, time=t0 + dt)
@@ -164,7 +164,7 @@ def test_bounds():
         assert np.isnan(az.value)
 
     assert all(np.isnan(interpolator_pedestal(tel_id=1, time=-0.1)))
-    assert all(np.isnan(interpolator_gain(tel_id=1, time=-0.1)))
+    assert all(np.isnan(interpolator_flatfield(tel_id=1, time=-0.1)))
 
     interpolator_pointing = PointingInterpolator(bounds_error=False, extrapolate=True)
     interpolator_pointing.add_table(1, table_pointing)

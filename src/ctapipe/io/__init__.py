@@ -21,7 +21,7 @@ from .datawriter import DATA_MODEL_VERSION, DataWriter
 from .interpolation import (
     Interpolator,
     PointingInterpolator,
-    GainInterpolator,
+    FlatFieldInterpolator,
     PedestalInterpolator,
 )
 
@@ -45,5 +45,5 @@ __all__ = [
     "Interpolator",
     "PointingInterpolator",
     "PedestalInterpolator",
-    "GainInterpolator",
+    "FlatFieldInterpolator",
 ]
