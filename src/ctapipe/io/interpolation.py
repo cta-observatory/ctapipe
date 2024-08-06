@@ -11,6 +11,8 @@ from ctapipe.core import Component, traits
 
 from .astropy_helpers import read_table
 
+dimensionless_unit = u.Unit()
+
 
 class StepFunction:
 
@@ -236,6 +238,8 @@ class FlatFieldInterpolator(Interpolator):
     """
 
     telescope_data_group = "dl1/calibration/gain"  # TBD
+    required_columns = frozenset(["time", "gain"])  # TBD
+    expected_units = {"gain": dimensionless_unit}
 
     def __call__(self, tel_id, time):
         """
@@ -273,8 +277,6 @@ class FlatFieldInterpolator(Interpolator):
             for the flatfield data
         """
 
-        self.required_columns = frozenset(["time", "gain"])  # TBD
-
         self._check_tables(input_table)
 
         input_table.sort("time")
@@ -292,6 +294,8 @@ class PedestalInterpolator(Interpolator):
     """
 
     telescope_data_group = "dl1/calibration/pedestal"  # TBD
+    required_columns = frozenset(["time", "pedestal"])  # TBD
+    expected_units = {"pedestal": dimensionless_unit}
 
     def __call__(self, tel_id, time):
         """
@@ -328,8 +332,6 @@ class PedestalInterpolator(Interpolator):
             are ``time`` as ``Time`` column and "pedestal"
             for the pedestal data
         """
-
-        self.required_columns = frozenset(["time", "pedestal"])  # TBD
 
         self._check_tables(input_table)
 

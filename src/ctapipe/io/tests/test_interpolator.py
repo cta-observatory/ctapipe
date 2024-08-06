@@ -104,14 +104,16 @@ def test_bounds():
     table_pedestal = Table(
         {
             "time": np.arange(0.0, 10.1, 2.0),
-            "pedestal": np.reshape(np.random.normal(4.0, 1.0, 1850 * 6), (6, 1850)),
+            "pedestal": np.reshape(np.random.normal(4.0, 1.0, 1850 * 6), (6, 1850))
+            * u.Unit(),
         },
     )
 
     table_flatfield = Table(
         {
             "time": np.arange(0.0, 10.1, 2.0),
-            "gain": np.reshape(np.random.normal(1.0, 1.0, 1850 * 6), (6, 1850)),
+            "gain": np.reshape(np.random.normal(1.0, 1.0, 1850 * 6), (6, 1850))
+            * u.Unit(),
         },
     )
 
