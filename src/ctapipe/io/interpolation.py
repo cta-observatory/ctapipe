@@ -215,6 +215,7 @@ class PointingInterpolator(Interpolator):
         if not isinstance(input_table["time"], Time):
             raise TypeError("'time' column of pointing table must be astropy.time.Time")
 
+        input_table = input_table.copy()
         input_table.sort("time")
 
         az = input_table["azimuth"].quantity.to_value(u.rad)
@@ -279,6 +280,7 @@ class FlatFieldInterpolator(Interpolator):
 
         self._check_tables(input_table)
 
+        input_table = input_table.copy()
         input_table.sort("time")
         time = input_table["time"]
         gain = input_table["gain"]
@@ -335,6 +337,7 @@ class PedestalInterpolator(Interpolator):
 
         self._check_tables(input_table)
 
+        input_table = input_table.copy()
         input_table.sort("time")
         time = input_table["time"]
         pedestal = input_table["pedestal"]
