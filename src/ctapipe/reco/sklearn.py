@@ -670,7 +670,8 @@ class DispReconstructor(Reconstructor):
                 f"{path} did not contain an instance of {cls}, got {instance}"
             )
 
-        Provenance().add_input_file(path, role="ml-models")
+        # FIXME: we currently don't store metadata in the joblib / pickle files, see #2603
+        Provenance().add_input_file(path, role="ml-models", add_meta=False)
         return instance
 
     @lazyproperty

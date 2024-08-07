@@ -11,6 +11,7 @@ import os
 import platform
 import sys
 import uuid
+import warnings
 from collections import UserList
 from contextlib import contextmanager
 from importlib import import_module
@@ -57,6 +58,10 @@ def get_module_version(name):
         return "not installed"
 
 
+class MissingReferenceMetadata(UserWarning):
+    """Warning raised if reference metadata could not be read from input file."""
+
+
 class Provenance(metaclass=Singleton):
     """
     Manage the provenance info for a stack of *activities*
@@ -91,7 +96,7 @@ class Provenance(metaclass=Singleton):
 
         return self.current_activity
 
-    def add_input_file(self, filename, role=None):
+    def add_input_file(self, filename, role=None, add_meta=True):
         """register an input to the current activity
 
         Parameters
@@ -102,14 +107,14 @@ class Provenance(metaclass=Singleton):
             role this input file satisfies (optional)
         """
         activity = self._get_current_or_start_activity()
-        activity.register_input(abspath(filename), role=role)
+        activity.register_input(abspath(filename), role=role, add_meta=add_meta)
         log.debug(
             "added input entity '%s' to activity: '%s'",
             filename,
             activity.name,
         )
 
-    def add_output_file(self, filename, role=None):
+    def add_output_file(self, filename, role=None, add_meta=True):
         """
         register an output to the current activity
 
@@ -122,7 +127,7 @@ class Provenance(metaclass=Singleton):
 
         """
         activity = self._get_current_or_start_activity()
-        activity.register_output(abspath(filename), role=role)
+        activity.register_output(abspath(filename), role=role, add_meta=add_meta)
         log.debug(
             "added output entity '%s' to activity: '%s'",
             filename,
@@ -239,7 +244,7 @@ class _ActivityProvenance:
         self._prov["start"].update(_sample_cpu_and_memory())
         self._prov["system"].update(_get_system_provenance())
 
-    def register_input(self, url, role=None):
+    def register_input(self, url, role=None, add_meta=True):
         """
         Add a URL of a file to the list of inputs (can be a filename or full
         url, if no URL specifier is given, assume 'file://')
@@ -250,13 +255,22 @@ class _ActivityProvenance:
             filename or url of input file
         role: str
             role name that this input satisfies
+        add_meta: bool
+            If true, try to load reference metadata from input file
+            and add to provenance.
         """
-        self._prov["input"].append(dict(url=url, role=role))
+        reference_meta = self._get_reference_meta(url=url) if add_meta else None
+        self._prov["input"].append(
+            dict(url=url, role=role, reference_meta=reference_meta)
+        )
 
-    def register_output(self, url, role=None):
+    def register_output(self, url, role=None, add_meta=True):
         """
         Add a URL of a file to the list of outputs (can be a filename or full
         url, if no URL specifier is given, assume 'file://')
+
+        Should only be called once the file is finalized, so that reference metadata
+        can be read.
 
         Parameters
         ----------
@@ -264,8 +278,14 @@ class _ActivityProvenance:
             filename or url of output file
         role: str
             role name that this output satisfies
+        add_meta: bool
+            If true, try to load reference metadata from input file
+            and add to provenance.
         """
-        self._prov["output"].append(dict(url=url, role=role))
+        reference_meta = self._get_reference_meta(url=url) if add_meta else None
+        self._prov["output"].append(
+            dict(url=url, role=role, reference_meta=reference_meta)
+        )
 
     def register_config(self, config):
         """add a dictionary of configuration parameters to this activity"""
@@ -301,6 +321,18 @@ class _ActivityProvenance:
     @property
     def provenance(self):
         return self._prov
+
+    def _get_reference_meta(self, url):
+        # here to prevent circular imports / top-level cross-dependencies
+        from ..io.metadata import read_reference_metadata
+
+        try:
+            return read_reference_metadata(url).to_dict()
+        except Exception:
+            warnings.warn(
+                f"Could not read reference metadata for input file: {url}",
+                MissingReferenceMetadata,
+            )
 
 
 def _get_python_packages():

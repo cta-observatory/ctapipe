@@ -183,7 +183,6 @@ class HDF5Merger(Component):
             mode="a" if appending else "w",
             filters=DEFAULT_FILTERS,
         )
-        Provenance().add_output_file(str(self.output_path))
 
         self.required_nodes = None
         self.data_model_version = None
@@ -247,7 +246,7 @@ class HDF5Merger(Component):
 
     def _read_meta(self, h5file):
         try:
-            return metadata.Reference.from_dict(metadata.read_metadata(h5file))
+            return metadata._read_reference_metadata_hdf5(h5file)
         except Exception:
             raise CannotMerge(
                 f"CTA Reference meta not found in input file: {h5file.filename}"
@@ -384,6 +383,7 @@ class HDF5Merger(Component):
     def close(self):
         if hasattr(self, "h5file"):
             self.h5file.close()
+        Provenance().add_output_file(str(self.output_path))
 
     def _append_subarray(self, other):
         # focal length choice doesn't matter here, set to equivalent so we don't get
