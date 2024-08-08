@@ -1,5 +1,5 @@
 """
-Extraction algorithms to compute the statistics from a chunk of images
+Extraction algorithms to compute the statistics from a sequence of images
 """
 
 __all__ = [
@@ -22,27 +22,20 @@ from ctapipe.core.traits import (
 
 
 class StatisticsExtractor(TelescopeComponent):
-    """Base StatisticsExtractor component"""
-
-    chunk_size = Int(
-        2500,
-        help="Size of the chunk used for the calculation of the statistical values",
-    ).tag(config=True)
+    sample_size = Int(2500, help="sample size").tag(config=True)
     image_median_cut_outliers = List(
         [-0.3, 0.3],
-        help="""Interval of accepted image values \\
-                (fraction with respect to camera median value)""",
+        help="Interval of accepted image values (fraction with respect to camera median value)",
     ).tag(config=True)
     image_std_cut_outliers = List(
         [-3, 3],
-        help="""Interval (number of std) of accepted image standard deviation \\
-                around camera median value""",
+        help="Interval (number of std) of accepted image standard deviation around camera median value",
     ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of the statistics
-        from a chunk of charges and pulse times (images).
+        from a sequence of charges and pulse times (images).
 
         Parameters
         ----------
@@ -50,12 +43,9 @@ class StatisticsExtractor(TelescopeComponent):
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
+    @abstractmethod
     def __call__(
-        self,
-        dl1_table,
-        masked_pixels_of_sample=None,
-        chunk_shift=None,
-        col_name="image",
+        self, dl1_table, masked_pixels_of_sample=None, col_name="image"
     ) -> list:
         """
         Call the relevant functions to extract the statistics
@@ -64,63 +54,48 @@ class StatisticsExtractor(TelescopeComponent):
         Parameters
         ----------
         dl1_table : ndarray
-            dl1 table with images and timestamps stored in a numpy array of shape
+            dl1 table with images and times stored in a numpy array of shape
             (n_images, n_channels, n_pix).
-        masked_pixels_of_sample : ndarray
-            boolean array of masked pixels that are not available for processing
-        chunk_shift : int
-            number of samples to shift the extraction chunk
         col_name : string
             column name in the dl1 table
 
         Returns
         -------
         List StatisticsContainer:
-            List of extracted statistics and extraction chunks
+            List of extracted statistics and validity ranges
         """
-
-        # If no chunk_shift is provided, the chunk_shift is set to self.chunk_size
-        # meaning that the extraction chunks are not overlapping.
-        if chunk_shift is None:
-            chunk_shift = self.chunk_size
-
-        # Function to split table data into appropriated chunks
-        def _get_chunks(col_name):
-            return [
-                (
-                    dl1_table[col_name].data[i : i + self.chunk_size]
-                    if i + self.chunk_size <= len(dl1_table[col_name])
-                    else dl1_table[col_name].data[
-                        len(dl1_table[col_name].data) - self.chunk_size : len(
-                            dl1_table[col_name].data
-                        )
-                    ]
-                )
-                for i in range(0, len(dl1_table[col_name].data), chunk_shift)
-            ]
-
-        # Get the chunks for the timestamps and selected column name
-        time_chunks = _get_chunks("time")
-        image_chunks = _get_chunks(col_name)
-
-        # Calculate the statistics from a chunk of images
-        stats_list = []
-        for images, times in zip(image_chunks, time_chunks):
-            stats_list.append(self._extract(images, times, masked_pixels_of_sample))
-        return stats_list
-
-    @abstractmethod
-    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
-        pass
 
 
 class PlainExtractor(StatisticsExtractor):
     """
-    Extractor the statistics from a chunk of images
+    Extractor the statistics from a sequence of images
     using numpy and scipy functions
     """
 
-    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def __call__(
+        self, dl1_table, masked_pixels_of_sample=None, col_name="image"
+    ) -> list:
+        # in python 3.12 itertools.batched can be used
+        image_chunks = (
+            dl1_table[col_name].data[i : i + self.sample_size]
+            for i in range(0, len(dl1_table[col_name].data), self.sample_size)
+        )
+        time_chunks = (
+            dl1_table["time"][i : i + self.sample_size]
+            for i in range(0, len(dl1_table["time"]), self.sample_size)
+        )
+
+        # Calculate the statistics from a sequence of images
+        stats_list = []
+        for images, times in zip(image_chunks, time_chunks):
+            stats_list.append(
+                self._plain_extraction(images, times, masked_pixels_of_sample)
+            )
+        return stats_list
+
+    def _plain_extraction(
+        self, images, times, masked_pixels_of_sample
+    ) -> StatisticsContainer:
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
@@ -133,6 +108,9 @@ class PlainExtractor(StatisticsExtractor):
         # std over the sample per pixel
         pixel_std = np.ma.std(masked_images, axis=0)
 
+        # median of the median over the camera
+        # median_of_pixel_median = np.ma.median(pixel_median, axis=1)
+
         # outliers from median
         image_median_outliers = np.logical_or(
             pixel_median < self.image_median_cut_outliers[0],
@@ -140,8 +118,8 @@ class PlainExtractor(StatisticsExtractor):
         )
 
         return StatisticsContainer(
-            extraction_start=times[0],
-            extraction_stop=times[-1],
+            validity_start=times[0],
+            validity_stop=times[-1],
             mean=pixel_mean.filled(np.nan),
             median=pixel_median.filled(np.nan),
             median_outliers=image_median_outliers.filled(True),
@@ -151,28 +129,55 @@ class PlainExtractor(StatisticsExtractor):
 
 class SigmaClippingExtractor(StatisticsExtractor):
     """
-    Extracts the statistics from a chunk of images
+    Extractor the statistics from a sequence of images
     using astropy's sigma clipping functions
     """
 
-    max_sigma = Int(
+    sigma_clipping_max_sigma = Int(
         default_value=4,
         help="Maximal value for the sigma clipping outlier removal",
     ).tag(config=True)
-    iterations = Int(
+    sigma_clipping_iterations = Int(
         default_value=5,
         help="Number of iterations for the sigma clipping outlier removal",
     ).tag(config=True)
 
-    def _extract(self, images, times, masked_pixels_of_sample) -> StatisticsContainer:
+    def __call__(
+        self, dl1_table, masked_pixels_of_sample=None, col_name="image"
+    ) -> list:
+        # in python 3.12 itertools.batched can be used
+        image_chunks = (
+            dl1_table[col_name].data[i : i + self.sample_size]
+            for i in range(0, len(dl1_table[col_name].data), self.sample_size)
+        )
+        time_chunks = (
+            dl1_table["time"][i : i + self.sample_size]
+            for i in range(0, len(dl1_table["time"]), self.sample_size)
+        )
+
+        # Calculate the statistics from a sequence of images
+        stats_list = []
+        for images, times in zip(image_chunks, time_chunks):
+            stats_list.append(
+                self._sigmaclipping_extraction(images, times, masked_pixels_of_sample)
+            )
+        return stats_list
+
+    def _sigmaclipping_extraction(
+        self, images, times, masked_pixels_of_sample
+    ) -> StatisticsContainer:
         # ensure numpy array
         masked_images = np.ma.array(images, mask=masked_pixels_of_sample)
 
+        # median of the event images
+        # image_median = np.ma.median(masked_images, axis=-1)
+
         # mean, median, and std over the sample per pixel
+        max_sigma = self.sigma_clipping_max_sigma
         pixel_mean, pixel_median, pixel_std = sigma_clipped_stats(
             masked_images,
-            sigma=self.max_sigma,
-            maxiters=self.iterations,
+            sigma=max_sigma,
+            maxiters=self.sigma_clipping_iterations,
             cenfunc="mean",
             axis=0,
         )
@@ -182,9 +187,10 @@ class SigmaClippingExtractor(StatisticsExtractor):
         pixel_median = np.ma.array(pixel_median, mask=np.isnan(pixel_median))
         pixel_std = np.ma.array(pixel_std, mask=np.isnan(pixel_std))
 
-        unused_values = np.abs(masked_images - pixel_mean) > (
-            self.max_sigma * pixel_std
-        )
+        unused_values = np.abs(masked_images - pixel_mean) > (max_sigma * pixel_std)
+
+        # only warn for values discard in the sigma clipping, not those from before
+        # outliers = unused_values & (~masked_images.mask)
 
         # add outliers identified by sigma clipping for following operations
         masked_images.mask |= unused_values
@@ -202,27 +208,23 @@ class SigmaClippingExtractor(StatisticsExtractor):
         image_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
         image_median_outliers = np.logical_or(
             image_deviation
-            < self.image_median_cut_outliers[0]  # pylint: disable=unsubscriptable-object
-            * median_of_pixel_median[:, np.newaxis],
+            < self.image_median_cut_outliers[0] * median_of_pixel_median[:, np.newaxis],
             image_deviation
-            > self.image_median_cut_outliers[1]  # pylint: disable=unsubscriptable-object
-            * median_of_pixel_median[:, np.newaxis],
+            > self.image_median_cut_outliers[1] * median_of_pixel_median[:, np.newaxis],
         )
 
         # outliers from standard deviation
         deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
         image_std_outliers = np.logical_or(
             deviation
-            < self.image_std_cut_outliers[0]  # pylint: disable=unsubscriptable-object
-            * std_of_pixel_std[:, np.newaxis],
+            < self.image_std_cut_outliers[0] * std_of_pixel_std[:, np.newaxis],
             deviation
-            > self.image_std_cut_outliers[1]  # pylint: disable=unsubscriptable-object
-            * std_of_pixel_std[:, np.newaxis],
+            > self.image_std_cut_outliers[1] * std_of_pixel_std[:, np.newaxis],
         )
 
         return StatisticsContainer(
-            extraction_start=times[0],
-            extraction_stop=times[-1],
+            validity_start=times[0],
+            validity_stop=times[-1],
             mean=pixel_mean.filled(np.nan),
             median=pixel_median.filled(np.nan),
             median_outliers=image_median_outliers.filled(True),

@@ -91,11 +91,15 @@ class DumpInstrumentTool(Tool):
 
             try:
                 geom_table.write(geom_filename, **args)
-                readout_table.write(readout_filename, **args)
                 Provenance().add_output_file(geom_filename, "CameraGeometry")
+            except OSError as err:
+                self.log.exception("couldn't write camera geometry because: %s", err)
+
+            try:
+                readout_table.write(readout_filename, **args)
                 Provenance().add_output_file(readout_filename, "CameraReadout")
             except OSError as err:
-                self.log.warning("couldn't write camera definition because: %s", err)
+                self.log.exception("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
         """writes out optics files for each telescope type"""
@@ -109,7 +113,7 @@ class DumpInstrumentTool(Tool):
             tab.write(filename, **args)
             Provenance().add_output_file(filename, "OpticsDescription")
         except OSError as err:
-            self.log.warning(
+            self.log.exception(
                 "couldn't write optics description '%s' because: %s", filename, err
             )
 
@@ -123,7 +127,7 @@ class DumpInstrumentTool(Tool):
             tab.write(filename, **args)
             Provenance().add_output_file(filename, "SubarrayDescription")
         except OSError as err:
-            self.log.warning(
+            self.log.exception(
                 "couldn't write subarray description '%s' because: %s", filename, err
             )
 

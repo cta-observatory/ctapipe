@@ -388,6 +388,7 @@ class DataWriter(Component):
 
         self._write_context_metadata_headers()
         self._writer.close()
+        PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
     @property
     def datalevels(self):
@@ -432,7 +433,6 @@ class DataWriter(Component):
                     ", use the `overwrite` option or choose another `output_path` "
                 )
         self.log.debug("output path: %s", self.output_path)
-        PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
         writable_things = [

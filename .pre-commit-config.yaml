@@ -14,6 +14,7 @@ repos:
     - id: codespell
       additional_dependencies:
         - tomli
+      exclude: AUTHORS
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.

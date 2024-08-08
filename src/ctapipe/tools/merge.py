@@ -161,7 +161,7 @@ class MergeTool(Tool):
             )
             sys.exit(1)
 
-        self.merger = HDF5Merger(parent=self)
+        self.merger = self.enter_context(HDF5Merger(parent=self))
         if self.merger.output_path in self.input_files:
             raise ToolConfigurationError(
                 "Output path contained in input files. Fix your configuration / cli arguments."
@@ -195,7 +195,6 @@ class MergeTool(Tool):
         current_activity = Provenance().current_activity.provenance
         self.merger.meta.activity = meta.Activity.from_provenance(current_activity)
         meta.write_to_hdf5(self.merger.meta.to_dict(), self.merger.h5file)
-        self.merger.close()
 
 
 def main():

@@ -167,6 +167,15 @@ class EventType(enum.Enum):
     UNKNOWN = 255
 
 
+class VarianceType(enum.Enum):
+    """Enum of variance types used for the VarianceContainer"""
+
+    # Simple variance of waveform
+    WAVEFORM = 0
+    # Variance of integrated samples of a waveform
+    INTEGRATED = 1
+
+
 class PixelStatus(enum.IntFlag):
     """
     Pixel status information
@@ -415,8 +424,7 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics of a chunk of images"""
 
-    extraction_start = Field(np.float32(nan), "start of the extraction chunk")
-    extraction_stop = Field(np.float32(nan), "stop of the extraction chunk")
+    n_events = Field(-1, "number of events used for the extraction of the statistics")
     mean = Field(
         None,
         "mean of a pixel-wise quantity for each channel"
@@ -427,20 +435,10 @@ class StatisticsContainer(Container):
         "median of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
     )
-    median_outliers = Field(
-        None,
-        "outliers from the median distribution of a pixel-wise quantity for each channel"
-        "Type: binary mask; Shape: (n_channels, n_pixel)",
-    )
     std = Field(
         None,
         "standard deviation of a pixel-wise quantity for each channel"
         "Type: float; Shape: (n_channels, n_pixel)",
-    )
-    std_outliers = Field(
-        None,
-        "outliers from the standard deviation distribution of a pixel-wise quantity for each channel"
-        "Type: binary mask; Shape: (n_channels, n_pixel)",
     )
 
 
@@ -543,7 +541,6 @@ class DL1CameraContainer(Container):
             "pass only was returned."
         ),
     )
-
     parameters = Field(
         None, description="Image parameters", type=ImageParametersContainer
     )

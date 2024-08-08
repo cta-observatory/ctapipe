@@ -799,7 +799,7 @@ class NSBImageCleaner(TailcutsImageCleaner):
         """
         pedestal_std = None
         if monitoring is not None:
-            pedestal_std = monitoring.tel[tel_id].pedestal.charge_std
+            pedestal_std = monitoring.pedestal.charge_std
 
         return nsb_image_cleaning(
             self.subarray.tel[tel_id].camera.geometry,
