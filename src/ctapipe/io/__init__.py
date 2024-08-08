@@ -21,8 +21,6 @@ from .datawriter import DATA_MODEL_VERSION, DataWriter
 from .interpolation import (
     Interpolator,
     PointingInterpolator,
-    FlatFieldInterpolator,
-    PedestalInterpolator,
 )
 
 __all__ = [
@@ -44,6 +42,4 @@ __all__ = [
     "get_hdf5_datalevels",
     "Interpolator",
     "PointingInterpolator",
-    "PedestalInterpolator",
-    "FlatFieldInterpolator",
 ]
