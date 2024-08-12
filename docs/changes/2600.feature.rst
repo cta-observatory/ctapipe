@@ -1,2 +1,1 @@
 Add Interpolator class to generalize the PointingInterpolator in the io collection.
-Add new interpolator class called StepInterpolator to be used for calibration data.

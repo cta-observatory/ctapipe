@@ -12,55 +12,6 @@ from ctapipe.core import Component, traits
 from .astropy_helpers import read_table
 
 
-class StepFunction:
-
-    """
-    Step function Interpolator for the gain and pedestals
-    Interpolates data so that for each time the value from the closest previous
-    point given.
-
-    Parameters
-    ----------
-    values : None | np.array
-        Numpy array of the data that is to be interpolated.
-        The first dimension needs to be an index over time
-    times : None | np.array
-        Time values over which data are to be interpolated
-        need to be sorted and have same length as first dimension of values
-    """
-
-    def __init__(
-        self,
-        times,
-        values,
-        bounds_error=True,
-        fill_value="extrapolate",
-        assume_sorted=True,
-        copy=False,
-    ):
-        self.values = values
-        self.times = times
-        self.bounds_error = bounds_error
-        self.fill_value = fill_value
-
-    def __call__(self, point):
-        if point < self.times[0]:
-            if self.bounds_error:
-                raise ValueError("below the interpolation range")
-
-            if self.fill_value == "extrapolate":
-                return self.values[0]
-
-            else:
-                a = np.empty(self.values[0].shape)
-                a[:] = np.nan
-                return a
-
-        else:
-            i = np.searchsorted(self.times, point, side="left")
-            return self.values[i - 1]
-
-
 class Interpolator(Component, metaclass=ABCMeta):
     """
     Interpolator parent class.
