@@ -13,6 +13,8 @@ def irf_events_table():
     N = N1 + N2
     epp = EventPreProcessor()
     tab = epp.make_empty_table()
+    # Add fake weight column
+    tab.add_column((), name="weight")
     units = {c: tab[c].unit for c in tab.columns}
 
     empty = np.zeros((len(tab.columns), N)) * np.nan
