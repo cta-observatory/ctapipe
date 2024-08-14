@@ -85,7 +85,7 @@ class OptimizationResultStore:
         if not isinstance(self._results, list):
             raise ValueError(
                 "The results of this object"
-                "have not been properly initialised,"
+                " have not been properly initialised,"
                 " call `set_results` before writing."
             )
 
