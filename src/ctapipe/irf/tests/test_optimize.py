@@ -3,7 +3,9 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
+from ctapipe.core import non_abstract_children
 from ctapipe.irf import EventsLoader, Spectra
+from ctapipe.irf.optimize import CutOptimizerBase
 
 
 def test_optimization_result_store(tmp_path, irf_events_loader_test_config):
@@ -82,39 +84,14 @@ def test_theta_percentile_cut_calculator():
     assert calc.smoothing is None
 
 
-def test_percentile_cuts(gamma_diffuse_full_reco_file, irf_events_loader_test_config):
-    from ctapipe.irf import OptimizationResultStore, PercentileCuts
-
-    loader = EventsLoader(
-        config=irf_events_loader_test_config,
-        kind="gammas",
-        file=gamma_diffuse_full_reco_file,
-        target_spectrum=Spectra.CRAB_HEGRA,
-    )
-    events, _, _ = loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
-    optimizer = PercentileCuts()
-    result = optimizer.optimize_cuts(
-        signal=events,
-        background=None,
-        alpha=0.2,  # Default value in the tool, not used for PercentileCuts
-        precuts=loader.epp,
-        clf_prefix="ExtraTreesClassifier",
-        point_like=True,
-    )
-    assert isinstance(result, OptimizationResultStore)
-    assert len(result._results) == 4
-    assert u.isclose(result._results[1]["energy_min"], result._results[0]["low"][0])
-    assert u.isclose(result._results[1]["energy_max"], result._results[0]["high"][-1])
-    assert result._results[3]["cut"].unit == u.deg
-
-
-def test_point_source_sensitvity_optimizer(
-    gamma_diffuse_full_reco_file, proton_full_reco_file, irf_events_loader_test_config
+@pytest.mark.parametrize("Optimizer", non_abstract_children(CutOptimizerBase))
+def test_cut_optimizer(
+    Optimizer,
+    gamma_diffuse_full_reco_file,
+    proton_full_reco_file,
+    irf_events_loader_test_config,
 ):
-    from ctapipe.irf import OptimizationResultStore, PointSourceSensitivityOptimizer
+    from ctapipe.irf import OptimizationResultStore
 
     gamma_loader = EventsLoader(
         config=irf_events_loader_test_config,
@@ -137,7 +114,7 @@ def test_point_source_sensitvity_optimizer(
         obs_time=u.Quantity(50, u.h),
     )
 
-    optimizer = PointSourceSensitivityOptimizer()
+    optimizer = Optimizer()
     result = optimizer.optimize_cuts(
         signal=gamma_events,
         background=proton_events,
@@ -148,8 +125,6 @@ def test_point_source_sensitvity_optimizer(
     )
     assert isinstance(result, OptimizationResultStore)
     assert len(result._results) == 4
-    # If no significance can be calculated for any cut value in to lowest or
-    # highest energy bin(s), these bins are invalid.
     assert result._results[1]["energy_min"] >= result._results[0]["low"][0]
     assert result._results[1]["energy_max"] <= result._results[0]["high"][-1]
     assert result._results[3]["cut"].unit == u.deg
