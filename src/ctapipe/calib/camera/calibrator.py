@@ -3,16 +3,12 @@ Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
 
+import pickle
 from abc import abstractmethod
 from functools import cache
-import pathlib
 
 import astropy.units as u
-from astropy.table import Table
-import pickle
-
 import numpy as np
-from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from numba import float32, float64, guvectorize, int64
 
 from ctapipe.calib.camera.extractor import StatisticsExtractor
@@ -21,23 +17,19 @@ from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
-    Dict,
     Float,
     Int,
-    Integer,
     Path,
     TelescopeParameter,
 )
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
-from ctapipe.image.psf_model import PSFModel
 from ctapipe.image.reducer import DataVolumeReducer
-from ctapipe.io import EventSource, TableLoader
+from ctapipe.io import TableLoader
 
 __all__ = [
     "CalibrationCalculator",
     "TwoPassStatisticsCalculator",
-    "PointingCalculator",
     "CameraCalibrator",
 ]
 
@@ -146,7 +138,7 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
     """
     Component to calculate statistics from calibration events.
     """
-    
+
     faulty_pixels_threshold = Float(
         0.1,
         help="Percentage of faulty pixels over the camera to conduct second pass with refined shift of the chunk",
@@ -155,14 +147,13 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
         100,
         help="Number of samples to shift the extraction chunk for the calculation of the statistical values",
     ).tag(config=True)
-    
+
     def __call__(
         self,
         input_url,
         tel_id,
         col_name="image",
     ):
-
         # Read the whole dl1-like images of pedestal and flat-field data with the TableLoader
         input_data = TableLoader(input_url=input_url)
         dl1_table = input_data.read_telescope_events_by_id(
@@ -187,7 +178,6 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
         stats_list = []
         faultless_previous_chunk = False
         for chunk_nr, stats in enumerate(stats_list_firstpass):
-
             # Append faultless stats from the previous chunk
             if faultless_previous_chunk:
                 stats_list.append(stats_list_firstpass[chunk_nr - 1])
@@ -215,7 +205,7 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
                 )
                 # The two last chunks can be faulty, therefore the length of the sliced table would be smaller than the size of a chunk.
                 if slice_stop - slice_start > extractor.chunk_size:
-                    # Slice the dl1 table according to the previously caluclated start and stop.
+                    # Slice the dl1 table according to the previously calculated start and stop.
                     dl1_table_sliced = dl1_table[tel_id][slice_start:slice_stop]
                     # Run the stats extractor on the sliced dl1 table with a chunk_shift
                     # to remove the period of trouble (carflashes etc.) as effectively as possible.
@@ -237,7 +227,6 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
         with open(self.output_path, "wb") as f:
             pickle.dump(stats_list, f)
 
-
     def _get_slice_range(
         self,
         chunk_nr,
@@ -258,149 +247,6 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
             slice_stop = chunk_size * (chunk_nr + 2) - self.chunk_shift - 1
 
         return slice_start, slice_stop
-
-
-class PointingCalculator(CalibrationCalculator):
-    """
-    Component to calculate pointing corrections from interleaved skyfield events.
-
-    Attributes
-    ----------
-    stats_extractor: str
-        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
-    telescope_location: dict
-        The location of the telescope for which the pointing correction is to be calculated
-    """
-
-    telescope_location = Dict(
-        {"longitude": 342.108612, "latitude": 28.761389, "elevation": 2147},
-        help="Telescope location, longitude and latitude should be expressed in deg, "
-        "elevation - in meters",
-    ).tag(config=True)
-
-    min_star_prominence = Integer(
-        3,
-        help="Minimal star prominence over the background in terms of "
-        "NSB variance std deviations",
-    ).tag(config=True)
-
-    max_star_magnitude = Float(
-        7.0, help="Maximal magnitude of the star to be considered in the " "analysis"
-    ).tag(config=True)
-
-    psf_model_type = TelescopeParameter(
-        trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
-        default_value="PlainExtractor",
-        help="Name of the PSFModel Subclass to be used.",
-    ).tag(config=True)
-
-    def __init__(
-        self,
-        subarray,
-        config=None,
-        parent=None,
-        **kwargs,
-    ):
-        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-
-        # TODO: Currently not in the dependency list of ctapipe
-        from astroquery.vizier import Vizier
-
-        self.psf = PSFModel.from_name(
-            self.pas_model_type, subarray=self.subarray, parent=self
-        )
-
-        self.location = EarthLocation(
-            lon=self.telescope_location["longitude"] * u.deg,
-            lat=self.telescope_location["latitude"] * u.deg,
-            height=self.telescope_location["elevation"] * u.m,
-        )
-
-    def __call__(self, url, tel_id):
-        if self._check_req_data(url, tel_id, "flatfield"):
-            raise KeyError(
-                "Relative gain not found. Gain calculation needs to be performed first."
-            )
-
-        self.tel_id = tel_id
-
-        with EventSource(url, max_events=1) as src:
-            self.camera_geometry = src.subarray.tel[self.tel_id].camera.geometry
-            self.focal_length = src.subarray.tel[
-                self.tel_id
-            ].optics.equivalent_focal_length
-            self.pixel_radius = self.camera_geometry.pixel_width[0]
-
-            event = next(iter(src))
-
-            self.pointing = SkyCoord(
-                az=event.pointing.tel[self.telescope_id].azimuth,
-                alt=event.pointing.tel[self.telescope_id].altitude,
-                frame="altaz",
-                obstime=event.trigger.time.utc,
-                location=self.location,
-            )
-
-        with TableLoader(url) as loader:
-            loader.read_telescope_events_by_id(
-                telescopes=[tel_id], dl1_parameters=True, observation_info=True
-            )
-
-        stars_in_fov = Vizier.query_region(
-            self.pointing, radius=Angle(2.0, "deg"), catalog="NOMAD"
-        )[0]
-
-        stars_in_fov = stars_in_fov[stars_in_fov["Bmag"] < self.max_star_magnitude]
-
-    def _check_req_data(self, url, tel_id, calibration_type):
-        """
-        Check if the prerequisite calibration data exists in the files
-
-        Parameters
-        ----------
-        url : str
-            URL of file that is to be tested
-        tel_id : int
-            The telescope id.
-        calibration_type : str
-            Name of the field that is to be looked for e.g. flatfield or
-            gain
-        """
-        with EventSource(url, max_events=1) as source:
-            event = next(iter(source))
-
-        calibration_data = getattr(event.mon.tel[tel_id], calibration_type)
-
-        if calibration_data is None:
-            return False
-
-        return True
-
-    def _calibrate_var_images(self, var_images, gain):
-        # So, here i need to match up the validity periods of the relative gain to the variance images
-        gain_to_variance = np.zeros(
-            len(var_images)
-        )  # this array will map the gain values to accumulated variance images
-
-        for i in np.arange(
-            1, len(var_images)
-        ):  # the first pairing is 0 -> 0, so start at 1
-            for j in np.arange(len(gain), 0):
-                if var_images[i].validity_start > gain[j].validity_start or j == len(
-                    var_images
-                ):
-                    gain_to_variance[i] = j
-                    break
-
-        for i, var_image in enumerate(var_images):
-            var_images[i].image = np.divide(
-                var_image.image,
-                np.square(
-                    gain[gain_to_variance[i]]
-                ),  # Here i will need to adjust the code based on how the containers for gain will work
-            )
-
-        return var_images
 
 
 class CameraCalibrator(TelescopeComponent):
