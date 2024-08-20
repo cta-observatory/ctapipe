@@ -9,7 +9,6 @@ from abc import abstractmethod
 import numpy as np
 from scipy.stats import laplace, laplace_asymmetric
 
-
 class PSFModel:
     def __init__(self, **kwargs):
         """
