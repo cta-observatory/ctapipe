@@ -9,11 +9,7 @@ from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-__all__ = [
-    "Interpolator",
-    "PointingInterpolator",
-]
-
+from .astropy_helpers import read_table
 
 class Interpolator(Component, metaclass=ABCMeta):
     """
