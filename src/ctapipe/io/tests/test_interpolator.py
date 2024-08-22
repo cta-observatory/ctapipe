@@ -103,7 +103,8 @@ def test_bounds():
 
     table_pedestal = Table(
         {
-            "time": np.arange(0.0, 10.1, 2.0),
+            "start_time": np.arange(0.0, 10.1, 2.0),
+            "end_time": np.arange(0.5, 10.6, 2.0),
             "pedestal": np.reshape(np.random.normal(4.0, 1.0, 1850 * 6), (6, 1850))
             * u.Unit(),
         },
@@ -111,7 +112,8 @@ def test_bounds():
 
     table_flatfield = Table(
         {
-            "time": np.arange(0.0, 10.1, 2.0),
+            "start_time": np.arange(0.0, 10.1, 2.0),
+            "end_time": np.arange(0.5, 10.6, 2.0),
             "gain": np.reshape(np.random.normal(1.0, 1.0, 1850 * 6), (6, 1850))
             * u.Unit(),
         },
@@ -167,6 +169,9 @@ def test_bounds():
 
     assert all(np.isnan(interpolator_pedestal(tel_id=1, time=-0.1)))
     assert all(np.isnan(interpolator_flatfield(tel_id=1, time=-0.1)))
+
+    assert all(np.isnan(interpolator_pedestal(tel_id=1, time=20.0)))
+    assert all(np.isnan(interpolator_flatfield(tel_id=1, time=20.0)))
 
     interpolator_pointing = PointingInterpolator(bounds_error=False, extrapolate=True)
     interpolator_pointing.add_table(1, table_pointing)
