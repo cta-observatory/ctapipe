@@ -12,12 +12,13 @@ from ctapipe.core import Component, traits
 from .astropy_helpers import read_table
 
 
-class StepFunction:
+class ChunkFunction:
 
     """
-    Step function Interpolator for the gain and pedestals
-    Interpolates data so that for each time the value from the closest previous
-    point given.
+    Chunk Interpolator for the gain and pedestals
+    Interpolates data so that for each time the value from the latest starting
+    valid chunk is given or the earliest available still valid chunk for any
+    pixels without valid data.
 
     Parameters
     ----------
@@ -31,7 +32,8 @@ class StepFunction:
 
     def __init__(
         self,
-        times,
+        start_times,
+        end_times,
         values,
         bounds_error=True,
         fill_value="extrapolate",
@@ -39,12 +41,13 @@ class StepFunction:
         copy=False,
     ):
         self.values = values
-        self.times = times
+        self.start_times = start_times
+        self.end_times = end_times
         self.bounds_error = bounds_error
         self.fill_value = fill_value
 
     def __call__(self, point):
-        if point < self.times[0]:
+        if point < self.start_times[0]:
             if self.bounds_error:
                 raise ValueError("below the interpolation range")
 
@@ -56,9 +59,28 @@ class StepFunction:
                 a[:] = np.nan
                 return a
 
+        elif point > self.end_times[-1]:
+            if self.bounds_error:
+                raise ValueError("above the interpolation range")
+
+            if self.fill_value == "extrapolate":
+                return self.values[-1]
+
+            else:
+                a = np.empty(self.values[0].shape)
+                a[:] = np.nan
+                return a
+
         else:
-            i = np.searchsorted(self.times, point, side="left")
-            return self.values[i - 1]
+            i = np.searchsorted(
+                self.start_times, point, side="left"
+            )  # Latest valid chunk
+            j = np.searchsorted(
+                self.end_times, point, side="left"
+            )  # Earliest valid chunk
+            return np.where(
+                np.isnan(self.values[i - 1]), self.values[j], self.values[i - 1]
+            )  # Give value for latest chunk unless its nan. If nan give earliest chunk value
 
 
 class Interpolator(Component, metaclass=ABCMeta):
@@ -237,7 +259,7 @@ class FlatFieldInterpolator(Interpolator):
     """
 
     telescope_data_group = "dl1/calibration/gain"  # TBD
-    required_columns = frozenset(["time", "gain"])  # TBD
+    required_columns = frozenset(["start_time", "end_time", "gain"])
     expected_units = {"gain": u.one}
 
     def __call__(self, tel_id, time):
@@ -279,12 +301,13 @@ class FlatFieldInterpolator(Interpolator):
         self._check_tables(input_table)
 
         input_table = input_table.copy()
-        input_table.sort("time")
-        time = input_table["time"]
+        input_table.sort("start_time")
+        start_time = input_table["start_time"]
+        end_time = input_table["end_time"]
         gain = input_table["gain"]
         self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["gain"] = StepFunction(
-            time, gain, **self.interp_options
+        self._interpolators[tel_id]["gain"] = ChunkFunction(
+            start_time, end_time, gain, **self.interp_options
         )
 
 
@@ -294,7 +317,7 @@ class PedestalInterpolator(Interpolator):
     """
 
     telescope_data_group = "dl1/calibration/pedestal"  # TBD
-    required_columns = frozenset(["time", "pedestal"])  # TBD
+    required_columns = frozenset(["start_time", "end_time", "pedestal"])
     expected_units = {"pedestal": u.one}
 
     def __call__(self, tel_id, time):
@@ -336,10 +359,11 @@ class PedestalInterpolator(Interpolator):
         self._check_tables(input_table)
 
         input_table = input_table.copy()
-        input_table.sort("time")
-        time = input_table["time"]
+        input_table.sort("start_time")
+        start_time = input_table["start_time"]
+        end_time = input_table["end_time"]
         pedestal = input_table["pedestal"]
         self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["pedestal"] = StepFunction(
-            time, pedestal, **self.interp_options
+        self._interpolators[tel_id]["pedestal"] = ChunkFunction(
+            start_time, end_time, pedestal, **self.interp_options
         )
