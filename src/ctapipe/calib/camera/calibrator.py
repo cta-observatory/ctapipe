@@ -9,7 +9,7 @@ from functools import cache
 
 import astropy.units as u
 import numpy as np
-import Vizier
+import Vizier  # discuss this dependency with max etc.
 from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from numba import float32, float64, guvectorize, int64
 
@@ -298,8 +298,6 @@ class PointingCalculator(CalibrationCalculator):
         **kwargs,
     ):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-
-        # TODO: Currently not in the dependency list of ctapipe
 
         self.psf = PSFModel.from_name(
             self.pas_model_type, subarray=self.subarray, parent=self
