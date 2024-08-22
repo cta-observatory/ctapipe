@@ -7,7 +7,7 @@ from functools import cache
 
 import astropy.units as u
 import numpy as np
-import Vizier
+import Vizier  # discuss this dependency with max etc.
 from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from numba import float32, float64, guvectorize, int64
 
@@ -250,7 +250,6 @@ class TwoPassStatisticsCalculator(CalibrationCalculator):
             slice_stop = chunk_size * (chunk_nr + 2) - self.chunk_shift - 1
 
         return slice_start, slice_stop
-
 
 class CameraCalibrator(TelescopeComponent):
     """
