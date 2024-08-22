@@ -72,7 +72,6 @@ class PlainExtractor(StatisticsExtractor):
     using numpy and scipy functions
     """
 
-
     def __call__(
         self, dl1_table, masked_pixels_of_sample=None, col_name="image"
     ) -> list:
