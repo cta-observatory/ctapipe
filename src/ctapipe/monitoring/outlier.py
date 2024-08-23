@@ -82,7 +82,7 @@ class MedianOutlierDetector(OutlierDetector):
     the configurable factors and the camera median of the statistic values.
     """
 
-    median_range_factors = List(
+    validity_range = List(
         trait=Float(),
         default_value=[-1.0, 1.0],
         help=(
@@ -99,8 +99,8 @@ class MedianOutlierDetector(OutlierDetector):
         # Detect outliers based on the deviation of the median distribution
         deviation = column - camera_median[:, :, np.newaxis]
         outliers = np.logical_or(
-            deviation < self.median_range_factors[0] * camera_median[:, :, np.newaxis],
-            deviation > self.median_range_factors[1] * camera_median[:, :, np.newaxis],
+            deviation < self.validity_range[0] * camera_median[:, :, np.newaxis],
+            deviation > self.validity_range[1] * camera_median[:, :, np.newaxis],
         )
         return outliers
 
@@ -113,7 +113,7 @@ class StdOutlierDetector(OutlierDetector):
     the configurable factors and the camera standard deviation of the statistic values.
     """
 
-    std_range_factors = List(
+    validity_range = List(
         trait=Float(),
         default_value=[-1.0, 1.0],
         help=(
@@ -132,7 +132,7 @@ class StdOutlierDetector(OutlierDetector):
         # Detect outliers based on the deviation of the standard deviation distribution
         deviation = column - camera_median[:, :, np.newaxis]
         outliers = np.logical_or(
-            deviation < self.std_range_factors[0] * camera_std[:, :, np.newaxis],
-            deviation > self.std_range_factors[1] * camera_std[:, :, np.newaxis],
+            deviation < self.validity_range[0] * camera_std[:, :, np.newaxis],
+            deviation > self.validity_range[1] * camera_std[:, :, np.newaxis],
         )
         return outliers
