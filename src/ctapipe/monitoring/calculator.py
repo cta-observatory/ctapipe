@@ -73,7 +73,7 @@ class CalibrationCalculator(TelescopeComponent):
         allow_none=True,
         help=(
             "List of dicts containing the name of the OutlierDetector subclass to be used, "
-            "the aggregated value to which the detector should be applied, "
+            "the aggregated statistic value to which the detector should be applied, "
             "and the validity range of the detector."
         ),
     ).tag(config=True)

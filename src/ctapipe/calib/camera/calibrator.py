@@ -3,33 +3,24 @@ Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
 
-import pickle
-from abc import abstractmethod
 from functools import cache
 
 import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.calib.camera.extractor import StatisticsExtractor
 from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStatus
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
     ComponentName,
-    Float,
-    Int,
-    Path,
     TelescopeParameter,
 )
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
-from ctapipe.io import TableLoader
 
-__all__ = [
-    "CameraCalibrator",
-]
+__all__ = ["CameraCalibrator"]
 
 
 @cache
