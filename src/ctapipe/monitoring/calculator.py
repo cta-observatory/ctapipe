@@ -38,12 +38,25 @@ TIMECALIB_GROUP = "/dl0/monitoring/telescope/time_calibration"
 
 class CalibrationCalculator(TelescopeComponent):
     """
-    Base component for various calibration calculators
+    Base component for calibration calculators.
+
+    This class provides the foundational methods and attributes for
+    calculating camera-related monitoring data. It is designed
+    to be extended by specific calibration calculators that implement
+    the required methods for different types of calibration.
 
     Attributes
     ----------
-    stats_aggregator: str
-        The name of the StatisticsAggregator subclass to be used to aggregate the statistics
+    stats_aggregator_type : ctapipe.core.traits.TelescopeParameter
+        The type of StatisticsAggregator to be used for aggregating statistics.
+    outlier_detector_list : list of dict
+        List of dictionaries containing the apply to, the name of the OutlierDetector subclass to be used, and the validity range of the detector.
+    calibration_type : ctapipe.core.traits.CaselessStrEnum
+        The type of calibration (e.g., pedestal, flatfield, time_calibration) which is needed to properly store the monitoring data.
+    output_path : ctapipe.core.traits.Path
+        The output filename where the calibration data will be stored.
+    overwrite : ctapipe.core.traits.Bool
+        Whether to overwrite the output file if it exists.
     """
 
     stats_aggregator_type = TelescopeParameter(
@@ -54,12 +67,14 @@ class CalibrationCalculator(TelescopeComponent):
         help="Name of the StatisticsAggregator subclass to be used.",
     ).tag(config=True)
 
-    outlier_detector_type = List(
+    outlier_detector_list = List(
         trait=Dict,
         default_value=None,
         allow_none=True,
         help=(
-            "List of dictionaries containing the apply to, the name of the OutlierDetector subclass to be used, and the validity range of the detector."
+            "List of dicts containing the name of the OutlierDetector subclass to be used, "
+            "the aggregated value to which the detector should be applied, "
+            "and the validity range of the detector."
         ),
     ).tag(config=True)
 
@@ -70,10 +85,10 @@ class CalibrationCalculator(TelescopeComponent):
     ).tag(config=True)
 
     output_path = Path(
-        help="output filename", default_value=pathlib.Path("monitoring.camcalib.h5")
+        help="Output filename", default_value=pathlib.Path("monitoring.camcalib.h5")
     ).tag(config=True)
 
-    overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
+    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
 
     def __init__(
         self,
@@ -98,7 +113,7 @@ class CalibrationCalculator(TelescopeComponent):
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
         stats_aggregator: ctapipe.monitoring.aggregator.StatisticsAggregator
-            The StatisticsAggregator to use. If None, the default via the
+            The ``StatisticsAggregator`` to use. If None, the default via the
             configuration system will be constructed.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
@@ -124,8 +139,8 @@ class CalibrationCalculator(TelescopeComponent):
 
         # Initialize the instances of OutlierDetector
         self.outlier_detectors = {}
-        if self.outlier_detector_type is not None:
-            for outlier_detector in self.outlier_detector_type:
+        if self.outlier_detector_list is not None:
+            for outlier_detector in self.outlier_detector_list:
                 self.outlier_detectors[outlier_detector["apply_to"]] = (
                     OutlierDetector.from_name(
                         name=outlier_detector["name"],
@@ -136,7 +151,7 @@ class CalibrationCalculator(TelescopeComponent):
                 )
 
     @abstractmethod
-    def __call__(self, input_url, tel_id):
+    def __call__(self, input_url, tel_id, col_name):
         """
         Call the relevant functions to calculate the calibration coefficients
         for a given set of events
@@ -154,16 +169,35 @@ class CalibrationCalculator(TelescopeComponent):
 class StatisticsCalculator(CalibrationCalculator):
     """
     Component to calculate statistics from calibration events.
+
+    This class inherits from CalibrationCalculator and is responsible for
+    calculating various statistics from calibration events, such as pedestal
+    and flat-field data. It reads the data, aggregates statistics, detects
+    outliers, handles faulty data chunks, and stores the monitoring data.
+    The default option is to conduct only one pass over the data with non-overlapping
+    chunks, while overlapping chunks can be set by the ``chunk_shift`` parameter.
+    Two passes over the data, set via the ``second_pass``-flag, can be conducted
+    with a refined shift of the chunk in regions of trouble with a high percentage
+    of faulty pixels exceeding the threshold ``faulty_pixels_threshold``. 
     """
 
     chunk_shift = Int(
         default_value=None,
         allow_none=True,
-        help="Number of samples to shift the aggregation chunk for the calculation of the statistical values",
+        help=(
+            "Number of samples to shift the aggregation chunk for the "
+            "calculation of the statistical values. If second_pass is set, "
+            "the first pass is conducted without overlapping chunks (chunk_shift=None) "
+            "and the second pass with a refined shift of the chunk in regions of trouble."
+        ),
     ).tag(config=True)
 
     second_pass = Bool(
-        default_value=False, help="overwrite output file if it exists"
+        default_value=False,
+        help=(
+            "Set whether to conduct a second pass over the data "
+            "with a refined shift of the chunk in regions of trouble."
+        ),
     ).tag(config=True)
 
     faulty_pixels_threshold = Float(
@@ -171,7 +205,8 @@ class StatisticsCalculator(CalibrationCalculator):
         allow_none=True,
         help=(
             "Threshold in percentage of faulty pixels over the camera "
-            "to conduct second pass with a refined shift of the chunk."
+            "to conduct second pass with a refined shift of the chunk "
+            "in regions of trouble."
         ),
     ).tag(config=True)
 
@@ -182,7 +217,7 @@ class StatisticsCalculator(CalibrationCalculator):
         col_name="image",
     ):
 
-        # Read the whole dl1-like images of pedestal and flat-field data with the TableLoader
+        # Read the whole dl1-like images of pedestal and flat-field data with the ``TableLoader``
         input_data = TableLoader(input_url=input_url)
         dl1_table = input_data.read_telescope_events_by_id(
             telescopes=tel_id,
@@ -197,7 +232,7 @@ class StatisticsCalculator(CalibrationCalculator):
             pointing=False,
         )
 
-        # Check if the chunk_shift is set for two pass mode
+        # Check if the chunk_shift is set for second pass mode
         if self.second_pass and self.chunk_shift is None:
             raise ValueError(
                 "chunk_shift must be set if second pass over the data is selected"
@@ -214,7 +249,7 @@ class StatisticsCalculator(CalibrationCalculator):
             aggregated_stats = aggregator(
                 table=dl1_table[tel_id], col_name=col_name, chunk_shift=self.chunk_shift
             )
-        # Detect faulty pixels with mutiple instances of OutlierDetector
+        # Detect faulty pixels with mutiple instances of ``OutlierDetector``
         outlier_mask = np.zeros_like(aggregated_stats[0]["mean"], dtype=bool)
         for aggregated_val, outlier_detector in self.outlier_detectors.items():
             outlier_mask = np.logical_or(
@@ -224,6 +259,7 @@ class StatisticsCalculator(CalibrationCalculator):
         # Add the outlier mask to the aggregated statistics
         aggregated_stats["outlier_mask"] = outlier_mask
 
+        # Conduct a second pass over the data
         if self.second_pass:
             # Check if the camera has two gain channels
             if outlier_mask.shape[1] == 2:
