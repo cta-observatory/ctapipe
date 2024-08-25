@@ -1,9 +1,5 @@
 """
-<<<<<<< HEAD
-Extraction algorithms to compute the statistics from a chunk of images
-=======
 Extraction algorithms to compute the statistics from a sequence of images
->>>>>>> f7d3223e (solved merge conflicts)
 """
 
 __all__ = [
