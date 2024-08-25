@@ -288,7 +288,7 @@ class StatisticsCalculator(CalibrationCalculator):
                     self.log.warning(
                         f"Faulty chunk ({int(faulty_pixels_percentage[index]*100.0)}% of the camera unavailable) detected in the first pass: time_start={aggregated_stats['time_start'][index]}; time_end={aggregated_stats['time_end'][index]}"
                     )
-                    # Calculate the start of the slice based weather the previous chunk was faulty or not
+                    # Calculate the start of the slice depending on whether the previous chunk was faulty or not
                     slice_start = (
                         chunk_size * index
                         if index - 1 in faulty_chunks_indices
