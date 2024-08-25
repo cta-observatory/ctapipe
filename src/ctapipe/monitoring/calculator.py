@@ -3,25 +3,21 @@ Definition of the ``CalibrationCalculator`` classes, providing all steps needed 
 calculate the montoring data for the camera calibration.
 """
 
-import pathlib
 from abc import abstractmethod
 
 import numpy as np
-from astropy.table import vstack
+from astropy.table import Table, vstack
 
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     Bool,
-    CaselessStrEnum,
     ComponentName,
     Dict,
     Float,
     Int,
     List,
-    Path,
     TelescopeParameter,
 )
-from ctapipe.io import write_table
 from ctapipe.monitoring.aggregator import StatisticsAggregator
 from ctapipe.monitoring.outlier import OutlierDetector
 
@@ -29,10 +25,6 @@ __all__ = [
     "CalibrationCalculator",
     "StatisticsCalculator",
 ]
-
-PEDESTAL_GROUP = "/dl0/monitoring/telescope/pedestal"
-FLATFIELD_GROUP = "/dl0/monitoring/telescope/flatfield"
-TIMECALIB_GROUP = "/dl0/monitoring/telescope/time_calibration"
 
 
 class CalibrationCalculator(TelescopeComponent):
@@ -50,12 +42,6 @@ class CalibrationCalculator(TelescopeComponent):
         The type of StatisticsAggregator to be used for aggregating statistics.
     outlier_detector_list : list of dict
         List of dictionaries containing the apply to, the name of the OutlierDetector subclass to be used, and the validity range of the detector.
-    calibration_type : ctapipe.core.traits.CaselessStrEnum
-        The type of calibration (e.g., pedestal, flatfield, time_calibration) which is needed to properly store the monitoring data.
-    output_path : ctapipe.core.traits.Path
-        The output filename where the monitoring data will be stored.
-    overwrite : ctapipe.core.traits.Bool
-        Whether to overwrite the output file if it exists.
     """
 
     stats_aggregator_type = TelescopeParameter(
@@ -76,18 +62,6 @@ class CalibrationCalculator(TelescopeComponent):
             "and the validity range of the detector."
         ),
     ).tag(config=True)
-
-    calibration_type = CaselessStrEnum(
-        ["pedestal", "flatfield", "time_calibration"],
-        allow_none=False,
-        help="Set type of calibration which is needed to properly store the monitoring data",
-    ).tag(config=True)
-
-    output_path = Path(
-        help="Output filename", default_value=pathlib.Path("monitoring.camcalib.h5")
-    ).tag(config=True)
-
-    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
 
     def __init__(
         self,
@@ -118,12 +92,6 @@ class CalibrationCalculator(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
-        self.group = {
-            "pedestal": PEDESTAL_GROUP,
-            "flatfield": FLATFIELD_GROUP,
-            "time_calibration": TIMECALIB_GROUP,
-        }
-
         # Initialize the instances of StatisticsAggregator
         self.stats_aggregator = {}
         if stats_aggregator is None:
@@ -150,7 +118,7 @@ class CalibrationCalculator(TelescopeComponent):
                 )
 
     @abstractmethod
-    def __call__(self, table, masked_pixels_of_sample, tel_id, col_name):
+    def __call__(self, table, masked_pixels_of_sample, tel_id, col_name) -> Table:
         """
         Calculate the monitoring data for a given set of events.
 
@@ -168,6 +136,11 @@ class CalibrationCalculator(TelescopeComponent):
             Telescope ID for which the calibration is being performed
         col_name : str
             Column name in the table from which the statistics will be aggregated
+        
+        Returns
+        -------
+        astropy.table.Table
+            Table containing the aggregated statistics and their outlier masks
         """
 
 
@@ -178,7 +151,7 @@ class StatisticsCalculator(CalibrationCalculator):
     This class inherits from CalibrationCalculator and is responsible for
     calculating various statistics from calibration events, such as pedestal
     and flat-field data. It aggregates statistics, detects outliers,
-    handles faulty data chunks, and stores the monitoring data.
+    handles faulty data chunks.
     The default option is to conduct only one pass over the data with non-overlapping
     chunks, while overlapping chunks can be set by the ``chunk_shift`` parameter.
     Two passes over the data, set via the ``second_pass``-flag, can be conducted
@@ -221,7 +194,7 @@ class StatisticsCalculator(CalibrationCalculator):
         masked_pixels_of_sample,
         tel_id,
         col_name="image",
-    ):
+    ) -> Table:
 
         # Check if the chunk_shift is set for second pass mode
         if self.second_pass and self.chunk_shift is None:
@@ -335,11 +308,5 @@ class StatisticsCalculator(CalibrationCalculator):
                 self.log.info(
                     "No faulty chunks detected in the first pass. The second pass with a finer chunk shift is not executed."
                 )
-
-        # Write the aggregated statistics and their outlier mask to the output file
-        write_table(
-            aggregated_stats,
-            self.output_path,
-            f"{self.group[self.calibration_type]}/tel_{tel_id:03d}",
-            overwrite=self.overwrite,
-        )
+        # Return the aggregated statistics and their outlier masks
+        return aggregated_stats
