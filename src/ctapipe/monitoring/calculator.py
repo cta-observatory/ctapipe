@@ -222,6 +222,12 @@ class StatisticsCalculator(CalibrationCalculator):
         col_name="image",
     ):
 
+        # Check if the chunk_shift is set for second pass mode
+        if self.second_pass and self.chunk_shift is None:
+            raise ValueError(
+                "chunk_shift must be set if second pass over the data is selected"
+            )
+
         # Read the whole dl1-like images of pedestal and flat-field data with the ``TableLoader``
         input_data = TableLoader(input_url=input_url)
         dl1_table = input_data.read_telescope_events_by_id(
@@ -236,12 +242,6 @@ class StatisticsCalculator(CalibrationCalculator):
             instrument=False,
             pointing=False,
         )
-
-        # Check if the chunk_shift is set for second pass mode
-        if self.second_pass and self.chunk_shift is None:
-            raise ValueError(
-                "chunk_shift must be set if second pass over the data is selected"
-            )
 
         # Get the aggregator
         aggregator = self.stats_aggregator[self.stats_aggregator_type.tel[tel_id]]
