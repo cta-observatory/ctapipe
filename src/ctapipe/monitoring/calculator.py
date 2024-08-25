@@ -22,7 +22,6 @@ from ctapipe.core.traits import (
     TelescopeParameter,
 )
 from ctapipe.io import write_table
-from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.aggregator import StatisticsAggregator
 from ctapipe.monitoring.outlier import OutlierDetector
 
@@ -151,7 +150,7 @@ class CalibrationCalculator(TelescopeComponent):
                 )
 
     @abstractmethod
-    def __call__(self, input_url, tel_id, col_name):
+    def __call__(self, table, masked_pixels_of_sample, tel_id, col_name):
         """
         Calculate the monitoring data for a given set of events.
 
@@ -160,14 +159,15 @@ class CalibrationCalculator(TelescopeComponent):
 
         Parameters
         ----------
-        input_url : str
-            URL where the events are stored from which the monitoring data
-            are to be calculated
+        table : astropy.table.Table
+            DL1-like table with images of shape (n_images, n_channels, n_pix)
+            and timestamps of shape (n_images, )
+        masked_pixels_of_sample : ndarray, optional
+            Boolean array of masked pixels of shape (n_pix, ) that are not available for processing
         tel_id : int
-            The telescope ID for which the calibration is being performed.
+            Telescope ID for which the calibration is being performed
         col_name : str
-            The name of the column in the data from which the statistics
-            will be aggregated.
+            Column name in the table from which the statistics will be aggregated
         """
 
 
@@ -177,13 +177,13 @@ class StatisticsCalculator(CalibrationCalculator):
 
     This class inherits from CalibrationCalculator and is responsible for
     calculating various statistics from calibration events, such as pedestal
-    and flat-field data. It reads the data, aggregates statistics, detects
-    outliers, handles faulty data chunks, and stores the monitoring data.
+    and flat-field data. It aggregates statistics, detects outliers,
+    handles faulty data chunks, and stores the monitoring data.
     The default option is to conduct only one pass over the data with non-overlapping
     chunks, while overlapping chunks can be set by the ``chunk_shift`` parameter.
     Two passes over the data, set via the ``second_pass``-flag, can be conducted
     with a refined shift of the chunk in regions of trouble with a high percentage
-    of faulty pixels exceeding the threshold ``faulty_pixels_threshold``. 
+    of faulty pixels exceeding the threshold ``faulty_pixels_threshold``.
     """
 
     chunk_shift = Int(
@@ -217,7 +217,8 @@ class StatisticsCalculator(CalibrationCalculator):
 
     def __call__(
         self,
-        input_url,
+        table,
+        masked_pixels_of_sample,
         tel_id,
         col_name="image",
     ):
@@ -228,31 +229,22 @@ class StatisticsCalculator(CalibrationCalculator):
                 "chunk_shift must be set if second pass over the data is selected"
             )
 
-        # Read the whole dl1-like images of pedestal and flat-field data with the ``TableLoader``
-        input_data = TableLoader(input_url=input_url)
-        dl1_table = input_data.read_telescope_events_by_id(
-            telescopes=tel_id,
-            dl1_images=True,
-            dl1_parameters=False,
-            dl1_muons=False,
-            dl2=False,
-            simulated=False,
-            true_images=False,
-            true_parameters=False,
-            instrument=False,
-            pointing=False,
-        )
-
         # Get the aggregator
         aggregator = self.stats_aggregator[self.stats_aggregator_type.tel[tel_id]]
-        # Pass through the whole provided dl1 data
+        # Pass through the whole provided dl1 table
         if self.second_pass:
             aggregated_stats = aggregator(
-                table=dl1_table[tel_id], col_name=col_name, chunk_shift=None
+                table=table[tel_id],
+                masked_pixels_of_sample=masked_pixels_of_sample,
+                col_name=col_name,
+                chunk_shift=None,
             )
         else:
             aggregated_stats = aggregator(
-                table=dl1_table[tel_id], col_name=col_name, chunk_shift=self.chunk_shift
+                table=table[tel_id],
+                masked_pixels_of_sample=masked_pixels_of_sample,
+                col_name=col_name,
+                chunk_shift=self.chunk_shift,
             )
         # Detect faulty pixels with mutiple instances of ``OutlierDetector``
         outlier_mask = np.zeros_like(aggregated_stats[0]["mean"], dtype=bool)
@@ -299,16 +291,17 @@ class StatisticsCalculator(CalibrationCalculator):
                     slice_start = max(0, slice_start) + self.chunk_shift
                     # Set the end of the slice to the last element of the dl1 table if out of bound
                     # and subtract one ``chunk_shift``.
-                    slice_end = min(
-                        len(dl1_table[tel_id]) - 1, chunk_size * (index + 2)
-                    ) - (self.chunk_shift - 1)
+                    slice_end = min(len(table) - 1, chunk_size * (index + 2)) - (
+                        self.chunk_shift - 1
+                    )
                     # Slice the dl1 table according to the previously caluclated start and end.
-                    dl1_table_sliced = dl1_table[tel_id][slice_start:slice_end]
+                    table_sliced = table[slice_start:slice_end]
 
                     # Run the stats aggregator on the sliced dl1 table with a chunk_shift
                     # to sample the period of trouble (carflashes etc.) as effectively as possible.
                     aggregated_stats_secondpass = aggregator(
-                        table=dl1_table_sliced,
+                        table=table_sliced,
+                        masked_pixels_of_sample=masked_pixels_of_sample,
                         col_name=col_name,
                         chunk_shift=self.chunk_shift,
                     )
@@ -328,7 +321,9 @@ class StatisticsCalculator(CalibrationCalculator):
                             ),
                         )
                     # Add the outlier mask to the aggregated statistics
-                    aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
+                    aggregated_stats_secondpass["outlier_mask"] = (
+                        outlier_mask_secondpass
+                    )
 
                     # Stack the aggregated statistics of the second pass to the first pass
                     aggregated_stats = vstack(
