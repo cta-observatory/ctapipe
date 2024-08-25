@@ -54,7 +54,7 @@ class CalibrationCalculator(TelescopeComponent):
     calibration_type : ctapipe.core.traits.CaselessStrEnum
         The type of calibration (e.g., pedestal, flatfield, time_calibration) which is needed to properly store the monitoring data.
     output_path : ctapipe.core.traits.Path
-        The output filename where the calibration data will be stored.
+        The output filename where the monitoring data will be stored.
     overwrite : ctapipe.core.traits.Bool
         Whether to overwrite the output file if it exists.
     """
@@ -153,16 +153,21 @@ class CalibrationCalculator(TelescopeComponent):
     @abstractmethod
     def __call__(self, input_url, tel_id, col_name):
         """
-        Call the relevant functions to calculate the calibration coefficients
-        for a given set of events
+        Calculate the monitoring data for a given set of events.
+
+        This method should be implemented by subclasses to perform the specific
+        calibration calculations required for different types of calibration.
 
         Parameters
         ----------
         input_url : str
-            URL where the events are stored from which the calibration coefficients
+            URL where the events are stored from which the monitoring data
             are to be calculated
         tel_id : int
-            The telescope id
+            The telescope ID for which the calibration is being performed.
+        col_name : str
+            The name of the column in the data from which the statistics
+            will be aggregated.
         """
 
 
@@ -283,7 +288,7 @@ class StatisticsCalculator(CalibrationCalculator):
                     self.log.warning(
                         f"Faulty chunk ({int(faulty_pixels_percentage[index]*100.0)}% of the camera unavailable) detected in the first pass: time_start={aggregated_stats['time_start'][index]}; time_end={aggregated_stats['time_end'][index]}"
                     )
-                    # Calculate the start of the slice based
+                    # Calculate the start of the slice based weather the previous chunk was faulty or not
                     slice_start = (
                         chunk_size * index
                         if index - 1 in faulty_chunks_indices
