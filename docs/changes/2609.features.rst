@@ -1,0 +1,1 @@
+Add calibration calculators which aggregates statistics, detects outliers, handles faulty data chunks.

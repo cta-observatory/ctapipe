@@ -126,7 +126,7 @@ class StatisticsCalculator(CalibrationCalculator):
     The ``StatisticsCalculator`` holds two functions to conduct two different passes
     over the data with and without overlapping chunks. The first pass is conducted
     with non-overlapping, while overlapping chunks can be set by the ``chunk_shift``
-    parameter in the second pass. The second pass over the data is only conducted
+    parameter for the second pass. The second pass over the data is only conducted
     in regions of trouble with a high percentage of faulty pixels exceeding
     the threshold ``faulty_pixels_threshold``.
     """
@@ -279,7 +279,7 @@ class StatisticsCalculator(CalibrationCalculator):
                 table_sliced = table[slice_start:slice_end]
                 # Run the stats aggregator on the sliced dl1 table with a chunk_shift
                 # to sample the period of trouble (carflashes etc.) as effectively as possible.
-                # Checking for the length of the sliced table to be greater than he chunk_size
+                # Checking for the length of the sliced table to be greater than the chunk_size
                 # since it can be smaller if the last two chunks are faulty.
                 if len(table_sliced) > aggregator.chunk_size:
                     aggregated_stats_secondpass = aggregator(
