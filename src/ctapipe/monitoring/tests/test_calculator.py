@@ -3,7 +3,7 @@ Tests for CalibrationCalculator and related functions
 """
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.time import Time
 from traitlets.config.loader import Config
 
@@ -11,8 +11,8 @@ from ctapipe.monitoring.aggregator import PlainAggregator
 from ctapipe.monitoring.calculator import CalibrationCalculator, StatisticsCalculator
 
 
-def test_onepass_calculator(example_subarray):
-    """test basic 'one pass' functionality of the StatisticsCalculator"""
+def test_statistics_calculator(example_subarray):
+    """test basic functionality of the StatisticsCalculator"""
 
     # Create dummy data for testing
     times = Time(
@@ -26,31 +26,40 @@ def test_onepass_calculator(example_subarray):
         [times, event_ids, charge_data],
         names=("time_mono", "event_id", "image"),
     )
-    # Initialize the aggregators and calculators
-    chunk_size = 500
-    aggregator = PlainAggregator(subarray=example_subarray, chunk_size=chunk_size)
+    # Initialize the aggregator and calculator
+    aggregator = PlainAggregator(subarray=example_subarray, chunk_size=1000)
     calculator = CalibrationCalculator.from_name(
         name="StatisticsCalculator",
         subarray=example_subarray,
         stats_aggregator=aggregator,
-    )
-    calculator_chunk_shift = StatisticsCalculator(
-        subarray=example_subarray, stats_aggregator=aggregator, chunk_shift=250
+        chunk_shift=100,
     )
     # Compute the statistical values
-    stats = calculator(table=charge_table, tel_id=1)
-    stats_chunk_shift = calculator_chunk_shift(table=charge_table, tel_id=1)
-
+    stats = calculator.first_pass(table=charge_table, tel_id=1)
+    # Set all chunks as faulty to aggregate the statistic values with a "global" chunk shift
+    valid_chunks = np.zeros_like(stats["is_valid"].data, dtype=bool)
+    # Run the second pass over the data
+    stats_chunk_shift = calculator.second_pass(
+        table=charge_table, valid_chunks=valid_chunks, tel_id=1
+    )
+    # Stack the statistic values from the first and second pass
+    stats_combined = vstack([stats, stats_chunk_shift])
+    # Sort the combined aggregated statistic values by starting time
+    stats_combined.sort(["time_start"])
     # Check if the calculated statistical values are reasonable
     # for a camera with two gain channels
     np.testing.assert_allclose(stats[0]["mean"], 77.0, atol=2.5)
     np.testing.assert_allclose(stats[1]["median"], 77.0, atol=2.5)
     np.testing.assert_allclose(stats[0]["std"], 10.0, atol=2.5)
-    # Check if three chunks are used for the computation of aggregated statistic values as the last chunk overflows
-    assert len(stats) * 2 == len(stats_chunk_shift) + 1
+    np.testing.assert_allclose(stats_chunk_shift[0]["mean"], 77.0, atol=2.5)
+    np.testing.assert_allclose(stats_chunk_shift[1]["median"], 77.0, atol=2.5)
+    np.testing.assert_allclose(stats_chunk_shift[0]["std"], 10.0, atol=2.5)
+    # Check if overlapping chunks of the second pass were aggregated
+    assert stats_chunk_shift is not None
+    assert len(stats_combined) > len(stats)
 
 
-def test_secondpass_calculator(example_subarray):
+def test_outlier_detector(example_subarray):
     """test the chunk shift option and the boundary case for the last chunk"""
 
     # Create dummy data for testing
@@ -89,18 +98,30 @@ def test_secondpass_calculator(example_subarray):
                         "validity_range": [2.0, 8.0],
                     },
                 ],
-                "chunk_shift": 100,
-                "second_pass": True,
-                "faulty_pixels_threshold": 1.0,
+                "chunk_shift": 500,
+                "faulty_pixels_threshold": 9.0,
             },
             "SigmaClippingAggregator": {
-                "chunk_size": 500,
+                "chunk_size": 1000,
             },
         }
     )
     # Initialize the calculator from config
     calculator = StatisticsCalculator(subarray=example_subarray, config=config)
-    # Compute aggregated statistic values
-    stats = calculator(ped_table, 1, col_name="image")
-    # Check if the second pass was activated
-    assert len(stats) > 20
+    # Run the first pass over the data
+    stats_first_pass = calculator.first_pass(table=ped_table, tel_id=1)
+    # Run the second pass over the data
+    stats_second_pass = calculator.second_pass(
+        table=ped_table, valid_chunks=stats_first_pass["is_valid"].data, tel_id=1
+    )
+    stats_combined = vstack([stats_first_pass, stats_second_pass])
+    # Sort the combined aggregated statistic values by starting time
+    stats_combined.sort(["time_start"])
+    # Check if overlapping chunks of the second pass were aggregated
+    assert stats_second_pass is not None
+    assert len(stats_combined) > len(stats_second_pass)
+    # Check if the calculated statistical values are reasonable
+    # for a camera with two gain channels
+    np.testing.assert_allclose(stats_combined[0]["mean"], 2.0, atol=2.5)
+    np.testing.assert_allclose(stats_combined[1]["median"], 2.0, atol=2.5)
+    np.testing.assert_allclose(stats_combined[0]["std"], 5.0, atol=2.5)
