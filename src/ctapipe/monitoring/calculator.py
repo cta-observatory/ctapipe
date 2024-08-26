@@ -108,13 +108,13 @@ class CalibrationCalculator(TelescopeComponent):
         self.outlier_detectors = {}
         if self.outlier_detector_list is not None:
             for outlier_detector in self.outlier_detector_list:
-                self.outlier_detectors[outlier_detector["apply_to"]] = (
-                    OutlierDetector.from_name(
-                        name=outlier_detector["name"],
-                        validity_range=outlier_detector["validity_range"],
-                        subarray=self.subarray,
-                        parent=self,
-                    )
+                self.outlier_detectors[
+                    outlier_detector["apply_to"]
+                ] = OutlierDetector.from_name(
+                    name=outlier_detector["name"],
+                    validity_range=outlier_detector["validity_range"],
+                    subarray=self.subarray,
+                    parent=self,
                 )
 
     @abstractmethod
@@ -197,7 +197,6 @@ class StatisticsCalculator(CalibrationCalculator):
         masked_pixels_of_sample=None,
         col_name="image",
     ) -> Table:
-
         # Check if the chunk_shift is set for second pass mode
         if self.second_pass and self.chunk_shift is None:
             raise ValueError(
@@ -222,7 +221,7 @@ class StatisticsCalculator(CalibrationCalculator):
                 chunk_shift=self.chunk_shift,
             )
 
-        # Detect faulty pixels with mutiple instances of ``OutlierDetector``
+        # Detect faulty pixels with multiple instances of ``OutlierDetector``
         outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
         for aggregated_val, outlier_detector in self.outlier_detectors.items():
             outlier_mask = np.logical_or(
@@ -270,7 +269,7 @@ class StatisticsCalculator(CalibrationCalculator):
                     slice_end = min(len(table) - 1, chunk_size * (index + 2)) - (
                         self.chunk_shift - 1
                     )
-                    # Slice the dl1 table according to the previously caluclated start and end.
+                    # Slice the dl1 table according to the previously calculated start and end.
                     table_sliced = table[slice_start:slice_end]
 
                     # Run the stats aggregator on the sliced dl1 table with a chunk_shift
@@ -285,7 +284,7 @@ class StatisticsCalculator(CalibrationCalculator):
                             chunk_shift=self.chunk_shift,
                         )
 
-                    # Detect faulty pixels with mutiple instances of OutlierDetector of the second pass
+                    # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
                     outlier_mask_secondpass = np.zeros_like(
                         aggregated_stats_secondpass["mean"], dtype=bool
                     )
@@ -300,9 +299,9 @@ class StatisticsCalculator(CalibrationCalculator):
                             ),
                         )
                     # Add the outlier mask to the aggregated statistics
-                    aggregated_stats_secondpass["outlier_mask"] = (
-                        outlier_mask_secondpass
-                    )
+                    aggregated_stats_secondpass[
+                        "outlier_mask"
+                    ] = outlier_mask_secondpass
 
                     # Stack the aggregated statistics of the second pass to the first pass
                     aggregated_stats = vstack(

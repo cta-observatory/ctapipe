@@ -49,6 +49,7 @@ def test_onepass_calculator(example_subarray):
     # Check if three chunks are used for the computation of aggregated statistic values as the last chunk overflows
     assert len(stats) * 2 == len(stats_chunk_shift) + 1
 
+
 def test_secondpass_calculator(example_subarray):
     """test the chunk shift option and the boundary case for the last chunk"""
 
@@ -103,4 +104,3 @@ def test_secondpass_calculator(example_subarray):
     stats = calculator(ped_table, 1, col_name="image")
     # Check if the second pass was activated
     assert len(stats) > 20
-   
