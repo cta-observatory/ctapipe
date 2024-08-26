@@ -53,7 +53,7 @@ class CalibrationCalculator(TelescopeComponent):
     ).tag(config=True)
 
     outlier_detector_list = List(
-        trait=Dict,
+        trait=Dict(),
         default_value=None,
         allow_none=True,
         help=(
@@ -118,7 +118,9 @@ class CalibrationCalculator(TelescopeComponent):
                 )
 
     @abstractmethod
-    def __call__(self, table, masked_pixels_of_sample, tel_id, col_name) -> Table:
+    def __call__(
+        self, table, tel_id, masked_pixels_of_sample=None, col_name="image"
+    ) -> Table:
         """
         Calculate the monitoring data for a given set of events.
 
@@ -128,15 +130,15 @@ class CalibrationCalculator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            DL1-like table with images of shape (n_images, n_channels, n_pix)
-            and timestamps of shape (n_images, )
-        masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_pix, ) that are not available for processing
+            DL1-like table with images of shape (n_images, n_channels, n_pix), event IDs and
+            timestamps of shape (n_images, )
         tel_id : int
             Telescope ID for which the calibration is being performed
+        masked_pixels_of_sample : ndarray, optional
+            Boolean array of masked pixels of shape (n_pix, ) that are not available for processing
         col_name : str
             Column name in the table from which the statistics will be aggregated
-        
+
         Returns
         -------
         astropy.table.Table
@@ -191,8 +193,8 @@ class StatisticsCalculator(CalibrationCalculator):
     def __call__(
         self,
         table,
-        masked_pixels_of_sample,
         tel_id,
+        masked_pixels_of_sample=None,
         col_name="image",
     ) -> Table:
 
@@ -207,20 +209,21 @@ class StatisticsCalculator(CalibrationCalculator):
         # Pass through the whole provided dl1 table
         if self.second_pass:
             aggregated_stats = aggregator(
-                table=table[tel_id],
+                table=table,
                 masked_pixels_of_sample=masked_pixels_of_sample,
                 col_name=col_name,
                 chunk_shift=None,
             )
         else:
             aggregated_stats = aggregator(
-                table=table[tel_id],
+                table=table,
                 masked_pixels_of_sample=masked_pixels_of_sample,
                 col_name=col_name,
                 chunk_shift=self.chunk_shift,
             )
+
         # Detect faulty pixels with mutiple instances of ``OutlierDetector``
-        outlier_mask = np.zeros_like(aggregated_stats[0]["mean"], dtype=bool)
+        outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
         for aggregated_val, outlier_detector in self.outlier_detectors.items():
             outlier_mask = np.logical_or(
                 outlier_mask,
@@ -251,7 +254,7 @@ class StatisticsCalculator(CalibrationCalculator):
                 for index in faulty_chunks_indices:
                     # Log information of the faulty chunks
                     self.log.warning(
-                        f"Faulty chunk ({int(faulty_pixels_percentage[index]*100.0)}% of the camera unavailable) detected in the first pass: time_start={aggregated_stats['time_start'][index]}; time_end={aggregated_stats['time_end'][index]}"
+                        f"Faulty chunk ({int(faulty_pixels_percentage[index])}% of the camera unavailable) detected in the first pass: time_start={aggregated_stats['time_start'][index]}; time_end={aggregated_stats['time_end'][index]}"
                     )
                     # Calculate the start of the slice depending on whether the previous chunk was faulty or not
                     slice_start = (
@@ -272,16 +275,19 @@ class StatisticsCalculator(CalibrationCalculator):
 
                     # Run the stats aggregator on the sliced dl1 table with a chunk_shift
                     # to sample the period of trouble (carflashes etc.) as effectively as possible.
-                    aggregated_stats_secondpass = aggregator(
-                        table=table_sliced,
-                        masked_pixels_of_sample=masked_pixels_of_sample,
-                        col_name=col_name,
-                        chunk_shift=self.chunk_shift,
-                    )
+                    # Checking for the length of the sliced table to be greater than he chunk_size
+                    # since it can be smaller if the last two chunks are faulty.
+                    if len(table_sliced) > aggregator.chunk_size:
+                        aggregated_stats_secondpass = aggregator(
+                            table=table_sliced,
+                            masked_pixels_of_sample=masked_pixels_of_sample,
+                            col_name=col_name,
+                            chunk_shift=self.chunk_shift,
+                        )
 
                     # Detect faulty pixels with mutiple instances of OutlierDetector of the second pass
                     outlier_mask_secondpass = np.zeros_like(
-                        aggregated_stats_secondpass[0]["mean"], dtype=bool
+                        aggregated_stats_secondpass["mean"], dtype=bool
                     )
                     for (
                         aggregated_val,
