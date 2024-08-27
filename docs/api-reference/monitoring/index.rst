@@ -10,7 +10,7 @@ Monitoring data are time-series used to monitor the status or quality of hardwar
 
 This module provides some code to help to generate monitoring data from processed event data, particularly for the purposes of calibration and data quality assessment.
 
-Currently, code related to :ref:`stats_aggregator`, :ref:`calibration_calculator`, and :ref:`outlier_detector` is implemented here.
+Code related to :ref:`stats_aggregator`, :ref:`calibration_calculator`, and :ref:`outlier_detector` is implemented here.
 
 
 Submodules

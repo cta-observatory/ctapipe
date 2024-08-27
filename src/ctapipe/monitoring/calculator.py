@@ -1,5 +1,5 @@
 """
-Definition of the ``CalibrationCalculator`` classes, providing all steps needed to
+Definition of the ``StatisticsCalculator`` class, providing all steps needed to
 calculate the montoring data for the camera calibration.
 """
 
@@ -19,26 +19,22 @@ from ctapipe.monitoring.aggregator import StatisticsAggregator
 from ctapipe.monitoring.outlier import OutlierDetector
 
 __all__ = [
-    "CalibrationCalculator",
     "StatisticsCalculator",
 ]
 
 
-class CalibrationCalculator(TelescopeComponent):
+class StatisticsCalculator(TelescopeComponent):
     """
-    Base component for calibration calculators.
+    Component to calculate statistics from calibration events.
 
-    This class provides the foundational methods and attributes for
-    calculating camera-related monitoring data. It is designed
-    to be extended by specific calibration calculators that implement
-    the required methods for different types of calibration.
-
-    Attributes
-    ----------
-    stats_aggregator_type : ctapipe.core.traits.TelescopeParameter
-        The type of StatisticsAggregator to be used for aggregating statistics.
-    outlier_detector_list : list of dict
-        List of dictionaries containing the apply to, the name of the OutlierDetector subclass to be used, and the validity range of the detector.
+    The ``StatisticsCalculator`` is responsible for calculating various statistics from
+    calibration events, such as pedestal and flat-field data. It aggregates statistics,
+    detects outliers, and handles faulty data periods.
+    This class holds two functions to conduct two different passes over the data with and without
+    overlapping aggregation chunks. The first pass is conducted with non-overlapping chunks,
+    while overlapping chunks can be set by the ``chunk_shift`` parameter for the second pass.
+    The second pass over the data is only conducted in regions of trouble with a high percentage
+    of faulty pixels exceeding the threshold ``faulty_pixels_threshold``.
     """
 
     stats_aggregator_type = TelescopeParameter(
@@ -56,7 +52,27 @@ class CalibrationCalculator(TelescopeComponent):
         help=(
             "List of dicts containing the name of the OutlierDetector subclass to be used, "
             "the aggregated statistic value to which the detector should be applied, "
-            "and the validity range of the detector."
+            "and the validity range of the detector. "
+            "E.g. ``[{'apply_to': 'std', 'name': 'RangeOutlierDetector', 'validity_range': [2.0, 8.0]},]``."
+        ),
+    ).tag(config=True)
+
+    chunk_shift = Int(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Number of samples to shift the aggregation chunk for the calculation "
+            "of the statistical values. Only used in the second_pass(), since the "
+            "first_pass() is conducted with non-overlapping chunks (chunk_shift=None)."
+        ),
+    ).tag(config=True)
+
+    faulty_pixels_threshold = Float(
+        default_value=10.0,
+        allow_none=True,
+        help=(
+            "Threshold in percentage of faulty pixels over the camera "
+            "to identify regions of trouble."
         ),
     ).tag(config=True)
 
@@ -113,42 +129,6 @@ class CalibrationCalculator(TelescopeComponent):
                     subarray=self.subarray,
                     parent=self,
                 )
-
-
-class StatisticsCalculator(CalibrationCalculator):
-    """
-    Component to calculate statistics from calibration events.
-
-    This class inherits from ``CalibrationCalculator`` and is responsible for
-    calculating various statistics from calibration events, such as pedestal
-    and flat-field data. It aggregates statistics, detects outliers,
-    handles faulty data chunks.
-    The ``StatisticsCalculator`` holds two functions to conduct two different passes
-    over the data with and without overlapping chunks. The first pass is conducted
-    with non-overlapping, while overlapping chunks can be set by the ``chunk_shift``
-    parameter for the second pass. The second pass over the data is only conducted
-    in regions of trouble with a high percentage of faulty pixels exceeding
-    the threshold ``faulty_pixels_threshold``.
-    """
-
-    chunk_shift = Int(
-        default_value=None,
-        allow_none=True,
-        help=(
-            "Number of samples to shift the aggregation chunk for the calculation "
-            "of the statistical values. Only used in the second_pass(), since the "
-            "first_pass() is conducted without overlapping chunks (chunk_shift=None)."
-        ),
-    ).tag(config=True)
-
-    faulty_pixels_threshold = Float(
-        default_value=10.0,
-        allow_none=True,
-        help=(
-            "Threshold in percentage of faulty pixels over the camera "
-            "to identify regions of trouble."
-        ),
-    ).tag(config=True)
 
     def first_pass(
         self,
@@ -252,7 +232,7 @@ class StatisticsCalculator(CalibrationCalculator):
         faulty_chunks_indices = np.where(~valid_chunks)[0]
         for index in faulty_chunks_indices:
             # Log information of the faulty chunks
-            self.log.warning(
+            self.log.info(
                 f"Faulty chunk detected in the first pass at index '{index}'."
             )
             # Calculate the start of the slice depending on whether the previous chunk was faulty or not

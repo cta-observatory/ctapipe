@@ -8,7 +8,7 @@ from astropy.time import Time
 from traitlets.config.loader import Config
 
 from ctapipe.monitoring.aggregator import PlainAggregator
-from ctapipe.monitoring.calculator import CalibrationCalculator, StatisticsCalculator
+from ctapipe.monitoring.calculator import StatisticsCalculator
 
 
 def test_statistics_calculator(example_subarray):
@@ -28,8 +28,7 @@ def test_statistics_calculator(example_subarray):
     )
     # Initialize the aggregator and calculator
     aggregator = PlainAggregator(subarray=example_subarray, chunk_size=1000)
-    calculator = CalibrationCalculator.from_name(
-        name="StatisticsCalculator",
+    calculator = StatisticsCalculator(
         subarray=example_subarray,
         stats_aggregator=aggregator,
         chunk_shift=100,
