@@ -51,7 +51,7 @@ class StatisticsAggregator(TelescopeComponent):
         and call the relevant function of the particular aggregator to compute aggregated statistic values.
         The chunks are generated in a way that ensures they do not overflow the bounds of the table.
         - If ``chunk_shift`` is None, chunks will not overlap, but the last chunk is ensured to be
-        of size `chunk_size`, even if it means the last two chunks will overlap.
+        of size ``chunk_size``, even if it means the last two chunks will overlap.
         - If ``chunk_shift`` is provided, it will determine the number of samples to shift between the start
         of consecutive chunks resulting in an overlap of chunks. Chunks that overflows the bounds
         of the table are not considered.
