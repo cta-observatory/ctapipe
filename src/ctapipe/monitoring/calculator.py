@@ -249,62 +249,56 @@ class StatisticsCalculator(CalibrationCalculator):
         aggregator = self.stats_aggregator[self.stats_aggregator_type.tel[tel_id]]
         # Conduct a second pass over the data
         aggregated_stats_secondpass = None
-        if np.all(valid_chunks):
-            self.log.info(
-                "No faulty chunks detected in the first pass. The second pass with a finer chunk shift is not executed."
+        faulty_chunks_indices = np.where(~valid_chunks)[0]
+        for index in faulty_chunks_indices:
+            # Log information of the faulty chunks
+            self.log.warning(
+                f"Faulty chunk detected in the first pass at index '{index}'."
             )
-        else:
-            chunk_size = aggregator.chunk_size
-            faulty_chunks_indices = np.where(~valid_chunks)[0]
-            for index in faulty_chunks_indices:
-                # Log information of the faulty chunks
-                self.log.warning(
-                    f"Faulty chunk detected in the first pass at index '{index}'."
+            # Calculate the start of the slice depending on whether the previous chunk was faulty or not
+            slice_start = (
+                aggregator.chunk_size * index
+                if index - 1 in faulty_chunks_indices
+                else aggregator.chunk_size * (index - 1)
+            )
+            # Set the start of the slice to the first element of the dl1 table if out of bound
+            # and add one ``chunk_shift``.
+            slice_start = max(0, slice_start) + self.chunk_shift
+            # Set the end of the slice to the last element of the dl1 table if out of bound
+            # and subtract one ``chunk_shift``.
+            slice_end = min(len(table) - 1, aggregator.chunk_size * (index + 2)) - (
+                self.chunk_shift - 1
+            )
+            # Slice the dl1 table according to the previously calculated start and end.
+            table_sliced = table[slice_start:slice_end]
+            # Run the stats aggregator on the sliced dl1 table with a chunk_shift
+            # to sample the period of trouble (carflashes etc.) as effectively as possible.
+            # Checking for the length of the sliced table to be greater than the ``chunk_size``
+            # since it can be smaller if the last two chunks are faulty.
+            if len(table_sliced) > aggregator.chunk_size:
+                aggregated_stats_secondpass = aggregator(
+                    table=table_sliced,
+                    masked_pixels_of_sample=masked_pixels_of_sample,
+                    col_name=col_name,
+                    chunk_shift=self.chunk_shift,
                 )
-                # Calculate the start of the slice depending on whether the previous chunk was faulty or not
-                slice_start = (
-                    chunk_size * index
-                    if index - 1 in faulty_chunks_indices
-                    else chunk_size * (index - 1)
+            # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
+            outlier_mask_secondpass = np.zeros_like(
+                aggregated_stats_secondpass["mean"], dtype=bool
+            )
+            for (
+                aggregated_val,
+                outlier_detector,
+            ) in self.outlier_detectors.items():
+                outlier_mask_secondpass = np.logical_or(
+                    outlier_mask_secondpass,
+                    outlier_detector(aggregated_stats_secondpass[aggregated_val]),
                 )
-                # Set the start of the slice to the first element of the dl1 table if out of bound
-                # and add one ``chunk_shift``.
-                slice_start = max(0, slice_start) + self.chunk_shift
-                # Set the end of the slice to the last element of the dl1 table if out of bound
-                # and subtract one ``chunk_shift``.
-                slice_end = min(len(table) - 1, chunk_size * (index + 2)) - (
-                    self.chunk_shift - 1
-                )
-                # Slice the dl1 table according to the previously calculated start and end.
-                table_sliced = table[slice_start:slice_end]
-                # Run the stats aggregator on the sliced dl1 table with a chunk_shift
-                # to sample the period of trouble (carflashes etc.) as effectively as possible.
-                # Checking for the length of the sliced table to be greater than the chunk_size
-                # since it can be smaller if the last two chunks are faulty.
-                if len(table_sliced) > aggregator.chunk_size:
-                    aggregated_stats_secondpass = aggregator(
-                        table=table_sliced,
-                        masked_pixels_of_sample=masked_pixels_of_sample,
-                        col_name=col_name,
-                        chunk_shift=self.chunk_shift,
-                    )
-                # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
-                outlier_mask_secondpass = np.zeros_like(
-                    aggregated_stats_secondpass["mean"], dtype=bool
-                )
-                for (
-                    aggregated_val,
-                    outlier_detector,
-                ) in self.outlier_detectors.items():
-                    outlier_mask_secondpass = np.logical_or(
-                        outlier_mask_secondpass,
-                        outlier_detector(aggregated_stats_secondpass[aggregated_val]),
-                    )
-                # Add the outlier mask to the aggregated statistics
-                aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
-                aggregated_stats_secondpass["is_valid"] = self._get_valid_chunks(
-                    outlier_mask_secondpass
-                )
+            # Add the outlier mask to the aggregated statistics
+            aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
+            aggregated_stats_secondpass["is_valid"] = self._get_valid_chunks(
+                outlier_mask_secondpass
+            )
         return aggregated_stats_secondpass
 
     def _get_valid_chunks(self, outlier_mask):
