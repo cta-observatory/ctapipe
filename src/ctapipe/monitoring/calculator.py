@@ -4,7 +4,7 @@ calculate the montoring data for the camera calibration.
 """
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -225,10 +225,15 @@ class StatisticsCalculator(TelescopeComponent):
             raise ValueError(
                 "chunk_shift must be set if second pass over the data is requested"
             )
+        # Check if at least one chunk is faulty
+        if np.all(valid_chunks):
+            raise ValueError(
+                "All chunks are valid. The second pass over the data is redundant."
+            )
         # Get the aggregator
         aggregator = self.stats_aggregator[self.stats_aggregator_type.tel[tel_id]]
         # Conduct a second pass over the data
-        aggregated_stats_secondpass = None
+        aggregated_stats_secondpass = []
         faulty_chunks_indices = np.where(~valid_chunks)[0]
         for index in faulty_chunks_indices:
             # Log information of the faulty chunks
@@ -254,31 +259,36 @@ class StatisticsCalculator(TelescopeComponent):
             # Run the stats aggregator on the sliced dl1 table with a chunk_shift
             # to sample the period of trouble (carflashes etc.) as effectively as possible.
             # Checking for the length of the sliced table to be greater than the ``chunk_size``
-            # since it can be smaller if the last two chunks are faulty.
+            # since it can be smaller if the last two chunks are faulty. Note: The two last chunks
+            # can be overlapping during the first pass, so we simply ignore them if there are faulty.
             if len(table_sliced) > aggregator.chunk_size:
-                aggregated_stats_secondpass = aggregator(
-                    table=table_sliced,
-                    masked_pixels_of_sample=masked_pixels_of_sample,
-                    col_name=col_name,
-                    chunk_shift=self.chunk_shift,
+                aggregated_stats_secondpass.append(
+                    aggregator(
+                        table=table_sliced,
+                        masked_pixels_of_sample=masked_pixels_of_sample,
+                        col_name=col_name,
+                        chunk_shift=self.chunk_shift,
+                    )
                 )
-            # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
-            outlier_mask_secondpass = np.zeros_like(
-                aggregated_stats_secondpass["mean"], dtype=bool
+        # Stack the aggregated statistics of each faulty chunk
+        aggregated_stats_secondpass = vstack(aggregated_stats_secondpass)
+        # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
+        outlier_mask_secondpass = np.zeros_like(
+            aggregated_stats_secondpass["mean"], dtype=bool
+        )
+        for (
+            aggregated_val,
+            outlier_detector,
+        ) in self.outlier_detectors.items():
+            outlier_mask_secondpass = np.logical_or(
+                outlier_mask_secondpass,
+                outlier_detector(aggregated_stats_secondpass[aggregated_val]),
             )
-            for (
-                aggregated_val,
-                outlier_detector,
-            ) in self.outlier_detectors.items():
-                outlier_mask_secondpass = np.logical_or(
-                    outlier_mask_secondpass,
-                    outlier_detector(aggregated_stats_secondpass[aggregated_val]),
-                )
-            # Add the outlier mask to the aggregated statistics
-            aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
-            aggregated_stats_secondpass["is_valid"] = self._get_valid_chunks(
-                outlier_mask_secondpass
-            )
+        # Add the outlier mask to the aggregated statistics
+        aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
+        aggregated_stats_secondpass["is_valid"] = self._get_valid_chunks(
+            outlier_mask_secondpass
+        )
         return aggregated_stats_secondpass
 
     def _get_valid_chunks(self, outlier_mask):
