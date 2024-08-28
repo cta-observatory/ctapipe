@@ -233,7 +233,7 @@ class StatisticsCalculator(TelescopeComponent):
         for index in faulty_chunks_indices:
             # Log information of the faulty chunks
             self.log.info(
-                f"Faulty chunk detected in the first pass at index '{index}'."
+                "Faulty chunk detected in the first pass at index '%s'.", index
             )
             # Calculate the start of the slice depending on whether the previous chunk was faulty or not
             slice_start = (
