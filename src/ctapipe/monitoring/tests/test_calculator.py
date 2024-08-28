@@ -48,9 +48,6 @@ def test_statistics_calculator(example_subarray):
     stats_stacked = vstack([stats, stats_chunk_shift])
     # Sort the stacked aggregated statistic values by starting time
     stats_stacked.sort(["time_start"])
-    print(stats)
-    print(stats_chunk_shift)
-    print(stats_stacked)
     # Check if the calculated statistical values are reasonable
     # for a camera with two gain channels
     np.testing.assert_allclose(stats[0]["mean"], 77.0, atol=2.5)
