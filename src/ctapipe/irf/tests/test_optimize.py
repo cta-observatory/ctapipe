@@ -51,10 +51,11 @@ def test_optimization_result_store(tmp_path, irf_events_loader_test_config):
 def test_gh_percentile_cut_calculator():
     from ctapipe.irf import GhPercentileCutCalculator
 
-    calc = GhPercentileCutCalculator()
-    calc.target_percentile = 75
-    calc.min_counts = 1
-    calc.smoothing = -1
+    calc = GhPercentileCutCalculator(
+        target_percentile=75,
+        min_counts=1,
+        smoothing=-1,
+    )
     cuts = calc.calculate_gh_cut(
         gammaness=np.array([0.1, 0.6, 0.45, 0.98, 0.32, 0.95, 0.25, 0.87]),
         reco_energy=[0.17, 0.36, 0.47, 0.22, 1.2, 5, 4.2, 9.1] * u.TeV,
@@ -69,10 +70,11 @@ def test_gh_percentile_cut_calculator():
 def test_theta_percentile_cut_calculator():
     from ctapipe.irf import ThetaPercentileCutCalculator
 
-    calc = ThetaPercentileCutCalculator()
-    calc.target_percentile = 75
-    calc.min_counts = 1
-    calc.smoothing = -1
+    calc = ThetaPercentileCutCalculator(
+        target_percentile=75,
+        min_counts=1,
+        smoothing=-1,
+    )
     cuts = calc.calculate_theta_cut(
         theta=[0.1, 0.07, 0.21, 0.4, 0.03, 0.08, 0.11, 0.18] * u.deg,
         reco_energy=[0.17, 0.36, 0.47, 0.22, 1.2, 5, 4.2, 9.1] * u.TeV,
