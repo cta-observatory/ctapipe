@@ -5,8 +5,6 @@
 ctapipe/calib/camera  @watsonjj
 ctapipe/image/extractor.py  @watsonjj @HealthyPear
 
-ctapipe/monitoring  @TjarkMiener
-
 ctapipe/reco/HillasReconstructor.py  @HealthyPear
 ctapipe/reco/tests/test_HillasReconstructor.py  @HealthyPear
 
