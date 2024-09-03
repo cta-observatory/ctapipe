@@ -1,37 +1,22 @@
 import astropy.units as u
-import numpy as np
-import pytest
-from astropy.table import QTable, vstack
+from astropy.io.fits import BinTableHDU
 from pyirf.simulations import SimulatedEventsInfo
 
-from ctapipe.irf import EventPreProcessor
 
-
-@pytest.fixture(scope="session")
-def irf_events_table():
-    N1 = 1000
-    N2 = 100
-    N = N1 + N2
-    epp = EventPreProcessor()
-    tab = epp.make_empty_table()
-    # Add fake weight column
-    tab.add_column((), name="weight")
-    units = {c: tab[c].unit for c in tab.columns}
-
-    empty = np.zeros((len(tab.columns), N)) * np.nan
-    e_tab = QTable(data=empty.T, names=tab.colnames, units=units)
-    # Setting values following pyirf test in pyirf/irf/tests/test_background.py
-    e_tab["reco_energy"] = np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
-    e_tab["true_energy"] = np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
-    e_tab["reco_source_fov_offset"] = (
-        np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
-    )
-    e_tab["true_source_fov_offset"] = (
-        np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg
-    )
-
-    ev = vstack([e_tab, tab], join_type="exact", metadata_conflicts="silent")
-    return ev
+def _check_boundaries_in_hdu(
+    hdu: BinTableHDU,
+    lo_vals: list,
+    hi_vals: list,
+    colnames: list[str] = ["THETA", "ENERG"],
+):
+    for col, val in zip(colnames, lo_vals):
+        assert u.isclose(
+            u.Quantity(hdu.data[f"{col}_LO"][0][0], hdu.columns[f"{col}_LO"].unit), val
+        )
+    for col, val in zip(colnames, hi_vals):
+        assert u.isclose(
+            u.Quantity(hdu.data[f"{col}_HI"][0][-1], hdu.columns[f"{col}_HI"].unit), val
+        )
 
 
 def test_make_2d_bkg(irf_events_table):
@@ -48,15 +33,9 @@ def test_make_2d_bkg(irf_events_table):
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert bkg_hdu.data["BKG"].shape == (1, 3, 29)
 
-    for col, val in zip(["THETA_LO", "ENERG_LO"], [0 * u.deg, 0.015 * u.TeV]):
-        assert u.isclose(
-            u.Quantity(bkg_hdu.data[col][0][0], bkg_hdu.columns[col].unit), val
-        )
-
-    for col, val in zip(["THETA_HI", "ENERG_HI"], [3 * u.deg, 155 * u.TeV]):
-        assert u.isclose(
-            u.Quantity(bkg_hdu.data[col][0][-1], bkg_hdu.columns[col].unit), val
-        )
+    _check_boundaries_in_hdu(
+        bkg_hdu, lo_vals=[0 * u.deg, 0.015 * u.TeV], hi_vals=[3 * u.deg, 155 * u.TeV]
+    )
 
 
 def test_make_2d_energy_migration(irf_events_table):
@@ -75,19 +54,12 @@ def test_make_2d_energy_migration(irf_events_table):
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert mig_hdu.data["MATRIX"].shape == (1, 3, 20, 29)
 
-    for col, val in zip(
-        ["THETA_LO", "ENERG_LO", "MIGRA_LO"], [0 * u.deg, 0.015 * u.TeV, 0.1]
-    ):
-        assert u.isclose(
-            u.Quantity(mig_hdu.data[col][0][0], mig_hdu.columns[col].unit), val
-        )
-
-    for col, val in zip(
-        ["THETA_HI", "ENERG_HI", "MIGRA_HI"], [3 * u.deg, 155 * u.TeV, 10]
-    ):
-        assert u.isclose(
-            u.Quantity(mig_hdu.data[col][0][-1], mig_hdu.columns[col].unit), val
-        )
+    _check_boundaries_in_hdu(
+        mig_hdu,
+        lo_vals=[0 * u.deg, 0.015 * u.TeV, 0.1],
+        hi_vals=[3 * u.deg, 155 * u.TeV, 10],
+        colnames=["THETA", "ENERG", "MIGRA"],
+    )
 
 
 def test_make_2d_eff_area(irf_events_table):
@@ -117,17 +89,11 @@ def test_make_2d_eff_area(irf_events_table):
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert eff_area_hdu.data["EFFAREA"].shape == (1, 3, 29)
 
-    for col, val in zip(["THETA_LO", "ENERG_LO"], [0 * u.deg, 0.015 * u.TeV]):
-        assert u.isclose(
-            u.Quantity(eff_area_hdu.data[col][0][0], eff_area_hdu.columns[col].unit),
-            val,
-        )
-
-    for col, val in zip(["THETA_HI", "ENERG_HI"], [3 * u.deg, 155 * u.TeV]):
-        assert u.isclose(
-            u.Quantity(eff_area_hdu.data[col][0][-1], eff_area_hdu.columns[col].unit),
-            val,
-        )
+    _check_boundaries_in_hdu(
+        eff_area_hdu,
+        lo_vals=[0 * u.deg, 0.015 * u.TeV],
+        hi_vals=[3 * u.deg, 155 * u.TeV],
+    )
 
     # point like data -> only 1 fov offset bin
     eff_area_hdu = effAreaMkr.make_aeff_hdu(
@@ -154,18 +120,9 @@ def test_make_3d_psf(irf_events_table):
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert psf_hdu.data["RPSF"].shape == (1, 110, 3, 29)
 
-    for col, val in zip(
-        ["THETA_LO", "ENERG_LO", "RAD_LO"], [0 * u.deg, 0.015 * u.TeV, 0 * u.deg]
-    ):
-        assert u.isclose(
-            u.Quantity(psf_hdu.data[col][0][0], psf_hdu.columns[col].unit),
-            val,
-        )
-
-    for col, val in zip(
-        ["THETA_HI", "ENERG_HI", "RAD_HI"], [3 * u.deg, 155 * u.TeV, 2 * u.deg]
-    ):
-        assert u.isclose(
-            u.Quantity(psf_hdu.data[col][0][-1], psf_hdu.columns[col].unit),
-            val,
-        )
+    _check_boundaries_in_hdu(
+        psf_hdu,
+        lo_vals=[0 * u.deg, 0.015 * u.TeV, 0 * u.deg],
+        hi_vals=[3 * u.deg, 155 * u.TeV, 2 * u.deg],
+        colnames=["THETA", "ENERG", "RAD"],
+    )
