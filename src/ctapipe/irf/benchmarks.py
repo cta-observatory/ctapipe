@@ -1,4 +1,5 @@
 """Components to generate benchmarks"""
+
 from abc import abstractmethod
 
 import astropy.units as u
@@ -25,7 +26,7 @@ def _get_2d_result_table(
         fov_bins[np.newaxis, :].to(u.deg)
     )
     fov_bin_index, _ = calculate_bin_indices(events["true_source_fov_offset"], fov_bins)
-    mat_shape = (len(e_bins) - 1, len(fov_bins) - 1)
+    mat_shape = (len(fov_bins) - 1, len(e_bins) - 1)
     return result, fov_bin_index, mat_shape
 
 
@@ -85,9 +86,9 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, FoVOffsetBinsBa
                 bias_function=np.mean,
                 energy_type="true",
             )
-            result["N_EVENTS"][..., i] = bias_resolution["n_events"]
-            result["BIAS"][..., i] = bias_resolution["bias"]
-            result["RESOLUTI"][..., i] = bias_resolution["resolution"]
+            result["N_EVENTS"][:, i, :] = bias_resolution["n_events"]
+            result["BIAS"][:, i, :] = bias_resolution["bias"]
+            result["RESOLUTI"][:, i, :] = bias_resolution["resolution"]
 
         return BinTableHDU(result, name=extname)
 
@@ -161,8 +162,8 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, FoVOffsetBinsBase):
                 energy_bins=e_bins,
                 energy_type=energy_type,
             )
-            result["N_EVENTS"][..., i] = ang_res["n_events"]
-            result["ANG_RES"][..., i] = ang_res["angular_resolution"]
+            result["N_EVENTS"][:, i, :] = ang_res["n_events"]
+            result["ANG_RES"][:, i, :] = ang_res["angular_resolution"]
 
         header = Header()
         header["E_TYPE"] = energy_type.upper()
@@ -258,15 +259,15 @@ class Sensitivity2dMaker(SensitivityMakerBase, FoVOffsetBinsBase):
             sens = calculate_sensitivity(
                 signal_hist=signal_hist, background_hist=bkg_hist, alpha=self.alpha
             )
-            result["N_SIG"][..., i] = sens["n_signal"]
-            result["N_SIG_W"][..., i] = sens["n_signal_weighted"]
-            result["N_BKG"][..., i] = sens["n_background"]
-            result["N_BKG_W"][..., i] = sens["n_background_weighted"]
-            result["SIGNIFIC"][..., i] = sens["significance"]
-            result["REL_SEN"][..., i] = sens["relative_sensitivity"]
-            result["FLUX_SEN"][..., i] = sens["relative_sensitivity"] * source_spectrum(
-                sens["reco_energy_center"]
-            )
+            result["N_SIG"][:, i, :] = sens["n_signal"]
+            result["N_SIG_W"][:, i, :] = sens["n_signal_weighted"]
+            result["N_BKG"][:, i, :] = sens["n_background"]
+            result["N_BKG_W"][:, i, :] = sens["n_background_weighted"]
+            result["SIGNIFIC"][:, i, :] = sens["significance"]
+            result["REL_SEN"][:, i, :] = sens["relative_sensitivity"]
+            result["FLUX_SEN"][:, i, :] = sens[
+                "relative_sensitivity"
+            ] * source_spectrum(sens["reco_energy_center"])
 
         header = Header()
         header["ALPHA"] = self.alpha
