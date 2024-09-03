@@ -377,12 +377,6 @@ class PointingCalculator(TelescopeComponent):
         "elevation - in meters",
     ).tag(config=True)
 
-    observed_wavelength = Float(
-        0.35,
-        help="Observed star light wavelength in microns"
-        "(convolution of blackbody spectrum with camera sensitivity)",
-    ).tag(config=True)
-
     min_star_prominence = Integer(
         3,
         help="Minimal star prominence over the background in terms of "
@@ -403,7 +397,7 @@ class PointingCalculator(TelescopeComponent):
     ).tag(config=True)
 
     psf_model_type = TelescopeParameter(
-        trait=ComponentName(PSFModel, default_value="ComaModel"),
+        trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
         default_value="ComaModel",
         help="Name of the PSFModel Subclass to be used.",
     ).tag(config=True)
@@ -429,7 +423,7 @@ class PointingCalculator(TelescopeComponent):
     ):
         super().__init__(
             subarray=subarray,
-            config=config,
+            stats_extractor="Plain",
             parent=parent,
             **kwargs,
         )
@@ -630,6 +624,7 @@ class PointingCalculator(TelescopeComponent):
                 picture_thresh=self.cleaning["pic_thresh"],
                 boundary_thresh=self.cleaning["bound_thresh"],
             )
+
             for x in data_table["charge_image"]
         ]
 
