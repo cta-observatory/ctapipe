@@ -740,7 +740,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 class NeighborPeakWindowSum(ImageExtractor):
     """
     Extractor which sums in a window about the
-    peak defined by the wavefroms in neighboring pixels.
+    peak defined by the waveforms in neighboring pixels.
     """
 
     window_width = IntTelescopeParameter(
@@ -808,7 +808,7 @@ class NeighborPeakWindowSum(ImageExtractor):
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     """
     Extractor that first subtracts the baseline before summing in a
-    window about the peak defined by the wavefroms in neighboring pixels.
+    window about the peak defined by the waveforms in neighboring pixels.
     """
 
     baseline_start = Int(0, help="Start sample for baseline estimation").tag(
