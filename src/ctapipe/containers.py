@@ -64,6 +64,7 @@ __all__ = [
     "ObservationBlockContainer",
     "ObservingMode",
     "ObservationBlockState",
+    "StarContainer",
 ]
 
 
@@ -1529,3 +1530,31 @@ class ObservationBlockContainer(Container):
     scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
     actual_start_time = Field(NAN_TIME, "true start time")
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)
+
+
+class StarContainer(Container):
+    "Stores information about a star in the field of view of a camera."
+
+    label = Field("", "Star label", dtype=np.str_)
+    magnitude = Field(-1, "Star magnitude")
+    expected_x = Field(np.nan * u.m, "Expected star position (x)", unit=u.m)
+    expected_y = Field(np.nan * u.m, "Expected star position (y)", unit=u.m)
+
+    expected_r = Field(np.nan * u.m, "Expected star position (r)", unit=u.m)
+    expected_phi = Field(np.nan * u.rad, "Expected star position (phi)", unit=u.rad)
+
+    reco_x = Field(np.nan * u.m, "Reconstructed star position (x)", unit=u.m)
+    reco_y = Field(np.nan * u.m, "Reconstructed star position (y)", unit=u.m)
+    reco_dx = Field(np.nan * u.m, "Reconstructed star position error (x)", unit=u.m)
+    reco_dy = Field(np.nan * u.m, "Reconstructed star position error (y)", unit=u.m)
+
+    reco_r = Field(np.nan * u.m, "Reconstructed star position (r)", unit=u.m)
+    reco_phi = Field(np.nan * u.rad, "Reconstructed star position (phi)", unit=u.rad)
+    reco_dr = Field(np.nan * u.m, "Reconstructed star position error (r)", unit=u.m)
+    reco_dphi = Field(
+        np.nan * u.rad, "Reconstructed star position error (phi)", unit=u.rad
+    )
+
+    timestamp = Field(NAN_TIME, "Reconstruction timestamp")
+
+    pixels = Field(np.full(20, -1), "List of star pixel ids", dtype=np.int_, ndim=1)
