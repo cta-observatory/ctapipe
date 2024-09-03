@@ -5,37 +5,15 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
+from ctapipe.io.interpolation import (
+    PointingInterpolator,
+)
 
-def test_simple():
-    """Test pointing interpolation"""
-    from ctapipe.io.pointing import PointingInterpolator
-
-    t0 = Time("2022-01-01T00:00:00")
-
-    table = Table(
-        {
-            "time": t0 + np.arange(0.0, 10.1, 2.0) * u.s,
-            "azimuth": np.linspace(0.0, 10.0, 6) * u.deg,
-            "altitude": np.linspace(70.0, 60.0, 6) * u.deg,
-        },
-    )
-
-    interpolator = PointingInterpolator()
-    interpolator.add_table(1, table)
-
-    alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)
-    assert u.isclose(alt, 69 * u.deg)
-    assert u.isclose(az, 1 * u.deg)
-
-    with pytest.raises(KeyError):
-        interpolator(tel_id=2, time=t0 + 1 * u.s)
+t0 = Time("2022-01-01T00:00:00")
 
 
 def test_azimuth_switchover():
     """Test pointing interpolation"""
-    from ctapipe.io.pointing import PointingInterpolator
-
-    t0 = Time("2022-01-01T00:00:00")
 
     table = Table(
         {
@@ -55,7 +33,6 @@ def test_azimuth_switchover():
 
 def test_invalid_input():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.pointing import PointingInterpolator
 
     wrong_time = Table(
         {
@@ -91,10 +68,8 @@ def test_invalid_input():
 
 
 def test_hdf5(tmp_path):
+    """Test writing interpolated data to file"""
     from ctapipe.io import write_table
-    from ctapipe.io.pointing import PointingInterpolator
-
-    t0 = Time("2022-01-01T00:00:00")
 
     table = Table(
         {
@@ -115,11 +90,8 @@ def test_hdf5(tmp_path):
 
 def test_bounds():
     """Test invalid pointing tables raise nice errors"""
-    from ctapipe.io.pointing import PointingInterpolator
 
-    t0 = Time("2022-01-01T00:00:00")
-
-    table = Table(
+    table_pointing = Table(
         {
             "time": t0 + np.arange(0.0, 10.1, 2.0) * u.s,
             "azimuth": np.linspace(0.0, 10.0, 6) * u.deg,
@@ -127,28 +99,36 @@ def test_bounds():
         },
     )
 
-    interpolator = PointingInterpolator()
-    interpolator.add_table(1, table)
+    interpolator_pointing = PointingInterpolator()
+    interpolator_pointing.add_table(1, table_pointing)
+    error_message = "below the interpolation range"
 
-    with pytest.raises(ValueError, match="below the interpolation range"):
-        interpolator(tel_id=1, time=t0 - 0.1 * u.s)
+    with pytest.raises(ValueError, match=error_message):
+        interpolator_pointing(tel_id=1, time=t0 - 0.1 * u.s)
 
     with pytest.raises(ValueError, match="above the interpolation range"):
-        interpolator(tel_id=1, time=t0 + 10.2 * u.s)
+        interpolator_pointing(tel_id=1, time=t0 + 10.2 * u.s)
 
-    interpolator = PointingInterpolator(bounds_error=False)
-    interpolator.add_table(1, table)
+    alt, az = interpolator_pointing(tel_id=1, time=t0 + 1 * u.s)
+    assert u.isclose(alt, 69 * u.deg)
+    assert u.isclose(az, 1 * u.deg)
+
+    with pytest.raises(KeyError):
+        interpolator_pointing(tel_id=2, time=t0 + 1 * u.s)
+
+    interpolator_pointing = PointingInterpolator(bounds_error=False)
+    interpolator_pointing.add_table(1, table_pointing)
     for dt in (-0.1, 10.1) * u.s:
-        alt, az = interpolator(tel_id=1, time=t0 + dt)
+        alt, az = interpolator_pointing(tel_id=1, time=t0 + dt)
         assert np.isnan(alt.value)
         assert np.isnan(az.value)
 
-    interpolator = PointingInterpolator(bounds_error=False, extrapolate=True)
-    interpolator.add_table(1, table)
-    alt, az = interpolator(tel_id=1, time=t0 - 1 * u.s)
+    interpolator_pointing = PointingInterpolator(bounds_error=False, extrapolate=True)
+    interpolator_pointing.add_table(1, table_pointing)
+    alt, az = interpolator_pointing(tel_id=1, time=t0 - 1 * u.s)
     assert u.isclose(alt, 71 * u.deg)
     assert u.isclose(az, -1 * u.deg)
 
-    alt, az = interpolator(tel_id=1, time=t0 + 11 * u.s)
+    alt, az = interpolator_pointing(tel_id=1, time=t0 + 11 * u.s)
     assert u.isclose(alt, 59 * u.deg)
     assert u.isclose(az, 11 * u.deg)

@@ -18,6 +18,10 @@ from .simteleventsource import SimTelEventSource
 
 from .datawriter import DATA_MODEL_VERSION, DataWriter
 
+from .interpolation import (
+    Interpolator,
+    PointingInterpolator,
+)
 
 __all__ = [
     "HDF5TableWriter",
@@ -36,4 +40,6 @@ __all__ = [
     "DataWriter",
     "DATA_MODEL_VERSION",
     "get_hdf5_datalevels",
+    "Interpolator",
+    "PointingInterpolator",
 ]

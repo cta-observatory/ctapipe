@@ -14,7 +14,7 @@ from astropy.utils.decorators import lazyproperty
 from ..core import Component, Provenance, traits
 from ..instrument import FocalLengthKind, SubarrayDescription
 from .astropy_helpers import join_allow_empty, read_table
-from .pointing import PointingInterpolator
+from .interpolation import PointingInterpolator
 
 __all__ = ["TableLoader"]
 

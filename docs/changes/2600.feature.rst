@@ -1,0 +1,1 @@
+Add Interpolator class to generalize the PointingInterpolator in the io collection.
