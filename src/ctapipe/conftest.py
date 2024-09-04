@@ -592,6 +592,14 @@ def proton_train_clf(model_tmp_path, energy_regressor_path):
         ],
         raises=True,
     )
+
+    # modify obs_ids by adding a constant, this enables merging gamma and proton files
+    # which is used in the merge tool tests.
+    with tables.open_file(outpath, mode="r+") as f:
+        for table in f.walk_nodes("/", "Table"):
+            if "obs_id" in table.colnames:
+                obs_id = table.col("obs_id")
+                table.modify_column(colname="obs_id", column=obs_id + 1_000_000_000)
     return outpath
 
 

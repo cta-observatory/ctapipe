@@ -177,7 +177,6 @@ def test_muon(tmp_path, dl1_muon_output_file):
         argv=[
             f"--output={output}",
             str(dl1_muon_output_file),
-            str(dl1_muon_output_file),
         ],
         raises=True,
     )
@@ -186,9 +185,8 @@ def test_muon(tmp_path, dl1_muon_output_file):
     input_table = read_table(dl1_muon_output_file, "/dl1/event/telescope/muon/tel_001")
 
     n_input = len(input_table)
-    assert len(table) == 2 * n_input
-    assert_table_equal(table[:n_input], input_table)
-    assert_table_equal(table[n_input:], input_table)
+    assert len(table) == n_input
+    assert_table_equal(table, input_table)
 
 
 def test_duplicated(tmp_path, dl1_file, dl1_proton_file):
