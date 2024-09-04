@@ -3,6 +3,7 @@ Merge multiple ctapipe HDF5 files into one
 """
 import sys
 from argparse import ArgumentParser
+from collections import Counter
 from pathlib import Path
 
 from tqdm.auto import tqdm
@@ -160,6 +161,13 @@ class MergeTool(Tool):
                 "or input files as positional arguments"
             )
             sys.exit(1)
+
+        counts = Counter(self.input_files)
+        duplicated = [p for p, c in counts.items() if c > 1]
+        if len(duplicated) > 0:
+            raise ToolConfigurationError(
+                f"Same file given multiple times. Duplicated files are: {duplicated}"
+            )
 
         self.merger = self.enter_context(HDF5Merger(parent=self))
         if self.merger.output_path in self.input_files:

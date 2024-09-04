@@ -1,0 +1,2 @@
+The ``ctapipe-merge`` tool no checks for duplicated input files and
+raises an error in that case.
