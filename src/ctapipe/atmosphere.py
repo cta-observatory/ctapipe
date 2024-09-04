@@ -19,6 +19,8 @@ from astropy import units as u
 from astropy.table import QTable, Table
 from scipy.interpolate import interp1d
 
+from .compat import COPY_IF_NEEDED
+
 __all__ = [
     "AtmosphereDensityProfile",
     "ExponentialAtmosphereDensityProfile",
@@ -355,17 +357,19 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
         log_density = self._density_interp(height.to_value(u.km))
-        return u.Quantity(10**log_density, DENSITY_UNIT, copy=False)
+        return u.Quantity(10**log_density, DENSITY_UNIT, copy=COPY_IF_NEEDED)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         log_col_density = self._col_density_interp(height.to_value(u.km))
-        return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=False)
+        return u.Quantity(10**log_col_density, GRAMMAGE_UNIT, copy=COPY_IF_NEEDED)
 
     @u.quantity_input(overburden=u.g / (u.cm * u.cm))
     def height_from_overburden(self, overburden) -> u.Quantity:
         log_overburden = np.log10(overburden.to_value(GRAMMAGE_UNIT))
-        return u.Quantity(self._height_interp(log_overburden), u.km, copy=False)
+        return u.Quantity(
+            self._height_interp(log_overburden), u.km, copy=COPY_IF_NEEDED
+        )
 
     def __repr__(self):
         return (

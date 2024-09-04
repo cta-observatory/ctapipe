@@ -15,6 +15,7 @@ from astropy.coordinates import (
     frame_transform_graph,
 )
 
+from ..compat import COPY_IF_NEEDED
 from .representation import PlanarRepresentation
 from .telescope_frame import TelescopeFrame
 
@@ -144,10 +145,14 @@ def camera_to_telescope(camera_coord, telescope_frame):
     # where theta is the angle to the optical axis and r is the distance
     # to the camera center in the focal plane
     fov_lat = u.Quantity(
-        (x_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad, copy=False
+        (x_rotated / focal_length).to_value(u.dimensionless_unscaled),
+        u.rad,
+        copy=COPY_IF_NEEDED,
     )
     fov_lon = u.Quantity(
-        (y_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad, copy=False
+        (y_rotated / focal_length).to_value(u.dimensionless_unscaled),
+        u.rad,
+        copy=COPY_IF_NEEDED,
     )
 
     representation = UnitSphericalRepresentation(lat=fov_lat, lon=fov_lon)

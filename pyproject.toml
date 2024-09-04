@@ -48,6 +48,7 @@ dependencies = [
     "tqdm >=4.32",
     "traitlets ~=5.6",
     "zstandard",
+    "packaging",
 ]
 
 [project.optional-dependencies]
