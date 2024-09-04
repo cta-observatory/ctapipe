@@ -1,0 +1,1 @@
+ctapipe is now compatible with numpy 2.0.
