@@ -14,6 +14,7 @@ from scipy.stats import norm
 
 from ctapipe.core import traits
 
+from ..compat import COPY_IF_NEEDED
 from ..containers import ReconstructedEnergyContainer, ReconstructedGeometryContainer
 from ..coordinates import (
     CameraFrame,
@@ -518,8 +519,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         pix_x_rot, pix_y_rot = rotate_translate(
             self.pixel_y.data, self.pixel_x.data, source_y, source_x, -phi
         )
-        pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask, copy=False)
-        pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask, copy=False)
+        pix_x_rot = np.ma.array(pix_x_rot, mask=self.pixel_x.mask, copy=COPY_IF_NEEDED)
+        pix_y_rot = np.ma.array(pix_y_rot, mask=self.pixel_y.mask, copy=COPY_IF_NEEDED)
 
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked

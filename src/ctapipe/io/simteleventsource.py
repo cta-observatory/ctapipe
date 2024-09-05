@@ -20,6 +20,7 @@ from ..atmosphere import (
     TableAtmosphereDensityProfile,
 )
 from ..calib.camera.gainselection import GainChannel, GainSelector
+from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
     CoordinateFrameType,
@@ -179,8 +180,12 @@ def build_camera(simtel_telescope, telescope, frame):
     )
     readout = CameraReadout(
         telescope.camera_name,
-        sampling_rate=u.Quantity(1 / pixel_settings["time_slice"], u.GHz),
-        reference_pulse_shape=pixel_settings["ref_shape"].astype("float64", copy=False),
+        sampling_rate=u.Quantity(
+            1.0 / pixel_settings["time_slice"].astype(np.float64), u.GHz
+        ),
+        reference_pulse_shape=pixel_settings["ref_shape"].astype(
+            "float64", copy=COPY_IF_NEEDED
+        ),
         reference_pulse_sample_width=u.Quantity(
             pixel_settings["ref_step"], u.ns, dtype="float64"
         ),
@@ -932,18 +937,18 @@ class SimTelEventSource(EventSource):
 
         # take pointing corrected position if available
         if np.isnan(azimuth_cor):
-            azimuth = u.Quantity(azimuth_raw, u.rad, copy=False)
+            azimuth = u.Quantity(azimuth_raw, u.rad, copy=COPY_IF_NEEDED)
         else:
-            azimuth = u.Quantity(azimuth_cor, u.rad, copy=False)
+            azimuth = u.Quantity(azimuth_cor, u.rad, copy=COPY_IF_NEEDED)
 
         # take pointing corrected position if available
         if np.isnan(altitude_cor):
             altitude = u.Quantity(
-                _clip_altitude_if_close(altitude_raw), u.rad, copy=False
+                _clip_altitude_if_close(altitude_raw), u.rad, copy=COPY_IF_NEEDED
             )
         else:
             altitude = u.Quantity(
-                _clip_altitude_if_close(altitude_cor), u.rad, copy=False
+                _clip_altitude_if_close(altitude_cor), u.rad, copy=COPY_IF_NEEDED
             )
 
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
