@@ -76,7 +76,7 @@ SIMTEL_PIXEL_SHAPES = {
 
 class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
-    Cherenkov Camera that us useful for imaging algorithms and
+    Cherenkov Camera that is useful for imaging algorithms and
     displays. It contains lists of pixel positions, areas, pixel
     shapes, as well as a neighbor (adjacency) list and matrix for each pixel.
     In general the neighbor_matrix attribute should be used in any algorithm
