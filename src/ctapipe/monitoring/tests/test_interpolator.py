@@ -5,9 +5,7 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.io.interpolation import (
-    PointingInterpolator,
-)
+from ctapipe.monitoring.interpolation import PointingInterpolator
 
 t0 = Time("2022-01-01T00:00:00")
 
