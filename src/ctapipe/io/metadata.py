@@ -176,23 +176,14 @@ class Activity(HasTraits):
 class Instrument(Configurable):
     """Instrumental Context"""
 
-    site = Enum(
-        [
-            "CTA-North",
-            "CTA-South",
-            "SDMC",
-            "HQ",
-            "MAGIC",
-            "HESS",
-            "VERITAS",
-            "FACT",
-            "Whipple",
-            "Other",
-        ],
-        "Other",
-        help="Which site of CTA (or external telescope) "
-        "this instrument is associated with",
+    site = Unicode(
+        default_value="Other",
+        help=(
+            "Which site of CTAO (or external telescope)"
+            " this instrument is associated with"
+        ),
     ).tag(config=True)
+
     class_ = Enum(
         [
             "Array",
