@@ -68,7 +68,7 @@ def test_simple(tmp_path, gamma_train_clf, proton_train_clf):
         merger(proton_train_clf)
 
     subarray = SubarrayDescription.from_hdf(gamma_train_clf)
-    assert subarray == SubarrayDescription.from_hdf(output), "Subarays do not match"
+    assert subarray == SubarrayDescription.from_hdf(output), "Subarrays do not match"
 
     tel_groups = [
         "/dl1/event/telescope/parameters",
@@ -164,3 +164,28 @@ def test_muon(tmp_path, dl1_muon_output_file):
     n_input = len(input_table)
     assert len(table) == n_input
     assert_table_equal(table, input_table)
+
+
+def test_duplicated_obs_ids(tmp_path, dl2_shower_geometry_file):
+    from ctapipe.io.hdf5merger import CannotMerge, HDF5Merger
+
+    output = tmp_path / "invalid.dl1.h5"
+
+    # check for fresh file
+    with HDF5Merger(output) as merger:
+        merger(dl2_shower_geometry_file)
+
+        with pytest.raises(
+            CannotMerge, match="Input file .* contains obs_ids already included"
+        ):
+            merger(dl2_shower_geometry_file)
+
+    # check for appending
+    with HDF5Merger(output, overwrite=True) as merger:
+        merger(dl2_shower_geometry_file)
+
+    with HDF5Merger(output, append=True) as merger:
+        with pytest.raises(
+            CannotMerge, match="Input file .* contains obs_ids already included"
+        ):
+            merger(dl2_shower_geometry_file)

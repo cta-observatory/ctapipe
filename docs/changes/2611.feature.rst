@@ -1,0 +1,6 @@
+The ``ctapipe-merge`` tool now checks for duplicated input files and
+raises an error in that case.
+
+The ``HDF5Merger`` class, and thus also the ``ctapipe-merge`` tool,
+now checks for duplicated obs_ids during merging, to prevent
+invalid output files.

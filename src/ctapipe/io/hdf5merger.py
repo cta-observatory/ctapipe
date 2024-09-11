@@ -188,6 +188,8 @@ class HDF5Merger(Component):
         self.data_model_version = None
         self.subarray = None
         self.meta = None
+        self._merged_obs_ids = set()
+
         # output file existed, so read subarray and data model version to make sure
         # any file given matches what we already have
         if appending:
@@ -201,6 +203,9 @@ class HDF5Merger(Component):
                 focal_length_choice=FocalLengthKind.EQUIVALENT,
             )
             self.required_nodes = _get_required_nodes(self.h5file)
+
+            # this will update _merged_obs_ids from existing input file
+            self._check_obs_ids(self.h5file)
 
     def __call__(self, other: str | Path | tables.File):
         """
@@ -267,7 +272,32 @@ class HDF5Merger(Component):
                     f"Required node {node_path} not found in {other.filename}"
                 )
 
+    def _check_obs_ids(self, other):
+        keys = [
+            "/configuration/observation/observation_block",
+            "/dl1/event/subarray/trigger",
+        ]
+
+        for key in keys:
+            if key in other.root:
+                obs_ids = other.root[key].col("obs_id")
+                break
+        else:
+            raise CannotMerge(
+                f"Input file {other.filename} is missing keys required to"
+                f" check for duplicated obs_ids. Tried: {keys}"
+            )
+
+        duplicated = self._merged_obs_ids.intersection(obs_ids)
+        if len(duplicated) > 0:
+            msg = f"Input file {other.filename} contains obs_ids already included in output file: {duplicated}"
+            raise CannotMerge(msg)
+
+        self._merged_obs_ids.update(obs_ids)
+
     def _append(self, other):
+        self._check_obs_ids(other)
+
         # Configuration
         self._append_subarray(other)
 

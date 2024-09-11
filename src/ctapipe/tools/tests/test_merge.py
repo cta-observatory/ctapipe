@@ -5,11 +5,12 @@ from io import StringIO
 from pathlib import Path
 
 import numpy as np
+import pytest
 import tables
 from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
 
-from ctapipe.core import run_tool
+from ctapipe.core import ToolConfigurationError, run_tool
 from ctapipe.io import TableLoader
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tests.test_astropy_helpers import assert_table_equal
@@ -176,7 +177,6 @@ def test_muon(tmp_path, dl1_muon_output_file):
         argv=[
             f"--output={output}",
             str(dl1_muon_output_file),
-            str(dl1_muon_output_file),
         ],
         raises=True,
     )
@@ -185,6 +185,24 @@ def test_muon(tmp_path, dl1_muon_output_file):
     input_table = read_table(dl1_muon_output_file, "/dl1/event/telescope/muon/tel_001")
 
     n_input = len(input_table)
-    assert len(table) == 2 * n_input
-    assert_table_equal(table[:n_input], input_table)
-    assert_table_equal(table[n_input:], input_table)
+    assert len(table) == n_input
+    assert_table_equal(table, input_table)
+
+
+def test_duplicated(tmp_path, dl1_file, dl1_proton_file):
+    from ctapipe.tools.merge import MergeTool
+
+    output = tmp_path / "invalid.dl1.h5"
+    with pytest.raises(ToolConfigurationError, match="Same file given multiple times"):
+        run_tool(
+            MergeTool(),
+            argv=[
+                str(dl1_file),
+                str(dl1_proton_file),
+                str(dl1_file),
+                f"--output={output}",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
