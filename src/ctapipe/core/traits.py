@@ -52,6 +52,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class PathError:
+    """Signal Non-Existence of a Path"""
+
+    def __init__(self, path, reason):
+        self.path = path
+        self.reason = reason
+
+    def __repr__(self):
+        return f"'{self.path}': {self.reason}"
+
+
 # Aliases
 Bool = traitlets.Bool
 Int = traitlets.Int
@@ -111,9 +122,9 @@ class AstroQuantity(TraitType):
         try:
             quantity = u.Quantity(value)
         except TypeError:
-            return self.error(obj, value)
+            self.error(obj, value)
         except ValueError:
-            return self.error(obj, value)
+            self.error(obj, value)
 
         if self.physical_type is not None:
             given_type = u.get_physical_type(quantity)
@@ -136,7 +147,7 @@ class AstroTime(TraitType):
             the_time.format = "iso"
             return the_time
         except ValueError:
-            return self.error(obj, value)
+            self.error(obj, value)
 
     def info(self):
         info = "an ISO8601 datestring or Time instance"
@@ -204,19 +215,19 @@ class Path(TraitType):
                 self.error(obj, value)
 
         if not isinstance(value, str | pathlib.Path):
-            return self.error(obj, value)
+            self.error(obj, value)
 
         # expand any environment variables in the path:
         value = os.path.expandvars(value)
 
         if isinstance(value, str):
             if value == "":
-                return self.error(obj, value)
+                self.error(obj, value)
 
             try:
                 url = urlparse(value)
             except ValueError:
-                return self.error(obj, value)
+                self.error(obj, value)
 
             if url.scheme in ("http", "https"):
                 # here to avoid circular import, since every module imports
@@ -233,23 +244,18 @@ class Path(TraitType):
             elif url.scheme in ("", "file"):
                 value = pathlib.Path(url.netloc, url.path)
             else:
-                return self.error(obj, value)
+                self.error(obj, value)
 
         value = value.absolute()
         exists = value.exists()
         if self.exists is not None:
             if exists != self.exists:
-                raise TraitError(
-                    'Path "{}" {} exist'.format(
-                        value, "does not" if self.exists else "must not"
-                    )
-                )
+                raise TraitError(PathError(value, "does not exist"), self.info(), self)
         if exists:
             if not self.directory_ok and value.is_dir():
-                raise TraitError(f'Path "{value}" must not be a directory')
+                raise TraitError(PathError(value, "is a directory"), self.info(), self)
             if not self.file_ok and value.is_file():
-                raise TraitError(f'Path "{value}" must not be a file')
-
+                raise TraitError(PathError(value, "is a file"), self.info(), self)
         return value
 
 
