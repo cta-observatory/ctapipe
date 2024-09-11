@@ -1,6 +1,12 @@
 """
 Outlier detection algorithms to identify faulty pixels
 """
+from abc import abstractmethod
+
+import numpy as np
+
+from ctapipe.core import TelescopeComponent
+from ctapipe.core.traits import Float, List
 
 __all__ = [
     "OutlierDetector",
@@ -8,13 +14,6 @@ __all__ = [
     "MedianOutlierDetector",
     "StdOutlierDetector",
 ]
-
-from abc import abstractmethod
-
-import numpy as np
-
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import Float, List
 
 
 class OutlierDetector(TelescopeComponent):

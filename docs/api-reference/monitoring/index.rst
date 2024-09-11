@@ -18,9 +18,9 @@ Submodules
 
 .. toctree::
   :maxdepth: 1
-  :glob:
 
   aggregator
+  interpolation
   outlier
 
 

@@ -25,6 +25,12 @@ from ctapipe.containers import StatisticsContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import Int
 
+__all__ = [
+    "StatisticsAggregator",
+    "PlainAggregator",
+    "SigmaClippingAggregator",
+]
+
 
 class StatisticsAggregator(TelescopeComponent):
     """

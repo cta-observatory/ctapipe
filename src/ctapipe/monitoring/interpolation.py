@@ -9,7 +9,10 @@ from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-from .astropy_helpers import read_table
+__all__ = [
+    "Interpolator",
+    "PointingInterpolator",
+]
 
 
 class Interpolator(Component, metaclass=ABCMeta):
@@ -103,6 +106,9 @@ class Interpolator(Component, metaclass=ABCMeta):
                 raise KeyError(f"No table available for tel_id {tel_id}")
 
     def _read_parameter_table(self, tel_id):
+        # prevent circular import between io and monitoring
+        from ..io import read_table
+
         input_table = read_table(
             self.h5file,
             f"{self.telescope_data_group}/tel_{tel_id:03d}",
