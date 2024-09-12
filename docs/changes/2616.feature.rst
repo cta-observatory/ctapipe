@@ -1,0 +1,2 @@
+The ``Instrument.site`` metadata item now accepts any string,
+not just a pre-defined list of sites.
