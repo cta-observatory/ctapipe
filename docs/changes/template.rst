@@ -1,6 +1,6 @@
 {% if render_title %}
 {% if versiondata.name %}
-{{ versiondata.name }} {{ versiondata.version }} ({{ versiondata.date }})
+{{ versiondata.name | lower }} {{ versiondata.version }} ({{ versiondata.date }})
 {{ top_underline * ((versiondata.name + versiondata.version + versiondata.date)|length + 4)}}
 {% else %}
 {{ versiondata.version }} ({{ versiondata.date }})
