@@ -1,2 +1,0 @@
-The provenance system now records the reference metadata
-of input and output files, if available.

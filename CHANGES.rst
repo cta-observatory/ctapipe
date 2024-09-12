@@ -1,3 +1,60 @@
+ctapipe v0.22.0 (2024-09-12)
+============================
+
+API Changes
+-----------
+
+- The ``PointingInterpolator`` was moved from ``ctapipe.io`` to ``ctapipe.monitoring``. [`#2615 <https://github.com/cta-observatory/ctapipe/pull/2615>`__]
+
+
+Bug Fixes
+---------
+
+- Fix a redundant error message in ``Tool`` caused by normal ``SystemExit(0)`` [`#2575 <https://github.com/cta-observatory/ctapipe/pull/2575>`__]
+
+- Fix error message for non-existent config files. [`#2591 <https://github.com/cta-observatory/ctapipe/pull/2591>`__]
+
+
+New Features
+------------
+
+- ctapipe is now compatible with numpy 2.0. [`#2580 <https://github.com/cta-observatory/ctapipe/pull/2580>`__]
+  Note: not all new behaviour of numpy 2.0 is followed, as the core dependency ``numba`` does not yet implement
+  all changes from numpy 2.0. See `the numba announcement for more detail <https://numba.discourse.group/t/communicating-numpy-2-0-changes-to-numba-users/2457>`_.
+
+- Add lstchains image cleaning procedure including its pedestal cleaning method. [`#2541 <https://github.com/cta-observatory/ctapipe/pull/2541>`__]
+
+- A new ImageExtractor called ``VarianceExtractor`` was added
+  An Enum class was added to containers.py that is used in the metadata of the VarianceExtractor output [`#2543 <https://github.com/cta-observatory/ctapipe/pull/2543>`__]
+
+- Add API to extract the statistics from a sequence of images. [`#2554 <https://github.com/cta-observatory/ctapipe/pull/2554>`__]
+
+- The provenance system now records the reference metadata
+  of input and output files, if available. [`#2598 <https://github.com/cta-observatory/ctapipe/pull/2598>`__]
+
+- Add Interpolator class to generalize the PointingInterpolator in the monitoring collection. [`#2600 <https://github.com/cta-observatory/ctapipe/pull/2600>`__]
+
+- Add outlier detection components to identify faulty pixels. [`#2604 <https://github.com/cta-observatory/ctapipe/pull/2604>`__]
+
+- The ``ctapipe-merge`` tool now checks for duplicated input files and
+  raises an error in that case.
+
+  The ``HDF5Merger`` class, and thus also the ``ctapipe-merge`` tool,
+  now checks for duplicated obs_ids during merging, to prevent
+  invalid output files. [`#2611 <https://github.com/cta-observatory/ctapipe/pull/2611>`__]
+
+- The ``Instrument.site`` metadata item now accepts any string,
+  not just a pre-defined list of sites. [`#2616 <https://github.com/cta-observatory/ctapipe/pull/2616>`__]
+
+Refactoring and Optimization
+----------------------------
+
+- Update exception handling in tools
+
+  - Add a possibility to handle custom exception in ``Tool.run()``
+    with the preservation of the exit code. [`#2594 <https://github.com/cta-observatory/ctapipe/pull/2594>`__]
+
+
 ctapipe v0.21.2 (2024-06-26)
 ============================
 
