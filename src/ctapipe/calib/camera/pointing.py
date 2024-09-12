@@ -10,7 +10,7 @@ import astropy.units as u
 import numpy as np
 import pandas as pd
 import Vizier  # discuss this dependency with max etc.
-from astropy.coordinates import Angle, EarthLocation, SkyCoord
+from astropy.coordinates import ICRS, AltAz, Angle, EarthLocation, SkyCoord
 from astropy.table import QTable
 from scipy.odr import ODR, RealData
 
@@ -377,6 +377,12 @@ class PointingCalculator(TelescopeComponent):
         "elevation - in meters",
     ).tag(config=True)
 
+    observed_wavelength = Float(
+        0.35,
+        help="Observed star light wavelength in microns"
+        "(convolution of blackbody spectrum with camera sensitivity)",
+    ).tag(config=True)
+
     min_star_prominence = Integer(
         3,
         help="Minimal star prominence over the background in terms of "
@@ -492,6 +498,8 @@ class PointingCalculator(TelescopeComponent):
         self.image_size = len(
             data_table["variance_images"][0].image
         )  # get the size of images of the camera we are calibrating
+
+        star_labels = [x.label for x in self.stars_in_fov]
 
         # get the accumulated variance images
 
