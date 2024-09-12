@@ -8,9 +8,12 @@ from functools import cache
 
 import astropy.units as u
 import numpy as np
+import pandas as pd
 import Vizier  # discuss this dependency with max etc.
-from astropy.coordinates import Angle, EarthLocation, SkyCoord
+from astropy.coordinates import ICRS, AltAz, Angle, EarthLocation, SkyCoord
 from astropy.table import QTable
+from astropy.time import Time
+from scipy.odr import ODR, Model, RealData
 
 from ctapipe.calib.camera.extractor import StatisticsExtractor
 from ctapipe.containers import StarContainer
@@ -85,6 +88,87 @@ def pol2cart(rho, phi):
     return (x, y)
 
 
+class StarTracker:
+    """
+    Utility class to provide the position of the star in the telescope's camera frame coordinates at a given time
+    """
+
+    def __init__(
+        self,
+        star_label,
+        star_coordinates,
+        telescope_location,
+        telescope_focal_length,
+        telescope_pointing,
+        observed_wavelength,
+        relative_humidity,
+        temperature,
+        pressure,
+        pointing_label=None,
+    ):
+        """
+        Constructor
+
+        :param str star_label: Star label
+        :param SkyCoord star_coordinates: Star coordinates in ICRS frame
+        :param EarthLocation telescope_location: Telescope location coordinates
+        :param Quantity[u.m] telescope_focal_length: Telescope focal length [m]
+        :param SkyCoord telescope_pointing: Telescope pointing in ICRS frame
+        :param Quantity[u.micron] observed_wavelength: Telescope focal length [micron]
+        :param float relative_humidity: Relative humidity
+        :param Quantity[u.deg_C] temperature: Temperature [C]
+        :param Quantity[u.deg_C] temperature: Temperature [C]
+        :param Quantity[u.hPa] pressure: Pressure [hPa]
+        :param str pointing_label: Pointing label
+        """
+        self.star_label = star_label
+        self.star_coordinates_icrs = star_coordinates
+        self.telescope_location = telescope_location
+        self.telescope_focal_length = telescope_focal_length
+        self.telescope_pointing = telescope_pointing
+        self.obswl = observed_wavelength
+        self.relative_humidity = relative_humidity
+        self.temperature = temperature
+        self.pressure = pressure
+        self.pointing_label = pointing_label
+
+    def position_in_camera_frame(self, timestamp, pointing=None, focal_correction=0):
+        """
+        Calculates star position in the engineering camera frame
+
+        :param astropy.Time timestamp: Timestamp of the observation
+        :param SkyCoord pointing: Current telescope pointing in ICRS frame
+        :param float focal_correction: Correction to the focal length of the telescope. Float, should be provided in meters
+
+        :return: Pair (float, float) of star's (x,y) coordinates in the engineering camera frame in meters
+        """
+        # If no telescope pointing is provided, use the telescope pointing, provided
+        # during the class member initialization
+        if pointing is None:
+            pointing = self.telescope_pointing
+        # Determine current telescope pointing in AltAz
+        altaz_pointing = pointing.transform_to(
+            AltAz(
+                obstime=timestamp,
+                location=self.telescope_location,
+                obswl=self.obswl,
+                relative_humidity=self.relative_humidity,
+                temperature=self.temperature,
+                pressure=self.pressure,
+            )
+        )
+        # Create current camera frame
+        camera_frame = EngineeringCameraFrame(
+            telescope_pointing=altaz_pointing,
+            focal_length=self.telescope_focal_length + focal_correction * u.m,
+            obstime=timestamp,
+            location=self.telescope_location,
+        )
+        # Calculate the star's coordinates in the current camera frame
+        star_coords_camera = self.star_coordinates_icrs.transform_to(camera_frame)
+        return (star_coords_camera.x.to_value(), star_coords_camera.y.to_value())
+
+
 class PointingCalculator(TelescopeComponent):
     """
     Component to calculate pointing corrections from interleaved skyfield events.
@@ -101,6 +185,12 @@ class PointingCalculator(TelescopeComponent):
         {"longitude": 342.108612, "latitude": 28.761389, "elevation": 2147},
         help="Telescope location, longitude and latitude should be expressed in deg, "
         "elevation - in meters",
+    ).tag(config=True)
+
+    observed_wavelength = Float(
+        0.35,
+        help="Observed star light wavelength in microns"
+        "(convolution of blackbody spectrum with camera sensitivity)",
     ).tag(config=True)
 
     min_star_prominence = Integer(
@@ -126,6 +216,11 @@ class PointingCalculator(TelescopeComponent):
         trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
         default_value="ComaModel",
         help="Name of the PSFModel Subclass to be used.",
+    ).tag(config=True)
+
+    meteo_parameters = Dict(
+        {"relative_humidity": 0.5, "temperature": 10, "pressure": 790},
+        help="Meteorological parameters in  [dimensionless, deg C, hPa]",
     ).tag(config=True)
 
     def __init__(
@@ -196,6 +291,8 @@ class PointingCalculator(TelescopeComponent):
             self.tars_in_fov["Bmag"] < self.max_star_magnitude
         ]  # select stars for magnitude to exclude those we would not be able to see
 
+        star_labels = [x.label for x in self.stars_in_fov]
+
         # get the accumulated variance images
 
         (
@@ -240,7 +337,17 @@ class PointingCalculator(TelescopeComponent):
 
         return reco_stars
 
-        # now fit the star locations
+        # now fit the pointing correction.
+        fitter = Pointing_Fitter(
+            star_labels,
+            self.pointing,
+            self.location,
+            self.focal_length,
+            self.observed_wavelength,
+            self.meteo_parameters,
+        )
+
+        fitter.fit(accumulated_pointing)
 
     def _check_req_data(self, url, calibration_type):
         """
@@ -299,7 +406,7 @@ class PointingCalculator(TelescopeComponent):
         Parameters
         ----------
         time_list : list
-            list of time values where the images were capturedd
+            list of time values where the images were captured
         pointing_list : list
             list of pointing values for the images
         """
@@ -346,10 +453,13 @@ class PointingCalculator(TelescopeComponent):
 
         return res
 
-    def _fit_star_position(self, star, timestamp, camera_frame, image, nsb_std):
+    def _fit_star_position(
+        self, star, timestamp, camera_frame, image, nsb_std, current_pointing
+    ):
         star_coords = SkyCoord(
             star["RAJ2000"], star["DEJ2000"], unit="deg", frame="icrs"
         )
+
         star_coords = star_coords.transform_to(camera_frame)
 
         rho, phi = cart2pol(star_coords.x.to_value(u.m), star_coords.y.to_value(u.m))
@@ -569,3 +679,211 @@ class PointingCalculator(TelescopeComponent):
                     image[pixelN] += val
 
         return image
+
+
+class Pointing_Fitter:
+    """
+    Pointing correction fitter
+    """
+
+    def __init__(
+        self,
+        stars,
+        times,
+        telescope_pointing,
+        telescope_location,
+        focal_length,
+        observed_wavelength,
+        meteo_params,
+        fit_grid="polar",
+    ):
+        """
+        Constructor
+
+        :param list stars: List of lists of star containers the first dimension is supposed to be time
+        :param list time: List of time values for the when the star locations were fitted
+        :param SkyCoord telescope_pointing: Telescope pointing in ICRS frame
+        :param EarthLocation telescope_location: Telescope location
+        :param Quantity[u.m] telescope_focal_length: Telescope focal length [m]
+        :param Quantity[u.micron] observed_wavelength: Telescope focal length [micron]
+        :param float relative_humidity: Relative humidity
+        :param Quantity[u.deg_C] temperature: Temperature [C]
+        :param Quantity[u.hPa] pressure: Pressure [hPa]
+        :param str fit_grid: Coordinate system grid to use. Either polar or cartesian
+        """
+        self.star_containers = stars
+        self.times = times
+        self.telescope_pointing = telescope_pointing
+        self.telescope_location = telescope_location
+        self.focal_length = focal_length
+        self.obswl = observed_wavelength
+        self.relative_humidity = meteo_params["relative_humidity"]
+        self.temperature = meteo_params["temperature"]
+        self.pressure = meteo_params["pressure"]
+        self.stars = []
+        self.visible = []
+        self.data = []
+        self.errors = []
+        # Construct the data here. Stars that were not found are marked in the variable "visible" and use the coordinates (0,0) whenever they can not be seen
+        for star_list in stars:
+            self.data.append([])
+            self.errors.append([])
+            self.visible.append({})
+            for star in star_list:
+                if star.reco_x != np.nan * u.m:
+                    self.visible[-1].update({star.label: True})
+                    self.data[-1].append(star.reco_x)
+                    self.data[-1].append(star.reco_y)
+                    self.errors[-1].append(star.reco_dx)
+                    self.errors[-1].append(star.reco_dy)
+                else:
+                    self.visible[-1].update({star.label: False})
+                    self.data[-1].append(0)
+                    self.data[-1].append(0)
+                    self.errors[-1].append(
+                        1000.0
+                    )  # large error value to suppress the stars that were not found
+                    self.errors[-1].append(1000.0)
+
+        for star in stars[0]:
+            self.stars.append(self.init_star(star.label))
+        self.fit_mode = "xy"
+        self.fit_grid = fit_grid
+        self.star_motion_model = Model(self.fit_function)
+        self.fit_summary = None
+        self.fit_resuts = None
+
+    def init_star(self, star_label):
+        """
+        Initialize StarTracker object for a given star
+
+        :param str star_label: Star label according to NOMAD catalog
+
+        :return: StarTracker object
+        """
+        star = Vizier(catalog="NOMAD").query_constraints(NOMAD1=star_label)[0]
+        star_coords = SkyCoord(
+            star["RAJ2000"],
+            star["DEJ2000"],
+            unit="deg",
+            frame="icrs",
+            obswl=self.obswl,
+            relative_humidity=self.relative_humidity,
+            temperature=self.temperature,
+            pressure=self.pressure,
+        )
+        st = StarTracker(
+            star_label,
+            star_coords,
+            self.telescope_location,
+            self.focal_length,
+            self.telescope_pointing,
+            self.obswl,
+            self.relative_humidity,
+            self.temperature,
+            self.pressure,
+        )
+        return st
+
+    def current_pointing(self, t):
+        """
+        Retrieve current telescope pointing
+        """
+        index = self.times.index(t)
+
+        return self.telescope_pointing[index]
+
+    def fit_function(self, p, t):
+        """
+        Construct the fit function for the pointing correction
+
+        p: Fit parameters
+        t: Timestamp in UNIX_TAI format
+
+        """
+
+        time = Time(t, format="unix_tai", scale="utc")
+        index = self.times.index(time)
+        coord_list = []
+
+        m_ra, m_dec = p
+        new_ra = self.current_pointing(time).ra + m_ra * u.deg
+        new_dec = self.current_pointing(time).dec + m_dec * u.deg
+
+        new_pointing = SkyCoord(ICRS(ra=new_ra, dec=new_dec))
+
+        m_ra, m_dec = p
+        new_ra = self.current_pointing(time).ra + m_ra * u.deg
+        new_dec = self.current_pointing(time).dec + m_dec * u.deg
+        new_pointing = SkyCoord(ICRS(ra=new_ra, dec=new_dec))
+        for star in self.stars:
+            if self.visible[index][star.label]:  # if star was visible give the value
+                x, y = star.position_in_camera_frame(time, new_pointing)
+            else:  # otherwise set it to (0,0) and set a large error value
+                x, y = (0, 0)
+            if self.fit_grid == "polar":
+                x, y = cart2pol(x, y)
+            coord_list.extend([x])
+            coord_list.extend([y])
+
+        return coord_list
+
+    def fit(self, data, errors, time_range, fit_mode="xy"):
+        """
+        Performs the ODR fit of stars trajectories and saves the results as self.fit_results
+
+        :param array data: Reconstructed star positions, data.shape = (N(stars) * 2, len(time_range)), order: x_1, y_1...x_N, y_N
+        :param array errors: Uncertainties on the reconstructed star positions. Same shape and order as for the data
+        :param array time_range: Array of timestamps in UNIX_TAI format
+        :param array-like(SkyCoord) pointings: Array of telescope pointings in ICRS frame
+        :param str fit_mode: Fit mode. Can be 'y', 'xy' (default), 'xyz' or 'radec'.
+        """
+        self.fit_mode = fit_mode
+        if self.fit_mode == "radec" or self.fit_mode == "xy":
+            init_mispointing = [0, 0]
+        elif self.fit_mode == "y":
+            init_mispointing = [0]
+        elif self.fit_mode == "xyz":
+            init_mispointing = [0, 0, 0]
+        if errors is not None:
+            rdata = RealData(x=self.times, y=data, sy=errors)
+        else:
+            rdata = RealData(x=self.times, y=data)
+        odr = ODR(rdata, self.star_motion_model, beta0=init_mispointing)
+        self.fit_summary = odr.run()
+        if self.fit_mode == "radec":
+            self.fit_results = pd.DataFrame(
+                data={
+                    "dRA": [self.fit_summary.beta[0]],
+                    "dDEC": [self.fit_summary.beta[1]],
+                    "eRA": [self.fit_summary.sd_beta[0]],
+                    "eDEC": [self.fit_summary.sd_beta[1]],
+                }
+            )
+        elif self.fit_mode == "xy":
+            self.fit_results = pd.DataFrame(
+                data={
+                    "dX": [self.fit_summary.beta[0]],
+                    "dY": [self.fit_summary.beta[1]],
+                    "eX": [self.fit_summary.sd_beta[0]],
+                    "eY": [self.fit_summary.sd_beta[1]],
+                }
+            )
+        elif self.fit_mode == "y":
+            self.fit_results = pd.DataFrame(
+                data={
+                    "dY": [self.fit_summary.beta[0]],
+                    "eY": [self.fit_summary.sd_beta[0]],
+                }
+            )
+        elif self.fit_mode == "xyz":
+            self.fit_results = pd.DataFrame(
+                data={
+                    "dX": [self.fit_summary.beta[0]],
+                    "dY": [self.fit_summary.beta[1]],
+                    "dZ": [self.fit_summary.beta[2]],
+                    "eX": [self.fit_summary.sd_beta[0]],
+                    "eY": [self.fit_summary.sd_beta[1]],
+                    "eZ": [self.fit_summary.sd_beta[2]],
+                }
+            )
