@@ -1,2 +1,0 @@
-A new ImageExtractor called ``VarianceExtractor`` was added
-An Enum class was added to containers.py that is used in the metadata of the VarianceExtractor output

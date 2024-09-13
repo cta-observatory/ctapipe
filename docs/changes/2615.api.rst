@@ -1,1 +1,0 @@
-The ``PointingInterpolator`` was moved from ``ctapipe.io`` to ``ctapipe.monitoring``.

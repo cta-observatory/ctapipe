@@ -1,4 +1,0 @@
-Update exception handling in tools
-
-- Add a possibility to handle custom exception in ``Tool.run()``
-  with the preservation of the exit code.
