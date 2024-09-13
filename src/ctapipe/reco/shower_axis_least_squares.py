@@ -15,7 +15,7 @@ from .reconstructor import Reconstructor
 _INVALID = ReconstructedGeometryContainer(
     telescopes=[], prefix="ShowerAxisLeastSquares"
 )
-_SHOWER_POINT_DISTANCE = u.Quantity(10, u.km)
+_SHOWER_POINT_DISTANCE = u.Quantity(20, u.km)
 
 
 class ShowerAxisLeastSquares(Reconstructor):
