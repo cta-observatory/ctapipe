@@ -2,7 +2,10 @@
 
 from enum import Enum
 
+import astropy.units as u
 from pyirf.spectral import CRAB_HEGRA, IRFDOC_ELECTRON_SPECTRUM, IRFDOC_PROTON_SPECTRUM
+
+FLUX_UNIT = (1 * u.erg / u.s / u.cm**2).unit
 
 
 class Spectra(Enum):

@@ -223,7 +223,7 @@ class EnergyMigration2dMaker(EnergyMigrationMakerBase, DefaultFoVOffsetBins):
         super().__init__(parent=parent, **kwargs)
 
     def make_edisp_hdu(
-        self, events: QTable, point_like: bool, extname: str = "ENERGY MIGRATION"
+        self, events: QTable, point_like: bool, extname: str = "ENERGY DISPERSION"
     ) -> BinTableHDU:
         edisp = energy_dispersion(
             selected_events=events,
