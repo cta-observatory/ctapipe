@@ -96,7 +96,7 @@ class OptimizationResultStore:
         cut_expr_tab = Table(
             rows=self._precuts,
             names=["name", "cut_expr"],
-            dtype=[np.unicode_, np.unicode_],
+            dtype=[np.str_, np.str_],
         )
         cut_expr_tab.meta["EXTNAME"] = "QUALITY_CUTS_EXPR"
 
