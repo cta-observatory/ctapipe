@@ -3,18 +3,12 @@ import logging
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.table import QTable
 
 
 def test_check_bins_in_range(tmp_path):
     from ctapipe.irf import ResultValidRange, check_bins_in_range
 
-    valid_range = ResultValidRange(
-        bounds_table=QTable(
-            rows=[u.Quantity([0.03, 200], u.TeV)], names=["energy_min", "energy_max"]
-        ),
-        prefix="energy",
-    )
+    valid_range = ResultValidRange(min=0.03 * u.TeV, max=200 * u.TeV)
 
     # bins are in range
     bins = u.Quantity(np.logspace(-1, 2, 10), u.TeV)
@@ -64,9 +58,9 @@ def test_make_bins_per_decade():
 
 
 def test_true_energy_bins_base():
-    from ctapipe.irf.binning import TrueEnergyBinsBase
+    from ctapipe.irf.binning import DefaultTrueEnergyBins
 
-    binning = TrueEnergyBinsBase(
+    binning = DefaultTrueEnergyBins(
         true_energy_min=0.02 * u.TeV,
         true_energy_max=200 * u.TeV,
         true_energy_n_bins_per_decade=7,
@@ -81,9 +75,9 @@ def test_true_energy_bins_base():
 
 
 def test_reco_energy_bins_base():
-    from ctapipe.irf.binning import RecoEnergyBinsBase
+    from ctapipe.irf.binning import DefaultRecoEnergyBins
 
-    binning = RecoEnergyBinsBase(
+    binning = DefaultRecoEnergyBins(
         reco_energy_min=0.02 * u.TeV,
         reco_energy_max=200 * u.TeV,
         reco_energy_n_bins_per_decade=4,
@@ -98,9 +92,9 @@ def test_reco_energy_bins_base():
 
 
 def test_fov_offset_bins_base():
-    from ctapipe.irf.binning import FoVOffsetBinsBase
+    from ctapipe.irf.binning import DefaultFoVOffsetBins
 
-    binning = FoVOffsetBinsBase(
+    binning = DefaultFoVOffsetBins(
         # use default for fov_offset_min
         fov_offset_max=3 * u.deg,
         fov_offset_n_bins=3,

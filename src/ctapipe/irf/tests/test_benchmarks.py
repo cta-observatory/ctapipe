@@ -19,7 +19,7 @@ def test_make_2d_energy_bias_res(irf_events_table):
     assert (
         bias_res_hdu.data["N_EVENTS"].shape
         == bias_res_hdu.data["BIAS"].shape
-        == bias_res_hdu.data["RESOLUTI"].shape
+        == bias_res_hdu.data["RESOLUTION"].shape
         == (1, 3, 29)
     )
     _check_boundaries_in_hdu(
@@ -44,7 +44,7 @@ def test_make_2d_ang_res(irf_events_table):
     ang_res_hdu = angResMkr.make_angular_resolution_hdu(events=irf_events_table)
     assert (
         ang_res_hdu.data["N_EVENTS"].shape
-        == ang_res_hdu.data["ANG_RES"].shape
+        == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
         == (1, 3, 23)
     )
     _check_boundaries_in_hdu(
@@ -57,7 +57,7 @@ def test_make_2d_ang_res(irf_events_table):
     ang_res_hdu = angResMkr.make_angular_resolution_hdu(events=irf_events_table)
     assert (
         ang_res_hdu.data["N_EVENTS"].shape
-        == ang_res_hdu.data["ANG_RES"].shape
+        == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
         == (1, 3, 29)
     )
     _check_boundaries_in_hdu(
@@ -70,9 +70,9 @@ def test_make_2d_ang_res(irf_events_table):
 def test_make_2d_sensitivity(
     gamma_diffuse_full_reco_file, proton_full_reco_file, irf_events_loader_test_config
 ):
-    from ctapipe.irf import EventsLoader, Sensitivity2dMaker, Spectra
+    from ctapipe.irf import EventLoader, Sensitivity2dMaker, Spectra
 
-    gamma_loader = EventsLoader(
+    gamma_loader = EventLoader(
         config=irf_events_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,
@@ -82,7 +82,7 @@ def test_make_2d_sensitivity(
         chunk_size=10000,
         obs_time=u.Quantity(50, u.h),
     )
-    proton_loader = EventsLoader(
+    proton_loader = EventLoader(
         config=irf_events_loader_test_config,
         kind="protons",
         file=proton_full_reco_file,
@@ -114,13 +114,13 @@ def test_make_2d_sensitivity(
         gamma_spectrum=Spectra.CRAB_HEGRA,
     )
     assert (
-        sens_hdu.data["N_SIG"].shape
-        == sens_hdu.data["N_SIG_W"].shape
-        == sens_hdu.data["N_BKG"].shape
-        == sens_hdu.data["N_BKG_W"].shape
-        == sens_hdu.data["SIGNIFIC"].shape
-        == sens_hdu.data["REL_SEN"].shape
-        == sens_hdu.data["FLUX_SEN"].shape
+        sens_hdu.data["N_SIGNAL"].shape
+        == sens_hdu.data["N_SIGNAL_WEIGHTED"].shape
+        == sens_hdu.data["N_BACKGROUND"].shape
+        == sens_hdu.data["N_BACKGROUND_WEIGHTED"].shape
+        == sens_hdu.data["SIGNIFICANCE"].shape
+        == sens_hdu.data["RELATIVE_SENSITIVITY"].shape
+        == sens_hdu.data["FLUX_SENSITIVITY"].shape
         == (1, 3, 29)
     )
     _check_boundaries_in_hdu(

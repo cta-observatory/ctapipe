@@ -19,8 +19,12 @@ from .select import EventPreProcessor
 class OptimizationResult:
     def __init__(self, precuts, valid_energy, valid_offset, gh, theta):
         self.precuts = precuts
-        self.valid_energy = ResultValidRange(valid_energy, "energy")
-        self.valid_offset = ResultValidRange(valid_offset, "offset")
+        self.valid_energy = ResultValidRange(
+            min=valid_energy["energy_min"], max=valid_energy["energy_max"]
+        )
+        self.valid_offset = ResultValidRange(
+            min=valid_offset["offset_min"], max=valid_offset["offset_max"]
+        )
         self.gh_cuts = gh
         self.theta_cuts = theta
 

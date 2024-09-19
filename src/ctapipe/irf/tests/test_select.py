@@ -59,9 +59,9 @@ def test_normalise_column_names(dummy_table):
 
 
 def test_events_loader(gamma_diffuse_full_reco_file, irf_events_loader_test_config):
-    from ctapipe.irf import EventsLoader, Spectra
+    from ctapipe.irf import EventLoader, Spectra
 
-    loader = EventsLoader(
+    loader = EventLoader(
         config=irf_events_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,

@@ -24,7 +24,7 @@ from .optimize import (
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
 )
-from .select import EventPreProcessor, EventsLoader
+from .select import EventLoader, EventPreProcessor
 from .spectra import SPECTRA, Spectra
 
 __all__ = [
@@ -40,7 +40,7 @@ __all__ = [
     "OptimizationResultStore",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
-    "EventsLoader",
+    "EventLoader",
     "EventPreProcessor",
     "Spectra",
     "GhPercentileCutCalculator",

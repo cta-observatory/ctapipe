@@ -5,7 +5,7 @@ from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Bool, Float, Integer, classes_with_traits, flag
-from ..irf import EventsLoader, Spectra
+from ..irf import EventLoader, Spectra
 from ..irf.optimize import CutOptimizerBase
 
 
@@ -17,10 +17,10 @@ class IrfEventSelector(Tool):
         default_value=None, directory_ok=False, help="Gamma input filename and path"
     ).tag(config=True)
 
-    gamma_sim_spectrum = traits.UseEnum(
+    gamma_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
-        help="Name of the pyirf spectra used for the simulated gamma spectrum",
+        help="Name of the spectrum used for weights of gamma events.",
     ).tag(config=True)
 
     proton_file = traits.Path(
@@ -33,10 +33,10 @@ class IrfEventSelector(Tool):
         ),
     ).tag(config=True)
 
-    proton_sim_spectrum = traits.UseEnum(
+    proton_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
-        help="Name of the pyirf spectra used for the simulated proton spectrum",
+        help="Name of the spectrum used for weights of proton events.",
     ).tag(config=True)
 
     electron_file = traits.Path(
@@ -49,10 +49,10 @@ class IrfEventSelector(Tool):
         ),
     ).tag(config=True)
 
-    electron_sim_spectrum = traits.UseEnum(
+    electron_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
-        help="Name of the pyirf spectra used for the simulated electron spectrum",
+        help="Name of the spectrum used for weights of electron events.",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -106,35 +106,35 @@ class IrfEventSelector(Tool):
         )
     }
 
-    classes = [EventsLoader] + classes_with_traits(CutOptimizerBase)
+    classes = [EventLoader] + classes_with_traits(CutOptimizerBase)
 
     def setup(self):
         self.optimizer = CutOptimizerBase.from_name(
             self.optimization_algorithm, parent=self
         )
         self.particles = [
-            EventsLoader(
+            EventLoader(
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
-                target_spectrum=self.gamma_sim_spectrum,
+                target_spectrum=self.gamma_target_spectrum,
             )
         ]
         if self.optimization_algorithm != "PercentileCuts":
             self.particles.append(
-                EventsLoader(
+                EventLoader(
                     parent=self,
                     kind="protons",
                     file=self.proton_file,
-                    target_spectrum=self.proton_sim_spectrum,
+                    target_spectrum=self.proton_target_spectrum,
                 )
             )
             self.particles.append(
-                EventsLoader(
+                EventLoader(
                     parent=self,
                     kind="electrons",
                     file=self.electron_file,
-                    target_spectrum=self.electron_sim_spectrum,
+                    target_spectrum=self.electron_target_spectrum,
                 )
             )
 

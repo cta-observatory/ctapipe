@@ -4,7 +4,7 @@ import pytest
 from astropy.table import QTable
 
 from ctapipe.core import non_abstract_children
-from ctapipe.irf import EventsLoader, Spectra
+from ctapipe.irf import EventLoader, Spectra
 from ctapipe.irf.optimize import CutOptimizerBase
 
 
@@ -95,7 +95,7 @@ def test_cut_optimizer(
 ):
     from ctapipe.irf import OptimizationResultStore
 
-    gamma_loader = EventsLoader(
+    gamma_loader = EventLoader(
         config=irf_events_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,
@@ -105,7 +105,7 @@ def test_cut_optimizer(
         chunk_size=10000,
         obs_time=u.Quantity(50, u.h),
     )
-    proton_loader = EventsLoader(
+    proton_loader = EventLoader(
         config=irf_events_loader_test_config,
         kind="protons",
         file=proton_full_reco_file,

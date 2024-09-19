@@ -11,7 +11,7 @@ from pyirf.binning import calculate_bin_indices, create_histogram_table, split_b
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core.traits import Bool, Float
-from .binning import FoVOffsetBinsBase, RecoEnergyBinsBase, TrueEnergyBinsBase
+from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 from .spectra import SPECTRA, Spectra
 
 
@@ -30,7 +30,7 @@ def _get_2d_result_table(
     return result, fov_bin_index, mat_shape
 
 
-class EnergyBiasResolutionMakerBase(TrueEnergyBinsBase):
+class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
     """
     Base class for calculating the bias and resolution of the energy prediciton.
     """
@@ -58,7 +58,7 @@ class EnergyBiasResolutionMakerBase(TrueEnergyBinsBase):
         """
 
 
-class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, FoVOffsetBinsBase):
+class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffsetBins):
     """
     Calculates the bias and the resolution of the energy prediction in bins of
     true energy and fov offset.
@@ -77,7 +77,7 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, FoVOffsetBinsBa
         )
         result["N_EVENTS"] = np.zeros(mat_shape)[np.newaxis, ...]
         result["BIAS"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
-        result["RESOLUTI"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
+        result["RESOLUTION"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
 
         for i in range(len(self.fov_offset_bins) - 1):
             bias_resolution = energy_bias_resolution(
@@ -88,12 +88,12 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, FoVOffsetBinsBa
             )
             result["N_EVENTS"][:, i, :] = bias_resolution["n_events"]
             result["BIAS"][:, i, :] = bias_resolution["bias"]
-            result["RESOLUTI"][:, i, :] = bias_resolution["resolution"]
+            result["RESOLUTION"][:, i, :] = bias_resolution["resolution"]
 
         return BinTableHDU(result, name=extname)
 
 
-class AngularResolutionMakerBase(TrueEnergyBinsBase, RecoEnergyBinsBase):
+class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
     """
     Base class for calculating the angular resolution.
     """
@@ -127,7 +127,7 @@ class AngularResolutionMakerBase(TrueEnergyBinsBase, RecoEnergyBinsBase):
         """
 
 
-class AngularResolution2dMaker(AngularResolutionMakerBase, FoVOffsetBinsBase):
+class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins):
     """
     Calculates the angular resolution in bins of either true or reconstructed energy
     and fov offset.
@@ -152,7 +152,7 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, FoVOffsetBinsBase):
             fov_bins=self.fov_offset_bins,
         )
         result["N_EVENTS"] = np.zeros(mat_shape)[np.newaxis, ...]
-        result["ANG_RES"] = u.Quantity(
+        result["ANGULAR_RESOLUTION"] = u.Quantity(
             np.full(mat_shape, np.nan)[np.newaxis, ...], events["theta"].unit
         )
 
@@ -163,14 +163,14 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, FoVOffsetBinsBase):
                 energy_type=energy_type,
             )
             result["N_EVENTS"][:, i, :] = ang_res["n_events"]
-            result["ANG_RES"][:, i, :] = ang_res["angular_resolution"]
+            result["ANGULAR_RESOLUTION"][:, i, :] = ang_res["angular_resolution"]
 
         header = Header()
         header["E_TYPE"] = energy_type.upper()
         return BinTableHDU(result, header=header, name=extname)
 
 
-class SensitivityMakerBase(RecoEnergyBinsBase):
+class SensitivityMakerBase(DefaultRecoEnergyBins):
     """Base class for calculating the point source sensitivity."""
 
     alpha = Float(
@@ -212,7 +212,7 @@ class SensitivityMakerBase(RecoEnergyBinsBase):
         """
 
 
-class Sensitivity2dMaker(SensitivityMakerBase, FoVOffsetBinsBase):
+class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
     """
     Calculates the point source sensitivity in bins of reconstructed energy
     and fov offset.
@@ -235,13 +235,13 @@ class Sensitivity2dMaker(SensitivityMakerBase, FoVOffsetBinsBase):
             e_bins=self.reco_energy_bins,
             fov_bins=self.fov_offset_bins,
         )
-        result["N_SIG"] = np.zeros(mat_shape)[np.newaxis, ...]
-        result["N_SIG_W"] = np.zeros(mat_shape)[np.newaxis, ...]
-        result["N_BKG"] = np.zeros(mat_shape)[np.newaxis, ...]
-        result["N_BKG_W"] = np.zeros(mat_shape)[np.newaxis, ...]
-        result["SIGNIFIC"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
-        result["REL_SEN"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
-        result["FLUX_SEN"] = u.Quantity(
+        result["N_SIGNAL"] = np.zeros(mat_shape)[np.newaxis, ...]
+        result["N_SIGNAL_WEIGHTED"] = np.zeros(mat_shape)[np.newaxis, ...]
+        result["N_BACKGROUND"] = np.zeros(mat_shape)[np.newaxis, ...]
+        result["N_BACKGROUND_WEIGHTED"] = np.zeros(mat_shape)[np.newaxis, ...]
+        result["SIGNIFICANCE"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
+        result["RELATIVE_SENSITIVITY"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
+        result["FLUX_SENSITIVITY"] = u.Quantity(
             np.full(mat_shape, np.nan)[np.newaxis, ...], 1 / (u.TeV * u.s * u.cm**2)
         )
         for i in range(len(self.fov_offset_bins) - 1):
@@ -259,13 +259,13 @@ class Sensitivity2dMaker(SensitivityMakerBase, FoVOffsetBinsBase):
             sens = calculate_sensitivity(
                 signal_hist=signal_hist, background_hist=bkg_hist, alpha=self.alpha
             )
-            result["N_SIG"][:, i, :] = sens["n_signal"]
-            result["N_SIG_W"][:, i, :] = sens["n_signal_weighted"]
-            result["N_BKG"][:, i, :] = sens["n_background"]
-            result["N_BKG_W"][:, i, :] = sens["n_background_weighted"]
-            result["SIGNIFIC"][:, i, :] = sens["significance"]
-            result["REL_SEN"][:, i, :] = sens["relative_sensitivity"]
-            result["FLUX_SEN"][:, i, :] = sens[
+            result["N_SIGNAL"][:, i, :] = sens["n_signal"]
+            result["N_SIGNAL_WEIGHTED"][:, i, :] = sens["n_signal_weighted"]
+            result["N_BACKGROUND"][:, i, :] = sens["n_background"]
+            result["N_BACKGROUND_WEIGHTED"][:, i, :] = sens["n_background_weighted"]
+            result["SIGNIFICANCE"][:, i, :] = sens["significance"]
+            result["RELATIVE_SENSITIVITY"][:, i, :] = sens["relative_sensitivity"]
+            result["FLUX_SENSITIVITY"][:, i, :] = sens[
                 "relative_sensitivity"
             ] * source_spectrum(sens["reco_energy_center"])
 

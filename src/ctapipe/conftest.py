@@ -775,7 +775,7 @@ def irf_events_loader_test_config():
                 "quality_criteria": [
                     (
                         "multiplicity 4",
-                        "np.count_nonzero(tels_with_trigger,axis=1) >= 4",
+                        "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
                     ),
                     ("valid classifier", "ExtraTreesClassifier_is_valid"),
                     ("valid geom reco", "HillasReconstructor_is_valid"),

@@ -5,9 +5,14 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
-from astropy.table import QTable, Table, vstack
+from astropy.table import Column, QTable, Table, vstack
 from pyirf.simulations import SimulatedEventsInfo
-from pyirf.spectral import PowerLaw, calculate_event_weights
+from pyirf.spectral import (
+    DIFFUSE_FLUX_UNIT,
+    POINT_SOURCE_FLUX_UNIT,
+    PowerLaw,
+    calculate_event_weights,
+)
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
 from ..coordinates import NominalFrame
@@ -38,7 +43,10 @@ class EventPreProcessor(QualityQuery):
     quality_criteria = List(
         Tuple(Unicode(), Unicode()),
         default_value=[
-            ("multiplicity 4", "np.count_nonzero(tels_with_trigger,axis=1) >= 4"),
+            (
+                "multiplicity 4",
+                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
+            ),
             ("valid classifier", "RandomForestClassifier_is_valid"),
             ("valid geom reco", "HillasReconstructor_is_valid"),
             ("valid energy reco", "RandomForestRegressor_is_valid"),
@@ -106,61 +114,54 @@ class EventPreProcessor(QualityQuery):
         in the event table.
         """
         columns = [
-            "obs_id",
-            "event_id",
-            "true_energy",
-            "true_az",
-            "true_alt",
-            "reco_energy",
-            "reco_az",
-            "reco_alt",
-            "reco_fov_lat",
-            "reco_fov_lon",
-            "gh_score",
-            "pointing_az",
-            "pointing_alt",
-            "theta",
-            "true_source_fov_offset",
-            "reco_source_fov_offset",
+            Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
+            Column(name="event_id", dtype=np.uint64, description="Array Event ID"),
+            Column(name="true_energy", unit=u.TeV, description="Simulated Energy"),
+            Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
+            Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
+            Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
+            Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
+            Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
+            Column(
+                name="reco_fov_lat",
+                unit=u.deg,
+                description="Reconstructed field of view lat",
+            ),
+            Column(
+                name="reco_fov_lon",
+                unit=u.deg,
+                description="Reconstructed field of view lon",
+            ),
+            Column(
+                name="gh_score",
+                description=(
+                    "prediction of the classifier, defined between [0,1],"
+                    " where values close to 1 mean that the positive class"
+                    " (e.g. gamma in gamma-ray analysis) is more likely"
+                ),
+            ),
+            Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
+            Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
+            Column(
+                name="theta",
+                unit=u.deg,
+                description="Reconstructed angular offset from source position",
+            ),
+            Column(
+                name="true_source_fov_offset",
+                unit=u.deg,
+                description="Simulated angular offset from pointing direction",
+            ),
+            Column(
+                name="reco_source_fov_offset",
+                unit=u.deg,
+                description="Reconstructed angular offset from pointing direction",
+            ),
         ]
-        units = {
-            "true_energy": u.TeV,
-            "true_az": u.deg,
-            "true_alt": u.deg,
-            "reco_energy": u.TeV,
-            "reco_az": u.deg,
-            "reco_alt": u.deg,
-            "reco_fov_lat": u.deg,
-            "reco_fov_lon": u.deg,
-            "pointing_az": u.deg,
-            "pointing_alt": u.deg,
-            "theta": u.deg,
-            "true_source_fov_offset": u.deg,
-            "reco_source_fov_offset": u.deg,
-        }
-        descriptions = {
-            "obs_id": "Observation Block ID",
-            "event_id": "Array Event ID",
-            "true_energy": "Simulated Energy",
-            "true_az": "Simulated azimuth",
-            "true_alt": "Simulated altitude",
-            "reco_energy": "Reconstructed energy",
-            "reco_az": "Reconstructed azimuth",
-            "reco_alt": "Reconstructed altitude",
-            "reco_fov_lat": "Reconstructed field of view lat",
-            "reco_fov_lon": "Reconstructed field of view lon",
-            "pointing_az": "Pointing azimuth",
-            "pointing_alt": "Pointing altitude",
-            "theta": "Reconstructed angular offset from source position",
-            "true_source_fov_offset": "Simulated angular offset from pointing direction",
-            "reco_source_fov_offset": "Reconstructed angular offset from pointing direction",
-            "gh_score": "prediction of the classifier, defined between [0,1], where values close to 1 mean that the positive class (e.g. gamma in gamma-ray analysis) is more likely",
-        }
-
-        return QTable(names=columns, units=units, descriptions=descriptions)
+        return QTable(columns)
 
 
-class EventsLoader(Component):
+class EventLoader(Component):
     classes = [EventPreProcessor]
 
     def __init__(self, kind: str, file: Path, target_spectrum: Spectra, **kwargs):
@@ -177,7 +178,9 @@ class EventsLoader(Component):
         opts = dict(dl2=True, simulated=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
-            sim_info, spectrum, obs_conf = self.get_metadata(load, obs_time)
+            sim_info, spectrum, obs_conf = self.get_simulation_information(
+                load, obs_time
+            )
             meta = {"sim_info": sim_info, "spectrum": spectrum}
             bits = [header]
             n_raw_events = 0
@@ -192,7 +195,7 @@ class EventsLoader(Component):
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table, n_raw_events, meta
 
-    def get_metadata(
+    def get_simulation_information(
         self, loader: TableLoader, obs_time: u.Quantity
     ) -> tuple[SimulatedEventsInfo, PowerLaw, Table]:
         obs = loader.read_observation_information()
@@ -224,7 +227,6 @@ class EventsLoader(Component):
     def make_derived_columns(self, events: QTable, obs_conf: Table) -> QTable:
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
             assert all(obs_conf["subarray_pointing_frame"] == 0)
-            # Lets suppose 0 means ALTAZ
             events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
             events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
         else:
@@ -268,13 +270,14 @@ class EventsLoader(Component):
         if (
             self.kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
-                spectrum.normalization.unit * u.sr
+                POINT_SOURCE_FLUX_UNIT
             )
+            and spectrum.normalization.unit.is_equivalent(DIFFUSE_FLUX_UNIT)
         ):
             if fov_offset_bins is None:
                 raise ValueError(
                     "gamma_target_spectrum is point-like, but no fov offset bins "
-                    "for the integration of the simulated diffuse spectrum was given."
+                    "for the integration of the simulated diffuse spectrum were given."
                 )
 
             events["weight"] = 1.0

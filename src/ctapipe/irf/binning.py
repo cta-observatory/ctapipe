@@ -1,6 +1,7 @@
 """Collection of binning related functionality for the irf tools"""
 
 import logging
+from dataclasses import dataclass
 
 import astropy.units as u
 import numpy as np
@@ -78,13 +79,13 @@ def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
     return u.Quantity(np.logspace(log_lower, log_upper, n_bins + 1), unit, copy=False)
 
 
+@dataclass
 class ResultValidRange:
-    def __init__(self, bounds_table, prefix):
-        self.min = bounds_table[f"{prefix}_min"][0]
-        self.max = bounds_table[f"{prefix}_max"][0]
+    min: u.Quantity
+    max: u.Quantity
 
 
-class TrueEnergyBinsBase(Component):
+class DefaultTrueEnergyBins(Component):
     """Base class for creating irfs or benchmarks binned in true energy."""
 
     true_energy_min = AstroQuantity(
@@ -113,7 +114,7 @@ class TrueEnergyBinsBase(Component):
         )
 
 
-class RecoEnergyBinsBase(Component):
+class DefaultRecoEnergyBins(Component):
     """Base class for creating irfs or benchmarks binned in reconstructed energy."""
 
     reco_energy_min = AstroQuantity(
@@ -142,7 +143,7 @@ class RecoEnergyBinsBase(Component):
         )
 
 
-class FoVOffsetBinsBase(Component):
+class DefaultFoVOffsetBins(Component):
     """Base class for creating radially symmetric irfs or benchmarks."""
 
     fov_offset_min = AstroQuantity(

@@ -1,4 +1,5 @@
 """Components to generate IRFs"""
+
 from abc import abstractmethod
 
 import astropy.units as u
@@ -21,10 +22,10 @@ from pyirf.irf import (
 from pyirf.simulations import SimulatedEventsInfo
 
 from ..core.traits import AstroQuantity, Float, Integer
-from .binning import FoVOffsetBinsBase, RecoEnergyBinsBase, TrueEnergyBinsBase
+from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 
 
-class PsfMakerBase(TrueEnergyBinsBase):
+class PsfMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the point spread function."""
 
     def __init__(self, parent=None, **kwargs):
@@ -48,7 +49,7 @@ class PsfMakerBase(TrueEnergyBinsBase):
         """
 
 
-class BackgroundRateMakerBase(RecoEnergyBinsBase):
+class BackgroundRateMakerBase(DefaultRecoEnergyBins):
     """Base class for calculating the background rate."""
 
     def __init__(self, parent=None, **kwargs):
@@ -78,7 +79,7 @@ class BackgroundRateMakerBase(RecoEnergyBinsBase):
         """
 
 
-class EnergyMigrationMakerBase(TrueEnergyBinsBase):
+class EnergyMigrationMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the energy migration."""
 
     energy_migration_min = Float(
@@ -98,7 +99,7 @@ class EnergyMigrationMakerBase(TrueEnergyBinsBase):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.migration_bins = np.linspace(
+        self.migration_bins = np.geomspace(
             self.energy_migration_min,
             self.energy_migration_max,
             self.energy_migration_n_bins + 1,
@@ -128,7 +129,7 @@ class EnergyMigrationMakerBase(TrueEnergyBinsBase):
         """
 
 
-class EffectiveAreaMakerBase(TrueEnergyBinsBase):
+class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the effective area."""
 
     def __init__(self, parent=None, **kwargs):
@@ -168,9 +169,9 @@ class EffectiveAreaMakerBase(TrueEnergyBinsBase):
         """
 
 
-class EffectiveArea2dMaker(EffectiveAreaMakerBase, FoVOffsetBinsBase):
+class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterizations of the effective area in equidistant
+    Creates a radially symmetric parameterization of the effective area in equidistant
     bins of logarithmic true energy and field of view offset.
     """
 
@@ -212,9 +213,9 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, FoVOffsetBinsBase):
         )
 
 
-class EnergyMigration2dMaker(EnergyMigrationMakerBase, FoVOffsetBinsBase):
+class EnergyMigration2dMaker(EnergyMigrationMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterizations of the energy migration in
+    Creates a radially symmetric parameterization of the energy migration in
     equidistant bins of logarithmic true energy and field of view offset.
     """
 
@@ -240,7 +241,7 @@ class EnergyMigration2dMaker(EnergyMigrationMakerBase, FoVOffsetBinsBase):
         )
 
 
-class BackgroundRate2dMaker(BackgroundRateMakerBase, FoVOffsetBinsBase):
+class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
     """
     Creates a radially symmetric parameterization of the background rate in equidistant
     bins of logarithmic reconstructed energy and field of view offset.
@@ -266,7 +267,7 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, FoVOffsetBinsBase):
         )
 
 
-class Psf3dMaker(PsfMakerBase, FoVOffsetBinsBase):
+class Psf3dMaker(PsfMakerBase, DefaultFoVOffsetBins):
     """
     Creates a radially symmetric point spread function calculated in equidistant bins
     of source offset, logarithmic true energy, and field of view offset.

@@ -13,8 +13,8 @@ from pyirf.io import create_rad_max_hdu
 from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
+    EventLoader,
     EventPreProcessor,
-    EventsLoader,
     OptimizationResultStore,
     Spectra,
     check_bins_in_range,
@@ -34,11 +34,11 @@ from ..irf.irfs import (
 
 class IrfTool(Tool):
     name = "ctapipe-make-irf"
-    description = "Tool to create IRF files in GAD format"
+    description = "Tool to create IRF files in GADF format"
 
     do_background = Bool(
         True,
-        help="Compute background rate IRF using supplied files",
+        help="Compute background rate using supplied files",
     ).tag(config=True)
 
     do_benchmarks = Bool(
@@ -62,7 +62,7 @@ class IrfTool(Tool):
     gamma_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.CRAB_HEGRA,
-        help="Name of the spectra used for the simulated gamma spectrum",
+        help="Name of the spectrum used for weights of gamma events.",
     ).tag(config=True)
 
     proton_file = traits.Path(
@@ -75,7 +75,7 @@ class IrfTool(Tool):
     proton_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_PROTON_SPECTRUM,
-        help="Name of the spectra used for the simulated proton spectrum",
+        help="Name of the spectrum used for weights of proton events.",
     ).tag(config=True)
 
     electron_file = traits.Path(
@@ -88,7 +88,7 @@ class IrfTool(Tool):
     electron_target_spectrum = traits.UseEnum(
         Spectra,
         default_value=Spectra.IRFDOC_ELECTRON_SPECTRUM,
-        help="Name of the spectra used for the simulated electron spectrum",
+        help="Name of the spectrum used for weights of electron events.",
     ).tag(config=True)
 
     chunk_size = Integer(
@@ -107,34 +107,37 @@ class IrfTool(Tool):
     obs_time = AstroQuantity(
         default_value=u.Quantity(50, u.hour),
         physical_type=u.physical.time,
-        help="Observation time in the form ``<value> <unit>``",
+        help=(
+            "Observation time in the form ``<value> <unit>``."
+            " This is used for flux normalization and estimating a background rate."
+        ),
     ).tag(config=True)
 
-    edisp_parameterization = traits.ComponentName(
+    edisp_maker = traits.ComponentName(
         EnergyMigrationMakerBase,
         default_value="EnergyMigration2dMaker",
         help="The parameterization of the energy migration to be used.",
     ).tag(config=True)
 
-    aeff_parameterization = traits.ComponentName(
+    aeff_maker = traits.ComponentName(
         EffectiveAreaMakerBase,
         default_value="EffectiveArea2dMaker",
         help="The parameterization of the effective area to be used.",
     ).tag(config=True)
 
-    psf_parameterization = traits.ComponentName(
+    psf_maker = traits.ComponentName(
         PsfMakerBase,
         default_value="Psf3dMaker",
         help="The parameterization of the point spread function to be used.",
     ).tag(config=True)
 
-    bkg_parameterization = traits.ComponentName(
+    bkg_maker = traits.ComponentName(
         BackgroundRateMakerBase,
         default_value="BackgroundRate2dMaker",
         help="The parameterization of the background rate to be used.",
     ).tag(config=True)
 
-    energy_bias_res_parameterization = traits.ComponentName(
+    energy_bias_resolution_maker = traits.ComponentName(
         EnergyBiasResolutionMakerBase,
         default_value="EnergyBiasResolution2dMaker",
         help=(
@@ -143,13 +146,13 @@ class IrfTool(Tool):
         ),
     ).tag(config=True)
 
-    ang_res_parameterization = traits.ComponentName(
+    angular_resolution_maker = traits.ComponentName(
         AngularResolutionMakerBase,
         default_value="AngularResolution2dMaker",
         help="The parameterization of the angular resolution benchmark.",
     ).tag(config=True)
 
-    sens_parameterization = traits.ComponentName(
+    sensitivity_maker = traits.ComponentName(
         SensitivityMakerBase,
         default_value="Sensitivity2dMaker",
         help="The parameterization of the point source sensitivity benchmark.",
@@ -195,7 +198,7 @@ class IrfTool(Tool):
 
     classes = (
         [
-            EventsLoader,
+            EventLoader,
         ]
         + classes_with_traits(BackgroundRateMakerBase)
         + classes_with_traits(EffectiveAreaMakerBase)
@@ -220,7 +223,7 @@ class IrfTool(Tool):
             raise_error=self.range_check_error,
         )
         self.particles = [
-            EventsLoader(
+            EventLoader(
                 parent=self,
                 kind="gammas",
                 file=self.gamma_file,
@@ -228,66 +231,60 @@ class IrfTool(Tool):
             ),
         ]
         if self.do_background:
-            if self.proton_file:
-                self.particles.append(
-                    EventsLoader(
-                        parent=self,
-                        kind="protons",
-                        file=self.proton_file,
-                        target_spectrum=self.proton_target_spectrum,
-                    )
+            if not self.proton_file:
+                raise RuntimeError(
+                    "At least a proton file required when specifying `do_background`."
                 )
+
+            self.particles.append(
+                EventLoader(
+                    parent=self,
+                    kind="protons",
+                    file=self.proton_file,
+                    target_spectrum=self.proton_target_spectrum,
+                )
+            )
             if self.electron_file:
                 self.particles.append(
-                    EventsLoader(
+                    EventLoader(
                         parent=self,
                         kind="electrons",
                         file=self.electron_file,
                         target_spectrum=self.electron_target_spectrum,
                     )
                 )
-            if len(self.particles) == 1:
-                raise RuntimeError(
-                    "At least one electron or proton file required when specifying `do_background`."
-                )
 
-            self.bkg = BackgroundRateMakerBase.from_name(
-                self.bkg_parameterization, parent=self
-            )
+            self.bkg = BackgroundRateMakerBase.from_name(self.bkg_maker, parent=self)
             check_e_bins(
                 bins=self.bkg.reco_energy_bins, source="background reco energy"
             )
 
-        self.edisp = EnergyMigrationMakerBase.from_name(
-            self.edisp_parameterization, parent=self
-        )
-        self.aeff = EffectiveAreaMakerBase.from_name(
-            self.aeff_parameterization, parent=self
-        )
+        self.edisp = EnergyMigrationMakerBase.from_name(self.edisp_maker, parent=self)
+        self.aeff = EffectiveAreaMakerBase.from_name(self.aeff_maker, parent=self)
 
         if self.full_enclosure:
-            self.psf = PsfMakerBase.from_name(self.psf_parameterization, parent=self)
+            self.psf = PsfMakerBase.from_name(self.psf_maker, parent=self)
 
         if self.do_benchmarks:
             self.b_output = self.output_path.with_name(
                 self.output_path.name.replace(".fits", "-benchmark.fits")
             )
-            self.ang_res = AngularResolutionMakerBase.from_name(
-                self.ang_res_parameterization, parent=self
+            self.angular_resolution = AngularResolutionMakerBase.from_name(
+                self.angular_resolution_maker, parent=self
             )
-            if not self.ang_res.use_true_energy:
+            if not self.angular_resolution.use_true_energy:
                 check_e_bins(
-                    bins=self.ang_res.reco_energy_bins,
+                    bins=self.angular_resolution.reco_energy_bins,
                     source="Angular resolution energy",
                 )
-            self.bias_res = EnergyBiasResolutionMakerBase.from_name(
-                self.energy_bias_res_parameterization, parent=self
+            self.bias_resolution = EnergyBiasResolutionMakerBase.from_name(
+                self.energy_bias_resolution_maker, parent=self
             )
-            self.sens = SensitivityMakerBase.from_name(
-                self.sens_parameterization, parent=self
+            self.sensitivity = SensitivityMakerBase.from_name(
+                self.sensitivity_maker, parent=self
             )
             check_e_bins(
-                bins=self.sens.reco_energy_bins, source="Sensitivity reco energy"
+                bins=self.sensitivity.reco_energy_bins, source="Sensitivity reco energy"
             )
 
     def calculate_selections(self, reduced_events: dict) -> dict:
@@ -328,7 +325,8 @@ class IrfTool(Tool):
             ]
 
         if self.do_background:
-            for bg_type in ("protons", "electrons"):
+            bkgs = ("protons", "electrons") if self.electron_file else ("protons")
+            for bg_type in bkgs:
                 reduced_events[bg_type]["selected_gh"] = evaluate_binned_cut(
                     reduced_events[bg_type]["gh_score"],
                     reduced_events[bg_type]["reco_energy"],
@@ -337,33 +335,20 @@ class IrfTool(Tool):
                 )
 
         if self.do_background:
-            self.log.debug(
+            self.log.info(
                 "Keeping %d signal, %d proton events, and %d electron events"
                 % (
-                    sum(reduced_events["gammas"]["selected"]),
-                    sum(reduced_events["protons"]["selected_gh"]),
-                    sum(reduced_events["electrons"]["selected_gh"]),
+                    np.count_nonzero(reduced_events["gammas"]["selected"]),
+                    np.count_nonzero(reduced_events["protons"]["selected_gh"]),
+                    np.count_nonzero(reduced_events["electrons"]["selected_gh"]),
                 )
             )
         else:
-            self.log.debug(
-                "Keeping %d signal events" % (sum(reduced_events["gammas"]["selected"]))
+            self.log.info(
+                "Keeping %d signal events"
+                % (np.count_nonzero(reduced_events["gammas"]["selected"]))
             )
         return reduced_events
-
-    def _stack_background(self, reduced_events):
-        bkgs = []
-        if self.proton_file:
-            bkgs.append("protons")
-        if self.electron_file:
-            bkgs.append("electrons")
-        if len(bkgs) == 2:
-            background = vstack(
-                [reduced_events["protons"], reduced_events["electrons"]]
-            )
-        else:
-            background = reduced_events[bkgs[0]]
-        return background
 
     def _make_signal_irf_hdus(self, hdus, sim_info):
         hdus.append(
@@ -412,12 +397,12 @@ class IrfTool(Tool):
 
     def _make_benchmark_hdus(self, hdus):
         hdus.append(
-            self.bias_res.make_bias_resolution_hdu(
+            self.bias_resolution.make_bias_resolution_hdu(
                 events=self.signal_events[self.signal_events["selected"]],
             )
         )
         hdus.append(
-            self.ang_res.make_angular_resolution_hdu(
+            self.angular_resolution.make_angular_resolution_hdu(
                 events=self.signal_events[self.signal_events["selected_gh"]],
             )
         )
@@ -431,14 +416,15 @@ class IrfTool(Tool):
                 )
                 theta_cuts = QTable()
                 theta_cuts["center"] = 0.5 * (
-                    self.sens.reco_energy_bins[:-1] + self.sens.reco_energy_bins[1:]
+                    self.sensitivity.reco_energy_bins[:-1]
+                    + self.sensitivity.reco_energy_bins[1:]
                 )
-                theta_cuts["cut"] = self.sens.fov_offset_max
+                theta_cuts["cut"] = self.sensitivity.fov_offset_max
             else:
                 theta_cuts = self.opt_result.theta_cuts
 
             hdus.append(
-                self.sens.make_sensitivity_hdu(
+                self.sensitivity.make_sensitivity_hdu(
                     signal_events=self.signal_events[self.signal_events["selected"]],
                     background_events=self.background_events[
                         self.background_events["selected_gh"]
@@ -471,16 +457,15 @@ class IrfTool(Tool):
                 )
 
             if sel.epp.gammaness_classifier != self.opt_result.gh_cuts.meta["CLFNAME"]:
-                self.log.warning(
+                raise RuntimeError(
                     "G/H cuts are only valid for gammaness scores predicted by "
                     "the same classifier model. Requested model: %s. "
-                    "Model used, so that g/h cuts are valid: %s."
+                    "Model used for g/h cuts: %s."
                     % (
                         sel.epp.gammaness_classifier,
                         self.opt_result.gh_cuts.meta["CLFNAME"],
                     )
                 )
-                sel.epp.gammaness_classifier = self.opt_result.gh_cuts.meta["CLFNAME"]
 
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
@@ -489,7 +474,7 @@ class IrfTool(Tool):
                 # Sensitivity is only calculated, if do_background and do_benchmarks is true.
                 if self.do_benchmarks:
                     evs = sel.make_event_weights(
-                        evs, meta["spectrum"], self.sens.fov_offset_bins
+                        evs, meta["spectrum"], self.sensitivity.fov_offset_bins
                     )
                 # If only background should be calculated,
                 # only calculate weights for protons and electrons.
@@ -508,45 +493,36 @@ class IrfTool(Tool):
                 ).value == 0
 
         if self.signal_is_point_like:
-            self.log.warning(
-                "The gamma input file contains point-like simulations."
-                " Therefore, the IRF is only calculated at a single point"
-                " in the FoV. Changing `fov_offset_n_bins` to 1."
-            )
-            self.edisp = EnergyMigrationMakerBase.from_name(
-                self.edisp_parameterization, parent=self, fov_offset_n_bins=1
-            )
-            self.aeff = EffectiveAreaMakerBase.from_name(
-                self.aeff_parameterization,
-                parent=self,
-                fov_offset_n_bins=1,
-            )
-            if self.full_enclosure:
-                self.psf = PsfMakerBase.from_name(
-                    self.psf_parameterization, parent=self, fov_offset_n_bins=1
-                )
-            if self.do_background:
-                self.bkg = BackgroundRateMakerBase.from_name(
-                    self.bkg_parameterization, parent=self, fov_offset_n_bins=1
-                )
-            if self.do_benchmarks:
-                self.ang_res = AngularResolutionMakerBase.from_name(
-                    self.ang_res_parameterization, parent=self, fov_offset_n_bins=1
-                )
-                self.bias_res = EnergyBiasResolutionMakerBase.from_name(
-                    self.energy_bias_res_parameterization,
-                    parent=self,
-                    fov_offset_n_bins=1,
-                )
-                self.sens = SensitivityMakerBase.from_name(
-                    self.sens_parameterization, parent=self, fov_offset_n_bins=1
-                )
+            errormessage = """The gamma input file contains point-like simulations.
+                Therefore, the IRF can only be calculated at a single point
+                in the FoV, but `fov_offset_n_bins > 1`."""
+
+            if self.edisp.fov_offset_n_bins > 1 or self.aeff.fov_offset_n_bins > 1:
+                raise ToolConfigurationError(errormessage)
+
+            if self.full_enclosure and self.psf.fov_offset_n_bins > 1:
+                raise ToolConfigurationError(errormessage)
+
+            if self.do_background and self.bkg.fov_offset_n_bins > 1:
+                raise ToolConfigurationError(errormessage)
+
+            if self.do_benchmarks and (
+                self.angular_resolution.fov_offset_n_bins > 1
+                or self.bias_resolution.fov_offset_n_bins > 1
+                or self.sensitivity.fov_offset_n_bins > 1
+            ):
+                raise ToolConfigurationError(errormessage)
 
         reduced_events = self.calculate_selections(reduced_events)
 
         self.signal_events = reduced_events["gammas"]
         if self.do_background:
-            self.background_events = self._stack_background(reduced_events)
+            if self.electron_file:
+                self.background_events = vstack(
+                    [reduced_events["protons"], reduced_events["electrons"]]
+                )
+            else:
+                self.background_events = reduced_events["protons"]
 
         hdus = [fits.PrimaryHDU()]
         hdus = self._make_signal_irf_hdus(
