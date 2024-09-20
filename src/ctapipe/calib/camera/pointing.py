@@ -291,8 +291,6 @@ class PointingCalculator(TelescopeComponent):
             self.tars_in_fov["Bmag"] < self.max_star_magnitude
         ]  # select stars for magnitude to exclude those we would not be able to see
 
-        star_labels = [x.label for x in self.stars_in_fov]
-
         # get the accumulated variance images
 
         (
@@ -335,19 +333,22 @@ class PointingCalculator(TelescopeComponent):
                     )
                 )
 
-        return reco_stars
+        # now fit the pointing corrections.
+        correction = []
+        for i, stars in enumerate(reco_stars):
+            fitter = Pointing_Fitter(
+                stars,
+                accumulated_times[i],
+                accumulated_pointing[i],
+                self.location,
+                self.focal_length,
+                self.observed_wavelength,
+                self.meteo_parameters,
+            )
 
-        # now fit the pointing correction.
-        fitter = Pointing_Fitter(
-            star_labels,
-            self.pointing,
-            self.location,
-            self.focal_length,
-            self.observed_wavelength,
-            self.meteo_parameters,
-        )
+            correction.append(fitter.fit())
 
-        fitter.fit(accumulated_pointing)
+        return correction
 
     def _check_req_data(self, url, calibration_type):
         """
@@ -689,7 +690,7 @@ class Pointing_Fitter:
     def __init__(
         self,
         stars,
-        times,
+        time,
         telescope_pointing,
         telescope_location,
         focal_length,
@@ -712,7 +713,7 @@ class Pointing_Fitter:
         :param str fit_grid: Coordinate system grid to use. Either polar or cartesian
         """
         self.star_containers = stars
-        self.times = times
+        self.time = time
         self.telescope_pointing = telescope_pointing
         self.telescope_location = telescope_location
         self.focal_length = focal_length
@@ -721,32 +722,16 @@ class Pointing_Fitter:
         self.temperature = meteo_params["temperature"]
         self.pressure = meteo_params["pressure"]
         self.stars = []
-        self.visible = []
         self.data = []
         self.errors = []
-        # Construct the data here. Stars that were not found are marked in the variable "visible" and use the coordinates (0,0) whenever they can not be seen
-        for star_list in stars:
-            self.data.append([])
-            self.errors.append([])
-            self.visible.append({})
-            for star in star_list:
-                if star.reco_x != np.nan * u.m:
-                    self.visible[-1].update({star.label: True})
-                    self.data[-1].append(star.reco_x)
-                    self.data[-1].append(star.reco_y)
-                    self.errors[-1].append(star.reco_dx)
-                    self.errors[-1].append(star.reco_dy)
-                else:
-                    self.visible[-1].update({star.label: False})
-                    self.data[-1].append(0)
-                    self.data[-1].append(0)
-                    self.errors[-1].append(
-                        1000.0
-                    )  # large error value to suppress the stars that were not found
-                    self.errors[-1].append(1000.0)
-
-        for star in stars[0]:
-            self.stars.append(self.init_star(star.label))
+        # Construct the data here. Add only stars that were found
+        for star in stars:
+            if not np.isnan(star.reco_x):
+                self.data.append(star.reco_x)
+                self.data.append(star.reco_y)
+                self.errors.append(star.reco_dx)
+                self.errors.append(star.reco_dy)
+                self.stars.append(self.init_star(star.label))
         self.fit_mode = "xy"
         self.fit_grid = fit_grid
         self.star_motion_model = Model(self.fit_function)
@@ -803,24 +788,20 @@ class Pointing_Fitter:
         """
 
         time = Time(t, format="unix_tai", scale="utc")
-        index = self.times.index(time)
         coord_list = []
 
         m_ra, m_dec = p
-        new_ra = self.current_pointing(time).ra + m_ra * u.deg
-        new_dec = self.current_pointing(time).dec + m_dec * u.deg
+        new_ra = self.current_pointing(t).ra + m_ra * u.deg
+        new_dec = self.current_pointing(t).dec + m_dec * u.deg
 
         new_pointing = SkyCoord(ICRS(ra=new_ra, dec=new_dec))
 
         m_ra, m_dec = p
-        new_ra = self.current_pointing(time).ra + m_ra * u.deg
-        new_dec = self.current_pointing(time).dec + m_dec * u.deg
+        new_ra = self.current_pointing(t).ra + m_ra * u.deg
+        new_dec = self.current_pointing(t).dec + m_dec * u.deg
         new_pointing = SkyCoord(ICRS(ra=new_ra, dec=new_dec))
         for star in self.stars:
-            if self.visible[index][star.label]:  # if star was visible give the value
-                x, y = star.position_in_camera_frame(time, new_pointing)
-            else:  # otherwise set it to (0,0) and set a large error value
-                x, y = (0, 0)
+            x, y = star.position_in_camera_frame(time, new_pointing)
             if self.fit_grid == "polar":
                 x, y = cart2pol(x, y)
             coord_list.extend([x])
@@ -828,14 +809,10 @@ class Pointing_Fitter:
 
         return coord_list
 
-    def fit(self, data, errors, time_range, fit_mode="xy"):
+    def fit(self, fit_mode="xy"):
         """
         Performs the ODR fit of stars trajectories and saves the results as self.fit_results
 
-        :param array data: Reconstructed star positions, data.shape = (N(stars) * 2, len(time_range)), order: x_1, y_1...x_N, y_N
-        :param array errors: Uncertainties on the reconstructed star positions. Same shape and order as for the data
-        :param array time_range: Array of timestamps in UNIX_TAI format
-        :param array-like(SkyCoord) pointings: Array of telescope pointings in ICRS frame
         :param str fit_mode: Fit mode. Can be 'y', 'xy' (default), 'xyz' or 'radec'.
         """
         self.fit_mode = fit_mode
@@ -845,10 +822,10 @@ class Pointing_Fitter:
             init_mispointing = [0]
         elif self.fit_mode == "xyz":
             init_mispointing = [0, 0, 0]
-        if errors is not None:
-            rdata = RealData(x=self.times, y=data, sy=errors)
+        if self.errors is not None:
+            rdata = RealData(x=self.time, y=self.data, sy=self.errors)
         else:
-            rdata = RealData(x=self.times, y=data)
+            rdata = RealData(x=self.time, y=self.data)
         odr = ODR(rdata, self.star_motion_model, beta0=init_mispointing)
         self.fit_summary = odr.run()
         if self.fit_mode == "radec":
@@ -887,3 +864,4 @@ class Pointing_Fitter:
                     "eZ": [self.fit_summary.sd_beta[2]],
                 }
             )
+        return self.fit_results
