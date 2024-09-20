@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 import tables
 from astropy.coordinates import EarthLocation
-from astropy.table import QTable, Table, vstack
+from astropy.table import Column, QTable, Table, hstack, vstack
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
@@ -795,19 +795,35 @@ def irf_events_table():
     N = N1 + N2
     epp = EventPreProcessor()
     tab = epp.make_empty_table()
-    units = {c: tab[c].unit for c in tab.columns}
 
-    empty = np.zeros((len(tab.columns), N)) * np.nan
-    e_tab = QTable(data=empty.T, names=tab.colnames, units=units)
+    ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
+
+    id_tab = QTable(
+        data=np.zeros((N, len(ids)), dtype=np.uint64),
+        names=ids,
+        units={c: tab[c].unit for c in ids},
+    )
+    bulk_tab = QTable(
+        data=np.zeros((N, len(bulk))) * np.nan,
+        names=bulk,
+        units={c: tab[c].unit for c in bulk},
+    )
+
     # Setting values following pyirf test in pyirf/irf/tests/test_background.py
-    e_tab["reco_energy"] = np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
-    e_tab["true_energy"] = np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
-    e_tab["reco_source_fov_offset"] = (
+    bulk_tab["reco_energy"] = np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
+    bulk_tab["true_energy"] = np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
+    bulk_tab["reco_source_fov_offset"] = (
         np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
     )
-    e_tab["true_source_fov_offset"] = (
+    bulk_tab["true_source_fov_offset"] = (
         np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg
     )
+    for name in unitless:
+        bulk_tab.add_column(
+            Column(name=name, unit=tab[name].unit, data=np.zeros(N) * np.nan)
+        )
+
+    e_tab = hstack([id_tab, bulk_tab])
 
     ev = vstack([e_tab, tab], join_type="exact", metadata_conflicts="silent")
     return ev

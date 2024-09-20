@@ -157,7 +157,10 @@ class EventPreProcessor(QualityQuery):
                 unit=u.deg,
                 description="Reconstructed field of view lon",
             ),
+            Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
+            Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
             Column(
+                name="theta",
                 unit=u.deg,
                 description="Reconstructed angular offset from source position",
             ),
