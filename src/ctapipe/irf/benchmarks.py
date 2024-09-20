@@ -12,7 +12,7 @@ from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core.traits import Bool, Float
 from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
-from .spectra import SPECTRA, Spectra
+from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
 
 
 def _get_2d_result_table(
@@ -241,8 +241,11 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
         result["N_BACKGROUND_WEIGHTED"] = np.zeros(mat_shape)[np.newaxis, ...]
         result["SIGNIFICANCE"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
         result["RELATIVE_SENSITIVITY"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
-        result["FLUX_SENSITIVITY"] = u.Quantity(
-            np.full(mat_shape, np.nan)[np.newaxis, ...], 1 / (u.TeV * u.s * u.cm**2)
+        result["FLUX_SENS"] = u.Quantity(
+            np.full(mat_shape, np.nan)[np.newaxis, ...], FLUX_UNIT
+        )
+        result["ENERGY_FLUX_SENS"] = u.Quantity(
+            np.full(mat_shape, np.nan)[np.newaxis, ...], ENERGY_FLUX_UNIT
         )
         for i in range(len(self.fov_offset_bins) - 1):
             signal_hist = create_histogram_table(
@@ -265,9 +268,15 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
             result["N_BACKGROUND_WEIGHTED"][:, i, :] = sens["n_background_weighted"]
             result["SIGNIFICANCE"][:, i, :] = sens["significance"]
             result["RELATIVE_SENSITIVITY"][:, i, :] = sens["relative_sensitivity"]
-            result["FLUX_SENSITIVITY"][:, i, :] = sens[
-                "relative_sensitivity"
-            ] * source_spectrum(sens["reco_energy_center"])
+            result["FLUX_SENS"][:, i, :] = (
+                sens["relative_sensitivity"]
+                * source_spectrum(sens["reco_energy_center"])
+            ).to(FLUX_UNIT)
+            result["ENERGY_FLUX_SENS"][:, i, :] = (
+                sens["relative_sensitivity"]
+                * source_spectrum(sens["reco_energy_center"])
+                * sens["reco_energy_center"] ** 2
+            ).to(ENERGY_FLUX_UNIT)
 
         header = Header()
         header["ALPHA"] = self.alpha

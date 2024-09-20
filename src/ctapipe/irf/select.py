@@ -15,6 +15,7 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
+from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
 from ..core.traits import List, Tuple, Unicode
@@ -114,14 +115,38 @@ class EventPreProcessor(QualityQuery):
         in the event table.
         """
         columns = [
-            Column(name="obs_id", dtype=np.uint64, description="Observation Block ID"),
-            Column(name="event_id", dtype=np.uint64, description="Array Event ID"),
-            Column(name="true_energy", unit=u.TeV, description="Simulated Energy"),
-            Column(name="true_az", unit=u.deg, description="Simulated azimuth"),
-            Column(name="true_alt", unit=u.deg, description="Simulated altitude"),
-            Column(name="reco_energy", unit=u.TeV, description="Reconstructed energy"),
-            Column(name="reco_az", unit=u.deg, description="Reconstructed azimuth"),
-            Column(name="reco_alt", unit=u.deg, description="Reconstructed altitude"),
+            Column(name="obs_id", dtype=np.uint64, description="Observation block ID"),
+            Column(name="event_id", dtype=np.uint64, description="Array event ID"),
+            Column(
+                name="true_energy",
+                unit=u.TeV,
+                description="Simulated energy",
+            ),
+            Column(
+                name="true_az",
+                unit=u.deg,
+                description="Simulated azimuth",
+            ),
+            Column(
+                name="true_alt",
+                unit=u.deg,
+                description="Simulated altitude",
+            ),
+            Column(
+                name="reco_energy",
+                unit=u.TeV,
+                description="Reconstructed energy",
+            ),
+            Column(
+                name="reco_az",
+                unit=u.deg,
+                description="Reconstructed azimuth",
+            ),
+            Column(
+                name="reco_alt",
+                unit=u.deg,
+                description="Reconstructed altitude",
+            ),
             Column(
                 name="reco_fov_lat",
                 unit=u.deg,
@@ -133,17 +158,6 @@ class EventPreProcessor(QualityQuery):
                 description="Reconstructed field of view lon",
             ),
             Column(
-                name="gh_score",
-                description=(
-                    "prediction of the classifier, defined between [0,1],"
-                    " where values close to 1 mean that the positive class"
-                    " (e.g. gamma in gamma-ray analysis) is more likely"
-                ),
-            ),
-            Column(name="pointing_az", unit=u.deg, description="Pointing azimuth"),
-            Column(name="pointing_alt", unit=u.deg, description="Pointing altitude"),
-            Column(
-                name="theta",
                 unit=u.deg,
                 description="Reconstructed angular offset from source position",
             ),
@@ -157,7 +171,20 @@ class EventPreProcessor(QualityQuery):
                 unit=u.deg,
                 description="Reconstructed angular offset from pointing direction",
             ),
+            Column(
+                name="gh_score",
+                unit=u.dimensionless_unscaled,
+                description="prediction of the classifier, defined between [0,1],"
+                " where values close to 1 mean that the positive class"
+                " (e.g. gamma in gamma-ray analysis) is more likely",
+            ),
+            Column(
+                name="weight",
+                unit=u.dimensionless_unscaled,
+                description="Event weight",
+            ),
         ]
+
         return QTable(columns)
 
 
@@ -226,14 +253,19 @@ class EventLoader(Component):
 
     def make_derived_columns(self, events: QTable, obs_conf: Table) -> QTable:
         if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert all(obs_conf["subarray_pointing_frame"] == 0)
+            assert all(
+                obs_conf["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
+            )
             events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
             events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
         else:
             raise NotImplementedError(
                 "No support for making irfs from varying pointings yet"
             )
-
+        events["weight"] = (
+            1.0 * u.dimensionless_unscaled
+        )  # defer calculation of proper weights to later
+        events["gh_score"].unit = u.dimensionless_unscaled
         events["theta"] = calculate_theta(
             events,
             assumed_source_az=events["true_az"],
@@ -257,8 +289,8 @@ class EventLoader(Component):
         )
         nominal = NominalFrame(origin=pointing)
         reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = -reco_nominal.fov_lon  # minus for GADF
-        events["reco_fov_lat"] = reco_nominal.fov_lat
+        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
+        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
         return events
 
     def make_event_weights(
