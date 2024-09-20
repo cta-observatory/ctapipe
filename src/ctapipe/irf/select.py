@@ -280,13 +280,11 @@ class EventLoader(Component):
                     "for the integration of the simulated diffuse spectrum were given."
                 )
 
-            events["weight"] = 1.0
-
             for low, high in zip(fov_offset_bins[:-1], fov_offset_bins[1:]):
                 fov_mask = events["true_source_fov_offset"] >= low
                 fov_mask &= events["true_source_fov_offset"] < high
 
-                events[fov_mask]["weight"] = calculate_event_weights(
+                events["weight"][fov_mask] = calculate_event_weights(
                     events[fov_mask]["true_energy"],
                     target_spectrum=self.target_spectrum,
                     simulated_spectrum=spectrum.integrate_cone(low, high),
