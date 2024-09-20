@@ -99,7 +99,7 @@ class EnergyMigrationMakerBase(DefaultTrueEnergyBins):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.migration_bins = np.geomspace(
+        self.migration_bins = np.linspace(
             self.energy_migration_min,
             self.energy_migration_max,
             self.energy_migration_n_bins + 1,
