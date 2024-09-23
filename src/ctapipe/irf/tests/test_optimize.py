@@ -1,3 +1,5 @@
+import sys
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -86,6 +88,7 @@ def test_theta_percentile_cut_calculator():
     assert calc.smoothing is None
 
 
+@pytest.mark.skipif(sys.version_info.minor > 11, reason="Pyirf+numpy 2.0 errors out")
 @pytest.mark.parametrize("Optimizer", non_abstract_children(CutOptimizerBase))
 def test_cut_optimizer(
     Optimizer,
