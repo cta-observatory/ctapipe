@@ -21,7 +21,7 @@ from pyirf.irf import (
 )
 from pyirf.simulations import SimulatedEventsInfo
 
-from ..core.traits import AstroQuantity, Float, Integer
+from ..core.traits import AstroQuantity, Bool, Float, Integer
 from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 
 
@@ -83,23 +83,31 @@ class EnergyMigrationMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the energy migration."""
 
     energy_migration_min = Float(
-        help="Minimum value of Energy Migration matrix",
+        help="Minimum value of energy migration ratio",
         default_value=0.2,
     ).tag(config=True)
 
     energy_migration_max = Float(
-        help="Maximum value of Energy Migration matrix",
+        help="Maximum value of energy migration ratio",
         default_value=5,
     ).tag(config=True)
 
     energy_migration_n_bins = Integer(
-        help="Number of bins in log scale for Energy Migration matrix",
+        help="Number of bins in log scale for energy migration ratio",
         default_value=30,
+    ).tag(config=True)
+
+    energy_migration_linear_bins = Bool(
+        help="Bin energy migration ratio using linear bins",
+        default_value=False,
     ).tag(config=True)
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.migration_bins = np.linspace(
+        bin_func = np.geomspace
+        if self.energy_migration_linear_bins:
+            bin_func = np.linspace
+        self.migration_bins = bin_func(
             self.energy_migration_min,
             self.energy_migration_max,
             self.energy_migration_n_bins + 1,
