@@ -10,6 +10,7 @@ from ctapipe.core import Component, Container
 from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
+from ..compat import COPY_IF_NEEDED
 from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
@@ -186,8 +187,8 @@ class StereoMeanCombiner(StereoCombiner):
             valid = False
 
         event.dl2.stereo.energy[self.prefix] = ReconstructedEnergyContainer(
-            energy=u.Quantity(mean, u.TeV, copy=False),
-            energy_uncert=u.Quantity(std, u.TeV, copy=False),
+            energy=u.Quantity(mean, u.TeV, copy=COPY_IF_NEEDED),
+            energy_uncert=u.Quantity(std, u.TeV, copy=COPY_IF_NEEDED),
             telescopes=ids,
             is_valid=valid,
             prefix=self.prefix,
@@ -252,8 +253,8 @@ class StereoMeanCombiner(StereoCombiner):
             valid = True
         else:
             mean_altaz = AltAz(
-                alt=u.Quantity(np.nan, u.deg, copy=False),
-                az=u.Quantity(np.nan, u.deg, copy=False),
+                alt=u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED),
+                az=u.Quantity(np.nan, u.deg, copy=COPY_IF_NEEDED),
             )
             std = np.nan
             valid = False
@@ -261,7 +262,7 @@ class StereoMeanCombiner(StereoCombiner):
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=mean_altaz.alt,
             az=mean_altaz.az,
-            ang_distance_uncert=u.Quantity(np.rad2deg(std), u.deg, copy=False),
+            ang_distance_uncert=u.Quantity(np.rad2deg(std), u.deg, copy=COPY_IF_NEEDED),
             telescopes=ids,
             is_valid=valid,
             prefix=self.prefix,
@@ -358,11 +359,11 @@ class StereoMeanCombiner(StereoCombiner):
                 std = np.full(n_array_events, np.nan)
 
             stereo_table[f"{self.prefix}_energy"] = u.Quantity(
-                stereo_energy, u.TeV, copy=False
+                stereo_energy, u.TeV, copy=COPY_IF_NEEDED
             )
 
             stereo_table[f"{self.prefix}_energy_uncert"] = u.Quantity(
-                std, u.TeV, copy=False
+                std, u.TeV, copy=COPY_IF_NEEDED
             )
             stereo_table[f"{self.prefix}_is_valid"] = np.isfinite(stereo_energy)
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
@@ -397,8 +398,12 @@ class StereoMeanCombiner(StereoCombiner):
                 std = np.sqrt(-2 * np.log(r))
             else:
                 mean_altaz = AltAz(
-                    alt=u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False),
-                    az=u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False),
+                    alt=u.Quantity(
+                        np.full(n_array_events, np.nan), u.deg, copy=COPY_IF_NEEDED
+                    ),
+                    az=u.Quantity(
+                        np.full(n_array_events, np.nan), u.deg, copy=COPY_IF_NEEDED
+                    ),
                 )
                 std = np.full(n_array_events, np.nan)
 
@@ -406,7 +411,7 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.prefix}_az"] = mean_altaz.az.to(u.deg)
 
             stereo_table[f"{self.prefix}_ang_distance_uncert"] = u.Quantity(
-                np.rad2deg(std), u.deg, copy=False
+                np.rad2deg(std), u.deg, copy=COPY_IF_NEEDED
             )
 
             stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(

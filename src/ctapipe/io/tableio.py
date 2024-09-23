@@ -9,6 +9,8 @@ import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
 
+from ctapipe.compat import COPY_IF_NEEDED
+
 from ..core import Component
 from ..instrument import SubarrayDescription
 
@@ -316,7 +318,7 @@ class TimeColumnTransform(ColumnTransform):
         return getattr(getattr(value, self.scale), self.format)
 
     def inverse(self, value):
-        return Time(value, scale=self.scale, format=self.format, copy=False)
+        return Time(value, scale=self.scale, format=self.format, copy=COPY_IF_NEEDED)
 
     def get_meta(self, colname):
         return {
@@ -336,7 +338,7 @@ class QuantityColumnTransform(ColumnTransform):
         return value.to_value(self.unit)
 
     def inverse(self, value):
-        return Quantity(value, self.unit, copy=False)
+        return Quantity(value, self.unit, copy=COPY_IF_NEEDED)
 
     def get_meta(self, colname):
         return {
@@ -399,8 +401,8 @@ class FixedPointColumnTransform(ColumnTransform):
             self.maxval = iinfo.max - 1
 
     def __call__(self, value):
-        is_scalar = np.array(value, copy=False).shape == ()
-        value = np.atleast_1d(value).astype(self.source_dtype, copy=False)
+        is_scalar = np.array(value, copy=COPY_IF_NEEDED).shape == ()
+        value = np.atleast_1d(value).astype(self.source_dtype, copy=COPY_IF_NEEDED)
 
         scaled = np.round(value * self.scale) + self.offset
 
@@ -423,7 +425,7 @@ class FixedPointColumnTransform(ColumnTransform):
         return result
 
     def inverse(self, value):
-        is_scalar = np.array(value, copy=False).shape == ()
+        is_scalar = np.array(value, copy=COPY_IF_NEEDED).shape == ()
         value = np.atleast_1d(value)
 
         result = (value.astype(self.source_dtype) - self.offset) / self.scale
@@ -530,7 +532,7 @@ class StringTransform(ColumnTransform):
 
         # astropy table columns somehow try to handle byte columns as strings
         # when iterating, this does not work here, convert to np.array
-        value = np.array(value, copy=False)
+        value = np.array(value, copy=COPY_IF_NEEDED)
         return np.array([v.decode("utf-8") for v in value])
 
     def get_meta(self, colname):

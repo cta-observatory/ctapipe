@@ -16,6 +16,7 @@ from astropy.table import QTable, Table, join
 from astropy.utils import lazyproperty
 
 from .. import __version__ as CTAPIPE_VERSION
+from ..compat import COPY_IF_NEEDED
 from ..coordinates import CameraFrame, GroundFrame
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import FocalLengthKind, OpticsDescription
@@ -206,7 +207,7 @@ class SubarrayDescription:
         np.array:
             array of corresponding tel indices
         """
-        tel_ids = np.array(tel_ids, dtype=int, copy=False).ravel()
+        tel_ids = np.array(tel_ids, dtype=int, copy=COPY_IF_NEEDED).ravel()
         return self.tel_index_array[tel_ids]
 
     def tel_ids_to_mask(self, tel_ids):
@@ -710,7 +711,7 @@ class SubarrayDescription:
 
         optic_descriptions = [
             OpticsDescription(
-                name=row["optics_name"],
+                name=str(row["optics_name"]),
                 size_type=row["size_type"],
                 reflector_shape=row["reflector_shape"],
                 n_mirrors=row["n_mirrors"],
@@ -745,7 +746,7 @@ class SubarrayDescription:
 
             camera.geometry.frame = CameraFrame(focal_length=focal_length)
             telescope_descriptions[row["tel_id"]] = TelescopeDescription(
-                name=row["name"], optics=optics, camera=camera
+                name=str(row["name"]), optics=optics, camera=camera
             )
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
@@ -761,7 +762,7 @@ class SubarrayDescription:
             )
 
         return cls(
-            name=name,
+            name=str(name),
             tel_positions={
                 tel_id: pos for tel_id, pos in zip(layout["tel_id"], positions)
             },

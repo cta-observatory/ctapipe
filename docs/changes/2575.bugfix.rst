@@ -1,1 +1,0 @@
-Fix a redundant error message in ``Tool`` caused by normal ``SystemExit(0)``

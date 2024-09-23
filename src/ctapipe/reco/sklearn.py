@@ -4,6 +4,7 @@ Component Wrappers around sklearn models
 import pathlib
 from abc import abstractmethod
 from collections import defaultdict
+from copy import deepcopy
 
 import astropy.units as u
 import joblib
@@ -56,6 +57,12 @@ __all__ = [
 SUPPORTED_CLASSIFIERS = dict(all_estimators("classifier"))
 SUPPORTED_REGRESSORS = dict(all_estimators("regressor"))
 SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
+
+_invalid_geometry = ReconstructedGeometryContainer(
+    alt=u.Quantity(np.nan, unit=u.deg),
+    az=u.Quantity(np.nan, unit=u.deg),
+    is_valid=False,
+)
 
 
 class MLQualityQuery(QualityQuery):
@@ -758,20 +765,12 @@ class DispReconstructor(Reconstructor):
                     disp_container = DispContainer(
                         parameter=u.Quantity(np.nan, self.unit),
                     )
-                    altaz_container = ReconstructedGeometryContainer(
-                        alt=u.Quantity(np.nan, u.deg, copy=False),
-                        az=u.Quantity(np.nan, u.deg, copy=False),
-                        is_valid=False,
-                    )
+                    altaz_container = deepcopy(_invalid_geometry)
             else:
                 disp_container = DispContainer(
                     parameter=u.Quantity(np.nan, self.unit),
                 )
-                altaz_container = ReconstructedGeometryContainer(
-                    alt=u.Quantity(np.nan, u.deg, copy=False),
-                    az=u.Quantity(np.nan, u.deg, copy=False),
-                    is_valid=False,
-                )
+                altaz_container = deepcopy(_invalid_geometry)
 
             disp_container.prefix = f"{self.prefix}_tel"
             altaz_container.prefix = f"{self.prefix}_tel"

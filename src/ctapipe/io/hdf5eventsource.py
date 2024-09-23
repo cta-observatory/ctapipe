@@ -7,9 +7,7 @@ import tables
 from astropy.table import QTable
 from astropy.utils.decorators import lazyproperty
 
-from ctapipe.atmosphere import AtmosphereDensityProfile
-from ctapipe.instrument.optics import FocalLengthKind
-
+from ..atmosphere import AtmosphereDensityProfile
 from ..containers import (
     ArrayEventContainer,
     CameraHillasParametersContainer,
@@ -48,11 +46,12 @@ from ..containers import (
 from ..core import Container, Field
 from ..core.traits import UseEnum
 from ..instrument import SubarrayDescription
+from ..instrument.optics import FocalLengthKind
+from ..monitoring.interpolation import PointingInterpolator
 from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
-from .pointing import PointingInterpolator
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
 __all__ = ["HDF5EventSource"]

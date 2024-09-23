@@ -1,1 +1,0 @@
-Add outlier detection components to identify faulty pixels.
