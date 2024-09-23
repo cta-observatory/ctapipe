@@ -241,10 +241,10 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
         result["N_BACKGROUND_WEIGHTED"] = np.zeros(mat_shape)[np.newaxis, ...]
         result["SIGNIFICANCE"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
         result["RELATIVE_SENSITIVITY"] = np.full(mat_shape, np.nan)[np.newaxis, ...]
-        result["FLUX_SENS"] = u.Quantity(
+        result["FLUX_SENSITIVITY"] = u.Quantity(
             np.full(mat_shape, np.nan)[np.newaxis, ...], FLUX_UNIT
         )
-        result["ENERGY_FLUX_SENS"] = u.Quantity(
+        result["ENERGY_FLUX_SENSITIVITY"] = u.Quantity(
             np.full(mat_shape, np.nan)[np.newaxis, ...], ENERGY_FLUX_UNIT
         )
         for i in range(len(self.fov_offset_bins) - 1):
@@ -268,11 +268,11 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
             result["N_BACKGROUND_WEIGHTED"][:, i, :] = sens["n_background_weighted"]
             result["SIGNIFICANCE"][:, i, :] = sens["significance"]
             result["RELATIVE_SENSITIVITY"][:, i, :] = sens["relative_sensitivity"]
-            result["FLUX_SENS"][:, i, :] = (
+            result["FLUX_SENSITIVITY"][:, i, :] = (
                 sens["relative_sensitivity"]
                 * source_spectrum(sens["reco_energy_center"])
             ).to(FLUX_UNIT)
-            result["ENERGY_FLUX_SENS"][:, i, :] = (
+            result["ENERGY_FLUX_SENSITIVITY"][:, i, :] = (
                 sens["relative_sensitivity"]
                 * source_spectrum(sens["reco_energy_center"])
                 * sens["reco_energy_center"] ** 2
