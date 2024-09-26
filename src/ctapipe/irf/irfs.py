@@ -79,8 +79,8 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
         """
 
 
-class EnergyMigrationMakerBase(DefaultTrueEnergyBins):
-    """Base class for calculating the energy migration."""
+class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
+    """Base class for calculating the energy dispersion."""
 
     energy_migration_min = Float(
         help="Minimum value of energy migration ratio",
@@ -221,9 +221,9 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
         )
 
 
-class EnergyMigration2dMaker(EnergyMigrationMakerBase, DefaultFoVOffsetBins):
+class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
     """
-    Creates a radially symmetric parameterization of the energy migration in
+    Creates a radially symmetric parameterization of the energy dispersion in
     equidistant bins of logarithmic true energy and field of view offset.
     """
 

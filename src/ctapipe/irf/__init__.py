@@ -13,7 +13,7 @@ from .binning import (
 from .irfs import (
     BackgroundRate2dMaker,
     EffectiveArea2dMaker,
-    EnergyMigration2dMaker,
+    EnergyDispersion2dMaker,
     Psf3dMaker,
 )
 from .optimize import (
@@ -33,7 +33,7 @@ __all__ = [
     "Sensitivity2dMaker",
     "Psf3dMaker",
     "BackgroundRate2dMaker",
-    "EnergyMigration2dMaker",
+    "EnergyDispersion2dMaker",
     "EffectiveArea2dMaker",
     "ResultValidRange",
     "OptimizationResult",

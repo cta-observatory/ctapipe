@@ -39,9 +39,9 @@ def test_make_2d_bkg(irf_events_table):
 
 
 def test_make_2d_energy_migration(irf_events_table):
-    from ctapipe.irf import EnergyMigration2dMaker
+    from ctapipe.irf import EnergyDispersion2dMaker
 
-    migMkr = EnergyMigration2dMaker(
+    migMkr = EnergyDispersion2dMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         true_energy_n_bins_per_decade=7,

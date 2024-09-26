@@ -27,7 +27,7 @@ from ..irf.benchmarks import (
 from ..irf.irfs import (
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
-    EnergyMigrationMakerBase,
+    EnergyDispersionMakerBase,
     PsfMakerBase,
 )
 
@@ -114,9 +114,9 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     edisp_maker = traits.ComponentName(
-        EnergyMigrationMakerBase,
-        default_value="EnergyMigration2dMaker",
-        help="The parameterization of the energy migration to be used.",
+        EnergyDispersionMakerBase,
+        default_value="EnergyDispersion2dMaker",
+        help="The parameterization of the energy dispersion to be used.",
     ).tag(config=True)
 
     aeff_maker = traits.ComponentName(
@@ -202,7 +202,7 @@ class IrfTool(Tool):
         ]
         + classes_with_traits(BackgroundRateMakerBase)
         + classes_with_traits(EffectiveAreaMakerBase)
-        + classes_with_traits(EnergyMigrationMakerBase)
+        + classes_with_traits(EnergyDispersionMakerBase)
         + classes_with_traits(PsfMakerBase)
         + classes_with_traits(AngularResolutionMakerBase)
         + classes_with_traits(EnergyBiasResolutionMakerBase)
@@ -259,7 +259,7 @@ class IrfTool(Tool):
                 bins=self.bkg.reco_energy_bins, source="background reco energy"
             )
 
-        self.edisp = EnergyMigrationMakerBase.from_name(self.edisp_maker, parent=self)
+        self.edisp = EnergyDispersionMakerBase.from_name(self.edisp_maker, parent=self)
         self.aeff = EffectiveAreaMakerBase.from_name(self.aeff_maker, parent=self)
 
         if self.full_enclosure:
