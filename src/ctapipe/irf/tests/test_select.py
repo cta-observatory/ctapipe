@@ -48,14 +48,14 @@ def test_normalise_column_names(dummy_table):
     for c in needed_cols:
         assert c in norm_table.colnames
 
-    # error if reco_{alt,az} is missing because of no-standard name
+    # error if reco_{alt,az} is missing because of non-standard name
     with pytest.raises(ValueError, match="No column corresponding"):
         epp = EventPreProcessor(
             energy_reconstructor="dummy",
             geometry_reconstructor="geom",
             gammaness_classifier="classifier",
         )
-        norm_table = epp.normalise_column_names(dummy_table)
+        _ = epp.normalise_column_names(dummy_table)
 
 
 def test_events_loader(gamma_diffuse_full_reco_file, irf_events_loader_test_config):

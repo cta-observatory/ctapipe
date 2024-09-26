@@ -9,6 +9,7 @@ def test_check_bins_in_range(tmp_path):
     from ctapipe.irf import ResultValidRange, check_bins_in_range
 
     valid_range = ResultValidRange(min=0.03 * u.TeV, max=200 * u.TeV)
+    errormessage = "Valid range for result is 0.03 to 200., got"
 
     # bins are in range
     bins = u.Quantity(np.logspace(-1, 2, 10), u.TeV)
@@ -16,17 +17,17 @@ def test_check_bins_in_range(tmp_path):
 
     # bins are too small
     bins = u.Quantity(np.logspace(-2, 2, 10), u.TeV)
-    with pytest.raises(ValueError, match="Valid range for"):
+    with pytest.raises(ValueError, match=errormessage):
         check_bins_in_range(bins, valid_range)
 
     # bins are too big
     bins = u.Quantity(np.logspace(-1, 3, 10), u.TeV)
-    with pytest.raises(ValueError, match="Valid range for"):
+    with pytest.raises(ValueError, match=errormessage):
         check_bins_in_range(bins, valid_range)
 
     # bins are too big and too small
     bins = u.Quantity(np.logspace(-2, 3, 10), u.TeV)
-    with pytest.raises(ValueError, match="Valid range for"):
+    with pytest.raises(ValueError, match=errormessage):
         check_bins_in_range(bins, valid_range)
 
     logger = logging.getLogger("ctapipe.irf.binning")

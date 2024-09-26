@@ -10,14 +10,14 @@ from ctapipe.irf.tests.test_irfs import _check_boundaries_in_hdu
 def test_make_2d_energy_bias_res(irf_events_table):
     from ctapipe.irf import EnergyBiasResolution2dMaker
 
-    biasResMkr = EnergyBiasResolution2dMaker(
+    bias_res_maker = EnergyBiasResolution2dMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         true_energy_n_bins_per_decade=7,
         true_energy_max=155 * u.TeV,
     )
 
-    bias_res_hdu = biasResMkr.make_bias_resolution_hdu(events=irf_events_table)
+    bias_res_hdu = bias_res_maker.make_bias_resolution_hdu(events=irf_events_table)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert (
         bias_res_hdu.data["N_EVENTS"].shape
@@ -35,7 +35,7 @@ def test_make_2d_energy_bias_res(irf_events_table):
 def test_make_2d_ang_res(irf_events_table):
     from ctapipe.irf import AngularResolution2dMaker
 
-    angResMkr = AngularResolution2dMaker(
+    ang_res_maker = AngularResolution2dMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         true_energy_n_bins_per_decade=7,
@@ -44,7 +44,7 @@ def test_make_2d_ang_res(irf_events_table):
         reco_energy_min=0.03 * u.TeV,
     )
 
-    ang_res_hdu = angResMkr.make_angular_resolution_hdu(events=irf_events_table)
+    ang_res_hdu = ang_res_maker.make_angular_resolution_hdu(events=irf_events_table)
     assert (
         ang_res_hdu.data["N_EVENTS"].shape
         == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
@@ -56,8 +56,8 @@ def test_make_2d_ang_res(irf_events_table):
         hi_vals=[3 * u.deg, 150 * u.TeV],
     )
 
-    angResMkr.use_true_energy = True
-    ang_res_hdu = angResMkr.make_angular_resolution_hdu(events=irf_events_table)
+    ang_res_maker.use_true_energy = True
+    ang_res_hdu = ang_res_maker.make_angular_resolution_hdu(events=irf_events_table)
     assert (
         ang_res_hdu.data["N_EVENTS"].shape
         == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
@@ -97,7 +97,7 @@ def test_make_2d_sensitivity(
         obs_time=u.Quantity(50, u.h),
     )
 
-    sensMkr = Sensitivity2dMaker(
+    sens_maker = Sensitivity2dMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         reco_energy_n_bins_per_decade=7,
@@ -107,11 +107,11 @@ def test_make_2d_sensitivity(
     # needs a theta cut atm.
     theta_cuts = QTable()
     theta_cuts["center"] = 0.5 * (
-        sensMkr.reco_energy_bins[:-1] + sensMkr.reco_energy_bins[1:]
+        sens_maker.reco_energy_bins[:-1] + sens_maker.reco_energy_bins[1:]
     )
-    theta_cuts["cut"] = sensMkr.fov_offset_max
+    theta_cuts["cut"] = sens_maker.fov_offset_max
 
-    sens_hdu = sensMkr.make_sensitivity_hdu(
+    sens_hdu = sens_maker.make_sensitivity_hdu(
         signal_events=gamma_events,
         background_events=proton_events,
         theta_cut=theta_cuts,
