@@ -38,25 +38,22 @@ class IrfTool(Tool):
 
     do_background = Bool(
         True,
-        help="Compute background rate using supplied files",
-    ).tag(config=True)
-
-    do_benchmarks = Bool(
-        False,
-        help="Produce IRF related benchmarks",
+        help="Compute background rate using supplied files.",
     ).tag(config=True)
 
     range_check_error = Bool(
         False,
-        help="Raise error if asking for IRFs outside range where cut optimisation is valid",
+        help="Raise error if asking for IRFs outside range where cut optimisation is valid.",
     ).tag(config=True)
 
     cuts_file = traits.Path(
-        default_value=None, directory_ok=False, help="Path to optimized cuts input file"
+        default_value=None,
+        directory_ok=False,
+        help="Path to optimized cuts input file.",
     ).tag(config=True)
 
     gamma_file = traits.Path(
-        default_value=None, directory_ok=False, help="Gamma input filename and path"
+        default_value=None, directory_ok=False, help="Gamma input filename and path."
     ).tag(config=True)
 
     gamma_target_spectrum = traits.UseEnum(
@@ -69,7 +66,7 @@ class IrfTool(Tool):
         default_value=None,
         allow_none=True,
         directory_ok=False,
-        help="Proton input filename and path",
+        help="Proton input filename and path.",
     ).tag(config=True)
 
     proton_target_spectrum = traits.UseEnum(
@@ -82,7 +79,7 @@ class IrfTool(Tool):
         default_value=None,
         allow_none=True,
         directory_ok=False,
-        help="Electron input filename and path",
+        help="Electron input filename and path.",
     ).tag(config=True)
 
     electron_target_spectrum = traits.UseEnum(
@@ -102,6 +99,13 @@ class IrfTool(Tool):
         allow_none=False,
         directory_ok=False,
         help="Output file",
+    ).tag(config=True)
+
+    benchmarks_output_path = traits.Path(
+        default_value=None,
+        allow_none=True,
+        directory_ok=False,
+        help="Optional second output file for benchmarks.",
     ).tag(config=True)
 
     obs_time = AstroQuantity(
@@ -172,6 +176,7 @@ class IrfTool(Tool):
         "proton-file": "IrfTool.proton_file",
         "electron-file": "IrfTool.electron_file",
         "output": "IrfTool.output_path",
+        "benchmark-output": "IrfTool.benchmarks_output_path",
         "chunk_size": "IrfTool.chunk_size",
     }
 
@@ -181,12 +186,6 @@ class IrfTool(Tool):
             "IrfTool.do_background",
             "Compute background rate.",
             "Do not compute background rate.",
-        ),
-        **flag(
-            "do-benchmarks",
-            "IrfTool.do_benchmarks",
-            "Produce IRF related benchmarks.",
-            "Do not produce IRF related benchmarks.",
         ),
         **flag(
             "full-enclosure",
@@ -265,10 +264,7 @@ class IrfTool(Tool):
         if self.full_enclosure:
             self.psf = PsfMakerBase.from_name(self.psf_maker, parent=self)
 
-        if self.do_benchmarks:
-            self.b_output = self.output_path.with_name(
-                self.output_path.name.replace(".fits", "-benchmark.fits")
-            )
+        if self.benchmarks_output_path is not None:
             self.angular_resolution = AngularResolutionMakerBase.from_name(
                 self.angular_resolution_maker, parent=self
             )
@@ -277,6 +273,7 @@ class IrfTool(Tool):
                     bins=self.angular_resolution.reco_energy_bins,
                     source="Angular resolution energy",
                 )
+
             self.bias_resolution = EnergyBiasResolutionMakerBase.from_name(
                 self.energy_bias_resolution_maker, parent=self
             )
@@ -471,8 +468,9 @@ class IrfTool(Tool):
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:
-                # Sensitivity is only calculated, if do_background and do_benchmarks is true.
-                if self.do_benchmarks:
+                # Sensitivity is only calculated, if do_background is true
+                # and benchmarks_output_path is given.
+                if self.benchmarks_output_path is not None:
                     evs = sel.make_event_weights(
                         evs, meta["spectrum"], self.sensitivity.fov_offset_bins
                     )
@@ -506,7 +504,7 @@ class IrfTool(Tool):
             if self.do_background and self.bkg.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
-            if self.do_benchmarks and (
+            if self.benchmarks_output_path is not None and (
                 self.angular_resolution.fov_offset_n_bins > 1
                 or self.bias_resolution.fov_offset_n_bins > 1
                 or self.sensitivity.fov_offset_n_bins > 1
@@ -561,7 +559,7 @@ class IrfTool(Tool):
                 )
         self.hdus = hdus
 
-        if self.do_benchmarks:
+        if self.benchmarks_output_path is not None:
             b_hdus = [fits.PrimaryHDU()]
             b_hdus = self._make_benchmark_hdus(b_hdus)
             self.b_hdus = b_hdus
@@ -573,13 +571,15 @@ class IrfTool(Tool):
             overwrite=self.overwrite,
         )
         Provenance().add_output_file(self.output_path, role="IRF")
-        if self.do_benchmarks:
-            self.log.info("Writing benchmark file to '%s'" % self.b_output)
+        if self.benchmarks_output_path is not None:
+            self.log.info(
+                "Writing benchmark file to '%s'" % self.benchmarks_output_path
+            )
             fits.HDUList(self.b_hdus).writeto(
-                self.b_output,
+                self.benchmarks_output_path,
                 overwrite=self.overwrite,
             )
-            Provenance().add_output_file(self.b_output, role="Benchmark")
+            Provenance().add_output_file(self.benchmarks_output_path, role="Benchmark")
 
 
 def main():
