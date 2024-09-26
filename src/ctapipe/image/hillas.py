@@ -87,6 +87,7 @@ def hillas_parameters(geom, image):
     unit = geom.pix_x.unit
     pix_x = geom.pix_x.to_value(unit)
     pix_y = geom.pix_y.to_value(unit)
+    pix_area = geom.pix_area.to_value(unit**2)
     image = np.asanyarray(image, dtype=np.float64)
 
     if isinstance(image, np.ma.masked_array):
@@ -131,7 +132,7 @@ def hillas_parameters(geom, image):
     # avoid divide by 0 warnings
     # psi will be consistently defined in the range (-pi/2, pi/2)
     if length == 0:
-        psi = skewness_long = kurtosis_long = np.nan
+        psi = psi_uncert = skewness_long = kurtosis_long = np.nan
     else:
         if vx != 0:
             psi = np.arctan(vy / vx)
@@ -139,13 +140,23 @@ def hillas_parameters(geom, image):
             psi = np.pi / 2
 
         # calculate higher order moments along shower axes
-        longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
+        cos_psi = np.cos(psi)
+        sin_psi = np.sin(psi)
+        longi = delta_x * cos_psi + delta_y * sin_psi
+        trans = delta_x * -sin_psi + delta_y * cos_psi
 
-        m3_long = np.average(longitudinal**3, weights=image)
+        m3_long = np.average(longi**3, weights=image)
         skewness_long = m3_long / length**3
 
-        m4_long = np.average(longitudinal**4, weights=image)
+        m4_long = np.average(longi**4, weights=image)
         kurtosis_long = m4_long / length**4
+
+        # lsq solution to determine uncertainty on phi
+        W = np.diag(image / pix_area)
+        X = np.column_stack([longi, np.ones_like(longi)])
+        cov = np.linalg.inv(X.T @ W @ X)
+        p = cov @ X.T @ W @ trans
+        psi_uncert = np.sqrt(cov[0, 0] / np.cos(p[0]) ** 2)
 
     # Compute of the Hillas parameters uncertainties.
     # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
@@ -204,6 +215,7 @@ def hillas_parameters(geom, image):
         width=u.Quantity(width, unit),
         width_uncertainty=u.Quantity(width_uncertainty, unit),
         psi=Angle(psi, unit=u.rad),
+        psi_uncertainty=Angle(psi_uncert, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
