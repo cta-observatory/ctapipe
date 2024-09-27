@@ -310,7 +310,7 @@ class SubarrayDescription:
 
             tab = Table(
                 dict(
-                    tel_id=np.array(ids, dtype=np.short),
+                    tel_id=np.array(ids, dtype=np.uint16),
                     name=tel_names,
                     type=tel_types,
                     pos_x=tel_coords.x,
