@@ -443,6 +443,7 @@ class PointingCalculator(TelescopeComponent):
             lat=self.telescope_location["latitude"] * u.deg,
             height=self.telescope_location["elevation"] * u.m,
         )
+
         self.stats_aggregator = StatisticsExtractor.from_name(
             self.stats_extractor, subarray=self.subarray, parent=self
         )
