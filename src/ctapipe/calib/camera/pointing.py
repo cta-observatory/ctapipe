@@ -10,10 +10,9 @@ import astropy.units as u
 import numpy as np
 import pandas as pd
 import Vizier  # discuss this dependency with max etc.
-from astropy.coordinates import ICRS, AltAz, Angle, EarthLocation, SkyCoord
+from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from astropy.table import QTable
-from astropy.time import Time
-from scipy.odr import ODR, Model, RealData
+from scipy.odr import ODR, RealData
 
 from ctapipe.calib.camera.extractor import StatisticsExtractor
 from ctapipe.containers import StarContainer
@@ -28,11 +27,10 @@ from ctapipe.core.traits import (
 )
 from ctapipe.image import tailcuts_clean
 from ctapipe.image.psf_model import PSFModel
-from ctapipe.io import EventSource, FlatFieldInterpolator, TableLoader
+from ctapipe.instrument import CameraGeometry
+from ctapipe.io import FlatFieldInterpolator, PointingInterpolator
 
-__all__ = [
-    "PointingCalculator",
-]
+__all__ = ["PointingCalculator", "StarImageGenerator"]
 
 
 @cache
@@ -58,6 +56,19 @@ def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channe
                 broken_pixels |= mask
 
     return broken_pixels
+
+
+def get_index_step(val, lookup):
+    index = 0
+
+    for i, x in enumerate(lookup):
+        if val <= x:
+            index = i
+
+    if val > lookup[-1]:
+        index = len(lookup) - 1
+
+    return index
 
 
 def cart2pol(x, y):
@@ -88,85 +99,258 @@ def pol2cart(rho, phi):
     return (x, y)
 
 
-class StarTracker:
+def get_star_pdf(r0, f0, geometry, psf, n_pdf_bins, pdf_bin_size, focal_length):
+    image = np.zeros(len(geometry))
+
+    psf.update_model_parameters(r0, f0)
+
+    dr = pdf_bin_size * np.rad2deg(np.arctan(1 / focal_length)) / 3600.0
+    r = np.linspace(
+        r0 - dr * n_pdf_bins / 2.0,
+        r0 + dr * n_pdf_bins / 2.0,
+        n_pdf_bins,
+    )
+    df = np.deg2rad(pdf_bin_size / 3600.0) * 100
+    f = np.linspace(
+        f0 - df * n_pdf_bins / 2.0,
+        f0 + df * n_pdf_bins / 2.0,
+        n_pdf_bins,
+    )
+
+    for r_ in r:
+        for f_ in f:
+            val = psf.pdf(r_, f_) * dr * df
+            x, y = pol2cart(r_, f_)
+            pixelN = geometry.position_to_pix_index(x * u.m, y * u.m)
+            if pixelN != -1:
+                image[pixelN] += val
+
+    return image
+
+
+def StarImageGenerator(
+    self,
+    radius,
+    phi,
+    magnitude,
+    n_pdf_bins,
+    pdf_bin_size,
+    psf_model_name,
+    psf_model_pars,
+    camera_name,
+    focal_length,
+):
     """
-    Utility class to provide the position of the star in the telescope's camera frame coordinates at a given time
+    :param list stars: list of star containers, stars to be placed in image
+    :param dict psf_model_pars: psf model parameters
+    """
+    camera_geometry = CameraGeometry.from_name(camera_name)
+    psf = PSFModel.from_name(self.psf_model_type, subarray=self.subarray, parent=self)
+    psf.update_model_parameters(psf_model_pars)
+    image = np.zeros(len(camera_geometry))
+    for r, p, m in zip(radius, phi, magnitude):
+        image += m * get_star_pdf(
+            r, p, camera_geometry, psf, n_pdf_bins, pdf_bin_size, focal_length
+        )
+
+    return image
+
+
+class StarTracer:
+    """
+    Utility class to trace a set of stars over a period of time and generate their locations in the camera
     """
 
     def __init__(
         self,
-        star_label,
-        star_coordinates,
-        telescope_location,
-        telescope_focal_length,
-        telescope_pointing,
+        stars,
+        magnitude,
+        az,
+        alt,
+        time,
+        meteo_parameters,
         observed_wavelength,
-        relative_humidity,
-        temperature,
-        pressure,
-        pointing_label=None,
+        camera_geometry,
+        focal_length,
+        location,
     ):
         """
-        Constructor
-
-        :param str star_label: Star label
-        :param SkyCoord star_coordinates: Star coordinates in ICRS frame
-        :param EarthLocation telescope_location: Telescope location coordinates
-        :param Quantity[u.m] telescope_focal_length: Telescope focal length [m]
-        :param SkyCoord telescope_pointing: Telescope pointing in ICRS frame
-        :param Quantity[u.micron] observed_wavelength: Telescope focal length [micron]
-        :param float relative_humidity: Relative humidity
-        :param Quantity[u.deg_C] temperature: Temperature [C]
-        :param Quantity[u.deg_C] temperature: Temperature [C]
-        :param Quantity[u.hPa] pressure: Pressure [hPa]
-        :param str pointing_label: Pointing label
+        param dict stars: dict of Astropy.SkyCoord objects, keys are the nomad labels
+        param dict magnitude:
+        param list time: list of Astropy.time objects corresponding to the altitude and azimuth values
         """
-        self.star_label = star_label
-        self.star_coordinates_icrs = star_coordinates
-        self.telescope_location = telescope_location
-        self.telescope_focal_length = telescope_focal_length
-        self.telescope_pointing = telescope_pointing
-        self.obswl = observed_wavelength
-        self.relative_humidity = relative_humidity
-        self.temperature = temperature
-        self.pressure = pressure
-        self.pointing_label = pointing_label
 
-    def position_in_camera_frame(self, timestamp, pointing=None, focal_correction=0):
+        self.stars = stars
+        self.magnitude = magnitude
+
+        self.pointing = PointingInterpolator()
+        pointing = QTable([az, alt, time], names=["azimuth", "altitude", "time"])
+        self.pointing.add_table(0, pointing)
+
+        self.meteo_parameters = meteo_parameters
+        self.observed_wavelength = observed_wavelength
+        self.camera_geometry = camera_geometry
+        self.focal_length = focal_length * u.m
+        self.location = location
+
+    @classmethod
+    def from_lookup(
+        cls,
+        max_star_magnitude,
+        az,
+        alt,
+        time,
+        meteo_params,
+        observed_wavelength,
+        camera_geometry,
+        focal_length,
+        location,
+    ):
         """
-        Calculates star position in the engineering camera frame
-
-        :param astropy.Time timestamp: Timestamp of the observation
-        :param SkyCoord pointing: Current telescope pointing in ICRS frame
-        :param float focal_correction: Correction to the focal length of the telescope. Float, should be provided in meters
-
-        :return: Pair (float, float) of star's (x,y) coordinates in the engineering camera frame in meters
+        classmethod to use vizier lookup to generate a class instance
         """
-        # If no telescope pointing is provided, use the telescope pointing, provided
-        # during the class member initialization
-        if pointing is None:
-            pointing = self.telescope_pointing
-        # Determine current telescope pointing in AltAz
-        altaz_pointing = pointing.transform_to(
-            AltAz(
-                obstime=timestamp,
-                location=self.telescope_location,
-                obswl=self.obswl,
-                relative_humidity=self.relative_humidity,
-                temperature=self.temperature,
-                pressure=self.pressure,
-            )
+        _pointing = SkyCoord(
+            az=az[0],
+            alt=alt[0],
+            frame="altaz",
+            obstime=time[0],
+            location=location,
+            obswl=observed_wavelength * u.micron,
+            relative_humidity=meteo_params["relative_humidity"],
+            temperature=meteo_params["temperature"] * u.deg_C,
+            pressure=meteo_params["pressure"] * u.hPa,
         )
-        # Create current camera frame
+        stars_in_fov = Vizier.query_region(
+            _pointing, radius=Angle(2.0, "deg"), catalog="NOMAD"
+        )[0]  # get all stars that could be in the fov
+
+        stars_in_fov = stars_in_fov[stars_in_fov["Bmag"] < max_star_magnitude]
+
+        stars = {}
+        magnitude = {}
+        for star in stars_in_fov:
+            star_coords = {
+                star["NOMAD1"]: SkyCoord(
+                    star["RAJ2000"], star["DEJ2000"], unit="deg", frame="icrs"
+                )
+            }
+            stars.update(star_coords)
+            magnitude.update({star["NOMAD1"]: star["Bmag"]})
+
+        return cls(
+            stars,
+            magnitude,
+            az,
+            alt,
+            time,
+            meteo_params,
+            observed_wavelength,
+            camera_geometry,
+            focal_length,
+            location,
+        )
+
+    def get_star_labels(self):
+        """
+        Return a list of all stars that are being traced
+        """
+
+        return list(self.stars.keys())
+
+    def get_magnitude(self, star):
+        """
+        Return the magnitude of star
+
+        parameter str star: NOMAD1 label of the star
+        """
+
+        return self.magnitude[star]
+
+    def get_pointing(self, t, offset=(0.0, 0.0)):
+        alt, az = self.pointing(t)
+        alt += offset[0] * u.rad
+        az += offset[1] * u.rad
+
+        coords = SkyCoord(
+            az=az,
+            alt=alt,
+            frame="altaz",
+            obstime=t,
+            location=self.location,
+            obswl=self.observed_wavelength * u.micron,
+            relative_humidity=self.meteo_parameters["relative_humidity"],
+            temperature=self.meteo_parameters["temperature"] * u.deg_C,
+            pressure=self.meteo_parameters["pressure"] * u.hPa,
+        )
+
+        return coords
+
+    def get_camera_frame(self, t, offset=(0.0, 0.0), focal_correction=0.0):
+        altaz_pointing = self.get_pointing(t, offset=offset)
+
         camera_frame = EngineeringCameraFrame(
             telescope_pointing=altaz_pointing,
-            focal_length=self.telescope_focal_length + focal_correction * u.m,
-            obstime=timestamp,
-            location=self.telescope_location,
+            focal_length=self.focal_length + focal_correction * u.m,
+            obstime=t,
+            location=self.location,
         )
-        # Calculate the star's coordinates in the current camera frame
-        star_coords_camera = self.star_coordinates_icrs.transform_to(camera_frame)
-        return (star_coords_camera.x.to_value(), star_coords_camera.y.to_value())
+
+        return camera_frame
+
+    def get_current_geometry(self, t, offset=(0.0, 0.0), focal_correction=0.0):
+        camera_frame = self.get_camera_frame(
+            t, offset=offset, focal_correction=focal_correction
+        )
+
+        current_geometry = self.camera_geometry.transform_to(camera_frame)
+
+        return current_geometry
+
+    def get_position_in_camera(self, t, star, offset=(0.0, 0.0), focal_correction=0.0):
+        camera_frame = self.get_camera_frame(
+            t, offset=offset, focal_correction=focal_correction
+        )
+        # Calculate the stars coordinates in the current camera frame
+        coords = self.stars[star].transform_to(camera_frame)
+        return (coords.x.to_value(), coords.y.to_value())
+
+    def get_position_in_pixel(self, t, star, focal_correction=0.0):
+        x, y = self.get_position_in_camera(t, star, focal_correction=focal_correction)
+        current_geometry = self.get_current_geometry(t)
+
+        return current_geometry.position_to_pix_index(x, y)
+
+    def get_expected_star_pixels(self, t, focal_correction=0.0):
+        """
+        Determine which in which pixels stars are expected for a series of images
+
+        Parameters
+        ----------
+        t : list
+            list of time values where the images were captured
+        """
+
+        res = []
+
+        for star in self.get_star_labels():
+            expected_central_pixel = self.get_positions_in_pixel(
+                t, star, focal_correction=focal_correction
+            )
+            cluster = copy.deepcopy(
+                self.camera_geometry.neighbors[expected_central_pixel]
+            )  # get the neighborhood of the star
+            cluster_corona = []
+
+            for pixel_index in cluster:
+                cluster_corona.extend(
+                    copy.deepcopy(self.camera_geometry.neighbors[pixel_index])
+                )  # and add another layer of pixels to be sure
+
+            cluster.extend(cluster_corona)
+            cluster.append(expected_central_pixel)
+            res.extend(list(set(cluster)))
+
+        return res
 
 
 class PointingCalculator(TelescopeComponent):
@@ -180,6 +364,12 @@ class PointingCalculator(TelescopeComponent):
     telescope_location: dict
         The location of the telescope for which the pointing correction is to be calculated
     """
+
+    stats_extractor = TelescopeParameter(
+        trait=ComponentName(StatisticsExtractor, default_value="Plain"),
+        default_value="Plain",
+        help="Name of the StatisticsExtractor Subclass to be used.",
+    ).tag(config=True)
 
     telescope_location = Dict(
         {"longitude": 342.108612, "latitude": 28.761389, "elevation": 2147},
@@ -200,7 +390,7 @@ class PointingCalculator(TelescopeComponent):
     ).tag(config=True)
 
     max_star_magnitude = Float(
-        7.0, help="Maximal magnitude of the star to be considered in the " "analysis"
+        7.0, help="Maximal magnitude of the star to be considered in the analysis"
     ).tag(config=True)
 
     cleaning = Dict(
@@ -213,7 +403,7 @@ class PointingCalculator(TelescopeComponent):
     ).tag(config=True)
 
     psf_model_type = TelescopeParameter(
-        trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
+        trait=ComponentName(PSFModel, default_value="ComaModel"),
         default_value="ComaModel",
         help="Name of the PSFModel Subclass to be used.",
     ).tag(config=True)
@@ -223,16 +413,22 @@ class PointingCalculator(TelescopeComponent):
         help="Meteorological parameters in  [dimensionless, deg C, hPa]",
     ).tag(config=True)
 
+    n_pdf_bins = Integer(1000, help="Camera focal length").tag(config=True)
+
+    pdf_bin_size = Float(10.0, help="Camera focal length").tag(config=True)
+
+    focal_length = Float(1.0, help="Camera focal length in meters").tag(config=True)
+
     def __init__(
         self,
         subarray,
+        geometry,
         config=None,
         parent=None,
         **kwargs,
     ):
         super().__init__(
             subarray=subarray,
-            stats_extractor="Plain",
             config=config,
             parent=parent,
             **kwargs,
@@ -247,240 +443,110 @@ class PointingCalculator(TelescopeComponent):
             lat=self.telescope_location["latitude"] * u.deg,
             height=self.telescope_location["elevation"] * u.m,
         )
+        self.stats_aggregator = StatisticsExtractor.from_name(
+            self.stats_extractor, subarray=self.subarray, parent=self
+        )
 
-    def __call__(self, input_url, tel_id):
-        self.tel_id = tel_id
+        self.set_camera(geometry)
 
-        if self._check_req_data(input_url, "flatfield"):
-            raise KeyError(
-                "Relative gain not found. Gain calculation needs to be performed first."
-            )
+    def set_camera(self, geometry, focal_lengh):
+        if isinstance(geometry, str):
+            self.camera_geometry = CameraGeometry.from_name(geometry)
 
-        # first get the camera geometry and pointing for the file and determine what stars we should see
+        self.pixel_radius = self.camera_geometry.pixel_width[0]
 
-        with EventSource(input_url, max_events=1) as src:
-            self.camera_geometry = src.subarray.tel[self.tel_id].camera.geometry
-            self.focal_length = src.subarray.tel[
-                self.tel_id
-            ].optics.equivalent_focal_length
-            self.pixel_radius = self.camera_geometry.pixel_width[0]
+    def ingest_data(self, data_table):
+        """
+        Attributes
+        ----------
+        data_table : Table
+            Table containing a series of variance images with corresponding initial pointing values, trigger times and calibration data
+        """
 
-            event = next(iter(src))
+        # set up the StarTracer here to track stars in the camera
+        self.tracer = StarTracer.from_lookup(
+            data_table["telescope_pointing_azimuth"],
+            data_table["telescope_pointing_altitude"],
+            data_table["time"],
+            self.meteo_parameters,
+            self.observed_wavelength,
+            self.camera_geometry,
+            self.focal_length,
+            self.telescope_location,
+        )
 
-            self.pointing = SkyCoord(
-                az=event.pointing.tel[self.telescope_id].azimuth,
-                alt=event.pointing.tel[self.telescope_id].altitude,
+        self.broken_pixels = np.unique(np.where(data_table["unusable_pixels"]))
+
+        for azimuth, altitude, time in zip(
+            data_table["telescope_pointing_azimuth"],
+            data_table["telescope_pointing_altitude"],
+            data_table["time"],
+        ):
+            _pointing = SkyCoord(
+                az=azimuth,
+                alt=altitude,
                 frame="altaz",
-                obstime=event.trigger.time.utc,
+                obstime=time,
                 location=self.location,
-            )  # get some pointing to make a list of stars that we expect to see
+                obswl=self.observed_wavelength * u.micron,
+                relative_humidity=self.meteo_parameters["relative_humidity"],
+                temperature=self.meteo_parameters["temperature"] * u.deg_C,
+                pressure=self.meteo_parameters["pressure"] * u.hPa,
+            )
+            self.pointing.append(_pointing)
 
-            self.pointing = self.pointing.transform_to("icrs")
-
-            self.broken_pixels = np.unique(np.where(self.broken_pixels))
-
-            self.image_size = len(
-                event.variance_image.image
-            )  # get the size of images of the camera we are calibrating
-
-        self.stars_in_fov = Vizier.query_region(
-            self.pointing, radius=Angle(2.0, "deg"), catalog="NOMAD"
-        )[0]  # get all stars that could be in the fov
-
-        self.stars_in_fov = self.stars_in_fov[
-            self.tars_in_fov["Bmag"] < self.max_star_magnitude
-        ]  # select stars for magnitude to exclude those we would not be able to see
+        self.image_size = len(
+            data_table["variance_images"][0].image
+        )  # get the size of images of the camera we are calibrating
 
         # get the accumulated variance images
 
-        (
-            accumulated_pointing,
-            accumulated_times,
-            variance_statistics,
-        ) = self._get_accumulated_images(input_url)
+        self._get_accumulated_images(data_table)
 
-        accumulated_images = np.array([x.mean for x in variance_statistics])
+    def fit_stars(self):
+        stars = self.tracer.get_star_labels()
 
-        star_pixels = self._get_expected_star_pixels(
-            accumulated_times, accumulated_pointing
-        )
+        self.all_containers = []
 
-        star_mask = np.ones(self.image_size, dtype=bool)
+        for t, image in (self.accumulated_times, self.accumulated_images):
+            self.all_containers.append([])
 
-        star_mask[star_pixels] = False
+            for star in stars:
+                container = self._fit_star_position(star, t, image, self.nsb_std)
 
-        # get NSB values
+                self.all_containers[-1].append(container)
 
-        nsb = np.mean(accumulated_images[star_mask], axis=1)
-        nsb_std = np.std(accumulated_images[star_mask], axis=1)
+        return self.all_containers
 
-        clean_images = np.array([x - y for x, y in zip(accumulated_images, nsb)])
+    def _fit_star_position(self, star, t, image, nsb_std):
+        x, y = self.tracer.get_position_in_camera(self, t, star)
 
-        reco_stars = []
-
-        for i, image in enumerate(clean_images):
-            reco_stars.append([])
-            camera_frame = EngineeringCameraFrame(
-                telescope_pointing=accumulated_pointing[i],
-                focal_length=self.focal_length,
-                obstime=accumulated_times[i].utc,
-                location=self.location,
-            )
-            for star in self.stars_in_fov:
-                reco_stars[-1].append(
-                    self._fit_star_position(
-                        star, accumulated_times[i], camera_frame, image, nsb_std[i]
-                    )
-                )
-
-        # now fit the pointing corrections.
-        correction = []
-        for i, stars in enumerate(reco_stars):
-            fitter = Pointing_Fitter(
-                stars,
-                accumulated_times[i],
-                accumulated_pointing[i],
-                self.location,
-                self.focal_length,
-                self.observed_wavelength,
-                self.meteo_parameters,
-            )
-
-            correction.append(fitter.fit())
-
-        return correction
-
-    def _check_req_data(self, url, calibration_type):
-        """
-        Check if the prerequisite calibration data exists in the files
-
-        Parameters
-        ----------
-        url : str
-            URL of file that is to be tested
-        tel_id : int
-            The telescope id.
-        calibration_type : str
-            Name of the field that is to be looked for e.g. flatfield or
-            gain
-        """
-        with EventSource(url, max_events=1) as source:
-            event = next(iter(source))
-
-        calibration_data = getattr(event.mon.tel[self.tel_id], calibration_type)
-
-        if calibration_data is None:
-            return False
-
-        return True
-
-    def _calibrate_var_images(self, var_images, time, calibration_file):
-        """
-        Calibrate a set of variance images
-
-        Parameters
-        ----------
-        var_images : list
-            list of variance images
-        time : list
-            list of times correxponding to the variance images
-        calibration_file : str
-            name of the file where the calibration data can be found
-        """
-        # So i need to use the interpolator classes to read the calibration data
-        relative_gains = FlatFieldInterpolator(
-            calibration_file
-        )  # this assumes gain_file is an hdf5 file. The interpolator will automatically search for the data in the default location when i call the instance
-
-        for i, var_image in enumerate(var_images):
-            var_images[i].image = np.divide(
-                var_image.image,
-                np.square(relative_gains(time[i])),
-            )
-
-        return var_images
-
-    def _get_expected_star_pixels(self, time_list, pointing_list):
-        """
-        Determine which in which pixels stars are expected for a series of images
-
-        Parameters
-        ----------
-        time_list : list
-            list of time values where the images were captured
-        pointing_list : list
-            list of pointing values for the images
-        """
-
-        res = []
-
-        for pointing, time in zip(
-            pointing_list, time_list
-        ):  # loop over time and pointing of images
-            temp = []
-
-            camera_frame = EngineeringCameraFrame(
-                telescope_pointing=pointing,
-                focal_length=self.focal_length,
-                obstime=time.utc,
-                location=self.location,
-            )  # get the engineering camera frame for the pointing
-
-            for star in self.stars_in_fov:
-                star_coords = SkyCoord(
-                    star["RAJ2000"], star["DEJ2000"], unit="deg", frame="icrs"
-                )
-                star_coords = star_coords.transform_to(camera_frame)
-                expected_central_pixel = self.camera_geometry.transform_to(
-                    camera_frame
-                ).position_to_pix_index(
-                    star_coords.x, star_coords.y
-                )  # get where the star should be
-                cluster = copy.deepcopy(
-                    self.camera_geometry.neighbors[expected_central_pixel]
-                )  # get the neighborhood of the star
-                cluster_corona = []
-
-                for pixel_index in cluster:
-                    cluster_corona.extend(
-                        copy.deepcopy(self.camera_geometry.neighbors[pixel_index])
-                    )  # and add another layer of pixels to be sure
-
-                cluster.extend(cluster_corona)
-                cluster.append(expected_central_pixel)
-                temp.extend(list(set(cluster)))
-
-            res.append(temp)
-
-        return res
-
-    def _fit_star_position(
-        self, star, timestamp, camera_frame, image, nsb_std, current_pointing
-    ):
-        star_coords = SkyCoord(
-            star["RAJ2000"], star["DEJ2000"], unit="deg", frame="icrs"
-        )
-
-        star_coords = star_coords.transform_to(camera_frame)
-
-        rho, phi = cart2pol(star_coords.x.to_value(u.m), star_coords.y.to_value(u.m))
+        rho, phi = cart2pol(x, y)
 
         if phi < 0:
             phi = phi + 2 * np.pi
 
         star_container = StarContainer(
-            label=star["NOMAD1"],
-            magnitude=star["Bmag"],
-            expected_x=star_coords.x,
-            expected_y=star_coords.y,
+            label=star,
+            magnitude=self.tracer.get_magnitude(star),
+            expected_x=x,
+            expected_y=y,
             expected_r=rho * u.m,
             expected_phi=phi * u.rad,
-            timestamp=timestamp,
+            timestamp=t,
         )
 
-        current_geometry = self.camera_geometry.transform_to(camera_frame)
+        current_geometry = self.tracer.get_current_geometry(t)
 
-        hit_pdf = self._get_star_pdf(star, current_geometry)
+        hit_pdf = get_star_pdf(
+            rho,
+            phi,
+            current_geometry,
+            self.psf,
+            self.n_pdf_bins,
+            self.pdf_bin_size,
+            self.focal_length.to_value(u.m),
+        )
         cluster = np.where(hit_pdf > self.pdf_percentile_limit * np.sum(hit_pdf))
 
         if not np.any(image[cluster] > self.min_star_prominence * nsb_std):
@@ -552,46 +618,10 @@ class PointingCalculator(TelescopeComponent):
 
         return star_container
 
-    def _get_accumulated_images(self, input_url):
-        # Read the whole dl1-like images of pedestal and flat-field data with the TableLoader
-        input_data = TableLoader(input_url=input_url)
-        dl1_table = input_data.read_telescope_events_by_id(
-            telescopes=self.tel_id,
-            dl1_images=True,
-            dl1_parameters=False,
-            dl1_muons=False,
-            dl2=False,
-            simulated=False,
-            true_images=False,
-            true_parameters=False,
-            instrument=False,
-            pointing=True,
-        )
-
-        # get the trigger type for all images and make a mask
-
-        event_mask = dl1_table["event_type"] == 2
-
-        # get the pointing for all images and filter for trigger type
-
-        altitude = dl1_table["telescope_pointing_altitude"][event_mask]
-        azimuth = dl1_table["telescope_pointing_azimuth"][event_mask]
-        time = dl1_table["time"][event_mask]
-
-        pointing = [
-            SkyCoord(
-                az=x, alt=y, frame="altaz", obstime=z.tai.utc, location=self.location
-            )
-            for x, y, z in zip(azimuth, altitude, time)
-        ]
-
-        # get the time and images from the data
-
-        variance_images = copy.deepcopy(dl1_table["variance_image"][event_mask])
+    def _get_accumulated_images(self, data_table):
+        variance_images = data_table["variance_images"]
 
         # now make a filter to to reject EAS light and starlight and keep a separate EAS filter
-
-        charge_images = dl1_table["image"][event_mask]
 
         light_mask = [
             tailcuts_clean(
@@ -600,12 +630,14 @@ class PointingCalculator(TelescopeComponent):
                 picture_thresh=self.cleaning["pic_thresh"],
                 boundary_thresh=self.cleaning["bound_thresh"],
             )
-            for x in charge_images
+            for x in data_table["charge_image"]
         ]
 
         shower_mask = copy.deepcopy(light_mask)
 
-        star_pixels = self._get_expected_star_pixels(time, pointing)
+        star_pixels = [
+            self.tracer.get_expected_star_pixels(t) for t in data_table["time"]
+        ]
 
         light_mask[:, star_pixels] = True
 
@@ -620,163 +652,46 @@ class PointingCalculator(TelescopeComponent):
 
         # now calibrate the images
 
-        variance_images = self._calibrate_var_images(
-            self, variance_images, time, input_url
-        )
+        relative_gains = FlatFieldInterpolator()
+        relative_gains.add_table(0, data_table["relative_gain"])
 
-        # Get the average variance across the data to
+        for i, var_image in enumerate(variance_images):
+            variance_images[i] = np.divide(
+                var_image,
+                np.square(relative_gains(data_table["time"][i]).median),
+            )
 
         # then turn it into a table that the extractor can read
-        variance_image_table = QTable([time, variance_images], names=["time", "image"])
-
-        # Get the extractor
-        extractor = self.stats_extractor[self.stats_extractor_type.tel[self.tel_id]]
+        variance_image_table = QTable(
+            [data_table["time"], variance_images], names=["time", "image"]
+        )
 
         # get the cumulative variance images using the statistics extractor and return the value
 
-        variance_statistics = extractor(variance_image_table)
-
-        accumulated_times = np.array([x.validity_start for x in variance_statistics])
-
-        # calculate where stars might be
-
-        accumulated_pointing = np.array(
-            [x for x in pointing if pointing.time in accumulated_times]
+        variance_statistics = self.stats_aggregator(
+            variance_image_table, col_name="image"
         )
 
-        return (accumulated_pointing, accumulated_times, variance_statistics)
-
-    def _get_star_pdf(self, star, current_geometry):
-        image = np.zeros(self.image_size)
-
-        r0 = star.expected_r.to_value(u.m)
-        f0 = star.expected_phi.to_value(u.rad)
-
-        self.psf_model.update_model_parameters(r0, f0)
-
-        dr = (
-            self.pdf_bin_size
-            * np.rad2deg(np.arctan(1 / self.focal_length.to_value(u.m)))
-            / 3600.0
-        )
-        r = np.linspace(
-            r0 - dr * self.n_pdf_bins / 2.0,
-            r0 + dr * self.n_pdf_bins / 2.0,
-            self.n_pdf_bins,
-        )
-        df = np.deg2rad(self.pdf_bin_size / 3600.0) * 100
-        f = np.linspace(
-            f0 - df * self.n_pdf_bins / 2.0,
-            f0 + df * self.n_pdf_bins / 2.0,
-            self.n_pdf_bins,
+        self.accumulated_times = np.array(
+            [x.validity_start for x in variance_statistics]
         )
 
-        for r_ in r:
-            for f_ in f:
-                val = self.psf_model.pdf(r_, f_) * dr * df
-                x, y = pol2cart(r_, f_)
-                pixelN = current_geometry.position_to_pix_index(x * u.m, y * u.m)
-                if pixelN != -1:
-                    image[pixelN] += val
+        accumulated_images = np.array([x.mean for x in variance_statistics])
 
-        return image
+        star_pixels = [
+            self.tracer.get_expected_star_pixels(t) for t in data_table["time"]
+        ]
 
+        star_mask = np.ones(self.image_size, dtype=bool)
 
-class Pointing_Fitter:
-    """
-    Pointing correction fitter
-    """
+        star_mask[star_pixels] = False
 
-    def __init__(
-        self,
-        stars,
-        time,
-        telescope_pointing,
-        telescope_location,
-        focal_length,
-        observed_wavelength,
-        meteo_params,
-        fit_grid="polar",
-    ):
-        """
-        Constructor
+        # get NSB values
 
-        :param list stars: List of lists of star containers the first dimension is supposed to be time
-        :param list time: List of time values for the when the star locations were fitted
-        :param SkyCoord telescope_pointing: Telescope pointing in ICRS frame
-        :param EarthLocation telescope_location: Telescope location
-        :param Quantity[u.m] telescope_focal_length: Telescope focal length [m]
-        :param Quantity[u.micron] observed_wavelength: Telescope focal length [micron]
-        :param float relative_humidity: Relative humidity
-        :param Quantity[u.deg_C] temperature: Temperature [C]
-        :param Quantity[u.hPa] pressure: Pressure [hPa]
-        :param str fit_grid: Coordinate system grid to use. Either polar or cartesian
-        """
-        self.star_containers = stars
-        self.time = time
-        self.telescope_pointing = telescope_pointing
-        self.telescope_location = telescope_location
-        self.focal_length = focal_length
-        self.obswl = observed_wavelength
-        self.relative_humidity = meteo_params["relative_humidity"]
-        self.temperature = meteo_params["temperature"]
-        self.pressure = meteo_params["pressure"]
-        self.stars = []
-        self.data = []
-        self.errors = []
-        # Construct the data here. Add only stars that were found
-        for star in stars:
-            if not np.isnan(star.reco_x):
-                self.data.append(star.reco_x)
-                self.data.append(star.reco_y)
-                self.errors.append(star.reco_dx)
-                self.errors.append(star.reco_dy)
-                self.stars.append(self.init_star(star.label))
-        self.fit_mode = "xy"
-        self.fit_grid = fit_grid
-        self.star_motion_model = Model(self.fit_function)
-        self.fit_summary = None
-        self.fit_resuts = None
+        nsb = np.mean(accumulated_images[star_mask], axis=1)
+        self.nsb_std = np.std(accumulated_images[star_mask], axis=1)
 
-    def init_star(self, star_label):
-        """
-        Initialize StarTracker object for a given star
-
-        :param str star_label: Star label according to NOMAD catalog
-
-        :return: StarTracker object
-        """
-        star = Vizier(catalog="NOMAD").query_constraints(NOMAD1=star_label)[0]
-        star_coords = SkyCoord(
-            star["RAJ2000"],
-            star["DEJ2000"],
-            unit="deg",
-            frame="icrs",
-            obswl=self.obswl,
-            relative_humidity=self.relative_humidity,
-            temperature=self.temperature,
-            pressure=self.pressure,
-        )
-        st = StarTracker(
-            star_label,
-            star_coords,
-            self.telescope_location,
-            self.focal_length,
-            self.telescope_pointing,
-            self.obswl,
-            self.relative_humidity,
-            self.temperature,
-            self.pressure,
-        )
-        return st
-
-    def current_pointing(self, t):
-        """
-        Retrieve current telescope pointing
-        """
-        index = self.times.index(t)
-
-        return self.telescope_pointing[index]
+        self.clean_images = np.array([x - y for x, y in zip(accumulated_images, nsb)])
 
     def fit_function(self, p, t):
         """
@@ -787,81 +702,48 @@ class Pointing_Fitter:
 
         """
 
-        time = Time(t, format="unix_tai", scale="utc")
         coord_list = []
 
-        m_ra, m_dec = p
-        new_ra = self.current_pointing(t).ra + m_ra * u.deg
-        new_dec = self.current_pointing(t).dec + m_dec * u.deg
-
-        new_pointing = SkyCoord(ICRS(ra=new_ra, dec=new_dec))
-
-        m_ra, m_dec = p
-        new_ra = self.current_pointing(t).ra + m_ra * u.deg
-        new_dec = self.current_pointing(t).dec + m_dec * u.deg
-        new_pointing = SkyCoord(ICRS(ra=new_ra, dec=new_dec))
-        for star in self.stars:
-            x, y = star.position_in_camera_frame(time, new_pointing)
-            if self.fit_grid == "polar":
-                x, y = cart2pol(x, y)
-            coord_list.extend([x])
-            coord_list.extend([y])
+        index = get_index_step(
+            t, self.accumulated_times
+        )  # this gives you the index corresponding to the
+        for star in self.all_containers[index]:
+            if not np.isnan(star.reco_x):
+                x, y = self.tracer.get_position_in_camera(star.label, t, offset=p)
+                coord_list.extend([x])
+                coord_list.extend([y])
 
         return coord_list
 
-    def fit(self, fit_mode="xy"):
+    def fit(self):
         """
         Performs the ODR fit of stars trajectories and saves the results as self.fit_results
 
         :param str fit_mode: Fit mode. Can be 'y', 'xy' (default), 'xyz' or 'radec'.
         """
-        self.fit_mode = fit_mode
-        if self.fit_mode == "radec" or self.fit_mode == "xy":
+
+        results = []
+        for i, t in enumerate(self.accumulated_times):
             init_mispointing = [0, 0]
-        elif self.fit_mode == "y":
-            init_mispointing = [0]
-        elif self.fit_mode == "xyz":
-            init_mispointing = [0, 0, 0]
-        if self.errors is not None:
-            rdata = RealData(x=self.time, y=self.data, sy=self.errors)
-        else:
-            rdata = RealData(x=self.time, y=self.data)
-        odr = ODR(rdata, self.star_motion_model, beta0=init_mispointing)
-        self.fit_summary = odr.run()
-        if self.fit_mode == "radec":
-            self.fit_results = pd.DataFrame(
+            data = []
+            errors = []
+            for star in self.all_containers:
+                if not np.isnan(star.reco_x):
+                    data.append(star.reco_x)
+                    data.append(star.reco_y)
+                    errors.append(star.reco_dx)
+                    errors.append(star.reco_dy)
+
+            rdata = RealData(x=[t], y=data, sy=self.errors)
+            odr = ODR(rdata, self.fit_function, beta0=init_mispointing)
+            fit_summary = odr.run()
+            fit_results = pd.DataFrame(
                 data={
-                    "dRA": [self.fit_summary.beta[0]],
-                    "dDEC": [self.fit_summary.beta[1]],
-                    "eRA": [self.fit_summary.sd_beta[0]],
-                    "eDEC": [self.fit_summary.sd_beta[1]],
+                    "dAZ": [fit_summary.beta[0]],
+                    "dALT": [fit_summary.beta[1]],
+                    "eAZ": [fit_summary.sd_beta[0]],
+                    "eALT": [fit_summary.sd_beta[1]],
                 }
             )
-        elif self.fit_mode == "xy":
-            self.fit_results = pd.DataFrame(
-                data={
-                    "dX": [self.fit_summary.beta[0]],
-                    "dY": [self.fit_summary.beta[1]],
-                    "eX": [self.fit_summary.sd_beta[0]],
-                    "eY": [self.fit_summary.sd_beta[1]],
-                }
-            )
-        elif self.fit_mode == "y":
-            self.fit_results = pd.DataFrame(
-                data={
-                    "dY": [self.fit_summary.beta[0]],
-                    "eY": [self.fit_summary.sd_beta[0]],
-                }
-            )
-        elif self.fit_mode == "xyz":
-            self.fit_results = pd.DataFrame(
-                data={
-                    "dX": [self.fit_summary.beta[0]],
-                    "dY": [self.fit_summary.beta[1]],
-                    "dZ": [self.fit_summary.beta[2]],
-                    "eX": [self.fit_summary.sd_beta[0]],
-                    "eY": [self.fit_summary.sd_beta[1]],
-                    "eZ": [self.fit_summary.sd_beta[2]],
-                }
-            )
-        return self.fit_results
+            results.append(fit_results)
+        return results
