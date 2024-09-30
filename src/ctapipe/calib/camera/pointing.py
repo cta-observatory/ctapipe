@@ -9,9 +9,9 @@ from functools import cache
 import astropy.units as u
 import numpy as np
 import pandas as pd
-import Vizier  # discuss this dependency with max etc.
 from astropy.coordinates import Angle, EarthLocation, SkyCoord
 from astropy.table import QTable
+from astroquery.vizier import Vizier  # discuss this dependency with max etc.
 from scipy.odr import ODR, RealData
 
 from ctapipe.calib.camera.extractor import StatisticsExtractor
