@@ -15,6 +15,7 @@ from pyirf.spectral import (
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
 
+from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component, QualityQuery
@@ -105,7 +106,7 @@ class EventPreProcessor(QualityQuery):
                 )
 
         keep_columns.extend(rename_from)
-        events = QTable(events[keep_columns], copy=False)
+        events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
         events.rename_columns(rename_from, rename_to)
         return events
 

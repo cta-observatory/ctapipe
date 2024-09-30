@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import astropy.units as u
 import numpy as np
 
+from ..compat import COPY_IF_NEEDED
 from ..core import Component
 from ..core.traits import AstroQuantity, Integer
 
@@ -76,7 +77,9 @@ def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
 
     n_bins = int(np.ceil((log_upper - log_lower) * n_bins_per_decade))
 
-    return u.Quantity(np.logspace(log_lower, log_upper, n_bins + 1), unit, copy=False)
+    return u.Quantity(
+        np.logspace(log_lower, log_upper, n_bins + 1), unit, copy=COPY_IF_NEEDED
+    )
 
 
 @dataclass
