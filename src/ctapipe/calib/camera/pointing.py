@@ -14,7 +14,6 @@ from astropy.table import QTable
 from astroquery.vizier import Vizier  # discuss this dependency with max etc.
 from scipy.odr import ODR, RealData
 
-from ctapipe.calib.camera.extractor import StatisticsExtractor
 from ctapipe.containers import StarContainer
 from ctapipe.coordinates import EngineeringCameraFrame
 from ctapipe.core import TelescopeComponent
@@ -28,7 +27,8 @@ from ctapipe.core.traits import (
 from ctapipe.image import tailcuts_clean
 from ctapipe.image.psf_model import PSFModel
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io import FlatFieldInterpolator, PointingInterpolator
+from ctapipe.monitoring.aggregator import StatisticsAggregator
+from ctapipe.monitoring.interpolation import FlatFieldInterpolator, PointingInterpolator
 
 __all__ = ["PointingCalculator", "StarImageGenerator"]
 
@@ -359,16 +359,16 @@ class PointingCalculator(TelescopeComponent):
 
     Attributes
     ----------
-    stats_extractor: str
-        The name of the StatisticsExtractor subclass to be used to calculate the statistics of an image set
+    stats_aggregator: str
+        The name of the StatisticsAggregator subclass to be used to calculate the statistics of an image set
     telescope_location: dict
         The location of the telescope for which the pointing correction is to be calculated
     """
 
-    stats_extractor = TelescopeParameter(
-        trait=ComponentName(StatisticsExtractor, default_value="Plain"),
-        default_value="Plain",
-        help="Name of the StatisticsExtractor Subclass to be used.",
+    stats_aggregator = TelescopeParameter(
+        trait=ComponentName(StatisticsAggregator, default_value="PlainAggregator"),
+        default_value="PlainAggregator",
+        help="Name of the StatisticsAggregator Subclass to be used.",
     ).tag(config=True)
 
     telescope_location = Dict(
@@ -443,8 +443,9 @@ class PointingCalculator(TelescopeComponent):
             lat=self.telescope_location["latitude"] * u.deg,
             height=self.telescope_location["elevation"] * u.m,
         )
-        self.stats_aggregator = StatisticsExtractor.from_name(
-            self.stats_extractor, subarray=self.subarray, parent=self
+
+        self.image_aggregator = StatisticsAggregator.from_name(
+            self.stats_aggregator, subarray=self.subarray, parent=self
         )
 
         self.set_camera(geometry)
@@ -664,14 +665,14 @@ class PointingCalculator(TelescopeComponent):
                 np.square(relative_gains(data_table["time"][i]).median),
             )
 
-        # then turn it into a table that the extractor can read
+        # then turn it into a table that the aggregator can read
         variance_image_table = QTable(
             [data_table["time"], variance_images], names=["time", "image"]
         )
 
-        # get the cumulative variance images using the statistics extractor and return the value
+        # get the cumulative variance images using the statistics aggregator and return the value
 
-        variance_statistics = self.stats_aggregator(
+        variance_statistics = self.image_aggregator(
             variance_image_table, col_name="image"
         )
 
