@@ -21,6 +21,7 @@ from ctapipe.image.reducer import DataVolumeReducer
 
 __all__ = ["CameraCalibrator"]
 
+
 @cache
 def _get_pixel_index(n_pixels):
     """Cached version of ``np.arange(n_pixels)``"""
@@ -44,6 +45,7 @@ def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channe
                 broken_pixels |= mask
 
     return broken_pixels
+
 
 class CameraCalibrator(TelescopeComponent):
     """
