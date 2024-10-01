@@ -1,6 +1,7 @@
 """
 common pytest fixtures for tests in ctapipe
 """
+
 import shutil
 from copy import deepcopy
 
@@ -9,7 +10,7 @@ import numpy as np
 import pytest
 import tables
 from astropy.coordinates import EarthLocation
-from astropy.table import Table
+from astropy.table import Column, QTable, Table, hstack, vstack
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.core import run_tool
@@ -692,3 +693,122 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
         f.remove_node("/configuration/telescope/pointing", recursive=True)
 
     return path
+
+
+@pytest.fixture(scope="session")
+def gamma_diffuse_full_reco_file(
+    gamma_train_clf,
+    particle_classifier_path,
+    model_tmp_path,
+):
+    """
+    Energy reconstruction and geometric origin reconstruction have already been done.
+    """
+    from ctapipe.tools.apply_models import ApplyModels
+
+    output_path = model_tmp_path / "gamma_diffuse_full_reco.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={gamma_train_clf}",
+            f"--output={output_path}",
+            f"--reconstructor={particle_classifier_path}",
+            "--no-dl1-parameters",
+            "--StereoMeanCombiner.weights=konrad",
+        ],
+        raises=True,
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
+def proton_full_reco_file(
+    proton_train_clf,
+    particle_classifier_path,
+    model_tmp_path,
+):
+    """
+    Energy reconstruction and geometric origin reconstruction have already been done.
+    """
+    from ctapipe.tools.apply_models import ApplyModels
+
+    output_path = model_tmp_path / "proton_full_reco.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={proton_train_clf}",
+            f"--output={output_path}",
+            f"--reconstructor={particle_classifier_path}",
+            "--no-dl1-parameters",
+            "--StereoMeanCombiner.weights=konrad",
+        ],
+        raises=True,
+    )
+    return output_path
+
+
+@pytest.fixture(scope="session")
+def irf_events_loader_test_config():
+    from traitlets.config import Config
+
+    return Config(
+        {
+            "EventPreProcessor": {
+                "energy_reconstructor": "ExtraTreesRegressor",
+                "geometry_reconstructor": "HillasReconstructor",
+                "gammaness_classifier": "ExtraTreesClassifier",
+                "quality_criteria": [
+                    (
+                        "multiplicity 4",
+                        "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
+                    ),
+                    ("valid classifier", "ExtraTreesClassifier_is_valid"),
+                    ("valid geom reco", "HillasReconstructor_is_valid"),
+                    ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+                ],
+            }
+        }
+    )
+
+
+@pytest.fixture(scope="session")
+def irf_events_table():
+    from ctapipe.irf import EventPreProcessor
+
+    N1 = 1000
+    N2 = 100
+    N = N1 + N2
+    epp = EventPreProcessor()
+    tab = epp.make_empty_table()
+
+    ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
+
+    id_tab = QTable(
+        data=np.zeros((N, len(ids)), dtype=np.uint64),
+        names=ids,
+        units={c: tab[c].unit for c in ids},
+    )
+    bulk_tab = QTable(
+        data=np.zeros((N, len(bulk))) * np.nan,
+        names=bulk,
+        units={c: tab[c].unit for c in bulk},
+    )
+
+    # Setting values following pyirf test in pyirf/irf/tests/test_background.py
+    bulk_tab["reco_energy"] = np.append(np.full(N1, 1), np.full(N2, 2)) * u.TeV
+    bulk_tab["true_energy"] = np.append(np.full(N1, 0.9), np.full(N2, 2.1)) * u.TeV
+    bulk_tab["reco_source_fov_offset"] = (
+        np.append(np.full(N1, 0.1), np.full(N2, 0.05)) * u.deg
+    )
+    bulk_tab["true_source_fov_offset"] = (
+        np.append(np.full(N1, 0.11), np.full(N2, 0.04)) * u.deg
+    )
+    for name in unitless:
+        bulk_tab.add_column(
+            Column(name=name, unit=tab[name].unit, data=np.zeros(N) * np.nan)
+        )
+
+    e_tab = hstack([id_tab, bulk_tab])
+
+    ev = vstack([e_tab, tab], join_type="exact", metadata_conflicts="silent")
+    return ev
