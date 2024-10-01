@@ -2,10 +2,6 @@
 Definition of the `CameraCalibrator` class, providing all steps needed to apply
 calibration and image extraction, as well as supporting algorithms.
 """
-<<<<<<< HEAD
-
-=======
->>>>>>> c5f385f0 (I added a basic star fitter)
 from functools import cache
 
 import astropy.units as u
@@ -23,8 +19,8 @@ from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
 
-
 __all__ = ["CameraCalibrator"]
+
 
 @cache
 def _get_pixel_index(n_pixels):
@@ -49,6 +45,7 @@ def _get_invalid_pixels(n_channels, n_pixels, pixel_status, selected_gain_channe
                 broken_pixels |= mask
 
     return broken_pixels
+
 
 class CameraCalibrator(TelescopeComponent):
     """
