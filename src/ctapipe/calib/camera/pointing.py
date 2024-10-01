@@ -23,6 +23,7 @@ from ctapipe.core.traits import (
     Float,
     Integer,
     TelescopeParameter,
+    Unicode,
 )
 from ctapipe.image import tailcuts_clean
 from ctapipe.image.psf_model import PSFModel
@@ -402,10 +403,8 @@ class PointingCalculator(TelescopeComponent):
         help="Meteorological parameters in  [dimensionless, deg C, hPa]",
     ).tag(config=True)
 
-    psf_model_type = TelescopeParameter(
-        trait=ComponentName(StatisticsExtractor, default_value="ComaModel"),
-        default_value="ComaModel",
-        help="Name of the PSFModel Subclass to be used.",
+    psf_model_type = Unicode(
+        "ComaModel", help="Name of the PSFModel Subclass to be used."
     ).tag(config=True)
 
     meteo_parameters = Dict(
