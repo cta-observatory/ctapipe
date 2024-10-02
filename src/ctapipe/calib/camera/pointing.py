@@ -31,7 +31,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.monitoring.aggregator import StatisticsAggregator
 from ctapipe.monitoring.interpolation import FlatFieldInterpolator, PointingInterpolator
 
-__all__ = ["PointingCalculator", "StarImageGenerator"]
+__all__ = ["PointingCalculator", "StarImageGenerator", "StarTracer"]
 
 
 @cache
