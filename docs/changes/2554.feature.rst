@@ -1,1 +1,0 @@
-Add API to extract the statistics from a sequence of images.

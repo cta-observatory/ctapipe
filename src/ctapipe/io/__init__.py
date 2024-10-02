@@ -18,7 +18,6 @@ from .simteleventsource import SimTelEventSource
 
 from .datawriter import DATA_MODEL_VERSION, DataWriter
 
-
 __all__ = [
     "HDF5TableWriter",
     "HDF5TableReader",
