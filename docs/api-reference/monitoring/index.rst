@@ -20,7 +20,7 @@ Submodules
   :maxdepth: 1
 
   aggregator
-  calculator
+  interpolation
   outlier
 
 

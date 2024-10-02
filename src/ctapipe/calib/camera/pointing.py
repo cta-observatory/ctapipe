@@ -428,7 +428,7 @@ class PointingCalculator(TelescopeComponent):
     ):
         super().__init__(
             subarray=subarray,
-            stats_extractor="Plain",
+            config=config,
             parent=parent,
             **kwargs,
         )
@@ -498,8 +498,6 @@ class PointingCalculator(TelescopeComponent):
         self.image_size = len(
             data_table["variance_images"][0].image
         )  # get the size of images of the camera we are calibrating
-
-        star_labels = [x.label for x in self.stars_in_fov]
 
         # get the accumulated variance images
 
@@ -632,7 +630,6 @@ class PointingCalculator(TelescopeComponent):
                 picture_thresh=self.cleaning["pic_thresh"],
                 boundary_thresh=self.cleaning["bound_thresh"],
             )
-
             for x in data_table["charge_image"]
         ]
 
