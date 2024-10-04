@@ -4,9 +4,11 @@ Tests for StatisticsExtractor and related functions
 
 import astropy.units as u
 from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.table import QTable
 from astropy.time import Time
 
-from ctapipe.calib.camera.pointing import StarTracer
+from ctapipe.calib.camera.pointing import PointingCalculator
+from ctapipe.instrument.camera.geometry import CameraGeometry
 
 # let's prepare a StarTracer to make realistic images
 # we need a maximum magnitude
@@ -35,7 +37,7 @@ meteo_parameters = {"relative_humidity": 0.5, "temperature": 10, "pressure": 790
 
 # some wavelength
 
-obswl = 0.42 * u.micron
+obswl = 0.35 * u.micron
 
 # pointing to the crab nebula
 
@@ -43,6 +45,8 @@ crab = SkyCoord.from_name("crab nebula")
 
 alt = []
 az = []
+
+# get the local pointing values
 
 for t in times:
     contemporary_crab = crab.transform_to(
@@ -57,8 +61,23 @@ for t in times:
     alt.append(contemporary_crab.alt.to_value())
     az.append(contemporary_crab.az.to_value())
 
+# next i make the pointing table for the fake data generator
+
+pointing_table = QTable(
+    [alt, az, times],
+    names=["telescope_pointing_altitude", "telescope_pointing_azimuth", "time"],
+)
+
 # the LST geometry
 
-# the LST focal length
+geometry = CameraGeometry.from_name(name="LSTCam")
 
-st = StarTracer.from_lookup(max_magnitude, az, alt, times, meteo_parameters, obswl)
+# now set up the PointingCalculator
+
+pc = PointingCalculator(geometry)
+
+# now make fake mispointed data
+
+pc.make_mispointed_data((1.0, -1.0), pointing_table)
+
+pc.fit()

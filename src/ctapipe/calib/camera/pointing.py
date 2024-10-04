@@ -146,7 +146,7 @@ def StarImageGenerator(
     :param dict psf_model_pars: psf model parameters
     """
     camera_geometry = CameraGeometry.from_name(camera_name)
-    psf = PSFModel.from_name(self.psf_model_type, subarray=self.subarray, parent=self)
+    psf = PSFModel.from_name(self.psf_model_type)
     psf.update_model_parameters(psf_model_pars)
     image = np.zeros(len(camera_geometry))
     for r, p, m in zip(radius, phi, magnitude):
@@ -353,6 +353,13 @@ class StarTracer:
 
         return res
 
+    def get_star_mask(self, t, focal_correction=0.0):
+        mask = np.full(len(self.camera_geometry), True)
+        pixels = self.get_expected_star_pixels(t, focal_correction=focal_correction)
+        mask[pixels] = False
+
+        return mask
+
 
 class PointingCalculator(TelescopeComponent):
     """
@@ -418,6 +425,10 @@ class PointingCalculator(TelescopeComponent):
 
     focal_length = Float(1.0, help="Camera focal length in meters").tag(config=True)
 
+    camera_name = Unicode("LSTCam", help="Name of the camera to be calibrated").tag(
+        config=True
+    )
+
     def __init__(
         self,
         subarray,
@@ -447,7 +458,7 @@ class PointingCalculator(TelescopeComponent):
             self.stats_aggregator, subarray=self.subarray, parent=self
         )
 
-        self.set_camera(geometry)
+        self.set_camera(self.camera_name)
 
     def set_camera(self, geometry, focal_lengh):
         if isinstance(geometry, str):
@@ -476,24 +487,6 @@ class PointingCalculator(TelescopeComponent):
         )
 
         self.broken_pixels = np.unique(np.where(data_table["unusable_pixels"]))
-
-        for azimuth, altitude, time in zip(
-            data_table["telescope_pointing_azimuth"],
-            data_table["telescope_pointing_altitude"],
-            data_table["time"],
-        ):
-            _pointing = SkyCoord(
-                az=azimuth,
-                alt=altitude,
-                frame="altaz",
-                obstime=time,
-                location=self.location,
-                obswl=self.observed_wavelength * u.micron,
-                relative_humidity=self.meteo_parameters["relative_humidity"],
-                temperature=self.meteo_parameters["temperature"] * u.deg_C,
-                pressure=self.meteo_parameters["pressure"] * u.hPa,
-            )
-            self.pointing.append(_pointing)
 
         self.image_size = len(
             data_table["variance_images"][0].image
@@ -635,11 +628,9 @@ class PointingCalculator(TelescopeComponent):
 
         shower_mask = copy.deepcopy(light_mask)
 
-        star_pixels = [
-            self.tracer.get_expected_star_pixels(t) for t in data_table["time"]
-        ]
+        star_mask = [self.tracer.get_star_mask(t) for t in data_table["time"]]
 
-        light_mask[:, star_pixels] = True
+        light_mask[~star_mask] = True
 
         if self.broken_pixels is not None:
             light_mask[:, self.broken_pixels] = True
@@ -672,19 +663,11 @@ class PointingCalculator(TelescopeComponent):
             variance_image_table, col_name="image"
         )
 
-        self.accumulated_times = np.array(
-            [x.validity_start for x in variance_statistics]
-        )
+        self.accumulated_times = variance_statistics["time_start"]
 
-        accumulated_images = np.array([x.mean for x in variance_statistics])
+        accumulated_images = variance_statistics["mean"]
 
-        star_pixels = [
-            self.tracer.get_expected_star_pixels(t) for t in data_table["time"]
-        ]
-
-        star_mask = np.ones(self.image_size, dtype=bool)
-
-        star_mask[star_pixels] = False
+        star_mask = [self.tracer.get_star_mask(t) for t in data_table["time"]]
 
         # get NSB values
 
@@ -692,6 +675,56 @@ class PointingCalculator(TelescopeComponent):
         self.nsb_std = np.std(accumulated_images[star_mask], axis=1)
 
         self.clean_images = np.array([x - y for x, y in zip(accumulated_images, nsb)])
+
+    def make_mispointed_data(self, p, pointing_table):
+        self.tracer = StarTracer.from_lookup(
+            pointing_table["telescope_pointing_azimuth"],
+            pointing_table["telescope_pointing_altitude"],
+            pointing_table["time"],
+            self.meteo_parameters,
+            self.observed_wavelength,
+            self.camera_geometry,
+            self.focal_length,
+            self.telescope_location,
+        )
+
+        stars = self.tracer.get_star_labels()
+
+        self.accumulated_times = pointing_table["time"]
+
+        self.all_containers = []
+
+        for t in pointing_table["time"]:
+            self.all_containers.append([])
+
+            for star in stars:
+                x, y = self.tracer.get_position_in_camera(t, star)
+                r, phi = cart2pol(x, y)
+                x_mispoint, y_mispoint = self.tracer.get_position_in_camera(
+                    t, star, offset=p
+                )
+                r_mispoint, phi_mispoint = cart2pol(x_mispoint, y_mispoint)
+                container = StarContainer(
+                    label=star,
+                    magnitude=self.tracer.get_magnitude(star),
+                    expected_x=x,
+                    expected_y=y,
+                    expected_r=r * u.m,
+                    expected_phi=phi * u.rad,
+                    timestamp=t,
+                    reco_x=x_mispoint,
+                    reco_y=y_mispoint,
+                    reco_r=r_mispoint * u.m,
+                    reco_phi=phi_mispoint * u.rad,
+                    reco_dx=0.05 * u.m,
+                    reco_dy=0.05 * u.m,
+                    reco_dr=0.05 * u.m,
+                    reco_dphi=0.15 * u.rad,
+                )
+
+                self.all_containers[-1].append(container)
+
+        return self.all_containers
 
     def fit_function(self, p, t):
         """
@@ -715,7 +748,7 @@ class PointingCalculator(TelescopeComponent):
 
         return coord_list
 
-    def fit(self):
+    def fit(self, init_mispointing=(0, 0)):
         """
         Performs the ODR fit of stars trajectories and saves the results as self.fit_results
 
@@ -734,7 +767,7 @@ class PointingCalculator(TelescopeComponent):
                     errors.append(star.reco_dx)
                     errors.append(star.reco_dy)
 
-            rdata = RealData(x=[t], y=data, sy=self.errors)
+            rdata = RealData(x=[t], y=data, sy=errors)
             odr = ODR(rdata, self.fit_function, beta0=init_mispointing)
             fit_summary = odr.run()
             fit_results = pd.DataFrame(

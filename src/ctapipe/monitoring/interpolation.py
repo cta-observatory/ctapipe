@@ -9,8 +9,6 @@ from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-from .astropy_helpers import read_table
-
 
 class ChunkFunction:
 
@@ -175,6 +173,7 @@ class Interpolator(Component, metaclass=ABCMeta):
 
     def _read_parameter_table(self, tel_id):
         # prevent circular import between io and monitoring
+        from ..io import read_table
 
         input_table = read_table(
             self.h5file,
