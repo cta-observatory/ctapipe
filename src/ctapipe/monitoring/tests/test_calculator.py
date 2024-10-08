@@ -8,11 +8,11 @@ from astropy.time import Time
 from traitlets.config.loader import Config
 
 from ctapipe.monitoring.aggregator import PlainAggregator
-from ctapipe.monitoring.calculator import StatisticsCalculator
+from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 
 def test_statistics_calculator(example_subarray):
-    """test basic functionality of the StatisticsCalculator"""
+    """test basic functionality of the PixelStatisticsCalculator"""
 
     # Create dummy data for testing
     n_images = 5050
@@ -31,7 +31,7 @@ def test_statistics_calculator(example_subarray):
     chunk_size = 1000
     aggregator = PlainAggregator(subarray=example_subarray, chunk_size=chunk_size)
     chunk_shift = 500
-    calculator = StatisticsCalculator(
+    calculator = PixelStatisticsCalculator(
         subarray=example_subarray,
         stats_aggregator=aggregator,
         chunk_shift=chunk_shift,
@@ -93,7 +93,7 @@ def test_outlier_detector(example_subarray):
     # Create configuration
     config = Config(
         {
-            "StatisticsCalculator": {
+            "PixelStatisticsCalculator": {
                 "stats_aggregator_type": [
                     ("id", 1, "SigmaClippingAggregator"),
                 ],
@@ -123,7 +123,7 @@ def test_outlier_detector(example_subarray):
         }
     )
     # Initialize the calculator from config
-    calculator = StatisticsCalculator(subarray=example_subarray, config=config)
+    calculator = PixelStatisticsCalculator(subarray=example_subarray, config=config)
     # Run the first pass over the data
     stats_first_pass = calculator.first_pass(table=ped_table, tel_id=1)
     # Run the second pass over the data

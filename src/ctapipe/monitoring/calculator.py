@@ -1,5 +1,5 @@
 """
-Definition of the ``StatisticsCalculator`` class, providing all steps needed to
+Definition of the ``PixelStatisticsCalculator`` class, providing all steps needed to
 calculate the montoring data for the camera calibration.
 """
 
@@ -19,15 +19,15 @@ from ctapipe.monitoring.aggregator import StatisticsAggregator
 from ctapipe.monitoring.outlier import OutlierDetector
 
 __all__ = [
-    "StatisticsCalculator",
+    "PixelStatisticsCalculator",
 ]
 
 
-class StatisticsCalculator(TelescopeComponent):
+class PixelStatisticsCalculator(TelescopeComponent):
     """
     Component to calculate statistics from calibration events.
 
-    The ``StatisticsCalculator`` is responsible for calculating various statistics from
+    The ``PixelStatisticsCalculator`` is responsible for calculating various statistics from
     calibration events, such as pedestal and flat-field data. It aggregates statistics,
     detects outliers, and handles faulty data periods.
     This class holds two functions to conduct two different passes over the data with and without
