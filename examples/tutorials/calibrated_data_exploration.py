@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 
 import ctapipe
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean
 from ctapipe.io import EventSource
 from ctapipe.utils.datasets import get_dataset_path
@@ -98,7 +99,7 @@ for tel_id in event.dl1.tel:
 
 tel_id = sorted(event.r1.tel.keys())[1]
 sub = source.subarray
-geometry = sub.tel[tel_id].camera.geometry
+geometry = sub.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
 image = event.dl1.tel[tel_id].image
 
 ######################################################################
@@ -130,9 +131,8 @@ disp.add_colorbar()
 disp.overlay_moments(params, color="red", lw=3)
 disp.highlight_pixels(mask, color="white", alpha=0.3, linewidth=2)
 
-plt.xlim(params.x.to_value(u.m) - 0.5, params.x.to_value(u.m) + 0.5)
-plt.ylim(params.y.to_value(u.m) - 0.5, params.y.to_value(u.m) + 0.5)
-
+plt.xlim(params.fov_lon.to_value(u.deg) - 2, params.fov_lon.to_value(u.deg) + 2)
+plt.ylim(params.fov_lat.to_value(u.deg) - 2, params.fov_lat.to_value(u.deg) + 2)
 ######################################################################
 source.metadata
 
@@ -166,6 +166,7 @@ cam_ids
 cams_in_event = tels_in_event.intersection(cam_ids)
 first_tel_id = list(cams_in_event)[0]
 tel = sub.tel[first_tel_id]
+tel_geom = tel.camera.geometry.transform_to(TelescopeFrame())
 print("{}s in event: {}".format(tel, cams_in_event))
 
 
@@ -174,7 +175,7 @@ print("{}s in event: {}".format(tel, cams_in_event))
 #
 
 image_sum = np.zeros_like(
-    tel.camera.geometry.pix_x.value
+    tel_geom.pix_x.value
 )  # just make an array of 0's in the same shape as the camera
 
 for tel_id in cams_in_event:
@@ -187,7 +188,7 @@ for tel_id in cams_in_event:
 
 plt.figure(figsize=(8, 8))
 
-disp = CameraDisplay(tel.camera.geometry, image=image_sum)
+disp = CameraDisplay(tel_geom, image=image_sum)
 disp.overlay_moments(params, with_label=False)
 plt.title("Sum of {}x {}".format(len(cams_in_event), tel))
 
