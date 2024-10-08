@@ -9,10 +9,40 @@ from .ground_frames import _get_xyz
 __all__ = [
     "altaz_to_righthanded_cartesian",
     "get_point_on_shower_axis",
+    "cart2pol",
+    "pol2cart",
 ]
 
 
 _zero_m = u.Quantity(0, u.m)
+
+
+def cart2pol(x, y):
+    """
+    Convert cartesian coordinates to polar
+
+    :param float x: X coordinate [m]
+    :param float y: Y coordinate [m]
+
+    :return: Tuple (r, φ)[m, rad]
+    """
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return (rho, phi)
+
+
+def pol2cart(rho, phi):
+    """
+    Convert polar coordinates to cartesian
+
+    :param float rho: R coordinate
+    :param float phi: ¢ coordinate [rad]
+
+    :return: Tuple (x,y)[m, m]
+    """
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return (x, y)
 
 
 def altaz_to_righthanded_cartesian(alt, az, distance=1.0):
