@@ -21,7 +21,7 @@ def test_get_bright_stars_with_motion():
     # lets find 25 Eta Tau
 
     table = get_bright_stars_with_motion(
-        pointing=pointing, radius=1.0 * u.deg, magnitude_cut=3.5
+        pointing=pointing, radius=1.0 * u.deg, Vmag_cut=3.5
     )
 
     assert len(table) == 1
