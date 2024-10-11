@@ -13,16 +13,33 @@ from pathlib import Path
 import astropy.units as u
 import requests
 from astropy.coordinates import Angle, SkyCoord
-from astropy.table import Table, join, unique
+from astropy.table import Table
 from astropy.time import Time
 from astroquery.vizier import Vizier
 
 log = logging.getLogger("main")
 
-__all__ = ["get_hipparcos_stars", "get_bright_stars"]
+__all__ = ["get_bright_stars_with_motion", "get_bright_stars"]
 
 
 CACHE_FILE = Path("~/.psf_stars.ecsv").expanduser()
+
+
+def cut_stars(stars, pointing=None, radius=None, magnitude_cut=None):
+    if magnitude_cut is not None:
+        stars = stars[stars["Vmag"] < magnitude_cut]
+
+    if radius is not None:
+        if pointing is None:
+            raise ValueError(
+                "Sky pointing, pointing=SkyCoord(), must be "
+                "provided if radius is given."
+            )
+        separations = stars["ra_dec"].separation(pointing)
+        stars["separation"] = separations
+        stars = stars[separations < radius]
+
+    return stars
 
 
 def read_ident_name_file(ident=6, colname="name"):
@@ -34,80 +51,86 @@ def read_ident_name_file(ident=6, colname="name"):
     r.raise_for_status()
 
     with r, gzip.GzipFile(fileobj=r.raw, mode="r") as gz:
-        table = {"HIP": [], colname: []}
+        table = {"HR": [], colname: []}
 
         for line in TextIOWrapper(gz):
             name, hip = line.split("|")
-            table["HIP"].append(int(hip.strip()))
+            table["HR"].append(int(hip.strip()))
             table[colname].append(name.strip())
 
     return Table(table)
 
 
-def get_hipparcos_stars(
+def get_bright_stars_with_motion(
     pointing=None, radius=None, magnitude_cut=None
 ):  # max_magnitude):
+    """
+    Get an astropy table of bright stars from the catalog
+
+    Parameters
+    ----------
+    pointing: astropy Skycoord
+       pointing direction in the sky (if none is given, full sky is returned)
+    radius: astropy angular units
+       Radius of the sky region around pointing position. Default: full sky
+    magnitude_cut: float
+        Return only stars above a given magnitude. Default: None (all entries)
+
+    Returns
+    -------
+    Astropy table:
+       List of all stars after cuts with names, catalog numbers, magnitudes,
+       and coordinates
+    """
+
     stars = None
 
     if CACHE_FILE.exists():
         log.info("Loading stars from cached table")
+        log.info(CACHE_FILE)
         try:
             stars = Table.read(CACHE_FILE)
-            if stars.meta["max_magnitude"] >= magnitude_cut:
-                log.debug(f"Loaded table is valid for { magnitude_cut= }")
+            if magnitude_cut is not None:
+                if stars.meta["magnitude_cut"] >= magnitude_cut:
+                    log.debug(f"Loaded table is valid for { magnitude_cut= }")
+                else:
+                    log.debug("Loaded cache table has smaller magnitude_cut, reloading")
+                    stars = None
             else:
-                log.debug("Loaded cache table has smaller magnitude_cut, reloading")
                 stars = None
         except Exception:
             log.exception("Cache file exists but reading failed. Recreating")
 
     if stars is None:
-        log.info("Querying Vizier for Hipparcos catalog")
+        log.info("Querying Vizier for bright stars catalog")
         # query vizier for stars with 0 <= Vmag <= max_magnitude
-        hipparcos_catalog = "I/239/hip_main"
+        bright_star = "V/50/catalog"
         vizier = Vizier(
-            catalog=hipparcos_catalog,
-            columns=["HIP", "RAICRS", "DEICRS", "pmRA", "pmDE", "Vmag"],
+            catalog=bright_star,
+            columns=["HR", "RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag"],
             row_limit=1000000,
         )
-        stars = vizier.query_constraints(Vmag=f"0.0..{magnitude_cut}")[0]
+        if magnitude_cut is not None:
+            stars = vizier.query_constraints(Vmag=f"0.0..{magnitude_cut}")[0]
 
-        # add the nice names
-        common_names = read_ident_name_file(ident=6)
-        flamsteed_designation = read_ident_name_file(ident=4, colname="flamsteed")
-
-        common_names = join(
-            common_names, flamsteed_designation, keys="HIP", join_type="outer"
-        )
-
-        # multiple flamsteed per source, only use one
-        common_names = unique(common_names, keys="HIP")
-
-        stars = join(stars, common_names, keys="HIP", join_type="left")
+        else:
+            stars = vizier.query_constraints(Vmag="0.0..100.0")[0]
 
         stars.meta["magnitude_cut"] = magnitude_cut
         stars.write(CACHE_FILE, overwrite=True)
 
-    stars = stars[stars["Bmag"] < magnitude_cut]
-    # add a column with a skycoord object
-    stars["icrs"] = SkyCoord(
-        ra=stars["RAICRS"].quantity,
-        dec=stars["DEICRS"].quantity,
+    stars["ra_dec"] = SkyCoord(
+        ra=Angle(stars["RAJ2000"], unit=u.deg),
+        dec=Angle(stars["DEJ2000"], unit=u.deg),
         pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
         pm_dec=stars["pmDE"].quantity,
         frame="icrs",
-        obstime=Time("J1991.25"),
+        obstime=Time("J2000.0"),
     )
 
-    if radius is not None:
-        if pointing is None:
-            raise ValueError(
-                "Sky pointing, pointing=SkyCoord(), must be "
-                "provided if radius is given."
-            )
-        separations = stars["icrs"].separation(pointing)
-        stars["separation"] = separations
-        stars = stars[separations < radius]
+    stars = cut_stars(
+        stars, pointing=pointing, radius=radius, magnitude_cut=magnitude_cut
+    )
 
     return stars
 
@@ -150,18 +173,9 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     )
     catalog["ra_dec"] = starpositions
 
-    if magnitude_cut is not None:
-        catalog = catalog[catalog["Vmag"] < magnitude_cut]
-
-    if radius is not None:
-        if pointing is None:
-            raise ValueError(
-                "Sky pointing, pointing=SkyCoord(), must be "
-                "provided if radius is given."
-            )
-        separations = catalog["ra_dec"].separation(pointing)
-        catalog["separation"] = separations
-        catalog = catalog[separations < radius]
+    catalog = cut_stars(
+        catalog, pointing=pointing, radius=radius, magnitude_cut=magnitude_cut
+    )
 
     catalog.remove_columns(["RAJ2000", "DEJ2000"])
 
