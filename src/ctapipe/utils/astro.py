@@ -65,7 +65,9 @@ def get_bright_stars_with_motion(
     pointing=None, radius=None, magnitude_cut=None
 ):  # max_magnitude):
     """
-    Get an astropy table of bright stars from the catalog
+    Get an astropy table of bright stars from the Bright Star Catalogue
+
+    This catalog is the 5th Revised Edition by Hoffleit et.al. 1991
 
     Parameters
     ----------
