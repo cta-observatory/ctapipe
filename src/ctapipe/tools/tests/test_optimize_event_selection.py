@@ -11,7 +11,7 @@ from ctapipe.core import run_tool
 def test_cuts_optimization(
     gamma_diffuse_full_reco_file,
     proton_full_reco_file,
-    irf_events_loader_test_config,
+    irf_event_loader_test_config,
     tmp_path,
     point_like,
 ):
@@ -25,7 +25,7 @@ def test_cuts_optimization(
     output_path = tmp_path / "cuts.fits"
     config_path = tmp_path / "config.json"
     with config_path.open("w") as f:
-        json.dump(irf_events_loader_test_config, f)
+        json.dump(irf_event_loader_test_config, f)
 
     argv = [
         f"--gamma-file={gamma_diffuse_full_reco_file}",
@@ -38,10 +38,7 @@ def test_cuts_optimization(
     if not point_like:
         argv.append("--full-enclosure")
 
-    ret = run_tool(
-        IrfEventSelector(),
-        argv=argv,
-    )
+    ret = run_tool(IrfEventSelector(), argv=argv)
     assert ret == 0
 
     result = OptimizationResultStore().read(output_path)

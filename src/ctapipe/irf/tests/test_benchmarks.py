@@ -72,12 +72,12 @@ def test_make_2d_ang_res(irf_events_table):
 
 @pytest.mark.skipif(sys.version_info.minor > 11, reason="Pyirf+numpy 2.0 errors out")
 def test_make_2d_sensitivity(
-    gamma_diffuse_full_reco_file, proton_full_reco_file, irf_events_loader_test_config
+    gamma_diffuse_full_reco_file, proton_full_reco_file, irf_event_loader_test_config
 ):
     from ctapipe.irf import EventLoader, Sensitivity2dMaker, Spectra
 
     gamma_loader = EventLoader(
-        config=irf_events_loader_test_config,
+        config=irf_event_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
@@ -87,7 +87,7 @@ def test_make_2d_sensitivity(
         obs_time=u.Quantity(50, u.h),
     )
     proton_loader = EventLoader(
-        config=irf_events_loader_test_config,
+        config=irf_event_loader_test_config,
         kind="protons",
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,

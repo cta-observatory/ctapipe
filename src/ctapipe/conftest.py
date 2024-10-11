@@ -711,17 +711,22 @@ def provenance(monkeypatch):
 
 
 @pytest.fixture(scope="session")
+def irf_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("irf")
+
+
+@pytest.fixture(scope="session")
 def gamma_diffuse_full_reco_file(
     gamma_train_clf,
     particle_classifier_path,
-    model_tmp_path,
+    irf_tmp_path,
 ):
     """
     Energy reconstruction and geometric origin reconstruction have already been done.
     """
     from ctapipe.tools.apply_models import ApplyModels
 
-    output_path = model_tmp_path / "gamma_diffuse_full_reco.dl2.h5"
+    output_path = irf_tmp_path / "gamma_diffuse_full_reco.dl2.h5"
     run_tool(
         ApplyModels(),
         argv=[
@@ -740,14 +745,14 @@ def gamma_diffuse_full_reco_file(
 def proton_full_reco_file(
     proton_train_clf,
     particle_classifier_path,
-    model_tmp_path,
+    irf_tmp_path,
 ):
     """
     Energy reconstruction and geometric origin reconstruction have already been done.
     """
     from ctapipe.tools.apply_models import ApplyModels
 
-    output_path = model_tmp_path / "proton_full_reco.dl2.h5"
+    output_path = irf_tmp_path / "proton_full_reco.dl2.h5"
     run_tool(
         ApplyModels(),
         argv=[
@@ -763,7 +768,7 @@ def proton_full_reco_file(
 
 
 @pytest.fixture(scope="session")
-def irf_events_loader_test_config():
+def irf_event_loader_test_config():
     from traitlets.config import Config
 
     return Config(

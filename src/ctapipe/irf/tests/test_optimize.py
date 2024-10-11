@@ -10,7 +10,7 @@ from ctapipe.irf import EventLoader, Spectra
 from ctapipe.irf.optimize import CutOptimizerBase
 
 
-def test_optimization_result_store(tmp_path, irf_events_loader_test_config):
+def test_optimization_result_store(tmp_path, irf_event_loader_test_config):
     from ctapipe.irf import (
         EventPreProcessor,
         OptimizationResult,
@@ -19,7 +19,7 @@ def test_optimization_result_store(tmp_path, irf_events_loader_test_config):
     )
 
     result_path = tmp_path / "result.h5"
-    epp = EventPreProcessor(irf_events_loader_test_config)
+    epp = EventPreProcessor(irf_event_loader_test_config)
     store = OptimizationResultStore(epp)
 
     with pytest.raises(
@@ -94,12 +94,12 @@ def test_cut_optimizer(
     Optimizer,
     gamma_diffuse_full_reco_file,
     proton_full_reco_file,
-    irf_events_loader_test_config,
+    irf_event_loader_test_config,
 ):
     from ctapipe.irf import OptimizationResultStore
 
     gamma_loader = EventLoader(
-        config=irf_events_loader_test_config,
+        config=irf_event_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
@@ -109,7 +109,7 @@ def test_cut_optimizer(
         obs_time=u.Quantity(50, u.h),
     )
     proton_loader = EventLoader(
-        config=irf_events_loader_test_config,
+        config=irf_event_loader_test_config,
         kind="protons",
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,

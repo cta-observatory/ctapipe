@@ -58,11 +58,11 @@ def test_normalise_column_names(dummy_table):
         _ = epp.normalise_column_names(dummy_table)
 
 
-def test_events_loader(gamma_diffuse_full_reco_file, irf_events_loader_test_config):
+def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config):
     from ctapipe.irf import EventLoader, Spectra
 
     loader = EventLoader(
-        config=irf_events_loader_test_config,
+        config=irf_event_loader_test_config,
         kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
