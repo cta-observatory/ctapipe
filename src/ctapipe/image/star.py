@@ -2,21 +2,20 @@ import copy
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.coordinates import EarthLocation
+from erfa import c2p, p2c
 
 from ctapipe.containers import StarContainer
 from ctapipe.coordinates import EngineeringCameraFrame
-from ctapipe.coordinates.utils import cart2pol, pol2cart
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     Dict,
     Float,
-    Integer,
 )
-from ctapipe.image import tailcuts_clean
-from ctapipe.image.extractor import VarianceExtractor
 from ctapipe.image.psf_model import PSFModel
 from ctapipe.utils.astro import get_bright_stars
+
+__all__ = ["VarianceImageCalibrator", "StarExtractor"]
 
 
 def get_expected_star_pixels(stars, camera_frame, geometry):
@@ -50,110 +49,16 @@ def get_star_pixel_mask(stars, camera_frame, geometry):
     return mask
 
 
-class VarianceImageProducer(TelescopeComponent):
+def VarianceImageCalibrator(event, tel_id):
+    # calibrate the image
 
-    """
-    Produces calibrated and cleaned star images from SkyField events
+    variance_image = event.monitoring.tel[tel_id].variance
 
+    ff = event.monitoring.tel[tel_id].FlatField
 
-    """
+    variance_image.image = np.divide(variance_image.image, np.square(ff.median))
 
-    tel_id = Integer(1, help="Telescope ID").tag(config=True)
-
-    telescope_location = Dict(
-        {"longitude": 342.108612, "latitude": 28.761389, "elevation": 2147},
-        help="Telescope location, longitude and latitude should be expressed in deg, "
-        "elevation - in meters",
-    ).tag(config=True)
-
-    lookup_radius = Float(2.0, help="Radius in degrees used to look up stars").tag(
-        config=True
-    )
-
-    cleaning = Dict(
-        {"bound_thresh": 750, "pic_thresh": 15000}, help="Image cleaning parameters"
-    ).tag(config=True)
-
-    telescope_location = Dict(
-        {"longitude": 342.108612, "latitude": 28.761389, "elevation": 2147},
-        help="Telescope location, longitude and latitude should be expressed in deg, "
-        "elevation - in meters",
-    ).tag(config=True)
-    max_star_magnitude = Float(
-        7.0, help="Maximal magnitude of the star to be considered in the " "analysis"
-    ).tag(config=True)
-
-    def __init__(self, subarray, **kwargs):
-        self.subarray = subarray
-        self.focal_length = self.subarray.tel[
-            self.tel_id
-        ].optics.equivalent_focal_length
-        self.camera_geometry = self.subarray.tel[self.tel_id].camera.geometry
-        self.location = EarthLocation(
-            lon=self.telescope_location["longitude"] * u.deg,
-            lat=self.telescope_location["latitude"] * u.deg,
-            height=self.telescope_location["elevation"] * u.m,
-        )
-
-    def __call__(self, event):
-        extractor = VarianceExtractor()
-
-        # get the pointing
-
-        pointing = SkyCoord(
-            alt=event.pointing.tel[self.tel_id].altitude,
-            az=event.pointing.tel[self.tel_id].azimuth,
-            frame=AltAz(),
-        )
-
-        # make a frame for the current pointing
-
-        camera_frame = EngineeringCameraFrame(
-            telescope_pointing=pointing,
-            focal_length=self.focal_length,
-            obstime=event.trigger.time.utc,
-            location=self.location,
-        )
-
-        stars = get_bright_stars(
-            pointing=pointing,
-            radius=self.lookup_radius * u.deg,
-            magnitude_cut=self.max_star_magnitude,
-        )
-
-        variance_image = extractor(
-            event.r1.tel[self.tel_id].waveform, self.tel_id, None, None
-        )
-
-        # calibrate the image
-
-        ff = event.monitoring.tel[self.tel_id].FlatField
-
-        variance_image.image = np.divide(variance_image.image, np.square(ff.median))
-
-        light_mask = tailcuts_clean(
-            self.camera_geometry,
-            event.dl1.tel[self.tel_id].image,
-            picture_thresh=self.cleaning["pic_thresh"],
-            boundary_thresh=self.cleaning["bound_thresh"],
-        )
-
-        shower_mask = copy.deepcopy(light_mask)
-
-        star_mask = get_star_pixel_mask(stars, camera_frame, self.geometry)
-
-        light_mask[star_mask] = True
-
-        broken_pixels = np.where(event.mon.tel[self.tel_id].calibration.unusable_pixels)
-
-        if broken_pixels is not None:
-            light_mask[broken_pixels] = True
-
-        mean_variance = np.mean(variance_image.image[:, ~light_mask])
-
-        variance_image.image[shower_mask] = mean_variance
-
-        return variance_image
+    return variance_image
 
 
 class StarExtractor(TelescopeComponent):
@@ -236,7 +141,7 @@ class StarExtractor(TelescopeComponent):
 
     def reco_star(self, image, star, time, frame, nsb_std):
         star_coords = star["ra_dec"].transform_to(frame)
-        rho, phi = cart2pol(star_coords.x.to_value(u.m), star_coords.y.to_value(u.m))
+        rho, phi = c2p([star_coords.x.to_value(u.m), star_coords.y.to_value(u.m), 0.0])
         if phi < 0:
             phi = phi + 2 * np.pi
 
@@ -273,9 +178,12 @@ class StarExtractor(TelescopeComponent):
         if np.any(np.isin(cluster, self.broken_pixels)):
             return star
 
-        rs, fs = cart2pol(
-            self.current_geometry.pix_x[cluster].to_value(u.m),
-            self.current_geometry.pix_y[cluster].to_value(u.m),
+        rs, fs = c2p(
+            [
+                self.current_geometry.pix_x[cluster].to_value(u.m),
+                self.current_geometry.pix_y[cluster].to_value(u.m),
+                0,
+            ]
         )
 
         k, r0, sr = self.psf_model.radial_pdf_params
@@ -298,7 +206,7 @@ class StarExtractor(TelescopeComponent):
             weights=image[cluster],
             returned=False,
         )
-        _, star.reco_phi = cart2pol(star.reco_x, star.reco_y)
+        _, star.reco_phi = c2p([star.reco_x, star.reco_y, 0])
         if star.reco_phi < 0:
             star.reco_phi = star.reco_phi + 2 * np.pi * u.rad
         star.reco_dx = (
@@ -315,7 +223,7 @@ class StarExtractor(TelescopeComponent):
         )
         star.reco_dr = np.sqrt(np.cov(rs, aweights=star_pdf[cluster])) * u.m
 
-        _, star.reco_dphi = cart2pol(star.reco_dx, star.reco_dy)
+        _, star.reco_dphi = c2p([star.reco_dx, star.reco_dy, 0])
 
         return star
 
@@ -349,7 +257,7 @@ class StarExtractor(TelescopeComponent):
                 self.log.debug("Calculate pdf for point")
                 val = self.psf_model.pdf(r_, f_) * dr * df
                 self.log.debug("PDF calculated")
-                x, y = pol2cart(r_, f_)
+                x, y, _ = p2c(r_, f_)
                 pixelN = self.current_geometry.position_to_pix_index(x * u.m, y * u.m)
                 if pixelN != -1:  # Some of the hits fall in the inter-pixel blind spots
                     image[pixelN] += val
