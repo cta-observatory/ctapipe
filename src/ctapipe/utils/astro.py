@@ -17,7 +17,7 @@ from astroquery.vizier import Vizier
 
 log = logging.getLogger("main")
 
-__all__ = ["get_bright_stars_with_motion", "get_bright_stars"]
+__all__ = ["get_bright_stars"]
 
 
 CACHE_FILE = Path("~/.psf_stars.ecsv").expanduser()
@@ -70,7 +70,7 @@ def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None
     return stars
 
 
-def get_bright_stars_with_motion(
+def get_bright_stars(
     pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None, catalog="Yale"
 ):  # max_magnitude):
     """
@@ -128,7 +128,7 @@ def get_bright_stars_with_motion(
             row_limit=1000000,
         )
 
-        stars = vizier.query_constraints(Vmag="0.0..100.0")[0]
+        stars = vizier.query_constraints(Vmag="0.0..10.0")[0]
         if "Bmag" in stars.keys():
             if Bmag_cut is not None:
                 stars.meta["Bmag_cut"] = Bmag_cut
@@ -156,50 +156,3 @@ def get_bright_stars_with_motion(
     )
 
     return stars
-
-
-def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
-    """
-    Get an astropy table of bright stars.
-
-    This function is using the Yale bright star catalog, available through ctapipe
-    data downloads.
-
-    The included Yale bright star catalog contains all 9096 stars, excluding the
-    Nova objects present in the original catalog and is complete down to magnitude
-    ~6.5, while the faintest included star has mag=7.96. :cite:p:`bright-star-catalog`
-
-    Parameters
-    ----------
-    pointing: astropy Skycoord
-       pointing direction in the sky (if none is given, full sky is returned)
-    radius: astropy angular units
-       Radius of the sky region around pointing position. Default: full sky
-    magnitude_cut: float
-        Return only stars above a given magnitude. Default: None (all entries)
-
-    Returns
-    -------
-    Astropy table:
-       List of all stars after cuts with names, catalog numbers, magnitudes,
-       and coordinates
-    """
-    from ctapipe.utils import get_table_dataset
-
-    catalog = get_table_dataset("yale_bright_star_catalog5", role="bright star catalog")
-
-    starpositions = SkyCoord(
-        ra=Angle(catalog["RAJ2000"], unit=u.deg),
-        dec=Angle(catalog["DEJ2000"], unit=u.deg),
-        frame="icrs",
-        copy=False,
-    )
-    catalog["ra_dec"] = starpositions
-
-    catalog = select_stars(
-        catalog, pointing=pointing, radius=radius, Vmag_cut=magnitude_cut
-    )
-
-    catalog.remove_columns(["RAJ2000", "DEJ2000"])
-
-    return catalog
