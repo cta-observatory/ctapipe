@@ -6,6 +6,7 @@ usage within ctapipe.
 """
 
 import logging
+from enum import Enum
 from pathlib import Path
 
 import astropy.units as u
@@ -22,7 +23,13 @@ __all__ = ["get_bright_stars_with_motion", "get_bright_stars"]
 CACHE_FILE = Path("~/.psf_stars.ecsv").expanduser()
 
 
-def cut_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None):
+class StarCatalogues(Enum):
+    Yale = "V/50/catalog"  # Yale bright star catalogue
+    Hippoarcos = "I/239/hip_main"  # hipparcos catalogue
+    Hubble = "II/342"  # Hubble source catalogue V1 and V2
+
+
+def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None):
     """
     utility function to cut stars based on magnitude and/or location
 
@@ -64,7 +71,7 @@ def cut_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None):
 
 
 def get_bright_stars_with_motion(
-    pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None, catalog="V/50/catalog"
+    pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None, catalog="Yale"
 ):  # max_magnitude):
     """
     Get an astropy table of bright stars from a VizieR catalog
@@ -82,7 +89,7 @@ def get_bright_stars_with_motion(
     Bmag_cut: float
         Return only stars above a given absolute magnitude. Default: None (all entries)
     catalog: string
-        The location of the catalog to be used. The hipparcos catalog is found at I/239/hip_main. Default: V/50/catalog
+        Name of the catalog to be used. Usable names are found in the Enum StarCatalogues. Default: Yale
 
     Returns
     -------
@@ -116,7 +123,7 @@ def get_bright_stars_with_motion(
         log.info("Querying Vizier for bright stars catalog")
         # query vizier for stars with 0 <= Vmag <= max_magnitude
         vizier = Vizier(
-            catalog=catalog,
+            catalog=str(StarCatalogues[catalog]),
             columns=["HR", "RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag"],
             row_limit=1000000,
         )
@@ -144,7 +151,7 @@ def get_bright_stars_with_motion(
         obstime=Time("J2000.0"),
     )
 
-    stars = cut_stars(
+    stars = select_stars(
         stars, pointing=pointing, radius=radius, Bmag_cut=Bmag_cut, Vmag_cut=Vmag_cut
     )
 
@@ -189,7 +196,7 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     )
     catalog["ra_dec"] = starpositions
 
-    catalog = cut_stars(
+    catalog = select_stars(
         catalog, pointing=pointing, radius=radius, Vmag_cut=magnitude_cut
     )
 
