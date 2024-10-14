@@ -121,7 +121,6 @@ class StarFitter:
         :param Quantity[u.hPa] pressure: Pressure [hPa]
         :param str fit_grid: Coordinate system grid to use. Either polar or cartesian
         """
-        self.stars = stars
         self.telescope_pointing = telescope_pointing
         self.telescope_location = telescope_location
         self.focal_length = focal_length
