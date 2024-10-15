@@ -312,10 +312,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Check if the camera has two gain channels
         if outlier_mask.shape[1] == 2:
             # Combine the outlier mask of both gain channels
-            outlier_mask = np.logical_or(
-                outlier_mask[:, 0, :],
-                outlier_mask[:, 1, :],
-            )
+            outlier_mask = np.logical_or.reduce(outlier_mask, axis=1)
         # Calculate the fraction of faulty pixels over the camera
         faulty_pixels = (
             np.count_nonzero(outlier_mask, axis=-1) / np.shape(outlier_mask)[-1]
