@@ -115,7 +115,7 @@ def test_outlier_detector(example_subarray):
                     },
                 ],
                 "chunk_shift": 500,
-                "faulty_pixels_threshold": 9.0,
+                "faulty_pixels_threshold": 0.09,
             },
             "SigmaClippingAggregator": {
                 "chunk_size": 1000,

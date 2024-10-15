@@ -33,7 +33,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
     This class holds two functions to conduct two different passes over the data with and without
     overlapping aggregation chunks. The first pass is conducted with non-overlapping chunks,
     while overlapping chunks can be set by the ``chunk_shift`` parameter for the second pass.
-    The second pass over the data is only conducted in regions of trouble with a high percentage
+    The second pass over the data is only conducted in regions of trouble with a high fraction
     of faulty pixels exceeding the threshold ``faulty_pixels_threshold``.
     """
 
@@ -68,12 +68,9 @@ class PixelStatisticsCalculator(TelescopeComponent):
     ).tag(config=True)
 
     faulty_pixels_threshold = Float(
-        default_value=10.0,
+        default_value=0.1,
         allow_none=True,
-        help=(
-            "Threshold in percentage of faulty pixels over the camera "
-            "to identify regions of trouble."
-        ),
+        help="Threshold of faulty pixels over the camera to identify regions of trouble.",
     ).tag(config=True)
 
     def __init__(
@@ -297,7 +294,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         Identify valid chunks based on the outlier mask.
 
         This method processes the outlier mask to determine which chunks of data
-        are considered valid or faulty. A chunk is marked as faulty if the percentage
+        are considered valid or faulty. A chunk is marked as faulty if the fraction
         of outlier pixels exceeds a predefined threshold ``faulty_pixels_threshold``.
 
         Parameters
@@ -320,9 +317,9 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 outlier_mask[:, 1, :],
             )
         # Calculate the fraction of faulty pixels over the camera
-        faulty_pixels_percentage = (
+        faulty_pixels = (
             np.count_nonzero(outlier_mask, axis=-1) / np.shape(outlier_mask)[-1]
-        ) * 100.0
+        )
         # Check for valid chunks if the threshold is not exceeded
-        valid_chunks = faulty_pixels_percentage < self.faulty_pixels_threshold
+        valid_chunks = faulty_pixels < self.faulty_pixels_threshold
         return valid_chunks
