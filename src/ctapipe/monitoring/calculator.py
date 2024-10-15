@@ -217,7 +217,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
         # Conduct a second pass over the data
         aggregated_stats_secondpass = []
-        faulty_chunks_indices = np.where(~valid_chunks)[0]
+        faulty_chunks_indices = np.flatnonzero(~valid_chunks)
         for index in faulty_chunks_indices:
             # Log information of the faulty chunks
             self.log.info(
