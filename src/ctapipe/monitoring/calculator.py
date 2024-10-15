@@ -140,12 +140,12 @@ class PixelStatisticsCalculator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            DL1-like table with images of shape (n_images, n_channels, n_pix), event IDs and
+            DL1-like table with images of shape (n_images, n_channels, n_pixels), event IDs and
             timestamps of shape (n_images, )
         tel_id : int
             Telescope ID for which the calibration is being performed
         masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_pix, ) that are not available for processing
+            Boolean array of masked pixels of shape (n_pixels, ) that are not available for processing
         col_name : str
             Column name in the table from which the statistics will be aggregated
 
@@ -195,14 +195,14 @@ class PixelStatisticsCalculator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            DL1-like table with images of shape (n_images, n_channels, n_pix), event IDs and timestamps of shape (n_images, ).
+            DL1-like table with images of shape (n_images, n_channels, n_pixels), event IDs and timestamps of shape (n_images, ).
         valid_chunks : ndarray
             Boolean array indicating the validity of each chunk from the first pass.
             Note: This boolean array can be a ``logical_and`` from multiple first passes of different calibration events.
         tel_id : int
             Telescope ID for which the calibration is being performed.
         masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_pix, ) that are not available for processing.
+            Boolean array of masked pixels of shape (n_pixels, ) that are not available for processing.
         col_name : str
             Column name in the table from which the statistics will be aggregated.
 
