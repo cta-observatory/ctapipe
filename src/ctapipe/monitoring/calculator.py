@@ -81,7 +81,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
         subarray,
         config=None,
         parent=None,
-        stats_aggregator=None,
         **kwargs,
     ):
         """
@@ -98,24 +97,16 @@ class PixelStatisticsCalculator(TelescopeComponent):
         parent: ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
-        stats_aggregator: ctapipe.monitoring.aggregator.StatisticsAggregator
-            The ``StatisticsAggregator`` to use. If None, the default via the
-            configuration system will be constructed.
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
         # Initialize the instances of StatisticsAggregator
-        self.stats_aggregator = {}
-        if stats_aggregator is None:
-            for _, _, name in self.stats_aggregator_type:
-                self.stats_aggregator[name] = StatisticsAggregator.from_name(
-                    name, subarray=self.subarray, parent=self
-                )
-        else:
-            name = stats_aggregator.__class__.__name__
-            self.stats_aggregator_type = [("type", "*", name)]
-            self.stats_aggregator[name] = stats_aggregator
+        self.stats_aggregators = {}
+        for _, _, name in self.stats_aggregator_type:
+            self.stats_aggregators[name] = StatisticsAggregator.from_name(
+                name, subarray=self.subarray, parent=self
+            )
 
         # Initialize the instances of OutlierDetector
         self.outlier_detectors = {}
@@ -164,7 +155,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
             Table containing the aggregated statistics, their outlier masks, and the validity of the chunks
         """
         # Get the aggregator
-        aggregator = self.stats_aggregator[self.stats_aggregator_type.tel[tel_id]]
+        aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
         # Pass through the whole provided dl1 table
         aggregated_stats = aggregator(
             table=table,
@@ -231,7 +222,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 "All chunks are valid. The second pass over the data is redundant."
             )
         # Get the aggregator
-        aggregator = self.stats_aggregator[self.stats_aggregator_type.tel[tel_id]]
+        aggregator = self.stats_aggregators[self.stats_aggregator_type.tel[tel_id]]
         # Conduct a second pass over the data
         aggregated_stats_secondpass = []
         faulty_chunks_indices = np.where(~valid_chunks)[0]
