@@ -26,7 +26,6 @@ CACHE_FILE = Path("~/.psf_stars.ecsv").expanduser()
 class StarCatalogues(Enum):
     Yale = "V/50/catalog"  # Yale bright star catalogue
     Hippoarcos = "I/239/hip_main"  # hipparcos catalogue
-    Hubble = "II/342"  # Hubble source catalogue V1 and V2
 
 
 def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None):
@@ -54,8 +53,12 @@ def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None
 
     if Bmag_cut is not None and "Bmag" in stars.keys():
         stars = stars[stars["Bmag"] < Bmag_cut]
+    elif Bmag_cut is not None and "BTmag" in stars.keys():
+        stars = stars[stars["BTmag"] < Bmag_cut]
     if Vmag_cut is not None and "Vmag" in stars.keys():
         stars = stars[stars["Vmag"] < Vmag_cut]
+    elif Vmag_cut is not None and "VTmag" in stars.keys():
+        stars = stars[stars["VTmag"] < Vmag_cut]
 
     if radius is not None:
         if pointing is None:
@@ -104,18 +107,25 @@ def get_bright_stars(
         log.info("Loading stars from cached table")
         try:
             stars = Table.read(CACHE_FILE)
-            if Bmag_cut is not None:
-                if stars.meta["Bmag_cut"] >= Bmag_cut:
-                    log.debug(f"Loaded table is valid for { Bmag_cut= }")
-                else:
-                    log.debug("Loaded cache table has smaller magnitude_cut, reloading")
-                    stars = None
-            if Vmag_cut is not None:
-                if stars.meta["Vmag_cut"] >= Vmag_cut:
-                    log.debug(f"Loaded table is valid for {Vmag_cut= }")
-                else:
-                    log.debug("Loaded cache table has smaller magnitude_cut, reloading")
-                    stars = None
+            if stars.meta["Catalog"] == StarCatalogues[catalog].value:
+                if Bmag_cut is not None and "Bmag_cut" in stars.meta.keys():
+                    if stars.meta["Bmag_cut"] >= Bmag_cut:
+                        log.debug(f"Loaded table is valid for { Bmag_cut= }")
+                    else:
+                        log.debug(
+                            "Loaded cache table has smaller magnitude_cut, reloading"
+                        )
+                        stars = None
+                if Vmag_cut is not None and "Vmag_cut" in stars.meta.keys():
+                    if stars.meta["Vmag_cut"] >= Vmag_cut:
+                        log.debug(f"Loaded table is valid for {Vmag_cut= }")
+                    else:
+                        log.debug(
+                            "Loaded cache table has smaller magnitude_cut, reloading"
+                        )
+                        stars = None
+            else:
+                stars = None
         except Exception:
             log.exception("Cache file exists but reading failed. Recreating")
 
@@ -123,8 +133,18 @@ def get_bright_stars(
         log.info("Querying Vizier for bright stars catalog")
         # query vizier for stars with 0 <= Vmag <= max_magnitude
         vizier = Vizier(
-            catalog=str(StarCatalogues[catalog]),
-            columns=["HR", "RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag"],
+            catalog=StarCatalogues[catalog].value,
+            columns=[
+                "recno",
+                "RAJ2000",
+                "DEJ2000",
+                "pmRA",
+                "pmDE",
+                "Vmag",
+                "Bmag",
+                "BTmag",
+                "VTmag",
+            ],
             row_limit=1000000,
         )
 
@@ -139,6 +159,7 @@ def get_bright_stars(
                 stars.meta["Vmag_cut"] = Vmag_cut
         elif Vmag_cut is not None:
             log.exception("The chosen catalog does not have Vmag data")
+        stars.meta["Catalog"] = StarCatalogues[catalog].value
 
         stars.write(CACHE_FILE, overwrite=True)
 
