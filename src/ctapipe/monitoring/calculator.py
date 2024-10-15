@@ -164,12 +164,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
             chunk_shift=None,
         )
         # Detect faulty pixels with multiple instances of ``OutlierDetector``
-        outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
-        for aggregated_val, outlier_detector in self.outlier_detectors.items():
-            outlier_mask = np.logical_or(
-                outlier_mask,
-                outlier_detector(aggregated_stats[aggregated_val]),
-            )
+        outlier_mask = self._find_outliers(aggregated_stats)
         # Add the outlier mask to the aggregated statistics
         aggregated_stats["outlier_mask"] = outlier_mask
         # Get valid chunks and add them to the aggregated statistics
@@ -202,7 +197,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         tel_id : int
             Telescope ID for which the calibration is being performed.
         masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_pixels, ) that are not available for processing.
+            Boolean array of masked pixels of shape (n_pixels, ) that are not available for processing due to hardware failure.
         col_name : str
             Column name in the table from which the statistics will be aggregated.
 
@@ -264,23 +259,38 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Stack the aggregated statistics of each faulty chunk
         aggregated_stats_secondpass = vstack(aggregated_stats_secondpass)
         # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
-        outlier_mask_secondpass = np.zeros_like(
-            aggregated_stats_secondpass["mean"], dtype=bool
-        )
-        for (
-            aggregated_val,
-            outlier_detector,
-        ) in self.outlier_detectors.items():
-            outlier_mask_secondpass = np.logical_or(
-                outlier_mask_secondpass,
-                outlier_detector(aggregated_stats_secondpass[aggregated_val]),
-            )
+        outlier_mask_secondpass = self._find_outliers(aggregated_stats_secondpass)
         # Add the outlier mask to the aggregated statistics
         aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
         aggregated_stats_secondpass["is_valid"] = self._get_valid_chunks(
             outlier_mask_secondpass
         )
         return aggregated_stats_secondpass
+
+    def _find_outliers(self, aggregated_stats):
+        """
+        Find outliers in the aggregated statistics.
+
+        This method detects outliers in the aggregated statistics using the
+        outlier detectors defined in the configuration.
+
+        Parameters
+        ----------
+        aggregated_stats : astropy.table.Table
+            Table containing the aggregated statistics.
+
+        Returns
+        -------
+        numpy.ndarray
+            Boolean array indicating outlier pixels.
+        """
+        outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
+        for aggregated_val, outlier_detector in self.outlier_detectors.items():
+            outlier_mask = np.logical_or(
+                outlier_mask,
+                outlier_detector(aggregated_stats[aggregated_val]),
+            )
+        return outlier_mask
 
     def _get_valid_chunks(self, outlier_mask):
         """
