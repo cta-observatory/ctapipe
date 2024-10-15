@@ -65,10 +65,10 @@ class StatisticsAggregator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            table with images of shape (n_images, n_channels, n_pix), event IDs and
+            table with images of shape (n_images, n_channels, n_pixels), event IDs and
             timestamps of shape (n_images, )
         masked_pixels_of_sample : ndarray, optional
-            boolean array of masked pixels of shape (n_pix, ) that are not available for processing
+            boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing
         chunk_shift : int, optional
             number of samples to shift between the start of consecutive chunks
         col_name : string

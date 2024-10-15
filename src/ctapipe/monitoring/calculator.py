@@ -142,7 +142,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         tel_id : int
             Telescope ID for which the calibration is being performed
         masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_pixels, ) that are not available for processing
+            Boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing
         col_name : str
             Column name in the table from which the statistics will be aggregated
 
@@ -194,7 +194,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
         tel_id : int
             Telescope ID for which the calibration is being performed.
         masked_pixels_of_sample : ndarray, optional
-            Boolean array of masked pixels of shape (n_pixels, ) that are not available for processing due to hardware failure.
+            Boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing.
         col_name : str
             Column name in the table from which the statistics will be aggregated.
 
