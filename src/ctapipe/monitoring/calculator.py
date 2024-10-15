@@ -109,13 +109,13 @@ class PixelStatisticsCalculator(TelescopeComponent):
         self.outlier_detectors = {}
         if self.outlier_detector_list is not None:
             for outlier_detector in self.outlier_detector_list:
-                self.outlier_detectors[outlier_detector["apply_to"]] = (
-                    OutlierDetector.from_name(
-                        name=outlier_detector["name"],
-                        validity_range=outlier_detector["validity_range"],
-                        subarray=self.subarray,
-                        parent=self,
-                    )
+                self.outlier_detectors[
+                    outlier_detector["apply_to"]
+                ] = OutlierDetector.from_name(
+                    name=outlier_detector["name"],
+                    validity_range=outlier_detector["validity_range"],
+                    subarray=self.subarray,
+                    parent=self,
                 )
 
     def first_pass(
