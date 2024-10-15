@@ -27,15 +27,25 @@ def test_statistics_calculator(example_subarray):
         [times, event_ids, charge_data],
         names=("time_mono", "event_id", "image"),
     )
-    # Initialize the aggregator and calculator
+    # Create configuration
     chunk_size = 1000
-    aggregator = PlainAggregator(subarray=example_subarray, chunk_size=chunk_size)
     chunk_shift = 500
-    calculator = PixelStatisticsCalculator(
-        subarray=example_subarray,
-        stats_aggregator=aggregator,
-        chunk_shift=chunk_shift,
+    config = Config(
+        {
+            "PixelStatisticsCalculator": {
+                "stats_aggregator_type": [
+                    ("id", 1, "SigmaClippingAggregator"),
+                ],
+                "chunk_shift": chunk_shift,
+                "faulty_pixels_threshold": 0.09,
+            },
+            "SigmaClippingAggregator": {
+                "chunk_size": chunk_size,
+            },
+        }
     )
+    # Initialize the calculator from config
+    calculator = PixelStatisticsCalculator(subarray=example_subarray, config=config)
     # Compute the statistical values
     stats = calculator.first_pass(table=charge_table, tel_id=1)
     # Set all chunks as faulty to aggregate the statistic values with a "global" chunk shift
