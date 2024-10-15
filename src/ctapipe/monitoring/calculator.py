@@ -109,13 +109,13 @@ class PixelStatisticsCalculator(TelescopeComponent):
         self.outlier_detectors = {}
         if self.outlier_detector_list is not None:
             for outlier_detector in self.outlier_detector_list:
-                self.outlier_detectors[
-                    outlier_detector["apply_to"]
-                ] = OutlierDetector.from_name(
-                    name=outlier_detector["name"],
-                    validity_range=outlier_detector["validity_range"],
-                    subarray=self.subarray,
-                    parent=self,
+                self.outlier_detectors[outlier_detector["apply_to"]] = (
+                    OutlierDetector.from_name(
+                        name=outlier_detector["name"],
+                        validity_range=outlier_detector["validity_range"],
+                        subarray=self.subarray,
+                        parent=self,
+                    )
                 )
 
     def first_pass(
@@ -161,11 +161,12 @@ class PixelStatisticsCalculator(TelescopeComponent):
             chunk_shift=None,
         )
         # Detect faulty pixels with multiple instances of ``OutlierDetector``
-        outlier_mask = self._find_outliers(aggregated_stats)
-        # Add the outlier mask to the aggregated statistics
-        aggregated_stats["outlier_mask"] = outlier_mask
+        # and append the outlier masks to the aggregated statistics
+        self._find_and_append_outliers(aggregated_stats)
         # Get valid chunks and add them to the aggregated statistics
-        aggregated_stats["is_valid"] = self._get_valid_chunks(outlier_mask)
+        aggregated_stats["is_valid"] = self._get_valid_chunks(
+            aggregated_stats["outlier_mask"]
+        )
         return aggregated_stats
 
     def second_pass(
@@ -256,38 +257,40 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Stack the aggregated statistics of each faulty chunk
         aggregated_stats_secondpass = vstack(aggregated_stats_secondpass)
         # Detect faulty pixels with multiple instances of OutlierDetector of the second pass
-        outlier_mask_secondpass = self._find_outliers(aggregated_stats_secondpass)
-        # Add the outlier mask to the aggregated statistics
-        aggregated_stats_secondpass["outlier_mask"] = outlier_mask_secondpass
+        # and append the outlier mask to the aggregated statistics
+        self._find_and_append_outliers(aggregated_stats_secondpass)
         aggregated_stats_secondpass["is_valid"] = self._get_valid_chunks(
-            outlier_mask_secondpass
+            aggregated_stats_secondpass["outlier_mask"]
         )
         return aggregated_stats_secondpass
 
-    def _find_outliers(self, aggregated_stats):
+    def _find_and_append_outliers(self, aggregated_stats):
         """
-        Find outliers in the aggregated statistics.
+        Find outliers and append the masks in the aggregated statistics.
 
         This method detects outliers in the aggregated statistics using the
-        outlier detectors defined in the configuration.
+        outlier detectors defined in the configuration. Table containing the
+        aggregated statistics will be appended with the outlier masks for each
+        detector and a combined outlier mask.
 
         Parameters
         ----------
         aggregated_stats : astropy.table.Table
             Table containing the aggregated statistics.
 
-        Returns
-        -------
-        numpy.ndarray
-            Boolean array indicating outlier pixels.
         """
         outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
-        for aggregated_val, outlier_detector in self.outlier_detectors.items():
+        for d, (aggregated_val, outlier_detector) in enumerate(
+            self.outlier_detectors.items()
+        ):
+            aggregated_stats[f"outlier_mask_detector_{d}"] = outlier_detector(
+                aggregated_stats[aggregated_val]
+            )
             outlier_mask = np.logical_or(
                 outlier_mask,
-                outlier_detector(aggregated_stats[aggregated_val]),
+                aggregated_stats[f"outlier_mask_detector_{d}"],
             )
-        return outlier_mask
+        aggregated_stats["outlier_mask"] = outlier_mask
 
     def _get_valid_chunks(self, outlier_mask):
         """
