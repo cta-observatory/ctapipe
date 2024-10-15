@@ -7,7 +7,6 @@ from astropy.table import Table, vstack
 from astropy.time import Time
 from traitlets.config.loader import Config
 
-from ctapipe.monitoring.aggregator import PlainAggregator
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 
