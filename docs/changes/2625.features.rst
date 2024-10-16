@@ -1,0 +1,4 @@
+Add ''get_bright_stars_with_motion'' to ctapipe.utils.astro
+this function allows to look up the position of stars
+around a specified location including proper motion.
+different catalogues can be used.
