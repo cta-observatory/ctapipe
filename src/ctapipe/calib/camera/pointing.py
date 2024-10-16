@@ -27,6 +27,7 @@ class StarTracker:
         relative_humidity,
         temperature,
         pressure,
+        magnitude=None,
         pointing_label=None,
     ):
         """
@@ -53,6 +54,7 @@ class StarTracker:
         self.temperature = temperature
         self.pressure = pressure
         self.pointing_label = pointing_label
+        self.magnitude = magnitude
 
     def position_in_camera_frame(self, timestamp, pointing=None, focal_correction=0):
         """
@@ -157,7 +159,7 @@ class StarFitter:
             pressure=self.pressure,
         )
         st = StarTracker(
-            star["Name"],
+            star["recno"],
             star_coords,
             self.telescope_location,
             self.focal_length,
