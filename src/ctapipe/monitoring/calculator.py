@@ -14,6 +14,7 @@ from ctapipe.core.traits import (
     Int,
     List,
     TelescopeParameter,
+    TraitError,
 )
 from ctapipe.monitoring.aggregator import StatisticsAggregator
 from ctapipe.monitoring.outlier import OutlierDetector
@@ -108,7 +109,17 @@ class PixelStatisticsCalculator(TelescopeComponent):
         # Initialize the instances of OutlierDetector
         self.outlier_detectors = {}
         if self.outlier_detector_list is not None:
-            for outlier_detector in self.outlier_detector_list:
+            for d, outlier_detector in enumerate(self.outlier_detector_list):
+                # Check if all required keys are present
+                missing_keys = {
+                    "apply_to",
+                    "name",
+                    "validity_range",
+                } - outlier_detector.keys()
+                if missing_keys:
+                    raise TraitError(
+                        f"Entry '{d}' in the ``outlier_detector_list`` trait is missing required key(s): {', '.join(missing_keys)}"
+                    )
                 self.outlier_detectors[
                     outlier_detector["apply_to"]
                 ] = OutlierDetector.from_name(
