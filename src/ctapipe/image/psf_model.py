@@ -9,6 +9,9 @@ from abc import abstractmethod
 import numpy as np
 from scipy.stats import laplace, laplace_asymmetric
 
+from ctapipe.core.component import non_abstract_children
+from ctapipe.core.plugins import detect_and_import_plugins
+
 
 class PSFModel:
     def __init__(self, **kwargs):
@@ -33,6 +36,26 @@ class PSFModel:
         """
         requested_subclass = cls.non_abstract_subclasses()[name]
         return requested_subclass(**kwargs)
+
+    @classmethod
+    def non_abstract_subclasses(cls):
+        """
+        Get a dict of all non-abstract subclasses of this class.
+
+        This method is using the entry-point plugin system
+        to also check for registered plugin implementations.
+
+        Returns
+        -------
+        subclasses : dict[str, type]
+            A dict mapping the name to the class of all found,
+            non-abstract  subclasses of this class.
+        """
+        if hasattr(cls, "plugin_entry_point"):
+            detect_and_import_plugins(cls.plugin_entry_point)
+
+        subclasses = {base.__name__: base for base in non_abstract_children(cls)}
+        return subclasses
 
     @abstractmethod
     def pdf(self, *args):
@@ -97,9 +120,9 @@ class ComaModel(PSFModel):
 
     def update_model_parameters(self, model_params):
         if not (
-            model_params["asymmetry_params"] == 3
-            and model_params["radial_scale_params"] == 4
-            and model_params["az_scale_params"] == 3
+            len(model_params["asymmetry_params"]) == 3
+            and len(model_params["radial_scale_params"]) == 4
+            and len(model_params["az_scale_params"]) == 3
         ):
             raise ValueError(
                 "asymmetry_params and az_scale_params needs to have length 3 and radial_scale_params length 4"
