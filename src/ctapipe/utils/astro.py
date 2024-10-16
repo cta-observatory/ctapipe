@@ -91,6 +91,8 @@ def get_star_catalog(catalog, filename):
             "recno",
             "RAJ2000",
             "DEJ2000",
+            "RAICRS",
+            "DEICRS",
             "pmRA",
             "pmDE",
             "Vmag",
@@ -179,6 +181,8 @@ def get_bright_stars(
                 "recno",
                 "RAJ2000",
                 "DEJ2000",
+                "RAICRS",
+                "DEICRS",
                 "pmRA",
                 "pmDE",
                 "Vmag",
@@ -204,14 +208,24 @@ def get_bright_stars(
 
         stars.write(CACHE_FILE, overwrite=True)
 
-    stars["ra_dec"] = SkyCoord(
-        ra=Angle(stars["RAJ2000"], unit=u.deg),
-        dec=Angle(stars["DEJ2000"], unit=u.deg),
-        pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
-        pm_dec=stars["pmDE"].quantity,
-        frame="icrs",
-        obstime=Time("J2000.0"),
-    )
+    if "RAJ2000" in stars.keys():
+        stars["ra_dec"] = SkyCoord(
+            ra=Angle(stars["RAJ2000"], unit=u.deg),
+            dec=Angle(stars["DEJ2000"], unit=u.deg),
+            pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
+            pm_dec=stars["pmDE"].quantity,
+            frame="icrs",
+            obstime=Time("J2000.0"),
+        )
+    elif "RAICRS" in stars.keys():
+        stars["ra_dec"] = SkyCoord(
+            ra=Angle(stars["RAICRS"], unit=u.deg),
+            dec=Angle(stars["DEICRS"], unit=u.deg),
+            pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
+            pm_dec=stars["pmDE"].quantity,
+            frame="icrs",
+            obstime=Time("J1991.25"),
+        )
 
     stars = select_stars(
         stars, pointing=pointing, radius=radius, Bmag_cut=Bmag_cut, Vmag_cut=Vmag_cut
