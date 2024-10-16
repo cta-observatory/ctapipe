@@ -13,7 +13,6 @@ import astropy.units as u
 from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
 from astropy.time import Time
-from astroquery.vizier import Vizier
 
 log = logging.getLogger("main")
 
@@ -73,6 +72,46 @@ def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None
     return stars
 
 
+def get_star_catalog(catalog, filename):
+    """
+    Utility function to download a star catalog for the get_bright_stars function
+
+    Parameters
+    ----------
+    catalog: string
+        Name of the catalog to be used. Usable names are found in the Enum StarCatalogues. Default: Yale
+    filename: string
+        Name and location of the catalog file to be produced
+    """
+    from astroquery.vizier import Vizier
+
+    vizier = Vizier(
+        catalog=StarCatalogues[catalog].value,
+        columns=[
+            "recno",
+            "RAJ2000",
+            "DEJ2000",
+            "pmRA",
+            "pmDE",
+            "Vmag",
+            "Bmag",
+            "BTmag",
+            "VTmag",
+        ],
+        row_limit=1000000,
+    )
+
+    stars = vizier.query_constraints(Vmag="0.0..10.0")[0]
+
+    if "Bmag" not in stars.keys():
+        log.exception("The chosen catalog does not have Bmag data")
+    if "Vmag" not in stars.keys():
+        log.exception("The chosen catalog does not have Vmag data")
+    stars.meta["Catalog"] = StarCatalogues[catalog].value
+
+    stars.write(CACHE_FILE, overwrite=True)
+
+
 def get_bright_stars(
     pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None, catalog="Yale"
 ):  # max_magnitude):
@@ -130,6 +169,8 @@ def get_bright_stars(
             log.exception("Cache file exists but reading failed. Recreating")
 
     if stars is None:
+        from astroquery.vizier import Vizier
+
         log.info("Querying Vizier for bright stars catalog")
         # query vizier for stars with 0 <= Vmag <= max_magnitude
         vizier = Vizier(

@@ -60,6 +60,7 @@ tests = [
     "pytest-xdist",
     "pytest_astropy_header",
     "tomli",
+    "astroquery",
 ]
 
 docs = [
