@@ -36,7 +36,7 @@ def test_statistics_calculator(example_subarray):
                     ("id", 1, "SigmaClippingAggregator"),
                 ],
                 "chunk_shift": chunk_shift,
-                "faulty_pixels_threshold": 0.09,
+                "faulty_pixels_fraction": 0.09,
             },
             "SigmaClippingAggregator": {
                 "chunk_size": chunk_size,
@@ -124,7 +124,7 @@ def test_outlier_detector(example_subarray):
                     },
                 ],
                 "chunk_shift": 500,
-                "faulty_pixels_threshold": 0.09,
+                "faulty_pixels_fraction": 0.09,
             },
             "SigmaClippingAggregator": {
                 "chunk_size": 1000,

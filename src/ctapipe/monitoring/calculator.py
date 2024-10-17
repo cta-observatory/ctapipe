@@ -35,7 +35,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
     overlapping aggregation chunks. The first pass is conducted with non-overlapping chunks,
     while overlapping chunks can be set by the ``chunk_shift`` parameter for the second pass.
     The second pass over the data is only conducted in regions of trouble with a high fraction
-    of faulty pixels exceeding the threshold ``faulty_pixels_threshold``.
+    of faulty pixels exceeding the threshold ``faulty_pixels_fraction``.
     """
 
     stats_aggregator_type = TelescopeParameter(
@@ -68,10 +68,10 @@ class PixelStatisticsCalculator(TelescopeComponent):
         ),
     ).tag(config=True)
 
-    faulty_pixels_threshold = Float(
+    faulty_pixels_fraction = Float(
         default_value=0.1,
         allow_none=True,
-        help="Threshold of faulty pixels over the camera to identify regions of trouble.",
+        help="Minimum fraction of faulty camera pixels to identify regions of trouble.",
     ).tag(config=True)
 
     def __init__(
@@ -309,7 +309,7 @@ class PixelStatisticsCalculator(TelescopeComponent):
 
         This method processes the outlier mask to determine which chunks of data
         are considered valid or faulty. A chunk is marked as faulty if the fraction
-        of outlier pixels exceeds a predefined threshold ``faulty_pixels_threshold``.
+        of outlier pixels exceeds a predefined threshold ``faulty_pixels_fraction``.
 
         Parameters
         ----------
@@ -332,5 +332,5 @@ class PixelStatisticsCalculator(TelescopeComponent):
             np.count_nonzero(outlier_mask, axis=-1) / np.shape(outlier_mask)[-1]
         )
         # Check for valid chunks if the threshold is not exceeded
-        valid_chunks = faulty_pixels < self.faulty_pixels_threshold
+        valid_chunks = faulty_pixels < self.faulty_pixels_fraction
         return valid_chunks
