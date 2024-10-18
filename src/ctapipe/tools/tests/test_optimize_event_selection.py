@@ -35,8 +35,8 @@ def test_cuts_optimization(
         f"--output={output_path}",
         f"--config={config_path}",
     ]
-    if not point_like:
-        argv.append("--full-enclosure")
+    if point_like:
+        argv.append("--point-like")
 
     ret = run_tool(IrfEventSelector(), argv=argv)
     assert ret == 0

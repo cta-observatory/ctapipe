@@ -162,11 +162,11 @@ class IrfTool(Tool):
         help="The parameterization of the point source sensitivity benchmark.",
     ).tag(config=True)
 
-    full_enclosure = Bool(
+    point_like = Bool(
         False,
         help=(
-            "Compute a full enclosure IRF by not applying a theta cut and only use"
-            " the G/H separation cut."
+            "Compute a point-like IRF by applying a theta cut (``RAD_MAX``) "
+            "which makes calculating a point spread function unnecessary."
         ),
     ).tag(config=True)
 
@@ -188,10 +188,10 @@ class IrfTool(Tool):
             "Do not compute background rate.",
         ),
         **flag(
-            "full-enclosure",
-            "IrfTool.full_enclosure",
-            "Compute a full-enclosure IRF.",
+            "point-like",
+            "IrfTool.point_like",
             "Compute a point-like IRF.",
+            "Compute a full-enclosure IRF.",
         ),
     }
 
@@ -211,7 +211,7 @@ class IrfTool(Tool):
     def setup(self):
         self.opt_result = OptimizationResultStore().read(self.cuts_file)
 
-        if not self.full_enclosure and self.opt_result.theta_cuts is None:
+        if self.point_like and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
                 "Computing a point-like IRF requires an (optimized) theta cut."
             )
@@ -261,7 +261,7 @@ class IrfTool(Tool):
         self.edisp = EnergyDispersionMakerBase.from_name(self.edisp_maker, parent=self)
         self.aeff = EffectiveAreaMakerBase.from_name(self.aeff_maker, parent=self)
 
-        if self.full_enclosure:
+        if not self.point_like:
             self.psf = PsfMakerBase.from_name(self.psf_maker, parent=self)
 
         if self.benchmarks_output_path is not None:
@@ -305,7 +305,7 @@ class IrfTool(Tool):
             self.opt_result.gh_cuts,
             operator.ge,
         )
-        if not self.full_enclosure:
+        if self.point_like:
             reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
                 reduced_events["gammas"]["theta"],
                 reduced_events["gammas"]["reco_energy"],
@@ -351,7 +351,7 @@ class IrfTool(Tool):
         hdus.append(
             self.aeff.make_aeff_hdu(
                 events=self.signal_events[self.signal_events["selected"]],
-                point_like=not self.full_enclosure,
+                point_like=self.point_like,
                 signal_is_point_like=self.signal_is_point_like,
                 sim_info=sim_info,
             )
@@ -359,10 +359,10 @@ class IrfTool(Tool):
         hdus.append(
             self.edisp.make_edisp_hdu(
                 events=self.signal_events[self.signal_events["selected"]],
-                point_like=not self.full_enclosure,
+                point_like=self.point_like,
             )
         )
-        if self.full_enclosure:
+        if not self.point_like:
             hdus.append(
                 self.psf.make_psf_hdu(
                     events=self.signal_events[self.signal_events["selected"]]
@@ -404,7 +404,7 @@ class IrfTool(Tool):
             )
         )
         if self.do_background:
-            if self.full_enclosure:
+            if not self.point_like:
                 # Create a dummy theta cut since `pyirf.sensitivity.estimate_background`
                 # needs a theta cut atm.
                 self.log.info(
@@ -498,7 +498,7 @@ class IrfTool(Tool):
             if self.edisp.fov_offset_n_bins > 1 or self.aeff.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
-            if self.full_enclosure and self.psf.fov_offset_n_bins > 1:
+            if not self.point_like and self.psf.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
             if self.do_background and self.bkg.fov_offset_n_bins > 1:
@@ -539,7 +539,7 @@ class IrfTool(Tool):
                         events=reduced_events["protons"][
                             reduced_events["protons"]["selected_gh"]
                         ],
-                        point_like=not self.full_enclosure,
+                        point_like=self.point_like,
                         signal_is_point_like=False,
                         sim_info=reduced_events["protons_meta"]["sim_info"],
                         extname="EFFECTIVE AREA PROTONS",
@@ -551,7 +551,7 @@ class IrfTool(Tool):
                         events=reduced_events["electrons"][
                             reduced_events["electrons"]["selected_gh"]
                         ],
-                        point_like=not self.full_enclosure,
+                        point_like=self.point_like,
                         signal_is_point_like=False,
                         sim_info=reduced_events["electrons_meta"]["sim_info"],
                         extname="EFFECTIVE AREA ELECTRONS",

@@ -36,6 +36,7 @@ def dummy_cuts_file(
             f"--electron-file={gamma_diffuse_full_reco_file}",
             f"--output={output_path}",
             f"--config={event_loader_config_path}",
+            "--point-like",
         ],
     )
     return output_path
@@ -63,8 +64,8 @@ def test_irf_tool(
         f"--output={output_path}",
         f"--config={event_loader_config_path}",
     ]
-    if not point_like:
-        argv.append("--full-enclosure")
+    if point_like:
+        argv.append("--point-like")
 
     if include_bkg:
         argv.append(f"--proton-file={proton_full_reco_file}")

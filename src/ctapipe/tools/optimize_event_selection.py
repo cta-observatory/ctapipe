@@ -84,9 +84,12 @@ class IrfEventSelector(Tool):
         help="The cut optimization algorithm to be used.",
     ).tag(config=True)
 
-    full_enclosure = Bool(
+    point_like = Bool(
         False,
-        help="Compute only the G/H separation cut needed for full enclosure IRF.",
+        help=(
+            "Compute a theta cut in addition to the G/H separation cut "
+            "for a point-like IRF."
+        ),
     ).tag(config=True)
 
     aliases = {
@@ -99,10 +102,10 @@ class IrfEventSelector(Tool):
 
     flags = {
         **flag(
-            "full-enclosure",
-            "IrfEventSelector.full_enclosure",
-            "Compute only the G/H separation cut.",
-            "Compute the G/H separation cut and the theta cut.",
+            "point-like",
+            "IrfEventSelector.point_like",
+            "Compute a theta cut and a G/H separation cut.",
+            "Compute only a G/H separation cut.",
         )
     }
 
@@ -197,7 +200,7 @@ class IrfEventSelector(Tool):
             alpha=self.alpha,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
-            point_like=not self.full_enclosure,
+            point_like=self.point_like,
         )
         self.result = result
 
