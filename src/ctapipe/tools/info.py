@@ -26,6 +26,7 @@ _dependencies = sorted(
         "iminuit",
         "tables",
         "eventio",
+        "pyirf",
     ]
 )
 
