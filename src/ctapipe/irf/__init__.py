@@ -19,7 +19,6 @@ from .irfs import (
 from .optimize import (
     GhPercentileCutCalculator,
     OptimizationResult,
-    OptimizationResultStore,
     PercentileCuts,
     PointSourceSensitivityOptimizer,
     ThetaPercentileCutCalculator,
@@ -37,7 +36,6 @@ __all__ = [
     "EffectiveArea2dMaker",
     "ResultValidRange",
     "OptimizationResult",
-    "OptimizationResultStore",
     "PointSourceSensitivityOptimizer",
     "PercentileCuts",
     "EventLoader",

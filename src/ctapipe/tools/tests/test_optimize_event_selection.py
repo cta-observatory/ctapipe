@@ -4,7 +4,7 @@ import astropy.units as u
 import pytest
 from astropy.table import QTable
 
-from ctapipe.core import run_tool
+from ctapipe.core import QualityQuery, run_tool
 
 
 @pytest.mark.parametrize("point_like", (True, False))
@@ -17,7 +17,6 @@ def test_cuts_optimization(
 ):
     from ctapipe.irf import (
         OptimizationResult,
-        OptimizationResultStore,
         ResultValidRange,
     )
     from ctapipe.tools.optimize_event_selection import IrfEventSelector
@@ -41,12 +40,13 @@ def test_cuts_optimization(
     ret = run_tool(IrfEventSelector(), argv=argv)
     assert ret == 0
 
-    result = OptimizationResultStore().read(output_path)
+    result = OptimizationResult.read(output_path)
     assert isinstance(result, OptimizationResult)
+    assert isinstance(result.precuts, QualityQuery)
     assert isinstance(result.valid_energy, ResultValidRange)
     assert isinstance(result.valid_offset, ResultValidRange)
     assert isinstance(result.gh_cuts, QTable)
-    assert result.gh_cuts.meta["CLFNAME"] == "ExtraTreesClassifier"
+    assert result.clf_prefix == "ExtraTreesClassifier"
     assert "cut" in result.gh_cuts.colnames
     if point_like:
         assert isinstance(result.theta_cuts, QTable)

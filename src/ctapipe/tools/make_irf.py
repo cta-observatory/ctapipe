@@ -15,7 +15,7 @@ from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, fla
 from ..irf import (
     EventLoader,
     EventPreProcessor,
-    OptimizationResultStore,
+    OptimizationResult,
     Spectra,
     check_bins_in_range,
 )
@@ -209,7 +209,7 @@ class IrfTool(Tool):
     )
 
     def setup(self):
-        self.opt_result = OptimizationResultStore().read(self.cuts_file)
+        self.opt_result = OptimizationResult.read(self.cuts_file)
 
         if self.point_like and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
@@ -452,14 +452,14 @@ class IrfTool(Tool):
                     quality_criteria=self.opt_result.precuts.quality_criteria,
                 )
 
-            if sel.epp.gammaness_classifier != self.opt_result.gh_cuts.meta["CLFNAME"]:
+            if sel.epp.gammaness_classifier != self.opt_result.clf_prefix:
                 raise RuntimeError(
                     "G/H cuts are only valid for gammaness scores predicted by "
                     "the same classifier model. Requested model: %s. "
                     "Model used for g/h cuts: %s."
                     % (
                         sel.epp.gammaness_classifier,
-                        self.opt_result.gh_cuts.meta["CLFNAME"],
+                        self.opt_result.clf_prefix,
                     )
                 )
 

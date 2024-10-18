@@ -5,49 +5,44 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-from ctapipe.core import non_abstract_children
+from ctapipe.core import QualityQuery, non_abstract_children
 from ctapipe.irf import EventLoader, Spectra
 from ctapipe.irf.optimize import CutOptimizerBase
 
 
-def test_optimization_result_store(tmp_path, irf_event_loader_test_config):
+def test_optimization_result(tmp_path, irf_event_loader_test_config):
     from ctapipe.irf import (
         EventPreProcessor,
         OptimizationResult,
-        OptimizationResultStore,
         ResultValidRange,
     )
 
     result_path = tmp_path / "result.h5"
     epp = EventPreProcessor(irf_event_loader_test_config)
-    store = OptimizationResultStore(epp)
-
-    with pytest.raises(
-        ValueError,
-        match="The results of this object have not been properly initialised",
-    ):
-        store.write(result_path)
-
     gh_cuts = QTable(
         data=[[0.2, 0.8, 1.5] * u.TeV, [0.8, 1.5, 10] * u.TeV, [0.82, 0.91, 0.88]],
         names=["low", "high", "cut"],
     )
-    store.set_result(
+    result = OptimizationResult(
+        precuts=epp,
         gh_cuts=gh_cuts,
-        valid_energy=[0.2 * u.TeV, 10 * u.TeV],
-        valid_offset=[0 * u.deg, np.inf * u.deg],
         clf_prefix="ExtraTreesClassifier",
+        valid_energy_min=0.2 * u.TeV,
+        valid_energy_max=10 * u.TeV,
+        valid_offset_min=0 * u.deg,
+        valid_offset_max=np.inf * u.deg,
         theta_cuts=None,
     )
-    store.write(result_path)
+    result.write(result_path)
     assert result_path.exists()
 
-    result = store.read(result_path)
-    assert isinstance(result, OptimizationResult)
-    assert isinstance(result.valid_energy, ResultValidRange)
-    assert isinstance(result.valid_offset, ResultValidRange)
-    assert isinstance(result.gh_cuts, QTable)
-    assert result.gh_cuts.meta["CLFNAME"] == "ExtraTreesClassifier"
+    loaded = OptimizationResult.read(result_path)
+    assert isinstance(loaded, OptimizationResult)
+    assert isinstance(loaded.precuts, QualityQuery)
+    assert isinstance(loaded.valid_energy, ResultValidRange)
+    assert isinstance(loaded.valid_offset, ResultValidRange)
+    assert isinstance(loaded.gh_cuts, QTable)
+    assert loaded.clf_prefix == "ExtraTreesClassifier"
 
 
 def test_gh_percentile_cut_calculator():
@@ -96,7 +91,7 @@ def test_cut_optimizer(
     proton_full_reco_file,
     irf_event_loader_test_config,
 ):
-    from ctapipe.irf import OptimizationResultStore
+    from ctapipe.irf import OptimizationResult
 
     gamma_loader = EventLoader(
         config=irf_event_loader_test_config,
@@ -128,8 +123,8 @@ def test_cut_optimizer(
         clf_prefix="ExtraTreesClassifier",
         point_like=True,
     )
-    assert isinstance(result, OptimizationResultStore)
-    assert len(result._results) == 4
-    assert result._results[1]["energy_min"] >= result._results[0]["low"][0]
-    assert result._results[1]["energy_max"] <= result._results[0]["high"][-1]
-    assert result._results[3]["cut"].unit == u.deg
+    assert isinstance(result, OptimizationResult)
+    assert result.clf_prefix == "ExtraTreesClassifier"
+    assert result.valid_energy.min >= result.gh_cuts["low"][0]
+    assert result.valid_energy.max <= result.gh_cuts["high"][-1]
+    assert result.theta_cuts["cut"].unit == u.deg
