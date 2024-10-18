@@ -435,7 +435,6 @@ class IrfTool(Tool):
     def start(self):
         reduced_events = dict()
         for sel in self.particles:
-            # TODO: not very elegant to pass them this way, refactor later
             if sel.epp.quality_criteria != self.opt_result.precuts.quality_criteria:
                 self.log.warning(
                     "Precuts are different from precuts used for calculating "
