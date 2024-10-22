@@ -109,18 +109,24 @@ def test_outlier_detector(example_subarray):
                 "outlier_detector_list": [
                     {
                         "apply_to": "mean",
-                        "name": "StdOutlierDetector",
-                        "validity_range": [-2.0, 2.0],
+                        "name": "MedianOutlierDetector",
+                        "config": {
+                            "median_range_factors": [-3.0, 3.0],
+                        },
                     },
                     {
                         "apply_to": "median",
                         "name": "StdOutlierDetector",
-                        "validity_range": [-3.0, 3.0],
+                        "config": {
+                            "std_range_factors": [-2.0, 2.0],
+                        },
                     },
                     {
                         "apply_to": "std",
                         "name": "RangeOutlierDetector",
-                        "validity_range": [2.0, 8.0],
+                        "config": {
+                            "validity_range": [2.0, 8.0],
+                        },
                     },
                 ],
                 "chunk_shift": 500,

@@ -97,7 +97,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
             this is mutually exclusive with passing ``config``
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self.subarray = subarray
 
         # Initialize the instances of StatisticsAggregator
         self.stats_aggregators = {}
@@ -106,27 +105,30 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 name, subarray=self.subarray, parent=self
             )
 
-        # Initialize the instances of OutlierDetector
-        self.outlier_detectors = {}
+        # Initialize the instances of OutlierDetector from the configuration
+        self.outlier_detectors, self.apply_to_list = [], []
         if self.outlier_detector_list is not None:
             for d, outlier_detector in enumerate(self.outlier_detector_list):
+                outlier_detector = outlier_detector.copy()
                 # Check if all required keys are present
                 missing_keys = {
                     "apply_to",
                     "name",
-                    "validity_range",
+                    "config",
                 } - outlier_detector.keys()
                 if missing_keys:
                     raise TraitError(
                         f"Entry '{d}' in the ``outlier_detector_list`` trait is missing required key(s): {', '.join(missing_keys)}"
                     )
-                self.outlier_detectors[
-                    outlier_detector["apply_to"]
-                ] = OutlierDetector.from_name(
-                    name=outlier_detector["name"],
-                    validity_range=outlier_detector["validity_range"],
-                    subarray=self.subarray,
-                    parent=self,
+                cls_name = outlier_detector.pop("name")
+                self.apply_to_list.append(outlier_detector.pop("apply_to"))
+                self.outlier_detectors.append(
+                    OutlierDetector.from_name(
+                        cls_name,
+                        subarray=self.subarray,
+                        parent=self,
+                        **outlier_detector["config"],
+                    )
                 )
 
     def first_pass(
@@ -291,11 +293,11 @@ class PixelStatisticsCalculator(TelescopeComponent):
 
         """
         outlier_mask = np.zeros_like(aggregated_stats["mean"], dtype=bool)
-        for d, (aggregated_val, outlier_detector) in enumerate(
-            self.outlier_detectors.items()
+        for d, (column_name, outlier_detector) in enumerate(
+            zip(self.apply_to_list, self.outlier_detectors)
         ):
             aggregated_stats[f"outlier_mask_detector_{d}"] = outlier_detector(
-                aggregated_stats[aggregated_val]
+                aggregated_stats[column_name]
             )
             outlier_mask = np.logical_or(
                 outlier_mask,
