@@ -109,7 +109,6 @@ class PixelStatisticsCalculator(TelescopeComponent):
         self.outlier_detectors, self.apply_to_list = [], []
         if self.outlier_detector_list is not None:
             for d, outlier_detector in enumerate(self.outlier_detector_list):
-                outlier_detector = outlier_detector.copy()
                 # Check if all required keys are present
                 missing_keys = {
                     "apply_to",
@@ -120,11 +119,10 @@ class PixelStatisticsCalculator(TelescopeComponent):
                     raise TraitError(
                         f"Entry '{d}' in the ``outlier_detector_list`` trait is missing required key(s): {', '.join(missing_keys)}"
                     )
-                cls_name = outlier_detector.pop("name")
-                self.apply_to_list.append(outlier_detector.pop("apply_to"))
+                self.apply_to_list.append(outlier_detector["apply_to"])
                 self.outlier_detectors.append(
                     OutlierDetector.from_name(
-                        cls_name,
+                        outlier_detector["name"],
                         subarray=self.subarray,
                         parent=self,
                         **outlier_detector["config"],
