@@ -56,7 +56,7 @@ def test_median_detection(example_subarray):
     # In this test, the interval [-0.9, 8] corresponds to multiplication factors
     # typical used for the median values of charge images of flat-field events
     detector = MedianOutlierDetector(
-        subarray=example_subarray, validity_range=[-0.9, 8.0]
+        subarray=example_subarray, median_range_factors=[-0.9, 8.0]
     )
     # Detect outliers
     outliers = detector(table["median"])
@@ -89,7 +89,7 @@ def test_std_detection(example_subarray):
     # typical used for the std values of charge images of flat-field events
     # and median (and std) values of charge images of pedestal events
     detector = StdOutlierDetector(
-        subarray=example_subarray, validity_range=[-15.0, 15.0]
+        subarray=example_subarray, std_range_factors=[-15.0, 15.0]
     )
     ff_outliers = detector(ff_table["std"])
     ped_outliers = detector(ped_table["median"])
