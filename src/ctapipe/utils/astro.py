@@ -14,19 +14,19 @@ from astropy.time import Time
 
 log = logging.getLogger("main")
 
-__all__ = ["get_bright_stars", "get_hipparcos_stars"]
+__all__ = ["get_bright_stars"]
 
 
 class StarCatalogues(Enum):
     Yale = {
         "directory": "V/50/catalog",
-        "band": ["V"],
-        "ID_type": "HR",
+        "columns": ["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "HR"],
+        "record": "yale_bright_star_catalog",
     }  #: Yale bright star catalogue
     Hipparcos = {
         "directory": "I/239/hip_main",
-        "band": ["V", "B"],
-        "ID_type": "HIP",
+        "columns": ["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "BTmag", "HIP"],
+        "record": "hipparcos_star_catalog",
     }  #: hipparcos catalogue
 
 
@@ -112,17 +112,9 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
 
     catalog_dict = StarCatalogues[catalog].value
 
-    columns = ["RAJ2000", "DEJ2000", "pmRA", "pmDE", catalog_dict["ID_type"]]
-    if "B" in catalog_dict["band"]:
-        columns.append("Bmag")
-        columns.append("BTmag")
-    elif "V" in catalog_dict["band"]:
-        columns.append("Vmag")
-        columns.append("VTmag")
-
     vizier = Vizier(
         catalog=catalog_dict["directory"],
-        columns=columns,
+        columns=catalog_dict["columns"],
         row_limit=row_limit,
     )
 
@@ -133,7 +125,9 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
     return stars
 
 
-def get_bright_stars(time, pointing=None, radius=None, magnitude_cut=None):
+def get_bright_stars(
+    time, catalog="Yale", pointing=None, radius=None, magnitude_cut=None
+):
     """
     Get an astropy table of bright stars from the Yale bright star catalog
 
@@ -141,6 +135,8 @@ def get_bright_stars(time, pointing=None, radius=None, magnitude_cut=None):
     ----------
     time: astropy Time
         time to which proper motion is applied
+    catalog : string
+        name of the catalog to be used available catalogues are 'Yale' and 'Hipparcos'. Default: 'Yale'
     pointing: astropy Skycoord
        pointing direction in the sky (if none is given, full sky is returned)
     radius: astropy angular units
@@ -157,51 +153,9 @@ def get_bright_stars(time, pointing=None, radius=None, magnitude_cut=None):
 
     from ctapipe.utils import get_table_dataset
 
-    stars = get_table_dataset("yale_bright_star_catalog5", role="bright star catalog")
+    cat = StarCatalogues[catalog].value
 
-    stars["ra_dec"] = SkyCoord(
-        ra=Angle(stars["RAJ2000"], unit=u.deg),
-        dec=Angle(stars["DEJ2000"], unit=u.deg),
-        pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
-        pm_dec=stars["pmDE"].quantity,
-        frame="icrs",
-        obstime=Time("J2000.0"),
-    )
-    stars["ra_dec"].apply_space_motion(new_obstime=time)
-    stars.remove_columns(["RAJ2000", "DEJ2000"])
-
-    stars = select_stars(
-        stars, pointing=pointing, radius=radius, Vmag_cut=magnitude_cut
-    )
-
-    return stars
-
-
-def get_hipparcos_stars(time, pointing=None, radius=None, magnitude_cut=None):
-    """
-    Get an astropy table of bright stars from the Hippoarcos star catalog
-
-    Parameters
-    ----------
-    time: astropy Time
-        time to which proper motion is applied
-    pointing: astropy Skycoord
-        pointing direction in the sky (if none is given, full sky is returned)
-    radius: astropy angular units
-        Radius of the sky region around pointing position. Default: full sky
-    magnitude_cut: float
-        Return only stars above a given absolute magnitude. Default: None (all entries)
-
-    Returns
-    -------
-    Astropy table:
-       List of all stars after cuts with catalog numbers, magnitudes,
-       and coordinates as SkyCoord objects including proper motion
-    """
-
-    from ctapipe.utils import get_table_dataset
-
-    stars = get_table_dataset("hipparcos_star_catalog5", role="bright star catalog")
+    stars = get_table_dataset(cat["record"], role="bright star catalog")
 
     stars["ra_dec"] = SkyCoord(
         ra=Angle(stars["RAJ2000"], unit=u.deg),
