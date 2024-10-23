@@ -97,6 +97,12 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
     ----------
     catalog: string
         Name of the catalog to be used. Usable names are found in the Enum StarCatalogues. Default: Yale
+    min_magnitude: float
+        Minimum value for magnitude used in lookup
+    max_magnitude: float
+        Maximum value for magnitude used in lookup
+    row_limit: int
+        Maximum number of rows for the star catalog lookup
 
     Returns
     ----------
@@ -135,12 +141,14 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
     return stars
 
 
-def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
+def get_bright_stars(time, pointing=None, radius=None, magnitude_cut=None):
     """
     Get an astropy table of bright stars from the Yale bright star catalog
 
     Parameters
     ----------
+    time: astropy Time
+        time to which proper motion is applied
     pointing: astropy Skycoord
        pointing direction in the sky (if none is given, full sky is returned)
     radius: astropy angular units
@@ -167,6 +175,7 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
         frame="galactic",
         obstime=Time("J2000.0"),
     )
+    stars["ra_dec"].apply_space_motion(new_obstime=time)
     stars.remove_columns(["RAJ2000", "DEJ2000"])
 
     stars = select_stars(
@@ -176,16 +185,18 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     return stars
 
 
-def get_hipparcos_stars(pointing=None, radius=None, magnitude_cut=None):
+def get_hipparcos_stars(time, pointing=None, radius=None, magnitude_cut=None):
     """
     Get an astropy table of bright stars from the Hippoarcos star catalog
 
     Parameters
     ----------
+    time: astropy Time
+        time to which proper motion is applied
     pointing: astropy Skycoord
-       pointing direction in the sky (if none is given, full sky is returned)
+        pointing direction in the sky (if none is given, full sky is returned)
     radius: astropy angular units
-       Radius of the sky region around pointing position. Default: full sky
+        Radius of the sky region around pointing position. Default: full sky
     magnitude_cut: float
         Return only stars above a given absolute magnitude. Default: None (all entries)
 
@@ -208,6 +219,7 @@ def get_hipparcos_stars(pointing=None, radius=None, magnitude_cut=None):
         frame="icrs",
         obstime=Time("J1991.25"),
     )
+    stars["ra_dec"].apply_space_motion(new_obstime=time)
     stars.remove_columns(["RAICRS", "DEICRS"])
 
     stars = select_stars(
