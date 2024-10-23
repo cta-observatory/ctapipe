@@ -18,8 +18,18 @@ __all__ = ["get_bright_stars", "get_hipparcos_stars"]
 
 
 class StarCatalogues(Enum):
-    Yale = "V/50/catalog"  #: Yale bright star catalogue
-    Hipparcos = "I/239/hip_main"  #: hipparcos catalogue
+    Yale = {
+        "directory": "V/50/catalog",
+        "band": "V",
+        "frame": "J2000",
+        "ID_type": "HR",
+    }  #: Yale bright star catalogue
+    Hipparcos = {
+        "directory": "I/239/hip_main",
+        "band": "V",
+        "frame": "ICRS",
+        "ID_type": "HIP",
+    }  #: hipparcos catalogue
 
 
 def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="B"):
@@ -79,7 +89,7 @@ def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="B"
     return stars
 
 
-def get_star_catalog(catalog):
+def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1000000):
     """
     Utility function to download a star catalog for the get_bright_stars function
 
@@ -96,24 +106,29 @@ def get_star_catalog(catalog):
     """
     from astroquery.vizier import Vizier
 
+    catalog_dict = StarCatalogues[catalog].value
+
+    columns = ["pmRA", "pmDE", catalog_dict["ID_type"]]
+    if catalog_dict["band"] == "B":
+        columns.append("Bmag")
+        columns.append("BTmag")
+    elif catalog_dict["band"] == "V":
+        columns.append("Vmag")
+        columns.append("VTmag")
+    if catalog_dict["frame"] == "J2000":
+        columns.append("RAJ2000")
+        columns.append("DEJ2000")
+    elif catalog_dict["frame"] == "ICRS":
+        columns.append("RAICRS")
+        columns.append("DEICRS")
+
     vizier = Vizier(
-        catalog=StarCatalogues[catalog].value,
-        columns=[
-            "HIP",  #: HIP is the Hippoarcos ID available for that catalog
-            "HR",  #: HR is the Harvard Revised Number available for the Yale catalog
-            "RAJ2000",
-            "DEJ2000",
-            "RAICRS",
-            "DEICRS",
-            "pmRA",
-            "pmDE",
-            "Vmag",
-            "Bmag",
-        ],
-        row_limit=1000000,
+        catalog=catalog_dict["directory"],
+        columns=columns,
+        row_limit=row_limit,
     )
 
-    stars = vizier.query_constraints(Vmag="0.0..10.0")[0]
+    stars = vizier.query_constraints(Vmag="{min_magnitude}..{max_magnitude}")[0]
 
     stars.meta["Catalog"] = StarCatalogues[catalog].value
 
