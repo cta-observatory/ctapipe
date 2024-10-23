@@ -20,13 +20,13 @@ __all__ = ["get_bright_stars", "get_hipparcos_stars"]
 class StarCatalogues(Enum):
     Yale = {
         "directory": "V/50/catalog",
-        "band": "V",
+        "band": ["V"],
         "frame": "J2000",
         "ID_type": "HR",
     }  #: Yale bright star catalogue
     Hipparcos = {
         "directory": "I/239/hip_main",
-        "band": "V",
+        "band": ["V", "B"],
         "frame": "ICRS",
         "ID_type": "HIP",
     }  #: hipparcos catalogue
@@ -115,10 +115,10 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
     catalog_dict = StarCatalogues[catalog].value
 
     columns = ["pmRA", "pmDE", catalog_dict["ID_type"]]
-    if catalog_dict["band"] == "B":
+    if "B" in catalog_dict["band"]:
         columns.append("Bmag")
         columns.append("BTmag")
-    elif catalog_dict["band"] == "V":
+    elif "V" in catalog_dict["band"]:
         columns.append("Vmag")
         columns.append("VTmag")
     if catalog_dict["frame"] == "J2000":
