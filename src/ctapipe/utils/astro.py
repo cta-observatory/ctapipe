@@ -21,13 +21,11 @@ class StarCatalogues(Enum):
     Yale = {
         "directory": "V/50/catalog",
         "band": ["V"],
-        "frame": "J2000",
         "ID_type": "HR",
     }  #: Yale bright star catalogue
     Hipparcos = {
         "directory": "I/239/hip_main",
         "band": ["V", "B"],
-        "frame": "ICRS",
         "ID_type": "HIP",
     }  #: hipparcos catalogue
 
@@ -114,19 +112,13 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
 
     catalog_dict = StarCatalogues[catalog].value
 
-    columns = ["pmRA", "pmDE", catalog_dict["ID_type"]]
+    columns = ["RAJ2000", "DEJ2000", "pmRA", "pmDE", catalog_dict["ID_type"]]
     if "B" in catalog_dict["band"]:
         columns.append("Bmag")
         columns.append("BTmag")
     elif "V" in catalog_dict["band"]:
         columns.append("Vmag")
         columns.append("VTmag")
-    if catalog_dict["frame"] == "J2000":
-        columns.append("RAJ2000")
-        columns.append("DEJ2000")
-    elif catalog_dict["frame"] == "ICRS":
-        columns.append("RAICRS")
-        columns.append("DEICRS")
 
     vizier = Vizier(
         catalog=catalog_dict["directory"],
@@ -172,7 +164,7 @@ def get_bright_stars(time, pointing=None, radius=None, magnitude_cut=None):
         dec=Angle(stars["DEJ2000"], unit=u.deg),
         pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
         pm_dec=stars["pmDE"].quantity,
-        frame="galactic",
+        frame="icrs",
         obstime=Time("J2000.0"),
     )
     stars["ra_dec"].apply_space_motion(new_obstime=time)
@@ -212,15 +204,15 @@ def get_hipparcos_stars(time, pointing=None, radius=None, magnitude_cut=None):
     stars = get_table_dataset("hipparcos_star_catalog5", role="bright star catalog")
 
     stars["ra_dec"] = SkyCoord(
-        ra=Angle(stars["RAICRS"], unit=u.deg),
-        dec=Angle(stars["DEICRS"], unit=u.deg),
+        ra=Angle(stars["RAJ2000"], unit=u.deg),
+        dec=Angle(stars["DEJ2000"], unit=u.deg),
         pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
         pm_dec=stars["pmDE"].quantity,
         frame="icrs",
-        obstime=Time("J1991.25"),
+        obstime=Time("J2000.0"),
     )
     stars["ra_dec"].apply_space_motion(new_obstime=time)
-    stars.remove_columns(["RAICRS", "DEICRS"])
+    stars.remove_columns(["RAJ2000", "DEJ2000"])
 
     stars = select_stars(
         stars, pointing=pointing, radius=radius, Vmag_cut=magnitude_cut
