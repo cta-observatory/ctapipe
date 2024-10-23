@@ -19,10 +19,10 @@ __all__ = ["get_bright_stars", "get_hipparcos_stars"]
 
 class StarCatalogues(Enum):
     Yale = "V/50/catalog"  #: Yale bright star catalogue
-    Hippoarcos = "I/239/hip_main"  #: hipparcos catalogue
+    Hipparcos = "I/239/hip_main"  #: hipparcos catalogue
 
 
-def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None):
+def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="B"):
     """
     utility function to cut stars based on magnitude and/or location
 
@@ -34,10 +34,10 @@ def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None
         pointing direction in the sky (if none is given, full sky is returned)
     radius: astropy angular units
         Radius of the sky region around pointing position. Default: full sky
-    Vmag_cut: float
+    magnitude_cut: float
         Return only stars above a given apparent magnitude. Default: None (all entries)
-    Bmag_cut: float
-        Return only stars above a given absolute magnitude. Default: None (all entries)
+    band: string
+        wavelength band to use for the magnitude cut options are V and B. Default: 'B' (all entries)
 
     Returns
     -------
@@ -45,14 +45,26 @@ def select_stars(stars, pointing=None, radius=None, Bmag_cut=None, Vmag_cut=None
        List of all stars after cuts with same keys as the input table stars
     """
 
-    if Bmag_cut is not None and "Bmag" in stars.keys():
-        stars = stars[stars["Bmag"] < Bmag_cut]
-    elif Bmag_cut is not None and "BTmag" in stars.keys():
-        stars = stars[stars["BTmag"] < Bmag_cut]
-    if Vmag_cut is not None and "Vmag" in stars.keys():
-        stars = stars[stars["Vmag"] < Vmag_cut]
-    elif Vmag_cut is not None and "VTmag" in stars.keys():
-        stars = stars[stars["VTmag"] < Vmag_cut]
+    if magnitude_cut is not None:
+        if band == "B":
+            if "Bmag" in stars.keys():
+                stars = stars[stars["Bmag"] < magnitude_cut]
+            elif "BTmag" in stars.keys():
+                stars = stars[stars["BTmag"] < magnitude_cut]
+            else:
+                raise ValueError(
+                    "The requested catalogue has no compatible magnitude for the B band"
+                )
+
+        if band == "V":
+            if "Vmag" in stars.keys():
+                stars = stars[stars["Vmag"] < magnitude_cut]
+            elif "VTmag" in stars.keys():
+                stars = stars[stars["VTmag"] < magnitude_cut]
+            else:
+                raise ValueError(
+                    "The requested catalogue has no compatible magnitude for the V band"
+                )
 
     if radius is not None:
         if pointing is None:
@@ -137,7 +149,7 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
         dec=Angle(stars["DEJ2000"], unit=u.deg),
         pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
         pm_dec=stars["pmDE"].quantity,
-        frame="icrs",
+        frame="galactic",
         obstime=Time("J2000.0"),
     )
     stars.remove_columns(["RAJ2000", "DEJ2000"])
@@ -171,7 +183,7 @@ def get_hipparcos_stars(pointing=None, radius=None, magnitude_cut=None):
 
     from ctapipe.utils import get_table_dataset
 
-    stars = get_table_dataset("hippoarcos_star_catalog5", role="bright star catalog")
+    stars = get_table_dataset("hipparcos_star_catalog5", role="bright star catalog")
 
     stars["ra_dec"] = SkyCoord(
         ra=Angle(stars["RAICRS"], unit=u.deg),
