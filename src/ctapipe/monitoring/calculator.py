@@ -117,7 +117,8 @@ class PixelStatisticsCalculator(TelescopeComponent):
                 } - outlier_detector.keys()
                 if missing_keys:
                     raise TraitError(
-                        f"Entry '{d}' in the ``outlier_detector_list`` trait is missing required key(s): {', '.join(missing_keys)}"
+                        f"Entry '{d}' in the ``outlier_detector_list`` trait"
+                        f"is missing required key(s): {', '.join(missing_keys)}"
                     )
                 self.apply_to_list.append(outlier_detector["apply_to"])
                 self.outlier_detectors.append(
