@@ -56,13 +56,6 @@ class EventPreProcessor(QualityQuery):
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
-    rename_columns = List(
-        help="List containing translation pairs new and old column names"
-        "used when processing input with names differing from the CTA prod5b format"
-        "Ex: [('alt_from_new_algorithm','reco_alt')]",
-        default_value=[],
-    ).tag(config=True)
-
     def normalise_column_names(self, events: Table) -> QTable:
         keep_columns = [
             "obs_id",
@@ -71,41 +64,21 @@ class EventPreProcessor(QualityQuery):
             "true_az",
             "true_alt",
         ]
-        standard_renames = {
-            "reco_energy": f"{self.energy_reconstructor}_energy",
-            "reco_az": f"{self.geometry_reconstructor}_az",
-            "reco_alt": f"{self.geometry_reconstructor}_alt",
-            "gh_score": f"{self.gammaness_classifier}_prediction",
-        }
-        rename_from = []
-        rename_to = []
-        # We never enter the loop if rename_columns is empty
-        for old, new in self.rename_columns:
-            if new in standard_renames.keys():
-                self.log.warning(
-                    f"Column '{old}' will be used as '{new}' "
-                    f"instead of {standard_renames[new]}."
-                )
-                standard_renames.pop(new)
-
-            rename_from.append(old)
-            rename_to.append(new)
-
-        for new, old in standard_renames.items():
-            if old in events.colnames:
-                rename_from.append(old)
-                rename_to.append(new)
-
-        # check that all needed reco columns are defined
-        for c in ["reco_energy", "reco_az", "reco_alt", "gh_score"]:
-            if c not in rename_to:
-                raise ValueError(
-                    f"No column corresponding to {c} is defined in "
-                    f"EventPreProcessor.rename_columns and {standard_renames[c]} "
-                    "is not in the given data."
-                )
-
+        rename_from = [
+            f"{self.energy_reconstructor}_energy",
+            f"{self.geometry_reconstructor}_az",
+            f"{self.geometry_reconstructor}_alt",
+            f"{self.gammaness_classifier}_prediction",
+        ]
+        rename_to = ["reco_energy", "reco_az", "reco_alt", "gh_score"]
         keep_columns.extend(rename_from)
+        for c in keep_columns:
+            if c not in events.colnames:
+                raise ValueError(
+                    "Input files must conform to the ctapipe DL2 data model. "
+                    f"Required column {c} is missing."
+                )
+
         events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
         events.rename_columns(rename_from, rename_to)
         return events
