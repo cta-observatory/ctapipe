@@ -11,6 +11,7 @@ from enum import Enum
 
 import astropy.units as u
 from astropy.coordinates import Angle, SkyCoord
+from astropy.table import Table
 from astropy.time import Time
 
 log = logging.getLogger("main")
@@ -24,10 +25,10 @@ class StarCatalogues(Enum):
         "coordinates": {
             "frame": "icrs",
             "epoch": "J2000.0",
-            "RA": {"column": "RAJ2000", "unit": "h:m:s"},
-            "DE": {"column": "DEJ2000", "unit": "d:m:s"},
-            "pmRA": {"column": "pmRA", "unit": "arsec/yr"},
-            "pmDE": {"column": "pmDE", "unit": "arsec/yr"},
+            "RA": {"column": "RAJ2000", "unit": "hourangle"},
+            "DE": {"column": "DEJ2000", "unit": "deg"},
+            "pmRA": {"column": "pmRA", "unit": "arcsec/yr"},
+            "pmDE": {"column": "pmDE", "unit": "arcsec/yr"},
         },
         #: Vmag is mandatory (used for initial magnitude cut)
         "columns": ["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "HR"],
@@ -158,11 +159,13 @@ def get_bright_stars(
        and coordinates as SkyCoord objects including proper motion
     """
 
-    from ctapipe.utils import get_table_dataset
+    from importlib.resources import files
 
     cat = StarCatalogues[catalog].value
+    record = cat["record"]
 
-    stars = get_table_dataset(cat["record"], role="bright star catalog")
+    with files("ctapipe").joinpath(f"resources/{record}.fits.gz") as f:
+        stars = Table.read(f)
 
     stars["ra_dec"] = SkyCoord(
         ra=Angle(
@@ -173,14 +176,8 @@ def get_bright_stars(
             stars[cat["coordinates"]["DE"]["column"]],
             unit=u.Unit(cat["coordinates"]["DE"]["unit"]),
         ),
-        pm_ra_cosdec=stars[
-            cat["coordinates"]["pmRA"]["column"]
-            * u.Unit(cat["coordinates"]["pmRA"]["unit"])
-        ],
-        pm_dec=stars[
-            cat["coordinates"]["pmDE"]["column"]
-            * u.Unit(cat["coordinates"]["pmDE"]["unit"])
-        ],
+        pm_ra_cosdec=stars[cat["coordinates"]["pmRA"]["column"]],
+        pm_dec=stars[cat["coordinates"]["pmDE"]["column"]],
         frame=cat["coordinates"]["frame"],
         obstime=Time(cat["coordinates"]["epoch"]),
     )
