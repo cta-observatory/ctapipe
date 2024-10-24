@@ -6,6 +6,7 @@ usage within ctapipe.
 """
 
 import logging
+from copy import deepcopy
 from enum import Enum
 
 import astropy.units as u
@@ -14,23 +15,41 @@ from astropy.time import Time
 
 log = logging.getLogger("main")
 
-__all__ = ["get_bright_stars"]
+__all__ = ["get_star_catalog", "get_bright_stars"]
 
 
 class StarCatalogues(Enum):
     Yale = {
         "directory": "V/50/catalog",
+        "coordinates": {
+            "frame": "icrs",
+            "epoch": "J2000.0",
+            "RA": {"column": "RAJ2000", "unit": "h:m:s"},
+            "DE": {"column": "DEJ2000", "unit": "d:m:s"},
+            "pmRA": {"column": "pmRA", "unit": "arsec/yr"},
+            "pmDE": {"column": "pmDE", "unit": "arsec/yr"},
+        },
+        #: Vmag is mandatory (used for initial magnitude cut)
         "columns": ["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "HR"],
         "record": "yale_bright_star_catalog",
     }  #: Yale bright star catalogue
     Hipparcos = {
         "directory": "I/239/hip_main",
-        "columns": ["RAJ2000", "DEJ2000", "pmRA", "pmDE", "Vmag", "BTmag", "HIP"],
+        "coordinates": {
+            "frame": "icrs",
+            "epoch": "J1991.25",
+            "RA": {"column": "RAICRS", "unit": "deg"},
+            "DE": {"column": "DEICRS", "unit": "deg"},
+            "pmRA": {"column": "pmRA", "unit": "mas/yr"},
+            "pmDE": {"column": "pmDE", "unit": "mas/yr"},
+        },
+        #: Vmag is mandatory (used for initial magnitude cut)
+        "columns": ["RAICRS", "DEICRS", "pmRA", "pmDE", "Vmag", "BTmag", "HIP"],
         "record": "hipparcos_star_catalog",
     }  #: hipparcos catalogue
 
 
-def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="B"):
+def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="Vmag"):
     """
     utility function to cut stars based on magnitude and/or location
 
@@ -53,41 +72,29 @@ def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="B"
        List of all stars after cuts with same keys as the input table stars
     """
 
-    if magnitude_cut is not None:
-        if band == "B":
-            if "Bmag" in stars.keys():
-                stars = stars[stars["Bmag"] < magnitude_cut]
-            elif "BTmag" in stars.keys():
-                stars = stars[stars["BTmag"] < magnitude_cut]
-            else:
-                raise ValueError(
-                    "The requested catalogue has no compatible magnitude for the B band"
-                )
+    stars_ = deepcopy(stars)
+    if magnitude_cut:
+        try:
+            stars_ = stars_[stars_[band] < magnitude_cut]
+        except KeyError:
+            raise ValueError(
+                f"The requested catalogue has no compatible magnitude for the {band} band"
+            )
 
-        if band == "V":
-            if "Vmag" in stars.keys():
-                stars = stars[stars["Vmag"] < magnitude_cut]
-            elif "VTmag" in stars.keys():
-                stars = stars[stars["VTmag"] < magnitude_cut]
-            else:
-                raise ValueError(
-                    "The requested catalogue has no compatible magnitude for the V band"
-                )
-
-    if radius is not None:
-        if pointing is None:
+    if radius:
+        if pointing:
+            stars_["separation"] = stars_["ra_dec"].separation(pointing)
+            stars_ = stars_[stars_["separation"] < radius]
+        else:
             raise ValueError(
                 "Sky pointing, pointing=SkyCoord(), must be "
                 "provided if radius is given."
             )
-        separations = stars["ra_dec"].separation(pointing)
-        stars["separation"] = separations
-        stars = stars[separations < radius]
 
-    return stars
+    return stars_
 
 
-def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1000000):
+def get_star_catalog(catalog, magnitude_cutoff=8.0, row_limit=1000000):
     """
     Utility function to download a star catalog for the get_bright_stars function
 
@@ -118,7 +125,7 @@ def get_star_catalog(catalog, min_magnitude=0.0, max_magnitude=10.0, row_limit=1
         row_limit=row_limit,
     )
 
-    stars = vizier.query_constraints(Vmag="{min_magnitude}..{max_magnitude}")[0]
+    stars = vizier.query_constraints(Vmag=f"<{magnitude_cutoff}")[0]
 
     stars.meta["Catalog"] = StarCatalogues[catalog].value
 
@@ -158,18 +165,36 @@ def get_bright_stars(
     stars = get_table_dataset(cat["record"], role="bright star catalog")
 
     stars["ra_dec"] = SkyCoord(
-        ra=Angle(stars["RAJ2000"], unit=u.deg),
-        dec=Angle(stars["DEJ2000"], unit=u.deg),
-        pm_ra_cosdec=stars["pmRA"].quantity,  # yes, pmRA is already pm_ra_cosdec
-        pm_dec=stars["pmDE"].quantity,
-        frame="icrs",
-        obstime=Time("J2000.0"),
+        ra=Angle(
+            stars[cat["coordinates"]["RA"]["column"]],
+            unit=u.Unit(cat["coordinates"]["RA"]["unit"]),
+        ),
+        dec=Angle(
+            stars[cat["coordinates"]["DE"]["column"]],
+            unit=u.Unit(cat["coordinates"]["DE"]["unit"]),
+        ),
+        pm_ra_cosdec=stars[
+            cat["coordinates"]["pmRA"]["column"]
+            * u.Unit(cat["coordinates"]["pmRA"]["unit"])
+        ],
+        pm_dec=stars[
+            cat["coordinates"]["pmDE"]["column"]
+            * u.Unit(cat["coordinates"]["pmDE"]["unit"])
+        ],
+        frame=cat["coordinates"]["frame"],
+        obstime=Time(cat["coordinates"]["epoch"]),
     )
-    stars["ra_dec"].apply_space_motion(new_obstime=time)
-    stars.remove_columns(["RAJ2000", "DEJ2000"])
+    stars["ra_dec"] = stars["ra_dec"].apply_space_motion(new_obstime=time)
+    stars["ra_dec"] = SkyCoord(
+        stars["ra_dec"].ra, stars["ra_dec"].dec, obstime=stars["ra_dec"].obstime
+    )
+
+    stars.remove_columns(
+        [cat["coordinates"]["RA"]["column"], cat["coordinates"]["DE"]["column"]]
+    )
 
     stars = select_stars(
-        stars, pointing=pointing, radius=radius, Vmag_cut=magnitude_cut
+        stars, pointing=pointing, radius=radius, magnitude_cut=magnitude_cut
     )
 
     return stars
