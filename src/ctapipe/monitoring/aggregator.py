@@ -57,7 +57,7 @@ class StatisticsAggregator(TelescopeComponent):
         and call the relevant function of the particular aggregator to compute aggregated statistic values.
         The chunks are generated in a way that ensures they do not overflow the bounds of the table.
         - If ``chunk_shift`` is None, chunks will not overlap, but the last chunk is ensured to be
-        of size `chunk_size`, even if it means the last two chunks will overlap.
+        of size ``chunk_size``, even if it means the last two chunks will overlap.
         - If ``chunk_shift`` is provided, it will determine the number of samples to shift between the start
         of consecutive chunks resulting in an overlap of chunks. Chunks that overflows the bounds
         of the table are not considered.
@@ -65,10 +65,10 @@ class StatisticsAggregator(TelescopeComponent):
         Parameters
         ----------
         table : astropy.table.Table
-            table with images of shape (n_images, n_channels, n_pix)
-            and timestamps of shape (n_images, )
+            table with images of shape (n_images, n_channels, n_pixels), event IDs and
+            timestamps of shape (n_images, )
         masked_pixels_of_sample : ndarray, optional
-            boolean array of masked pixels of shape (n_pix, ) that are not available for processing
+            boolean array of masked pixels of shape (n_channels, n_pixels) that are not available for processing
         chunk_shift : int, optional
             number of samples to shift between the start of consecutive chunks
         col_name : string
