@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Test ctapipe-process on a few different use cases
 """
@@ -488,3 +487,31 @@ def test_only_trigger_and_simulation(tmp_path):
         assert len(events) == 7
         assert "tels_with_trigger" in events.colnames
         assert "true_energy" in events.colnames
+
+
+@pytest.mark.parametrize(
+    ("input_url", "args"),
+    [
+        pytest.param(
+            "dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            ["--no-write-images", "--max-events=5"],
+            id="0.17",
+        )
+    ],
+)
+def test_on_old_file(input_url, args, tmp_path):
+    config = resource_file("stage1_config.json")
+
+    output_path = tmp_path / "test.dl1.h5"
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={input_url}",
+            f"--output={output_path}",
+            "--overwrite",
+            *args,
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
