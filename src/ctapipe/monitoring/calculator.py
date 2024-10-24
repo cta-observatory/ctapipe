@@ -53,8 +53,8 @@ class PixelStatisticsCalculator(TelescopeComponent):
         help=(
             "List of dicts containing the name of the OutlierDetector subclass to be used, "
             "the aggregated statistic value to which the detector should be applied, "
-            "and the validity range of the detector. "
-            "E.g. ``[{'apply_to': 'std', 'name': 'RangeOutlierDetector', 'validity_range': [2.0, 8.0]},]``."
+            "and the configuration of the specific detector. "
+            "E.g. ``[{'apply_to': 'std', 'name': 'RangeOutlierDetector', 'config': {'validity_range': [2.0, 8.0]}}]``."
         ),
     ).tag(config=True)
 
