@@ -4,7 +4,7 @@ import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import AstroQuantity, Bool, Float, Integer, classes_with_traits, flag
+from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import EventLoader, Spectra
 from ..irf.optimize import CutOptimizerBase
 
@@ -75,11 +75,6 @@ class IrfEventSelector(Tool):
             "Observation time in the form ``<value> <unit>``."
             " This is used for flux normalization when calculating sensitivities."
         ),
-    ).tag(config=True)
-
-    alpha = Float(
-        default_value=0.2,
-        help="Ratio between size of on and off regions when calculating sensitivities.",
     ).tag(config=True)
 
     optimization_algorithm = traits.ComponentName(
@@ -201,7 +196,6 @@ class IrfEventSelector(Tool):
             background=self.background_events
             if self.optimization_algorithm != "PercentileCuts"
             else None,
-            alpha=self.alpha,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
             point_like=self.point_like,

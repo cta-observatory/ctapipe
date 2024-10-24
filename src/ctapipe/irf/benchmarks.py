@@ -174,7 +174,8 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
     """Base class for calculating the point source sensitivity."""
 
     alpha = Float(
-        default_value=0.2, help="Ratio between size of the on and the off region."
+        default_value=0.2,
+        help="Size ratio of on region / off region.",
     ).tag(config=True)
 
     def __init__(self, parent=None, **kwargs):

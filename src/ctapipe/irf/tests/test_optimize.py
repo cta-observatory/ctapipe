@@ -118,7 +118,6 @@ def test_cut_optimizer(
     result = optimizer.optimize_cuts(
         signal=gamma_events,
         background=proton_events,
-        alpha=0.2,
         precuts=gamma_loader.epp,  # identical precuts for all particle types
         clf_prefix="ExtraTreesClassifier",
         point_like=True,

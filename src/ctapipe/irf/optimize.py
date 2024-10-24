@@ -177,7 +177,6 @@ class CutOptimizerBase(Component):
         self,
         signal: QTable,
         background: QTable,
-        alpha: float,
         precuts: EventPreProcessor,
         clf_prefix: str,
         point_like: bool,
@@ -192,8 +191,6 @@ class CutOptimizerBase(Component):
             Table containing signal events
         background: astropy.table.QTable
             Table containing background events
-        alpha: float
-            Size ratio of on region / off region
         precuts: ctapipe.irf.EventPreProcessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events
@@ -323,7 +320,6 @@ class PercentileCuts(CutOptimizerBase):
         self,
         signal: QTable,
         background: QTable,
-        alpha: float,
         precuts: EventPreProcessor,
         clf_prefix: str,
         point_like: bool,
@@ -386,6 +382,11 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         help="Stepsize used for scanning after optimal gammaness cut",
     ).tag(config=True)
 
+    alpha = Float(
+        default_value=0.2,
+        help="Size ratio of on region / off region.",
+    ).tag(config=True)
+
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.theta = ThetaPercentileCutCalculator(parent=self)
@@ -394,7 +395,6 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         self,
         signal: QTable,
         background: QTable,
-        alpha: float,
         precuts: EventPreProcessor,
         clf_prefix: str,
         point_like: bool,
@@ -453,7 +453,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
             theta_cuts=theta_cuts,
-            alpha=alpha,
+            alpha=self.alpha,
             fov_offset_max=self.max_bkg_fov_offset,
             fov_offset_min=self.min_bkg_fov_offset,
         )
