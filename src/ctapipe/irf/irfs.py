@@ -34,7 +34,7 @@ class PsfMakerBase(DefaultTrueEnergyBins):
     @abstractmethod
     def make_psf_hdu(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         """
-        Calculate the psf and create a fits binary table HDU in GAD format.
+        Calculate the psf and create a fits binary table HDU in GADF format.
 
         Parameters
         ----------
@@ -61,7 +61,7 @@ class BackgroundRateMakerBase(DefaultRecoEnergyBins):
     ) -> BinTableHDU:
         """
         Calculate the background rate and create a fits binary table HDU
-        in GAD format.
+        in GADF format.
 
         Parameters
         ----------
@@ -119,7 +119,7 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
     ) -> BinTableHDU:
         """
         Calculate the energy dispersion and create a fits binary table HDU
-        in GAD format.
+        in GADF format.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
     ) -> BinTableHDU:
         """
         Calculate the effective area and create a fits binary table HDU
-        in GAD format.
+        in GADF format.
 
         Parameters
         ----------

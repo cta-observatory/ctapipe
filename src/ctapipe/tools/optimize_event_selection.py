@@ -71,11 +71,15 @@ class IrfEventSelector(Tool):
     obs_time = AstroQuantity(
         default_value=u.Quantity(50, u.hour),
         physical_type=u.physical.time,
-        help="Observation time in the form ``<value> <unit>``",
+        help=(
+            "Observation time in the form ``<value> <unit>``."
+            " This is used for flux normalization when calculating sensitivities."
+        ),
     ).tag(config=True)
 
     alpha = Float(
-        default_value=0.2, help="Ratio between size of on and off regions."
+        default_value=0.2,
+        help="Ratio between size of on and off regions when calculating sensitivities.",
     ).tag(config=True)
 
     optimization_algorithm = traits.ComponentName(
