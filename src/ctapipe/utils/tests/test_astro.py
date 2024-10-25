@@ -2,9 +2,10 @@
 """
 This module contains the utils.astro unit tests
 """
+
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import AltAz, Angle, EarthLocation, SkyCoord
 from astropy.time import Time
 
 from ..astro import get_bright_stars
@@ -64,3 +65,8 @@ def test_get_bright_stars():
         polaris_2024.dec.to_value(unit="deg"),
         rtol=0.01,
     )
+    #  Check that the coordinate transformation works
+    location = EarthLocation(
+        lat=28.7616 * u.deg, lon=-17.8914 * u.deg, height=2200 * u.m
+    )
+    table_yale["ra_dec"].transform_to(AltAz(location=location, obstime=t))
