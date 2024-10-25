@@ -27,6 +27,16 @@ CatalogInfo = namedtuple(
 
 
 class StarCatalog(Enum):
+    """
+    Enumeration of star catalogs with their respective metadata.
+
+    Each catalog entry is represented as a namedtuple `CatalogInfo` containing:
+    - `directory`: The directory path of the catalog in the Vizier database.
+    - `coordinates`: A dictionary containing the coordinate frame, epoch, and column names for RA and DE.
+    - `columns`: A list of columns to be retrieved from the catalog.
+    - `record`: The name of the record in the catalog.
+    """
+
     Yale = CatalogInfo(
         directory="V/50/catalog",
         coordinates={
