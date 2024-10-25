@@ -11,7 +11,7 @@ from copy import deepcopy
 from enum import Enum
 
 import astropy.units as u
-from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import Angle, SkyCoord, UnitSphericalCosLatDifferential
 from astropy.table import Table
 from astropy.time import Time
 from astropy.units import Quantity
@@ -137,8 +137,10 @@ def get_star_catalog(
     )
 
     stars = vizier.query_constraints(Vmag=f"<{magnitude_cutoff}")[0]
+    meta = catalog_dict._asdict()
+    meta["magnitude_cutoff"] = magnitude_cutoff
 
-    stars.meta["Catalog"] = catalog_dict._asdict()
+    stars.meta["Catalog"] = meta
 
     return stars
 
@@ -197,8 +199,10 @@ def get_bright_stars(
         obstime=Time(cat.coordinates["epoch"]),
     )
     stars["ra_dec"] = stars["ra_dec"].apply_space_motion(new_obstime=time)
-    stars["ra_dec"] = SkyCoord(
-        stars["ra_dec"].ra, stars["ra_dec"].dec, obstime=stars["ra_dec"].obstime
+    stars["ra_dec"].data.differentials["s"] = (
+        stars["ra_dec"]
+        .data.differentials["s"]
+        .represent_as(UnitSphericalCosLatDifferential)
     )
 
     stars.remove_columns(
