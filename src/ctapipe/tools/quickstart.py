@@ -15,6 +15,7 @@ CONFIGS_TO_WRITE = [
     "stage1_config.yaml",
     "stage2_config.yaml",
     "ml_preprocessing_config.yaml",
+    "stats_calc_config.yaml",
     "train_energy_regressor.yaml",
     "train_particle_classifier.yaml",
     "train_disp_reconstructor.yaml",
