@@ -1,5 +1,7 @@
-Modifies ''get_bright_stars'' in ctapipe.utils.astro to include proper motion
-Add ''get_hipparcos_stars'' to use the Hippoarcos catalog to get star positions with proper motion
-this function allows to look up the position of stars
-around a specified location including proper motion.
-different catalogues can be used.
+Add possibility to use ``HIPPARCOS`` catalog to get star positions
+
+- add catalogs enumerator to ``ctapipe.utils.astro``
+- update ``get_bright_stars`` in ``ctapipe.utils.astro`` to allow catalog selection
+- ensure application of proper motion
+- add possibility to select stars on proximit to a given position and on apparent magnitude
+- move cached star catalogs to ``ctapipe/resources/``
