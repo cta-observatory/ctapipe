@@ -2,6 +2,7 @@
 """
 This module contains the utils.astro unit tests
 """
+import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
 from astropy.time import Time
@@ -13,36 +14,53 @@ def test_get_bright_stars():
     """
     unit test for utils.astro.get_bright_stars_with_motion().
     """
-    # TODO add tests for all catalogues, specifically by trying to find some particular bright star, also test that motion is properly included
-    eta_tau = SkyCoord(
-        ra=Angle("03 47 29.1", unit=u.deg),
-        dec=Angle("+24 06 18", unit=u.deg),
-        frame="icrs",
-    )
-    obstime = Time("2020-01-01")
+    # I will use polaris as a reference
+    from astroquery.vizier import Vizier
 
-    # lets find 25 Eta Tau
-
-    table = get_bright_stars(pointing=eta_tau, radius=1.0 * u.deg, Vmag_cut=3.5)
-
-    assert len(table) == 1  # this looks if 25 Eita Tau was found
-    # check that the star moves
-    assert table[0]["ra_dec"].apply_space_motion(obstime).ra != eta_tau.ra
-    assert table[0]["ra_dec"].apply_space_motion(obstime).dec != eta_tau.dec
-
-    # now test the other catalog. First get object 766 from the catalog
-
-    HIP_star = SkyCoord(
-        ra=Angle("00 08 23.2585712", unit=u.deg),
-        dec=Angle("+29 05 25.555166", unit=u.deg),
-        frame="icrs",
+    vizier = Vizier(
+        catalog="Nomad",
+        columns=["RAJ2000", "DEJ2000", "pmRA", "pmDE"],
+        row_limit=10,
     )
 
-    table = get_bright_stars(
-        pointing=HIP_star, radius=1.0 * u.deg, Vmag_cut=3.5, catalog="Hippoarcos"
+    polaris = vizier.query_object("polaris", radius=1 * u.Unit("arcsec"))[0][0]
+
+    t = Time("J2024")
+
+    polaris = SkyCoord(
+        ra=Angle(polaris["RAJ2000"], unit="deg"),
+        dec=Angle(polaris["DEJ2000"], unit="deg"),
+        pm_ra_cosdec=polaris["pmRA"] * u.Unit("mas/yr"),
+        pm_dec=polaris["pmDE"] * u.Unit("mas/yr"),
+        obstime=Time("J2000"),
     )
 
-    assert len(table) == 1
-    # now check that stars move
-    assert table[0]["ra_dec"].apply_space_motion(obstime).ra != eta_tau.ra
-    assert table[0]["ra_dec"].apply_space_motion(obstime).dec != eta_tau.dec
+    polaris_2024 = polaris.apply_space_motion(t)
+
+    table_yale = get_bright_stars(t, pointing=polaris_2024, radius=1 * u.Unit("arcsec"))
+    table_hip = get_bright_stars(
+        t, catalog="Hipparcos", pointing=polaris_2024, radius=1 * u.Unit("arcsec")
+    )
+
+    assert len(table_yale) == 1  # this looks if
+    assert len(table_hip) == 1
+    assert np.isclose(
+        table_yale[0]["ra_dec"].ra.to_value(unit="deg"),
+        polaris_2024.ra.to_value(unit="deg"),
+        rtol=0.01,
+    )
+    assert np.isclose(
+        table_yale[0]["ra_dec"].dec.to_value(unit="deg"),
+        polaris_2024.dec.to_value(unit="deg"),
+        rtol=0.01,
+    )
+    assert np.isclose(
+        table_hip[0]["ra_dec"].ra.to_value(unit="deg"),
+        polaris_2024.ra.to_value(unit="deg"),
+        rtol=0.01,
+    )
+    assert np.isclose(
+        table_hip[0]["ra_dec"].dec.to_value(unit="deg"),
+        polaris_2024.dec.to_value(unit="deg"),
+        rtol=0.01,
+    )

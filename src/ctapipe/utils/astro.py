@@ -82,7 +82,7 @@ def select_stars(stars, pointing=None, radius=None, magnitude_cut=None, band="Vm
                 f"The requested catalogue has no compatible magnitude for the {band} band"
             )
 
-    if radius:
+    if radius is not None:
         if pointing:
             stars_["separation"] = stars_["ra_dec"].separation(pointing)
             stars_ = stars_[stars_["separation"] < radius]
@@ -164,8 +164,8 @@ def get_bright_stars(
     cat = StarCatalogues[catalog].value
     record = cat["record"]
 
-    with files("ctapipe").joinpath(f"resources/{record}.fits.gz") as f:
-        stars = Table.read(f)
+    f = files("ctapipe").joinpath(f"resources/{record}.fits.gz")
+    stars = Table.read(f)
 
     stars["ra_dec"] = SkyCoord(
         ra=Angle(
