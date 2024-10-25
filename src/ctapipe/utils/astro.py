@@ -121,7 +121,7 @@ def get_star_catalog(
 
     Parameters
     ----------
-    catalog : str or StarCatalog
+    catalog : str or ctapipe.utils.astro.StarCatalog
         Name of the catalog to be used. Usable names are found in the Enum StarCatalog. Default: Yale.
     magnitude_cutoff : float, optional
         Maximum value for magnitude used in lookup. Default is 8.0.
@@ -169,7 +169,7 @@ def get_bright_stars(
     ----------
     time : astropy.time.Time
         Time to which proper motion is applied.
-    catalog : str or StarCatalog, optional
+    catalog : str or ctapipe.utils.astro.StarCatalog, optional
         Name of the catalog to be used. Available catalogues are 'Yale' and 'Hipparcos'. Default is 'Yale'.
     pointing : astropy.coordinates.SkyCoord, optional
         Pointing direction in the sky. If None is given, the full sky is returned.
