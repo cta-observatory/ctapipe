@@ -302,6 +302,9 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
+    b_uncertainty = Field(
+        nan * u.m, "rotated centroid y coordinate uncertainty", unit=u.m
+    )
 
 
 class HillasParametersContainer(BaseHillasParametersContainer):
@@ -331,6 +334,9 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
+    b_uncertainty = Field(
+        nan * u.m, "rotated centroid y coordinate uncertainty", unit=u.m
+    )
 
 
 class LeakageContainer(Container):
