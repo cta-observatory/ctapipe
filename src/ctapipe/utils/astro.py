@@ -18,7 +18,7 @@ from astropy.units import Quantity
 
 log = logging.getLogger("main")
 
-__all__ = ["get_star_catalog", "get_bright_stars"]
+__all__ = ["get_star_catalog", "get_bright_stars", "StarCatalog"]
 
 # Define a namedtuple to hold the catalog information
 CatalogInfo = namedtuple(
