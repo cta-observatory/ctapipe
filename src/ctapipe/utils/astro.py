@@ -5,6 +5,7 @@ not provided by external packages and/or to satisfy particular needs of
 usage within ctapipe.
 """
 
+import json
 import logging
 from collections import namedtuple
 from copy import deepcopy
@@ -157,7 +158,7 @@ def get_star_catalog(
     meta = catalog_info._asdict()
     meta["magnitude_cutoff"] = magnitude_cutoff
 
-    stars.meta["Catalog"] = meta
+    stars.meta["Catalog"] = json.dumps(meta)
 
     return stars
 
