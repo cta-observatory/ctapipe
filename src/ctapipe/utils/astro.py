@@ -145,16 +145,16 @@ def get_star_catalog(
 
     if isinstance(catalog, str):
         catalog = StarCatalog[catalog]
-    catalog_dict = catalog.value
+    catalog_info = catalog.value
 
     vizier = Vizier(
-        catalog=catalog_dict.directory,
-        columns=catalog_dict.columns,
+        catalog=catalog_info.directory,
+        columns=catalog_info.columns,
         row_limit=row_limit,
     )
 
     stars = vizier.query_constraints(Vmag=f"<{magnitude_cutoff}")[0]
-    meta = catalog_dict._asdict()
+    meta = catalog_info._asdict()
     meta["magnitude_cutoff"] = magnitude_cutoff
 
     stars.meta["Catalog"] = meta
@@ -191,15 +191,16 @@ def get_bright_stars(
         List of all stars after applying the cuts, with catalog numbers, magnitudes,
         and coordinates as SkyCoord objects including proper motion.
     """
-    from importlib.resources import files
+    from importlib.resources import as_file, files
 
     if isinstance(catalog, str):
         catalog = StarCatalog[catalog]
     cat = catalog.value
     record = cat.record
 
-    f = files("ctapipe").joinpath(f"resources/{record}.fits.gz")
-    stars = Table.read(f)
+    # f = files("ctapipe").joinpath(f"resources/{record}.fits.gz")
+    with as_file(files("ctapipe").joinpath(f"resources/{record}.fits.gz")) as f:
+        stars = Table.read(f)
 
     stars["ra_dec"] = SkyCoord(
         ra=Angle(
