@@ -198,7 +198,6 @@ def get_bright_stars(
     cat = catalog.value
     record = cat.record
 
-    # f = files("ctapipe").joinpath(f"resources/{record}.fits.gz")
     with as_file(files("ctapipe").joinpath(f"resources/{record}.fits.gz")) as f:
         stars = Table.read(f)
 
