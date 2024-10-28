@@ -17,6 +17,7 @@ Data Processing Tools
 * ``ctapipe-quickstart``: create some default analysis configurations and a working directory
 * ``ctapipe-process``: Process event data in any supported format from R0/R1/DL0 to DL1 or DL2 HDF5 files.
 * ``ctapipe-apply-models``: Tool to apply machine learning models in bulk (as opposed to event by event).
+* ``ctapipe-stats-calculation``: Tool to aggregate statistics and detect outliers from DL1a image data.
 * ``ctapipe-train-disp-reconstructor`` : Train the ML models for the  `ctapipe.reco.DispReconstructor` (monoscopic reconstruction)
 * ``ctapipe-train-energy-regressor``:  Train the ML models for the `ctapipe.reco.EnergyRegressor` (energy estimation)
 * ``ctapipe-train-particle-classifier``: Train the ML models for the  `ctapipe.reco.ParticleClassifier` (gamma-hadron separation)
