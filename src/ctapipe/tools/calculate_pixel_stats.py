@@ -1,5 +1,5 @@
 """
-Perform statistics calculation from DL1a image data
+Perform statistics calculation from pixel-wise image data
 """
 
 import pathlib
@@ -11,7 +11,6 @@ from ctapipe.core import Tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.core.traits import (
     Bool,
-    CaselessStrEnum,
     CInt,
     Path,
     Set,
@@ -26,21 +25,21 @@ from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 class StatisticsCalculatorTool(Tool):
     """
-    Perform statistics calculation for DL1a image data
+    Perform statistics calculation for pixel-wise image data
     """
 
     name = "StatisticsCalculatorTool"
-    description = "Perform statistics calculation for DL1a image data"
+    description = "Perform statistics calculation for pixel-wise image data"
 
     examples = """
-    To calculate statistics of DL1a image data files:
+    To calculate statistics of pixel-wise image data files:
 
-    > ctapipe-stats-calculation --input_url input.dl1.h5 --output_path /path/monitoring.h5 --overwrite
+    > ctapipe-calculate-pixel-statistics --input_url input.dl1.h5 --output_path /path/monitoring.h5 --overwrite
 
     """
 
     input_url = Path(
-        help="Input CTA HDF5 files including DL1a image data",
+        help="Input CTA HDF5 files including pixel-wise image data",
         allow_none=True,
         exists=True,
         directory_ok=False,
@@ -57,11 +56,10 @@ class StatisticsCalculatorTool(Tool):
         ),
     ).tag(config=True)
 
-    dl1a_column_name = CaselessStrEnum(
-        ["image", "peak_time", "variance"],
+    input_column_name = Unicode(
         default_value="image",
         allow_none=False,
-        help="Column name of the DL1a image data to calculate statistics",
+        help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
     output_column_name = Unicode(
@@ -104,31 +102,39 @@ class StatisticsCalculatorTool(Tool):
             parent=self, subarray=subarray
         )
         # Read the input data with the 'TableLoader'
-        input_data = TableLoader(input_url=self.input_url)
+        self.input_data = TableLoader(input_url=self.input_url)
         # Get the telescope ids from the input data or use the allowed_tels configuration
-        tel_ids = subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
-        # Read the whole dl1 images
-        self.dl1_tables = input_data.read_telescope_events_by_id(
-            telescopes=tel_ids,
-            dl1_images=True,
-            dl1_parameters=False,
-            dl1_muons=False,
-            dl2=False,
-            simulated=False,
-            true_images=False,
-            true_parameters=False,
-            instrument=False,
-            pointing=False,
+        self.tel_ids = (
+            subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
         )
 
     def start(self):
-        # Iterate over the telescope ids and their corresponding dl1 tables
-        for tel_id, dl1_table in self.dl1_tables.items():
+        # Iterate over the telescope ids and calculate the statistics
+        for tel_id in self.tel_ids:
+            # Read the whole dl1 images for one particular telescope
+            dl1_table = self.input_data.read_telescope_events_by_id(
+                telescopes=tel_id,
+                dl1_images=True,
+                dl1_parameters=False,
+                dl1_muons=False,
+                dl2=False,
+                simulated=False,
+                true_images=False,
+                true_parameters=False,
+                instrument=False,
+                pointing=False,
+            )[tel_id]
+            # Check if the input column name is in the table
+            if self.input_column_name not in dl1_table.colnames:
+                raise ToolConfigurationError(
+                    f"Column '{self.input_column_name}' not found "
+                    f"in the input data for telescope 'tel_id={tel_id}'."
+                )
             # Perform the first pass of the statistics calculation
             aggregated_stats = self.stats_calculator.first_pass(
                 table=dl1_table,
                 tel_id=tel_id,
-                col_name=self.dl1a_column_name,
+                col_name=self.input_column_name,
             )
             # Check if 'chunk_shift' is selected
             if self.stats_calculator.chunk_shift is not None:
@@ -139,7 +145,7 @@ class StatisticsCalculatorTool(Tool):
                         table=dl1_table,
                         valid_chunks=aggregated_stats["is_valid"].data,
                         tel_id=tel_id,
-                        col_name=self.dl1a_column_name,
+                        col_name=self.input_column_name,
                     )
                     # Stack the statistic values from the first and second pass
                     aggregated_stats = vstack(
