@@ -335,7 +335,7 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
     psi_uncertainty = Field(nan * u.deg, "uncertainty of psi", unit=u.deg)
     b_uncertainty = Field(
-        nan * u.m, "rotated centroid y coordinate uncertainty", unit=u.m
+        nan * u.deg, "rotated centroid y coordinate uncertainty", unit=u.deg
     )
 
 
