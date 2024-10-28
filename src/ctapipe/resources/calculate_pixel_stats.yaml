@@ -5,8 +5,8 @@ StatisticsCalculatorTool:
 
 PixelStatisticsCalculator:
   stats_aggregator_type:
-    - ["type", "LST*", "SigmaClippingAggregator"],
-    - ["type", "MST*", "PlainAggregator"],
+    - ["type", "LST*", "SigmaClippingAggregator"]
+    - ["type", "MST*", "PlainAggregator"]
 
   chunk_shift: 1000
   faulty_pixels_fraction: 0.1
