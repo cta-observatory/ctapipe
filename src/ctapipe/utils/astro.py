@@ -31,10 +31,17 @@ class StarCatalog(Enum):
     Enumeration of star catalogs with their respective metadata.
 
     Each catalog entry is represented as a namedtuple `CatalogInfo` containing:
-    - `directory`: The directory path of the catalog in the Vizier database.
-    - `coordinates`: A dictionary containing the coordinate frame, epoch, and column names for RA and DE.
-    - `columns`: A list of columns to be retrieved from the catalog.
-    - `record`: The name of the record in the catalog.
+
+    Attributes
+    ----------
+    directory : str
+        The directory path of the catalog in the Vizier database.
+    coordinates : dict
+        A dictionary containing the coordinate frame, epoch, and column names for RA and DE.
+    columns : list of str
+        A list of columns to be retrieved from the catalog.
+    record : str
+        A name of the catalog file in the cache.
     """
 
     Yale = CatalogInfo(
@@ -129,7 +136,7 @@ def get_star_catalog(
         Maximum number of rows for the star catalog lookup. Default is 1000000.
 
     Returns
-    ----------
+    -------
     astropy.table.Table
         List of all stars after cuts with catalog numbers, magnitudes,
         and coordinates as SkyCoord objects including proper motion.
