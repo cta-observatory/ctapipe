@@ -40,7 +40,7 @@ def test_get_bright_stars():
 
     table_yale = get_bright_stars(t, pointing=polaris_2024, radius=1 * u.Unit("arcsec"))
     table_hip = get_bright_stars(
-        t, catalog="Hipparcos", pointing=polaris_2024, radius=1 * u.Unit("arcsec")
+        t, catalog="Hipparcos", pointing=polaris_2024, radius=1.0 * u.Unit("arcsec")
     )
 
     assert len(table_yale) == 1  # this looks if

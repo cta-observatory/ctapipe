@@ -222,7 +222,6 @@ def get_bright_stars(
         .data.differentials["s"]
         .represent_as(UnitSphericalCosLatDifferential)
     )
-
     stars.remove_columns(
         [cat.coordinates["RA"]["column"], cat.coordinates["DE"]["column"]]
     )
