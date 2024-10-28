@@ -1,9 +1,10 @@
 StatisticsCalculatorTool:
-  dl1_column_name: "image"
+  allowed_tels: [1,2,3,4]
+  dl1a_column_name: "image"
   output_column_name: "statistics"
 
 PixelStatisticsCalculator:
-  stats_aggregator_type: [["id", 1, "SigmaClippingAggregator"]]
+  stats_aggregator_type: [["type", "*", "SigmaClippingAggregator"]]
   chunk_shift: 1000
   faulty_pixels_fraction: 0.1
   outlier_detector_list: [
@@ -20,7 +21,7 @@ PixelStatisticsCalculator:
             "config": {
                 "validity_range": [-20, 120],
             }
-        }
+        },
         {
             "apply_to": "std",
             "name": "StdOutlierDetector",
