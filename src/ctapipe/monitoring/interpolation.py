@@ -34,7 +34,7 @@ class ChunkFunction:
         end_times,
         values,
         bounds_error=True,
-        fill_value="extrapolate",
+        extrapolate=False,
         assume_sorted=True,
         copy=False,
     ):
@@ -42,14 +42,14 @@ class ChunkFunction:
         self.start_times = start_times
         self.end_times = end_times
         self.bounds_error = bounds_error
-        self.fill_value = fill_value
+        self.extrapolate = extrapolate
 
     def __call__(self, point):
         if point < self.start_times[0]:
             if self.bounds_error:
                 raise ValueError("below the interpolation range")
 
-            if self.fill_value == "extrapolate":
+            if self.extrapolate:
                 return self.values[0]
 
             else:
@@ -61,7 +61,7 @@ class ChunkFunction:
             if self.bounds_error:
                 raise ValueError("above the interpolation range")
 
-            if self.fill_value == "extrapolate":
+            if self.extrapolate:
                 return self.values[-1]
 
             else:
@@ -254,36 +254,34 @@ class PointingInterpolator(Interpolator):
         self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
 
 
-class FlatFieldInterpolator(Interpolator):
+class SimpleInterpolator(Interpolator):
     """
-    Interpolator for flatfield data
+    Simple interpolator for overlapping chunks of data
     """
 
-    telescope_data_group = "dl1/calibration/gain"  # TBD
-    required_columns = frozenset(["start_time", "end_time", "gain"])
-    expected_units = {"gain": u.one}
+    required_columns = frozenset(["start_time", "end_time", "values"])
 
     def __call__(self, tel_id, time):
         """
-        Interpolate flatfield data for a given time and tel_id.
+        Interpolate overlapping chunks of data for a given time and tel_id.
 
         Parameters
         ----------
         tel_id : int
             telescope id
         time : astropy.time.Time
-            time for which to interpolate the calibration data
+            time for which to interpolate the data
 
         Returns
         -------
-        ffield : array [float]
-            interpolated flatfield data
+        interpolated : array [float]
+            interpolated data
         """
 
         self._check_interpolators(tel_id)
 
-        ffield = self._interpolators[tel_id]["gain"](time)
-        return ffield
+        val = self._interpolators[tel_id]["value"](time)
+        return val
 
     def add_table(self, tel_id, input_table):
         """
@@ -295,8 +293,8 @@ class FlatFieldInterpolator(Interpolator):
             Telescope id
         input_table : astropy.table.Table
             Table of pointing values, expected columns
-            are ``time`` as ``Time`` column and "gain"
-            for the flatfield data
+            are ``time`` as ``Time`` column and "values"
+            for the data
         """
 
         self._check_tables(input_table)
@@ -305,66 +303,8 @@ class FlatFieldInterpolator(Interpolator):
         input_table.sort("start_time")
         start_time = input_table["start_time"]
         end_time = input_table["end_time"]
-        gain = input_table["gain"]
+        values = input_table["values"]
         self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["gain"] = ChunkFunction(
-            start_time, end_time, gain, **self.interp_options
-        )
-
-
-class PedestalInterpolator(Interpolator):
-    """
-    Interpolator for Pedestal data
-    """
-
-    telescope_data_group = "dl1/calibration/pedestal"  # TBD
-    required_columns = frozenset(["start_time", "end_time", "pedestal"])
-    expected_units = {"pedestal": u.one}
-
-    def __call__(self, tel_id, time):
-        """
-        Interpolate pedestal or gain for a given time and tel_id.
-
-        Parameters
-        ----------
-        tel_id : int
-            telescope id
-        time : astropy.time.Time
-            time for which to interpolate the calibration data
-
-        Returns
-        -------
-        pedestal : array [float]
-            interpolated pedestal values
-        """
-
-        self._check_interpolators(tel_id)
-
-        pedestal = self._interpolators[tel_id]["pedestal"](time)
-        return pedestal
-
-    def add_table(self, tel_id, input_table):
-        """
-        Add a table to this interpolator
-
-        Parameters
-        ----------
-        tel_id : int
-            Telescope id
-        input_table : astropy.table.Table
-            Table of pointing values, expected columns
-            are ``time`` as ``Time`` column and "pedestal"
-            for the pedestal data
-        """
-
-        self._check_tables(input_table)
-
-        input_table = input_table.copy()
-        input_table.sort("start_time")
-        start_time = input_table["start_time"]
-        end_time = input_table["end_time"]
-        pedestal = input_table["pedestal"]
-        self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["pedestal"] = ChunkFunction(
-            start_time, end_time, pedestal, **self.interp_options
+        self._interpolators[tel_id]["value"] = ChunkFunction(
+            start_time, end_time, values, **self.interp_options
         )
