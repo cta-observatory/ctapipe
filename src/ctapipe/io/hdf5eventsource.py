@@ -35,6 +35,7 @@ from ..containers import (
     SchedulingBlockContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulatedShowerDistribution,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
@@ -230,6 +231,24 @@ class HDF5EventSource(EventSource):
                 table = QTable(read_table(self.file_, h5table._v_pathname), copy=False)
                 table.add_index("obs_id")
                 self._constant_telescope_pointing[tel_id] = table
+
+        self._simulated_shower_distributions = (
+            self._read_simulated_shower_distributions()
+        )
+
+    def _read_simulated_shower_distributions(self):
+        key = "/simulation/service/shower_distribution"
+        if key not in self.file_.root:
+            return {}
+
+        reader = HDF5TableReader(self.file_).read(
+            key, containers=SimulatedShowerDistribution
+        )
+        return {dist.obs_id: dist for dist in reader}
+
+    @property
+    def simulated_shower_distributions(self):
+        return self._simulated_shower_distributions
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
