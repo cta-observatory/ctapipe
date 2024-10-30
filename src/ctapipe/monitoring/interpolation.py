@@ -223,7 +223,7 @@ class SimpleInterpolator(Interpolator):
         tel_id : int
             Telescope id
         input_table : astropy.table.Table
-            Table of pointing values, expected columns
+            Table of values to be interpolated, expected columns
             are ``time`` as ``Time`` column and "values"
             for the data
         """
