@@ -9,76 +9,7 @@ from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-
-class ChunkFunction:
-
-    """
-    Chunk Interpolator for the gain and pedestals
-    Interpolates data so that for each time the value from the latest starting
-    valid chunk is given or the earliest available still valid chunk for any
-    pixels without valid data.
-
-    Parameters
-    ----------
-    values : None | np.array
-        Numpy array of the data that is to be interpolated.
-        The first dimension needs to be an index over time
-    times : None | np.array
-        Time values over which data are to be interpolated
-        need to be sorted and have same length as first dimension of values
-    """
-
-    def __init__(
-        self,
-        start_times,
-        end_times,
-        values,
-        bounds_error=True,
-        extrapolate=False,
-        assume_sorted=True,
-        copy=False,
-    ):
-        self.values = values
-        self.start_times = start_times
-        self.end_times = end_times
-        self.bounds_error = bounds_error
-        self.extrapolate = extrapolate
-
-    def __call__(self, point):
-        if point < self.start_times[0]:
-            if self.bounds_error:
-                raise ValueError("below the interpolation range")
-
-            if self.extrapolate:
-                return self.values[0]
-
-            else:
-                a = np.empty(self.values[0].shape)
-                a[:] = np.nan
-                return a
-
-        elif point > self.end_times[-1]:
-            if self.bounds_error:
-                raise ValueError("above the interpolation range")
-
-            if self.extrapolate:
-                return self.values[-1]
-
-            else:
-                a = np.empty(self.values[0].shape)
-                a[:] = np.nan
-                return a
-
-        else:
-            i = np.searchsorted(
-                self.start_times, point, side="left"
-            )  # Latest valid chunk
-            j = np.searchsorted(
-                self.end_times, point, side="left"
-            )  # Earliest valid chunk
-            return np.where(
-                np.isnan(self.values[i - 1]), self.values[j], self.values[i - 1]
-            )  # Give value for latest chunk unless its nan. If nan give earliest chunk value
+__all__ = ["PointingInterpolator", "SimpleInterpolator"]
 
 
 class Interpolator(Component, metaclass=ABCMeta):
@@ -301,10 +232,41 @@ class SimpleInterpolator(Interpolator):
 
         input_table = input_table.copy()
         input_table.sort("start_time")
-        start_time = input_table["start_time"]
-        end_time = input_table["end_time"]
+        start_time = input_table["start_time"].to_value("mjd")
+        end_time = input_table["end_time"].to_value("mjd")
         values = input_table["values"]
-        self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["value"] = ChunkFunction(
-            start_time, end_time, values, **self.interp_options
+        start_interpolate = interp1d(
+            start_time, values, axis=0, kind="previous", fill_value="extrapolate"
+        )  #: This is giving the latest possibly valid chunk
+        start_time_interpolate = interp1d(
+            start_time, end_time, axis=0, kind="previous", fill_value="extrapolate"
         )
+        end_interpolate = interp1d(
+            end_time, values, axis=0, kind="next", fill_value="extrapolate"
+        )  #: This is giving the earliest possibly valid chunk
+        end_time_interpolate = interp1d(
+            end_time, start_time, axis=0, kind="next", fill_value="extrapolate"
+        )
+
+        def interpolate_chunk(time):
+            mjd = time.to_value("mjd")
+            early_value = end_interpolate(mjd)
+            early_start = end_time_interpolate(mjd)
+            late_value = start_interpolate(mjd)
+            late_end = start_time_interpolate(mjd)
+            if mjd > early_start:  #: check if the early chunk is valid
+                if mjd < late_end:  #: check if the late chunk is valid
+                    return np.where(
+                        np.isnan(early_value), late_value, early_value
+                    )  #: both chunks are valid, return as many non-nan values as possible, preferring the early chunk
+                else:
+                    return early_value  #: only the early chunk is valid
+            elif mjd < late_end:
+                return late_value  #: only the late chunk is valid
+            else:
+                raise (
+                    ValueError("No valid data available for the given time")
+                )  #: no chunk is valid
+
+        self._interpolators[tel_id] = {}
+        self._interpolators[tel_id]["value"] = interpolate_chunk

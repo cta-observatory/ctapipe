@@ -5,9 +5,60 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.monitoring.interpolation import PointingInterpolator
+from ctapipe.monitoring.interpolation import PointingInterpolator, SimpleInterpolator
 
 t0 = Time("2022-01-01T00:00:00")
+
+
+def test_chunk_selection():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values": [[1, 2], [2, 1], [2, 3], [3, 2]],
+        },
+    )
+    interpolator = SimpleInterpolator()
+    interpolator.add_table(1, table)
+
+    val1 = interpolator(tel_id=1, time=t0 + 1.2 * u.s)
+    val2 = interpolator(tel_id=1, time=t0 + 1.7 * u.s)
+    val3 = interpolator(tel_id=1, time=t0 + 2.2 * u.s)
+
+    assert np.all(np.isclose(val1, [1, 2]))
+    assert np.all(np.isclose(val2, [1, 2]))
+    assert np.all(np.isclose(val3, [2, 1]))
+
+
+def test_nan_switch():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values": [[1, np.nan], [2, 1], [2, 3], [3, 2]],
+        },
+    )
+    interpolator = SimpleInterpolator()
+    interpolator.add_table(1, table)
+
+    val = interpolator(tel_id=1, time=t0 + 1.2 * u.s)
+
+    assert np.all(np.isclose(val, [1, 1]))
+
+
+def test_no_valid_chunk():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values": [[1, 2], [2, 1], [2, 3], [3, 2]],
+        },
+    )
+    interpolator = SimpleInterpolator()
+    interpolator.add_table(1, table)
+
+    with pytest.raises(ValueError, match="No valid data available for the given time"):
+        interpolator(tel_id=1, time=t0 + 5.2 * u.s)
 
 
 def test_azimuth_switchover():
