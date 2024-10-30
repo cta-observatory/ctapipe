@@ -1,0 +1,7 @@
+Move the simulated shower distribution from something
+that was specific to ``SimTelEventSource`` to a general interface
+of ``EventSource``. Implement the new interface in both ``SimTelEventSource``
+and ``HDF5EventSource`` and adapt writing of this information in ``DataWriter``.
+
+This makes sure that the ``SimulatedShowerDistribution`` information is always
+included, also when running ``ctapipe-process`` consecutively.
