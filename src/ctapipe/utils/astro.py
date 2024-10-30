@@ -180,6 +180,7 @@ def get_bright_stars(
     pointing: SkyCoord | None = None,
     radius: Quantity | None = None,
     magnitude_cut: float | None = None,
+    band: str = "Vmag",
 ) -> Table:
     """
     Get an astropy table of bright stars from the specified star catalog.
@@ -196,6 +197,10 @@ def get_bright_stars(
         Radius of the sky region around the pointing position. Default is the full sky.
     magnitude_cut : float, optional
         Return only stars above a given absolute magnitude. Default is None (all entries).
+    band : str, optional
+        Wavelength band to use for the magnitude cut. Options are 'Vmag'
+        or any other optical band column name, present in the catalog (e.g. Bmag or BTmag, etc.).
+        Default is 'Vmag'.
 
     Returns
     -------
@@ -238,7 +243,7 @@ def get_bright_stars(
     )
 
     stars = select_stars(
-        stars, pointing=pointing, radius=radius, magnitude_cut=magnitude_cut
+        stars, pointing=pointing, radius=radius, magnitude_cut=magnitude_cut, band=band
     )
 
     return stars
