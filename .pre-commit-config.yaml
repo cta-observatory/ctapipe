@@ -16,6 +16,8 @@ repos:
       additional_dependencies:
         - tomli
       exclude: AUTHORS
+      args:
+          - --ignore-words=.codespell-ignores
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
