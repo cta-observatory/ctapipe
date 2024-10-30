@@ -91,7 +91,9 @@ def select_stars(
     magnitude_cut : float, optional
         Return only stars above a given apparent magnitude. Default is None (all entries).
     band : str, optional
-        Wavelength band to use for the magnitude cut. Options are 'Vmag' and 'B'. Default is 'Vmag'.
+        Wavelength band to use for the magnitude cut. Options are 'Vmag'
+        or any other optical band column name, present in the catalog (e.g. Bmag or BTmag, etc.).
+        Default is 'Vmag'.
 
     Returns
     -------
