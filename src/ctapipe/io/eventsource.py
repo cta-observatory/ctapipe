@@ -13,6 +13,7 @@ from ..containers import (
     ArrayEventContainer,
     ObservationBlockContainer,
     SchedulingBlockContainer,
+    SimulatedShowerDistribution,
     SimulationConfigContainer,
 )
 from ..core import Provenance, ToolConfigurationError
@@ -288,7 +289,7 @@ class EventSource(Component):
         return list(self.observation_blocks.keys())
 
     @property
-    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile | None:
         """atmosphere density profile that can be integrated to
         convert between h_max and X_max.  This should correspond
         either to what was used in a simulation, or a measurement
@@ -300,6 +301,17 @@ class EventSource(Component):
            profile to be used
         """
         return None
+
+    @property
+    def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
+        """
+        The distribution of simulated showers for each obs_id.
+
+        Returns
+        -------
+        dict[int,ctapipe.containers.SimulatedShowerDistribution]
+        """
+        return {}
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:

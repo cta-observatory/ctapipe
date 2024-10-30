@@ -144,6 +144,7 @@ filterwarnings = [
     "error::ctapipe.utils.deprecation.CTAPipeDeprecationWarning",
     "error::ctapipe.instrument.FromNameWarning",
     "ignore:`np.MachAr` is deprecated:DeprecationWarning",
+    "ignore::ctapipe.core.provenance.MissingReferenceMetadata",
 ]
 norecursedirs = [
     ".git",

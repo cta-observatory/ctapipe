@@ -40,6 +40,7 @@ from ..containers import (
     SimulatedCameraContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulatedShowerDistribution,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
@@ -744,6 +745,40 @@ class SimTelEventSource(EventSource):
     @property
     def subarray(self):
         return self._subarray_info
+
+    @property
+    def simulated_shower_distributions(self) -> dict[int, SimulatedShowerDistribution]:
+        if self.file_.histograms is None:
+            warnings.warn(
+                "eventio file has no histograms (yet)."
+                " Histograms are stored at the end of the file and can only be read after all events have been consumed."
+                " Setting max-events will also prevent the histograms from being available."
+            )
+            return {}
+
+        shower_hist = next(hist for hist in self.file_.histograms if hist["id"] == 6)
+
+        xbins = np.linspace(
+            shower_hist["lower_x"],
+            shower_hist["upper_x"],
+            shower_hist["n_bins_x"] + 1,
+        )
+        ybins = np.linspace(
+            shower_hist["lower_y"],
+            shower_hist["upper_y"],
+            shower_hist["n_bins_y"] + 1,
+        )
+
+        container = SimulatedShowerDistribution(
+            obs_id=self.obs_id,
+            hist_id=shower_hist["id"],
+            n_entries=shower_hist["entries"],
+            bins_core_dist=u.Quantity(xbins, u.m, copy=False),
+            bins_energy=u.Quantity(10**ybins, u.TeV, copy=False),
+            histogram=shower_hist["data"],
+        )
+
+        return {self.obs_id: container}
 
     def _generator(self):
         if self.file_.tell() > self.start_pos:

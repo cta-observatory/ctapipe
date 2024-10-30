@@ -627,3 +627,17 @@ def test_override_obs_id(override_obs_id, expected_obs_id, prod5_gamma_simtel_pa
 
         for e in s:
             assert e.index.obs_id == expected_obs_id
+
+
+def test_shower_distribution(prod5_gamma_simtel_path):
+    with SimTelEventSource(prod5_gamma_simtel_path) as source:
+        with pytest.warns(match="eventio file has no"):
+            assert source.simulated_shower_distributions == {}
+
+        for e in source:
+            pass
+
+        distributions = source.simulated_shower_distributions
+        assert len(distributions) == 1
+        distribution = distributions[source.obs_id]
+        assert distribution.n_entries == 1000

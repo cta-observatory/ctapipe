@@ -91,7 +91,9 @@ def test_write(tmpdir: Path):
             calibrate(event)
             generate_dummy_dl2(event)
             writer(event)
-        writer.write_simulation_histograms(source)
+        writer.write_simulated_shower_distributions(
+            source.simulated_shower_distributions
+        )
 
     assert output_path.exists()
 
@@ -174,7 +176,9 @@ def test_roundtrip(tmpdir: Path):
             generate_dummy_dl2(event)
             write(event)
             events.append(deepcopy(event))
-        write.write_simulation_histograms(source)
+        write.write_simulated_shower_distributions(
+            source.simulated_shower_distributions
+        )
         assert DataLevel.DL1_IMAGES in write.datalevels
         assert DataLevel.DL1_PARAMETERS not in write.datalevels
         assert DataLevel.DL2 in write.datalevels
@@ -233,7 +237,9 @@ def test_dl1writer_no_events(tmpdir: Path):
         write_dl1_images=True,
     ) as writer:
         writer.log.level = logging.DEBUG
-        writer.write_simulation_histograms(source)
+        writer.write_simulated_shower_distributions(
+            source.simulated_shower_distributions
+        )
 
     assert output_path.exists()
 

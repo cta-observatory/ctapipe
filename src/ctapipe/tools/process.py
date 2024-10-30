@@ -17,7 +17,6 @@ from ..io import (
     DataLevel,
     DataWriter,
     EventSource,
-    SimTelEventSource,
     metadata,
     write_table,
 )
@@ -195,18 +194,6 @@ class ProcessorTool(Tool):
 
         self.event_type_filter = EventTypeFilter(parent=self)
 
-        # warn if max_events prevents writing the histograms
-        if (
-            isinstance(self.event_source, SimTelEventSource)
-            and self.event_source.max_events
-            and self.event_source.max_events > 0
-        ):
-            self.log.warning(
-                "No Simulated shower distributions will be written because "
-                "EventSource.max_events is set to a non-zero number (and therefore "
-                "shower distributions read from the input Simulation file are invalid)."
-            )
-
     @property
     def should_compute_dl2(self):
         """returns true if we should compute DL2 info"""
@@ -328,7 +315,9 @@ class ProcessorTool(Tool):
         """
         Last steps after processing events.
         """
-        self.write.write_simulation_histograms(self.event_source)
+        shower_dists = self.event_source.simulated_shower_distributions
+        self.write.write_simulated_shower_distributions(shower_dists)
+
         self._write_processing_statistics()
 
 
