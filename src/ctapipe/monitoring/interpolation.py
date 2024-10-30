@@ -224,8 +224,9 @@ class SimpleInterpolator(Interpolator):
             Telescope id
         input_table : astropy.table.Table
             Table of values to be interpolated, expected columns
-            are ``time`` as ``Time`` column and "values"
-            for the data
+            are ``start_time`` as ``validity start Time`` column,
+            ``end_time`` as ``validity end Time``  and "values"
+            for the data of the chunks
         """
 
         self._check_tables(input_table)
