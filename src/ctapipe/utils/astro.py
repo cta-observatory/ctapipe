@@ -5,7 +5,6 @@ not provided by external packages and/or to satisfy particular needs of
 usage within ctapipe.
 """
 
-import json
 import logging
 from collections import namedtuple
 from copy import deepcopy
@@ -147,6 +146,7 @@ def get_star_catalog(
     if isinstance(catalog, str):
         catalog = StarCatalog[catalog]
     catalog_info = catalog.value
+    catalog_name = catalog.name
 
     vizier = Vizier(
         catalog=catalog_info.directory,
@@ -155,10 +155,19 @@ def get_star_catalog(
     )
 
     stars = vizier.query_constraints(Vmag=f"<{magnitude_cutoff}")[0]
-    meta = catalog_info._asdict()
-    meta["magnitude_cutoff"] = magnitude_cutoff
 
-    stars.meta["Catalog"] = json.dumps(meta)
+    header = {
+        "ORIGIN": "CTAPIPE",
+        "JEPOCH": float(catalog_info.coordinates["epoch"].replace("J", "")),
+        "RADESYS": catalog_info.coordinates["frame"].upper(),
+        "MAGCUT": magnitude_cutoff,
+        "BAND": "V",
+        "CATALOG": catalog_name,
+        "REFERENC": catalog_info.directory,
+        "COLUMNS": "_".join(catalog_info.columns),
+    }
+
+    stars.meta = header
 
     return stars
 
