@@ -132,7 +132,9 @@ def hillas_parameters(geom, image):
     # avoid divide by 0 warnings
     # psi will be consistently defined in the range (-pi/2, pi/2)
     if length == 0:
-        psi = psi_uncert = b_uncert = skewness_long = kurtosis_long = np.nan
+        psi = (
+            psi_uncert
+        ) = transverse_cog_uncert = skewness_long = kurtosis_long = np.nan
     else:
         if vx != 0:
             psi = np.arctan(vy / vx)
@@ -157,7 +159,9 @@ def hillas_parameters(geom, image):
         lsq_cov = np.linalg.inv(X.T @ W @ X)
         p = lsq_cov @ X.T @ W @ trans
         psi_uncert = np.sqrt(lsq_cov[0, 0] + p[0] * p[0])
-        b_uncert = np.sqrt(lsq_cov[1, 1] * (1.0 + np.sin(p[0]) * np.sin(p[0])))
+        transverse_cog_uncert = np.sqrt(
+            lsq_cov[1, 1] * (1.0 + np.sin(p[0]) * np.sin(p[0]))
+        )
 
     # Compute of the Hillas parameters uncertainties.
     # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
@@ -203,7 +207,7 @@ def hillas_parameters(geom, image):
             width_uncertainty=u.Quantity(width_uncertainty, unit),
             psi=Angle(psi, unit=u.rad),
             psi_uncertainty=Angle(psi_uncert, unit=u.rad),
-            b_uncertainty=u.Quantity(b_uncert, unit),
+            transverse_cog_uncertainty=u.Quantity(transverse_cog_uncert, unit),
             skewness=skewness_long,
             kurtosis=kurtosis_long,
         )
@@ -219,7 +223,7 @@ def hillas_parameters(geom, image):
         width_uncertainty=u.Quantity(width_uncertainty, unit),
         psi=Angle(psi, unit=u.rad),
         psi_uncertainty=Angle(psi_uncert, unit=u.rad),
-        b_uncertainty=u.Quantity(b_uncert, unit),
+        transverse_cog_uncertainty=u.Quantity(transverse_cog_uncert, unit),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
