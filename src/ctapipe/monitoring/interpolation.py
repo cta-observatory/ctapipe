@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-__all__ = ["PointingInterpolator", "ChunkInterpolator"]
+__all__ = ["Interpolator", "PointingInterpolator", "ChunkInterpolator"]
 
 
 class Interpolator(Component, metaclass=ABCMeta):
