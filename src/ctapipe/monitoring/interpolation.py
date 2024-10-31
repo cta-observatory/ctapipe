@@ -4,12 +4,13 @@ from typing import Any
 import astropy.units as u
 import numpy as np
 import tables
+from astropy.table import Table
 from astropy.time import Time
 from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-__all__ = ["PointingInterpolator", "SimpleInterpolator"]
+__all__ = ["PointingInterpolator", "ChunkInterpolator"]
 
 
 class Interpolator(Component, metaclass=ABCMeta):
@@ -19,7 +20,7 @@ class Interpolator(Component, metaclass=ABCMeta):
     Parameters
     ----------
     h5file : None | tables.File
-        A open hdf5 file with read access.
+        An open hdf5 file with read access.
     """
 
     bounds_error = traits.Bool(
@@ -37,7 +38,7 @@ class Interpolator(Component, metaclass=ABCMeta):
     required_columns = set()
     expected_units = {}
 
-    def __init__(self, h5file=None, **kwargs):
+    def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         if h5file is not None and not isinstance(h5file, tables.File):
@@ -57,26 +58,25 @@ class Interpolator(Component, metaclass=ABCMeta):
         self._interpolators = {}
 
     @abstractmethod
-    def add_table(self, tel_id, input_table):
+    def add_table(self, tel_id: int, input_table: Table) -> None:
         """
-        Add a table to this interpolator
+        Add a table to this interpolator.
         This method reads input tables and creates instances of the needed interpolators
         to be added to _interpolators. The first index of _interpolators needs to be
-        tel_id, the second needs to be the name of the parameter that is to be interpolated
+        tel_id, the second needs to be the name of the parameter that is to be interpolated.
 
         Parameters
         ----------
         tel_id : int
-            Telescope id
+            Telescope id.
         input_table : astropy.table.Table
             Table of pointing values, expected columns
             are always ``time`` as ``Time`` column and
-            other columns for the data that is to be interpolated
+            other columns for the data that is to be interpolated.
         """
-
         pass
 
-    def _check_tables(self, input_table):
+    def _check_tables(self, input_table: Table) -> None:
         missing = self.required_columns - set(input_table.colnames)
         if len(missing) > 0:
             raise ValueError(f"Table is missing required column(s): {missing}")
@@ -95,14 +95,14 @@ class Interpolator(Component, metaclass=ABCMeta):
                         f"{col} must have units compatible with '{self.expected_units[col].name}'"
                     )
 
-    def _check_interpolators(self, tel_id):
+    def _check_interpolators(self, tel_id: int) -> None:
         if tel_id not in self._interpolators:
             if self.h5file is not None:
                 self._read_parameter_table(tel_id)  # might need to be removed
             else:
                 raise KeyError(f"No table available for tel_id {tel_id}")
 
-    def _read_parameter_table(self, tel_id):
+    def _read_parameter_table(self, tel_id: int) -> None:
         # prevent circular import between io and monitoring
         from ..io import read_table
 
@@ -115,30 +115,30 @@ class Interpolator(Component, metaclass=ABCMeta):
 
 class PointingInterpolator(Interpolator):
     """
-    Interpolator for pointing and pointing correction data
+    Interpolator for pointing and pointing correction data.
     """
 
     telescope_data_group = "/dl0/monitoring/telescope/pointing"
     required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
-    def __call__(self, tel_id, time):
+    def __call__(self, tel_id: int, time: Time) -> tuple[u.Quantity, u.Quantity]:
         """
         Interpolate alt/az for given time and tel_id.
 
         Parameters
         ----------
         tel_id : int
-            telescope id
+            Telescope id.
         time : astropy.time.Time
-            time for which to interpolate the pointing
+            Time for which to interpolate the pointing.
 
         Returns
         -------
         altitude : astropy.units.Quantity[deg]
-            interpolated altitude angle
+            Interpolated altitude angle.
         azimuth : astropy.units.Quantity[deg]
-            interpolated azimuth angle
+            Interpolated azimuth angle.
         """
 
         self._check_interpolators(tel_id)
@@ -148,14 +148,14 @@ class PointingInterpolator(Interpolator):
         alt = u.Quantity(self._interpolators[tel_id]["alt"](mjd), u.rad, copy=False)
         return alt, az
 
-    def add_table(self, tel_id, input_table):
+    def add_table(self, tel_id: int, input_table: Table) -> None:
         """
-        Add a table to this interpolator
+        Add a table to this interpolator.
 
         Parameters
         ----------
         tel_id : int
-            Telescope id
+            Telescope id.
         input_table : astropy.table.Table
             Table of pointing values, expected columns
             are ``time`` as ``Time`` column, ``azimuth`` and ``altitude``
@@ -185,90 +185,106 @@ class PointingInterpolator(Interpolator):
         self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
 
 
-class SimpleInterpolator(Interpolator):
+class ChunkInterpolator(Interpolator):
     """
-    Simple interpolator for overlapping chunks of data
+    Simple interpolator for overlapping chunks of data.
     """
 
-    required_columns = frozenset(["start_time", "end_time", "values"])
+    required_columns = frozenset(["start_time", "end_time"])
 
-    def __call__(self, tel_id, time):
+    def __call__(
+        self, tel_id: int, time: Time, columns: str | list[str]
+    ) -> float | dict[str, float]:
         """
-        Interpolate overlapping chunks of data for a given time and tel_id.
+        Interpolate overlapping chunks of data for a given time, tel_id, and column(s).
 
         Parameters
         ----------
         tel_id : int
-            telescope id
+            Telescope id.
         time : astropy.time.Time
-            time for which to interpolate the data
+            Time for which to interpolate the data.
+        columns : str or list of str
+            Name(s) of the column(s) to interpolate.
 
         Returns
         -------
-        interpolated : array [float]
-            interpolated data
+        interpolated : float or dict
+            Interpolated data for the specified column(s).
         """
 
         self._check_interpolators(tel_id)
 
-        val = self._interpolators[tel_id]["value"](time)
-        return val
+        if isinstance(columns, str):
+            columns = [columns]
 
-    def add_table(self, tel_id, input_table):
+        result = {}
+        mjd = time.to_value("mjd")
+        for column in columns:
+            if column not in self._interpolators[tel_id]:
+                raise ValueError(
+                    f"Column '{column}' not found in interpolators for tel_id {tel_id}"
+                )
+            result[column] = self._interpolators[tel_id][column](mjd)
+
+        if len(result) == 1:
+            return result[columns[0]]
+        return result
+
+    def add_table(self, tel_id: int, input_table: Table, columns: list[str]) -> None:
         """
-        Add a table to this interpolator
+        Add a table to this interpolator for specific columns.
 
         Parameters
         ----------
         tel_id : int
-            Telescope id
+            Telescope id.
         input_table : astropy.table.Table
             Table of values to be interpolated, expected columns
             are ``start_time`` as ``validity start Time`` column,
-            ``end_time`` as ``validity end Time``  and "values"
-            for the data of the chunks
+            ``end_time`` as ``validity end Time`` and the specified columns
+            for the data of the chunks.
+        columns : list of str
+            Names of the columns to interpolate.
         """
 
+        required_columns = set(self.required_columns)
+        required_columns.update(columns)
+        self.required_columns = frozenset(required_columns)
         self._check_tables(input_table)
 
         input_table = input_table.copy()
         input_table.sort("start_time")
         start_time = input_table["start_time"].to_value("mjd")
         end_time = input_table["end_time"].to_value("mjd")
-        values = np.column_stack(
-            (input_table["values"], start_time, end_time)
-        )  # stack values and times together for interpolation and validity checks
-        start_interpolate = interp1d(
-            start_time, values, axis=0, kind="previous", fill_value="extrapolate"
-        )  #: This is giving the latest possibly valid chunk
-        end_interpolate = interp1d(
-            end_time, values, axis=0, kind="next", fill_value="extrapolate"
-        )  #: This is giving the earliest possibly valid chunk
 
-        def interpolate_chunk(time):
-            mjd = time.to_value("mjd")
+        if tel_id not in self._interpolators:
+            self._interpolators[tel_id] = {}
 
-            early_value = end_interpolate(mjd)
-            early_start = early_value[-2]
-            early_end = early_value[-1]
-            early_value = early_value[:-2]
-            late_value = start_interpolate(mjd)
-            late_start = late_value[-2]
-            late_end = late_value[-1]
-            late_value = late_value[:-2]
-            if early_start <= mjd <= early_end:  # check if the early chunk is valid
-                if late_start <= mjd <= late_end:  # check if the late chunk is valid
-                    return np.where(
-                        np.isnan(early_value), late_value, early_value
-                    )  # both chunks are valid, return as many non-nan values as possible, preferring the early chunk
-                else:
-                    return early_value  # only the early chunk is valid
-            elif late_start <= mjd <= late_end:
-                return late_value  # only the late chunk is valid
-            else:
-                raise (
-                    ValueError("No valid data available for the given time")
-                )  # no chunk is valid
+        for column in columns:
+            values = input_table[column]
 
-        self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["value"] = interpolate_chunk
+            def interpolate_chunk(
+                mjd: float, start_time=start_time, end_time=end_time, values=values
+            ) -> float:
+                # Find the index of the closest preceding start time
+                preceding_index = np.searchsorted(start_time, mjd, side="right") - 1
+                if preceding_index < 0:
+                    return np.nan
+
+                # Check if the time is within the valid range of the chunk
+                if start_time[preceding_index] <= mjd <= end_time[preceding_index]:
+                    value = values[preceding_index]
+                    if not np.isnan(value):
+                        return value
+
+                # If the closest preceding chunk has nan, check the next closest chunk
+                for i in range(preceding_index - 1, -1, -1):
+                    if start_time[i] <= mjd <= end_time[i]:
+                        value = values[i]
+                        if not np.isnan(value):
+                            return value
+
+                return np.nan
+
+            self._interpolators[tel_id][column] = interpolate_chunk
