@@ -235,39 +235,40 @@ class SimpleInterpolator(Interpolator):
         input_table.sort("start_time")
         start_time = input_table["start_time"].to_value("mjd")
         end_time = input_table["end_time"].to_value("mjd")
-        values = input_table["values"]
+        values = np.column_stack(
+            (input_table["values"], start_time, end_time)
+        )  # stack values and times together for interpolation and validity checks
         start_interpolate = interp1d(
             start_time, values, axis=0, kind="previous", fill_value="extrapolate"
         )  #: This is giving the latest possibly valid chunk
-        start_time_interpolate = interp1d(
-            start_time, end_time, axis=0, kind="previous", fill_value="extrapolate"
-        )
         end_interpolate = interp1d(
             end_time, values, axis=0, kind="next", fill_value="extrapolate"
         )  #: This is giving the earliest possibly valid chunk
-        end_time_interpolate = interp1d(
-            end_time, start_time, axis=0, kind="next", fill_value="extrapolate"
-        )
 
         def interpolate_chunk(time):
             mjd = time.to_value("mjd")
+
             early_value = end_interpolate(mjd)
-            early_start = end_time_interpolate(mjd)
+            early_start = early_value[-2]
+            early_end = early_value[-1]
+            early_value = early_value[:-2]
             late_value = start_interpolate(mjd)
-            late_end = start_time_interpolate(mjd)
-            if mjd > early_start:  #: check if the early chunk is valid
-                if mjd < late_end:  #: check if the late chunk is valid
+            late_start = late_value[-2]
+            late_end = late_value[-1]
+            late_value = late_value[:-2]
+            if early_start <= mjd <= early_end:  # check if the early chunk is valid
+                if late_start <= mjd <= late_end:  # check if the late chunk is valid
                     return np.where(
                         np.isnan(early_value), late_value, early_value
-                    )  #: both chunks are valid, return as many non-nan values as possible, preferring the early chunk
+                    )  # both chunks are valid, return as many non-nan values as possible, preferring the early chunk
                 else:
-                    return early_value  #: only the early chunk is valid
-            elif mjd < late_end:
-                return late_value  #: only the late chunk is valid
+                    return early_value  # only the early chunk is valid
+            elif late_start <= mjd <= late_end:
+                return late_value  # only the late chunk is valid
             else:
                 raise (
                     ValueError("No valid data available for the given time")
-                )  #: no chunk is valid
+                )  # no chunk is valid
 
         self._interpolators[tel_id] = {}
         self._interpolators[tel_id]["value"] = interpolate_chunk
