@@ -82,11 +82,16 @@ class ComaModel(PSFModel):
         az_scale_params=[0.24271557, 7.5511501, 0.02037972],
     ):
         """
-        PSF model, describing pure coma aberrations PSF effect
+        PSF model, describing purely the effect of coma aberration on the PSF
 
-        param list asymmetry_params    Parameters describing the dependency of the asymmetry of the psf on the distance to the center of the camera
-        param list radial_scale_params Parameters describing the dependency of the radial scale on the distance to the center of the camera
-        param list radial_scale_params Parameters describing the dependency of the azimuthal scale scale on the distance to the center of the camera
+        Parameters
+        ----------
+        asymmetry_params: list
+            Parameters describing the dependency of the asymmetry of the psf on the distance to the center of the camera
+        radial_scale_params : list
+            Parameters describing the dependency of the radial scale on the distance to the center of the camera
+        radial_scale_params : list
+            Parameters describing the dependency of the azimuthal scale scale on the distance to the center of the camera
         """
 
         self.asymmetry_params = asymmetry_params
@@ -116,11 +121,36 @@ class ComaModel(PSFModel):
         ) + self.az_scale_params[2] / (self.az_scale_params[2] + x)
 
     def pdf(self, r, f):
+        """
+        Calculates the value of the psf at a given location
+
+        Parameters
+        ----------
+         r : float
+            distance to the center of the camera in meters
+        f : float
+            polar angle in radians
+
+        Returns
+        ----------
+        psf : float
+            value of the PSF at the specified location
+        """
         return laplace_asymmetric.pdf(r, *self.radial_pdf_params) * laplace.pdf(
             f, *self.azimuthal_pdf_params
         )
 
     def update_model_parameters(self, model_params):
+        """
+        Updates the model parameters for the psf
+
+        Parameters
+        ----------
+        model_params : dict
+            dictionary with the model parameters
+            needs to have the keys `asymmetry_params`, `radial_scale_params` and `az_scale_params`
+            The values need to be lists of length 3, 4 and 3 respectively
+        """
         if not (
             len(model_params["asymmetry_params"]) == 3
             and len(model_params["radial_scale_params"]) == 4
@@ -140,6 +170,15 @@ class ComaModel(PSFModel):
         self.azimuthal_pdf_params = (self.azimuthal_pdf_params[0], sf)
 
     def update_location(self, r, f):
+        """
+        Updates the location on the camera focal plane from where the psf is calculated
+        Parameters
+        ----------
+        r : float
+            distance to the center of the camera in meters
+        f : float
+            polar angle in radians
+        """
         k = self.k_func(r)
         sr = self.sr_func(r)
         sf = self.sf_func(r)
