@@ -290,7 +290,7 @@ def test_variance_extractor(toymodel):
     extractor = ImageExtractor.from_name("VarianceExtractor", subarray=subarray)
 
     variance = extractor(var_data, 0, None, None).image
-    np.testing.assert_allclose(variance, np.var(var_data, axis=2), rtol=1e-3)
+    np.testing.assert_allclose(variance, np.var(var_data, axis=2)[0], rtol=1e-3)
 
 
 @pytest.mark.parametrize("toymodels", camera_toymodels)
