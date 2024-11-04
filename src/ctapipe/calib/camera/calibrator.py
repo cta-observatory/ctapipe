@@ -83,7 +83,8 @@ class CameraCalibrator(TelescopeComponent):
         ["charge", "variance"],
         default_value="charge",
         help=(
-            "Image calibration method to be used." "Options ``charge``, ``variance``"
+            "Image calibration method to be used."
+            "Options are ``charge``, ``variance``"
         ),
     ).tag(config=True)
 
