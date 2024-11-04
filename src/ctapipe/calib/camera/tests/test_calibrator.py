@@ -16,6 +16,7 @@ from ctapipe.image.extractor import (
     GlobalPeakWindowSum,
     LocalPeakWindowSum,
     NeighborPeakWindowSum,
+    VarianceExtractor,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 
@@ -67,6 +68,7 @@ def test_config(example_subarray):
                 "TailCutsDataVolumeReducer": {
                     "TailcutsImageCleaner": {"picture_threshold_pe": 20.0}
                 },
+                "image_calibration_type": "charge",
             }
         }
     )
@@ -128,6 +130,21 @@ def test_check_dl0_empty(example_event, example_subarray):
     event.dl1.tel[tel_id].image = np.full(2048, 2)
     calibrator(event)
     assert (event.dl1.tel[tel_id].image == 2).all()
+
+
+def test_dl1_variance_calib(example_event, example_subarray):
+    # test the calibration of variance images
+    tel_id = list(example_event.r0.tel)[0]
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=VarianceExtractor(subarray=example_subarray),
+        image_calibration_type="variance",
+        apply_waveform_time_shift=False,
+    )
+    calibrator(example_event)
+    image = example_event.dl1.tel[tel_id].image
+    assert image is not None
+    assert image.shape == (1764,)
 
 
 def test_dl1_charge_calib(example_subarray):
