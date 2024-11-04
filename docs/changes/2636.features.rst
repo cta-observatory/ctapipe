@@ -1,0 +1,4 @@
+Add a trait to the CameraCalibrator called "image_calibration_type".
+This trait allows to switch the method of calibration between "charge" and "variance"
+"charge" is the calibration method for the existing image extractors
+"variance" is the method to calibrate variance images.
