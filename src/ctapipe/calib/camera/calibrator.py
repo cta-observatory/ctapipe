@@ -286,7 +286,7 @@ class CameraCalibrator(TelescopeComponent):
             if (
                 self.apply_peak_time_shift.tel[tel_id]
                 and remaining_shift is not None
-                and not extractor.__class__.__name__ == "VarianceExtractor"
+                and dl1.peak_time is not None
             ):
                 dl1.peak_time -= remaining_shift
 
