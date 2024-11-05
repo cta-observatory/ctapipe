@@ -148,6 +148,49 @@ def test_dl1_variance_calib(example_event, example_subarray):
     )
 
 
+def test_calib_LST_camera(example_subarray):
+    n_channels = 2
+    n_pixels = 1855  # number of pixels in LSTcam
+    n_samples = 100
+
+    random = np.random.default_rng(1)
+
+    tel_id = 1
+    y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
+
+    absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
+    y *= absolute[..., np.newaxis]
+
+    relative = random.normal(1, 0.01, (n_channels, n_pixels))
+    y /= relative[..., np.newaxis]
+
+    pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
+    y += pedestal[..., np.newaxis]
+
+    event = ArrayEventContainer()
+    event.dl0.tel[tel_id].waveform = y
+    event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
+    event.calibration.tel[tel_id].dl1.absolute_factor = absolute
+    event.calibration.tel[tel_id].dl1.relative_factor = relative
+    event.dl0.tel[tel_id].selected_gain_channel = None
+    event.r1.tel[tel_id].selected_gain_channel = None
+
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=VarianceExtractor(subarray=example_subarray),
+        apply_waveform_time_shift=False,
+    )
+    calibrator(event)
+
+    image = event.dl1.tel[tel_id].image
+
+    assert image is not None
+    assert image.shape == (
+        2,
+        1855,
+    )
+
+
 def test_dl1_charge_calib(example_subarray):
     # copy because we mutate the camera, should not affect other tests
     subarray = deepcopy(example_subarray)

@@ -297,7 +297,7 @@ class CameraCalibrator(TelescopeComponent):
         ):
             if selected_gain_channel is None:
                 if extractor.__class__.__name__ == "VarianceExtractor":
-                    dl1.image *= np.sqrt(
+                    dl1.image *= np.square(
                         dl1_calib.relative_factor / dl1_calib.absolute_factor
                     )
                 else:
@@ -308,7 +308,7 @@ class CameraCalibrator(TelescopeComponent):
                     / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
                 )
                 if extractor.__class__.__name__ == "VarianceExtractor":
-                    dl1.image *= np.sqrt(corr)
+                    dl1.image *= np.square(corr)
                 else:
                     dl1.image *= corr
 
