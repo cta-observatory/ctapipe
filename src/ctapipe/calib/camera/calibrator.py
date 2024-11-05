@@ -13,7 +13,6 @@ from ctapipe.containers import DL0CameraContainer, DL1CameraContainer, PixelStat
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
-    CaselessStrEnum,
     ComponentName,
     TelescopeParameter,
 )
@@ -62,11 +61,6 @@ class CameraCalibrator(TelescopeComponent):
 
     image_extractor_type: str
         The name of the ImageExtractor subclass to be used for image extraction
-
-    image_calibration_type: str
-        The name of the method for calibrating images.
-        ``charge`` for charge images, ``variance`` for
-        variance images.
     """
 
     data_volume_reducer_type = ComponentName(
@@ -77,15 +71,6 @@ class CameraCalibrator(TelescopeComponent):
         trait=ComponentName(ImageExtractor, default_value="NeighborPeakWindowSum"),
         default_value="NeighborPeakWindowSum",
         help="Name of the ImageExtractor subclass to be used.",
-    ).tag(config=True)
-
-    image_calibration_type = CaselessStrEnum(
-        ["charge", "variance"],
-        default_value="charge",
-        help=(
-            "Image calibration method to be used."
-            "Options are ``charge``, ``variance``"
-        ),
     ).tag(config=True)
 
     invalid_pixel_handler_type = ComponentName(
@@ -301,7 +286,7 @@ class CameraCalibrator(TelescopeComponent):
             if (
                 self.apply_peak_time_shift.tel[tel_id]
                 and remaining_shift is not None
-                and self.image_calibration_type == "charge"
+                and not extractor.__class__.__name__ == "VarianceExtractor"
             ):
                 dl1.peak_time -= remaining_shift
 
@@ -311,21 +296,21 @@ class CameraCalibrator(TelescopeComponent):
             and dl1_calib.absolute_factor is not None
         ):
             if selected_gain_channel is None:
-                if self.image_calibration_type == "charge":
-                    dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
-                elif self.image_calibration_type == "variance":
+                if extractor.__class__.__name__ == "VarianceExtractor":
                     dl1.image *= np.sqrt(
                         dl1_calib.relative_factor / dl1_calib.absolute_factor
                     )
+                else:
+                    dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
             else:
                 corr = (
                     dl1_calib.relative_factor[selected_gain_channel, pixel_index]
                     / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
                 )
-                if self.image_calibration_type == "charge":
-                    dl1.image *= corr
-                elif self.image_calibration_type == "variance":
+                if extractor.__class__.__name__ == "VarianceExtractor":
                     dl1.image *= np.sqrt(corr)
+                else:
+                    dl1.image *= corr
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:
