@@ -6,7 +6,7 @@ on:
     types: [opened, reopened, labeled, unlabeled, synchronize]
 
 env:
-  FRAGMENT_NAME: "docs/changes/${{ github.event.number }}.*.rst"
+  FRAGMENT_NAME: "docs/changes/${{ github.event.number }}.{feature,bugfix,api,datamodel,optimization,maintenance}.rst"
 
 jobs:
   changelog:
