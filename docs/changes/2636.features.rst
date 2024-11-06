@@ -1,3 +1,3 @@
 Makes changes to the CameraCalibrator in ctapipe.calib.camera.calibrator that allows it to correctly calibrate variance images generated with the VarianceExtractor
-if the VarianceExtractor is used for the CameraCalibrator the element-wise square of the relative and absolute gain calibration factors are applied to the image
-For other image extractors the plain factors are still applied
++ If the VarianceExtractor is used for the CameraCalibrator the element-wise square of the relative and absolute gain calibration factors are applied to the image
++ For other image extractors the plain factors are still applied
