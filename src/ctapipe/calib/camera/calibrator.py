@@ -16,7 +16,7 @@ from ctapipe.core.traits import (
     ComponentName,
     TelescopeParameter,
 )
-from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image.extractor import ImageExtractor, VarianceExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
 
@@ -296,7 +296,7 @@ class CameraCalibrator(TelescopeComponent):
             and dl1_calib.absolute_factor is not None
         ):
             if selected_gain_channel is None:
-                if extractor.__class__.__name__ == "VarianceExtractor":
+                if isinstance(extractor, VarianceExtractor):
                     dl1.image *= np.square(
                         dl1_calib.relative_factor / dl1_calib.absolute_factor
                     )

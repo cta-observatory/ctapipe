@@ -131,26 +131,9 @@ def test_check_dl0_empty(example_event, example_subarray):
     assert (event.dl1.tel[tel_id].image == 2).all()
 
 
-def test_dl1_variance_calib(example_event, example_subarray):
-    # test the calibration of variance images
-    tel_id = list(example_event.r0.tel)[0]
-    calibrator = CameraCalibrator(
-        subarray=example_subarray,
-        image_extractor=VarianceExtractor(subarray=example_subarray),
-        apply_waveform_time_shift=False,
-    )
-    calibrator(example_event)
-    image = example_event.dl1.tel[tel_id].image
-    assert image is not None
-    assert image.shape == (
-        1,
-        1764,
-    )
-
-
-def test_calib_LST_camera(example_subarray):
+def test_dl1_variance_calib(example_subarray, camera_geometry):
     n_channels = 2
-    n_pixels = 1855  # number of pixels in LSTcam
+    n_pixels = len(camera_geometry)
     n_samples = 100
 
     random = np.random.default_rng(1)
@@ -187,7 +170,7 @@ def test_calib_LST_camera(example_subarray):
     assert image is not None
     assert image.shape == (
         2,
-        1855,
+        len(camera_geometry),
     )
 
 
