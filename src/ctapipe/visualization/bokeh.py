@@ -3,29 +3,33 @@ from abc import ABCMeta
 from tempfile import NamedTemporaryFile
 
 import astropy.units as u
-import matplotlib.pyplot as plt
 import numpy as np
-from bokeh.io import output_file, output_notebook, push_notebook, show
-from bokeh.models import (
-    BoxZoomTool,
-    CategoricalColorMapper,
-    ColorBar,
-    ColumnDataSource,
-    ContinuousColorMapper,
-    Ellipse,
-    HoverTool,
-    Label,
-    LinearColorMapper,
-    LogColorMapper,
-    TapTool,
-)
-from bokeh.palettes import Greys256, Inferno256, Magma256, Viridis256, d3
-from bokeh.plotting import figure
-from bokeh.transform import transform
-from matplotlib.colors import to_hex
 
+from ..exceptions import OptionalDependencyMissing
 from ..instrument import CameraGeometry, PixelShape
 from .utils import build_hillas_overlay
+
+try:
+    from bokeh.io import output_file, output_notebook, push_notebook, show
+    from bokeh.models import (
+        BoxZoomTool,
+        CategoricalColorMapper,
+        ColorBar,
+        ColumnDataSource,
+        ContinuousColorMapper,
+        Ellipse,
+        HoverTool,
+        Label,
+        LinearColorMapper,
+        LogColorMapper,
+        TapTool,
+    )
+    from bokeh.palettes import Greys256, Inferno256, Magma256, Viridis256, d3
+    from bokeh.plotting import figure
+    from bokeh.transform import transform
+except ModuleNotFoundError:
+    raise OptionalDependencyMissing("bokeh")
+
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
@@ -44,6 +48,12 @@ def palette_from_mpl_name(name):
     """Create a bokeh palette from a matplotlib colormap name"""
     if name in CMAPS:
         return CMAPS[name]
+
+    try:
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import to_hex
+    except ModuleNotFoundError:
+        raise OptionalDependencyMissing("matplotlib")
 
     rgba = plt.get_cmap(name)(np.linspace(0, 1, 256))
     palette = [to_hex(color) for color in rgba]

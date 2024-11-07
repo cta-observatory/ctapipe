@@ -5,9 +5,9 @@ Visualization routines using matplotlib
 import copy
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
-from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.patches import Circle, Ellipse, RegularPolygon
