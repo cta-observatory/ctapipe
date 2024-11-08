@@ -746,7 +746,7 @@ class SimTelEventSource(EventSource):
         try:
             from eventio.file_types import is_eventio
         except ModuleNotFoundError:
-            raise OptionalDependencyMissing("eventio")
+            raise OptionalDependencyMissing("eventio") from None
 
         path = Path(file_path).expanduser()
         if not path.is_file():

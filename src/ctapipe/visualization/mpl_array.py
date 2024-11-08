@@ -1,15 +1,14 @@
 from itertools import cycle
 
-import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
-from matplotlib.collections import PatchCollection
-from matplotlib.lines import Line2D
-from matplotlib.patches import Circle
 
-from ctapipe.coordinates import GroundFrame
-from ctapipe.visualization.mpl_camera import polar_to_cart
+from ..coordinates import GroundFrame
+from ..exceptions import OptionalDependencyMissing
+from .mpl_camera import polar_to_cart
+
+# import matplotlib.pyplot as plt
 
 
 class ArrayDisplay:
@@ -59,6 +58,14 @@ class ArrayDisplay:
         radius=None,
         frame=GroundFrame(),
     ):
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.collections import PatchCollection
+            from matplotlib.lines import Line2D
+            from matplotlib.patches import Circle
+        except ModuleNotFoundError:
+            raise OptionalDependencyMissing("matplotlib") from None
+
         self.frame = frame
         self.subarray = subarray
         self.axes = axes or plt.gca()
@@ -163,6 +170,8 @@ class ArrayDisplay:
             spacing between rings
 
         """
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import Circle
 
         n_circles = np.round(
             (np.sqrt(self.subarray.footprint / np.pi) / spacing).to_value(""),
@@ -373,6 +382,8 @@ class ArrayDisplay:
 
     def _update(self):
         """signal a redraw if necessary"""
+        import matplotlib.pyplot as plt
+
         if self.autoupdate:
             plt.draw()
 

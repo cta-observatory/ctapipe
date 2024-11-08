@@ -2,10 +2,13 @@
 Tests for MuonProcessor functionality
 """
 import numpy as np
+import pytest
 
 from ctapipe.image import ImageProcessor
 from ctapipe.image.muon import MuonProcessor
 from ctapipe.io import EventSource
+
+pytest.importorskip("iminuit")
 
 
 def test_processor(dl1_muon_file):

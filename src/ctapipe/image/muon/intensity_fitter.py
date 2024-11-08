@@ -472,7 +472,7 @@ class MuonIntensityFitter(TelescopeComponent):
 
     def __init__(self, subarray, **kwargs):
         if Minuit is None:
-            raise OptionalDependencyMissing("iminuit")
+            raise OptionalDependencyMissing("iminuit") from None
 
         super().__init__(subarray=subarray, **kwargs)
         self._geometries_tel_frame = {

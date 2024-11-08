@@ -1,9 +1,8 @@
 import codecs
 
 import numpy as np
-from matplotlib import colormaps
 
-viridis = colormaps["viridis"]
+from ..exceptions import OptionalDependencyMissing
 
 
 def intensity_to_rgb(array, minval=None, maxval=None):
@@ -25,6 +24,12 @@ def intensity_to_rgb(array, minval=None, maxval=None):
         rgb tuple representing the intensity as a color
 
     """
+    try:
+        from matplotlib import colormaps
+    except ModuleNotFoundError:
+        raise OptionalDependencyMissing("matplotlib") from None
+
+    viridis = colormaps["viridis"]
     if minval is None:
         minval = np.nanmin(array)
     if maxval is None:

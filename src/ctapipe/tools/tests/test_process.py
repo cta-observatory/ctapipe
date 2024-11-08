@@ -412,6 +412,8 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
 
 def test_muon_reconstruction_simtel(tmp_path):
     """ensure processor tool generates expected output when used to analyze muons"""
+    pytest.importorskip("iminuit")
+
     muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
     run_tool(
         ProcessorTool(),

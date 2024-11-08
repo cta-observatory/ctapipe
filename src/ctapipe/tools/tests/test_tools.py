@@ -4,10 +4,6 @@ Test individual tool functionality
 import subprocess
 import sys
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-# pylint: disable=C0103,C0116,C0415
 import pytest
 
 from ctapipe.core import run_tool
@@ -22,6 +18,9 @@ PROD5B_PATH = get_dataset_path(
 
 def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
+
+    mpl = pytest.importorskip("matplotlib")
+    plt = pytest.importorskip("matplotlib.pyplot")
 
     # close all figures before switching mpl backends
     # fixes a deprecation warning / pending error in newer mpl versions

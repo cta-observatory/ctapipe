@@ -59,6 +59,9 @@ all = [
 ]
 
 tests = [
+    # at the moment, essentially all tests rely on test data from simtel
+    # it doesn't make sense to skip all of these.
+    "eventio >=1.9.1,<2.0.0a0",
     "h5py",
     "pandas",
     "pytest >= 7.0",

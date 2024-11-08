@@ -140,7 +140,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
     ):
         if Minuit is None:
-            raise OptionalDependencyMissing("iminuit")
+            raise OptionalDependencyMissing("iminuit") from None
 
         if atmosphere_profile is None:
             raise TypeError(

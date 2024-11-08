@@ -1,8 +1,13 @@
 """Tests for the bokeh visualization"""
 import numpy as np
-from bokeh.io import output_file, save
+import pytest
 
 from ctapipe.coordinates import TelescopeFrame
+
+bokeh = pytest.importorskip("bokeh")
+bokeh_io = pytest.importorskip("bokeh.io")
+output_file = bokeh_io.output_file
+save = bokeh_io.save
 
 
 def test_create_display_without_geometry(example_event, example_subarray):

@@ -28,7 +28,7 @@ try:
     from bokeh.plotting import figure
     from bokeh.transform import transform
 except ModuleNotFoundError:
-    raise OptionalDependencyMissing("bokeh")
+    raise OptionalDependencyMissing("bokeh") from None
 
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
@@ -53,7 +53,7 @@ def palette_from_mpl_name(name):
         import matplotlib.pyplot as plt
         from matplotlib.colors import to_hex
     except ModuleNotFoundError:
-        raise OptionalDependencyMissing("matplotlib")
+        raise OptionalDependencyMissing("matplotlib") from None
 
     rgba = plt.get_cmap(name)(np.linspace(0, 1, 256))
     palette = [to_hex(color) for color in rgba]

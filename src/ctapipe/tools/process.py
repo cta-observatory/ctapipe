@@ -191,7 +191,10 @@ class ProcessorTool(Tool):
         self.write = self.enter_context(
             DataWriter(event_source=self.event_source, parent=self)
         )
-        self.process_muons = MuonProcessor(subarray=subarray, parent=self)
+
+        self.process_muons = None
+        if self.should_compute_muon_parameters:
+            self.process_muons = MuonProcessor(subarray=subarray, parent=self)
 
         self.event_type_filter = EventTypeFilter(parent=self)
 
