@@ -6,6 +6,7 @@ from copy import deepcopy
 
 import astropy.units as u
 import numpy as np
+import pytest
 from scipy.stats import norm
 from traitlets.config import Config
 
@@ -19,6 +20,8 @@ from ctapipe.image.extractor import (
     VarianceExtractor,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
+from ctapipe.instrument import FromNameWarning
+from ctapipe.instrument.camera.geometry import CameraGeometry
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -131,14 +134,15 @@ def test_check_dl0_empty(example_event, example_subarray):
     assert (event.dl1.tel[tel_id].image == 2).all()
 
 
-def test_dl1_variance_calib(example_subarray, camera_geometry):
+@pytest.mark.parametrize("camera_name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
+def test_dl1_variance_calib(camera_name, example_subarray):
+    with pytest.warns(FromNameWarning):
+        geometry = CameraGeometry.from_name(camera_name)
     n_channels = 2
-    n_pixels = len(camera_geometry)
+    n_pixels = len(geometry)
     n_samples = 100
 
     random = np.random.default_rng(1)
-
-    tel_id = 1
     y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
 
     absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
@@ -150,28 +154,29 @@ def test_dl1_variance_calib(example_subarray, camera_geometry):
     pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
     y += pedestal[..., np.newaxis]
 
-    event = ArrayEventContainer()
-    event.dl0.tel[tel_id].waveform = y
-    event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
-    event.calibration.tel[tel_id].dl1.absolute_factor = absolute
-    event.calibration.tel[tel_id].dl1.relative_factor = relative
-    event.dl0.tel[tel_id].selected_gain_channel = None
-    event.r1.tel[tel_id].selected_gain_channel = None
-
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         image_extractor=VarianceExtractor(subarray=example_subarray),
         apply_waveform_time_shift=False,
     )
-    calibrator(event)
 
-    image = event.dl1.tel[tel_id].image
+    for tel_id in example_subarray.tel_ids:
+        event = ArrayEventContainer()
+        event.dl0.tel[tel_id].waveform = y
+        event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
+        event.calibration.tel[tel_id].dl1.absolute_factor = absolute
+        event.calibration.tel[tel_id].dl1.relative_factor = relative
+        event.dl0.tel[tel_id].selected_gain_channel = None
+        event.r1.tel[tel_id].selected_gain_channel = None
+        calibrator(event)
 
-    assert image is not None
-    assert image.shape == (
-        2,
-        len(camera_geometry),
-    )
+        image = event.dl1.tel[tel_id].image
+
+        assert image is not None
+        assert image.shape == (
+            2,
+            len(geometry),
+        )
 
 
 def test_dl1_charge_calib(example_subarray):
