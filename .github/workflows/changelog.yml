@@ -6,19 +6,30 @@ on:
     types: [opened, reopened, labeled, unlabeled, synchronize]
 
 env:
-  FRAGMENT_NAME: "docs/changes/${{ github.event.number }}.{feature,bugfix,api,datamodel,optimization,maintenance}.rst"
+  FRAGMENT_NAME_PREFIX: "docs/changes/${{ github.event.number }}"
 
 jobs:
   changelog:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Check for news fragment
-        if: ${{ ! contains( github.event.pull_request.labels.*.name, 'no-changelog-needed')}}
-        uses: andstor/file-existence-action@v3
-        with:
-          files: ${{ env.FRAGMENT_NAME }}
-          fail: true
+      - name: Check for at least one changelog fragment
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changelog-needed') }}
+        run: |
+          CHANGE_TYPES=("feature" "bugfix" "api" "datamodel" "optimization" "maintenance")
+          FRAGMENT_FOUND=false
+          for CHANGE_TYPE in "${CHANGE_TYPES[@]}"; do
+            FILE="${{ env.FRAGMENT_NAME_PREFIX }}.${CHANGE_TYPE}.rst"
+            if [ -f "$FILE" ]; then
+              FRAGMENT_FOUND=true
+              break
+            fi
+          done
+          if [ "$FRAGMENT_FOUND" = false ]; then
+            echo "No changelog fragment found. Please add a changelog fragment."
+            exit 1
+          fi
