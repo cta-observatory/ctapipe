@@ -44,7 +44,6 @@ dependencies = [
     "tables ~=3.4",
     "tqdm >=4.32",
     "traitlets ~=5.6",
-    "zstandard",
 ]
 
 [project.optional-dependencies]
