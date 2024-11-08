@@ -32,7 +32,6 @@ requires-python = ">=3.10"
 dependencies = [
     "astropy >=5.3,<7.0.0a0",
     "docutils",
-    "eventio >=1.9.1, <2.0.0a0",
     "iminuit >=2",
     "joblib",
     "numba >=0.56",
@@ -54,6 +53,7 @@ dependencies = [
 # all is with all optional *runtime* dependencies
 # use `dev` to get really all dependencies
 all = [
+    "eventio >=1.9.1,<2.0.0a0",
     "matplotlib ~=3.0",
     "bokeh ~=3.0",
     "ctapipe[tests,docs,dev]",
@@ -87,6 +87,7 @@ docs = [
     "ffmpeg-python",
     "pypandoc",
     "tomli; python_version < '3.11'",
+    "ctapipe[all]",
 ]
 
 dev = [

@@ -11,8 +11,6 @@ from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
 from astropy.table import Table
 from astropy.time import Time
-from eventio.file_types import is_eventio
-from eventio.simtel.simtelfile import SimTelFile
 
 from ..atmosphere import (
     AtmosphereDensityProfile,
@@ -50,6 +48,7 @@ from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, ComponentName, Float, Integer, Undefined, UseEnum
+from ..exceptions import OptionalDependencyMissing
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -69,6 +68,12 @@ from ..instrument.guess import (
 )
 from .datalevels import DataLevel
 from .eventsource import EventSource
+
+try:
+    from eventio import SimTelFile
+except ModuleNotFoundError:
+    SimTelFile = None
+
 
 __all__ = [
     "SimTelEventSource",
@@ -529,6 +534,8 @@ class SimTelEventSource(EventSource):
         kwargs
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
+        if SimTelFile is None:
+            raise OptionalDependencyMissing("eventio")
 
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
@@ -736,6 +743,11 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        try:
+            from eventio.file_types import is_eventio
+        except ModuleNotFoundError:
+            raise OptionalDependencyMissing("eventio")
+
         path = Path(file_path).expanduser()
         if not path.is_file():
             return False
