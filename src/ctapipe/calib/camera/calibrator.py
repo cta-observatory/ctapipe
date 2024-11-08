@@ -296,21 +296,17 @@ class CameraCalibrator(TelescopeComponent):
             and dl1_calib.absolute_factor is not None
         ):
             if selected_gain_channel is None:
-                if isinstance(extractor, VarianceExtractor):
-                    dl1.image *= np.square(
-                        dl1_calib.relative_factor / dl1_calib.absolute_factor
-                    )
-                else:
-                    dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+                calibration = dl1_calib.relative_factor / dl1_calib.absolute_factor
             else:
-                corr = (
+                calibration = (
                     dl1_calib.relative_factor[selected_gain_channel, pixel_index]
                     / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
                 )
-                if isinstance(extractor, VarianceExtractor):
-                    dl1.image *= np.square(corr)
-                else:
-                    dl1.image *= corr
+
+            if isinstance(extractor, VarianceExtractor):
+                calibration = calibration**2
+
+            dl1.image *= calibration
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:
