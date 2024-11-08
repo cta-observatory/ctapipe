@@ -9,10 +9,10 @@ import numpy as np
 import numpy.ma as ma
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
-from iminuit import Minuit
 from scipy.stats import norm
 
 from ctapipe.core import traits
+from ctapipe.exceptions import OptionalDependencyMissing
 
 from ..compat import COPY_IF_NEEDED
 from ..containers import ReconstructedEnergyContainer, ReconstructedGeometryContainer
@@ -48,6 +48,11 @@ from .reconstructor import (
     ReconstructionProperty,
     TooFewTelescopesException,
 )
+
+try:
+    from iminuit import Minuit
+except ModuleNotFoundError:
+    Minuit = None
 
 PROV = Provenance()
 
@@ -134,6 +139,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
     def __init__(
         self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
     ):
+        if Minuit is None:
+            raise OptionalDependencyMissing("iminuit")
+
         if atmosphere_profile is None:
             raise TypeError(
                 "Argument 'atmosphere_profile' can not be 'None' for ImPACTReconstructor"

@@ -32,7 +32,6 @@ requires-python = ">=3.10"
 dependencies = [
     "astropy >=5.3,<7.0.0a0",
     "docutils",
-    "iminuit >=2",
     "joblib",
     "numba >=0.56",
     "numpy >=1.23,<3.0.0a0",
@@ -53,10 +52,10 @@ dependencies = [
 # all is with all optional *runtime* dependencies
 # use `dev` to get really all dependencies
 all = [
-    "eventio >=1.9.1,<2.0.0a0",
-    "matplotlib ~=3.0",
     "bokeh ~=3.0",
-    "ctapipe[tests,docs,dev]",
+    "eventio >=1.9.1,<2.0.0a0",
+    "iminuit >=2",
+    "matplotlib ~=3.0",
 ]
 
 tests = [
@@ -71,23 +70,23 @@ tests = [
 ]
 
 docs = [
-    "sphinx",
-    "pydata_sphinx_theme",
-    "sphinx_automodapi",
+    "ctapipe[all]",
+    "ffmpeg-python",
+    "graphviz",
+    "ipython",
+    "jupyter",
     "nbsphinx",
+    "notebook",
     "numpydoc",
+    "pandas",
+    "pydata_sphinx_theme",
+    "pypandoc",
+    "sphinx",
     "sphinx-design",
     "sphinx-gallery >= 0.16.0",
+    "sphinx_automodapi",
     "sphinxcontrib-bibtex",
-    "jupyter",
-    "notebook",
-    "graphviz",
-    "pandas",
-    "ipython",
-    "ffmpeg-python",
-    "pypandoc",
     "tomli; python_version < '3.11'",
-    "ctapipe[all]",
 ]
 
 dev = [
