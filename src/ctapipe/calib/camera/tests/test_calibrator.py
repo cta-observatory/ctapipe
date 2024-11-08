@@ -6,7 +6,6 @@ from copy import deepcopy
 
 import astropy.units as u
 import numpy as np
-import pytest
 from scipy.stats import norm
 from traitlets.config import Config
 
@@ -20,8 +19,6 @@ from ctapipe.image.extractor import (
     VarianceExtractor,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
-from ctapipe.instrument import FromNameWarning
-from ctapipe.instrument.camera.geometry import CameraGeometry
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -134,48 +131,49 @@ def test_check_dl0_empty(example_event, example_subarray):
     assert (event.dl1.tel[tel_id].image == 2).all()
 
 
-@pytest.mark.parametrize("camera_name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
-def test_dl1_variance_calib(camera_name, example_subarray):
-    with pytest.warns(FromNameWarning):
-        geometry = CameraGeometry.from_name(camera_name)
-    n_channels = 2
-    n_pixels = len(geometry)
-    n_samples = 100
-
-    random = np.random.default_rng(1)
-    y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
-
-    absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
-    y *= absolute[..., np.newaxis]
-
-    relative = random.normal(1, 0.01, (n_channels, n_pixels))
-    y /= relative[..., np.newaxis]
-
-    pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
-    y += pedestal[..., np.newaxis]
-
+def test_dl1_variance_calib(example_subarray):
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         image_extractor=VarianceExtractor(subarray=example_subarray),
         apply_waveform_time_shift=False,
     )
+    n_channels = 2
+    n_samples = 100
 
-    for tel_id in example_subarray.tel_ids:
-        event = ArrayEventContainer()
+    event = ArrayEventContainer()
+
+    for tel_type in example_subarray.telescope_types:
+        tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
+        n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
+
+        random = np.random.default_rng(1)
+        y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
+
+        absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
+        y *= absolute[..., np.newaxis]
+
+        relative = random.normal(1, 0.01, (n_channels, n_pixels))
+        y /= relative[..., np.newaxis]
+
+        pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
+        y += pedestal[..., np.newaxis]
+
         event.dl0.tel[tel_id].waveform = y
         event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
         event.calibration.tel[tel_id].dl1.absolute_factor = absolute
         event.calibration.tel[tel_id].dl1.relative_factor = relative
         event.dl0.tel[tel_id].selected_gain_channel = None
         event.r1.tel[tel_id].selected_gain_channel = None
-        calibrator(event)
 
+    calibrator(event)
+
+    for tel_type in example_subarray.telescope_types:
+        tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
         image = event.dl1.tel[tel_id].image
-
         assert image is not None
         assert image.shape == (
             2,
-            len(geometry),
+            example_subarray.tel[tel_id].camera.geometry.n_pixels,
         )
 
 
