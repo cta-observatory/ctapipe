@@ -24,4 +24,4 @@ def test_psf():
 def test_asymptotic_behavior():
     psf_coma = PSFModel.from_name("ComaModel")
     psf_coma.update_location(1.0, 0.0)
-    assert np.isclose(psf_coma.psf(10.0, 0.0), 0.0)
+    assert np.isclose(psf_coma.pdf(10.0, 0.0), 0.0)

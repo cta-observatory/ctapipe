@@ -90,7 +90,7 @@ class ComaModel(PSFModel):
             Parameters describing the dependency of the asymmetry of the psf on the distance to the center of the camera
         radial_scale_params : list
             Parameters describing the dependency of the radial scale on the distance to the center of the camera
-        radial_scale_params : list
+        az_scale_params : list
             Parameters describing the dependency of the azimuthal scale scale on the distance to the center of the camera
         """
 
@@ -126,7 +126,7 @@ class ComaModel(PSFModel):
 
         Parameters
         ----------
-         r : float
+        r : float
             distance to the center of the camera in meters
         f : float
             polar angle in radians
