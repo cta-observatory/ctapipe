@@ -18,7 +18,6 @@ from ..containers import (
 from ..core import Provenance, ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
-from ..exceptions import OptionalDependencyMissing
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
 
@@ -350,7 +349,7 @@ class EventSource(Component):
             try:
                 if subcls.is_compatible(input_url):
                     return subcls
-            except OptionalDependencyMissing as e:
+            except ModuleNotFoundError as e:
                 missing_deps[subcls] = e.module
             except Exception as e:
                 warnings.warn(f"{name}.is_compatible raised exception: {e}")
@@ -369,7 +368,7 @@ class EventSource(Component):
         msg = (
             f"Could not find compatible EventSource for input_url: {input_url!r}\n"
             f"in available EventSources: {available_sources}\n"
-            "EventSources that could not be used due to missing optional dependencies:\n\t"
+            "EventSources that are installed but could not be used due to missing dependencies:\n\t"
             + "\n\t".join(
                 f"{source.__name__}: {missing}"
                 for source, missing in missing_deps.items()
