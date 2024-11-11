@@ -12,7 +12,6 @@ from astropy.table import QTable
 from scipy.stats import laplace, laplace_asymmetric
 
 from ctapipe.core.component import non_abstract_children
-from ctapipe.core.plugins import detect_and_import_plugins
 
 from ..compat import StrEnum
 from ..utils import get_table_dataset
@@ -279,7 +278,7 @@ class PSFModel:
         """
 
     @classmethod
-    def from_name(cls, name, **kwargs):
+    def subclass_from_name(cls, name, **kwargs):
         """
         Obtain an instance of a subclass via its name
 
@@ -293,28 +292,11 @@ class PSFModel:
         Instance
             Instance of subclass to this class
         """
-        requested_subclass = cls.non_abstract_subclasses()[name]
-        return requested_subclass(**kwargs)
-
-    @classmethod
-    def non_abstract_subclasses(cls):
-        """
-        Get a dict of all non-abstract subclasses of this class.
-
-        This method is using the entry-point plugin system
-        to also check for registered plugin implementations.
-
-        Returns
-        -------
-        subclasses : dict[str, type]
-            A dict mapping the name to the class of all found,
-            non-abstract  subclasses of this class.
-        """
-        if hasattr(cls, "plugin_entry_point"):
-            detect_and_import_plugins(cls.plugin_entry_point)
 
         subclasses = {base.__name__: base for base in non_abstract_children(cls)}
-        return subclasses
+
+        requested_subclass = subclasses[name]
+        return requested_subclass(**kwargs)
 
     @abstractmethod
     def pdf(self, *args):

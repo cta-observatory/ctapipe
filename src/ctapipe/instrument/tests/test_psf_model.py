@@ -8,7 +8,7 @@ from ctapipe.instrument.optics import PSFModel
 
 
 def test_psf():
-    psf = PSFModel.from_name("ComaModel")
+    psf = PSFModel.subclass_from_name("ComaModel")
     wrong_parameters = {
         "asymmetry_params": [0.49244797, 9.23573115, 0.15216096],
         "radial_scale_params": [0.01409259, 0.02947208, 0.06000271, -0.02969355],
@@ -22,6 +22,6 @@ def test_psf():
 
 
 def test_asymptotic_behavior():
-    psf_coma = PSFModel.from_name("ComaModel")
+    psf_coma = PSFModel.subclass_from_name("ComaModel")
     psf_coma.update_location(1.0, 0.0)
     assert np.isclose(psf_coma.pdf(10.0, 0.0), 0.0)
