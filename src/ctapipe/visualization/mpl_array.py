@@ -8,8 +8,6 @@ from ..coordinates import GroundFrame
 from ..exceptions import OptionalDependencyMissing
 from .mpl_camera import polar_to_cart
 
-# import matplotlib.pyplot as plt
-
 
 class ArrayDisplay:
     """
