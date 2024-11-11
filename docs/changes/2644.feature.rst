@@ -1,0 +1,6 @@
+Since not all ``EventSource`` plugins support providing the CTAO reference metadata,
+the ``EventSource`` now has a property ``supports_reference_metadata`` which can
+be overridden by subclasses to signal the support for reading reference metadata.
+
+This avoids a warning for not being able to read reference metadata for
+sources that cannot support it (yet), like the ``SimTelEventSource``.

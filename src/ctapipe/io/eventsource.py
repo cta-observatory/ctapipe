@@ -165,7 +165,14 @@ class EventSource(Component):
         if self.max_events:
             self.log.info(f"Max events being read = {self.max_events}")
 
-        Provenance().add_input_file(str(self.input_url), role="DL0/Event")
+        add_meta = self.supports_reference_metadata
+        Provenance().add_input_file(
+            str(self.input_url), role="DL0/Event", add_meta=add_meta
+        )
+
+    @property
+    def supports_reference_metadata(self) -> bool:
+        return True
 
     @staticmethod
     @abstractmethod
