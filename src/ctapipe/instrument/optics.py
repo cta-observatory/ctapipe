@@ -407,7 +407,7 @@ class ComaModel(PSFModel):
         ----------
         model_params : dict
             dictionary with the model parameters
-            needs to have the keys `asymmetry_params`, `radial_scale_params` and `az_scale_params`
+            needs to have the keys asymmetry_params, radial_scale_params and az_scale_params
             The values need to be lists of length 3, 4 and 3 respectively
         """
         if not (
