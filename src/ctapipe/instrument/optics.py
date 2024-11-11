@@ -431,6 +431,7 @@ class ComaModel(PSFModel):
     def update_location(self, r, f):
         """
         Updates the location on the camera focal plane from where the psf is calculated
+
         Parameters
         ----------
         r : float
@@ -438,6 +439,7 @@ class ComaModel(PSFModel):
         f : float
             polar angle in radians
         """
+
         k = self.k_func(r)
         sr = self.sr_func(r)
         sf = self.sf_func(r)
