@@ -31,8 +31,14 @@ except ModuleNotFoundError:
     raise OptionalDependencyMissing("bokeh") from None
 
 
-PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
+__all__ = [
+    "BokehPlot",
+    "CameraDisplay",
+    "ArrayDisplay",
+]
 
+
+PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
 # mapper to mpl names
 CMAPS = {
@@ -379,7 +385,7 @@ class CameraDisplay(BokehPlot):
             )
 
     def enable_pixel_picker(self, callback):
-        """Call `callback`` when a pixel is clicked"""
+        """Call ``callback`` when a pixel is clicked"""
         if self._tap_tool is None:
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
@@ -483,7 +489,7 @@ class CameraDisplay(BokehPlot):
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, n_sigma=1, **kwargs
     ):
-        """helper to overlay ellipse from a `HillasParametersContainer` structure
+        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------
@@ -537,13 +543,13 @@ class ArrayDisplay(BokehPlot):
     telescopes in the subarray, colored by telescope type, however you can
     also color the telescopes by a value (like trigger pattern, or some other
     scalar per-telescope parameter). To set the color value, simply set the
-    `value` attribute, and the fill color will be updated with the value. You
+    ``value`` attribute, and the fill color will be updated with the value. You
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
-    `array_disp.telescope.set_linewidth(0)`)
+    ``array_disp.telescope.set_linewidth(0)``)
 
     To display a vector field over the telescope positions, e.g. for
-    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
+    reconstruction, call ``set_uv()`` to set cartesian vectors, or ``set_r_phi()``
     to set polar coordinate vectors.  These both take an array of length
     N_tels, or a single value.
 
