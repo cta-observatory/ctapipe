@@ -4,7 +4,7 @@ This module contains the ctapipe.image.psf_model unit tests
 import numpy as np
 import pytest
 
-from ctapipe.image.psf_model import PSFModel
+from ctapipe.instrument.optics import PSFModel
 
 
 def test_psf():
