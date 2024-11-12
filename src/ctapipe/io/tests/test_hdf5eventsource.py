@@ -262,3 +262,11 @@ def test_interpolate_pointing(dl1_mon_pointing_file):
             for pointing in e.pointing.tel.values():
                 assert not np.isnan(pointing.azimuth)
                 assert not np.isnan(pointing.altitude)
+
+
+def test_simulated_events_distribution(dl1_file):
+    with HDF5EventSource(dl1_file) as source:
+        assert len(source.simulated_shower_distributions) == 1
+        dist = source.simulated_shower_distributions[1]
+        assert dist["n_entries"] == 1000
+        assert dist["histogram"].sum() == 1000.0

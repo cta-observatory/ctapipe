@@ -394,6 +394,9 @@ def test_read_from_simtel_and_dl1(prod5_proton_simtel_path, tmp_path):
     with TableLoader(dl2_from_dl1) as loader:
         events_from_dl1 = loader.read_subarray_events()
 
+    with tables.open_file(dl2_from_dl1) as f:
+        assert "/simulation/service/shower_distribution" in f.root
+
     # both files should contain identical data
     assert_array_equal(events_from_simtel["event_id"], events_from_dl1["event_id"])
 
