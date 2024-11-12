@@ -1,3 +1,4 @@
 Update ``CameraCalibrator`` in ``ctapipe.calib.camera.calibrator`` allowing it to correctly calibrate variance images generated with the ``VarianceExtractor``.
-  - If the VarianceExtractor is used for the ``CameraCalibrator`` the element-wise square of the relative and absolute gain calibration factors are applied to the image;
+  - If the ``VarianceExtractor`` is used for the ``CameraCalibrator`` the element-wise square of the relative and absolute gain calibration factors are applied to the image;
   - For other image extractors the plain factors are still applied.
+  - The ``VarianceExtractor`` provides no peak time and the calibrator will not try to skip shifting the peak time for extractors like the ``VarianceExtractor`` that similarly do not provide a peak time

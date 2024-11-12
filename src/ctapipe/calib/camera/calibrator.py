@@ -284,9 +284,9 @@ class CameraCalibrator(TelescopeComponent):
 
             # correct non-integer remainder of the shift if given
             if (
-                self.apply_peak_time_shift.tel[tel_id]
+                dl1.peak_time is not None
+                and self.apply_peak_time_shift.tel[tel_id]
                 and remaining_shift is not None
-                and dl1.peak_time is not None
             ):
                 dl1.peak_time -= remaining_shift
 

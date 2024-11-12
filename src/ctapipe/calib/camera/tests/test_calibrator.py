@@ -137,7 +137,6 @@ def test_dl1_variance_calib(example_subarray):
         image_extractor=VarianceExtractor(subarray=example_subarray),
         apply_waveform_time_shift=False,
     )
-    n_channels = 2
     n_samples = 100
 
     event = ArrayEventContainer()
@@ -145,6 +144,7 @@ def test_dl1_variance_calib(example_subarray):
     for tel_type in example_subarray.telescope_types:
         tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
         n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
+        n_channels = example_subarray.tel[tel_id].camera.readout.n_channels
 
         random = np.random.default_rng(1)
         y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
@@ -170,9 +170,10 @@ def test_dl1_variance_calib(example_subarray):
     for tel_type in example_subarray.telescope_types:
         tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
         image = event.dl1.tel[tel_id].image
+        camera = example_subarray.tel[tel_id].camera
         assert image is not None
         assert image.shape == (
-            2,
+            camera.readout.n_channels,
             example_subarray.tel[tel_id].camera.geometry.n_pixels,
         )
 
