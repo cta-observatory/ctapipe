@@ -16,7 +16,7 @@ from ..containers import (
     SimulatedShowerDistribution,
     SimulationConfigContainer,
 )
-from ..core import Provenance, ToolConfigurationError
+from ..core import ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
 from ..instrument import SubarrayDescription
@@ -134,23 +134,6 @@ class EventSource(Component):
         return super().__new__(subcls)
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
-        """
-        Class to handle generic input files. Enables obtaining the "source"
-        generator, regardless of the type of file (either hessio or camera
-        file).
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         # traitlets differentiates between not getting the kwarg
         # and getting the kwarg with a None value.
         # the latter overrides the value in the config with None, the former
@@ -165,8 +148,6 @@ class EventSource(Component):
 
         if self.max_events:
             self.log.info(f"Max events being read = {self.max_events}")
-
-        Provenance().add_input_file(str(self.input_url), role="DL0/Event")
 
     @staticmethod
     @abstractmethod

@@ -44,7 +44,7 @@ from ..containers import (
     TimingParametersContainer,
     TriggerContainer,
 )
-from ..core import Container, Field
+from ..core import Container, Field, Provenance
 from ..core.traits import UseEnum
 from ..instrument import SubarrayDescription
 from ..instrument.optics import FocalLengthKind
@@ -53,6 +53,7 @@ from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
+from .metadata import _read_reference_metadata_hdf5
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP, POINTING_GROUP
 
 __all__ = ["HDF5EventSource"]
@@ -203,6 +204,11 @@ class HDF5EventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(self.input_url)
+        meta = _read_reference_metadata_hdf5(self.file_)
+        Provenance().add_input_file(
+            str(self.input_url), role="Event", reference_meta=meta
+        )
+
         self._full_subarray = SubarrayDescription.from_hdf(
             self.input_url,
             focal_length_choice=self.focal_length_choice,

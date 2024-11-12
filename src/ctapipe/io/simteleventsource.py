@@ -537,6 +537,12 @@ class SimTelEventSource(EventSource):
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
         )
+        # TODO: read metadata from simtel metaparams once we have files that
+        # actually provide the reference metadata.
+        Provenance().add_input_file(
+            str(self.input_url), role="DL0/Event", add_meta=False
+        )
+
         if self.back_seekable and self.is_stream:
             raise OSError("back seekable was required but not possible for inputfile")
         (
