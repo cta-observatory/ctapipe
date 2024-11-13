@@ -7,12 +7,9 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection
-from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from matplotlib.patches import Circle, Ellipse, RegularPolygon
 
 from ..coordinates import get_representation_component_names
+from ..exceptions import OptionalDependencyMissing
 from ..instrument import PixelShape
 from .utils import build_hillas_overlay
 
@@ -100,6 +97,12 @@ class CameraDisplay:
         show_frame=True,
         ax=None,
     ):
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.collections import PatchCollection
+        except ModuleNotFoundError:
+            raise OptionalDependencyMissing("matplotlib") from None
+
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
         self.colorbar = None
@@ -202,6 +205,8 @@ class CameraDisplay:
 
     @staticmethod
     def _create_hex_patches(pix_x, pix_y, pix_width, pix_rotation):
+        from matplotlib.patches import RegularPolygon
+
         orientation = pix_rotation.to_value(u.rad)
         return [
             RegularPolygon(
@@ -217,6 +222,8 @@ class CameraDisplay:
 
     @staticmethod
     def _create_circle_patches(pix_x, pix_y, pix_width):
+        from matplotlib.patches import Circle
+
         return [
             Circle((x, y), radius=w / 2, fill=True)
             for x, y, w in zip(pix_x, pix_y, pix_width)
@@ -224,6 +231,8 @@ class CameraDisplay:
 
     @staticmethod
     def _create_square_patches(pix_x, pix_y, pix_width, pix_rotation):
+        from matplotlib.patches import RegularPolygon
+
         orientation = (pix_rotation + 45 * u.deg).to_value(u.rad)
         return [
             RegularPolygon(
@@ -275,6 +284,8 @@ class CameraDisplay:
 
     def set_limits_percent(self, percent=95):
         """auto-scale the color range to percent of maximum"""
+        from matplotlib.colors import LogNorm
+
         zmin = np.nanmin(self.pixels.get_array())
         zmax = np.nanmax(self.pixels.get_array())
         if isinstance(self.pixels.norm, LogNorm):
@@ -301,6 +312,8 @@ class CameraDisplay:
 
     @norm.setter
     def norm(self, norm):
+        from matplotlib.colors import LogNorm, Normalize, SymLogNorm
+
         vmin, vmax = self.pixels.norm.vmin, self.pixels.norm.vmax
 
         if norm == "lin":
@@ -414,6 +427,8 @@ class CameraDisplay:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
+        from matplotlib.patches import Ellipse
+
         ellipse = Ellipse(
             xy=centroid,
             width=length,

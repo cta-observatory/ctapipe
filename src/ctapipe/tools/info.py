@@ -3,7 +3,11 @@
 import logging
 import os
 import sys
+from importlib.metadata import PackageNotFoundError, requires, version
 from importlib.resources import files
+
+from packaging.markers import default_environment
+from packaging.requirements import Requirement
 
 from ..core import Provenance, get_module_version
 from ..core.plugins import detect_and_import_plugins
@@ -11,27 +15,6 @@ from ..utils import datasets
 from .utils import get_parser
 
 __all__ = ["info"]
-
-# TODO: this list should be global (or generated at install time)
-_dependencies = sorted(
-    [
-        "astropy",
-        "matplotlib",
-        "numpy",
-        "traitlets",
-        "sklearn",
-        "scipy",
-        "numba",
-        "pytest",
-        "iminuit",
-        "tables",
-        "eventio",
-    ]
-)
-
-_optional_dependencies = sorted(
-    ["ctapipe_resources", "pytest", "graphviz", "matplotlib"]
-)
 
 
 def main(args=None):
@@ -162,15 +145,28 @@ def _info_dependencies():
     """Print info about dependencies."""
     print("\n*** ctapipe core dependencies ***\n")
 
-    for name in _dependencies:
-        version = get_module_version(name)
-        print(f"{name:>20s} -- {version}")
+    env = default_environment()
+    requirements = [Requirement(r) for r in requires("ctapipe")]
+    dependencies = [
+        r.name for r in requirements if r.marker is None or r.marker.evaluate(env)
+    ]
+
+    env["extra"] = "all"
+    optional_dependencies = [
+        r.name for r in requirements if r.marker is not None and r.marker.evaluate(env)
+    ]
+
+    for name in dependencies:
+        print(f"{name:>20s} -- {version(name)}")
 
     print("\n*** ctapipe optional dependencies ***\n")
 
-    for name in _optional_dependencies:
-        version = get_module_version(name)
-        print(f"{name:>20s} -- {version}")
+    for name in optional_dependencies:
+        try:
+            v = version(name)
+        except PackageNotFoundError:
+            v = "not installed"
+        print(f"{name:>20s} -- {v}")
 
 
 def _info_resources():

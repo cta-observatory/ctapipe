@@ -14,6 +14,8 @@ def test_MuonRingFitter_has_methods():
 @pytest.mark.parametrize("method", MuonRingFitter.fit_method.values)
 def test_MuonRingFitter(method, prod5_mst_flashcam):
     """test MuonRingFitter"""
+    pytest.importorskip("iminuit")
+
     # flashCam example
     center_xs = 0.3 * u.m
     center_ys = 0.6 * u.m

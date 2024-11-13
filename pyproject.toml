@@ -31,14 +31,11 @@ requires-python = ">=3.10"
 
 dependencies = [
     "astropy >=5.3,<7.0.0a0",
-    "bokeh ~=3.0",
     "docutils",
-    "eventio >=1.9.1, <2.0.0a0",
-    "iminuit >=2",
     "joblib",
-    "matplotlib ~=3.0",
     "numba >=0.56",
     "numpy >=1.23,<3.0.0a0",
+    "packaging",
     "psutil",
     "pyyaml >=5.1",
     "requests",
@@ -47,12 +44,23 @@ dependencies = [
     "tables ~=3.4",
     "tqdm >=4.32",
     "traitlets ~=5.6",
-    "zstandard",
-    "packaging",
 ]
 
 [project.optional-dependencies]
+
+# all is with all optional *runtime* dependencies
+# use `dev` to get really all dependencies
+all = [
+    "bokeh ~=3.0",
+    "eventio >=1.9.1,<2.0.0a0",
+    "iminuit >=2",
+    "matplotlib ~=3.0",
+]
+
 tests = [
+    # at the moment, essentially all tests rely on test data from simtel
+    # it doesn't make sense to skip all of these.
+    "eventio >=1.9.1,<2.0.0a0",
     "h5py",
     "pandas",
     "pytest >= 7.0",
@@ -64,33 +72,31 @@ tests = [
 ]
 
 docs = [
-    "sphinx",
-    "pydata_sphinx_theme",
-    "sphinx_automodapi",
+    "ctapipe[all]",
+    "ffmpeg-python",
+    "graphviz",
+    "ipython",
+    "jupyter",
     "nbsphinx",
+    "notebook",
     "numpydoc",
+    "pandas",
+    "pydata_sphinx_theme",
+    "pypandoc",
+    "sphinx",
     "sphinx-design",
     "sphinx-gallery >= 0.16.0",
+    "sphinx_automodapi",
     "sphinxcontrib-bibtex",
-    "jupyter",
-    "notebook",
-    "graphviz",
-    "pandas",
-    "ipython",
-    "ffmpeg-python",
-    "pypandoc",
     "tomli; python_version < '3.11'",
 ]
 
 dev = [
+    "ctapipe[all,docs,tests]",
     "pre-commit",
     "setuptools_scm[toml]",
 ]
 
-all = [
-    # self-reference with all extras to simplify
-    "ctapipe[tests,docs,dev]",
-]
 
 [project.scripts]
 ctapipe-info = "ctapipe.tools.info:main"

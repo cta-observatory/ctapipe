@@ -14,10 +14,12 @@ import uuid
 import warnings
 from collections import UserList
 from contextlib import contextmanager
+from functools import cache
 from importlib import import_module
-from importlib.metadata import distributions, version
+from importlib.metadata import Distribution, distributions
 from os.path import abspath
 from pathlib import Path
+from types import ModuleType
 
 import psutil
 from astropy.time import Time
@@ -45,17 +47,59 @@ _interesting_env_vars = [
 ]
 
 
+@cache
+def modules_of_distribution(distribution: Distribution):
+    modules = distribution.read_text("top_level.txt")
+    if modules is None:
+        return None
+    return set(modules.splitlines())
+
+
+@cache
+def get_distribution_of_module(module: ModuleType | str):
+    """Get the package distribution for an imported module"""
+    if isinstance(module, str):
+        name = module
+        module = import_module(module)
+    else:
+        name = module.__name__
+
+    path = Path(module.__file__).absolute()
+
+    for dist in distributions():
+        modules = modules_of_distribution(dist)
+        if modules is None:
+            base = dist.locate_file("")
+            if dist.files is not None and any(path == base / f for f in dist.files):
+                return dist
+        elif name in modules:
+            return dist
+
+    raise ValueError(f"Could not find a distribution for module: {module}")
+
+
 def get_module_version(name):
+    """
+    Get the version of a python *module*, something you can import.
+
+    If the module does not expose a ``__version__`` attribute, this function
+    will try to determine the *distribution* of the module and return its
+    version.
+    """
+    # we try first with module.__version__
+    # to support editable installs
     try:
         module = import_module(name)
+    except ModuleNotFoundError:
+        return "not installed"
+
+    try:
         return module.__version__
     except AttributeError:
         try:
-            return version(name)
+            return get_distribution_of_module(module).version
         except Exception:
             return "unknown"
-    except ImportError:
-        return "not installed"
 
 
 class MissingReferenceMetadata(UserWarning):
@@ -351,15 +395,13 @@ def _get_python_packages():
 
 
 def _get_system_provenance():
-    """return JSON string containing provenance for all things that are
+    """return a dict containing provenance for all things that are
     fixed during the runtime"""
 
     bits, linkage = platform.architecture()
 
     return dict(
         ctapipe_version=__version__,
-        ctapipe_resources_version=get_module_version("ctapipe_resources"),
-        eventio_version=get_module_version("eventio"),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
         executable=sys.executable,
         platform=dict(

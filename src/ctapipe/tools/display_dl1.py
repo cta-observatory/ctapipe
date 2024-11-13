@@ -4,13 +4,11 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 from contextlib import ExitStack
 from copy import copy
 
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-
 from ..calib import CameraCalibrator
 from ..core import Component, QualityQuery, Tool
 from ..core.tool import ToolConfigurationError
 from ..core.traits import Bool, Int, Path, classes_with_traits, flag
+from ..exceptions import OptionalDependencyMissing
 from ..image.extractor import ImageExtractor
 from ..io import EventSource
 from ..io.datalevels import DataLevel
@@ -64,6 +62,12 @@ class ImagePlotter(Component):
         self._init_figure()
 
     def _init_figure(self):
+        try:
+            from matplotlib import pyplot as plt
+            from matplotlib.backends.backend_pdf import PdfPages
+        except ModuleNotFoundError:
+            raise OptionalDependencyMissing("matplotlib") from None
+
         self.fig = plt.figure(figsize=(16, 7))
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
         self.ax_peak_time = self.fig.add_subplot(1, 2, 2)
@@ -72,6 +76,8 @@ class ImagePlotter(Component):
             self.pdf = self._exit_stack.enter_context(PdfPages(self.output_path))
 
     def plot(self, event, tel_id):
+        from matplotlib import pyplot as plt
+
         image = event.dl1.tel[tel_id].image
         peak_time = event.dl1.tel[tel_id].peak_time
 

@@ -41,6 +41,22 @@ or with pip:
    $ pip install ctapipe
 
 
+``ctapipe`` has a number of optional dependencies that are not automatically installed
+when just installing ``ctapipe``.
+These are:
+
+- `matplotlib <https://matplotlib.org/>`_ for visualization, used in `~ctapipe.visualization` and several other places.
+- `bokeh <https://bokeh.org/>`_ for web-based, interactive visualizations, see `~ctapipe.visualization.bokeh`.
+- `iminuit <https://scikit-hep.org/iminuit/>`_ for fitting, used in `~ctapipe.reco.impact` and `~ctapipe.image.muon`.
+- `eventio <https://github.com/cta-observatory/pyeventio>`_ used for reading ``sim_telarray`` files in `~ctapipe.io.SimTelEventSource`.
+
+You can install them individually, or if you just want to get ``ctapipe`` with all optional dependencies, use:
+
+.. code-block:: console
+
+   $ pip install 'ctapipe[all]'
+
+
 How To Get a Specific Version
 -----------------------------
 

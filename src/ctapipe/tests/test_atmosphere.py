@@ -88,6 +88,7 @@ def test_models(density_model):
         density_model.integral(1 * u.km), density_model.integral(1000 * u.m)
     )
 
+    pytest.importorskip("matplotlib")
     with patch("matplotlib.pyplot.show"):
         density_model.peek()
 

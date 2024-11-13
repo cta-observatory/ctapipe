@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
-from matplotlib import __version__ as mpl_version
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.containers import (
@@ -18,6 +17,7 @@ from ctapipe.containers import (
 from ctapipe.coordinates.telescope_frame import TelescopeFrame
 from ctapipe.instrument import PixelShape, SubarrayDescription
 
+mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 
 
@@ -27,7 +27,7 @@ def prod5_lst_cam(prod5_lst):
 
 
 @pytest.mark.skipif(
-    mpl_version != "3.6.3",
+    mpl.__version__ != "3.6.3",
     reason="See test below (test_camera_display_single)",
 )
 def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
@@ -52,7 +52,7 @@ def test_norm_after_colorbar(prod5_lst_cam, tmp_path):
 
 
 @pytest.mark.skipif(
-    mpl_version == "3.6.3",
+    mpl.__version__ == "3.6.3",
     reason=(
         "There is a problem in changing the norm after adding a colorbar. "
         + "This issue came up in #2207 and "

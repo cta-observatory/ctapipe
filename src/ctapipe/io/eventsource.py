@@ -350,16 +350,19 @@ class EventSource(Component):
         if input_url == "" or input_url in {None, Undefined}:
             raise ToolConfigurationError("EventSource: No input_url was specified")
 
-        # validate input url with the traitel validate method
+        # validate input url with the traitlet validate method
         # to make sure it's compatible and to raise the correct error
         input_url = EventSource.input_url.validate(obj=None, value=input_url)
 
         available_classes = cls.non_abstract_subclasses()
 
+        missing_deps = {}
         for name, subcls in available_classes.items():
             try:
                 if subcls.is_compatible(input_url):
                     return subcls
+            except ModuleNotFoundError as e:
+                missing_deps[subcls] = e.module
             except Exception as e:
                 warnings.warn(f"{name}.is_compatible raised exception: {e}")
 
@@ -367,15 +370,23 @@ class EventSource(Component):
         if not input_url.exists():
             raise TraitError(
                 f"input_url {input_url} is not an existing file "
-                " and no EventSource implementation claimed compatibility"
+                " and no EventSource implementation claimed compatibility."
             )
 
-        raise ValueError(
-            "Cannot find compatible EventSource for \n"
-            "\turl:{}\n"
-            "in available EventSources:\n"
-            "\t{}".format(input_url, [c for c in available_classes])
+        available_sources = [
+            name for name, cls in available_classes.items() if cls not in missing_deps
+        ]
+
+        msg = (
+            f"Could not find compatible EventSource for input_url: {input_url!r}\n"
+            f"in available EventSources: {available_sources}\n"
+            "EventSources that are installed but could not be used due to missing dependencies:\n\t"
+            + "\n\t".join(
+                f"{source.__name__}: {missing}"
+                for source, missing in missing_deps.items()
+            )
         )
+        raise ValueError(msg)
 
     @classmethod
     def from_url(cls, input_url, **kwargs):

@@ -100,7 +100,7 @@ usable from anywhere, given you have activated the ``cta-dev`` conda environment
 
 .. code-block:: console
 
-    $ pip install -e .
+    $ pip install -e '.[dev]'
 
 Using the editable installation means you won't have to rerun the installation for
 simple code changes to take effect.

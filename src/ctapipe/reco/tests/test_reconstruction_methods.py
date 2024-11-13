@@ -8,13 +8,11 @@ from ctapipe.reco import HillasIntersection, HillasReconstructor
 from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.utils import get_dataset_path
 
-
-@pytest.fixture
-def reconstructors():
-    return [HillasIntersection, HillasReconstructor, ImPACTReconstructor]
+reconstructors = [HillasIntersection, HillasReconstructor, ImPACTReconstructor]
 
 
-def test_reconstructors(reconstructors):
+@pytest.mark.parametrize("cls", reconstructors)
+def test_reconstructors(cls):
     """
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
@@ -37,17 +35,20 @@ def test_reconstructors(reconstructors):
         calib(event)
         image_processor(event)
 
-        for ReconstructorType in reconstructors:
-            reconstructor = ReconstructorType(
-                subarray, atmosphere_profile=source.atmosphere_density_profile
-            )
-            if ReconstructorType is ImPACTReconstructor:
-                reconstructor.root_dir = str(template_file.parents[0])
-            reconstructor(event)
+        if cls is ImPACTReconstructor:
+            pytest.importorskip("iminuit")
 
-            name = ReconstructorType.__name__
-            # test the container is actually there and not only created by Map
-            assert name in event.dl2.stereo.geometry
-            assert event.dl2.stereo.geometry[name].alt.unit.is_equivalent(u.deg)
-            assert event.dl2.stereo.geometry[name].az.unit.is_equivalent(u.deg)
-            assert event.dl2.stereo.geometry[name].core_x.unit.is_equivalent(u.m)
+        reconstructor = cls(
+            subarray, atmosphere_profile=source.atmosphere_density_profile
+        )
+        if cls is ImPACTReconstructor:
+            reconstructor.root_dir = str(template_file.parents[0])
+
+        reconstructor(event)
+
+        name = cls.__name__
+        # test the container is actually there and not only created by Map
+        assert name in event.dl2.stereo.geometry
+        assert event.dl2.stereo.geometry[name].alt.unit.is_equivalent(u.deg)
+        assert event.dl2.stereo.geometry[name].az.unit.is_equivalent(u.deg)
+        assert event.dl2.stereo.geometry[name].core_x.unit.is_equivalent(u.m)

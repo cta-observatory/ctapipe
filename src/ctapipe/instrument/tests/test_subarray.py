@@ -41,7 +41,6 @@ def test_subarray_description(prod5_mst_nectarcam):
     """Test SubarrayDescription functionality"""
     n_tels = 10
     sub = create_subarray(prod5_mst_nectarcam, n_tels)
-    sub.peek()
 
     assert len(sub.telescope_types) == 1
 
@@ -73,6 +72,12 @@ def test_subarray_description(prod5_mst_nectarcam):
 
     assert len(sub.to_table(kind="optics")) == 1
     assert sub.telescope_types[0] == sub.tel[1]
+
+
+def test_subarray_peek(prod5_mst_nectarcam):
+    pytest.importorskip("matplotlib")
+    sub = create_subarray(prod5_mst_nectarcam, 10)
+    sub.peek()
 
 
 def test_to_table(example_subarray):

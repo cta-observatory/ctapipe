@@ -486,6 +486,7 @@ def dl1_muon_output_file(dl1_tmp_path, dl1_muon_file):
     from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "muon_output.dl1.h5"
+    pytest.importorskip("iminuit")
 
     # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):

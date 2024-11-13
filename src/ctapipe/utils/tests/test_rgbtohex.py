@@ -1,6 +1,9 @@
 import numpy as np
+import pytest
 
 from ctapipe.utils.rgbtohex import intensity_to_hex, intensity_to_rgb
+
+pytest.importorskip("matplotlib")
 
 
 def test_rgb():

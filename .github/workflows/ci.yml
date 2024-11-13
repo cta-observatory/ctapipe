@@ -39,36 +39,50 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - name: Linux (3.10, mamba)
+            os: ubuntu-latest
             python-version: "3.10"
             install-method: mamba
+            extras: tests,all
 
-          - os: ubuntu-latest
+          - name: Linux (3.10, pip)
+            os: ubuntu-latest
             python-version: "3.10"
             install-method: pip
+            extras: tests,all
 
-          - os: ubuntu-latest
+          - name: Linux (3.11, pip, minimal-dependencies)
+            os: ubuntu-latest
             python-version: "3.11"
-            install-method: mamba
+            install-method: pip
+            extras: tests
 
-          - os: ubuntu-latest
+          - name: Linux (3.12, mamba, coverage)
+            os: ubuntu-latest
             python-version: "3.12"
             install-method: mamba
             extra-args: ["codecov"]
+            extras: tests,all
 
-          - os: ubuntu-latest
+          - name: Linux (3.12, pip)
+            os: ubuntu-latest
             python-version: "3.12"
             install-method: pip
+            extras: tests,all
 
           # macos 13 image is x86-based
-          - os: macos-13
+          - name: macos (3.10, x86_64, pip)
+            os: macos-13
             python-version: "3.10"
             install-method: pip
+            extras: tests,all
 
           # macos 14 image is arm64 based
-          - os: macos-14
+          - name: macos (3.12, arm64, mamba)
+            os: macos-14
             python-version: "3.12"
             install-method: mamba
+            extras: tests,all
 
     defaults:
       run:
@@ -122,9 +136,10 @@ jobs:
         if: contains(github.event.pull_request.labels.*.name, 'documentation-only') == false
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
+          EXTRAS: ${{ matrix.extras }}
         run: |
           python --version | grep "Python ${PYTHON_VERSION}"
-          pip install -e .[tests]
+          pip install -e ".[${EXTRAS}]"
           pip install ./test_plugin
           pip freeze
           pip list

@@ -48,6 +48,5 @@ dependencies:
   - wheel
   - xz
   - zlib
-  - zstandard
   - eventio>=1.9.1
   - ffmpeg # for making movies in the documentation

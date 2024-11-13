@@ -12,20 +12,25 @@ from math import erf
 
 import numpy as np
 from astropy import units as u
-from iminuit import Minuit
 from numba import double, vectorize
 from scipy.constants import alpha
 from scipy.ndimage import correlate1d
-
-from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
 
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ...exceptions import OptionalDependencyMissing
+from ..pixel_likelihood import neg_log_likelihood_approx
 
-__all__ = ["MuonIntensityFitter"]
+try:
+    from iminuit import Minuit
+except ModuleNotFoundError:
+    Minuit = None
 
+__all__ = [
+    "MuonIntensityFitter",
+]
 
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
@@ -466,8 +471,10 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
-        super().__init__(subarray=subarray, **kwargs)
+        if Minuit is None:
+            raise OptionalDependencyMissing("iminuit") from None
 
+        super().__init__(subarray=subarray, **kwargs)
         self._geometries_tel_frame = {
             tel_id: tel.camera.geometry.transform_to(TelescopeFrame())
             for tel_id, tel in subarray.tel.items()
