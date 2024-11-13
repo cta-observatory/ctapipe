@@ -692,3 +692,17 @@ def dl1_mon_pointing_file(dl1_file, dl1_tmp_path):
         f.remove_node("/configuration/telescope/pointing", recursive=True)
 
     return path
+
+
+@pytest.fixture
+def provenance(monkeypatch):
+    from ctapipe.core import Provenance
+
+    # the singleton nature of Provenance messes with
+    # the order-independence of the tests asserting
+    # the provenance contains the correct information
+    # so we monkeypatch back to an empty state here
+    prov = Provenance()
+    monkeypatch.setattr(prov, "_activities", [])
+    monkeypatch.setattr(prov, "_finished_activities", [])
+    return prov

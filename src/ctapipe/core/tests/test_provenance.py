@@ -1,22 +1,8 @@
 import json
 
-import pytest
-
 from ctapipe.core import Provenance
 from ctapipe.core.provenance import _ActivityProvenance
 from ctapipe.io.metadata import Reference
-
-
-@pytest.fixture
-def provenance(monkeypatch):
-    # the singleton nature of Provenance messes with
-    # the order-independence of the tests asserting
-    # the provenance contains the correct information
-    # so we monkeypatch back to an empty state here
-    prov = Provenance()
-    monkeypatch.setattr(prov, "_activities", [])
-    monkeypatch.setattr(prov, "_finished_activities", [])
-    return prov
 
 
 def test_provenance_activity_names(provenance):
