@@ -334,7 +334,7 @@ class ComaModel(PSFModel):
         ----------
         asymmetry_params: list
             Parameters describing the dependency of the asymmetry of the psf on the distance to the center of the camera
-            Used to calculate a pdf asymmetry parameter K of the asymmetric radial laplacian of the psf as a function of the distance r to the optical axis:
+            Used to calculate a pdf asymmetry parameter K of the asymmetric radial laplacian of the psf as a function of the distance r to the optical axis
             .. math:: K(r) = 1 - asym_0 \tanh(asym_1 r) - asym_2 r
         radial_scale_params : list
             Parameters describing the dependency of the radial scale on the distance to the center of the camera
@@ -342,8 +342,8 @@ class ComaModel(PSFModel):
             .. math:: S_{R}(r) & = b_1 - b_2\,r + b_3\,r^2 + b_4\,r^3
         az_scale_params : list
             Parameters describing the dependency of the azimuthal scale on the distance to the center of the camera
-             Used to calculate width Sf of the azimuthal laplacian in the PSF as a function of the angle phi:
-             .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
+            Used to calculate width Sf of the azimuthal laplacian in the PSF as a function of the angle phi:
+            .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
         """
         if (
             len(asymmetry_params) == 3
@@ -427,7 +427,7 @@ class ComaModel(PSFModel):
     def update_location(self, r, f):
         """
         Updates the location on the camera focal plane from where the psf is calculated
-        This means it updates the parameters L and phi0 in the laplacian functions of the psf:
+        This means it updates the parameters L and phi0 in the laplacian functions of the psf
         .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
         .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
 
