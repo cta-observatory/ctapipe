@@ -34,17 +34,9 @@ class StatisticsCalculatorTool(Tool):
     examples = """
     To calculate statistics of pixel-wise image data files:
 
-    > ctapipe-calculate-pixel-statistics --input_url input.dl1.h5 --output_path /path/monitoring.h5 --overwrite
+    > ctapipe-calculate-pixel-statistics --TableLoader.input_url input.dl1.h5 --output_path /path/monitoring.h5 --overwrite
 
     """
-
-    input_url = Path(
-        help="Input CTA HDF5 files including pixel-wise image data",
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        file_ok=True,
-    ).tag(config=True)
 
     allowed_tels = Set(
         trait=CInt(),
@@ -75,7 +67,7 @@ class StatisticsCalculatorTool(Tool):
     overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
 
     aliases = {
-        ("i", "input_url"): "StatisticsCalculatorTool.input_url",
+        ("i", "input_url"): "TableLoader.input_url",
         ("o", "output_path"): "StatisticsCalculatorTool.output_path",
     }
 
@@ -86,26 +78,29 @@ class StatisticsCalculatorTool(Tool):
         ),
     }
 
-    classes = classes_with_traits(PixelStatisticsCalculator)
+    classes = [
+        TableLoader,
+    ] + classes_with_traits(PixelStatisticsCalculator)
 
     def setup(self):
+        # Read the input data with the 'TableLoader'
+        self.input_data = TableLoader(
+            parent=self,
+        )
         # Check that the input and output files are not the same
-        if self.input_url == self.output_path:
+        if self.input_data.input_url == self.output_path:
             raise ToolConfigurationError(
                 "Input and output files are same. Fix your configuration / cli arguments."
             )
-
         # Load the subarray description from the input file
-        subarray = SubarrayDescription.from_hdf(self.input_url)
-        # Initialization of the statistics calculator
-        self.stats_calculator = PixelStatisticsCalculator(
-            parent=self, subarray=subarray
-        )
-        # Read the input data with the 'TableLoader'
-        self.input_data = TableLoader(input_url=self.input_url)
+        subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
         # Get the telescope ids from the input data or use the allowed_tels configuration
         self.tel_ids = (
             subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
+        )
+        # Initialization of the statistics calculator
+        self.stats_calculator = PixelStatisticsCalculator(
+            parent=self, subarray=subarray
         )
 
     def start(self):
@@ -113,7 +108,9 @@ class StatisticsCalculatorTool(Tool):
         for tel_id in self.tel_ids:
             # Read the whole dl1 images for one particular telescope
             dl1_table = self.input_data.read_telescope_events_by_id(
-                telescopes=tel_id,
+                telescopes=[
+                    tel_id,
+                ],
                 dl1_images=True,
                 dl1_parameters=False,
                 dl1_muons=False,
