@@ -322,7 +322,7 @@ class ComaModel(PSFModel):
         radial_scale_params=[0.01409259, 0.02947208, 0.06000271, -0.02969355],
         az_scale_params=[0.24271557, 7.5511501, 0.02037972],
     ):
-        """
+        r"""
         PSF model, describing purely the effect of coma aberration on the PSF
         for reference see :cite:p:`startracker`
         uses an asymmetric laplacian for the radial part
@@ -366,8 +366,6 @@ class ComaModel(PSFModel):
             raise ValueError(
                 "asymmetry_params and az_scale_params needs to have length 3 and radial_scale_params length 4"
             )
-
-        self.update_location(0.0, 0.0)
 
     def k_func(self, x):
         return (
