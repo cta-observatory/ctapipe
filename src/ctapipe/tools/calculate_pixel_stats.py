@@ -127,7 +127,7 @@ class StatisticsCalculatorTool(Tool):
             ].chunk_size > len(dl1_table):
                 raise ToolConfigurationError(
                     f"Change --StatisticsAggregator.chunk_size to decrease the chunk size "
-                    f"of the aggregation to at least '{len(dl1_table)}' (table length of the "
+                    f"of the aggregation to a maximum of '{len(dl1_table)}' (table length of the "
                     f"input data for telescope 'tel_id={tel_id}')."
                 )
             # Check if the input column name is in the table
