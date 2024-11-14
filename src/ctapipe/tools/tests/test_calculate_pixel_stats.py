@@ -100,3 +100,18 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             cwd=tmp_path,
             raises=True,
         )
+    # Check if ToolConfigurationError is raised
+    # when the chunk size is larger than the number of events in the input file
+    with pytest.raises(ToolConfigurationError):
+        run_tool(
+            StatisticsCalculatorTool(),
+            argv=[
+                f"--input_url={dl1_image_file}",
+                f"--output_path={monitoring_file}",
+                "--StatisticsCalculatorTool.allowed_tels=3",
+                "--StatisticsAggregator.chunk_size=2500",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
+            raises=True,
+        )
