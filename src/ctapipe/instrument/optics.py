@@ -325,9 +325,9 @@ class ComaModel(PSFModel):
         """
         PSF model, describing purely the effect of coma aberration on the PSF
         for reference see :cite:p:`startracker`
-        uses an asymmetric laplacian for the radial part:
+        uses an asymmetric laplacian for the radial part
         .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
-        and a symmetric laplacian in azimuthal direction:
+        and a symmetric laplacian in azimuthal direction
         .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
         Parameters
@@ -338,11 +338,11 @@ class ComaModel(PSFModel):
             .. math:: K(r) = 1 - asym_0 \tanh(asym_1 r) - asym_2 r
         radial_scale_params : list
             Parameters describing the dependency of the radial scale on the distance to the center of the camera
-            Used to calculate width Sr of the asymmetric radial laplacian in the PSF as a of function the distance r to the optical axis:
+            Used to calculate width Sr of the asymmetric radial laplacian in the PSF as a of function the distance r to the optical axis
             .. math:: S_{R}(r) & = b_1 - b_2\,r + b_3\,r^2 + b_4\,r^3
         az_scale_params : list
             Parameters describing the dependency of the azimuthal scale on the distance to the center of the camera
-            Used to calculate width Sf of the azimuthal laplacian in the PSF as a function of the angle phi:
+            Used to calculate width Sf of the azimuthal laplacian in the PSF as a function of the angle phi
             .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
         """
         if (
