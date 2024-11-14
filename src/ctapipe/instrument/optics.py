@@ -384,22 +384,31 @@ class ComaModel(PSFModel):
             -self.az_scale_params[1] * x
         ) + self.az_scale_params[2] / (self.az_scale_params[2] + x)
 
-    def pdf(self, r, f):
+    def pdf(self, r, f, r0, f0):
         """
         Calculates the value of the psf at a given location
 
         Parameters
         ----------
         r : float
-            distance to the center of the camera in meters
+            distance to the center of the camera in meters, location at where the PSF is evaluated
         f : float
-            polar angle in radians
-
+            polar angle in radians, location at where the PSF is evaluated
+        r0 : float
+            distance to the center of the camera in meters, location from where the PSF is evaluated
+        f0 : float
+            polar angle in radians, location from where the PSF is evaluated
         Returns
         ----------
         psf : float
             value of the PSF at the specified location
         """
+        k = self.k_func(r0)
+        sr = self.sr_func(r0)
+        sf = self.sf_func(r0)
+        self.radial_pdf_params = (k, r0, sr)
+        self.azimuthal_pdf_params = (f0, sf)
+
         return laplace_asymmetric.pdf(r, *self.radial_pdf_params) * laplace.pdf(
             f, *self.azimuthal_pdf_params
         )
@@ -432,28 +441,3 @@ class ComaModel(PSFModel):
         sf = self.sf_func(self.radial_pdf_params[1])
         self.radial_pdf_params = (k, self.radial_pdf_params[1], sr)
         self.azimuthal_pdf_params = (self.azimuthal_pdf_params[0], sf)
-
-    def update_location(self, r, f):
-        """
-        Updates the location on the camera focal plane from where the psf is calculated
-        This means it updates the parameters :math:`\phi_0` in the azimuthal laplacian function of the psf
-
-        .. math:: f_{\Phi}(\phi) = \frac{1}{2 S_{\phi}}e^{-|\frac{\phi-\phi_0}{S_{\phi}}|}
-
-        and L in the radial laplacian function of the psf
-
-        .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
-
-        Parameters
-        ----------
-        r : float
-            distance to the center of the camera in meters
-        f : float
-            polar angle in radians
-        """
-
-        k = self.k_func(r)
-        sr = self.sr_func(r)
-        sf = self.sf_func(r)
-        self.radial_pdf_params = (k, r, sr)
-        self.azimuthal_pdf_params = (f, sf)
