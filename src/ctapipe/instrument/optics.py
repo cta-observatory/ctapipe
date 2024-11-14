@@ -11,7 +11,8 @@ import numpy as np
 from astropy.table import QTable
 from scipy.stats import laplace, laplace_asymmetric
 
-from ctapipe.core.component import non_abstract_children
+from ctapipe.core import TelescopeComponent
+from ctapipe.core.traits import List
 
 from ..compat import StrEnum
 from ..utils import get_table_dataset
@@ -271,56 +272,69 @@ class OpticsDescription:
         return self.name
 
 
-class PSFModel:
-    def __init__(self, **kwargs):
+class PSFModel(TelescopeComponent):
+    def __init__(self, subarray, **kwargs):
         """
         Base component to describe image distortion due to the optics of the different cameras.
         """
-
-    @classmethod
-    def subclass_from_name(cls, name, **kwargs):
-        """
-        Obtain an instance of a subclass via its name
-
-        Parameters
-        ----------
-        name : str
-            Name of the subclass to obtain
-
-        Returns
-        -------
-        Instance
-            Instance of subclass to this class
-        """
-
-        subclasses = {base.__name__: base for base in non_abstract_children(cls)}
-
-        requested_subclass = subclasses[name]
-        return requested_subclass(**kwargs)
+        super().__init__(subarray=subarray, **kwargs)
 
     @abstractmethod
     def pdf(self, *args):
         pass
 
-    @abstractmethod
-    def update_location(self, *args):
-        pass
-
-    @abstractmethod
-    def update_model_parameters(self, *args):
-        pass
-
 
 class ComaModel(PSFModel):
-    """
+    r"""
     PSF model, describing pure coma aberrations PSF effect
+    asymmetry_params describe the dependency of the psf on the distance to the center of the camera
+    Used to calculate a pdf asymmetry parameter K of the asymmetric radial laplacian of the psf as
+    a function of the distance r to the optical axis
+
+    .. math:: K(r) = 1 - asym_0 \tanh(asym_1 r) - asym_2 r
+
+    radial_scale_params describes the dependency of the radial scale on the distance to the center of the camera
+    Used to calculate width Sr of the asymmetric radial laplacian in the PSF as a of function the distance r to the optical axis
+
+    .. math:: S_{R}(r) & = b_1 - b_2\,r + b_3\,r^2 + b_4\,r^3
+
+    az_scale_params Describes the dependency of the azimuthal scale on the distance to the center of the camera
+    Used to calculate the width Sf of the azimuthal laplacian in the PSF as a function of the angle :math:`phi`
+
+    .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
     """
+
+    asymmetry_params = List(
+        help=(
+            "Describes the dependency of the psf on the distance"
+            "to the center of the camera. Used to calculate a pdf"
+            "asymmetry parameter K of the asymmetric radial laplacian"
+            "of the psf as a function of the distance r to the optical axis"
+        )
+    ).tag(config=True)
+
+    radial_scale_params = List(
+        help=(
+            "Describes the dependency of the radial scale on the"
+            "distance to the center of the camera Used to calculate"
+            "width Sr of the asymmetric radial laplacian in the PSF"
+            "as a of function the distance r to the optical axis"
+        )
+    ).tag(config=True)
+
+    az_scale_params = List(
+        help=(
+            "Describes the dependency of the azimuthal scale on the"
+            "distance to the center of the camera. Used to calculate"
+            "the the width Sf of the azimuthal laplacian in the PSF"
+            "as a function of the angle phi"
+        )
+    ).tag(config=True)
 
     def __init__(
         self,
-        asymmetry_params=[0.49244797, 9.23573115, 0.15216096],
-        radial_scale_params=[0.01409259, 0.02947208, 0.06000271, -0.02969355],
-        az_scale_params=[0.24271557, 7.5511501, 0.02037972],
+        subarray,
+        **kwargs,
     ):
         r"""
         PSF model, describing purely the effect of coma aberration on the PSF
@@ -335,37 +349,11 @@ class ComaModel(PSFModel):
 
         Parameters
         ----------
-        asymmetry_params: list
-            Parameters describing the dependency of the asymmetry of the psf on the distance to the center of the camera
-            Used to calculate a pdf asymmetry parameter K of the asymmetric radial laplacian of the psf as a function of the distance r to the optical axis
-
-            .. math:: K(r) = 1 - asym_0 \tanh(asym_1 r) - asym_2 r
-
-        radial_scale_params : list
-            Parameters describing the dependency of the radial scale on the distance to the center of the camera
-            Used to calculate width Sr of the asymmetric radial laplacian in the PSF as a of function the distance r to the optical axis
-
-            .. math:: S_{R}(r) & = b_1 - b_2\,r + b_3\,r^2 + b_4\,r^3
-
-        az_scale_params : list
-            Parameters describing the dependency of the azimuthal scale on the distance to the center of the camera
-            Used to calculate width Sf of the azimuthal laplacian in the PSF as a function of the angle phi
-
-            .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
-
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray.
         """
-        if (
-            len(asymmetry_params) == 3
-            and len(radial_scale_params) == 4
-            and len(az_scale_params) == 3
-        ):
-            self.asymmetry_params = asymmetry_params
-            self.radial_scale_params = radial_scale_params
-            self.az_scale_params = az_scale_params
-        else:
-            raise ValueError(
-                "asymmetry_params and az_scale_params needs to have length 3 and radial_scale_params length 4"
-            )
+        super().__init__(subarray=subarray, **kwargs)
+        self.check_model_parameters()
 
     def k_func(self, x):
         return (
@@ -411,31 +399,12 @@ class ComaModel(PSFModel):
             f, *self.azimuthal_pdf_params
         )
 
-    def update_model_parameters(self, model_params):
-        """
-        Updates the model parameters for the psf
-
-        Parameters
-        ----------
-        model_params : dict
-            dictionary with the model parameters
-            needs to have the keys asymmetry_params, radial_scale_params and az_scale_params
-            The values need to be lists of length 3, 4 and 3 respectively
-        """
+    def check_model_parameters(self):
         if not (
-            len(model_params["asymmetry_params"]) == 3
-            and len(model_params["radial_scale_params"]) == 4
-            and len(model_params["az_scale_params"]) == 3
+            len(self.asymmetry_params) == 3
+            and len(self.radial_scale_params) == 4
+            and len(self.az_scale_params) == 3
         ):
             raise ValueError(
                 "asymmetry_params and az_scale_params needs to have length 3 and radial_scale_params length 4"
             )
-
-        self.asymmetry_params = model_params["asymmetry_params"]
-        self.radial_scale_params = model_params["radial_scale_params"]
-        self.az_scale_params = model_params["az_scale_params"]
-        k = self.k_func(self.radial_pdf_params[1])
-        sr = self.sr_func(self.radial_pdf_params[1])
-        sf = self.sf_func(self.radial_pdf_params[1])
-        self.radial_pdf_params = (k, self.radial_pdf_params[1], sr)
-        self.azimuthal_pdf_params = (self.azimuthal_pdf_params[0], sf)
