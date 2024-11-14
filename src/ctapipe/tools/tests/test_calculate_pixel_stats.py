@@ -22,7 +22,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
             "StatisticsCalculatorTool": {
                 "allowed_tels": [tel_id],
                 "input_column_name": "image",
-                "output_column_name": "statistics",
+                "output_table_name": "statistics",
             },
             "PixelStatisticsCalculator": {
                 "stats_aggregator_type": [
@@ -68,7 +68,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
             "StatisticsCalculatorTool": {
                 "allowed_tels": [3],
                 "input_column_name": "image_charges",
-                "output_column_name": "statistics",
+                "output_table_name": "statistics",
             }
         }
     )

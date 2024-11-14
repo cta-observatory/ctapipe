@@ -54,10 +54,10 @@ class StatisticsCalculatorTool(Tool):
         help="Column name of the pixel-wise image data to calculate statistics",
     ).tag(config=True)
 
-    output_column_name = Unicode(
+    output_table_name = Unicode(
         default_value="statistics",
         allow_none=False,
-        help="Column name of the output statistics",
+        help="Table name of the output statistics",
     ).tag(config=True)
 
     output_path = Path(
@@ -164,11 +164,14 @@ class StatisticsCalculatorTool(Tool):
                         "No faulty chunks found for telescope 'tel_id=%d'. Skipping second pass.",
                         tel_id,
                     )
+            # Add metadata to the aggregated statistics
+            aggregated_stats.meta["input_url"] = self.input_data.input_url
+            aggregated_stats.meta["input_column_name"] = self.input_column_name
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
                 aggregated_stats,
                 self.output_path,
-                f"/dl1/monitoring/telescope/{self.output_column_name}/tel_{tel_id:03d}",
+                f"/dl1/monitoring/telescope/{self.output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
 
@@ -176,7 +179,7 @@ class StatisticsCalculatorTool(Tool):
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
-            f"/dl1/monitoring/telescope/{self.output_column_name}",
+            f"/dl1/monitoring/telescope/{self.output_table_name}",
         )
         self.log.info("Tool is shutting down")
 
