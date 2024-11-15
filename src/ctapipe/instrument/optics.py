@@ -273,14 +273,30 @@ class OpticsDescription:
 
 
 class PSFModel(TelescopeComponent):
-    def __init__(self, subarray, **kwargs):
-        """
-        Base component to describe image distortion due to the optics of the different cameras.
-        """
-        super().__init__(subarray=subarray, **kwargs)
+    """
+    Base component to describe image distortion due to the optics of the different cameras.
+    """
 
     @abstractmethod
-    def pdf(self, *args):
+    def pdf(self, r, f, r0, f0, *args):
+        """
+        Calculates the value of the psf at a given location
+
+        Parameters
+        ----------
+        r : float
+            distance to the center of the camera in meters, location at where the PSF is evaluated
+        f : float
+            polar angle in radians, location at where the PSF is evaluated
+        r0 : float
+            distance to the center of the camera in meters, location from where the PSF is evaluated
+        f0 : float
+            polar angle in radians, location from where the PSF is evaluated
+        Returns
+        ----------
+        psf : float
+            value of the PSF at the specified location
+        """
         pass
 
 
@@ -302,6 +318,8 @@ class ComaModel(PSFModel):
     Used to calculate the width Sf of the azimuthal laplacian in the PSF as a function of the angle :math:`phi`
 
     .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
+
+    for reference see :cite:p:`startracker`
     """
 
     asymmetry_params = List(
@@ -337,20 +355,19 @@ class ComaModel(PSFModel):
         **kwargs,
     ):
         r"""
-        PSF model, describing purely the effect of coma aberration on the PSF
-        for reference see :cite:p:`startracker`
+         PSF model, describing purely the effect of coma aberration on the PSF
         uses an asymmetric laplacian for the radial part
 
-        .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
+         .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
 
-        and a symmetric laplacian in azimuthal direction
+         and a symmetric laplacian in azimuthal direction
 
-        .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
+         .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
-        Parameters
-        ----------
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray.
+         Parameters
+         ----------
+         subarray: ctapipe.instrument.SubarrayDescription
+             Description of the subarray.
         """
         super().__init__(subarray=subarray, **kwargs)
         self.check_model_parameters()
