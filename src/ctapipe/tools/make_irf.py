@@ -31,10 +31,23 @@ from ..irf.irfs import (
     PsfMakerBase,
 )
 
+__all__ = ["IrfTool"]
+
 
 class IrfTool(Tool):
+    "Tool to create IRF files in GADF format"
+
     name = "ctapipe-make-irf"
-    description = "Tool to create IRF files in GADF format"
+    description = __doc__
+    examples = """
+    ctapipe-make-irf \\
+        --cuts cuts.fits \\
+        --gamma-file gamma.dl2.h5 \\
+        --proton-file proton.dl2.h5 \\
+        --electron-file electron.dl2.h5 \\
+        --output irf.fits.gz \\
+        --benchmark-output benchmarks.fits.gz
+    """
 
     do_background = Bool(
         True,
@@ -95,7 +108,7 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     output_path = traits.Path(
-        default_value="./IRF.fits.gz",
+        default_value=None,
         allow_none=False,
         directory_ok=False,
         help="Output file",
@@ -209,6 +222,9 @@ class IrfTool(Tool):
     )
 
     def setup(self):
+        """
+        Initialize components from config and load g/h (and theta) cuts.
+        """
         self.opt_result = OptimizationResult.read(self.cuts_file)
 
         if self.point_like and self.opt_result.theta_cuts is None:
@@ -433,6 +449,9 @@ class IrfTool(Tool):
         return hdus
 
     def start(self):
+        """
+        Load events and calculate the irf (and the benchmarks).
+        """
         reduced_events = dict()
         for sel in self.particles:
             if sel.epp.quality_criteria != self.opt_result.precuts.quality_criteria:
@@ -564,6 +583,9 @@ class IrfTool(Tool):
             self.b_hdus = b_hdus
 
     def finish(self):
+        """
+        Write the irf (and the benchmarks) to the (respective) output file(s).
+        """
         self.log.info("Writing outputfile '%s'" % self.output_path)
         fits.HDUList(self.hdus).writeto(
             self.output_path,

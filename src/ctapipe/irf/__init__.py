@@ -24,7 +24,7 @@ from .optimize import (
     ThetaPercentileCutCalculator,
 )
 from .preprocessing import EventLoader, EventPreProcessor
-from .spectra import SPECTRA, Spectra
+from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
 
 __all__ = [
     "AngularResolution2dMaker",
@@ -44,6 +44,8 @@ __all__ = [
     "GhPercentileCutCalculator",
     "ThetaPercentileCutCalculator",
     "SPECTRA",
+    "ENERGY_FLUX_UNIT",
+    "FLUX_UNIT",
     "check_bins_in_range",
     "make_bins_per_decade",
 ]

@@ -5,6 +5,8 @@ from enum import Enum
 import astropy.units as u
 from pyirf.spectral import CRAB_HEGRA, IRFDOC_ELECTRON_SPECTRUM, IRFDOC_PROTON_SPECTRUM
 
+__all__ = ["ENERGY_FLUX_UNIT", "FLUX_UNIT", "SPECTRA", "Spectra"]
+
 ENERGY_FLUX_UNIT = (1 * u.erg / u.s / u.cm**2).unit
 FLUX_UNIT = (1 / u.erg / u.s / u.cm**2).unit
 

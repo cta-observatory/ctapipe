@@ -8,10 +8,21 @@ from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, fla
 from ..irf import EventLoader, Spectra
 from ..irf.optimize import CutOptimizerBase
 
+__all__ = ["IrfEventSelector"]
+
 
 class IrfEventSelector(Tool):
+    "Tool to create optimized cuts for IRF generation"
+
     name = "ctapipe-optimize-event-selection"
-    description = "Tool to create optimized cuts for IRF generation"
+    description = __doc__
+    examples = """
+    ctapipe-optimize-event-selection \\
+        --gamma-file gamma.dl2.h5 \\
+        --proton-file proton.dl2.h5 \\
+        --electron-file electron.dl2.h5 \\
+        --output cuts.fits
+    """
 
     gamma_file = traits.Path(
         default_value=None, directory_ok=False, help="Gamma input filename and path"
@@ -111,6 +122,9 @@ class IrfEventSelector(Tool):
     classes = [EventLoader] + classes_with_traits(CutOptimizerBase)
 
     def setup(self):
+        """
+        Initialize components from config.
+        """
         self.optimizer = CutOptimizerBase.from_name(
             self.optimization_algorithm, parent=self
         )
@@ -141,6 +155,9 @@ class IrfEventSelector(Tool):
             )
 
     def start(self):
+        """
+        Load events and optimize g/h (and theta) cuts.
+        """
         reduced_events = dict()
         for sel in self.particles:
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
@@ -203,6 +220,9 @@ class IrfEventSelector(Tool):
         self.result = result
 
     def finish(self):
+        """
+        Write optimized cuts to the output file.
+        """
         self.log.info("Writing results to %s" % self.output_path)
         Provenance().add_output_file(self.output_path, role="Optimization Result")
         self.result.write(self.output_path, self.overwrite)

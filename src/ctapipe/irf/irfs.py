@@ -24,6 +24,17 @@ from pyirf.simulations import SimulatedEventsInfo
 from ..core.traits import AstroQuantity, Bool, Float, Integer
 from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 
+__all__ = [
+    "BackgroundRateMakerBase",
+    "BackgroundRate2dMaker",
+    "EffectiveAreaMakerBase",
+    "EffectiveArea2dMaker",
+    "EnergyDispersionMakerBase",
+    "EnergyDispersion2dMaker",
+    "PsfMakerBase",
+    "Psf3dMaker",
+]
+
 
 class PsfMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the point spread function."""

@@ -10,6 +10,15 @@ from ..compat import COPY_IF_NEEDED
 from ..core import Component
 from ..core.traits import AstroQuantity, Integer
 
+__all__ = [
+    "ResultValidRange",
+    "check_bins_in_range",
+    "make_bins_per_decade",
+    "DefaultTrueEnergyBins",
+    "DefaultRecoEnergyBins",
+    "DefaultFoVOffsetBins",
+]
+
 logger = logging.getLogger(__name__)
 
 

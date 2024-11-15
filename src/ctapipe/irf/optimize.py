@@ -16,6 +16,15 @@ from ..core.traits import AstroQuantity, Float, Integer, Path
 from .binning import ResultValidRange, make_bins_per_decade
 from .preprocessing import EventPreProcessor
 
+__all__ = [
+    "CutOptimizerBase",
+    "GhPercentileCutCalculator",
+    "OptimizationResult",
+    "PercentileCuts",
+    "PointSourceSensitivityOptimizer",
+    "ThetaPercentileCutCalculator",
+]
+
 
 class OptimizationResult:
     """Result of an optimization of G/H and theta cuts or only G/H cuts."""
@@ -31,7 +40,6 @@ class OptimizationResult:
         theta_cuts: QTable | None = None,
         precuts: QualityQuery | Sequence | None = None,
     ) -> None:
-        """"""
         if precuts:
             if isinstance(precuts, QualityQuery):
                 if len(precuts.quality_criteria) == 0:

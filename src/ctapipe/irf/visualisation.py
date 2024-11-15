@@ -12,6 +12,15 @@ from .vis_utils import (
     get_x_bin_values_with_rebinning,
 )
 
+__all__ = [
+    "plot_2d_irf_table",
+    "plot_2d_table_with_col_stats",
+    "plot_2d_table_col_stats",
+    "plot_hist2d",
+    "plot_hist2d_as_contour",
+    "plot_irf_table",
+]
+
 quantity_support()
 
 
@@ -48,11 +57,12 @@ def plot_2d_table_with_col_stats(
         "stats": {"color": "firebrick"},
     },
 ):
-    """Function to draw 2d histogram along with columnwise statistics
+    """
+    Function to draw 2d histogram along with columnwise statistics
     the plotted errorbars shown depending on stat_kind:
-        0 -> mean + standard deviation
-        1 -> median + standard deviation
-        2 -> median + user specified quantiles around median (default 0.1 to 0.9)
+    0 -> mean + standard deviation
+    1 -> median + standard deviation
+    2 -> median + user specified quantiles around median (default 0.1 to 0.9)
     """
 
     mat_vals, xbins, ybins = get_2d_hist_from_table(x_prefix, y_prefix, table, column)
@@ -105,11 +115,12 @@ def plot_2d_table_col_stats(
     lbl_prefix="",
     mpl_args={"xscale": "log"},
 ):
-    """Function to draw columnwise statistics of 2d hist
+    """
+    Function to draw columnwise statistics of 2d hist
     the content values shown depending on stat_kind:
-        0 -> mean + standard deviation
-        1 -> median + standard deviation
-        2 -> median + user specified quantiles around median (default 0.1 to 0.9)
+    0 -> mean + standard deviation
+    1 -> median + standard deviation
+    2 -> median + user specified quantiles around median (default 0.1 to 0.9)
     """
 
     mat_vals, xbins, ybins = get_2d_hist_from_table(x_prefix, y_prefix, table, column)

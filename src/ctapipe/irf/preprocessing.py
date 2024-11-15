@@ -23,9 +23,11 @@ from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
 from .spectra import SPECTRA, Spectra
 
+__all__ = ["EventLoader", "EventPreProcessor"]
+
 
 class EventPreProcessor(QualityQuery):
-    """Defines preselection cuts and the necessary renaming of columns"""
+    """Defines preselection cuts and the necessary renaming of columns."""
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -166,6 +168,11 @@ class EventPreProcessor(QualityQuery):
 
 
 class EventLoader(Component):
+    """
+    Contains functions to load events and simulation information from a file
+    and derive some additional columns needed for irf calculation.
+    """
+
     classes = [EventPreProcessor]
 
     def __init__(self, kind: str, file: Path, target_spectrum: Spectra, **kwargs):

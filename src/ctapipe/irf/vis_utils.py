@@ -1,6 +1,14 @@
 import numpy as np
 import scipy.stats as st
 
+__all__ = [
+    "find_columnwise_stats",
+    "rebin_x_2d_hist",
+    "get_2d_hist_from_table",
+    "get_x_bin_values_with_rebinning",
+    "get_bin_centers",
+]
+
 
 def find_columnwise_stats(table, col_bins, percentiles, density=False):
     tab = np.squeeze(table)
