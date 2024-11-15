@@ -37,7 +37,6 @@ dependencies = [
     "numpy >=1.23,<3.0.0a0",
     "packaging",
     "psutil",
-    "pyirf ~=0.11.0",
     "pyyaml >=5.1",
     "requests",
     "scikit-learn !=1.4.0", # 1.4.0 breaks with astropy tables, before and after works
@@ -56,6 +55,7 @@ all = [
     "eventio >=1.9.1,<2.0.0a0",
     "iminuit >=2",
     "matplotlib ~=3.0",
+    "pyirf ~=0.12.0"
 ]
 
 tests = [

@@ -172,7 +172,7 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
                 energy_type=energy_type,
             )
             result["N_EVENTS"][:, i, :] = ang_res["n_events"]
-            result["ANGULAR_RESOLUTION"][:, i, :] = ang_res["angular_resolution"]
+            result["ANGULAR_RESOLUTION"][:, i, :] = ang_res["angular_resolution_68"]
 
         header = Header()
         header["E_TYPE"] = energy_type.upper()
