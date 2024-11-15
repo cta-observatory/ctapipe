@@ -358,16 +358,16 @@ class ComaModel(PSFModel):
          PSF model, describing purely the effect of coma aberration on the PSF
         uses an asymmetric laplacian for the radial part
 
-         .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
+        .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
 
-         and a symmetric laplacian in azimuthal direction
+        and a symmetric laplacian in azimuthal direction
 
-         .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
+        .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
-         Parameters
-         ----------
-         subarray: ctapipe.instrument.SubarrayDescription
-             Description of the subarray.
+        Parameters
+        ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray.
         """
         super().__init__(subarray=subarray, **kwargs)
         self.check_model_parameters()
