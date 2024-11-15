@@ -1,4 +1,4 @@
-"""Module containing classes related to event preprocessing and selection"""
+"""Module containing classes related to event loading and preprocessing"""
 
 from pathlib import Path
 

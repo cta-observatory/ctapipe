@@ -14,7 +14,7 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer, Path
 from .binning import ResultValidRange, make_bins_per_decade
-from .select import EventPreProcessor
+from .preprocessing import EventPreProcessor
 
 
 class OptimizationResult:
@@ -31,6 +31,7 @@ class OptimizationResult:
         theta_cuts: QTable | None = None,
         precuts: QualityQuery | Sequence | None = None,
     ) -> None:
+        """"""
         if precuts:
             if isinstance(precuts, QualityQuery):
                 if len(precuts.quality_criteria) == 0:
