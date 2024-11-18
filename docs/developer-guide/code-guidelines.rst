@@ -2,8 +2,8 @@
 Code Guidelines
 ***************
 
-Coding should follow the CTA coding guidelines from the **CTAO Code
-Standards** document.
+Coding should follow the CTA coding guidelines from the **CTAO Software
+Programming Standards** document :cite:p:`ctao-software-standards`.
 
 Here, we list useful guidelines for the logical structure of code (see
 also the style-guide for code style).  This guide is subject to change
