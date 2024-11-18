@@ -641,3 +641,15 @@ def test_shower_distribution(prod5_gamma_simtel_path):
         assert len(distributions) == 1
         distribution = distributions[source.obs_id]
         assert distribution.n_entries == 1000
+
+
+def test_provenance(provenance, prod5_gamma_simtel_path):
+    provenance.start_activity("test_simteleventsource")
+
+    with SimTelEventSource(prod5_gamma_simtel_path):
+        pass
+
+    inputs = provenance.current_activity.input
+    assert len(inputs) == 1
+    assert inputs[0]["url"] == str(prod5_gamma_simtel_path)
+    assert inputs[0]["reference_meta"] is None
