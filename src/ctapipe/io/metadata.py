@@ -1,5 +1,5 @@
 """
-Management of CTA Reference Metadata.
+Management of CTAO Reference Metadata.
 
 Definitions from :cite:`ctao-top-level-data-model`.
 This information is required to be attached to the header of any files generated.
@@ -260,7 +260,7 @@ class Instrument(Configurable):
 
 def _to_dict(hastraits_instance, prefix=""):
     """helper to convert a HasTraits to a dict with keys
-    in the required CTA format (upper-case, space separated)
+    in the required CTAO format (upper-case, space separated)
     """
     res = {}
 
@@ -280,7 +280,7 @@ def _to_dict(hastraits_instance, prefix=""):
 
 
 class Reference(HasTraits):
-    """All the reference Metadata required for a CTA output file, plus a way to turn
+    """All the reference Metadata required for a CTAO output file, plus a way to turn
     it into a dict() for easy addition to the header of a file"""
 
     contact = Instance(Contact)

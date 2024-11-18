@@ -18,8 +18,8 @@
 .. |pypi| image:: https://badge.fury.io/py/ctapipe.svg
     :target: https://pypi.org/project/ctapipe
 
-Low-level data processing pipeline software for
-`CTA <https://www.cta-observatory.org>`__ (the Cherenkov Telescope Array)
+Low-level data processing pipeline software for the
+`CTAO (Cherenkov Telescope Array Observatory) <https://www.ctao.org>`__.
 
 This is code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an

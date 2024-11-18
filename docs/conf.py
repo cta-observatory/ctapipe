@@ -307,10 +307,10 @@ html_theme_options = {
     "icon_links_label": "Quick Links",
     "icon_links": [
         {
-            "name": "CTA Observatory",
-            "url": "https://www.cta-observatory.org/",
+            "name": "CTAO",
+            "url": "https://www.ctao.org/",
             "type": "url",
-            "icon": "https://www.cta-observatory.org/wp-content/themes/ctao/favicon.ico",  # noqa: E501
+            "icon": "https://www.ctao.org/wp-content/uploads/cropped-Favicon_CTAO_1-32x32.png",  # noqa: E501
         },
     ],
     "announcement": """
@@ -385,7 +385,8 @@ texinfo_documents = [
         "ctapipe Documentation",
         author,
         "ctapipe",
-        "Experimental Data Analysis for the" "Cherenkov Telescope Array (CTA).",
+        "Experimental Data Analysis for the"
+        "Cherenkov Telescope Array Observatory (CTAO).",
         "Science",
     )
 ]

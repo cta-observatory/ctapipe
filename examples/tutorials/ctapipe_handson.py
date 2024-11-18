@@ -2,7 +2,7 @@
 Getting Started with ctapipe
 ============================
 
-This hands-on was presented at the Paris CTA Consoritum meeting (K.
+This hands-on was presented at the Paris CTAO Consoritum meeting (K.
 Kosack)
 
 """
