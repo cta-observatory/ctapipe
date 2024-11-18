@@ -254,7 +254,7 @@ class HDF5Merger(Component):
             return metadata._read_reference_metadata_hdf5(h5file)
         except Exception:
             raise CannotMerge(
-                f"CTA Reference meta not found in input file: {h5file.filename}"
+                f"CTAO Reference meta not found in input file: {h5file.filename}"
             )
 
     def _check_can_merge(self, other):

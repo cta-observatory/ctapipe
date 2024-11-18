@@ -2,7 +2,7 @@
 Code Guidelines
 ***************
 
-Coding should follow the CTA coding guidelines from the **CTA Code
+Coding should follow the CTA coding guidelines from the **CTAO Code
 Standards** document.
 
 Here, we list useful guidelines for the logical structure of code (see

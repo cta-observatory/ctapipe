@@ -385,7 +385,8 @@ texinfo_documents = [
         "ctapipe Documentation",
         author,
         "ctapipe",
-        "Experimental Data Analysis for the" "Cherenkov Telescope Array (CTA).",
+        "Experimental Data Analysis for the"
+        "Cherenkov Telescope Array Observatory (CTAO).",
         "Science",
     )
 ]

@@ -11,7 +11,7 @@ cubes related to Cherenkov Cameras.  In *ctapipe*, a camera image is
 simply a flat 1D array (or 2D if time information is included), where
 there is one value per pixel. Of course, to work with such an array,
 one needs spatial information about how the pixels are laid out.
-Since CTA has at least 6 different camera types, and may have multiple
+Since CTAO has at least 6 different camera types, and may have multiple
 versions of each as revisions are made, it is necessary to have a
 common way to describe all cameras.
 
