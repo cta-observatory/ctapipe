@@ -56,6 +56,14 @@ You can install them individually, or if you just want to get ``ctapipe`` with a
 
    $ pip install 'ctapipe[all]'
 
+The ``conda`` package ``ctapipe`` includes all optional dependencies, if you want to install
+a minimal version of ``ctapipe`` only including required dependencies, you can use the
+``ctapipe-base`` package:
+
+.. code-block:: console
+
+   $ mamba install -c conda-forge ctapipe-base
+
 
 How To Get a Specific Version
 -----------------------------
