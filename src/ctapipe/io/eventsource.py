@@ -79,9 +79,9 @@ class EventSource(Component):
     as these are mutable and may lead to errors when analyzing multiple events.
 
 
-    Attributes
+    Parameters
     ----------
-    input_url : str
+    input_url : str | Path
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
