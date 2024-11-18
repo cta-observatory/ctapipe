@@ -1,3 +1,0 @@
-Add option ``override_obs_id`` to ``SimTelEventSource`` which allows
-assigning new, unique ``obs_ids`` in case productions reuse CORSIKA run
-numbers.
