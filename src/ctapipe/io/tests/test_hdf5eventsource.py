@@ -285,3 +285,17 @@ def test_provenance(dl1_file, provenance):
     assert inputs[0]["url"] == str(dl1_file)
     meta = _read_reference_metadata_hdf5(dl1_file)
     assert inputs[0]["reference_meta"].product.id_ == meta.product.id_
+
+
+def test_pointing_old_file():
+    input_url = "dataset://gamma_diffuse_dl2_train_small.dl2.h5"
+
+    n_read = 0
+    with HDF5EventSource(input_url, max_events=5) as source:
+        for e in source:
+            assert e.pointing.tel.keys() == set(e.trigger.tels_with_trigger)
+            for pointing in e.pointing.tel.values():
+                assert u.isclose(pointing.altitude, 70 * u.deg)
+                assert u.isclose(pointing.azimuth, 0 * u.deg)
+            n_read += 1
+    assert n_read == 5
