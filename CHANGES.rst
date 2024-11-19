@@ -26,8 +26,8 @@ API Changes
 - The following dependencies are now optional:
 
   * eventio, used for ``ctapipe.io.SimTelEventSource``.
-  * matplotlib, used ``ctapipe.visualiation.CameraDisplay``, ``ctapipe.visualiation.ArrayDisplay``,
-    and most default visualiation tasks, e.g. ``.peek()`` methods.
+  * matplotlib, used ``ctapipe.visualization.CameraDisplay``, ``ctapipe.visualization.ArrayDisplay``,
+    and most default visualization tasks, e.g. ``.peek()`` methods.
   * iminuit, used for the ``ctapipe.image.muon`` and ``ctapipe.reco.impact`` fitting routines.
   * bokeh, for ``ctapipe.visualiation.bokeh``
 
@@ -58,7 +58,7 @@ API Changes
 Bug Fixes
 ---------
 
-- Fix that hdf5 files created with older versions of ctapipe, e.g.
+- Fix ensures that hdf5 files created with older versions of ctapipe, e.g.
   the public dataset created with 0.17 can be read by ctapipe-process.
   These files are missing the subarray reference location, which was
   introduced in later versions of ctapipe. A dummy location (lon=0, lat=0)
