@@ -58,10 +58,11 @@ API Changes
 Bug Fixes
 ---------
 
-- Fix ensures that hdf5 files created with older versions of ctapipe, e.g.
+- Fix ensuring that hdf5 files created with older versions of ctapipe, e.g.
   the public dataset created with 0.17 can be read by ctapipe-process.
-  These files are missing the subarray reference location, which was
-  introduced in later versions of ctapipe. A dummy location (lon=0, lat=0)
+  These files contain pointing information at a different location and
+  are missing the subarray reference location, which was introduced
+  in later versions of ctapipe. A dummy location (lon=0, lat=0)
   is used for these now, the same value is already used for simtel files
   lacking this information. [`#2627 <https://github.com/cta-observatory/ctapipe/pull/2627>`__]
 
