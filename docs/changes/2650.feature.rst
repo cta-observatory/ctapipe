@@ -1,3 +1,0 @@
-Add ``__repr__`` methods to all objects that were missing
-them in ``ctapipe.io.metadata``, update the existing ones
-for consistency.
