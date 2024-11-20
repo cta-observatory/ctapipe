@@ -137,6 +137,8 @@ class IrfEventSelector(Tool):
             )
         ]
         if self.optimization_algorithm != "PercentileCuts":
+            if self.proton_file and not self.proton_file.exists():
+                raise ValueError("Need a proton file to proceed")
             self.particles.append(
                 EventLoader(
                     parent=self,
@@ -145,14 +147,17 @@ class IrfEventSelector(Tool):
                     target_spectrum=self.proton_target_spectrum,
                 )
             )
-            self.particles.append(
-                EventLoader(
-                    parent=self,
-                    kind="electrons",
-                    file=self.electron_file,
-                    target_spectrum=self.electron_target_spectrum,
+            if self.electron_file and self.electron_file.exists():
+                self.particles.append(
+                    EventLoader(
+                        parent=self,
+                        kind="electrons",
+                        file=self.electron_file,
+                        target_spectrum=self.electron_target_spectrum,
+                    )
                 )
-            )
+            else:
+                self.log.warning("Optimizing without electron file.")
 
     def start(self):
         """
@@ -184,6 +189,9 @@ class IrfEventSelector(Tool):
             self.log.debug("Keeping %d gammas" % len(reduced_events["gammas"]))
             self.log.info("Optimizing cuts using %d signal" % len(self.signal_events))
         else:
+            if "electrons" not in reduced_events.keys():
+                reduced_events["electrons"] = []
+                reduced_events["electrons_count"] = 0
             self.log.debug(
                 "Loaded %d gammas, %d protons, %d electrons"
                 % (

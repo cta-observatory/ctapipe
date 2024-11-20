@@ -338,7 +338,8 @@ class IrfTool(Tool):
             ]
 
         if self.do_background:
-            bkgs = ("protons", "electrons") if self.electron_file else ("protons")
+            bkgs = ["protons", "electrons"] if self.electron_file else ["protons"]
+            n_sel = {"protons": 0, "electrons": 0}
             for bg_type in bkgs:
                 reduced_events[bg_type]["selected_gh"] = evaluate_binned_cut(
                     reduced_events[bg_type]["gh_score"],
@@ -346,14 +347,17 @@ class IrfTool(Tool):
                     self.opt_result.gh_cuts,
                     operator.ge,
                 )
+                n_sel["bg_type"] = np.count_nonzero(
+                    reduced_events[bg_type]["selected_gh"]
+                )
 
         if self.do_background:
             self.log.info(
                 "Keeping %d signal, %d proton events, and %d electron events"
                 % (
                     np.count_nonzero(reduced_events["gammas"]["selected"]),
-                    np.count_nonzero(reduced_events["protons"]["selected_gh"]),
-                    np.count_nonzero(reduced_events["electrons"]["selected_gh"]),
+                    n_sel["protons"],
+                    n_sel["electrons"],
                 )
             )
         else:
