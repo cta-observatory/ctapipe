@@ -14,6 +14,7 @@ from pyirf.spectral import (
     calculate_event_weights,
 )
 from pyirf.utils import calculate_source_fov_offset, calculate_theta
+from tables import NoSuchNodeError
 
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
@@ -211,7 +212,11 @@ class EventLoader(Component):
     ) -> tuple[SimulatedEventsInfo, PowerLaw, Table]:
         obs = loader.read_observation_information()
         sim = loader.read_simulation_configuration()
-        show = loader.read_shower_distribution()
+        try:
+            show = loader.read_shower_distribution()
+        except NoSuchNodeError:
+            # Fall back to using the run header
+            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
 
         for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
             if len(np.unique(sim[itm])) > 1:
