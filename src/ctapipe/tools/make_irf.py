@@ -354,7 +354,7 @@ class IrfTool(Tool):
                     self.opt_result.gh_cuts,
                     operator.ge,
                 )
-                n_sel["bg_type"] = np.count_nonzero(
+                n_sel[bg_type] = np.count_nonzero(
                     reduced_events[bg_type]["selected_gh"]
                 )
 

@@ -22,9 +22,6 @@ are done using the `pyirf <https://pyirf.readthedocs.io/en/stable/>`_ package.
 :ref:`binning`, :ref:`preprocessing`, and :ref:`spectra` contain helper functions and classes used by many of the
 other components in this module.
 
-:ref:`irf_visualization` and :ref:`vis_utils` implement some functionalities for visualizing
-the irf components.
-
 
 Submodules
 ==========
@@ -38,8 +35,6 @@ Submodules
     binning
     preprocessing
     spectra
-    visualization
-    vis_utils
 
 
 Reference/API
