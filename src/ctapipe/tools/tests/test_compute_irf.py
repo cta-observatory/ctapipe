@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -212,6 +213,7 @@ def test_point_like_irf_no_theta_cut(
             argv=[
                 f"--gamma-file={gamma_diffuse_full_reco_file}",
                 f"--proton-file={proton_full_reco_file}",
+                # Use diffuse gammas weighted to electron spectrum as stand-in
                 f"--electron-file={gamma_diffuse_full_reco_file}",
                 f"--cuts={gh_cuts_path}",
                 f"--output={output_path}",
@@ -221,3 +223,72 @@ def test_point_like_irf_no_theta_cut(
             ],
             raises=True,
         )
+
+
+def test_irf_tool_wrong_cuts(
+    gamma_diffuse_full_reco_file, proton_full_reco_file, dummy_cuts_file, tmp_path
+):
+    from ctapipe.tools.compute_irf import IrfTool
+
+    output_path = tmp_path / "irf.fits.gz"
+    output_benchmarks_path = tmp_path / "benchmarks.fits.gz"
+
+    with pytest.raises(RuntimeError):
+        run_tool(
+            IrfTool(),
+            argv=[
+                f"--gamma-file={gamma_diffuse_full_reco_file}",
+                f"--proton-file={proton_full_reco_file}",
+                # Use diffuse gammas weighted to electron spectrum as stand-in
+                f"--electron-file={gamma_diffuse_full_reco_file}",
+                f"--cuts={dummy_cuts_file}",
+                f"--output={output_path}",
+                f"--benchmark-output={output_benchmarks_path}",
+            ],
+            raises=True,
+        )
+
+    config_path = tmp_path / "config.json"
+    with config_path.open("w") as f:
+        json.dump(
+            {
+                "EventPreProcessor": {
+                    "energy_reconstructor": "ExtraTreesRegressor",
+                    "geometry_reconstructor": "HillasReconstructor",
+                    "gammaness_classifier": "ExtraTreesClassifier",
+                    "quality_criteria": [
+                        # No criteria for minimum event multiplicity
+                        ("valid classifier", "ExtraTreesClassifier_is_valid"),
+                        ("valid geom reco", "HillasReconstructor_is_valid"),
+                        ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+                    ],
+                }
+            },
+            f,
+        )
+
+    logpath = tmp_path / "test_irf_tool_wrong_cuts.log"
+    logger = logging.getLogger("ctapipe.tools.compute_irf")
+    logger.addHandler(logging.FileHandler(logpath))
+
+    ret = run_tool(
+        IrfTool(),
+        argv=[
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--proton-file={proton_full_reco_file}",
+            # Use diffuse gammas weighted to electron spectrum as stand-in
+            f"--electron-file={gamma_diffuse_full_reco_file}",
+            f"--cuts={dummy_cuts_file}",
+            f"--output={output_path}",
+            f"--benchmark-output={output_benchmarks_path}",
+            f"--config={config_path}",
+            f"--log-file={logpath}",
+        ],
+    )
+    assert ret == 0
+    assert output_path.exists()
+    assert output_benchmarks_path.exists()
+    assert (
+        "Precuts are different from precuts used for calculating g/h / theta cuts."
+        in logpath.read_text()
+    )

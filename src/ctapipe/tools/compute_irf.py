@@ -468,6 +468,17 @@ class IrfTool(Tool):
         """
         reduced_events = dict()
         for sel in self.particles:
+            if sel.epp.gammaness_classifier != self.opt_result.clf_prefix:
+                raise RuntimeError(
+                    "G/H cuts are only valid for gammaness scores predicted by "
+                    "the same classifier model. Requested model: %s. "
+                    "Model used for g/h cuts: %s."
+                    % (
+                        sel.epp.gammaness_classifier,
+                        self.opt_result.clf_prefix,
+                    )
+                )
+
             if sel.epp.quality_criteria != self.opt_result.precuts.quality_criteria:
                 self.log.warning(
                     "Precuts are different from precuts used for calculating "
@@ -483,17 +494,6 @@ class IrfTool(Tool):
                 sel.epp = EventPreProcessor(
                     parent=sel,
                     quality_criteria=self.opt_result.precuts.quality_criteria,
-                )
-
-            if sel.epp.gammaness_classifier != self.opt_result.clf_prefix:
-                raise RuntimeError(
-                    "G/H cuts are only valid for gammaness scores predicted by "
-                    "the same classifier model. Requested model: %s. "
-                    "Model used for g/h cuts: %s."
-                    % (
-                        sel.epp.gammaness_classifier,
-                        self.opt_result.clf_prefix,
-                    )
                 )
 
             self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
