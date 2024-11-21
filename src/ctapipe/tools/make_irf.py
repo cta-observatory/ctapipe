@@ -253,8 +253,10 @@ class IrfTool(Tool):
             ),
         ]
         if self.do_background:
-            if not self.proton_file:
-                raise RuntimeError(
+            if not self.proton_file or (
+                self.proton_file and not self.proton_file.exists()
+            ):
+                raise ValueError(
                     "At least a proton file required when specifying `do_background`."
                 )
 
@@ -266,7 +268,7 @@ class IrfTool(Tool):
                     target_spectrum=self.proton_target_spectrum,
                 )
             )
-            if self.electron_file:
+            if self.electron_file and self.electron_file.exists():
                 self.particles.append(
                     EventLoader(
                         parent=self,
@@ -275,6 +277,8 @@ class IrfTool(Tool):
                         target_spectrum=self.electron_target_spectrum,
                     )
                 )
+            else:
+                self.log.warning("Estimating background without electron file.")
 
             self.bkg = BackgroundRateMakerBase.from_name(self.bkg_maker, parent=self)
             check_e_bins(
@@ -358,7 +362,6 @@ class IrfTool(Tool):
                     reduced_events[bg_type]["selected_gh"]
                 )
 
-        if self.do_background:
             self.log.info(
                 "Keeping %d signal, %d proton events, and %d electron events"
                 % (

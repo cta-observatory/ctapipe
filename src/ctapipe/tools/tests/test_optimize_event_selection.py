@@ -1,4 +1,4 @@
-import json
+import logging
 
 import astropy.units as u
 import pytest
@@ -13,7 +13,7 @@ pytest.importorskip("pyirf")
 def test_cuts_optimization(
     gamma_diffuse_full_reco_file,
     proton_full_reco_file,
-    irf_event_loader_test_config,
+    event_loader_config_path,
     tmp_path,
     point_like,
 ):
@@ -24,9 +24,6 @@ def test_cuts_optimization(
     from ctapipe.tools.optimize_event_selection import IrfEventSelector
 
     output_path = tmp_path / "cuts.fits"
-    config_path = tmp_path / "config.json"
-    with config_path.open("w") as f:
-        json.dump(irf_event_loader_test_config, f)
 
     argv = [
         f"--gamma-file={gamma_diffuse_full_reco_file}",
@@ -34,7 +31,7 @@ def test_cuts_optimization(
         # Use diffuse gammas weighted to electron spectrum as stand-in
         f"--electron-file={gamma_diffuse_full_reco_file}",
         f"--output={output_path}",
-        f"--config={config_path}",
+        f"--config={event_loader_config_path}",
     ]
     if point_like:
         argv.append("--point-like")
@@ -60,3 +57,67 @@ def test_cuts_optimization(
         if point_like:
             assert c in result.theta_cuts.colnames
             assert result.theta_cuts[c].unit == u.TeV
+
+
+def test_cuts_opt_no_electrons(
+    gamma_diffuse_full_reco_file,
+    proton_full_reco_file,
+    event_loader_config_path,
+    tmp_path,
+):
+    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+
+    output_path = tmp_path / "cuts.fits"
+    logpath = tmp_path / "test_cuts_opt_no_electrons.log"
+    logger = logging.getLogger("ctapipe.tools.optimize_event_selection")
+    logger.addHandler(logging.FileHandler(logpath))
+
+    ret = run_tool(
+        IrfEventSelector(),
+        argv=[
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--proton-file={proton_full_reco_file}",
+            f"--output={output_path}",
+            f"--config={event_loader_config_path}",
+            f"--log-file={logpath}",
+        ],
+    )
+    assert ret == 0
+    assert "Optimizing cuts without electron file." in logpath.read_text()
+
+
+def test_cuts_opt_only_gammas(
+    gamma_diffuse_full_reco_file, event_loader_config_path, tmp_path
+):
+    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+
+    output_path = tmp_path / "cuts.fits"
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Need a proton file for cut optimization using "
+            "PointSourceSensitivityOptimizer"
+        ),
+    ):
+        run_tool(
+            IrfEventSelector(),
+            argv=[
+                f"--gamma-file={gamma_diffuse_full_reco_file}",
+                f"--output={output_path}",
+                f"--config={event_loader_config_path}",
+            ],
+            raises=True,
+        )
+
+    ret = run_tool(
+        IrfEventSelector(),
+        argv=[
+            f"--gamma-file={gamma_diffuse_full_reco_file}",
+            f"--output={output_path}",
+            f"--config={event_loader_config_path}",
+            "--IrfEventSelector.optimization_algorithm=PercentileCuts",
+        ],
+    )
+    assert ret == 0
+    assert output_path.exists()

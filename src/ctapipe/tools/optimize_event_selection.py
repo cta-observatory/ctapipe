@@ -137,8 +137,14 @@ class IrfEventSelector(Tool):
             )
         ]
         if self.optimization_algorithm != "PercentileCuts":
-            if self.proton_file and not self.proton_file.exists():
-                raise ValueError("Need a proton file to proceed")
+            if not self.proton_file or (
+                self.proton_file and not self.proton_file.exists()
+            ):
+                raise ValueError(
+                    "Need a proton file for cut optimization "
+                    f"using {self.optimization_algorithm}."
+                )
+
             self.particles.append(
                 EventLoader(
                     parent=self,
@@ -157,7 +163,7 @@ class IrfEventSelector(Tool):
                     )
                 )
             else:
-                self.log.warning("Optimizing without electron file.")
+                self.log.warning("Optimizing cuts without electron file.")
 
     def start(self):
         """

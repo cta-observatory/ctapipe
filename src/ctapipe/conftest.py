@@ -3,6 +3,7 @@ common pytest fixtures for tests in ctapipe
 """
 
 import importlib
+import json
 import shutil
 from copy import deepcopy
 
@@ -794,6 +795,15 @@ def irf_event_loader_test_config():
             }
         }
     )
+
+
+@pytest.fixture(scope="session")
+def event_loader_config_path(irf_event_loader_test_config, irf_tmp_path):
+    config_path = irf_tmp_path / "event_loader_config.json"
+    with config_path.open("w") as f:
+        json.dump(irf_event_loader_test_config, f)
+
+    return config_path
 
 
 @pytest.fixture(scope="session")
