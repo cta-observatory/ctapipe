@@ -206,9 +206,5 @@ jobs:
           git describe --tags
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
-      - name: Produce Changelog
-        run: |
-          towncrier build --yes
-
       - name: Build docs
         run: make doc
