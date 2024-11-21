@@ -16,12 +16,12 @@ def dummy_cuts_file(
     event_loader_config_path,
     irf_tmp_path,
 ):
-    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     # Do "point-like" cuts to have both g/h and theta cuts in the file
     output_path = irf_tmp_path / "dummy_cuts.fits"
     run_tool(
-        IrfEventSelector(),
+        EventSelectionOptimizer(),
         argv=[
             f"--gamma-file={gamma_diffuse_full_reco_file}",
             f"--proton-file={proton_full_reco_file}",
@@ -46,7 +46,7 @@ def test_irf_tool(
     include_bkg,
     point_like,
 ):
-    from ctapipe.tools.make_irf import IrfTool
+    from ctapipe.tools.compute_irf import IrfTool
 
     output_path = tmp_path / "irf.fits.gz"
     output_benchmarks_path = tmp_path / "benchmarks.fits.gz"
@@ -107,12 +107,12 @@ def test_irf_tool_no_electrons(
     dummy_cuts_file,
     tmp_path,
 ):
-    from ctapipe.tools.make_irf import IrfTool
+    from ctapipe.tools.compute_irf import IrfTool
 
     output_path = tmp_path / "irf.fits.gz"
     output_benchmarks_path = tmp_path / "benchmarks.fits.gz"
     logpath = tmp_path / "test_irf_tool_no_electrons.log"
-    logger = logging.getLogger("ctapipe.tools.make_irf")
+    logger = logging.getLogger("ctapipe.tools.compute_irf")
     logger.addHandler(logging.FileHandler(logpath))
 
     ret = run_tool(
@@ -136,7 +136,7 @@ def test_irf_tool_no_electrons(
 def test_irf_tool_only_gammas(
     gamma_diffuse_full_reco_file, event_loader_config_path, dummy_cuts_file, tmp_path
 ):
-    from ctapipe.tools.make_irf import IrfTool
+    from ctapipe.tools.compute_irf import IrfTool
 
     output_path = tmp_path / "irf.fits.gz"
     output_benchmarks_path = tmp_path / "benchmarks.fits.gz"
@@ -182,13 +182,13 @@ def test_point_like_irf_no_theta_cut(
     event_loader_config_path,
     tmp_path,
 ):
-    from ctapipe.tools.make_irf import IrfTool
-    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+    from ctapipe.tools.compute_irf import IrfTool
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     gh_cuts_path = tmp_path / "gh_cuts.fits"
     # Without the "--point-like" flag only G/H cuts are produced.
     run_tool(
-        IrfEventSelector(),
+        EventSelectionOptimizer(),
         argv=[
             f"--gamma-file={gamma_diffuse_full_reco_file}",
             f"--proton-file={proton_full_reco_file}",

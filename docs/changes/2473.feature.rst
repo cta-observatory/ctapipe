@@ -5,7 +5,7 @@ Two components for calculating G/H and optionally theta cuts are added:
 ``PointSourceSensitivityOptimizer`` optimizes G/H cuts for maximum point source sensitivity and
 optionally calculates percentile theta cuts.
 
-Add a ``ctapipe-make-irf`` tool to produce irfs given a cut-selection file, a gamma,
+Add a ``ctapipe-compute-irf`` tool to produce irfs given a cut-selection file, a gamma,
 and optionally a proton, and an electron DL2 input file.
 Given only a gamma file, the energy dispersion, effective area, and point spread function are calculated.
 Optionally, the bias and resolution of the energy reconstruction and the angular resolution can be calculated

@@ -44,10 +44,10 @@ __all__ = ["IrfTool"]
 class IrfTool(Tool):
     "Tool to create IRF files in GADF format"
 
-    name = "ctapipe-make-irf"
+    name = "ctapipe-compute-irf"
     description = __doc__
     examples = """
-    ctapipe-make-irf \\
+    ctapipe-compute-irf \\
         --cuts cuts.fits \\
         --gamma-file gamma.dl2.h5 \\
         --proton-file proton.dl2.h5 \\

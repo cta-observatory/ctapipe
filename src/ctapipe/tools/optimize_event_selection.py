@@ -8,10 +8,10 @@ from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, fla
 from ..irf import EventLoader, Spectra
 from ..irf.optimize import CutOptimizerBase
 
-__all__ = ["IrfEventSelector"]
+__all__ = ["EventSelectionOptimizer"]
 
 
-class IrfEventSelector(Tool):
+class EventSelectionOptimizer(Tool):
     "Tool to create optimized cuts for IRF generation"
 
     name = "ctapipe-optimize-event-selection"
@@ -103,17 +103,17 @@ class IrfEventSelector(Tool):
     ).tag(config=True)
 
     aliases = {
-        "gamma-file": "IrfEventSelector.gamma_file",
-        "proton-file": "IrfEventSelector.proton_file",
-        "electron-file": "IrfEventSelector.electron_file",
-        "output": "IrfEventSelector.output_path",
-        "chunk_size": "IrfEventSelector.chunk_size",
+        "gamma-file": "EventSelectionOptimizer.gamma_file",
+        "proton-file": "EventSelectionOptimizer.proton_file",
+        "electron-file": "EventSelectionOptimizer.electron_file",
+        "output": "EventSelectionOptimizer.output_path",
+        "chunk_size": "EventSelectionOptimizer.chunk_size",
     }
 
     flags = {
         **flag(
             "point-like",
-            "IrfEventSelector.point_like",
+            "EventSelectionOptimizer.point_like",
             "Compute a theta cut and a G/H separation cut.",
             "Compute only a G/H separation cut.",
         )
@@ -243,7 +243,7 @@ class IrfEventSelector(Tool):
 
 
 def main():
-    tool = IrfEventSelector()
+    tool = EventSelectionOptimizer()
     tool.run()
 
 

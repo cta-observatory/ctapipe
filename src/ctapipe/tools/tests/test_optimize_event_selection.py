@@ -21,7 +21,7 @@ def test_cuts_optimization(
         OptimizationResult,
         ResultValidRange,
     )
-    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     output_path = tmp_path / "cuts.fits"
 
@@ -36,7 +36,7 @@ def test_cuts_optimization(
     if point_like:
         argv.append("--point-like")
 
-    ret = run_tool(IrfEventSelector(), argv=argv)
+    ret = run_tool(EventSelectionOptimizer(), argv=argv)
     assert ret == 0
 
     result = OptimizationResult.read(output_path)
@@ -65,7 +65,7 @@ def test_cuts_opt_no_electrons(
     event_loader_config_path,
     tmp_path,
 ):
-    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     output_path = tmp_path / "cuts.fits"
     logpath = tmp_path / "test_cuts_opt_no_electrons.log"
@@ -73,7 +73,7 @@ def test_cuts_opt_no_electrons(
     logger.addHandler(logging.FileHandler(logpath))
 
     ret = run_tool(
-        IrfEventSelector(),
+        EventSelectionOptimizer(),
         argv=[
             f"--gamma-file={gamma_diffuse_full_reco_file}",
             f"--proton-file={proton_full_reco_file}",
@@ -89,7 +89,7 @@ def test_cuts_opt_no_electrons(
 def test_cuts_opt_only_gammas(
     gamma_diffuse_full_reco_file, event_loader_config_path, tmp_path
 ):
-    from ctapipe.tools.optimize_event_selection import IrfEventSelector
+    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     output_path = tmp_path / "cuts.fits"
 
@@ -101,7 +101,7 @@ def test_cuts_opt_only_gammas(
         ),
     ):
         run_tool(
-            IrfEventSelector(),
+            EventSelectionOptimizer(),
             argv=[
                 f"--gamma-file={gamma_diffuse_full_reco_file}",
                 f"--output={output_path}",
@@ -111,12 +111,12 @@ def test_cuts_opt_only_gammas(
         )
 
     ret = run_tool(
-        IrfEventSelector(),
+        EventSelectionOptimizer(),
         argv=[
             f"--gamma-file={gamma_diffuse_full_reco_file}",
             f"--output={output_path}",
             f"--config={event_loader_config_path}",
-            "--IrfEventSelector.optimization_algorithm=PercentileCuts",
+            "--EventSelectionOptimizer.optimization_algorithm=PercentileCuts",
         ],
     )
     assert ret == 0

@@ -102,5 +102,5 @@ Reference/API
 .. automodapi:: ctapipe.tools.optimize_event_selection
     :no-inheritance-diagram:
 
-.. automodapi:: ctapipe.tools.make_irf
+.. automodapi:: ctapipe.tools.compute_irf
     :no-inheritance-diagram:

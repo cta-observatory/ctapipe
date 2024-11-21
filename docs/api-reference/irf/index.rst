@@ -10,10 +10,10 @@ This module contains functionalities for generating instrument response function
 The simulated events used for this have to be selected based on their associated "gammaness"
 value and (optionally) their reconstructed angular offset from their point of origin.
 The code for doing this can found in :ref:`cut_optimization` and is intended for use via the
-`~ctapipe.tools.optimize_event_selection.IrfEventSelector` tool.
+`~ctapipe.tools.optimize_event_selection.EventSelectionOptimizer` tool.
 
 The generation of the irf components themselves is implemented in :ref:`irfs` and is intended for
-use via the `~ctapipe.tools.make_irf.IrfTool` tool.
+use via the `~ctapipe.tools.compute_irf.IrfTool` tool.
 This tool can optionally also compute some common benchmarks, which are implemented in :ref:`benchmarks`.
 
 The cut optimization as well as the calculations of the irf components and the benchmarks
