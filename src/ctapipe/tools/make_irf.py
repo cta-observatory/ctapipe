@@ -1,5 +1,12 @@
 """Tool to generate IRFs"""
 
+from importlib.util import find_spec
+
+if find_spec("pyirf") is None:
+    from ..exceptions import OptionalDependencyMissing
+
+    raise OptionalDependencyMissing("pyirf") from None
+
 import operator
 from functools import partial
 

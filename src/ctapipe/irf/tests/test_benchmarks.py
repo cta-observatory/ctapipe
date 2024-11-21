@@ -1,11 +1,10 @@
 import astropy.units as u
 from astropy.table import QTable
 
-from ctapipe.irf.tests.test_irfs import _check_boundaries_in_hdu
-
 
 def test_make_2d_energy_bias_res(irf_events_table):
     from ctapipe.irf import EnergyBiasResolution2dMaker
+    from ctapipe.irf.tests.test_irfs import _check_boundaries_in_hdu
 
     bias_res_maker = EnergyBiasResolution2dMaker(
         fov_offset_n_bins=3,
@@ -31,6 +30,7 @@ def test_make_2d_energy_bias_res(irf_events_table):
 
 def test_make_2d_ang_res(irf_events_table):
     from ctapipe.irf import AngularResolution2dMaker
+    from ctapipe.irf.tests.test_irfs import _check_boundaries_in_hdu
 
     ang_res_maker = AngularResolution2dMaker(
         fov_offset_n_bins=3,
@@ -71,6 +71,7 @@ def test_make_2d_sensitivity(
     gamma_diffuse_full_reco_file, proton_full_reco_file, irf_event_loader_test_config
 ):
     from ctapipe.irf import EventLoader, Sensitivity2dMaker, Spectra
+    from ctapipe.irf.tests.test_irfs import _check_boundaries_in_hdu
 
     gamma_loader = EventLoader(
         config=irf_event_loader_test_config,

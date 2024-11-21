@@ -6,6 +6,8 @@ from astropy.io import fits
 
 from ctapipe.core import run_tool
 
+pytest.importorskip("pyirf")
+
 
 @pytest.fixture(scope="module")
 def event_loader_config_path(irf_event_loader_test_config, irf_tmp_path):

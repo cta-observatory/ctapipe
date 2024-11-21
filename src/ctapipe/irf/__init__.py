@@ -1,5 +1,13 @@
 """Top level module for the irf functionality"""
 
+from importlib.util import find_spec
+
+if find_spec("pyirf") is None:
+    from ..exceptions import OptionalDependencyMissing
+
+    raise OptionalDependencyMissing("pyirf") from None
+
+
 from .benchmarks import (
     AngularResolution2dMaker,
     EnergyBiasResolution2dMaker,

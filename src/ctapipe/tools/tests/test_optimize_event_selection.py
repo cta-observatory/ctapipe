@@ -6,6 +6,8 @@ from astropy.table import QTable
 
 from ctapipe.core import QualityQuery, run_tool
 
+pytest.importorskip("pyirf")
+
 
 @pytest.mark.parametrize("point_like", (True, False))
 def test_cuts_optimization(

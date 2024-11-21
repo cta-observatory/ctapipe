@@ -2,6 +2,7 @@
 common pytest fixtures for tests in ctapipe
 """
 
+import importlib
 import shutil
 from copy import deepcopy
 
@@ -43,6 +44,10 @@ camera_names = [
     "VERITAS",
     "Whipple490",
 ]
+collect_ignore = []
+
+if importlib.util.find_spec("pyirf") is None:
+    collect_ignore.append("irf")
 
 
 @pytest.fixture(scope="function", params=camera_names)
