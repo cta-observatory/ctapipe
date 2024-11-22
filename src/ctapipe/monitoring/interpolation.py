@@ -214,8 +214,12 @@ class PointingInterpolator(LinearInterpolator):
         alt = input_table["altitude"].quantity.to_value(u.rad)
         mjd = input_table["time"].tai.mjd
         self._interpolators[tel_id] = {}
-        self._interpolators[tel_id]["az"] = interp1d(mjd, az, **self.interp_options)
-        self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
+        self._interpolators[tel_id]["az"] = interp1d(
+            mjd, az, kind="linear", **self.interp_options
+        )
+        self._interpolators[tel_id]["alt"] = interp1d(
+            mjd, alt, kind="linear", **self.interp_options
+        )
 
 
 class ChunkInterpolator(MonitoringInterpolator):
