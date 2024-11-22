@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from functools import partial
 from typing import Any
 
 import astropy.units as u
@@ -10,12 +11,17 @@ from scipy.interpolate import interp1d
 
 from ctapipe.core import Component, traits
 
-__all__ = ["Interpolator", "PointingInterpolator", "ChunkInterpolator"]
+__all__ = [
+    "MonitoringInterpolator",
+    "LinearInterpolator",
+    "PointingInterpolator",
+    "ChunkInterpolator",
+]
 
 
-class Interpolator(Component, metaclass=ABCMeta):
+class MonitoringInterpolator(Component, metaclass=ABCMeta):
     """
-    Interpolator parent class.
+    MonitoringInterpolator parent class.
 
     Parameters
     ----------
@@ -23,20 +29,10 @@ class Interpolator(Component, metaclass=ABCMeta):
         An open hdf5 file with read access.
     """
 
-    bounds_error = traits.Bool(
-        default_value=True,
-        help="If true, raises an exception when trying to extrapolate out of the given table",
-    ).tag(config=True)
-
-    extrapolate = traits.Bool(
-        help="If bounds_error is False, this flag will specify whether values outside"
-        "the available values are filled with nan (False) or extrapolated (True).",
-        default_value=False,
-    ).tag(config=True)
-
     telescope_data_group = None
     required_columns = set()
     expected_units = {}
+    _interpolators = {}
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -45,17 +41,20 @@ class Interpolator(Component, metaclass=ABCMeta):
             raise TypeError("h5file must be a tables.File")
         self.h5file = h5file
 
-        self.interp_options: dict[str, Any] = dict(assume_sorted=True, copy=False)
-        if self.bounds_error:
-            self.interp_options["bounds_error"] = True
-        elif self.extrapolate:
-            self.interp_options["bounds_error"] = False
-            self.interp_options["fill_value"] = "extrapolate"
-        else:
-            self.interp_options["bounds_error"] = False
-            self.interp_options["fill_value"] = np.nan
+    @abstractmethod
+    def __call__(self, tel_id: int, time: Time):
+        """
+        Interpolates monitoring data for a given timestamp
 
-        self._interpolators = {}
+        Parameters
+        ----------
+        tel_id : int
+            Telescope id.
+        time : astropy.time.Time
+            Time for which to interpolate the monitoring data.
+
+        """
+        pass
 
     @abstractmethod
     def add_table(self, tel_id: int, input_table: Table) -> None:
@@ -113,7 +112,42 @@ class Interpolator(Component, metaclass=ABCMeta):
         self.add_table(tel_id, input_table)
 
 
-class PointingInterpolator(Interpolator):
+class LinearInterpolator(MonitoringInterpolator):
+    """
+    LinearInterpolator parent class.
+
+    Parameters
+    ----------
+    h5file : None | tables.File
+        An open hdf5 file with read access.
+    """
+
+    bounds_error = traits.Bool(
+        default_value=True,
+        help="If true, raises an exception when trying to extrapolate out of the given table",
+    ).tag(config=True)
+
+    extrapolate = traits.Bool(
+        help="If bounds_error is False, this flag will specify whether values outside"
+        "the available values are filled with nan (False) or extrapolated (True).",
+        default_value=False,
+    ).tag(config=True)
+
+    def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
+        super().__init__(h5file, **kwargs)
+
+        self.interp_options: dict[str, Any] = dict(assume_sorted=True, copy=False)
+        if self.bounds_error:
+            self.interp_options["bounds_error"] = True
+        elif self.extrapolate:
+            self.interp_options["bounds_error"] = False
+            self.interp_options["fill_value"] = "extrapolate"
+        else:
+            self.interp_options["bounds_error"] = False
+            self.interp_options["fill_value"] = np.nan
+
+
+class PointingInterpolator(LinearInterpolator):
     """
     Interpolator for pointing and pointing correction data.
     """
@@ -161,7 +195,6 @@ class PointingInterpolator(Interpolator):
             are ``time`` as ``Time`` column, ``azimuth`` and ``altitude``
             as quantity columns for pointing and pointing correction data.
         """
-
         self._check_tables(input_table)
 
         if not isinstance(input_table["time"], Time):
@@ -185,12 +218,15 @@ class PointingInterpolator(Interpolator):
         self._interpolators[tel_id]["alt"] = interp1d(mjd, alt, **self.interp_options)
 
 
-class ChunkInterpolator(Interpolator):
+class ChunkInterpolator(MonitoringInterpolator):
     """
     Simple interpolator for overlapping chunks of data.
     """
 
     required_columns = frozenset(["start_time", "end_time"])
+    start_time = {}
+    end_time = {}
+    values = {}
 
     def __call__(
         self, tel_id: int, time: Time, columns: str | list[str]
@@ -255,36 +291,41 @@ class ChunkInterpolator(Interpolator):
 
         input_table = input_table.copy()
         input_table.sort("start_time")
-        start_time = input_table["start_time"].to_value("mjd")
-        end_time = input_table["end_time"].to_value("mjd")
 
         if tel_id not in self._interpolators:
             self._interpolators[tel_id] = {}
+            self.values[tel_id] = {}
+            self.start_time[tel_id] = {}
+            self.end_time[tel_id] = {}
 
         for column in columns:
-            values = input_table[column]
+            self.values[tel_id][column] = input_table[column]
+            self.start_time[tel_id][column] = input_table["start_time"].to_value("mjd")
+            self.end_time[tel_id][column] = input_table["end_time"].to_value("mjd")
+            self._interpolators[tel_id][column] = partial(
+                self._interpolate_chunk, tel_id, column
+            )
 
-            def interpolate_chunk(
-                mjd: float, start_time=start_time, end_time=end_time, values=values
-            ) -> float:
-                # Find the index of the closest preceding start time
-                preceding_index = np.searchsorted(start_time, mjd, side="right") - 1
-                if preceding_index < 0:
-                    return np.nan
+    def _interpolate_chunk(self, tel_id, column, mjd: float) -> float:
+        start_time = self.start_time[tel_id][column]
+        end_time = self.end_time[tel_id][column]
+        values = self.values[tel_id][column]
+        # Find the index of the closest preceding start time
+        preceding_index = np.searchsorted(start_time, mjd, side="right") - 1
+        if preceding_index < 0:
+            return np.nan
 
-                # Check if the time is within the valid range of the chunk
-                if start_time[preceding_index] <= mjd <= end_time[preceding_index]:
-                    value = values[preceding_index]
-                    if not np.isnan(value):
-                        return value
+        # Check if the time is within the valid range of the chunk
+        if start_time[preceding_index] <= mjd <= end_time[preceding_index]:
+            value = values[preceding_index]
+            if not np.isnan(value):
+                return value
 
-                # If the closest preceding chunk has nan, check the next closest chunk
-                for i in range(preceding_index - 1, -1, -1):
-                    if start_time[i] <= mjd <= end_time[i]:
-                        value = values[i]
-                        if not np.isnan(value):
-                            return value
+        # If the closest preceding chunk has nan, check the next closest chunk
+        for i in range(preceding_index - 1, -1, -1):
+            if start_time[i] <= mjd <= end_time[i]:
+                value = values[i]
+                if not np.isnan(value):
+                    return value
 
-                return np.nan
-
-            self._interpolators[tel_id][column] = interpolate_chunk
+        return np.nan
