@@ -307,6 +307,19 @@ class ChunkInterpolator(MonitoringInterpolator):
             )
 
     def _interpolate_chunk(self, tel_id, column, mjd: float) -> float:
+        """
+        Interpolates overlapping chunks of data preferring earlier chunks if valid
+
+        Parameters
+        ----------
+        tel_id : int
+            tel_id for which data is to be interpolated
+        column : str
+            name of the column for which data is to be interpolated
+        mjd : float
+            Time for which to interpolate the data.
+        """
+
         start_time = self.start_time[tel_id][column]
         end_time = self.end_time[tel_id][column]
         values = self.values[tel_id][column]
