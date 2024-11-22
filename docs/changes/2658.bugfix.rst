@@ -1,0 +1,2 @@
+Fix ``<reconstruction_property>_uncert`` calculations in ``ctapipe.reco.StereoMeanCombiner``.
+Add helper functions for vectorized numpy calculations as new ``ctapipe.vectorization`` module.
