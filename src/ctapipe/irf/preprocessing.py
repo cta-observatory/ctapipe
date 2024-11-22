@@ -60,6 +60,15 @@ class EventPreProcessor(QualityQuery):
     ).tag(config=True)
 
     def normalise_column_names(self, events: Table) -> QTable:
+        if events["subarray_pointing_lat"].std() > 1e-3:
+            raise NotImplementedError(
+                "No support for making irfs from varying pointings yet"
+            )
+        if any(events["subarray_pointing_frame"] != CoordinateFrameType.ALTAZ.value):
+            raise NotImplementedError(
+                "At the moment only pointing in altaz is supported."
+            )
+
         keep_columns = [
             "obs_id",
             "event_id",
@@ -72,8 +81,17 @@ class EventPreProcessor(QualityQuery):
             f"{self.geometry_reconstructor}_az",
             f"{self.geometry_reconstructor}_alt",
             f"{self.gammaness_classifier}_prediction",
+            "subarray_pointing_lat",
+            "subarray_pointing_lon",
         ]
-        rename_to = ["reco_energy", "reco_az", "reco_alt", "gh_score"]
+        rename_to = [
+            "reco_energy",
+            "reco_az",
+            "reco_alt",
+            "gh_score",
+            "pointing_alt",
+            "pointing_az",
+        ]
         keep_columns.extend(rename_from)
         for c in keep_columns:
             if c not in events.colnames:
@@ -187,19 +205,17 @@ class EventLoader(Component):
     def load_preselected_events(
         self, chunk_size: int, obs_time: u.Quantity
     ) -> tuple[QTable, int, dict]:
-        opts = dict(dl2=True, simulated=True)
+        opts = dict(dl2=True, simulated=True, observation_info=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
-            sim_info, spectrum, obs_conf = self.get_simulation_information(
-                load, obs_time
-            )
+            sim_info, spectrum = self.get_simulation_information(load, obs_time)
             meta = {"sim_info": sim_info, "spectrum": spectrum}
             bits = [header]
             n_raw_events = 0
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 selected = events[self.epp.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
-                selected = self.make_derived_columns(selected, obs_conf)
+                selected = self.make_derived_columns(selected)
                 bits.append(selected)
                 n_raw_events += len(events)
 
@@ -209,8 +225,7 @@ class EventLoader(Component):
 
     def get_simulation_information(
         self, loader: TableLoader, obs_time: u.Quantity
-    ) -> tuple[SimulatedEventsInfo, PowerLaw, Table]:
-        obs = loader.read_observation_information()
+    ) -> tuple[SimulatedEventsInfo, PowerLaw]:
         sim = loader.read_simulation_configuration()
         try:
             show = loader.read_shower_distribution()
@@ -234,23 +249,9 @@ class EventLoader(Component):
             viewcone_min=sim["min_viewcone_radius"].quantity[0],
         )
 
-        return (
-            sim_info,
-            PowerLaw.from_simulation(sim_info, obstime=obs_time),
-            obs,
-        )
+        return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)
 
-    def make_derived_columns(self, events: QTable, obs_conf: Table) -> QTable:
-        if obs_conf["subarray_pointing_lat"].std() < 1e-3:
-            assert all(
-                obs_conf["subarray_pointing_frame"] == CoordinateFrameType.ALTAZ.value
-            )
-            events["pointing_alt"] = obs_conf["subarray_pointing_lat"][0] * u.deg
-            events["pointing_az"] = obs_conf["subarray_pointing_lon"][0] * u.deg
-        else:
-            raise NotImplementedError(
-                "No support for making irfs from varying pointings yet"
-            )
+    def make_derived_columns(self, events: QTable) -> QTable:
         events["weight"] = (
             1.0 * u.dimensionless_unscaled
         )  # defer calculation of proper weights to later

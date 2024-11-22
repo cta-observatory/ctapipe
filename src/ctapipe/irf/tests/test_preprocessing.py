@@ -1,4 +1,5 @@
 import astropy.units as u
+import numpy as np
 import pytest
 from astropy.table import Table
 from pyirf.simulations import SimulatedEventsInfo
@@ -19,6 +20,9 @@ def dummy_table():
             "geom_alt": [58.5, 61.2, 59, 71.6, 60, 62] * u.deg,
             "true_az": [13, 13, 13, 13, 13, 13] * u.deg,
             "geom_az": [12.5, 13, 11.8, 15.1, 14.7, 12.8] * u.deg,
+            "subarray_pointing_frame": np.zeros(6),
+            "subarray_pointing_lat": np.full(6, 20) * u.deg,
+            "subarray_pointing_lon": np.full(6, 0) * u.deg,
         }
     )
 
@@ -43,6 +47,8 @@ def test_normalise_column_names(dummy_table):
         "reco_alt",
         "reco_az",
         "gh_score",
+        "pointing_alt",
+        "pointing_az",
     ]
     for c in needed_cols:
         assert c in norm_table.colnames
