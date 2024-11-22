@@ -173,7 +173,7 @@ def test_invalid_input():
     wrong_unit = Table(
         {
             "time": Time(1.7e9 + np.arange(3), format="unix"),
-            "azimuth": np.radians([1, 2, 3]) * u.rad,
+            "azimuth": [1, 2, 3] * u.deg,
             "altitude": [1, 2, 3],
         }
     )
@@ -188,8 +188,8 @@ def test_hdf5(tmp_path):
     table = Table(
         {
             "time": t0 + np.arange(0.0, 10.1, 2.0) * u.s,
-            "azimuth": np.radians(np.linspace(0.0, 10.0, 6)) * u.rad,
-            "altitude": np.radians(np.linspace(70.0, 60.0, 6)) * u.rad,
+            "azimuth": np.linspace(0.0, 10.0, 6) * u.deg,
+            "altitude": np.linspace(70.0, 60.0, 6) * u.deg,
         },
     )
 
@@ -198,8 +198,8 @@ def test_hdf5(tmp_path):
     with tables.open_file(path) as h5file:
         interpolator = PointingInterpolator(h5file)
         alt, az = interpolator(tel_id=1, time=t0 + 1 * u.s)
-        assert u.isclose(alt, np.radians(69) * u.rad)
-        assert u.isclose(az, np.radians(1) * u.rad)
+        assert u.isclose(alt, 69 * u.deg)
+        assert u.isclose(az, 1 * u.deg)
 
 
 def test_bounds():
