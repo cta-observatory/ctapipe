@@ -233,7 +233,6 @@ class IrfTool(Tool):
         Initialize components from config and load g/h (and theta) cuts.
         """
         self.opt_result = OptimizationResult.read(self.cuts_file)
-
         if self.point_like and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
                 "Computing a point-like IRF requires an (optimized) theta cut."
@@ -413,11 +412,10 @@ class IrfTool(Tool):
                     ),
                     fov_offset_bins=u.Quantity(
                         [
-                            self.opt_result.valid_offset.min.to_value(u.deg),
-                            self.opt_result.valid_offset.max.to_value(u.deg),
-                        ],
-                        u.deg,
-                    ),
+                            self.opt_result.valid_offset.min,
+                            self.opt_result.valid_offset.max,
+                        ]
+                    ).reshape(-1),
                 )
             )
         return hdus
