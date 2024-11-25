@@ -29,13 +29,13 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
         An open hdf5 file with read access.
     """
 
-    telescope_data_group = None
-    required_columns = set()
-    expected_units = {}
-    _interpolators = {}
-
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+
+        self.telescope_data_group = None
+        self.required_columns = set()
+        self.expected_units = {}
+        self._interpolators = {}
 
         if h5file is not None and not isinstance(h5file, tables.File):
             raise TypeError("h5file must be a tables.File")
@@ -152,9 +152,11 @@ class PointingInterpolator(LinearInterpolator):
     Interpolator for pointing and pointing correction data.
     """
 
-    telescope_data_group = "/dl0/monitoring/telescope/pointing"
-    required_columns = frozenset(["time", "azimuth", "altitude"])
-    expected_units = {"azimuth": u.rad, "altitude": u.rad}
+    def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
+        super().__init__(h5file, **kwargs)
+        self.telescope_data_group = "/dl0/monitoring/telescope/pointing"
+        self.required_columns = frozenset(["time", "azimuth", "altitude"])
+        self.expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
     def __call__(self, tel_id: int, time: Time) -> tuple[u.Quantity, u.Quantity]:
         """
