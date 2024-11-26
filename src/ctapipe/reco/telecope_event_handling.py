@@ -1,4 +1,4 @@
-"""Helper functions for vectorizing numpy operations."""
+"""Helper functions for array-event-wise aggregation of telescope events."""
 
 import numpy as np
 from numba import njit, uint64

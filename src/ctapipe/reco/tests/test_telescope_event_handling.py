@@ -6,7 +6,7 @@ from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
 
 
 def test_get_subarray_index(dl1_parameters_file):
-    from ctapipe.vectorization import get_subarray_index
+    from ctapipe.reco.telecope_event_handling import get_subarray_index
 
     opts = dict(simulated=False, true_parameters=False, dl2=False, pointing=False)
     with TableLoader(dl1_parameters_file, **opts) as loader:
@@ -23,7 +23,10 @@ def test_get_subarray_index(dl1_parameters_file):
 
 
 def test_mean_std_ufunc(dl1_parameters_file):
-    from ctapipe.vectorization import get_subarray_index, weighted_mean_std_ufunc
+    from ctapipe.reco.telecope_event_handling import (
+        get_subarray_index,
+        weighted_mean_std_ufunc,
+    )
 
     opts = dict(simulated=False, true_parameters=False, dl2=False, pointing=False)
     with TableLoader(dl1_parameters_file, **opts) as loader:
