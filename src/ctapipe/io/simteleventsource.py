@@ -570,6 +570,7 @@ class SimTelEventSource(EventSource):
             self.file_, kind=self.atmosphere_profile_choice
         )
 
+        self._has_true_image = None
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -871,6 +872,18 @@ class SimTelEventSource(EventSource):
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
+
+                if self._has_true_image is None:
+                    self._has_true_image = true_image is not None
+
+                if self._has_true_image and true_image is None:
+                    self.log.warning(
+                        "Encountered telescope event with missing true_image in"
+                        "file that has true images: event_id = %d, tel_id = %d",
+                        event_id,
+                        tel_id,
+                    )
+                    true_image = np.full(n_pixels, -1, dtype=np.int32)
 
                 if data.simulation is not None:
                     if data.simulation.shower is not None:
