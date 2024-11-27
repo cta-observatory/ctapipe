@@ -40,6 +40,7 @@ dependencies:
   - pydata-sphinx-theme
   - sphinx-design
   - sphinxcontrib-bibtex
+  - sphinx_changelog
   - tomli
   - towncrier
   - tqdm
