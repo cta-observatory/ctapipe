@@ -1,3 +1,90 @@
+ctapipe v0.23.0 (2024-11-18)
+============================
+
+
+API Changes
+-----------
+
+- Add possibility to use ``HIPPARCOS`` catalog to get star positions
+
+  - add catalogs enumerator to ``ctapipe.utils.astro``
+  - update ``get_bright_stars`` in ``ctapipe.utils.astro`` to allow catalog selection
+  - ensure application of proper motion
+  - add possibility to select stars on proximity to a given position and on apparent magnitude
+  - Bundle star catalogs in the python package
+  - API change: ``ctapipe.utils.astro.get_bright_stars`` now requires a timestamp to apply proper motion.
+    In the prevision revision, the time argument was missing and the proper motion was not applied. [`#2625 <https://github.com/cta-observatory/ctapipe/pull/2625>`__]
+
+- Move the simulated shower distribution from something
+  that was specific to ``SimTelEventSource`` to a general interface
+  of ``EventSource``. Implement the new interface in both ``SimTelEventSource``
+  and ``HDF5EventSource`` and adapt writing of this information in ``DataWriter``.
+
+  This makes sure that the ``SimulatedShowerDistribution`` information is always
+  included, also when running ``ctapipe-process`` consecutively. [`#2633 <https://github.com/cta-observatory/ctapipe/pull/2633>`__]
+
+- The following dependencies are now optional:
+
+  * eventio, used for ``ctapipe.io.SimTelEventSource``.
+  * matplotlib, used ``ctapipe.visualization.CameraDisplay``, ``ctapipe.visualization.ArrayDisplay``,
+    and most default visualization tasks, e.g. ``.peek()`` methods.
+  * iminuit, used for the ``ctapipe.image.muon`` and ``ctapipe.reco.impact`` fitting routines.
+  * bokeh, for ``ctapipe.visualiation.bokeh``
+
+  Code that needs these dependencies will now raise ``ctapipe.exceptions.OptionalDependencyMissing``
+  in case such functionality is used and the dependency in question is not installed.
+
+  These packages will now longer be installed by default when using e.g. ``pip install ctapipe``.
+
+  If you want to install ctapipe with all optional dependencies included, do ``pip install "ctapipe[all]"``.
+
+  For ``conda``, we will publish to packages: ``ctapipe`` will include all optional dependencies
+  and a new ``ctapipe-base`` package will only include the required dependencies.
+
+  [`#2641 <https://github.com/cta-observatory/ctapipe/pull/2641>`__]
+
+- * Add possibility to directly pass the reference metadata to
+    ``Provenance.add_input_file``.
+  * Remove the call to ``Provenace.add_input_file`` from the
+    ``EventSource`` base class.
+  * Add the proper calls to ``Provenance.add_input_file`` in
+    ``HDF5EventSource`` (providing the metadata) and
+    ``SimTelEventSource`` (not providing metadata yet, but avoiding a warning)
+  * Plugin implementations of ``EventSource`` should make sure they
+    register their input files using ``Provenance.add_input_file``, preferably
+    providing also the reference metadata. [`#2648 <https://github.com/cta-observatory/ctapipe/pull/2648>`__]
+
+
+Bug Fixes
+---------
+
+- Fix ensuring that hdf5 files created with older versions of ctapipe, e.g.
+  the public dataset created with 0.17 can be read by ctapipe-process.
+  These files contain pointing information at a different location and
+  are missing the subarray reference location, which was introduced
+  in later versions of ctapipe. A dummy location (lon=0, lat=0)
+  is used for these now, the same value is already used for simtel files
+  lacking this information. [`#2627 <https://github.com/cta-observatory/ctapipe/pull/2627>`__]
+
+New Features
+------------
+
+- Add option ``override_obs_id`` to ``SimTelEventSource`` which allows
+  assigning new, unique ``obs_ids`` in case productions reuse CORSIKA run
+  numbers. [`#2411 <https://github.com/cta-observatory/ctapipe/pull/2411>`__]
+
+- Add calibration calculators which aggregates statistics, detects outliers, handles faulty data chunks. [`#2609 <https://github.com/cta-observatory/ctapipe/pull/2609>`__]
+
+- Update ``CameraCalibrator`` in ``ctapipe.calib.camera.calibrator`` allowing it to correctly calibrate variance images generated with the ``VarianceExtractor``.
+    - If the ``VarianceExtractor`` is used for the ``CameraCalibrator`` the element-wise square of the relative and absolute gain calibration factors are applied to the image;
+    - For other image extractors the plain factors are still applied.
+    - The ``VarianceExtractor`` provides no peak time and the calibrator will skip shifting the peak time for extractors like the ``VarianceExtractor`` that similarly do not provide a peak time [`#2636 <https://github.com/cta-observatory/ctapipe/pull/2636>`__]
+
+- Add ``__repr__`` methods to all objects that were missing
+  them in ``ctapipe.io.metadata``, update the existing ones
+  for consistency. [`#2650 <https://github.com/cta-observatory/ctapipe/pull/2650>`__]
+
+
 ctapipe v0.22.0 (2024-09-12)
 ============================
 

@@ -16,7 +16,7 @@ from ctapipe.core.traits import (
     ComponentName,
     TelescopeParameter,
 )
-from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image.extractor import ImageExtractor, VarianceExtractor
 from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
 
@@ -283,7 +283,11 @@ class CameraCalibrator(TelescopeComponent):
             )
 
             # correct non-integer remainder of the shift if given
-            if self.apply_peak_time_shift.tel[tel_id] and remaining_shift is not None:
+            if (
+                dl1.peak_time is not None
+                and self.apply_peak_time_shift.tel[tel_id]
+                and remaining_shift is not None
+            ):
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
@@ -292,13 +296,17 @@ class CameraCalibrator(TelescopeComponent):
             and dl1_calib.absolute_factor is not None
         ):
             if selected_gain_channel is None:
-                dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+                calibration = dl1_calib.relative_factor / dl1_calib.absolute_factor
             else:
-                corr = (
+                calibration = (
                     dl1_calib.relative_factor[selected_gain_channel, pixel_index]
                     / dl1_calib.absolute_factor[selected_gain_channel, pixel_index]
                 )
-                dl1.image *= corr
+
+            if isinstance(extractor, VarianceExtractor):
+                calibration = calibration**2
+
+            dl1.image *= calibration
 
         # handle invalid pixels
         if self.invalid_pixel_handler is not None:

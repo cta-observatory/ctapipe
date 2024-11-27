@@ -8,7 +8,7 @@ supported packages. All packages chosen have large developer
 bases, and a wide community of users, ensuring long-term support.
 
 The following are support libraries that are
-allowed when developing CTA Pipeline algorithms.  Any new dependencies must
+allowed when developing CTAO Pipeline algorithms.  Any new dependencies must
 be discussed with the software manager.
 
 

@@ -18,7 +18,7 @@ We strongly recommend using the `mambaforge conda distribution <https://github.c
 Forking vs. Working in the Main Repository
 ==========================================
 
-If you are a member of CTA (Consortium or Observatory), or
+If you are a member of CTAO (Consortium or Central Organization), or
 otherwise a regular contributor to ctapipe, the maintainers can give you
 access to the main repository at ``cta-observatory/ctapipe``.
 Working directly in the main repository has two main advantages

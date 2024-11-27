@@ -1,8 +1,0 @@
-Add possibility to use ``HIPPARCOS`` catalog to get star positions
-
-- add catalogs enumerator to ``ctapipe.utils.astro``
-- update ``get_bright_stars`` in ``ctapipe.utils.astro`` to allow catalog selection
-- ensure application of proper motion
-- add possibility to select stars on proximit to a given position and on apparent magnitude
-- move cached star catalogs to ``ctapipe/resources/``
-- API change: ``ctapipe.utils.astro.get_star_catalog`` now requires to give a time to apply proper motion, before there was no time argument

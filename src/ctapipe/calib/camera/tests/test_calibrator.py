@@ -16,6 +16,7 @@ from ctapipe.image.extractor import (
     GlobalPeakWindowSum,
     LocalPeakWindowSum,
     NeighborPeakWindowSum,
+    VarianceExtractor,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 
@@ -128,6 +129,53 @@ def test_check_dl0_empty(example_event, example_subarray):
     event.dl1.tel[tel_id].image = np.full(2048, 2)
     calibrator(event)
     assert (event.dl1.tel[tel_id].image == 2).all()
+
+
+def test_dl1_variance_calib(example_subarray):
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        image_extractor=VarianceExtractor(subarray=example_subarray),
+        apply_waveform_time_shift=False,
+    )
+    n_samples = 100
+
+    event = ArrayEventContainer()
+
+    for tel_type in example_subarray.telescope_types:
+        tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
+        n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
+        n_channels = example_subarray.tel[tel_id].camera.readout.n_channels
+
+        random = np.random.default_rng(1)
+        y = random.normal(0, 6, (n_channels, n_pixels, n_samples))
+
+        absolute = random.uniform(100, 1000, (n_channels, n_pixels)).astype("float32")
+        y *= absolute[..., np.newaxis]
+
+        relative = random.normal(1, 0.01, (n_channels, n_pixels))
+        y /= relative[..., np.newaxis]
+
+        pedestal = random.uniform(-4, 4, (n_channels, n_pixels))
+        y += pedestal[..., np.newaxis]
+
+        event.dl0.tel[tel_id].waveform = y
+        event.calibration.tel[tel_id].dl1.pedestal_offset = pedestal
+        event.calibration.tel[tel_id].dl1.absolute_factor = absolute
+        event.calibration.tel[tel_id].dl1.relative_factor = relative
+        event.dl0.tel[tel_id].selected_gain_channel = None
+        event.r1.tel[tel_id].selected_gain_channel = None
+
+    calibrator(event)
+
+    for tel_type in example_subarray.telescope_types:
+        tel_id = example_subarray.get_tel_ids_for_type(tel_type)[0]
+        image = event.dl1.tel[tel_id].image
+        camera = example_subarray.tel[tel_id].camera
+        assert image is not None
+        assert image.shape == (
+            camera.readout.n_channels,
+            example_subarray.tel[tel_id].camera.geometry.n_pixels,
+        )
 
 
 def test_dl1_charge_calib(example_subarray):

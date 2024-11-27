@@ -499,7 +499,7 @@ def test_only_trigger_and_simulation(tmp_path):
     [
         pytest.param(
             "dataset://gamma_diffuse_dl2_train_small.dl2.h5",
-            ["--no-write-images", "--max-events=5"],
+            ["--no-write-images", "--max-events=20"],
             id="0.17",
         )
     ],
@@ -514,9 +514,24 @@ def test_on_old_file(input_url, args, tmp_path):
             f"--config={config}",
             f"--input={input_url}",
             f"--output={output_path}",
+            "--write-showers",
             "--overwrite",
             *args,
         ],
         cwd=tmp_path,
         raises=True,
     )
+
+    with tables.open_file(output_path) as f:
+        assert "/configuration/telescope/pointing" in f.root
+
+    with TableLoader(output_path) as loader:
+        events = loader.read_subarray_events()
+
+        # check that we have valid reconstructions and that in case
+        # we don't, is_valid is False, regression test for #2651
+        finite_reco = np.isfinite(events["HillasReconstructor_alt"])
+        assert np.any(finite_reco)
+        np.testing.assert_array_equal(
+            finite_reco, events["HillasReconstructor_is_valid"]
+        )
