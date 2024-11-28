@@ -83,6 +83,11 @@ __all__ = [
     "MirrorClass",
 ]
 
+# default for MAX_PHOTOELECTRONS in simtel_array is 2_500_000
+# so this should be a safe limit to distinguish "dim image true missing"
+# from "extremely bright true image missing", see issue #2344
+MISSING_IMAGE_BRIGHTNESS_LIMIT = 1_000_000
+
 # Mapping of SimTelArray Calibration trigger types to EventType:
 # from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
 SIMTEL_TO_CTA_EVENT_TYPE = {
@@ -872,18 +877,29 @@ class SimTelEventSource(EventSource):
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
+                true_image_sum = true_image_sums[self.telescope_indices_original[tel_id]]
 
                 if self._has_true_image is None:
                     self._has_true_image = true_image is not None
 
                 if self._has_true_image and true_image is None:
-                    self.log.warning(
-                        "Encountered telescope event with missing true_image in"
-                        "file that has true images: event_id = %d, tel_id = %d",
-                        event_id,
-                        tel_id,
-                    )
-                    true_image = np.full(n_pixels, -1, dtype=np.int32)
+
+                    if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
+                        self.log.warning(
+                            "Encountered extremely bright telescope event with missing true_image in"
+                            "file that has true images: event_id = %d, tel_id = %d."
+                            "event might be truncated, skipping telescope event",
+                            event_id,
+                            tel_id,
+                        )
+                        continue
+                    else:
+                        self.log.info(
+                            "telescope event event_id = %d, tel_id = %d is missing true image",
+                            event_id,
+                            tel_id,
+                        )
+                        true_image = np.full(n_pixels, -1, dtype=np.int32)
 
                 if data.simulation is not None:
                     if data.simulation.shower is not None:
@@ -900,9 +916,7 @@ class SimTelEventSource(EventSource):
                         )
 
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                        true_image_sum=true_image_sums[
-                            self.telescope_indices_original[tel_id]
-                        ],
+                        true_image_sum=true_image_sum,
                         true_image=true_image,
                         impact=impact_container,
                     )
