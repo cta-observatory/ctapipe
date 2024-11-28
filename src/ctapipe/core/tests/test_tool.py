@@ -1,7 +1,10 @@
 import json
 import logging
 import os
+import signal
+import sys
 import tempfile
+from multiprocessing import Barrier, Process
 from pathlib import Path
 
 import pytest
@@ -487,3 +490,86 @@ def test_activity(tmp_path):
     assert len(inputs) == 1
     assert inputs[0]["role"] == "Tool Configuration"
     assert inputs[0]["url"] == str(config_path)
+
+
+@pytest.mark.parametrize(
+    ("exit_code", "expected_status"),
+    [
+        (0, "completed"),
+        (None, "completed"),
+        (1, "error"),
+        (2, "error"),
+    ],
+)
+def test_exit_status(exit_code, expected_status, tmp_path, provenance):
+    """check that the config is correctly in the provenance"""
+
+    class MyTool(Tool):
+        exit_code = Int(allow_none=True, default_value=None).tag(config=True)
+
+        def start(self):
+            if self.exit_code is None:
+                return
+
+            if self.exit_code == 0:
+                sys.exit(0)
+
+            if self.exit_code == 1:
+                raise ValueError("Some error happened")
+
+            class CustomError(ValueError):
+                exit_code = self.exit_code
+
+            raise CustomError("Some error with specific code happened")
+
+    provenance_path = tmp_path / "provlog.json"
+    run_tool(
+        MyTool(exit_code=exit_code),
+        [f"--provenance-log={provenance_path}"],
+        raises=False,
+    )
+
+    activities = json.loads(provenance_path.read_text())
+    assert len(activities) == 1
+    provlog = activities[0]
+    assert provlog["status"] == expected_status
+
+
+def test_exit_status_interrupted(tmp_path, provenance):
+    """check that the config is correctly in the provenance"""
+
+    # to make sure we only kill the process once it is running
+    barrier = Barrier(2)
+
+    class MyTool(Tool):
+        name = "test-interrupt"
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
+        def start(self):
+            barrier.wait()
+            signal.pause()
+
+    provenance_path = tmp_path / "provlog.json"
+
+    def main():
+        run_tool(
+            MyTool(),
+            [f"--provenance-log={provenance_path}", "--log-level=INFO"],
+            raises=False,
+        )
+
+    process = Process(target=main)
+    process.start()
+    barrier.wait()
+
+    # process.terminate()
+    os.kill(process.pid, signal.SIGINT)
+    process.join()
+
+    activities = json.loads(provenance_path.read_text())
+    assert len(activities) == 1
+    provlog = activities[0]
+    assert provlog["activity_name"] == MyTool.name
+    assert provlog["status"] == "interrupted"

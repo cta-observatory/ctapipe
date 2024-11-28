@@ -3,6 +3,7 @@
 Test ctapipe-process on a few different use cases
 """
 
+import json
 from subprocess import CalledProcessError
 
 import astropy.units as u
@@ -160,17 +161,20 @@ def test_stage1_datalevels(tmp_path):
     assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_stage_2_from_simtel(tmp_path):
+def test_stage_2_from_simtel(tmp_path, provenance):
     """check we can go to DL2 geometry from simtel file"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
+    provenance_log = tmp_path / "provenance.log"
+    input_path = get_dataset_path("gamma_prod5.simtel.zst")
     run_tool(
         ProcessorTool(),
         argv=[
             f"--config={config}",
-            "--input=dataset://gamma_prod5.simtel.zst",
+            f"--input={input_path}",
             f"--output={output}",
+            f"--provenance-log={provenance_log}",
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -189,6 +193,18 @@ def test_stage_2_from_simtel(tmp_path):
         assert "HillasReconstructor_telescopes" in dl2.colnames
         assert dl2["HillasReconstructor_telescopes"].dtype == np.bool_
         assert dl2["HillasReconstructor_telescopes"].shape[1] == len(subarray)
+
+    activities = json.loads(provenance_log.read_text())
+    assert len(activities) == 1
+
+    activity = activities[0]
+    assert activity["status"] == "completed"
+    assert len(activity["input"]) == 2
+    assert activity["input"][0]["url"] == str(config)
+    assert activity["input"][1]["url"] == str(input_path)
+
+    assert len(activity["output"]) == 1
+    assert activity["output"][0]["url"] == str(output)
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):

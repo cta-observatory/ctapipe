@@ -1,0 +1,4 @@
+Fix order of finalizing ``Component`` instances using ``Tool.enter_context``
+and calling ``Provenance().finish_activity`` in ``ctapipe.core.Tool``.
+
+Fixes output provenance information missing for e.g. ``ctapipe-process``.
