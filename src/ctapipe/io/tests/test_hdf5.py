@@ -988,19 +988,19 @@ def test_can_read_same_containers(tmp_path):
 
     # But when explicitly giving the prefixes, this works and order
     # should not be important
-    reader = HDF5TableReader(path)
-    generator = reader.read(
-        "/values",
-        [Container1, Container1],
-        prefixes=["bar", "foo"],
-    )
+    with HDF5TableReader(path) as reader:
+        generator = reader.read(
+            "/values",
+            [Container1, Container1],
+            prefixes=["bar", "foo"],
+        )
 
-    for value in (1, 2, 3):
-        c1, c2 = next(generator)
-        assert c1.value == 5 * value
-        assert c1.prefix == "bar"
-        assert c2.value == value
-        assert c2.prefix == "foo"
+        for value in (1, 2, 3):
+            c1, c2 = next(generator)
+            assert c1.value == 5 * value
+            assert c1.prefix == "bar"
+            assert c2.value == value
+            assert c2.prefix == "foo"
 
 
 @pytest.mark.parametrize("input_type", (str, Path, tables.File))
