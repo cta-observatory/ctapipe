@@ -867,6 +867,15 @@ class SimTelEventSource(EventSource):
                 impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
             for tel_id, telescope_event in telescope_events.items():
+                if tel_id not in trigger.tels_with_trigger:
+                    self.log.warning(
+                        "Encountered telescope event not present in"
+                        " stereo trigger information, skipping."
+                        " event_id = %d, tel_id = %d, tels_with_trigger: %s",
+                        event_id, tel_id, trigger.tels_with_trigger,
+                    )
+                    continue
+
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
                     adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
