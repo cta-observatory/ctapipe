@@ -872,7 +872,9 @@ class SimTelEventSource(EventSource):
                         "Encountered telescope event not present in"
                         " stereo trigger information, skipping."
                         " event_id = %d, tel_id = %d, tels_with_trigger: %s",
-                        event_id, tel_id, trigger.tels_with_trigger,
+                        event_id,
+                        tel_id,
+                        trigger.tels_with_trigger,
                     )
                     continue
 
@@ -886,13 +888,14 @@ class SimTelEventSource(EventSource):
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
-                true_image_sum = true_image_sums[self.telescope_indices_original[tel_id]]
+                true_image_sum = true_image_sums[
+                    self.telescope_indices_original[tel_id]
+                ]
 
                 if self._has_true_image is None:
                     self._has_true_image = true_image is not None
 
                 if self._has_true_image and true_image is None:
-
                     if true_image_sum > MISSING_IMAGE_BRIGHTNESS_LIMIT:
                         self.log.warning(
                             "Encountered extremely bright telescope event with missing true_image in"

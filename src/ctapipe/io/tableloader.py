@@ -125,7 +125,9 @@ def _join_telescope_events(table1, table2):
 def _merge_table_same_index(table1, table2, index_keys, fallback_join_type="left"):
     """Merge two tables assuming their primary keys are identical"""
     if len(table1) != len(table2):
-        raise ValueError(f"Tables must have identical length, {len(table1)} != {len(table2)}")
+        raise ValueError(
+            f"Tables must have identical length, {len(table1)} != {len(table2)}"
+        )
 
     if len(table1) == 0:
         return table1
