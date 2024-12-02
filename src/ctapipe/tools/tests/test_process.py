@@ -535,3 +535,36 @@ def test_on_old_file(input_url, args, tmp_path):
         np.testing.assert_array_equal(
             finite_reco, events["HillasReconstructor_is_valid"]
         )
+
+
+def test_prod6_issues(tmp_path):
+    """Test behavior of source on file from prod6, see issues #2344 and #2660"""
+    input_url = "dataset://prod6_issues.simtel.zst"
+    output_path = tmp_path / "test.dl1.h5"
+
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={input_url}",
+            f"--output={output_path}",
+            "--write-images",
+            "--write-showers",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output_path) as loader:
+        tel_events = loader.read_telescope_events()
+        subarray_events = loader.read_subarray_events()
+
+        trigger_counts = np.count_nonzero(subarray_events["tels_with_trigger"], axis=0)
+        _, tel_event_counts = np.unique(tel_events["tel_id"], return_counts=True)
+
+        mask = trigger_counts > 0
+        np.testing.assert_equal(trigger_counts[mask], tel_event_counts)
+
+        images = loader.read_telescope_events([32], true_images=True)
+        images.add_index("event_id")
+        np.testing.assert_array_equal(images.loc[1664106]["true_image"], -1)
