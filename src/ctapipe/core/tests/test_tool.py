@@ -544,23 +544,15 @@ def test_exit_status_interrupted(tmp_path, provenance):
     class MyTool(Tool):
         name = "test-interrupt"
 
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-
         def start(self):
             barrier.wait()
             signal.pause()
 
     provenance_path = tmp_path / "provlog.json"
 
-    def main():
-        run_tool(
-            MyTool(),
-            [f"--provenance-log={provenance_path}", "--log-level=INFO"],
-            raises=False,
-        )
-
-    process = Process(target=main)
+    args = [f"--provenance-log={provenance_path}", "--log-level=INFO"]
+    tool = MyTool()
+    process = Process(target=run_tool, args=(tool, args), kwargs=dict(raises=False))
     process.start()
     barrier.wait()
 
