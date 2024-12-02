@@ -48,11 +48,14 @@ def _get_subarray_index(obs_ids, event_ids):
 
 def get_subarray_index(tel_table):
     """
-    Get the obs_ids and event_ids of all subarray events contained
+    Get the subarray-event-wise information from a table of telescope events.
+
+    Extract obs_ids and event_ids of all subarray events contained
     in a table of telescope events, their multiplicity and an array
     giving the index of the subarray event for each telescope event.
-    This requires the telescope events to be SORTED by their corresponding
-    subarray events (meaning by ``["obs_id", "event_id"]``).
+
+    This requires the telescope events of one subarray event to be come
+    in a single block.
 
     Parameters
     ----------
