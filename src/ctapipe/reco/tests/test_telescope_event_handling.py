@@ -35,7 +35,6 @@ def test_mean_std_ufunc(dl1_parameters_file):
     valid = np.isfinite(tel_events["hillas_length"])
 
     _, _, multiplicity, tel_to_subarray_idx = get_subarray_index(tel_events)
-    n_array_events = len(multiplicity)
 
     # test only default uniform weights,
     # other weights are tested in test_stereo_combination
@@ -44,8 +43,6 @@ def test_mean_std_ufunc(dl1_parameters_file):
     )
 
     # check if result is identical with np.mean/np.std
-    true_mean = np.full(n_array_events, np.nan)
-    true_std = np.full(n_array_events, np.nan)
     grouped = tel_events.group_by(["obs_id", "event_id"])
     true_mean = grouped["hillas_length"].groups.aggregate(np.nanmean)
     true_std = grouped["hillas_length"].groups.aggregate(np.nanstd)
