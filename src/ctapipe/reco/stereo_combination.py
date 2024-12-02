@@ -281,7 +281,7 @@ class StereoMeanCombiner(StereoCombiner):
         weights = self._calculate_weights(mono_predictions[valid])
 
         if self.property is ReconstructionProperty.PARTICLE_TYPE:
-            if np.sum(valid) > 0:
+            if np.count_nonzero(valid) > 0:
                 stereo_predictions, _ = weighted_mean_std_ufunc(
                     mono_predictions[f"{prefix}_prediction"],
                     valid,
@@ -298,7 +298,7 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
 
         elif self.property is ReconstructionProperty.ENERGY:
-            if np.sum(valid) > 0:
+            if np.count_nonzero(valid) > 0:
                 mono_energies = mono_predictions[f"{prefix}_energy"].quantity.to_value(
                     u.TeV
                 )
@@ -331,7 +331,7 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
 
         elif self.property is ReconstructionProperty.GEOMETRY:
-            if np.sum(valid) > 0:
+            if np.count_nonzero(valid) > 0:
                 coord = AltAz(
                     alt=mono_predictions[f"{prefix}_alt"],
                     az=mono_predictions[f"{prefix}_az"],
