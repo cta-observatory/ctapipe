@@ -33,13 +33,14 @@ def test_mean_std_ufunc(dl1_parameters_file):
         tel_events = loader.read_telescope_events()
 
     valid = np.isfinite(tel_events["hillas_length"])
-    obs_ids, event_ids, m, tel_to_subarray_idx = get_subarray_index(tel_events)
-    n_array_events = len(obs_ids)
+
+    _, _, multiplicity, tel_to_subarray_idx = get_subarray_index(tel_events)
+    n_array_events = len(multiplicity)
 
     # test only default uniform weights,
     # other weights are tested in test_stereo_combination
     mean, std = weighted_mean_std_ufunc(
-        tel_events["hillas_length"], valid, n_array_events, tel_to_subarray_idx, m
+        tel_events["hillas_length"], valid, tel_to_subarray_idx, multiplicity
     )
 
     # check if result is identical with np.mean/np.std

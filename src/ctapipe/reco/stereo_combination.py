@@ -285,7 +285,6 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_predictions, _ = weighted_mean_std_ufunc(
                     mono_predictions[f"{prefix}_prediction"],
                     valid,
-                    n_array_events,
                     tel_to_array_indices,
                     multiplicity,
                     weights=weights,
@@ -308,7 +307,6 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_energy, std = weighted_mean_std_ufunc(
                     mono_energies,
                     valid,
-                    n_array_events,
                     tel_to_array_indices,
                     multiplicity,
                     weights=weights,
@@ -342,7 +340,6 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_x, _ = weighted_mean_std_ufunc(
                     mono_x,
                     valid,
-                    n_array_events,
                     tel_to_array_indices,
                     multiplicity,
                     weights=weights,
@@ -350,7 +347,6 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_y, _ = weighted_mean_std_ufunc(
                     mono_y,
                     valid,
-                    n_array_events,
                     tel_to_array_indices,
                     multiplicity,
                     weights=weights,
@@ -358,7 +354,6 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_z, _ = weighted_mean_std_ufunc(
                     mono_z,
                     valid,
-                    n_array_events,
                     tel_to_array_indices,
                     multiplicity,
                     weights=weights,

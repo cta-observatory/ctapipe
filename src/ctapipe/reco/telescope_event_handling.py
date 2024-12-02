@@ -88,7 +88,6 @@ def _grouped_add(tel_data, n_array_events, indices):
 def weighted_mean_std_ufunc(
     tel_values,
     valid_tel,
-    n_array_events,
     indices,
     multiplicity,
     weights=np.array([1]),
@@ -103,8 +102,6 @@ def weighted_mean_std_ufunc(
         values for each telescope event
     valid_tel: array-like
         boolean mask giving the valid values of ``tel_values``
-    n_array_events: int
-        number of array events with corresponding telescope events in ``tel_values``
     indices: np.ndarray
         index of the subarray event for each telescope event, returned as
         the fourth return value of ``get_subarray_index``
@@ -119,6 +116,7 @@ def weighted_mean_std_ufunc(
     Tuple(np.ndarray, np.ndarray)
         weighted mean and standard deviation for each array event
     """
+    n_array_events = len(multiplicity)
     # avoid numerical problems by very large or small weights
     weights = weights / weights.max()
     tel_values = tel_values[valid_tel]
