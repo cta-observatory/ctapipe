@@ -1,4 +1,2 @@
-Adds psf models to ``ctapipe.instrument.optics`` with the parent class ``PSFModel`` and a psf model based on pure coma abbaration called ``ComaModel``
-- All psf models have a function ``PSFModel.update_location`` that updates the location in the focal plane where the PSF is evaluated from
-- The function ``PSFModel.update_model_parameters`` allows to update the parameters of the PSF model
+Adds psf models to ``ctapipe.instrument.optics`` with the parent class ``PSFModel`` and a psf model based on pure coma aberration called ``ComaModel``
 - The function ``PSFModel.pdf`` gives the value of the PSF in a given location

@@ -312,7 +312,7 @@ class ComaModel(PSFModel):
     radial_scale_params describes the dependency of the radial scale on the distance to the center of the camera
     Used to calculate width Sr of the asymmetric radial laplacian in the PSF as a of function the distance r to the optical axis
 
-    .. math:: S_{R}(r) & = b_1 - b_2\,r + b_3\,r^2 + b_4\,r^3
+    .. math:: S_{R}(r) & = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
     az_scale_params Describes the dependency of the azimuthal scale on the distance to the center of the camera
     Used to calculate the width Sf of the azimuthal laplacian in the PSF as a function of the angle :math:`phi`
