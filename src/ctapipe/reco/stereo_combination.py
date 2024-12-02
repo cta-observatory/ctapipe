@@ -17,7 +17,7 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
-from .telecope_event_handling import get_subarray_index, weighted_mean_std_ufunc
+from .telescope_event_handling import get_subarray_index, weighted_mean_std_ufunc
 from .utils import add_defaults_and_meta
 
 _containers = {
