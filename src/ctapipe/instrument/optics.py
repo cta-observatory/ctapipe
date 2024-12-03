@@ -9,6 +9,7 @@ from enum import Enum, auto, unique
 import astropy.units as u
 import numpy as np
 from astropy.table import QTable
+from erfa.ufunc import p2s as cartesian_to_spherical
 from scipy.stats import laplace, laplace_asymmetric
 
 from ctapipe.core import TelescopeComponent
@@ -387,25 +388,28 @@ class ComaModel(PSFModel):
             -self.az_scale_params[1] * x
         ) + self.az_scale_params[2] / (self.az_scale_params[2] + x)
 
-    def pdf(self, r, f, r0, f0):
+    def pdf(self, x, y, x0, y0):
         """
         Calculates the value of the psf at a given location
 
         Parameters
         ----------
-        r : float
-            distance to the center of the camera in meters, location at where the PSF is evaluated
-        f : float
-            polar angle in radians, location at where the PSF is evaluated
-        r0 : float
-            distance to the center of the camera in meters, location from where the PSF is evaluated
-        f0 : float
-            polar angle in radians, location from where the PSF is evaluated
+        x : float
+            x-coordinate of the point on the focal plane where the psf is evaluated in meters
+        y : float
+            y-coordinate of the point on the focal plane where the psf is evaluated in meters
+        x0 : float
+            x-coordinate of the point source on the focal plane in meters
+        y0 : float
+            y-coordinate of the point source on the focal plane in meters
         Returns
         ----------
         psf : float
-            value of the PSF at the specified location
+            value of the PSF at the specified location with the specified position of the point source
         """
+        f, _, r = cartesian_to_spherical((x, y, 0.0))
+        f0, _, r0 = cartesian_to_spherical((x0, y0, 0.0))
+        print(f, r, x, y)
         k = self.k_func(r0)
         sr = self.sr_func(r0)
         sf = self.sf_func(r0)
