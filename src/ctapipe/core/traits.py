@@ -45,6 +45,7 @@ __all__ = [
     "Unicode",
     "flag",
     "observe",
+    "validate",
 ]
 
 import logging
@@ -83,6 +84,7 @@ TraitType = traitlets.TraitType
 Tuple = traitlets.Tuple
 observe = traitlets.observe
 flag = traitlets.config.boolean_flag
+validate = traitlets.validate
 
 
 class AstroQuantity(TraitType):

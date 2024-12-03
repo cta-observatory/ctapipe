@@ -13,7 +13,7 @@ from erfa.ufunc import p2s as cartesian_to_spherical
 from scipy.stats import laplace, laplace_asymmetric
 
 from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import List
+from ctapipe.core.traits import List, TraitError, validate
 
 from ..compat import StrEnum
 from ..utils import get_table_dataset
@@ -279,25 +279,26 @@ class PSFModel(TelescopeComponent):
     """
 
     @abstractmethod
-    def pdf(self, r, f, r0, f0, *args):
+    def pdf(self, x, y, x0, y0, *args):
         """
         Calculates the value of the psf at a given location
 
         Parameters
         ----------
-        r : float
-            distance to the center of the camera in meters, location at where the PSF is evaluated
-        f : float
-            polar angle in radians, location at where the PSF is evaluated
-        r0 : float
-            distance to the center of the camera in meters, location from where the PSF is evaluated
-        f0 : float
-            polar angle in radians, location from where the PSF is evaluated
+        x : float
+            x-coordinate of the point on the focal plane where the psf is evaluated
+        y : float
+            y-coordinate of the point on the focal plane where the psf is evaluated
+        x0 : float
+            x-coordinate of the point source on the focal plane
+        y0 : float
+            y-coordinate of the point source on the focal plane
         Returns
         ----------
         psf : float
-            value of the PSF at the specified location
+            value of the PSF at the specified location with the specified position of the point source
         """
+
         pass
 
 
@@ -371,7 +372,6 @@ class ComaModel(PSFModel):
             Description of the subarray.
         """
         super().__init__(subarray=subarray, **kwargs)
-        self.check_model_parameters()
 
     def k_func(self, x):
         return (
@@ -395,13 +395,13 @@ class ComaModel(PSFModel):
         Parameters
         ----------
         x : float
-            x-coordinate of the point on the focal plane where the psf is evaluated in meters
+            x-coordinate of the point on the focal plane where the psf is evaluated
         y : float
-            y-coordinate of the point on the focal plane where the psf is evaluated in meters
+            y-coordinate of the point on the focal plane where the psf is evaluated
         x0 : float
-            x-coordinate of the point source on the focal plane in meters
+            x-coordinate of the point source on the focal plane
         y0 : float
-            y-coordinate of the point source on the focal plane in meters
+            y-coordinate of the point source on the focal plane
         Returns
         ----------
         psf : float
@@ -419,12 +419,20 @@ class ComaModel(PSFModel):
             f, *self.azimuthal_pdf_params
         )
 
-    def check_model_parameters(self):
-        if not (
-            len(self.asymmetry_params) == 3
-            and len(self.radial_scale_params) == 4
-            and len(self.az_scale_params) == 3
-        ):
-            raise ValueError(
-                "asymmetry_params and az_scale_params needs to have length 3 and radial_scale_params length 4"
-            )
+    @validate("asymmetry_params")
+    def _check_asymmetry_params(self, proposal):
+        if not len(proposal["value"]) == 3:
+            raise TraitError("asymmetry_params needs to have length 3")
+        return proposal["value"]
+
+    @validate("radial_scale_params")
+    def _check_radial_scale_params(self, proposal):
+        if not len(proposal["value"]) == 4:
+            raise TraitError("radial_scale_params needs to have length 4")
+        return proposal["value"]
+
+    @validate("az_scale_params")
+    def _check_az_scale_params(self, proposal):
+        if not len(proposal["value"]) == 3:
+            raise TraitError("az_scale_params needs to have length 3")
+        return proposal["value"]
