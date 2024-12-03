@@ -29,10 +29,6 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
         An open hdf5 file with read access.
     """
 
-    telescope_data_group = None
-    required_columns = set()
-    expected_units = {}
-
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -157,9 +153,6 @@ class PointingInterpolator(LinearInterpolator):
     required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
 
-    def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
-        super().__init__(h5file, **kwargs)
-
     def __call__(self, tel_id: int, time: Time) -> tuple[u.Quantity, u.Quantity]:
         """
         Interpolate alt/az for given time and tel_id.
@@ -232,6 +225,7 @@ class ChunkInterpolator(MonitoringInterpolator):
     """
 
     required_columns = frozenset(["start_time", "end_time"])
+    expected_units = {}
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
