@@ -535,23 +535,27 @@ def test_exit_status(exit_code, expected_status, tmp_path, provenance):
     assert provlog["status"] == expected_status
 
 
+class InterruptTestTool(Tool):
+    name = "test-interrupt"
+
+    def __init__(self, barrier):
+        super().__init__()
+        self.barrier = barrier
+
+    def start(self):
+        self.barrier.wait()
+        signal.pause()
+
+
 def test_exit_status_interrupted(tmp_path, provenance):
     """check that the config is correctly in the provenance"""
 
     # to make sure we only kill the process once it is running
     barrier = Barrier(2)
-
-    class MyTool(Tool):
-        name = "test-interrupt"
-
-        def start(self):
-            barrier.wait()
-            signal.pause()
+    tool = InterruptTestTool(barrier)
 
     provenance_path = tmp_path / "provlog.json"
-
     args = [f"--provenance-log={provenance_path}", "--log-level=INFO"]
-    tool = MyTool()
     process = Process(target=run_tool, args=(tool, args), kwargs=dict(raises=False))
     process.start()
     barrier.wait()
@@ -563,5 +567,5 @@ def test_exit_status_interrupted(tmp_path, provenance):
     activities = json.loads(provenance_path.read_text())
     assert len(activities) == 1
     provlog = activities[0]
-    assert provlog["activity_name"] == MyTool.name
+    assert provlog["activity_name"] == InterruptTestTool.name
     assert provlog["status"] == "interrupted"
