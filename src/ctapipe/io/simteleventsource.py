@@ -868,6 +868,9 @@ class SimTelEventSource(EventSource):
 
             for tel_id, telescope_event in telescope_events.items():
                 if tel_id not in trigger.tels_with_trigger:
+                    # skip additional telescopes that have data but did not
+                    # participate in the subarray trigger decision for this stereo event
+                    # see #2660 for details
                     self.log.warning(
                         "Encountered telescope event not present in"
                         " stereo trigger information, skipping."
