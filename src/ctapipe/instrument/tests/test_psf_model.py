@@ -13,7 +13,7 @@ def coma_psf(example_subarray):
         "ComaModel",
         subarray=example_subarray,
         asymmetry_params=[0.5, 10, 0.15],
-        radial_scale_params=[0.015, -0.1, 0.06, -0.03],
+        radial_scale_params=[0.015, -0.1, 0.06, 0.03],
         az_scale_params=[0.25, 7.5, 0.02],
     )
     return psf

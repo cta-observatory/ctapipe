@@ -409,7 +409,6 @@ class ComaModel(PSFModel):
         """
         f, _, r = cartesian_to_spherical((x, y, 0.0))
         f0, _, r0 = cartesian_to_spherical((x0, y0, 0.0))
-        print(f, r, x, y)
         k = self.k_func(r0)
         sr = self.sr_func(r0)
         sf = self.sf_func(r0)
