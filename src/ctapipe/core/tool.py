@@ -282,7 +282,7 @@ class Tool(Application):
             with open(path, "rb") as infile:
                 config = Config(toml.load(infile))
             self.update_config(config)
-        elif path.suffix in ["json", "py"]:
+        elif path.suffix in [".json", ".py"]:
             # fall back to traitlets.config.Application's implementation. Note
             # that if we don't specify the file suffixes here, traitlets seems
             # to silently ignore unknown ones.
