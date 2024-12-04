@@ -588,8 +588,15 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
     bad_conf_path = tmp_path / "test.conf"  # note named "conf" not yaml.
     bad_conf_path.write_text(test_config_file)
 
+    good_conf_path = tmp_path / "test.yaml"
+    good_conf_path.write_text(test_config_file)
+
     tool = SomeTool()
 
     # here we should receive an error.
     with pytest.raises(ToolConfigurationError):
         tool.load_config_file(bad_conf_path)
+
+    # test correct case:
+    tool.load_config_file(good_conf_path)
+    assert tool.float_option > 1
