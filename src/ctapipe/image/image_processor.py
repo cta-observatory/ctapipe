@@ -1,24 +1,19 @@
 """
 High level image processing  (ImageProcessor Component)
 """
-
-from copy import deepcopy
-
 import numpy as np
 
 from ctapipe.coordinates import TelescopeFrame
 
 from ..containers import (
     ArrayEventContainer,
-    CameraHillasParametersContainer,
-    CameraTimingParametersContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import Bool, BoolTelescopeParameter, ComponentName, List
+from ..core.traits import BoolTelescopeParameter, ComponentName, List
 from ..instrument import SubarrayDescription
 from .cleaning import ImageCleaner
 from .concentration import concentration_parameters
@@ -41,13 +36,7 @@ DEFAULT_TRUE_IMAGE_PARAMETERS.intensity_statistics = IntensityStatisticsContaine
     kurtosis=np.float64(np.nan),
 )
 DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
-DEFAULT_TIMING_PARAMETERS_CAMFRAME = CameraTimingParametersContainer()
 DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
-
-
-DEFAULT_IMAGE_PARAMETERS_CAMFRAME = deepcopy(DEFAULT_IMAGE_PARAMETERS)
-DEFAULT_IMAGE_PARAMETERS_CAMFRAME.hillas = CameraHillasParametersContainer()
-DEFAULT_IMAGE_PARAMETERS_CAMFRAME.timing = CameraTimingParametersContainer()
 
 
 class ImageQualityQuery(QualityQuery):
@@ -67,11 +56,6 @@ class ImageProcessor(TelescopeComponent):
 
     image_cleaner_type = ComponentName(
         ImageCleaner, default_value="TailcutsImageCleaner"
-    ).tag(config=True)
-
-    use_telescope_frame = Bool(
-        default_value=True,
-        help="Whether to calculate parameters in the telescope or camera frame",
     ).tag(config=True)
 
     apply_image_modifier = BoolTelescopeParameter(
@@ -106,16 +90,14 @@ class ImageProcessor(TelescopeComponent):
 
         self.check_image = ImageQualityQuery(parent=self)
 
-        self.default_image_container = DEFAULT_IMAGE_PARAMETERS_CAMFRAME
-        if self.use_telescope_frame:
-            self.default_image_container = DEFAULT_IMAGE_PARAMETERS
-            telescope_frame = TelescopeFrame()
-            self.telescope_frame_geometries = {
-                tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
-                    telescope_frame
-                )
-                for tel_id in self.subarray.tel
-            }
+        self.default_image_container = DEFAULT_IMAGE_PARAMETERS
+        telescope_frame = TelescopeFrame()
+        self.telescope_frame_geometries = {
+            tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
+                telescope_frame
+            )
+            for tel_id in self.subarray.tel
+        }
 
     def __call__(self, event: ArrayEventContainer):
         self._process_telescope_event(event)
@@ -148,11 +130,7 @@ class ImageProcessor(TelescopeComponent):
         """
         image_selected = image[signal_pixels]
 
-        if self.use_telescope_frame:
-            # Use the transformed geometries
-            geometry = self.telescope_frame_geometries[tel_id]
-        else:
-            geometry = self.subarray.tel[tel_id].camera.geometry
+        geometry = self.telescope_frame_geometries[tel_id]
 
         # check if image can be parameterized:
         image_criteria = self.check_image(image=image_selected)
@@ -189,10 +167,7 @@ class ImageProcessor(TelescopeComponent):
                     container_class=PeakTimeStatisticsContainer,
                 )
             else:
-                if self.use_telescope_frame:
-                    timing = DEFAULT_TIMING_PARAMETERS
-                else:
-                    timing = DEFAULT_TIMING_PARAMETERS_CAMFRAME
+                timing = DEFAULT_TIMING_PARAMETERS
 
                 peak_time_statistics = DEFAULT_PEAKTIME_STATISTICS
 
