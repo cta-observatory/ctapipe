@@ -282,9 +282,16 @@ class Tool(Application):
             with open(path, "rb") as infile:
                 config = Config(toml.load(infile))
             self.update_config(config)
-        else:
-            # fall back to traitlets.config.Application's implementation
+        elif path.suffix in [".json", ".py"]:
+            # fall back to traitlets.config.Application's implementation. Note
+            # that if we don't specify the file suffixes here, traitlets seems
+            # to silently ignore unknown ones.
             super().load_config_file(str(path))
+        else:
+            raise ToolConfigurationError(
+                f"The config file '{path}' is not in a known format. "
+                "The file should end in one: yml, yaml, toml, json, py"
+            )
 
         Provenance().add_input_file(path, role="Tool Configuration", add_meta=False)
 

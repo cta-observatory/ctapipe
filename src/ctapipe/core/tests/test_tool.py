@@ -569,3 +569,34 @@ def test_exit_status_interrupted(tmp_path, provenance):
     provlog = activities[0]
     assert provlog["activity_name"] == InterruptTestTool.name
     assert provlog["status"] == "interrupted"
+
+
+def test_no_ignore_bad_config_type(tmp_path: Path):
+    """Check that if an unknown type of config file is given, an error is raised
+    instead of silently ignoring the file (which is the default for
+    traitlets.config)
+    """
+
+    class SomeTool(Tool):
+        float_option = Float(1.0, help="An option to change").tag(config=True)
+
+    test_config_file = """
+    SomeTool:
+        float_option: 200.0
+    """
+
+    bad_conf_path = tmp_path / "test.conf"  # note named "conf" not yaml.
+    bad_conf_path.write_text(test_config_file)
+
+    good_conf_path = tmp_path / "test.yaml"
+    good_conf_path.write_text(test_config_file)
+
+    tool = SomeTool()
+
+    # here we should receive an error.
+    with pytest.raises(ToolConfigurationError):
+        tool.load_config_file(bad_conf_path)
+
+    # test correct case:
+    tool.load_config_file(good_conf_path)
+    assert tool.float_option > 1
