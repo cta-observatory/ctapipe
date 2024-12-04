@@ -1,6 +1,0 @@
-Fixed a bug where if a configuration file with unknown file extension was passed
-to a tool, e.g. ``--config myconf.conf`` instead of ``--config myconf.yaml``, it
-was silently ignored, despite an info log saying "Loading config file
-myconf.conf". Configuration files must now have one of the following extensions
-to be recognized: yml, yaml, toml, json, py. If not a ``ToolConfigurationError``
-is raised.
