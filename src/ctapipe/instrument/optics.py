@@ -11,9 +11,10 @@ import numpy as np
 from astropy.table import QTable
 from erfa.ufunc import p2s as cartesian_to_spherical
 from scipy.stats import laplace, laplace_asymmetric
+from traitlets import validate
 
 from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import List, TraitError, validate
+from ctapipe.core.traits import List, TraitError
 
 from ..compat import StrEnum
 from ..utils import get_table_dataset
