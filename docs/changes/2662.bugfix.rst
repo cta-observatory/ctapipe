@@ -1,0 +1,2 @@
+Fix the order in which ``Tool`` runs final operations to fix an issue
+of provenance not being correctly recorded.
