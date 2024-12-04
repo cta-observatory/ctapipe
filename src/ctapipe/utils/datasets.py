@@ -35,7 +35,7 @@ __all__ = [
 
 
 #: default base URL for downloading datasets
-DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-test-data/v1.1.0/"
+DEFAULT_URL = "https://minio-cta.zeuthen.desy.de/dpps-testdata-public/data/ctapipe-test-data/v1.1.0/"
 
 
 def get_default_url():
