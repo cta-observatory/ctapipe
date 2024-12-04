@@ -653,3 +653,38 @@ def test_provenance(provenance, prod5_gamma_simtel_path):
     assert len(inputs) == 1
     assert inputs[0]["url"] == str(prod5_gamma_simtel_path)
     assert inputs[0]["reference_meta"] is None
+
+
+def test_prod6_issues():
+    """Test behavior of source on file from prod6, see issues #2344 and #2660"""
+    input_url = "dataset://prod6_issues.simtel.zst"
+
+    events_checked_trigger = set()
+    events_checked_image = set()
+
+    # events with two telescope events but only one in stereo trigger in simtel
+    strange_trigger_events = {
+        1548602: 3,
+        2247909: 32,
+        3974908: 2,
+        4839806: 1,
+    }
+    missing_true_images = {1664106: 32}
+
+    with SimTelEventSource(input_url) as source:
+        for e in source:
+            event_id = e.index.event_id
+            if event_id in strange_trigger_events:
+                expected_tel_id = strange_trigger_events[event_id]
+                np.testing.assert_equal(e.trigger.tels_with_trigger, [expected_tel_id])
+                assert e.trigger.tel.keys() == {expected_tel_id}
+                assert e.r1.tel.keys() == {expected_tel_id}
+                events_checked_trigger.add(event_id)
+
+            if event_id in missing_true_images:
+                tel_id = missing_true_images[event_id]
+                np.testing.assert_equal(e.simulation.tel[tel_id].true_image, -1)
+                events_checked_image.add(event_id)
+
+    assert strange_trigger_events.keys() == events_checked_trigger
+    assert missing_true_images.keys() == events_checked_image
