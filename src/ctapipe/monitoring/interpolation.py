@@ -222,10 +222,11 @@ class ChunkInterpolator(MonitoringInterpolator):
     Simple interpolator for overlapping chunks of data.
     """
 
+    required_columns = ["start_time", "end_time"]
+
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._interpolators = {}
-        self.required_columns = ["start_time", "end_time"]
         self.expected_units = {}
         self.start_time = {}
         self.end_time = {}
@@ -290,6 +291,8 @@ class ChunkInterpolator(MonitoringInterpolator):
         required_columns = set(self.required_columns)
         required_columns.update(columns)
         self.required_columns = frozenset(required_columns)
+        for col in columns:
+            self.expected_units[col] = None
         self._check_tables(input_table)
 
         input_table = input_table.copy()
