@@ -578,7 +578,7 @@ def test_no_ignore_bad_config_type(tmp_path: Path):
     """
 
     class SomeTool(Tool):
-        float_option = Float(1.0, help="An option to change")
+        float_option = Float(1.0, help="An option to change").tag(config=True)
 
     test_config_file = """
     SomeTool:
