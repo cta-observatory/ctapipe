@@ -130,7 +130,7 @@ class LinearInterpolator(MonitoringInterpolator):
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(h5file, **kwargs)
-
+        self._interpolators = {}
         self.interp_options: dict[str, Any] = dict(assume_sorted=True, copy=False)
         if self.bounds_error:
             self.interp_options["bounds_error"] = True
@@ -150,11 +150,6 @@ class PointingInterpolator(LinearInterpolator):
     telescope_data_group = "/dl0/monitoring/telescope/pointing"
     required_columns = frozenset(["time", "azimuth", "altitude"])
     expected_units = {"azimuth": u.rad, "altitude": u.rad}
-
-    def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
-        super().__init__(h5file=h5file, **kwargs)
-
-        self._interpolators = {}
 
     def __call__(self, tel_id: int, time: Time) -> tuple[u.Quantity, u.Quantity]:
         """
