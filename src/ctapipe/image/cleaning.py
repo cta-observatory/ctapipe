@@ -524,12 +524,12 @@ def nsb_image_cleaning(
     Clean an image in 5 Steps:
 
     1) Get pixelwise picture thresholds for `tailcuts_clean` in step 2) from interleaved
-        pedestal events if ``pedestal_std`` is not None.
+       pedestal events if ``pedestal_std`` is not None.
     2) Apply `tailcuts_clean` algorithm.
     3) Apply `apply_time_delta_cleaning` algorithm if ``time_limit`` is not None.
     4) Apply `bright_cleaning` if ``bright_cleaning_threshold`` is not None.
     5) Get only `ctapipe.image.largest_island` if ``largest_island_only`` is
-        set to true.
+       set to true.
 
     Parameters
     ----------
