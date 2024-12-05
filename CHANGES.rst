@@ -24,6 +24,8 @@ Bug Fixes
 - Fix the order in which ``Tool`` runs final operations to fix an issue
   of provenance not being correctly recorded. [`#2662 <https://github.com/cta-observatory/ctapipe/pull/2662>`__]
 
+- Fix data type of ``tel_id`` in the output of ``SubarrayDescription.to_table``
+
 - Fixed a bug where if a configuration file with unknown file extension was passed
   to a tool, e.g. ``--config myconf.conf`` instead of ``--config myconf.yaml``, it
   was silently ignored, despite an info log saying "Loading config file
