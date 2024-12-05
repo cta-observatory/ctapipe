@@ -1,3 +1,44 @@
+ctapipe v0.23.1 (2024-12-04)
+============================
+
+Bug Fixes
+---------
+
+- Fix ``<reconstruction_property>_uncert`` calculations in ``ctapipe.reco.StereoMeanCombiner``.
+  Add helper functions for vectorized numpy calculations as new ``ctapipe.reco.telescope_event_handling`` module. [`#2658 <https://github.com/cta-observatory/ctapipe/pull/2658>`__]
+
+- Fix error in ``ctapipe-process`` when in the middle of a simtel file
+  that has true images available, a telescope event is missing the true image.
+  This can happen rarely in case a telescope triggered on pure NSB or
+  is oversaturated to the point where the true pe didn't fit into memory constraints.
+
+  The error was due to the ``DataWriter`` trying to write a ``None`` into an
+  already setup table for the true images.
+
+  The ``SimTelEventSource`` will now create an invalid true image filled with ``-1``
+  for such events. [`#2659 <https://github.com/cta-observatory/ctapipe/pull/2659>`__]
+
+- In ``SimTelEventSource``, ignore telescope events that did not take part in the stereo event trigger.
+  This happens rarely in Prod6 files in conjunction with the random mono trigger system.
+
+- Fix the order in which ``Tool`` runs final operations to fix an issue
+  of provenance not being correctly recorded. [`#2662 <https://github.com/cta-observatory/ctapipe/pull/2662>`__]
+
+- Fix data type of ``tel_id`` in the output of ``SubarrayDescription.to_table``
+
+- Fixed a bug where if a configuration file with unknown file extension was passed
+  to a tool, e.g. ``--config myconf.conf`` instead of ``--config myconf.yaml``, it
+  was silently ignored, despite an info log saying "Loading config file
+  myconf.conf". Configuration files must now have one of the following extensions
+  to be recognized: yml, yaml, toml, json, py. If not a ``ToolConfigurationError``
+  is raised. [`#2666 <https://github.com/cta-observatory/ctapipe/pull/2666>`__]
+
+Maintenance
+-----------
+
+- Add support for astropy 7.0. [`#2639 <https://github.com/cta-observatory/ctapipe/pull/2639>`__]
+- Change data server for test datasets from in2p3 to DESY hosted server. [`#2664 <https://github.com/cta-observatory/ctapipe/pull/2664>`__]
+
 ctapipe v0.23.0 (2024-11-18)
 ============================
 
