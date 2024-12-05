@@ -14,14 +14,20 @@ image size and just set unclean pixels to 0 or similar, use
 
 __all__ = [
     "tailcuts_clean",
+    "bright_cleaning",
     "dilate",
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
     "apply_time_average_cleaning",
     "time_constrained_clean",
+    "nsb_image_cleaning",
     "ImageCleaner",
     "TailcutsImageCleaner",
+    "NSBImageCleaner",
+    "MARSImageCleaner",
+    "FACTImageCleaner",
+    "TimeConstrainedImageCleaner",
 ]
 
 from abc import abstractmethod
@@ -60,7 +66,7 @@ def tailcuts_clean(
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image : np.ndarray
         pixel charges
@@ -79,7 +85,7 @@ def tailcuts_clean(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
     """
     pixels_above_picture = image >= picture_thresh
 
@@ -116,7 +122,7 @@ def tailcuts_clean(
 def bright_cleaning(image, threshold, fraction, n_pixels=3):
     """
     Clean an image by removing pixels below a fraction of the mean charge
-    in the `n_pixels` brightest pixels.
+    in the ``n_pixels`` brightest pixels.
 
     No pixels are removed instead if the mean charge of the brightest pixels
     are below a certain threshold.
@@ -126,17 +132,17 @@ def bright_cleaning(image, threshold, fraction, n_pixels=3):
     image : np.ndarray
         pixel charges
     threshold : float
-        Minimum average charge in the `n_pixels` brightest pixels to apply
+        Minimum average charge in the ``n_pixels`` brightest pixels to apply
         cleaning
     fraction : float
-        Pixels below fraction * (average charge in the `n_pixels` brightest pixels)
+        Pixels below fraction * (average charge in the ``n_pixels`` brightest pixels)
         will be removed from the cleaned image
     n_pixels : int
         Consider this number of the brightest pixels to calculate the mean charge
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
 
     """
     mean_brightest_signal = np.mean(n_largest(n_pixels, image))
@@ -170,7 +176,7 @@ def mars_cleaning_1st_pass(
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image : np.ndarray
         pixel charges
@@ -178,7 +184,7 @@ def mars_cleaning_1st_pass(
         threshold above which all pixels are retained
     boundary_thresh : float
         threshold above which pixels are retained if
-        they have a neighbor already above the picture_thresh; it is then
+        they have a neighbor already above the ``picture_thresh``; it is then
         reapplied iteratively to the neighbor of the neighbor
     keep_isolated_pixels : bool
         If True, pixels above the picture threshold will be included always,
@@ -186,11 +192,11 @@ def mars_cleaning_1st_pass(
         boundary
     min_number_picture_neighbors : int
         A picture pixel survives cleaning only if it has at least this number
-        of picture neighbors. This has no effect in case keep_isolated_pixels is True
+        of picture neighbors. This has no effect in case ``keep_isolated_pixels`` is True
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
     """
 
     pixels_from_tailcuts_clean = tailcuts_clean(
@@ -231,7 +237,7 @@ def mars_cleaning_1st_pass(
 
 def dilate(geom, mask):
     """
-    Add one row of neighbors to the True values of a pixel mask and return
+    Add one row of neighbors to the true values of a pixel mask and return
     the new mask.
 
     This can be used to include extra rows of pixels in a mask that was
@@ -239,7 +245,7 @@ def dilate(geom, mask):
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     mask : np.ndarray
         input mask (array of booleans) to be dilated
@@ -256,10 +262,10 @@ def apply_time_delta_cleaning(
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     mask : np.ndarray
-        boolean mask of *clean* pixels before time_delta_cleaning
+        boolean mask of selected pixels before `apply_time_delta_cleaning`
     arrival_times : np.ndarray
         pixel timing information
     min_number_neighbors : int
@@ -270,7 +276,7 @@ def apply_time_delta_cleaning(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
     """
     pixels_to_keep = mask.copy()
     time_diffs = np.abs(arrival_times[mask, None] - arrival_times)
@@ -293,22 +299,22 @@ def apply_time_average_cleaning(
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     mask : np.ndarray
-        boolean mask of *clean* pixels before time_delta_cleaning
+        boolean mask of selected pixels before `apply_time_delta_cleaning`
     image : np.ndarray
         pixel charges
     arrival_times : np.ndarray
         pixel timing information
     picture_thresh : float
-        threshold above which time limit is extended twice its value
+        threshold above which ``time_limit`` is extended twice its value
     time_limit : int | float
         arrival time limit w.r.t. the average time of the core pixels
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
     """
     mask = mask.copy()
     if np.count_nonzero(mask) > 0:
@@ -348,7 +354,7 @@ def fact_image_cleaning(
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image : np.ndarray
         pixel charges
@@ -358,7 +364,7 @@ def fact_image_cleaning(
         threshold above which all pixels are retained
     boundary_threshold : float | np.ndarray
         threshold above which pixels are retained if they have a neighbor
-        already above the picture_thresh
+        already above the ``picture_thresh``
     min_number_neighbors : int
         Threshold to determine if a pixel survives cleaning steps.
         These steps include checks of neighbor arrival time and value
@@ -367,7 +373,7 @@ def fact_image_cleaning(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
 
     References
     ----------
@@ -433,7 +439,7 @@ def time_constrained_clean(
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image : np.ndarray
         pixel charges
@@ -443,7 +449,7 @@ def time_constrained_clean(
         threshold above which all pixels are retained
     boundary_threshold : float | np.ndarray
         threshold above which pixels are retained if they have a neighbor
-        already above the picture_thresh
+        already above the ``picture_thresh``
     time_limit_core : int | float
         arrival time limit of core pixels w.r.t the average time
     time_limit_boundary : int | float
@@ -454,7 +460,7 @@ def time_constrained_clean(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
     """
 
     # find core pixels that pass a picture threshold
@@ -518,18 +524,16 @@ def nsb_image_cleaning(
     Clean an image in 5 Steps:
 
     1) Get pixelwise picture thresholds for `tailcuts_clean` in step 2) from interleaved
-        pedestal events if `pedestal_std` is not None.
-    2) Apply tailcuts image cleaning algorithm - `ctapipe.image.cleaning.tailcuts_clean`.
-    3) Apply time_delta_cleaning algorithm -
-        `ctapipe.image.cleaning.apply_time_delta_cleaning` if time_limit is not None.
-    4) Apply bright_cleaning - `ctapipe.image.cleaning.bright_cleaning` if
-        bright_cleaning_threshold is not None.
-    5) Get only largest island - `ctapipe.image.morphology.largest_island` if
-        `largest_island_only` is set to true.
+        pedestal events if ``pedestal_std`` is not None.
+    2) Apply `tailcuts_clean` algorithm.
+    3) Apply `apply_time_delta_cleaning` algorithm if ``time_limit`` is not None.
+    4) Apply `bright_cleaning` if ``bright_cleaning_threshold`` is not None.
+    5) Get only `ctapipe.image.largest_island` if ``largest_island_only`` is
+        set to true.
 
     Parameters
     ----------
-    geom : ctapipe.instrument.CameraGeometry
+    geom : `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image : np.ndarray
         Pixel charges
@@ -537,39 +541,39 @@ def nsb_image_cleaning(
         Pixel timing information
     picture_thresh_min : float | np.ndarray
         Defines the minimum value used for the picture threshold for `tailcuts_clean`.
-        The threshold used will be at least this value, or higher if `pedestal_std`
-        and `pedestal_factor` are set.
+        The threshold used will be at least this value, or higher if ``pedestal_std``
+        and ``pedestal_factor`` are set.
     boundary_thresh : float | np.ndarray
         Threshold above which pixels are retained if they have a neighbor
-        already above the picture_thresh_min. Used for `tailcuts_clean`.
+        already above the ``picture_thresh_min``. Used for `tailcuts_clean`.
     min_number_picture_neighbors : int
         A picture pixel survives cleaning only if it has at least this number
-        of picture neighbors. This has no effect in case keep_isolated_pixels is True.
+        of picture neighbors. This has no effect in case ``keep_isolated_pixels`` is True.
         Used for `tailcuts_clean`.
     keep_isolated_pixels : bool
         If True, pixels above the picture threshold will be included always,
         if not they are only included if a neighbor is in the picture or
         boundary. Used for `tailcuts_clean`.
     time_limit : float
-        Time limit for the `time_delta_cleaning`. Set to None if no `time_delta_cleaning`
-        should be applied.
+        Time limit for the `apply_time_delta_cleaning`. Set to None if no
+        `apply_time_delta_cleaning` should be applied.
     time_num_neighbors : int
-        Used for `time_delta_cleaning`.
+        Used for `apply_time_delta_cleaning`.
         A selected pixel needs at least this number of (already selected) neighbors
-        that arrived within a given time_limit to itself to survive this cleaning.
+        that arrived within a given ``time_limit`` to itself to survive this cleaning.
     bright_cleaning_n_pixels : int
         Consider this number of the brightest pixels for calculating the mean charge.
-        Pixels below fraction * (mean charge in the `bright_cleaning_n_pixels`
+        Pixels below fraction * (mean charge in the ``bright_cleaning_n_pixels``
         brightest pixels) will be removed from the cleaned image. Set
-        `bright_cleaning_threshold` to None if no `bright_cleaning` should be applied.
+        ``bright_cleaning_threshold`` to None if no `bright_cleaning` should be applied.
     bright_cleaning_fraction : float
         Fraction parameter for `bright_cleaning`. Pixels below
-        fraction * (mean charge in the `bright_cleaning_n_pixels` brightest pixels)
-        will be removed from the cleaned image. Set `bright_cleaning_threshold` to None
+        fraction * (mean charge in the ``bright_cleaning_n_pixels`` brightest pixels)
+        will be removed from the cleaned image. Set ``bright_cleaning_threshold`` to None
         if no `bright_cleaning` should be applied.
     bright_cleaning_threshold : float
         Threshold parameter for `bright_cleaning`. Minimum mean charge
-        in the `bright_cleaning_n_pixels` brightest pixels to apply the cleaning.
+        in the ``bright_cleaning_n_pixels`` brightest pixels to apply the cleaning.
         Set to None if no `bright_cleaning` should be applied.
     largest_island_only : bool
         Set to true to get only largest island.
@@ -577,17 +581,17 @@ def nsb_image_cleaning(
         Factor for interleaved pedestal cleaning. It is multiplied by the
         pedestal standard deviation for each pixel to calculate pixelwise picture
         threshold parameters for `tailcuts_clean` considering the current background.
-        Has no effect if `pedestal_std` is set to None.
+        Has no effect if ``pedestal_std`` is set to None.
     pedestal_std : np.ndarray | None
         Pedestal standard deviation for each pixel. See
         `ctapipe.containers.PedestalContainer`. Used to calculate pixelwise picture
-        threshold parameters for `tailcuts_clean` by multiplying it with `pedestal_factor`
-        and clip (limit) the product with `picture_thresh_min`. If set to None, only
-        `picture_thresh_min` is used to set the picture threshold for `tailcuts_clean`.
+        threshold parameters for `tailcuts_clean` by multiplying it with ``pedestal_factor``
+        and clip (limit) the product with ``picture_thresh_min``. If set to None, only
+        ``picture_thresh_min`` is used to set the picture threshold for `tailcuts_clean`.
 
     Returns
     -------
-    A boolean mask of *clean* pixels.
+    A boolean mask of selected pixels.
 
     """
     # Step 1
@@ -638,7 +642,7 @@ def nsb_image_cleaning(
 
 class ImageCleaner(TelescopeComponent):
     """
-    Abstract class for all configurable Image Cleaning algorithms.   Use
+    Abstract class for all configurable Image Cleaning algorithms. Use
     ``ImageCleaner.from_name()`` to construct an instance of a particular algorithm
     """
 
@@ -663,9 +667,9 @@ class ImageCleaner(TelescopeComponent):
             image pixel data corresponding to the camera geometry
         arrival_times : np.ndarray
             image of arrival time (not used in this method)
-        monitoring : ctapipe.containers.MonitoringCameraContainer
-            MonitoringCameraContainer to make use of additional parameters
-            from monitoring data e.g. pedestal std.
+        monitoring : `ctapipe.containers.MonitoringCameraContainer`
+            `ctapipe.containers.MonitoringCameraContainer` to make use of
+            additional parameters from monitoring data e.g. pedestal std.
 
         Returns
         -------
@@ -723,25 +727,20 @@ class TailcutsImageCleaner(ImageCleaner):
 
 class NSBImageCleaner(TailcutsImageCleaner):
     """
-    Clean images based on lstchains image cleaning technique [1]_. See
-    `ctapipe.image.nsb_image_cleaning`
-
-    References
-    ----------
-    .. [1] https://arxiv.org/pdf/2306.12960
-
+    Clean images based on lstchains image cleaning technique described in
+    :cite:p:`lst1-crab-paper`. See `ctapipe.image.nsb_image_cleaning`.
     """
 
     time_limit = FloatTelescopeParameter(
         default_value=2,
-        help="Time limit for the `time_delta_cleaning`. Set to None if no"
-        " `time_delta_cleaning` should be applied.",
+        help="Time limit for the `apply_time_delta_cleaning`. Set to None if no"
+        " `apply_time_delta_cleaning` should be applied.",
         allow_none=True,
     ).tag(config=True)
 
     time_num_neighbors = IntTelescopeParameter(
         default_value=1,
-        help="Used for `time_delta_cleaning`."
+        help="Used for `apply_time_delta_cleaning`."
         " A selected pixel needs at least this number of (already selected) neighbors"
         " that arrived within a given `time_limit` to itself to survive this cleaning.",
     ).tag(config=True)
@@ -750,23 +749,23 @@ class NSBImageCleaner(TailcutsImageCleaner):
         default_value=3,
         help="Consider this number of the brightest pixels for calculating the"
         " mean charge. Pixels below fraction * (mean charge in the"
-        " `bright_cleaning_n_pixels` brightest pixels) will be removed from the"
-        " cleaned image. Set `bright_cleaning_threshold` to None if no"
+        " ``bright_cleaning_n_pixels`` brightest pixels) will be removed from the"
+        " cleaned image. Set ``bright_cleaning_threshold`` to None if no"
         " `bright_cleaning` should be applied.",
     ).tag(config=True)
 
     bright_cleaning_fraction = FloatTelescopeParameter(
         default_value=0.03,
         help="Fraction parameter for `bright_cleaning`. Pixels below"
-        " fraction * (mean charge in the `bright_cleaning_n_pixels` brightest pixels)"
-        " will be removed from the cleaned image. Set `bright_cleaning_threshold` to"
+        " fraction * (mean charge in the ``bright_cleaning_n_pixels`` brightest pixels)"
+        " will be removed from the cleaned image. Set ``bright_cleaning_threshold`` to"
         " None if no `bright_cleaning` should be applied.",
     ).tag(config=True)
 
     bright_cleaning_threshold = FloatTelescopeParameter(
         default_value=267,
         help="Threshold parameter for `bright_cleaning`. Minimum mean charge"
-        " in the `bright_cleaning_n_pixels` brightest pixels to apply the cleaning."
+        " in the ``bright_cleaning_n_pixels`` brightest pixels to apply the cleaning."
         " Set to None if no `bright_cleaning` should be applied.",
         allow_none=True,
     ).tag(config=True)
@@ -779,10 +778,10 @@ class NSBImageCleaner(TailcutsImageCleaner):
         default_value=2.5,
         help="Factor for interleaved pedestal cleaning. It is multiplied by the"
         " pedestal standard deviation for each pixel to calculate pixelwise upper limit"
-        " picture thresholds and clip them with `picture_thresh_pe` of"
+        " picture thresholds and clip them with ``picture_thresh_pe`` of"
         " `TailcutsImageCleaner` for `tailcuts_clean` considering the current background."
         " If no pedestal standard deviation is given, interleaved pedestal cleaning is"
-        " not applied and `picture_thresh_pe` of `TailcutsImageCleaner` is used alone"
+        " not applied and ``picture_thresh_pe`` of `TailcutsImageCleaner` is used alone"
         " instead.",
     ).tag(config=True)
 
@@ -850,11 +849,11 @@ class MARSImageCleaner(TailcutsImageCleaner):
 class FACTImageCleaner(TailcutsImageCleaner):
     """
     Clean images using the FACT technique. See `ctapipe.image.fact_image_cleaning`
-    for algorithm details
+    for algorithm details.
     """
 
     time_limit_ns = FloatTelescopeParameter(
-        default_value=5.0, help="arrival time limit for neighboring " "pixels, in ns"
+        default_value=5.0, help="arrival time limit for neighboring pixels, in ns"
     ).tag(config=True)
 
     def __call__(
@@ -880,16 +879,17 @@ class FACTImageCleaner(TailcutsImageCleaner):
 
 class TimeConstrainedImageCleaner(TailcutsImageCleaner):
     """
-    MAGIC-like Image cleaner with timing information (See `ctapipe.image.time_constrained_clean`)
+    MAGIC-like Image cleaner with timing information (See
+    `ctapipe.image.time_constrained_clean`).
     """
 
     time_limit_core_ns = FloatTelescopeParameter(
         default_value=4.5,
-        help="arrival time limit for neighboring " "core pixels, in ns",
+        help="arrival time limit for neighboring core pixels, in ns",
     ).tag(config=True)
     time_limit_boundary_ns = FloatTelescopeParameter(
         default_value=1.5,
-        help="arrival time limit for neighboring " "boundary pixels, in ns",
+        help="arrival time limit for neighboring boundary pixels, in ns",
     ).tag(config=True)
 
     def __call__(
