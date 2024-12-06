@@ -94,7 +94,13 @@ Reference/API
     :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.train_disp_reconstructor
-   :no-inheritance-diagram:
+    :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.tools.apply_models
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.optimize_event_selection
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.compute_irf
     :no-inheritance-diagram:
