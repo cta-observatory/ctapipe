@@ -5,9 +5,125 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.monitoring.interpolation import PointingInterpolator
+from ctapipe.monitoring.interpolation import ChunkInterpolator, PointingInterpolator
 
 t0 = Time("2022-01-01T00:00:00")
+
+
+def test_chunk_selection():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values": [1, 2, 3, 4],
+        },
+    )
+    interpolator = ChunkInterpolator()
+    interpolator.add_table(1, table, ["values"])
+
+    val1 = interpolator(tel_id=1, time=t0 + 1.2 * u.s, columns="values")
+    val2 = interpolator(tel_id=1, time=t0 + 1.7 * u.s, columns="values")
+    val3 = interpolator(tel_id=1, time=t0 + 2.2 * u.s, columns="values")
+
+    assert np.isclose(val1, 2)
+    assert np.isclose(val2, 2)
+    assert np.isclose(val3, 3)
+
+
+def test_chunk_selection_multiple_columns():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values1": [1, 2, 3, 4],
+            "values2": [10, 20, 30, 40],
+        },
+    )
+    interpolator = ChunkInterpolator()
+    interpolator.add_table(1, table, ["values1", "values2"])
+
+    result1 = interpolator(
+        tel_id=1, time=t0 + 1.2 * u.s, columns=["values1", "values2"]
+    )
+    result2 = interpolator(
+        tel_id=1, time=t0 + 1.7 * u.s, columns=["values1", "values2"]
+    )
+    result3 = interpolator(
+        tel_id=1, time=t0 + 2.2 * u.s, columns=["values1", "values2"]
+    )
+
+    assert np.isclose(result1["values1"], 2)
+    assert np.isclose(result1["values2"], 20)
+    assert np.isclose(result2["values1"], 2)
+    assert np.isclose(result2["values2"], 20)
+    assert np.isclose(result3["values1"], 3)
+    assert np.isclose(result3["values2"], 30)
+
+
+def test_nan_switch():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values": [1, np.nan, 3, 4],
+        },
+    )
+    interpolator = ChunkInterpolator()
+    interpolator.add_table(1, table, ["values"])
+
+    val = interpolator(tel_id=1, time=t0 + 1.2 * u.s, columns="values")
+
+    assert np.isclose(val, 1)
+
+
+def test_nan_switch_multiple_columns():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values1": [1, np.nan, 3, 4],
+            "values2": [10, 20, np.nan, 40],
+        },
+    )
+    interpolator = ChunkInterpolator()
+    interpolator.add_table(1, table, ["values1", "values2"])
+
+    result = interpolator(tel_id=1, time=t0 + 1.2 * u.s, columns=["values1", "values2"])
+
+    assert np.isclose(result["values1"], 1)
+    assert np.isclose(result["values2"], 20)
+
+
+def test_no_valid_chunk():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values": [1, 2, 3, 4],
+        },
+    )
+    interpolator = ChunkInterpolator()
+    interpolator.add_table(1, table, ["values"])
+
+    val = interpolator(tel_id=1, time=t0 + 5.2 * u.s, columns="values")
+    assert np.isnan(val)
+
+
+def test_no_valid_chunk_multiple_columns():
+    table = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "values1": [1, 2, 3, 4],
+            "values2": [10, 20, 30, 40],
+        },
+    )
+    interpolator = ChunkInterpolator()
+    interpolator.add_table(1, table, ["values1", "values2"])
+
+    result = interpolator(tel_id=1, time=t0 + 5.2 * u.s, columns=["values1", "values2"])
+    assert np.isnan(result["values1"])
+    assert np.isnan(result["values2"])
 
 
 def test_azimuth_switchover():
