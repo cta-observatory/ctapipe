@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-from copy import deepcopy
 from functools import partial
 from typing import Any
 
@@ -223,10 +222,9 @@ class ChunkInterpolator(MonitoringInterpolator):
     Simple interpolator for overlapping chunks of data.
     """
 
-    required_columns = frozenset(["start_time", "end_time"])
-
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.required_columns = set(["start_time", "end_time"])
         self._interpolators = {}
         self.expected_units = {}
         self.start_time = {}
@@ -289,9 +287,8 @@ class ChunkInterpolator(MonitoringInterpolator):
             Names of the columns to interpolate.
         """
 
-        required_columns = set(deepcopy(self.required_columns))
-        required_columns.update(columns)
-        self.required_columns = frozenset(required_columns)
+        self.required_columns.update(columns)
+        self.required_columns = set(self.required_columns)
         for col in columns:
             self.expected_units[col] = None
         self._check_tables(input_table)
