@@ -254,11 +254,7 @@ class ChunkInterpolator(MonitoringInterpolator):
         result = {}
         mjd = time.to_value("mjd")
         for column in self.columns:
-            if column not in self._interpolators[tel_id]:
-                raise ValueError(
-                    f"Column '{column}' not found in interpolators for tel_id {tel_id}"
-                )
-            result[column] = self._interpolators[tel_id][column](mjd)
+            result[column] = self._interpolators[tel_id](column, mjd)
 
         if len(result) == 1:
             return result[self.columns[0]]
@@ -287,16 +283,12 @@ class ChunkInterpolator(MonitoringInterpolator):
         if tel_id not in self._interpolators:
             self._interpolators[tel_id] = {}
             self.values[tel_id] = {}
-            self.start_time[tel_id] = {}
-            self.end_time[tel_id] = {}
+            self.start_time[tel_id] = input_table["start_time"].to_value("mjd")
+            self.end_time[tel_id] = input_table["end_time"].to_value("mjd")
+            self._interpolators[tel_id] = partial(self._interpolate_chunk, tel_id)
 
         for column in self.columns:
             self.values[tel_id][column] = input_table[column]
-            self.start_time[tel_id][column] = input_table["start_time"].to_value("mjd")
-            self.end_time[tel_id][column] = input_table["end_time"].to_value("mjd")
-            self._interpolators[tel_id][column] = partial(
-                self._interpolate_chunk, tel_id, column
-            )
 
     def _interpolate_chunk(self, tel_id, column, mjd: float) -> float:
         """
@@ -310,8 +302,8 @@ class ChunkInterpolator(MonitoringInterpolator):
             Time for which to interpolate the data.
         """
 
-        start_time = self.start_time[tel_id][column]
-        end_time = self.end_time[tel_id][column]
+        start_time = self.start_time[tel_id]
+        end_time = self.end_time[tel_id]
         values = self.values[tel_id][column]
         # Find the index of the closest preceding start time
         preceding_index = np.searchsorted(start_time, mjd, side="right") - 1
