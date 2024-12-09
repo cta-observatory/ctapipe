@@ -5,9 +5,109 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.monitoring.interpolation import PointingInterpolator
+from ctapipe.monitoring.interpolation import (
+    FlatFieldInterpolator,
+    PedestalInterpolator,
+    PointingInterpolator,
+)
 
 t0 = Time("2022-01-01T00:00:00")
+
+
+def test_chunk_selection():
+    table_ff = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "relative_gain": [1, 2, 3, 4],
+        },
+    )
+    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff.add_table(1, table_ff)
+
+    val1 = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
+    val2 = interpolator_ff(tel_id=1, time=t0 + 1.7 * u.s)
+    val3 = interpolator_ff(tel_id=1, time=t0 + 2.2 * u.s)
+
+    assert np.isclose(val1, 2)
+    assert np.isclose(val2, 2)
+    assert np.isclose(val3, 3)
+
+    table_ped = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "pedestal": [1, 2, 3, 4],
+        },
+    )
+    interpolator_ped = PedestalInterpolator()
+    interpolator_ped.add_table(1, table_ped)
+
+    val1 = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
+    val2 = interpolator_ped(tel_id=1, time=t0 + 1.7 * u.s)
+    val3 = interpolator_ped(tel_id=1, time=t0 + 2.2 * u.s)
+
+    assert np.isclose(val1, 2)
+    assert np.isclose(val2, 2)
+    assert np.isclose(val3, 3)
+
+
+def test_nan_switch():
+    table_ff = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "relative_gain": [1, np.nan, 3, 4],
+        },
+    )
+    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff.add_table(1, table_ff)
+
+    val = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
+
+    assert np.isclose(val, 1)
+
+    table_ped = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "pedestal": [1, np.nan, 3, 4],
+        },
+    )
+    interpolator_ped = PedestalInterpolator()
+    interpolator_ped.add_table(1, table_ped)
+
+    val = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
+
+    assert np.isclose(val, 1)
+
+
+def test_no_valid_chunk():
+    table_ff = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "relative_gain": [1, 2, 3, 4],
+        },
+    )
+    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff.add_table(1, table_ff)
+
+    val = interpolator_ff(tel_id=1, time=t0 + 5.2 * u.s)
+    assert np.isnan(val)
+
+    table_ped = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "pedestal": [1, 2, 3, 4],
+        },
+    )
+    interpolator_ped = PedestalInterpolator()
+    interpolator_ped.add_table(1, table_ped)
+
+    val = interpolator_ped(tel_id=1, time=t0 + 5.2 * u.s)
+    assert np.isnan(val)
 
 
 def test_azimuth_switchover():
