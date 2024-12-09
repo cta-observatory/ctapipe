@@ -224,16 +224,15 @@ class ChunkInterpolator(MonitoringInterpolator):
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.required_columns = set(["start_time", "end_time"])
         self._interpolators = {}
-        self.expected_units = {}
         self.start_time = {}
         self.end_time = {}
         self.values = {}
+        self.columns = list(self.required_columns)  # these will be the data columns
+        self.columns.remove("start_time")
+        self.columns.remove("end_time")
 
-    def __call__(
-        self, tel_id: int, time: Time, columns: str | list[str]
-    ) -> float | dict[str, float]:
+    def __call__(self, tel_id: int, time: Time) -> float | dict[str, float]:
         """
         Interpolate overlapping chunks of data for a given time, tel_id, and column(s).
 
@@ -243,8 +242,6 @@ class ChunkInterpolator(MonitoringInterpolator):
             Telescope id.
         time : astropy.time.Time
             Time for which to interpolate the data.
-        columns : str or list of str
-            Name(s) of the column(s) to interpolate.
 
         Returns
         -------
@@ -254,12 +251,9 @@ class ChunkInterpolator(MonitoringInterpolator):
 
         self._check_interpolators(tel_id)
 
-        if isinstance(columns, str):
-            columns = [columns]
-
         result = {}
         mjd = time.to_value("mjd")
-        for column in columns:
+        for column in self.columns:
             if column not in self._interpolators[tel_id]:
                 raise ValueError(
                     f"Column '{column}' not found in interpolators for tel_id {tel_id}"
@@ -267,10 +261,10 @@ class ChunkInterpolator(MonitoringInterpolator):
             result[column] = self._interpolators[tel_id][column](mjd)
 
         if len(result) == 1:
-            return result[columns[0]]
+            return result[self.columns[0]]
         return result
 
-    def add_table(self, tel_id: int, input_table: Table, columns: list[str]) -> None:
+    def add_table(self, tel_id: int, input_table: Table) -> None:
         """
         Add a table to this interpolator for specific columns.
 
@@ -283,14 +277,8 @@ class ChunkInterpolator(MonitoringInterpolator):
             are ``start_time`` as ``validity start Time`` column,
             ``end_time`` as ``validity end Time`` and the specified columns
             for the data of the chunks.
-        columns : list of str
-            Names of the columns to interpolate.
         """
 
-        self.required_columns.update(columns)
-        self.required_columns = set(self.required_columns)
-        for col in columns:
-            self.expected_units[col] = None
         self._check_tables(input_table)
 
         input_table = input_table.copy()
@@ -302,7 +290,7 @@ class ChunkInterpolator(MonitoringInterpolator):
             self.start_time[tel_id] = {}
             self.end_time[tel_id] = {}
 
-        for column in columns:
+        for column in self.columns:
             self.values[tel_id][column] = input_table[column]
             self.start_time[tel_id][column] = input_table["start_time"].to_value("mjd")
             self.end_time[tel_id][column] = input_table["end_time"].to_value("mjd")
@@ -318,8 +306,6 @@ class ChunkInterpolator(MonitoringInterpolator):
         ----------
         tel_id : int
             tel_id for which data is to be interpolated
-        column : str
-            name of the column for which data is to be interpolated
         mjd : float
             Time for which to interpolate the data.
         """
@@ -346,3 +332,13 @@ class ChunkInterpolator(MonitoringInterpolator):
                     return value
 
         return np.nan
+
+
+class FlatFieldInterpolator(ChunkInterpolator):
+    required_columns = frozenset(["start_time", "end_time", "relative_gain"])
+    expected_units = {"relative_gain": None}
+
+
+class PedestalInterpolator(ChunkInterpolator):
+    required_columns = frozenset(["start_time", "end_time", "pedestal"])
+    expected_units = {"pedestal": None}
