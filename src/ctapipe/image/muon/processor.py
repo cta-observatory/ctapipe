@@ -15,10 +15,10 @@ from ctapipe.core.traits import FloatTelescopeParameter, List, Tuple, Unicode
 from .features import (
     intensity_ratio_inside_ring,
     mean_squared_error,
+    radial_light_distribution,
     ring_completeness,
     ring_containment,
     ring_size_parameters,
-    radial_light_distribution
 )
 from .intensity_fitter import MuonIntensityFitter
 from .ring_fitter import MuonRingFitter
@@ -98,15 +98,15 @@ class MuonProcessor(TelescopeComponent):
     ).tag(config=True)
 
     ring_integration_width = FloatTelescopeParameter(
-        default_value=0.25, 
+        default_value=0.25,
         help=(
-            "Width of the ring in units of the ring radius, " 
+            "Width of the ring in units of the ring radius, "
             "used for computing the ring size in charge units."
         ),
     ).tag(config=True)
-    
+
     outer_ring_width = FloatTelescopeParameter(
-        default_value=0.2, 
+        default_value=0.2,
         help=(
             "Width of the outer ring in units of the ring radius, "
             "used for computing the charge outside the ring."
@@ -191,7 +191,7 @@ class MuonProcessor(TelescopeComponent):
         parameters = self._calculate_muon_parameters(
             tel_id, image, dl1.image_mask, ring
         )
-    
+
         checks = self.ring_query(parameters=parameters, ring=ring, mask=mask)
         if not all(checks):
             event.muon.tel[tel_id] = MuonTelescopeContainer(
@@ -288,9 +288,9 @@ class MuonProcessor(TelescopeComponent):
 
         (
             ring_size,
-            size_outside, 
-            num_pixels_in_ring, 
-            mean_pixel_outside_ring
+            size_outside,
+            num_pixels_in_ring,
+            mean_pixel_outside_ring,
         ) = ring_size_parameters(
             ring.radius,
             ring.center_fov_lon,
@@ -322,5 +322,5 @@ class MuonProcessor(TelescopeComponent):
             mean_pixel_outside_ring=mean_pixel_outside_ring,
             standard_dev=standard_dev,
             skewness=skewness,
-            excess_kurtosis=excess_kurtosis,   
+            excess_kurtosis=excess_kurtosis,
         )

@@ -4,10 +4,10 @@ import astropy.units as u
 import numpy as np
 
 from ctapipe.image.muon.features import (
-    ring_completeness, 
+    radial_light_distribution,
+    ring_completeness,
     ring_containment,
-    ring_size_parameters, 
-    radial_light_distribution
+    ring_size_parameters,
 )
 
 
@@ -68,7 +68,12 @@ def test_ring_size_parameters():
     image = np.random.normal(loc=100, scale=10, size=1855)
     image_mask = np.random.choice([True, False], size=1855)
 
-    ring_size, size_outside, num_pixels_in_ring, mean_pixel_outside_ring = ring_size_parameters(
+    (
+        ring_size,
+        size_outside,
+        num_pixels_in_ring,
+        mean_pixel_outside_ring,
+    ) = ring_size_parameters(
         radius,
         center_x,
         center_y,
@@ -77,7 +82,7 @@ def test_ring_size_parameters():
         ring_integration_width,
         outer_ring_width,
         image,
-        image_mask
+        image_mask,
     )
 
     assert ring_size > 0

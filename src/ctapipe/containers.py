@@ -1195,15 +1195,11 @@ class MuonParametersContainer(Container):
     mean_pixel_outside_ring = Field(nan, "Mean pixel charge outside the ring")
     standard_dev = Field(
         nan * u.deg,
-        "Standard deviation of the light distribution along the ring radius."
+        "Standard deviation of the light distribution along the ring radius.",
     )
-    skewness = Field(
-        nan, 
-        "Skewness of the light distribution along the ring radius."
-    )
+    skewness = Field(nan, "Skewness of the light distribution along the ring radius.")
     excess_kurtosis = Field(
-        nan, 
-        "Excess kurtosis of the light distribution along the ring radius."
+        nan, "Excess kurtosis of the light distribution along the ring radius."
     )
 
 
