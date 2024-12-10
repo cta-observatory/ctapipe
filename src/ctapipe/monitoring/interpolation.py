@@ -329,8 +329,10 @@ class ChunkInterpolator(MonitoringInterpolator):
 class FlatFieldInterpolator(ChunkInterpolator):
     required_columns = frozenset(["start_time", "end_time", "relative_gain"])
     expected_units = {"relative_gain": None}
+    telescope_data_group = "/dl1/monitoring/telescope/flatfield"
 
 
 class PedestalInterpolator(ChunkInterpolator):
     required_columns = frozenset(["start_time", "end_time", "pedestal"])
     expected_units = {"pedestal": None}
+    telescope_data_group = "/dl1/monitoring/telescope/pedestal"
