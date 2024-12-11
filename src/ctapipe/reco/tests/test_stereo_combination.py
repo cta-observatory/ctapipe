@@ -6,15 +6,17 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from ctapipe.containers import (
     ArrayEventContainer,
+    DispContainer,
     HillasParametersContainer,
     ImageParametersContainer,
     ParticleClassificationContainer,
     ReconstructedContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    TelescopeReconstructedContainer,
 )
 from ctapipe.reco.reconstructor import ReconstructionProperty
-from ctapipe.reco.stereo_combination import StereoMeanCombiner
+from ctapipe.reco.stereo_combination import StereoDispCombiner, StereoMeanCombiner
 
 
 @pytest.fixture(scope="module")
@@ -31,6 +33,9 @@ def mono_table():
             "hillas_intensity": [1, 2, 0, 1, 5, 9],
             "hillas_width": [0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg,
             "hillas_length": 3 * ([0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg),
+            "hillas_fov_lon": [-0.5, 0, 0.5, -1, 1, 1.5] * u.deg,
+            "hillas_fov_lat": [0.3, -0.3, 0.3, 0.5, 0.5, 0.2] * u.deg,
+            "hillas_psi": [40, 85, -40, -35, 35, 55] * u.deg,
             "dummy_tel_energy": [1, 10, 4, 0.5, 0.7, 1] * u.TeV,
             "dummy_tel_is_valid": [
                 True,
@@ -59,6 +64,7 @@ def mono_table():
                 True,
                 True,
             ],
+            "disp_tel_parameter": [0.65, 1.1, 0.7, 0.9, 1, 0.5] * u.deg,
         }
     )
 
@@ -252,3 +258,105 @@ def test_reconstructed_container_warning():
 
     with pytest.warns(CTAPipeDeprecationWarning, match="renamed"):
         container.classification = ParticleClassificationContainer()
+
+
+@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+def test_predict_disp_combiner(weights, mono_table):
+    combine = StereoDispCombiner(
+        prefix="disp",
+        property=ReconstructionProperty.GEOMETRY,
+    )
+    stereo = combine.predict_table(mono_table)
+
+    for name, field in ReconstructedGeometryContainer.fields.items():
+        colname = f"disp_{name}"
+        assert colname in stereo.colnames
+        assert stereo[colname].description == field.description
+
+    assert "obs_id" in stereo.colnames
+    assert "event_id" in stereo.colnames
+
+    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
+    assert_allclose(
+        stereo["disp_alt"].quantity,
+        [60.5002328, 73.2505989, 81] * u.deg,
+        atol=1e-7,
+    )
+    assert_allclose(
+        stereo["disp_az"].quantity,
+        [12.7345693, 20.5362510, 14.5] * u.deg,
+        atol=1e-7,
+    )
+    tel_ids = stereo["disp_telescopes"]
+    assert_array_equal(tel_ids[0], [1, 3])
+    assert_array_equal(tel_ids[1], [5, 7])
+    assert_array_equal(tel_ids[2], [1])
+
+
+@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+def test_disp_combiner_single_event(weights, mono_table):
+    event = ArrayEventContainer()
+
+    for tel_id, hillas_intensity, hillas_fov_lon, hillas_fov_lat, hillas_psi in zip(
+        (25, 125, 130, 135), (100, 200, 400)
+    ):
+        event.dl1.tel[tel_id].parameters = ImageParametersContainer(
+            hillas=HillasParametersContainer(
+                intensity=hillas_intensity,
+                fov_lon=hillas_fov_lon * u.deg,
+                fov_lat=hillas_fov_lat * u.deg,
+                psi=hillas_psi * u.deg,
+                width=0.1 * u.deg,
+                length=0.3 * u.deg,
+            )
+        )
+
+    event.dl2.tel[25] = TelescopeReconstructedContainer(
+        disp={"dummy": DispContainer(parameter=0.0, is_valid=True)},
+        geometry={
+            "dummy": ReconstructedGeometryContainer(
+                alt=60 * u.deg, az=15 * u.deg, is_valid=True
+            )
+        },
+    )
+
+    event.dl2.tel[125] = TelescopeReconstructedContainer(
+        disp={"dummy": DispContainer(parameter=0.0, is_valid=True)},
+        geometry={
+            "dummy": ReconstructedGeometryContainer(
+                alt=60 * u.deg, az=15 * u.deg, is_valid=True
+            )
+        },
+    )
+
+    event.dl2.tel[130] = TelescopeReconstructedContainer(
+        disp={"dummy": DispContainer(parameter=0.0, is_valid=True)},
+        geometry={
+            "dummy": ReconstructedGeometryContainer(
+                alt=60 * u.deg, az=15 * u.deg, is_valid=True
+            )
+        },
+    )
+
+    event.dl2.tel[135] = TelescopeReconstructedContainer(
+        disp={"dummy": DispContainer(parameter=0.0, is_valid=True)},
+        geometry={
+            "dummy": ReconstructedGeometryContainer(
+                alt=60 * u.deg, az=15 * u.deg, is_valid=True
+            )
+        },
+    )
+
+    combine_geometry = StereoDispCombiner(
+        prefix="dummy",
+        property=ReconstructionProperty.GEOMETRY,
+        weights=weights,
+    )
+    combine_geometry(event)
+    if weights == "none":
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 63.0738383 * u.deg)
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 348.0716693 * u.deg)
+    elif weights == "intensity":
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)

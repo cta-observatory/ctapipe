@@ -17,6 +17,7 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
+from .preprocessing import horizontal_to_telescope, telescope_to_horizontal
 from .telescope_event_handling import get_subarray_index, weighted_mean_std_ufunc
 from .utils import add_defaults_and_meta
 
@@ -401,6 +402,167 @@ class StereoMeanCombiner(StereoCombiner):
         ):
             tel_ids[index].append(tel_id)
 
+        stereo_table[f"{self.prefix}_telescopes"] = tel_ids
+        add_defaults_and_meta(stereo_table, _containers[self.property], self.prefix)
+        return stereo_table
+
+
+class StereoDispCombiner(StereoCombiner):
+    """ """
+
+    weights = CaselessStrEnum(
+        ["none", "intensity", "konrad"],
+        default_value="none",
+    ).tag(config=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        supported = {ReconstructionProperty.GEOMETRY}
+        if self.property not in supported:
+            raise NotImplementedError(
+                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
+            )
+
+    def _calculate_weights(self, data):
+        """"""
+        if isinstance(data, Container):
+            if self.weights == "intensity":
+                return data.hillas.intensity
+            if self.weights == "konrad":
+                return data.hillas.intensity * data.hillas.length / data.hillas.width
+            return 1
+
+        if isinstance(data, Table):
+            if self.weights == "intensity":
+                return data["hillas_intensity"]
+            if self.weights == "konrad":
+                return (
+                    data["hillas_intensity"]
+                    * data["hillas_length"]
+                    / data["hillas_width"]
+                )
+            return np.ones(len(data))
+
+        raise TypeError(
+            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+        )
+
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Calculate the mean prediction for a single array event.
+        """
+        ids = []
+        fov_lon_values = []
+        fov_lat_values = []
+        weights = []
+        for tel_id, dl2 in event.dl2.tel.items():
+            mono = dl2.geometry[self.prefix]
+            if mono.is_valid:
+                fov_lon, fov_lat = horizontal_to_telescope(
+                    alt=mono.alt,
+                    az=mono.az,
+                    pointing_alt=event.pointing.tel[tel_id].altitude,
+                    pointing_az=event.pointing.tel[tel_id].azimuth,
+                )
+                fov_lon_values.append(fov_lon)
+                fov_lat_values.append(fov_lat)
+                dl1 = event.dl1.tel[tel_id].parameters
+                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                ids.append(tel_id)
+        if (
+            len(fov_lon_values) > 0
+        ):  # by construction len(fov_lon_values) == len(fov_lat_values)
+            fov_lon_mean = np.average(fov_lon_values, weights=weights)
+            fov_lat_mean = np.average(fov_lat_values, weights=weights)
+            alt, az = telescope_to_horizontal(
+                lon=fov_lon_mean,
+                lat=fov_lat_mean,
+                pointing_alt=event.pointing.array_altitude,
+                pointing_az=event.pointing.array_azimuth,
+            )
+            valid = True
+        else:
+            alt = az = u.Quantity(np.nan, u.deg, copy=False)
+            valid = False
+        event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
+            alt=alt,
+            az=az,
+            telescopes=ids,
+            is_valid=valid,
+            prefix=self.prefix,
+        )
+
+    def predict_table(self, mono_predictions: Table) -> Table:
+        """
+        Calculates the (array-)event-wise mean.
+        Telescope events, that are nan, get discarded.
+        This means you might end up with less events if
+        all telescope predictions of a shower are invalid.
+        """
+        prefix = f"{self.prefix}_tel"
+        # TODO: Integrate table quality query once its done
+        valid = mono_predictions[f"{prefix}_is_valid"]
+        valid_predictions = mono_predictions[valid]
+        array_events, indices, multiplicity = np.unique(
+            mono_predictions[
+                [
+                    "obs_id",
+                    "event_id",
+                    "subarray_pointing_lon",
+                    "subarray_pointing_lat",
+                ]
+            ],
+            return_inverse=True,
+            return_counts=True,
+        )
+        stereo_table = Table(array_events[["obs_id", "event_id"]])
+        # copy metadata
+        for colname in ("obs_id", "event_id"):
+            stereo_table[colname].description = mono_predictions[colname].description
+        n_array_events = len(array_events)
+        weights = self._calculate_weights(valid_predictions)
+        if len(valid_predictions) > 0:
+            fov_lons, fov_lats = horizontal_to_telescope(
+                alt=valid_predictions[f"{prefix}_alt"],
+                az=valid_predictions[f"{prefix}_az"],
+                pointing_alt=valid_predictions["subarray_pointing_lat"],
+                pointing_az=valid_predictions["subarray_pointing_lon"],
+            )
+            fov_lon_mean = weighted_mean_std_ufunc(
+                fov_lons.to_value(u.deg),
+                weights,
+                n_array_events,
+                indices[valid],
+            )
+            fov_lat_mean = weighted_mean_std_ufunc(
+                fov_lats.to_value(u.deg),
+                weights,
+                n_array_events,
+                indices[valid],
+            )
+            alt, az = telescope_to_horizontal(
+                lon=u.Quantity(fov_lon_mean, u.deg, copy=False),
+                lat=u.Quantity(fov_lat_mean, u.deg, copy=False),
+                pointing_alt=u.Quantity(
+                    array_events["subarray_pointing_lat"], u.deg, copy=False
+                ),
+                pointing_az=u.Quantity(
+                    array_events["subarray_pointing_lon"], u.deg, copy=False
+                ),
+            )
+        else:
+            alt = az = u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False)
+        stereo_table[f"{self.prefix}_alt"] = alt
+        stereo_table[f"{self.prefix}_az"] = az
+        stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(
+            np.isfinite(stereo_table[f"{self.prefix}_alt"]),
+            np.isfinite(stereo_table[f"{self.prefix}_az"]),
+        )
+        stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+        tel_ids = [[] for _ in range(n_array_events)]
+        for index, tel_id in zip(indices[valid], valid_predictions["tel_id"]):
+            tel_ids[index].append(tel_id)
         stereo_table[f"{self.prefix}_telescopes"] = tel_ids
         add_defaults_and_meta(stereo_table, _containers[self.property], self.prefix)
         return stereo_table
