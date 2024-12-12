@@ -14,12 +14,14 @@ from ctapipe.monitoring.interpolation import (
 t0 = Time("2022-01-01T00:00:00")
 
 
-def test_chunk_selection():
+def test_chunk_selection(camera_geometry):
     table_ff = Table(
         {
             "start_time": t0 + [0, 1, 2, 6] * u.s,
             "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "relative_gain": [1, 2, 3, 4],
+            "relative_gain": [
+                np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]
+            ],
         },
     )
     interpolator_ff = FlatFieldInterpolator()
@@ -29,15 +31,15 @@ def test_chunk_selection():
     val2 = interpolator_ff(tel_id=1, time=t0 + 1.7 * u.s)
     val3 = interpolator_ff(tel_id=1, time=t0 + 2.2 * u.s)
 
-    assert np.isclose(val1, 2)
-    assert np.isclose(val2, 2)
-    assert np.isclose(val3, 3)
+    assert np.all(np.isclose(val1, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val2, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
 
     table_ped = Table(
         {
             "start_time": t0 + [0, 1, 2, 6] * u.s,
             "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "pedestal": [1, 2, 3, 4],
+            "pedestal": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
         },
     )
     interpolator_ped = PedestalInterpolator()
@@ -47,9 +49,9 @@ def test_chunk_selection():
     val2 = interpolator_ped(tel_id=1, time=t0 + 1.7 * u.s)
     val3 = interpolator_ped(tel_id=1, time=t0 + 2.2 * u.s)
 
-    assert np.isclose(val1, 2)
-    assert np.isclose(val2, 2)
-    assert np.isclose(val3, 3)
+    assert np.all(np.isclose(val1, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val2, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
 
 
 def test_nan_switch():

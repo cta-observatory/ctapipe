@@ -307,23 +307,26 @@ class ChunkInterpolator(MonitoringInterpolator):
         values = self.values[tel_id][column]
         # Find the index of the closest preceding start time
         preceding_index = np.searchsorted(start_time, mjd, side="right") - 1
+
         if preceding_index < 0:
             return np.nan
+
+        value = np.nan
 
         # Check if the time is within the valid range of the chunk
         if start_time[preceding_index] <= mjd <= end_time[preceding_index]:
             value = values[preceding_index]
-            if not np.isnan(value):
-                return value
 
-        # If the closest preceding chunk has nan, check the next closest chunk
+        # If an element in the closest preceding chunk has nan, check the next closest chunk
+
         for i in range(preceding_index - 1, -1, -1):
             if start_time[i] <= mjd <= end_time[i]:
-                value = values[i]
-                if not np.isnan(value):
-                    return value
+                if value is np.nan:
+                    value = values[i]
+                else:
+                    value = np.where(np.isnan(value), values[i], value)
 
-        return np.nan
+        return value
 
 
 class FlatFieldInterpolator(ChunkInterpolator):

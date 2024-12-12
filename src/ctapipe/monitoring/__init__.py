@@ -27,4 +27,6 @@ __all__ = [
     "LinearInterpolator",
     "PointingInterpolator",
     "ChunkInterpolator",
+    "FlatFieldInterpolator",
+    "PedestalInterpolator",
 ]
