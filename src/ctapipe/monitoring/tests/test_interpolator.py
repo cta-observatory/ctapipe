@@ -54,12 +54,18 @@ def test_chunk_selection(camera_geometry):
     assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
 
 
-def test_nan_switch():
+def test_nan_switch(camera_geometry):
+    data = np.array([np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]])
+    data[1][0, 0] = 5
+    data = np.where(
+        data > 4, np.nan, data
+    )  # this is a workaround to introduce a nan in the data
+
     table_ff = Table(
         {
             "start_time": t0 + [0, 1, 2, 6] * u.s,
             "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "relative_gain": [1, np.nan, 3, 4],
+            "relative_gain": data,
         },
     )
     interpolator_ff = FlatFieldInterpolator()
@@ -67,13 +73,18 @@ def test_nan_switch():
 
     val = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
 
-    assert np.isclose(val, 1)
+    res = np.full((2, len(camera_geometry)), 2)
+    res[0][
+        0
+    ] = 1  # where the nan was introduced before we should now have the value from the earlier chunk
+
+    assert np.all(np.isclose(val, res))
 
     table_ped = Table(
         {
             "start_time": t0 + [0, 1, 2, 6] * u.s,
             "end_time": t0 + [2, 3, 4, 8] * u.s,
-            "pedestal": [1, np.nan, 3, 4],
+            "pedestal": data,
         },
     )
     interpolator_ped = PedestalInterpolator()
@@ -81,7 +92,7 @@ def test_nan_switch():
 
     val = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
 
-    assert np.isclose(val, 1)
+    assert np.all(np.isclose(val, res))
 
 
 def test_no_valid_chunk():
