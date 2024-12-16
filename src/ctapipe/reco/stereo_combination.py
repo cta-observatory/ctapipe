@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from itertools import product
 
 import astropy.units as u
 import numpy as np
@@ -7,7 +8,7 @@ from astropy.table import Table
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
-from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Int, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -18,7 +19,10 @@ from ..containers import (
     ReconstructedGeometryContainer,
 )
 from .preprocessing import horizontal_to_telescope, telescope_to_horizontal
-from .telescope_event_handling import get_subarray_index, weighted_mean_std_ufunc
+from .telescope_event_handling import (
+    get_subarray_index,
+    weighted_mean_std_ufunc,
+)
 from .utils import add_defaults_and_meta
 
 _containers = {
@@ -415,6 +419,10 @@ class StereoDispCombiner(StereoCombiner):
         default_value="none",
     ).tag(config=True)
 
+    n_tel_combinations = Int(
+        default_value=2,
+    ).tag(config=True)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -423,6 +431,8 @@ class StereoDispCombiner(StereoCombiner):
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
+
+        self.sign_combinations = list(product(range(self.n_tel_combinations), repeat=2))
 
     def _calculate_weights(self, data):
         """"""
@@ -456,23 +466,27 @@ class StereoDispCombiner(StereoCombiner):
         fov_lon_values = []
         fov_lat_values = []
         weights = []
+        signs = np.array([-1, 1])
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.geometry[self.prefix]
             if mono.is_valid:
-                fov_lon, fov_lat = horizontal_to_telescope(
-                    alt=mono.alt,
-                    az=mono.az,
-                    pointing_alt=event.pointing.tel[tel_id].altitude,
-                    pointing_az=event.pointing.tel[tel_id].azimuth,
-                )
-                fov_lon_values.append(fov_lon)
-                fov_lat_values.append(fov_lat)
                 dl1 = event.dl1.tel[tel_id].parameters
+                hillas_fov_lon = dl1.hillas.fov_lon
+                hillas_fov_lat = dl1.hillas.fov_lat
+                hillas_psi = dl1.hillas.psi.to_value(u.rad)
+                disp = dl2.disp.parameter
+
+                # guvec?
+                fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
+                fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+                fov_lon_values.append(fov_lons)
+                fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
         if (
             len(fov_lon_values) > 0
         ):  # by construction len(fov_lon_values) == len(fov_lat_values)
+            # index_combs = get_combinations(range(len(ids)), self.n_tel_combinations)
             fov_lon_mean = np.average(fov_lon_values, weights=weights)
             fov_lat_mean = np.average(fov_lat_values, weights=weights)
             alt, az = telescope_to_horizontal(
@@ -485,6 +499,7 @@ class StereoDispCombiner(StereoCombiner):
         else:
             alt = az = u.Quantity(np.nan, u.deg, copy=False)
             valid = False
+
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
             az=az,
