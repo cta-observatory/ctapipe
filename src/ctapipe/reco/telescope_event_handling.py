@@ -1,5 +1,8 @@
 """Helper functions for array-event-wise aggregation of telescope events."""
 
+from functools import lru_cache
+from itertools import combinations
+
 import numpy as np
 from numba import njit, uint64
 
@@ -144,3 +147,8 @@ def weighted_mean_std_ufunc(
     variance = np.full(n_array_events, np.nan)
     variance[valid] = sum_sq_residulas[valid] / sum_of_weights[valid]
     return mean, np.sqrt(variance)
+
+
+@lru_cache(maxsize=4096)
+def get_combinations(array, size):
+    return list(combinations(array, size))
