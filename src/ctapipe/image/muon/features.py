@@ -197,13 +197,13 @@ def ring_size_parameters(
 
     Returns
     -------
-    ring_size: float
+    ring_intensity: float
         Sum of the p.e. inside the integration area of the ring
-    size_outside: float
+    intensity_outside_ring: float
         Sum of the photons outside the ring integration area that passed the cleaning
-    num_pixels_in_ring: int
+    n_pixels_in_ring: int
         Number of pixels inside the ring integration area that passed the cleaning
-    mean_pixel_outside_ring: float
+    mean_intensity_outside_ring: float
         Mean intensity of the pixels outside the ring, but still close to it
     """
 
@@ -218,12 +218,17 @@ def ring_size_parameters(
     )
     pix_ring_2 = image[dist_mask_2]
 
-    ring_size = np.sum(pix_ring)
-    size_outside = np.sum(pix_outside_ring * image_mask)
-    num_pixels_in_ring = np.sum(dist_mask & image_mask)
-    mean_pixel_outside_ring = np.sum(pix_ring_2) / len(pix_ring_2)
+    ring_intensity = np.sum(pix_ring)
+    intensity_outside_ring = np.sum(pix_outside_ring * image_mask)
+    n_pixels_in_ring = np.sum(dist_mask & image_mask)
+    mean_intensity_outside_ring = np.sum(pix_ring_2) / len(pix_ring_2)
 
-    return ring_size, size_outside, num_pixels_in_ring, mean_pixel_outside_ring
+    return (
+        ring_intensity,
+        intensity_outside_ring,
+        n_pixels_in_ring,
+        mean_intensity_outside_ring,
+    )
 
 
 def radial_light_distribution(center_x, center_y, pixel_x, pixel_y, image):
