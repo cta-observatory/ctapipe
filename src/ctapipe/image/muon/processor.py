@@ -287,10 +287,10 @@ class MuonProcessor(TelescopeComponent):
         )
 
         (
-            ring_size,
-            size_outside,
-            num_pixels_in_ring,
-            mean_pixel_outside_ring,
+            ring_intensity,
+            intensity_outside_ring,
+            n_pixels_in_ring,
+            mean_intensity_outside_ring,
         ) = ring_size_parameters(
             ring.radius,
             ring.center_fov_lon,
@@ -316,10 +316,10 @@ class MuonProcessor(TelescopeComponent):
             completeness=completeness,
             intensity_ratio=intensity_ratio,
             mean_squared_error=mse,
-            ring_size=ring_size,
-            size_outside=size_outside,
-            num_pixels_in_ring=num_pixels_in_ring,
-            mean_pixel_outside_ring=mean_pixel_outside_ring,
+            ring_intensity=ring_intensity,
+            intensity_outside_ring=intensity_outside_ring,
+            n_pixels_in_ring=n_pixels_in_ring,
+            mean_intensity_outside_ring=mean_intensity_outside_ring,
             standard_dev=standard_dev,
             skewness=skewness,
             excess_kurtosis=excess_kurtosis,
