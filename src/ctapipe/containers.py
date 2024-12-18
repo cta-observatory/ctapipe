@@ -1199,7 +1199,7 @@ class MuonParametersContainer(Container):
     )
     standard_dev = Field(
         nan * u.deg,
-        "Standard deviation of the light distribution along the ring radius.",
+        "Standard deviation of the radial light distribution.",
     )
     skewness = Field(nan, "Skewness of the light distribution along the ring radius.")
     excess_kurtosis = Field(
