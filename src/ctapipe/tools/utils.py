@@ -1,10 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Utils to create scripts and command-line tools"""
+
 import argparse
-import importlib
+import ast
 import logging
 from collections import OrderedDict
 from importlib.metadata import distribution
+from importlib.util import find_spec
+from pathlib import Path
 
 import numpy as np
 from astropy.table import vstack
@@ -67,15 +70,12 @@ def get_all_descriptions():
 
     descriptions = OrderedDict()
     for name, value in tools.items():
-        module_name, attr = value.split(":")
-        module = importlib.import_module(module_name)
-        if hasattr(module, "__doc__") and module.__doc__ is not None:
-            try:
-                descrip = module.__doc__
-                descrip.replace("\n", "")
-                descriptions[name] = descrip
-            except Exception as err:
-                descriptions[name] = f"[Couldn't parse docstring: {err}]"
+        module_name, _ = value.split(":")
+        descrip = ast.get_docstring(
+            ast.parse(Path(find_spec(module_name).origin).read_text())
+        )
+        if descrip is not None:
+            descriptions[name] = descrip.replace("\n", " ")
         else:
             descriptions[name] = "[no documentation. Please add a docstring]"
 
