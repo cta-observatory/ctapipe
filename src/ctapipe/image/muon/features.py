@@ -244,12 +244,17 @@ def radial_light_distribution(center_x, center_y, pixel_x, pixel_y, image):
 
     Returns
     -------
-    standard_dev : float
-        Standard deviation of the light distribution along the ring radius.
+    standard_dev : `astropy.units.Quantity`
+        Standard deviation of the light distribution in degrees.
+        Spread of pixel intensities around the mean radial distance from the ring center.
+
     skewness : float
-        Skewness of the light distribution along the ring radius.
+        Skewness of the radial light distribution.
+        Measures the asymmetry of the distribution around the mean radius.
+
     excess_kurtosis : float
-        Excess kurtosis of the light distribution along the ring radius.
+        Excess kurtosis of the radial light distribution.
+        Indicates the "tailedness" of the distribution compared to a normal distribution.
     """
 
     if np.sum(image) == 0:
