@@ -76,12 +76,15 @@ def test_tool_config_error(tmp_path, dl1_image_file):
     monitoring_file = tmp_path / "monitoring.dl1.h5"
     # Check if ToolConfigurationError is raised
     # when the column name of the pixel-wise image data is not correct
-    with pytest.raises(ToolConfigurationError):
+    with pytest.raises(
+        ToolConfigurationError, match="Column 'image_charges' not found"
+    ):
         run_tool(
             StatisticsCalculatorTool(config=config),
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_file}",
+                "--StatisticsAggregator.chunk_size=1",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -89,7 +92,9 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         )
     # Check if ToolConfigurationError is raised
     # when the input and output files are the same
-    with pytest.raises(ToolConfigurationError):
+    with pytest.raises(
+        ToolConfigurationError, match="Input and output files are same."
+    ):
         run_tool(
             StatisticsCalculatorTool(),
             argv=[
@@ -102,7 +107,9 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         )
     # Check if ToolConfigurationError is raised
     # when the chunk size is larger than the number of events in the input file
-    with pytest.raises(ToolConfigurationError):
+    with pytest.raises(
+        ToolConfigurationError, match="Change --StatisticsAggregator.chunk_size"
+    ):
         run_tool(
             StatisticsCalculatorTool(),
             argv=[
