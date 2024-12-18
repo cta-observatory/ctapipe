@@ -1189,10 +1189,14 @@ class MuonParametersContainer(Container):
         nan * u.deg**2,
         "MSE of the deviation of all pixels after cleaning from the ring fit",
     )
-    ring_size = Field(nan, "Number of pixels in the ring")
-    size_outside = Field(nan, "Number of pixels outside the ring")
-    num_pixels_in_ring = Field(nan, "Number of pixels in the ring")
-    mean_pixel_outside_ring = Field(nan, "Mean pixel charge outside the ring")
+    ring_intensity = Field(
+        nan, "Sum of the pixel charges inside the integration area around a ring"
+    )
+    intensity_outside_ring = Field(nan, "Sum of the pixel charges outside the ring")
+    n_pixels_in_ring = Field(nan, "Number of pixels in the ring")
+    mean_intensity_outside_ring = Field(
+        nan, "Mean intensity of pixels outside the ring"
+    )
     standard_dev = Field(
         nan * u.deg,
         "Standard deviation of the light distribution along the ring radius.",
