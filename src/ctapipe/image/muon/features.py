@@ -267,11 +267,7 @@ def radial_light_distribution(center_x, center_y, pixel_x, pixel_y, image):
     if np.sum(image) == 0:
         return np.nan * u.deg, np.nan, np.nan
 
-    x0 = center_x.to_value(u.deg)
-    y0 = center_y.to_value(u.deg)
-    pix_x = pixel_x.to_value(u.deg)
-    pix_y = pixel_y.to_value(u.deg)
-    pixel_r = np.sqrt((pix_x - x0) ** 2 + (pix_y - y0) ** 2)
+    pixel_r = np.hypot(pixel_x - center_x, pixel_y - center_y)
 
     mean = np.average(pixel_r, weights=image)
     delta_r = pixel_r - mean
@@ -279,4 +275,8 @@ def radial_light_distribution(center_x, center_y, pixel_x, pixel_y, image):
     skewness = np.average(delta_r**3, weights=image) / standard_dev**3
     excess_kurtosis = np.average(delta_r**4, weights=image) / standard_dev**4 - 3.0
 
-    return standard_dev * u.deg, skewness, excess_kurtosis
+    return (
+        standard_dev,
+        skewness.to_value(u.dimensionless_unscaled),
+        excess_kurtosis.to_value(u.dimensionless_unscaled),
+    )
