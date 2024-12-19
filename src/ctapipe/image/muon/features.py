@@ -200,11 +200,13 @@ def ring_size_parameters(
     ring_intensity: float
         Sum of the p.e. inside the integration area of the ring
     intensity_outside_ring: float
-        Sum of the photons outside the ring integration area that passed the cleaning
+        Sum of the p.e. outside the ring integration area that passed the cleaning
     n_pixels_in_ring: int
         Number of pixels inside the ring integration area that passed the cleaning
     mean_intensity_outside_ring: float
-        Mean intensity of the pixels outside the ring, but still close to it
+        Mean intensity of the pixels outside the integration area of the ring,
+        and restricted by the outer ring width, i.e. in the strip between
+        ring integration width and outer ring width.
     """
 
     dist = np.sqrt((pixel_x - center_x) ** 2 + (pixel_y - center_y) ** 2)
