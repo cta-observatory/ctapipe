@@ -165,7 +165,7 @@ class StatisticsCalculatorTool(Tool):
                         tel_id,
                     )
             # Add metadata to the aggregated statistics
-            aggregated_stats.meta["input_url"] = self.input_data.input_url
+            aggregated_stats.meta["event_type"] = dl1_table["event_type"][0]
             aggregated_stats.meta["input_column_name"] = self.input_column_name
             # Write the aggregated statistics and their outlier mask to the output file
             write_table(
