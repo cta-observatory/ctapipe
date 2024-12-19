@@ -1193,9 +1193,13 @@ class MuonParametersContainer(Container):
         nan, "Sum of the pixel charges inside the integration area around a ring"
     )
     intensity_outside_ring = Field(nan, "Sum of the pixel charges outside the ring")
-    n_pixels_in_ring = Field(nan, "Number of pixels in the ring")
+    n_pixels_in_ring = Field(
+        nan,
+        "Number of pixels inside the ring integration area that passed the cleaning",
+    )
     mean_intensity_outside_ring = Field(
-        nan, "Mean intensity of pixels outside the ring"
+        nan,
+        "Mean intensity of pixels inside the region limited by ring integration width and outer ring width.",
     )
     standard_dev = Field(
         nan * u.deg,
