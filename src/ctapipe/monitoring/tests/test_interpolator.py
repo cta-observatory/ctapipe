@@ -5,9 +5,122 @@ import tables
 from astropy.table import Table
 from astropy.time import Time
 
-from ctapipe.monitoring.interpolation import PointingInterpolator
+from ctapipe.monitoring.interpolation import (
+    FlatFieldInterpolator,
+    PedestalInterpolator,
+    PointingInterpolator,
+)
 
 t0 = Time("2022-01-01T00:00:00")
+
+
+def test_chunk_selection(camera_geometry):
+    table_ff = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "relative_gain": [
+                np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]
+            ],
+        },
+    )
+    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff.add_table(1, table_ff)
+
+    val1 = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
+    val2 = interpolator_ff(tel_id=1, time=t0 + 1.7 * u.s)
+    val3 = interpolator_ff(tel_id=1, time=t0 + 2.2 * u.s)
+
+    assert np.all(np.isclose(val1, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val2, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
+
+    table_ped = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "pedestal": [np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]],
+        },
+    )
+    interpolator_ped = PedestalInterpolator()
+    interpolator_ped.add_table(1, table_ped)
+
+    val1 = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
+    val2 = interpolator_ped(tel_id=1, time=t0 + 1.7 * u.s)
+    val3 = interpolator_ped(tel_id=1, time=t0 + 2.2 * u.s)
+
+    assert np.all(np.isclose(val1, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val2, np.full((2, len(camera_geometry)), 2)))
+    assert np.all(np.isclose(val3, np.full((2, len(camera_geometry)), 3)))
+
+
+def test_nan_switch(camera_geometry):
+    data = np.array([np.full((2, len(camera_geometry)), x) for x in [1, 2, 3, 4]])
+    data[1][0, 0] = 5
+    data = np.where(
+        data > 4, np.nan, data
+    )  # this is a workaround to introduce a nan in the data
+
+    table_ff = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "relative_gain": data,
+        },
+    )
+    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff.add_table(1, table_ff)
+
+    val = interpolator_ff(tel_id=1, time=t0 + 1.2 * u.s)
+
+    res = np.full((2, len(camera_geometry)), 2)
+    res[0][
+        0
+    ] = 1  # where the nan was introduced before we should now have the value from the earlier chunk
+
+    assert np.all(np.isclose(val, res))
+
+    table_ped = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "pedestal": data,
+        },
+    )
+    interpolator_ped = PedestalInterpolator()
+    interpolator_ped.add_table(1, table_ped)
+
+    val = interpolator_ped(tel_id=1, time=t0 + 1.2 * u.s)
+
+    assert np.all(np.isclose(val, res))
+
+
+def test_no_valid_chunk():
+    table_ff = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "relative_gain": [1, 2, 3, 4],
+        },
+    )
+    interpolator_ff = FlatFieldInterpolator()
+    interpolator_ff.add_table(1, table_ff)
+
+    val = interpolator_ff(tel_id=1, time=t0 + 5.2 * u.s)
+    assert np.isnan(val)
+
+    table_ped = Table(
+        {
+            "start_time": t0 + [0, 1, 2, 6] * u.s,
+            "end_time": t0 + [2, 3, 4, 8] * u.s,
+            "pedestal": [1, 2, 3, 4],
+        },
+    )
+    interpolator_ped = PedestalInterpolator()
+    interpolator_ped.add_table(1, table_ped)
+
+    val = interpolator_ped(tel_id=1, time=t0 + 5.2 * u.s)
+    assert np.isnan(val)
 
 
 def test_azimuth_switchover():
