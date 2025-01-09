@@ -1,17 +1,11 @@
 """
 Image timing-based shower image parametrization.
 """
-
 import astropy.units as u
 import numpy as np
 from numba import njit
 
-from ..containers import (
-    CameraHillasParametersContainer,
-    CameraTimingParametersContainer,
-    HillasParametersContainer,
-    TimingParametersContainer,
-)
+from ..containers import TimingParametersContainer
 from ..fitting import lts_linear_regression
 from ..utils.quantities import all_to_value
 from .hillas import camera_to_shower_coordinates
@@ -62,32 +56,22 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
     h = hillas_parameters
-    if isinstance(h, CameraHillasParametersContainer):
-        unit = h.x.unit
-        pix_x, pix_y, x, y, length, width = all_to_value(
-            geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
-        )
-    elif isinstance(h, HillasParametersContainer):
-        unit = h.fov_lon.unit
-        pix_x, pix_y, x, y, length, width = all_to_value(
-            geom.pix_x, geom.pix_y, h.fov_lon, h.fov_lat, h.length, h.width, unit=unit
-        )
+    unit = h.fov_lon.unit
+    pix_x, pix_y, x, y = all_to_value(
+        geom.pix_x, geom.pix_y, h.fov_lon, h.fov_lat, unit=unit
+    )
 
     longi, _ = camera_to_shower_coordinates(
         pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
     )
 
     # re-fit using a robust-to-outlier algorithm
-    beta, error = lts_linear_regression(x=longi, y=peak_time, samples=5)
+    beta, _ = lts_linear_regression(x=longi, y=peak_time, samples=5)
 
     # error from lts_linear_regression is only for the used points,
     # recalculate for all points
     deviation = rmse(longi * beta[0] + beta[1], peak_time)
 
-    if unit.is_equivalent(u.m):
-        return CameraTimingParametersContainer(
-            slope=beta[0] / unit, intercept=beta[1], deviation=deviation
-        )
     return TimingParametersContainer(
         slope=beta[0] / unit, intercept=beta[1], deviation=deviation
     )
