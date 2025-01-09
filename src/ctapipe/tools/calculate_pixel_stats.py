@@ -23,12 +23,12 @@ from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
 
-class StatisticsCalculatorTool(Tool):
+class PixelStatisticsCalculatorTool(Tool):
     """
     Perform statistics calculation for pixel-wise image data
     """
 
-    name = "StatisticsCalculatorTool"
+    name = "ctapipe-calculate-pixel-statistics"
     description = "Perform statistics calculation for pixel-wise image data"
 
     examples = """
@@ -68,12 +68,12 @@ class StatisticsCalculatorTool(Tool):
 
     aliases = {
         ("i", "input_url"): "TableLoader.input_url",
-        ("o", "output_path"): "StatisticsCalculatorTool.output_path",
+        ("o", "output_path"): "PixelStatisticsCalculatorTool.output_path",
     }
 
     flags = {
         "overwrite": (
-            {"StatisticsCalculatorTool": {"overwrite": True}},
+            {"PixelStatisticsCalculatorTool": {"overwrite": True}},
             "Overwrite existing files",
         ),
     }
@@ -186,7 +186,7 @@ class StatisticsCalculatorTool(Tool):
 
 def main():
     # Run the tool
-    tool = StatisticsCalculatorTool()
+    tool = PixelStatisticsCalculatorTool()
     tool.run()
 
 

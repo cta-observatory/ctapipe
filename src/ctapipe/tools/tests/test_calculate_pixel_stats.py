@@ -9,7 +9,7 @@ from traitlets.config.loader import Config
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
 from ctapipe.io import read_table
-from ctapipe.tools.calculate_pixel_stats import StatisticsCalculatorTool
+from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 
 
 def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
@@ -19,7 +19,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     tel_id = 3
     config = Config(
         {
-            "StatisticsCalculatorTool": {
+            "PixelStatisticsCalculatorTool": {
                 "allowed_tels": [tel_id],
                 "input_column_name": "image",
                 "output_table_name": "statistics",
@@ -38,7 +38,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     monitoring_file = tmp_path / "monitoring.dl1.h5"
     # Run the tool with the configuration and the input file
     run_tool(
-        StatisticsCalculatorTool(config=config),
+        PixelStatisticsCalculatorTool(config=config),
         argv=[
             f"--input_url={dl1_image_file}",
             f"--output_path={monitoring_file}",
@@ -65,7 +65,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
     # Run the tool with the configuration and the input file
     config = Config(
         {
-            "StatisticsCalculatorTool": {
+            "PixelStatisticsCalculatorTool": {
                 "allowed_tels": [3],
                 "input_column_name": "image_charges",
                 "output_table_name": "statistics",
@@ -80,7 +80,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         ToolConfigurationError, match="Column 'image_charges' not found"
     ):
         run_tool(
-            StatisticsCalculatorTool(config=config),
+            PixelStatisticsCalculatorTool(config=config),
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_file}",
@@ -96,7 +96,7 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         ToolConfigurationError, match="Input and output files are same."
     ):
         run_tool(
-            StatisticsCalculatorTool(),
+            PixelStatisticsCalculatorTool(),
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={dl1_image_file}",
@@ -111,11 +111,11 @@ def test_tool_config_error(tmp_path, dl1_image_file):
         ToolConfigurationError, match="Change --StatisticsAggregator.chunk_size"
     ):
         run_tool(
-            StatisticsCalculatorTool(),
+            PixelStatisticsCalculatorTool(),
             argv=[
                 f"--input_url={dl1_image_file}",
                 f"--output_path={monitoring_file}",
-                "--StatisticsCalculatorTool.allowed_tels=3",
+                "--PixelStatisticsCalculatorTool.allowed_tels=3",
                 "--StatisticsAggregator.chunk_size=2500",
                 "--overwrite",
             ],

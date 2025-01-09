@@ -1,7 +1,7 @@
-StatisticsCalculatorTool:
+PixelStatisticsCalculatorTool:
   allowed_tels: [1,2,3,4]
   input_column_name: image
-  output_column_name: statistics
+  output_table_name: statistics
 
 PixelStatisticsCalculator:
   stats_aggregator_type:
