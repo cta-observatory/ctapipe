@@ -2,6 +2,7 @@
 Description of Arrays or Subarrays of telescopes
 """
 import warnings
+from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import ExitStack
 from copy import copy
@@ -135,19 +136,19 @@ class SubarrayDescription:
         printer("")
 
         # print the per-telescope-type informatino:
-        n_tels = {}
-        tel_ids = {}
-
+        tel_ids = defaultdict(list)
         for tel_type in self.telescope_types:
             ids = self.get_tel_ids_for_type(tel_type)
-            tel_ids[str(tel_type)] = _range_extraction(ids)
-            n_tels[str(tel_type)] = len(ids)
+            tel_ids[str(tel_type)].extend(ids)
+
+        n_tels = {tel_type: len(ids) for tel_type, ids in tel_ids.items()}
+        id_ranges = [_range_extraction(ids) for ids in tel_ids.values()]
 
         out_table = Table(
             {
                 "Type": list(n_tels.keys()),
                 "Count": list(n_tels.values()),
-                "Tel IDs": list(tel_ids.values()),
+                "Tel IDs": id_ranges,
             }
         )
         out_table["Tel IDs"].format = "<s"

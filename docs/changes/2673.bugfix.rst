@@ -1,0 +1,2 @@
+Fix ``SubarrayDescription.info()`` in cases
+of different ``TelescopeDescription`` with the same string representation.
