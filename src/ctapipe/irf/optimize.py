@@ -188,7 +188,6 @@ class CutOptimizerBase(Component):
         background: QTable,
         precuts: EventPreProcessor,
         clf_prefix: str,
-        point_like: bool,
     ) -> OptimizationResult:
         """
         Optimize G/H (and optionally theta) cuts
@@ -206,9 +205,6 @@ class CutOptimizerBase(Component):
         clf_prefix: str
             Prefix of the output from the G/H classifier for which the
             cut will be optimized
-        point_like: bool
-            Whether a theta cut should be calculated (True) or only a
-            G/H cut (False)
         """
 
 
@@ -331,7 +327,6 @@ class PercentileCuts(CutOptimizerBase):
         background: QTable,
         precuts: EventPreProcessor,
         clf_prefix: str,
-        point_like: bool,
     ) -> OptimizationResult:
         reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
@@ -343,18 +338,17 @@ class PercentileCuts(CutOptimizerBase):
             signal["reco_energy"],
             reco_energy_bins,
         )
-        if point_like:
-            gh_mask = evaluate_binned_cut(
-                signal["gh_score"],
-                signal["reco_energy"],
-                gh_cuts,
-                op=operator.ge,
-            )
-            theta_cuts = self.theta.calculate_theta_cut(
-                signal["theta"][gh_mask],
-                signal["reco_energy"][gh_mask],
-                reco_energy_bins,
-            )
+        gh_mask = evaluate_binned_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            gh_cuts,
+            op=operator.ge,
+        )
+        theta_cuts = self.theta.calculate_theta_cut(
+            signal["theta"][gh_mask],
+            signal["reco_energy"][gh_mask],
+            reco_energy_bins,
+        )
 
         result = OptimizationResult(
             precuts=precuts,
@@ -365,7 +359,7 @@ class PercentileCuts(CutOptimizerBase):
             # A single set of cuts is calculated for the whole fov atm
             valid_offset_min=0 * u.deg,
             valid_offset_max=np.inf * u.deg,
-            theta_cuts=theta_cuts if point_like else None,
+            theta_cuts=theta_cuts,
         )
         return result
 
@@ -406,7 +400,6 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         background: QTable,
         precuts: EventPreProcessor,
         clf_prefix: str,
-        point_like: bool,
     ) -> OptimizationResult:
         reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
@@ -414,41 +407,28 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             self.reco_energy_n_bins_per_decade,
         )
 
-        if point_like:
-            initial_gh_cuts = calculate_percentile_cut(
-                signal["gh_score"],
-                signal["reco_energy"],
-                bins=reco_energy_bins,
-                fill_value=0.0,
-                percentile=100 * (1 - self.initial_gh_cut_efficency),
-                min_events=10,
-                smoothing=1,
-            )
-            initial_gh_mask = evaluate_binned_cut(
-                signal["gh_score"],
-                signal["reco_energy"],
-                initial_gh_cuts,
-                op=operator.gt,
-            )
+        initial_gh_cuts = calculate_percentile_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            bins=reco_energy_bins,
+            fill_value=0.0,
+            percentile=100 * (1 - self.initial_gh_cut_efficency),
+            min_events=10,
+            smoothing=1,
+        )
+        initial_gh_mask = evaluate_binned_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            initial_gh_cuts,
+            op=operator.gt,
+        )
 
-            theta_cuts = self.theta.calculate_theta_cut(
-                signal["theta"][initial_gh_mask],
-                signal["reco_energy"][initial_gh_mask],
-                reco_energy_bins,
-            )
-            self.log.info("Optimizing G/H separation cut for best sensitivity")
-        else:
-            # Create a dummy theta cut since `pyirf.cut_optimization.optimize_gh_cut`
-            # needs a theta cut atm.
-            theta_cuts = QTable()
-            theta_cuts["low"] = reco_energy_bins[:-1]
-            theta_cuts["center"] = 0.5 * (reco_energy_bins[:-1] + reco_energy_bins[1:])
-            theta_cuts["high"] = reco_energy_bins[1:]
-            theta_cuts["cut"] = self.max_bkg_fov_offset
-            self.log.info(
-                "Optimizing G/H separation cut for best sensitivity "
-                "with `max_bkg_fov_offset` as theta cut."
-            )
+        theta_cuts = self.theta.calculate_theta_cut(
+            signal["theta"][initial_gh_mask],
+            signal["reco_energy"][initial_gh_mask],
+            reco_energy_bins,
+        )
+        self.log.info("Optimizing G/H separation cut for best sensitivity")
 
         gh_cut_efficiencies = np.arange(
             self.gh_cut_efficiency_step,
@@ -469,18 +449,17 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         valid_energy = self._get_valid_energy_range(opt_sens)
 
         # Re-calculate theta cut with optimized g/h cut
-        if point_like:
-            signal["selected_gh"] = evaluate_binned_cut(
-                signal["gh_score"],
-                signal["reco_energy"],
-                gh_cuts,
-                operator.ge,
-            )
-            theta_cuts_opt = self.theta.calculate_theta_cut(
-                signal[signal["selected_gh"]]["theta"],
-                signal[signal["selected_gh"]]["reco_energy"],
-                reco_energy_bins,
-            )
+        signal["selected_gh"] = evaluate_binned_cut(
+            signal["gh_score"],
+            signal["reco_energy"],
+            gh_cuts,
+            operator.ge,
+        )
+        theta_cuts_opt = self.theta.calculate_theta_cut(
+            signal[signal["selected_gh"]]["theta"],
+            signal[signal["selected_gh"]]["reco_energy"],
+            reco_energy_bins,
+        )
 
         result = OptimizationResult(
             precuts=precuts,
@@ -491,7 +470,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             # A single set of cuts is calculated for the whole fov atm
             valid_offset_min=self.min_bkg_fov_offset,
             valid_offset_max=self.max_bkg_fov_offset,
-            theta_cuts=theta_cuts_opt if point_like else None,
+            theta_cuts=theta_cuts_opt,
         )
         return result
 

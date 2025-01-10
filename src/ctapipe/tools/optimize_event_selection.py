@@ -4,7 +4,7 @@ import astropy.units as u
 from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
-from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
+from ..core.traits import AstroQuantity, Integer, classes_with_traits
 from ..irf import EventLoader, Spectra
 from ..irf.optimize import CutOptimizerBase
 
@@ -94,29 +94,12 @@ class EventSelectionOptimizer(Tool):
         help="The cut optimization algorithm to be used.",
     ).tag(config=True)
 
-    point_like = Bool(
-        False,
-        help=(
-            "Compute a theta cut in addition to the G/H separation cut "
-            "for a point-like IRF."
-        ),
-    ).tag(config=True)
-
     aliases = {
         "gamma-file": "EventSelectionOptimizer.gamma_file",
         "proton-file": "EventSelectionOptimizer.proton_file",
         "electron-file": "EventSelectionOptimizer.electron_file",
         "output": "EventSelectionOptimizer.output_path",
         "chunk_size": "EventSelectionOptimizer.chunk_size",
-    }
-
-    flags = {
-        **flag(
-            "point-like",
-            "EventSelectionOptimizer.point_like",
-            "Compute a theta cut and a G/H separation cut.",
-            "Compute only a G/H separation cut.",
-        )
     }
 
     classes = [EventLoader] + classes_with_traits(CutOptimizerBase)
@@ -229,7 +212,6 @@ class EventSelectionOptimizer(Tool):
             else None,
             precuts=self.particles[0].epp,  # identical precuts for all particle types
             clf_prefix=self.particles[0].epp.gammaness_classifier,
-            point_like=self.point_like,
         )
         self.result = result
 

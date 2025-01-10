@@ -9,13 +9,11 @@ from ctapipe.core import QualityQuery, run_tool
 pytest.importorskip("pyirf")
 
 
-@pytest.mark.parametrize("point_like", (True, False))
 def test_cuts_optimization(
     gamma_diffuse_full_reco_file,
     proton_full_reco_file,
     event_loader_config_path,
     tmp_path,
-    point_like,
 ):
     from ctapipe.irf import (
         OptimizationResult,
@@ -33,9 +31,6 @@ def test_cuts_optimization(
         f"--output={output_path}",
         f"--config={event_loader_config_path}",
     ]
-    if point_like:
-        argv.append("--point-like")
-
     ret = run_tool(EventSelectionOptimizer(), argv=argv)
     assert ret == 0
 
@@ -47,16 +42,14 @@ def test_cuts_optimization(
     assert isinstance(result.gh_cuts, QTable)
     assert result.clf_prefix == "ExtraTreesClassifier"
     assert "cut" in result.gh_cuts.colnames
-    if point_like:
-        assert isinstance(result.theta_cuts, QTable)
-        assert "cut" in result.theta_cuts.colnames
+    assert isinstance(result.theta_cuts, QTable)
+    assert "cut" in result.theta_cuts.colnames
 
     for c in ["low", "center", "high"]:
         assert c in result.gh_cuts.colnames
         assert result.gh_cuts[c].unit == u.TeV
-        if point_like:
-            assert c in result.theta_cuts.colnames
-            assert result.theta_cuts[c].unit == u.TeV
+        assert c in result.theta_cuts.colnames
+        assert result.theta_cuts[c].unit == u.TeV
 
 
 def test_cuts_opt_no_electrons(

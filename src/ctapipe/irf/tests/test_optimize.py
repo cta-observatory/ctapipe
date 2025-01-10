@@ -116,7 +116,6 @@ def test_cut_optimizer(
         background=proton_events,
         precuts=gamma_loader.epp,  # identical precuts for all particle types
         clf_prefix="ExtraTreesClassifier",
-        point_like=True,
     )
     assert isinstance(result, OptimizationResult)
     assert result.clf_prefix == "ExtraTreesClassifier"
