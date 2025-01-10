@@ -13,7 +13,7 @@ from functools import partial
 import astropy.units as u
 import numpy as np
 from astropy.io import fits
-from astropy.table import QTable, vstack
+from astropy.table import vstack
 from pyirf.cuts import evaluate_binned_cut
 from pyirf.io import create_rad_max_hdu
 
@@ -432,21 +432,11 @@ class IrfTool(Tool):
             )
         )
         if self.do_background:
-            if not self.point_like:
-                # Create a dummy theta cut since `pyirf.sensitivity.estimate_background`
-                # needs a theta cut atm.
-                self.log.info(
-                    "Using all signal events with `theta < fov_offset_max` "
-                    "to compute the sensitivity."
+            if self.opt_result.theta_cuts is None:
+                raise ValueError(
+                    "Calculating the point-source sensitivity requires "
+                    f"theta cuts, but {self.cuts_file} does not contain any."
                 )
-                theta_cuts = QTable()
-                theta_cuts["center"] = 0.5 * (
-                    self.sensitivity.reco_energy_bins[:-1]
-                    + self.sensitivity.reco_energy_bins[1:]
-                )
-                theta_cuts["cut"] = self.sensitivity.fov_offset_max
-            else:
-                theta_cuts = self.opt_result.theta_cuts
 
             hdus.append(
                 self.sensitivity.make_sensitivity_hdu(
@@ -454,7 +444,7 @@ class IrfTool(Tool):
                     background_events=self.background_events[
                         self.background_events["selected_gh"]
                     ],
-                    theta_cut=theta_cuts,
+                    theta_cut=self.opt_result.theta_cuts,
                     gamma_spectrum=self.gamma_target_spectrum,
                 )
             )

@@ -19,7 +19,6 @@ def dummy_cuts_file(
 ):
     from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
-    # Do "point-like" cuts to have both g/h and theta cuts in the file
     output_path = irf_tmp_path / "dummy_cuts.fits"
     run_tool(
         EventSelectionOptimizer(),
@@ -30,7 +29,6 @@ def dummy_cuts_file(
             f"--electron-file={gamma_diffuse_full_reco_file}",
             f"--output={output_path}",
             f"--config={event_loader_config_path}",
-            "--point-like",
         ],
     )
     return output_path
@@ -181,24 +179,16 @@ def test_point_like_irf_no_theta_cut(
     gamma_diffuse_full_reco_file,
     proton_full_reco_file,
     event_loader_config_path,
+    dummy_cuts_file,
     tmp_path,
 ):
+    from ctapipe.irf import OptimizationResult
     from ctapipe.tools.compute_irf import IrfTool
-    from ctapipe.tools.optimize_event_selection import EventSelectionOptimizer
 
     gh_cuts_path = tmp_path / "gh_cuts.fits"
-    # Without the "--point-like" flag only G/H cuts are produced.
-    run_tool(
-        EventSelectionOptimizer(),
-        argv=[
-            f"--gamma-file={gamma_diffuse_full_reco_file}",
-            f"--proton-file={proton_full_reco_file}",
-            # Use diffuse gammas weighted to electron spectrum as stand-in
-            f"--electron-file={gamma_diffuse_full_reco_file}",
-            f"--output={gh_cuts_path}",
-            f"--config={event_loader_config_path}",
-        ],
-    )
+    cuts = OptimizationResult.read(dummy_cuts_file)
+    cuts.theta_cuts = None
+    cuts.write(gh_cuts_path)
     assert gh_cuts_path.exists()
 
     output_path = tmp_path / "irf.fits.gz"
