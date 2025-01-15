@@ -130,7 +130,10 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
 
     @abstractmethod
     def make_edisp_hdu(
-        self, events: QTable, point_like: bool, extname: str = "ENERGY MIGRATION"
+        self,
+        events: QTable,
+        spatial_selection_applied: bool,
+        extname: str = "ENERGY MIGRATION",
     ) -> BinTableHDU:
         """
         Calculate the energy dispersion and create a fits binary table HDU
@@ -140,9 +143,8 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
         ----------
         events: astropy.table.QTable
             Reconstructed events to be used.
-        point_like: bool
-            If a direction cut was applied on ``events``, pass ``True``, else ``False``
-            for a full-enclosure energy dispersion.
+        spatial_selection_applied: bool
+            If a direction cut was applied on ``events``, pass ``True``, else ``False``.
         extname: str
             Name for the BinTableHDU.
 
@@ -162,7 +164,7 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
     def make_aeff_hdu(
         self,
         events: QTable,
-        point_like: bool,
+        spatial_selection_applied: bool,
         signal_is_point_like: bool,
         sim_info: SimulatedEventsInfo,
         extname: str = "EFFECTIVE AREA",
@@ -175,9 +177,8 @@ class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
         ----------
         events: astropy.table.QTable
             Reconstructed events to be used.
-        point_like: bool
-            If a direction cut was applied on ``events``, pass ``True``, else ``False``
-            for a full-enclosure effective area.
+        spatial_selection_applied: bool
+            If a direction cut was applied on ``events``, pass ``True``, else ``False``.
         signal_is_point_like: bool
             If ``events`` were simulated only at a single point in the field of view,
             pass ``True``, else ``False``.
@@ -204,7 +205,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     def make_aeff_hdu(
         self,
         events: QTable,
-        point_like: bool,
+        spatial_selection_applied: bool,
         signal_is_point_like: bool,
         sim_info: SimulatedEventsInfo,
         extname: str = "EFFECTIVE AREA",
@@ -231,7 +232,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
             effective_area=aeff,
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
-            point_like=point_like,
+            point_like=spatial_selection_applied,
             extname=extname,
         )
 
@@ -246,7 +247,10 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
         super().__init__(parent=parent, **kwargs)
 
     def make_edisp_hdu(
-        self, events: QTable, point_like: bool, extname: str = "ENERGY DISPERSION"
+        self,
+        events: QTable,
+        spatial_selection_applied: bool,
+        extname: str = "ENERGY DISPERSION",
     ) -> BinTableHDU:
         edisp = energy_dispersion(
             selected_events=events,
@@ -259,7 +263,7 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
             true_energy_bins=self.true_energy_bins,
             migration_bins=self.migration_bins,
             fov_offset_bins=self.fov_offset_bins,
-            point_like=point_like,
+            point_like=spatial_selection_applied,
             extname=extname,
         )
 

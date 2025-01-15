@@ -50,7 +50,9 @@ def test_make_2d_energy_migration(irf_events_table):
         energy_migration_min=0.1,
         energy_migration_max=10,
     )
-    edisp_hdu = edisp_maker.make_edisp_hdu(events=irf_events_table, point_like=False)
+    edisp_hdu = edisp_maker.make_edisp_hdu(
+        events=irf_events_table, spatial_selection_applied=False
+    )
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert edisp_hdu.data["MATRIX"].shape == (1, 3, 20, 29)
 
@@ -82,7 +84,7 @@ def test_make_2d_eff_area(irf_events_table):
     )
     eff_area_hdu = eff_area_maker.make_aeff_hdu(
         events=irf_events_table,
-        point_like=False,
+        spatial_selection_applied=False,
         signal_is_point_like=False,
         sim_info=sim_info,
     )
@@ -98,7 +100,7 @@ def test_make_2d_eff_area(irf_events_table):
     # point like data -> only 1 fov offset bin
     eff_area_hdu = eff_area_maker.make_aeff_hdu(
         events=irf_events_table,
-        point_like=False,
+        spatial_selection_applied=False,
         signal_is_point_like=True,
         sim_info=sim_info,
     )
