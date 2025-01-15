@@ -2,8 +2,8 @@
  ctapipe |pypi| |conda| |doilatest| |ci| |sonarqube_coverage| |sonarqube_quality|
 ==================================================================================
 
-.. |ci| image:: https://github.com/cta-observatory/ctapipe/workflows/CI/badge.svg?branch=main
-    :target: https://github.com/cta-observatory/ctapipe/actions?query=workflow%3ACI+branch%3Amain
+.. |ci| image:: https://github.com/cta-observatory/ctapipe/actions/workflows/ci.yml/badge.svg?branch=main
+    :target: https://github.com/cta-observatory/ctapipe/actions/workflows/ci.yml
     :alt: Test Status
 .. |sonarqube_quality| image:: https://sonar-cta-dpps.zeuthen.desy.de/api/project_badges/measure?project=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs&metric=alert_status&token=sqb_a533204f382b350568e922385cab7c2394587458
     :target: https://sonar-cta-dpps.zeuthen.desy.de/dashboard?id=cta-observatory_ctapipe_AY52EYhuvuGcMFidNyUs
