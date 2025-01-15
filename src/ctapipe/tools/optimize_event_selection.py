@@ -5,7 +5,7 @@ from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Integer, classes_with_traits
-from ..irf import EventLoader, Spectra
+from ..irf import EventLoader, PercentileCuts, PointSourceSensitivityOptimizer, Spectra
 from ..irf.optimize import CutOptimizerBase
 
 __all__ = ["EventSelectionOptimizer"]
@@ -119,7 +119,7 @@ class EventSelectionOptimizer(Tool):
                 target_spectrum=self.gamma_target_spectrum,
             )
         ]
-        if self.optimization_algorithm != "PercentileCuts":
+        if not isinstance(self.optimizer, PercentileCuts):
             if not self.proton_file or (
                 self.proton_file and not self.proton_file.exists()
             ):
@@ -155,7 +155,7 @@ class EventSelectionOptimizer(Tool):
         reduced_events = dict()
         for sel in self.particles:
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
-            if self.optimization_algorithm == "PointSourceSensitivityOptimizer":
+            if isinstance(self.optimizer, PointSourceSensitivityOptimizer):
                 evs = sel.make_event_weights(
                     evs,
                     meta["spectrum"],
@@ -173,7 +173,7 @@ class EventSelectionOptimizer(Tool):
 
         self.signal_events = reduced_events["gammas"]
 
-        if self.optimization_algorithm == "PercentileCuts":
+        if isinstance(self.optimizer, PercentileCuts):
             self.log.debug("Loaded %d gammas" % reduced_events["gammas_count"])
             self.log.debug("Keeping %d gammas" % len(reduced_events["gammas"]))
             self.log.info("Optimizing cuts using %d signal" % len(self.signal_events))

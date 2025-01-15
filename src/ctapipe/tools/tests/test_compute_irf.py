@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 import pytest
 from astropy.io import fits
@@ -83,7 +82,7 @@ def test_irf_tool(
         if include_bkg:
             assert isinstance(hdul["BACKGROUND"], fits.BinTableHDU)
 
-    os.remove(output_path)  # Delete output file
+    output_path.unlink()  # Delete output file
 
     # Include benchmarks
     argv.append(f"--benchmark-output={output_benchmarks_path}")
