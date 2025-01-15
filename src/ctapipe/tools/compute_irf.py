@@ -182,10 +182,10 @@ class IrfTool(Tool):
         help="The parameterization of the point source sensitivity benchmark.",
     ).tag(config=True)
 
-    point_like = Bool(
+    spatial_selection_applied = Bool(
         False,
         help=(
-            "Compute a point-like IRF by applying a theta cut (``RAD_MAX``) "
+            "Compute an IRF after applying a direction cut (``SpatialSelection=RAD_MAX``) "
             "which makes calculating a point spread function unnecessary."
         ),
     ).tag(config=True)
@@ -208,10 +208,10 @@ class IrfTool(Tool):
             "Do not compute background rate.",
         ),
         **flag(
-            "point-like",
-            "IrfTool.point_like",
-            "Compute a point-like IRF.",
-            "Compute a full-enclosure IRF.",
+            "spatial-selection-applied",
+            "IrfTool.spatial_selection_applied",
+            "Compute an IRF after applying a direction cut (``SpatialSelection=RAD_MAX``).",
+            "Compute an IRF without any direction cut (``SpatialSelection=None``).",
         ),
     }
 
@@ -233,9 +233,10 @@ class IrfTool(Tool):
         Initialize components from config and load g/h (and theta) cuts.
         """
         self.opt_result = OptimizationResult.read(self.cuts_file)
-        if self.point_like and self.opt_result.theta_cuts is None:
+        if self.spatial_selection_applied and self.opt_result.theta_cuts is None:
             raise ToolConfigurationError(
-                "Computing a point-like IRF requires an (optimized) theta cut."
+                f"{self.cuts_file} does not contain any direction cut, "
+                "but --spatial-selection-applied was given."
             )
 
         check_e_bins = partial(
@@ -287,7 +288,7 @@ class IrfTool(Tool):
         self.edisp = EnergyDispersionMakerBase.from_name(self.edisp_maker, parent=self)
         self.aeff = EffectiveAreaMakerBase.from_name(self.aeff_maker, parent=self)
 
-        if not self.point_like:
+        if not self.spatial_selection_applied:
             self.psf = PsfMakerBase.from_name(self.psf_maker, parent=self)
 
         if self.benchmarks_output_path is not None:
@@ -331,7 +332,7 @@ class IrfTool(Tool):
             self.opt_result.gh_cuts,
             operator.ge,
         )
-        if self.point_like:
+        if self.spatial_selection_applied:
             reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
                 reduced_events["gammas"]["theta"],
                 reduced_events["gammas"]["reco_energy"],
@@ -380,7 +381,7 @@ class IrfTool(Tool):
         hdus.append(
             self.aeff.make_aeff_hdu(
                 events=self.signal_events[self.signal_events["selected"]],
-                point_like=self.point_like,
+                spatial_selection_applied=self.spatial_selection_applied,
                 signal_is_point_like=self.signal_is_point_like,
                 sim_info=sim_info,
             )
@@ -388,10 +389,10 @@ class IrfTool(Tool):
         hdus.append(
             self.edisp.make_edisp_hdu(
                 events=self.signal_events[self.signal_events["selected"]],
-                point_like=self.point_like,
+                spatial_selection_applied=self.spatial_selection_applied,
             )
         )
-        if not self.point_like:
+        if not self.spatial_selection_applied:
             hdus.append(
                 self.psf.make_psf_hdu(
                     events=self.signal_events[self.signal_events["selected"]]
@@ -518,7 +519,7 @@ class IrfTool(Tool):
             if self.edisp.fov_offset_n_bins > 1 or self.aeff.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
-            if not self.point_like and self.psf.fov_offset_n_bins > 1:
+            if not self.spatial_selection_applied and self.psf.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
             if self.do_background and self.bkg.fov_offset_n_bins > 1:
@@ -559,7 +560,7 @@ class IrfTool(Tool):
                         events=reduced_events["protons"][
                             reduced_events["protons"]["selected_gh"]
                         ],
-                        point_like=self.point_like,
+                        spatial_selection_applied=self.spatial_selection_applied,
                         signal_is_point_like=False,
                         sim_info=reduced_events["protons_meta"]["sim_info"],
                         extname="EFFECTIVE AREA PROTONS",
@@ -571,7 +572,7 @@ class IrfTool(Tool):
                         events=reduced_events["electrons"][
                             reduced_events["electrons"]["selected_gh"]
                         ],
-                        point_like=self.point_like,
+                        spatial_selection_applied=self.spatial_selection_applied,
                         signal_is_point_like=False,
                         sim_info=reduced_events["electrons_meta"]["sim_info"],
                         extname="EFFECTIVE AREA ELECTRONS",

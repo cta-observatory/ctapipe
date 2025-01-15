@@ -13,5 +13,5 @@ and saved in a separate output file.
 If a proton or a proton and an electron file is also given, a background model can be calculated,
 as well as the point source sensitivity.
 
-Both, full enclosure and point-like irf can be calculated.
+Irfs can be calculated with and without applying a direction cut.
 Only radially symmetric parameterizations of the irf components are implemented so far.

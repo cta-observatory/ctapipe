@@ -35,7 +35,7 @@ def dummy_cuts_file(
 
 
 @pytest.mark.parametrize("include_bkg", (False, True))
-@pytest.mark.parametrize("point_like", (True, False))
+@pytest.mark.parametrize("spatial_selection_applied", (True, False))
 def test_irf_tool(
     gamma_diffuse_full_reco_file,
     proton_full_reco_file,
@@ -43,7 +43,7 @@ def test_irf_tool(
     dummy_cuts_file,
     tmp_path,
     include_bkg,
-    point_like,
+    spatial_selection_applied,
 ):
     from ctapipe.tools.compute_irf import IrfTool
 
@@ -56,8 +56,8 @@ def test_irf_tool(
         f"--output={output_path}",
         f"--config={event_loader_config_path}",
     ]
-    if point_like:
-        argv.append("--point-like")
+    if spatial_selection_applied:
+        argv.append("--spatial-selection-applied")
 
     if include_bkg:
         argv.append(f"--proton-file={proton_full_reco_file}")
@@ -75,7 +75,7 @@ def test_irf_tool(
     with fits.open(output_path) as hdul:
         assert isinstance(hdul["ENERGY DISPERSION"], fits.BinTableHDU)
         assert isinstance(hdul["EFFECTIVE AREA"], fits.BinTableHDU)
-        if point_like:
+        if spatial_selection_applied:
             assert isinstance(hdul["RAD_MAX"], fits.BinTableHDU)
         else:
             assert isinstance(hdul["PSF"], fits.BinTableHDU)
@@ -196,7 +196,7 @@ def test_point_like_irf_no_theta_cut(
 
     with pytest.raises(
         ToolConfigurationError,
-        match=r"Computing a point-like IRF requires an \(optimized\) theta cut.",
+        match=rf"{gh_cuts_path} does not contain any direction cut",
     ):
         run_tool(
             IrfTool(),
@@ -209,7 +209,7 @@ def test_point_like_irf_no_theta_cut(
                 f"--output={output_path}",
                 f"--benchmark-output={output_benchmarks_path}",
                 f"--config={event_loader_config_path}",
-                "--point-like",
+                "--spatial-selection-applied",
             ],
             raises=True,
         )
