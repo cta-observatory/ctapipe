@@ -182,7 +182,7 @@ class CutOptimizerBase(Component):
     ).tag(config=True)
 
     @abstractmethod
-    def optimize_cuts(
+    def __call__(
         self,
         signal: QTable,
         background: QTable,
@@ -227,7 +227,7 @@ class GhPercentileCutCalculator(Component):
         help="Percent of events in each energy bin to keep after the G/H cut",
     ).tag(config=True)
 
-    def calculate_gh_cut(self, gammaness, reco_energy, reco_energy_bins):
+    def __call__(self, gammaness, reco_energy, reco_energy_bins):
         if self.smoothing and self.smoothing < 0:
             self.smoothing = None
 
@@ -279,7 +279,7 @@ class ThetaPercentileCutCalculator(Component):
         help="Percent of events in each energy bin to keep after the theta cut",
     ).tag(config=True)
 
-    def calculate_theta_cut(self, theta, reco_energy, reco_energy_bins):
+    def __call__(self, theta, reco_energy, reco_energy_bins):
         if self.theta_min_angle < 0 * u.deg:
             theta_min_angle = None
         else:
@@ -316,12 +316,12 @@ class PercentileCuts(CutOptimizerBase):
 
     classes = [GhPercentileCutCalculator, ThetaPercentileCutCalculator]
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
-        self.gh = GhPercentileCutCalculator(parent=self)
-        self.theta = ThetaPercentileCutCalculator(parent=self)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.gh_cut_calculator = GhPercentileCutCalculator(parent=self)
+        self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
 
-    def optimize_cuts(
+    def __call__(
         self,
         signal: QTable,
         background: QTable,
@@ -333,7 +333,7 @@ class PercentileCuts(CutOptimizerBase):
             self.reco_energy_max.to(u.TeV),
             self.reco_energy_n_bins_per_decade,
         )
-        gh_cuts = self.gh.calculate_gh_cut(
+        gh_cuts = self.gh_cut_calculator(
             signal["gh_score"],
             signal["reco_energy"],
             reco_energy_bins,
@@ -344,7 +344,7 @@ class PercentileCuts(CutOptimizerBase):
             gh_cuts,
             op=operator.ge,
         )
-        theta_cuts = self.theta.calculate_theta_cut(
+        theta_cuts = self.theta_cut_calculator(
             signal["theta"][gh_mask],
             signal["reco_energy"][gh_mask],
             reco_energy_bins,
@@ -390,11 +390,11 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         help="Size ratio of on region / off region.",
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
-        self.theta = ThetaPercentileCutCalculator(parent=self)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
 
-    def optimize_cuts(
+    def __call__(
         self,
         signal: QTable,
         background: QTable,
@@ -423,7 +423,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             op=operator.gt,
         )
 
-        theta_cuts = self.theta.calculate_theta_cut(
+        theta_cuts = self.theta_cut_calculator(
             signal["theta"][initial_gh_mask],
             signal["reco_energy"][initial_gh_mask],
             reco_energy_bins,
@@ -455,7 +455,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             gh_cuts,
             operator.ge,
         )
-        theta_cuts_opt = self.theta.calculate_theta_cut(
+        theta_cuts_opt = self.theta_cut_calculator(
             signal[signal["selected_gh"]]["theta"],
             signal[signal["selected_gh"]]["reco_energy"],
             reco_energy_bins,

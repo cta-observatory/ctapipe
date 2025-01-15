@@ -50,7 +50,7 @@ def test_gh_percentile_cut_calculator():
         min_counts=1,
         smoothing=-1,
     )
-    cuts = calc.calculate_gh_cut(
+    cuts = calc(
         gammaness=np.array([0.1, 0.6, 0.45, 0.98, 0.32, 0.95, 0.25, 0.87]),
         reco_energy=[0.17, 0.36, 0.47, 0.22, 1.2, 5, 4.2, 9.1] * u.TeV,
         reco_energy_bins=[0, 1, 10] * u.TeV,
@@ -69,7 +69,7 @@ def test_theta_percentile_cut_calculator():
         min_counts=1,
         smoothing=-1,
     )
-    cuts = calc.calculate_theta_cut(
+    cuts = calc(
         theta=[0.1, 0.07, 0.21, 0.4, 0.03, 0.08, 0.11, 0.18] * u.deg,
         reco_energy=[0.17, 0.36, 0.47, 0.22, 1.2, 5, 4.2, 9.1] * u.TeV,
         reco_energy_bins=[0, 1, 10] * u.TeV,
@@ -111,7 +111,7 @@ def test_cut_optimizer(
     )
 
     optimizer = Optimizer()
-    result = optimizer.optimize_cuts(
+    result = optimizer(
         signal=gamma_events,
         background=proton_events,
         precuts=gamma_loader.epp,  # identical precuts for all particle types

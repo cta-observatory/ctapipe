@@ -44,11 +44,11 @@ class EnergyBiasResolutionMakerBase(DefaultTrueEnergyBins):
     Base class for calculating the bias and resolution of the energy prediciton.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def make_bias_resolution_hdu(
+    def __call__(
         self, events: QTable, extname: str = "ENERGY BIAS RESOLUTION"
     ) -> BinTableHDU:
         """
@@ -73,10 +73,10 @@ class EnergyBiasResolution2dMaker(EnergyBiasResolutionMakerBase, DefaultFoVOffse
     true energy and fov offset.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
-    def make_bias_resolution_hdu(
+    def __call__(
         self, events: QTable, extname: str = "ENERGY BIAS RESOLUTION"
     ) -> BinTableHDU:
         result, fov_bin_idx, mat_shape = _get_2d_result_table(
@@ -113,11 +113,11 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
         help="Use true energy instead of reconstructed energy for energy binning.",
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def make_angular_resolution_hdu(
+    def __call__(
         self, events: QTable, extname: str = "ANGULAR RESOLUTION"
     ) -> BinTableHDU:
         """
@@ -142,10 +142,10 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
     and fov offset.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
-    def make_angular_resolution_hdu(
+    def __call__(
         self, events: QTable, extname: str = "ANGULAR RESOLUTION"
     ) -> BinTableHDU:
         if self.use_true_energy:
@@ -187,11 +187,11 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
         help="Size ratio of on region / off region.",
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def make_sensitivity_hdu(
+    def __call__(
         self,
         signal_events: QTable,
         background_events: QTable,
@@ -228,10 +228,10 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
     and fov offset.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
-    def make_sensitivity_hdu(
+    def __call__(
         self,
         signal_events: QTable,
         background_events: QTable,

@@ -137,31 +137,31 @@ class IrfTool(Tool):
         ),
     ).tag(config=True)
 
-    edisp_maker = traits.ComponentName(
+    edisp_maker_name = traits.ComponentName(
         EnergyDispersionMakerBase,
         default_value="EnergyDispersion2dMaker",
         help="The parameterization of the energy dispersion to be used.",
     ).tag(config=True)
 
-    aeff_maker = traits.ComponentName(
+    aeff_maker_name = traits.ComponentName(
         EffectiveAreaMakerBase,
         default_value="EffectiveArea2dMaker",
         help="The parameterization of the effective area to be used.",
     ).tag(config=True)
 
-    psf_maker = traits.ComponentName(
+    psf_maker_name = traits.ComponentName(
         PsfMakerBase,
         default_value="Psf3dMaker",
         help="The parameterization of the point spread function to be used.",
     ).tag(config=True)
 
-    bkg_maker = traits.ComponentName(
+    bkg_maker_name = traits.ComponentName(
         BackgroundRateMakerBase,
         default_value="BackgroundRate2dMaker",
         help="The parameterization of the background rate to be used.",
     ).tag(config=True)
 
-    energy_bias_resolution_maker = traits.ComponentName(
+    energy_bias_resolution_maker_name = traits.ComponentName(
         EnergyBiasResolutionMakerBase,
         default_value="EnergyBiasResolution2dMaker",
         help=(
@@ -170,13 +170,13 @@ class IrfTool(Tool):
         ),
     ).tag(config=True)
 
-    angular_resolution_maker = traits.ComponentName(
+    angular_resolution_maker_name = traits.ComponentName(
         AngularResolutionMakerBase,
         default_value="AngularResolution2dMaker",
         help="The parameterization of the angular resolution benchmark.",
     ).tag(config=True)
 
-    sensitivity_maker = traits.ComponentName(
+    sensitivity_maker_name = traits.ComponentName(
         SensitivityMakerBase,
         default_value="Sensitivity2dMaker",
         help="The parameterization of the point source sensitivity benchmark.",
@@ -280,35 +280,42 @@ class IrfTool(Tool):
             else:
                 self.log.warning("Estimating background without electron file.")
 
-            self.bkg = BackgroundRateMakerBase.from_name(self.bkg_maker, parent=self)
+            self.bkg_maker = BackgroundRateMakerBase.from_name(
+                self.bkg_maker_name, parent=self
+            )
             check_e_bins(
-                bins=self.bkg.reco_energy_bins, source="background reco energy"
+                bins=self.bkg_maker.reco_energy_bins, source="background reco energy"
             )
 
-        self.edisp = EnergyDispersionMakerBase.from_name(self.edisp_maker, parent=self)
-        self.aeff = EffectiveAreaMakerBase.from_name(self.aeff_maker, parent=self)
+        self.edisp_maker = EnergyDispersionMakerBase.from_name(
+            self.edisp_maker_name, parent=self
+        )
+        self.aeff_maker = EffectiveAreaMakerBase.from_name(
+            self.aeff_maker_name, parent=self
+        )
 
         if not self.spatial_selection_applied:
-            self.psf = PsfMakerBase.from_name(self.psf_maker, parent=self)
+            self.psf_maker = PsfMakerBase.from_name(self.psf_maker_name, parent=self)
 
         if self.benchmarks_output_path is not None:
-            self.angular_resolution = AngularResolutionMakerBase.from_name(
-                self.angular_resolution_maker, parent=self
+            self.angular_resolution_maker = AngularResolutionMakerBase.from_name(
+                self.angular_resolution_maker_name, parent=self
             )
-            if not self.angular_resolution.use_true_energy:
+            if not self.angular_resolution_maker.use_true_energy:
                 check_e_bins(
-                    bins=self.angular_resolution.reco_energy_bins,
+                    bins=self.angular_resolution_maker.reco_energy_bins,
                     source="Angular resolution energy",
                 )
 
-            self.bias_resolution = EnergyBiasResolutionMakerBase.from_name(
-                self.energy_bias_resolution_maker, parent=self
+            self.bias_resolution_maker = EnergyBiasResolutionMakerBase.from_name(
+                self.energy_bias_resolution_maker_name, parent=self
             )
-            self.sensitivity = SensitivityMakerBase.from_name(
-                self.sensitivity_maker, parent=self
+            self.sensitivity_maker = SensitivityMakerBase.from_name(
+                self.sensitivity_maker_name, parent=self
             )
             check_e_bins(
-                bins=self.sensitivity.reco_energy_bins, source="Sensitivity reco energy"
+                bins=self.sensitivity_maker.reco_energy_bins,
+                source="Sensitivity reco energy",
             )
 
     def calculate_selections(self, reduced_events: dict) -> dict:
@@ -379,7 +386,7 @@ class IrfTool(Tool):
 
     def _make_signal_irf_hdus(self, hdus, sim_info):
         hdus.append(
-            self.aeff.make_aeff_hdu(
+            self.aeff_maker(
                 events=self.signal_events[self.signal_events["selected"]],
                 spatial_selection_applied=self.spatial_selection_applied,
                 signal_is_point_like=self.signal_is_point_like,
@@ -387,14 +394,14 @@ class IrfTool(Tool):
             )
         )
         hdus.append(
-            self.edisp.make_edisp_hdu(
+            self.edisp_maker(
                 events=self.signal_events[self.signal_events["selected"]],
                 spatial_selection_applied=self.spatial_selection_applied,
             )
         )
         if not self.spatial_selection_applied:
             hdus.append(
-                self.psf.make_psf_hdu(
+                self.psf_maker(
                     events=self.signal_events[self.signal_events["selected"]]
                 )
             )
@@ -423,12 +430,12 @@ class IrfTool(Tool):
 
     def _make_benchmark_hdus(self, hdus):
         hdus.append(
-            self.bias_resolution.make_bias_resolution_hdu(
+            self.bias_resolution_maker(
                 events=self.signal_events[self.signal_events["selected"]],
             )
         )
         hdus.append(
-            self.angular_resolution.make_angular_resolution_hdu(
+            self.angular_resolution_maker(
                 events=self.signal_events[self.signal_events["selected_gh"]],
             )
         )
@@ -440,7 +447,7 @@ class IrfTool(Tool):
                 )
 
             hdus.append(
-                self.sensitivity.make_sensitivity_hdu(
+                self.sensitivity_maker(
                     signal_events=self.signal_events[self.signal_events["selected"]],
                     background_events=self.background_events[
                         self.background_events["selected_gh"]
@@ -493,7 +500,7 @@ class IrfTool(Tool):
                 # and benchmarks_output_path is given.
                 if self.benchmarks_output_path is not None:
                     evs = sel.make_event_weights(
-                        evs, meta["spectrum"], self.sensitivity.fov_offset_bins
+                        evs, meta["spectrum"], self.sensitivity_maker.fov_offset_bins
                     )
                 # If only background should be calculated,
                 # only calculate weights for protons and electrons.
@@ -516,19 +523,25 @@ class IrfTool(Tool):
                 Therefore, the IRF can only be calculated at a single point
                 in the FoV, but `fov_offset_n_bins > 1`."""
 
-            if self.edisp.fov_offset_n_bins > 1 or self.aeff.fov_offset_n_bins > 1:
+            if (
+                self.edisp_maker.fov_offset_n_bins > 1
+                or self.aeff_maker.fov_offset_n_bins > 1
+            ):
                 raise ToolConfigurationError(errormessage)
 
-            if not self.spatial_selection_applied and self.psf.fov_offset_n_bins > 1:
+            if (
+                not self.spatial_selection_applied
+                and self.psf_maker.fov_offset_n_bins > 1
+            ):
                 raise ToolConfigurationError(errormessage)
 
-            if self.do_background and self.bkg.fov_offset_n_bins > 1:
+            if self.do_background and self.bkg_maker.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
             if self.benchmarks_output_path is not None and (
-                self.angular_resolution.fov_offset_n_bins > 1
-                or self.bias_resolution.fov_offset_n_bins > 1
-                or self.sensitivity.fov_offset_n_bins > 1
+                self.angular_resolution_maker.fov_offset_n_bins > 1
+                or self.bias_resolution_maker.fov_offset_n_bins > 1
+                or self.sensitivity_maker.fov_offset_n_bins > 1
             ):
                 raise ToolConfigurationError(errormessage)
 
@@ -549,14 +562,14 @@ class IrfTool(Tool):
         )
         if self.do_background:
             hdus.append(
-                self.bkg.make_bkg_hdu(
+                self.bkg_maker(
                     self.background_events[self.background_events["selected_gh"]],
                     self.obs_time,
                 )
             )
             if "protons" in reduced_events.keys():
                 hdus.append(
-                    self.aeff.make_aeff_hdu(
+                    self.aeff_maker(
                         events=reduced_events["protons"][
                             reduced_events["protons"]["selected_gh"]
                         ],
@@ -568,7 +581,7 @@ class IrfTool(Tool):
                 )
             if "electrons" in reduced_events.keys():
                 hdus.append(
-                    self.aeff.make_aeff_hdu(
+                    self.aeff_maker(
                         events=reduced_events["electrons"][
                             reduced_events["electrons"]["selected_gh"]
                         ],

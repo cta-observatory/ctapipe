@@ -29,7 +29,7 @@ def test_make_2d_bkg(irf_events_table):
         reco_energy_max=155 * u.TeV,
     )
 
-    bkg_hdu = bkg_maker.make_bkg_hdu(events=irf_events_table, obs_time=1 * u.s)
+    bkg_hdu = bkg_maker(events=irf_events_table, obs_time=1 * u.s)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert bkg_hdu.data["BKG"].shape == (1, 3, 29)
 
@@ -50,9 +50,7 @@ def test_make_2d_energy_migration(irf_events_table):
         energy_migration_min=0.1,
         energy_migration_max=10,
     )
-    edisp_hdu = edisp_maker.make_edisp_hdu(
-        events=irf_events_table, spatial_selection_applied=False
-    )
+    edisp_hdu = edisp_maker(events=irf_events_table, spatial_selection_applied=False)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert edisp_hdu.data["MATRIX"].shape == (1, 3, 20, 29)
 
@@ -82,7 +80,7 @@ def test_make_2d_eff_area(irf_events_table):
         viewcone_min=0 * u.deg,
         viewcone_max=10 * u.deg,
     )
-    eff_area_hdu = eff_area_maker.make_aeff_hdu(
+    eff_area_hdu = eff_area_maker(
         events=irf_events_table,
         spatial_selection_applied=False,
         signal_is_point_like=False,
@@ -98,7 +96,7 @@ def test_make_2d_eff_area(irf_events_table):
     )
 
     # point like data -> only 1 fov offset bin
-    eff_area_hdu = eff_area_maker.make_aeff_hdu(
+    eff_area_hdu = eff_area_maker(
         events=irf_events_table,
         spatial_selection_applied=False,
         signal_is_point_like=True,
@@ -118,7 +116,7 @@ def test_make_3d_psf(irf_events_table):
         source_offset_n_bins=110,
         source_offset_max=2 * u.deg,
     )
-    psf_hdu = psf_maker.make_psf_hdu(events=irf_events_table)
+    psf_hdu = psf_maker(events=irf_events_table)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert psf_hdu.data["RPSF"].shape == (1, 110, 3, 29)
 
