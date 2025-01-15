@@ -21,7 +21,7 @@ from pyirf.irf import (
 )
 from pyirf.simulations import SimulatedEventsInfo
 
-from ..core.traits import AstroQuantity, Bool, Float, Integer
+from ..core.traits import AstroQuantity, CaselessStrEnum, Float, Integer
 from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 
 __all__ = [
@@ -104,19 +104,23 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
     ).tag(config=True)
 
     energy_migration_n_bins = Integer(
-        help="Number of bins in log scale for energy migration ratio",
+        help="Number of bins for energy migration ratio",
         default_value=30,
     ).tag(config=True)
 
-    energy_migration_linear_bins = Bool(
-        help="Bin energy migration ratio using linear bins",
-        default_value=False,
+    energy_migration_binning = CaselessStrEnum(
+        ["linear", "logarithmic"],
+        help=(
+            "How energy bins are distributed between energy_migration_min"
+            " and energy_migration_max."
+        ),
+        default_value="logarithmic",
     ).tag(config=True)
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         bin_func = np.geomspace
-        if self.energy_migration_linear_bins:
+        if self.energy_migration_binning == "linear":
             bin_func = np.linspace
         self.migration_bins = bin_func(
             self.energy_migration_min,
