@@ -39,11 +39,11 @@ __all__ = [
 class PsfMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the point spread function."""
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def make_psf_hdu(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
+    def __call__(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         """
         Calculate the psf and create a fits binary table HDU in GADF format.
 
@@ -63,11 +63,11 @@ class PsfMakerBase(DefaultTrueEnergyBins):
 class BackgroundRateMakerBase(DefaultRecoEnergyBins):
     """Base class for calculating the background rate."""
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def make_bkg_hdu(
+    def __call__(
         self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
     ) -> BinTableHDU:
         """
@@ -117,8 +117,8 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
         default_value="logarithmic",
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         bin_func = np.geomspace
         if self.energy_migration_binning == "linear":
             bin_func = np.linspace
@@ -129,7 +129,7 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
         )
 
     @abstractmethod
-    def make_edisp_hdu(
+    def __call__(
         self,
         events: QTable,
         spatial_selection_applied: bool,
@@ -157,11 +157,11 @@ class EnergyDispersionMakerBase(DefaultTrueEnergyBins):
 class EffectiveAreaMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the effective area."""
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def make_aeff_hdu(
+    def __call__(
         self,
         events: QTable,
         spatial_selection_applied: bool,
@@ -199,10 +199,10 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
     bins of logarithmic true energy and field of view offset.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
-    def make_aeff_hdu(
+    def __call__(
         self,
         events: QTable,
         spatial_selection_applied: bool,
@@ -243,10 +243,10 @@ class EnergyDispersion2dMaker(EnergyDispersionMakerBase, DefaultFoVOffsetBins):
     equidistant bins of logarithmic true energy and field of view offset.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
-    def make_edisp_hdu(
+    def __call__(
         self,
         events: QTable,
         spatial_selection_applied: bool,
@@ -274,10 +274,10 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
     bins of logarithmic reconstructed energy and field of view offset.
     """
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
-    def make_bkg_hdu(
+    def __call__(
         self, events: QTable, obs_time: u.Quantity, extname: str = "BACKGROUND"
     ) -> BinTableHDU:
         background_rate = background_2d(
@@ -317,8 +317,8 @@ class Psf3dMaker(PsfMakerBase, DefaultFoVOffsetBins):
         default_value=100,
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.source_offset_bins = u.Quantity(
             np.linspace(
                 self.source_offset_min.to_value(u.deg),
@@ -328,7 +328,7 @@ class Psf3dMaker(PsfMakerBase, DefaultFoVOffsetBins):
             u.deg,
         )
 
-    def make_psf_hdu(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
+    def __call__(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         psf = psf_table(
             events=events,
             true_energy_bins=self.true_energy_bins,

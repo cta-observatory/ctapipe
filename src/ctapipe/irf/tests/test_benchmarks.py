@@ -13,7 +13,7 @@ def test_make_2d_energy_bias_res(irf_events_table):
         true_energy_max=155 * u.TeV,
     )
 
-    bias_res_hdu = bias_res_maker.make_bias_resolution_hdu(events=irf_events_table)
+    bias_res_hdu = bias_res_maker(events=irf_events_table)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert (
         bias_res_hdu.data["N_EVENTS"].shape
@@ -41,7 +41,7 @@ def test_make_2d_ang_res(irf_events_table):
         reco_energy_min=0.03 * u.TeV,
     )
 
-    ang_res_hdu = ang_res_maker.make_angular_resolution_hdu(events=irf_events_table)
+    ang_res_hdu = ang_res_maker(events=irf_events_table)
     assert (
         ang_res_hdu.data["N_EVENTS"].shape
         == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
@@ -54,7 +54,7 @@ def test_make_2d_ang_res(irf_events_table):
     )
 
     ang_res_maker.use_true_energy = True
-    ang_res_hdu = ang_res_maker.make_angular_resolution_hdu(events=irf_events_table)
+    ang_res_hdu = ang_res_maker(events=irf_events_table)
     assert (
         ang_res_hdu.data["N_EVENTS"].shape
         == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
@@ -108,7 +108,7 @@ def test_make_2d_sensitivity(
     )
     theta_cuts["cut"] = sens_maker.fov_offset_max
 
-    sens_hdu = sens_maker.make_sensitivity_hdu(
+    sens_hdu = sens_maker(
         signal_events=gamma_events,
         background_events=proton_events,
         theta_cut=theta_cuts,

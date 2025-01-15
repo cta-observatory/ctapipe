@@ -117,8 +117,8 @@ class DefaultTrueEnergyBins(Component):
         default_value=10,
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.true_energy_bins = make_bins_per_decade(
             self.true_energy_min.to(u.TeV),
             self.true_energy_max.to(u.TeV),
@@ -146,8 +146,8 @@ class DefaultRecoEnergyBins(Component):
         default_value=5,
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.reco_energy_bins = make_bins_per_decade(
             self.reco_energy_min.to(u.TeV),
             self.reco_energy_max.to(u.TeV),
@@ -175,8 +175,8 @@ class DefaultFoVOffsetBins(Component):
         default_value=1,
     ).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.fov_offset_bins = u.Quantity(
             np.linspace(
                 self.fov_offset_min.to_value(u.deg),
