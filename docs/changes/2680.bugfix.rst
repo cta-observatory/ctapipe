@@ -1,0 +1,2 @@
+Fill ``ctapipe.containers.SimulatedCameraContainer.true_image_sum`` in
+``HDF5EventSource``. Always returned default value of -1 before the fix.
