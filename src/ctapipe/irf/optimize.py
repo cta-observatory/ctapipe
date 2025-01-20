@@ -37,7 +37,7 @@ class OptimizationResult:
         valid_offset_max: u.Quantity,
         gh_cuts: QTable,
         clf_prefix: str,
-        theta_cuts: QTable | None = None,
+        spatial_selection_table: QTable | None = None,
         precuts: QualityQuery | Sequence | None = None,
     ) -> None:
         if precuts:
@@ -59,13 +59,13 @@ class OptimizationResult:
         self.valid_offset = ResultValidRange(min=valid_offset_min, max=valid_offset_max)
         self.gh_cuts = gh_cuts
         self.clf_prefix = clf_prefix
-        self.theta_cuts = theta_cuts
+        self.spatial_selection_table = spatial_selection_table
 
     def __repr__(self):
-        if self.theta_cuts is not None:
+        if self.spatial_selection_table is not None:
             return (
                 f"<OptimizationResult with {len(self.gh_cuts)} G/H bins "
-                f"and {len(self.theta_cuts)} theta bins valid "
+                f"and {len(self.spatial_selection_table)} theta bins valid "
                 f"between {self.valid_offset.min} to {self.valid_offset.max} "
                 f"and {self.valid_energy.min} to {self.valid_energy.max} "
                 f"with {len(self.precuts.quality_criteria)} precuts>"
@@ -105,9 +105,9 @@ class OptimizationResult:
 
         results = [cut_expr_tab, self.gh_cuts, energy_lim_tab, offset_lim_tab]
 
-        if self.theta_cuts is not None:
-            self.theta_cuts.meta["EXTNAME"] = "RAD_MAX"
-            results.append(self.theta_cuts)
+        if self.spatial_selection_table is not None:
+            self.spatial_selection_table.meta["EXTNAME"] = "RAD_MAX"
+            results.append(self.spatial_selection_table)
 
         # Overwrite if needed and allowed
         results[0].write(output_name, format="fits", overwrite=overwrite)
@@ -129,7 +129,7 @@ class OptimizationResult:
             gh_cuts = QTable.read(hdul[2])
             valid_energy = QTable.read(hdul[3])
             valid_offset = QTable.read(hdul[4])
-            theta_cuts = QTable.read(hdul[5]) if len(hdul) > 5 else None
+            spatial_selection_table = QTable.read(hdul[5]) if len(hdul) > 5 else None
 
         return cls(
             precuts=precuts,
@@ -139,7 +139,7 @@ class OptimizationResult:
             valid_offset_max=valid_offset["offset_max"],
             gh_cuts=gh_cuts,
             clf_prefix=gh_cuts.meta["CLFNAME"],
-            theta_cuts=theta_cuts,
+            spatial_selection_table=spatial_selection_table,
         )
 
 
@@ -344,7 +344,7 @@ class PercentileCuts(CutOptimizerBase):
             gh_cuts,
             op=operator.ge,
         )
-        theta_cuts = self.theta_cut_calculator(
+        spatial_selection_table = self.theta_cut_calculator(
             signal["theta"][gh_mask],
             signal["reco_energy"][gh_mask],
             reco_energy_bins,
@@ -359,7 +359,7 @@ class PercentileCuts(CutOptimizerBase):
             # A single set of cuts is calculated for the whole fov atm
             valid_offset_min=0 * u.deg,
             valid_offset_max=np.inf * u.deg,
-            theta_cuts=theta_cuts,
+            spatial_selection_table=spatial_selection_table,
         )
         return result
 
@@ -423,7 +423,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             op=operator.gt,
         )
 
-        theta_cuts = self.theta_cut_calculator(
+        spatial_selection_table = self.theta_cut_calculator(
             signal["theta"][initial_gh_mask],
             signal["reco_energy"][initial_gh_mask],
             reco_energy_bins,
@@ -441,7 +441,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             reco_energy_bins=reco_energy_bins,
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
-            theta_cuts=theta_cuts,
+            theta_cuts=spatial_selection_table,
             alpha=self.alpha,
             fov_offset_max=self.max_bkg_fov_offset,
             fov_offset_min=self.min_bkg_fov_offset,
@@ -455,7 +455,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             gh_cuts,
             operator.ge,
         )
-        theta_cuts_opt = self.theta_cut_calculator(
+        spatial_selection_table_opt = self.theta_cut_calculator(
             signal[signal["selected_gh"]]["theta"],
             signal[signal["selected_gh"]]["reco_energy"],
             reco_energy_bins,
@@ -470,7 +470,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             # A single set of cuts is calculated for the whole fov atm
             valid_offset_min=self.min_bkg_fov_offset,
             valid_offset_max=self.max_bkg_fov_offset,
-            theta_cuts=theta_cuts_opt,
+            spatial_selection_table=spatial_selection_table_opt,
         )
         return result
 

@@ -42,14 +42,14 @@ def test_cuts_optimization(
     assert isinstance(result.gh_cuts, QTable)
     assert result.clf_prefix == "ExtraTreesClassifier"
     assert "cut" in result.gh_cuts.colnames
-    assert isinstance(result.theta_cuts, QTable)
-    assert "cut" in result.theta_cuts.colnames
+    assert isinstance(result.spatial_selection_table, QTable)
+    assert "cut" in result.spatial_selection_table.colnames
 
     for c in ["low", "center", "high"]:
         assert c in result.gh_cuts.colnames
         assert result.gh_cuts[c].unit == u.TeV
-        assert c in result.theta_cuts.colnames
-        assert result.theta_cuts[c].unit == u.TeV
+        assert c in result.spatial_selection_table.colnames
+        assert result.spatial_selection_table[c].unit == u.TeV
 
 
 def test_cuts_opt_no_electrons(

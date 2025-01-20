@@ -28,7 +28,7 @@ def test_optimization_result(tmp_path, irf_event_loader_test_config):
         valid_energy_max=10 * u.TeV,
         valid_offset_min=0 * u.deg,
         valid_offset_max=np.inf * u.deg,
-        theta_cuts=None,
+        spatial_selection_table=None,
     )
     result.write(result_path)
     assert result_path.exists()
@@ -121,4 +121,4 @@ def test_cut_optimizer(
     assert result.clf_prefix == "ExtraTreesClassifier"
     assert result.valid_energy.min >= result.gh_cuts["low"][0]
     assert result.valid_energy.max <= result.gh_cuts["high"][-1]
-    assert result.theta_cuts["cut"].unit == u.deg
+    assert result.spatial_selection_table["cut"].unit == u.deg

@@ -233,7 +233,10 @@ class IrfTool(Tool):
         Initialize components from config and load g/h (and theta) cuts.
         """
         self.opt_result = OptimizationResult.read(self.cuts_file)
-        if self.spatial_selection_applied and self.opt_result.theta_cuts is None:
+        if (
+            self.spatial_selection_applied
+            and self.opt_result.spatial_selection_table is None
+        ):
             raise ToolConfigurationError(
                 f"{self.cuts_file} does not contain any direction cut, "
                 "but --spatial-selection-applied was given."
@@ -343,7 +346,7 @@ class IrfTool(Tool):
             reduced_events["gammas"]["selected_theta"] = evaluate_binned_cut(
                 reduced_events["gammas"]["theta"],
                 reduced_events["gammas"]["reco_energy"],
-                self.opt_result.theta_cuts,
+                self.opt_result.spatial_selection_table,
                 operator.le,
             )
             reduced_events["gammas"]["selected"] = (
@@ -413,10 +416,12 @@ class IrfTool(Tool):
             )
             hdus.append(
                 create_rad_max_hdu(
-                    rad_max=self.opt_result.theta_cuts["cut"].reshape(-1, 1),
+                    rad_max=self.opt_result.spatial_selection_table["cut"].reshape(
+                        -1, 1
+                    ),
                     reco_energy_bins=np.append(
-                        self.opt_result.theta_cuts["low"],
-                        self.opt_result.theta_cuts["high"][-1],
+                        self.opt_result.spatial_selection_table["low"],
+                        self.opt_result.spatial_selection_table["high"][-1],
                     ),
                     fov_offset_bins=u.Quantity(
                         [
@@ -440,7 +445,7 @@ class IrfTool(Tool):
             )
         )
         if self.do_background:
-            if self.opt_result.theta_cuts is None:
+            if self.opt_result.spatial_selection_table is None:
                 raise ValueError(
                     "Calculating the point-source sensitivity requires "
                     f"theta cuts, but {self.cuts_file} does not contain any."
@@ -452,7 +457,7 @@ class IrfTool(Tool):
                     background_events=self.background_events[
                         self.background_events["selected_gh"]
                     ],
-                    theta_cut=self.opt_result.theta_cuts,
+                    spatial_selection_table=self.opt_result.spatial_selection_table,
                     gamma_spectrum=self.gamma_target_spectrum,
                 )
             )

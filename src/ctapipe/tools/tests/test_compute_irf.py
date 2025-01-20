@@ -186,7 +186,7 @@ def test_point_like_irf_no_theta_cut(
 
     gh_cuts_path = tmp_path / "gh_cuts.fits"
     cuts = OptimizationResult.read(dummy_cuts_file)
-    cuts.theta_cuts = None
+    cuts.spatial_selection_table = None
     cuts.write(gh_cuts_path)
     assert gh_cuts_path.exists()
 

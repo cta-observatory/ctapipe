@@ -101,17 +101,17 @@ def test_make_2d_sensitivity(
         reco_energy_max=155 * u.TeV,
     )
     # Create a dummy theta cut since `pyirf.sensitivity.estimate_background`
-    # needs a theta cut atm.
-    theta_cuts = QTable()
-    theta_cuts["center"] = 0.5 * (
+    # needs a "theta cut" atm.
+    spatial_selection_table = QTable()
+    spatial_selection_table["center"] = 0.5 * (
         sens_maker.reco_energy_bins[:-1] + sens_maker.reco_energy_bins[1:]
     )
-    theta_cuts["cut"] = sens_maker.fov_offset_max
+    spatial_selection_table["cut"] = sens_maker.fov_offset_max
 
     sens_hdu = sens_maker(
         signal_events=gamma_events,
         background_events=proton_events,
-        theta_cut=theta_cuts,
+        spatial_selection_table=spatial_selection_table,
         gamma_spectrum=Spectra.CRAB_HEGRA,
     )
     assert (

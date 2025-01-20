@@ -195,7 +195,7 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
         self,
         signal_events: QTable,
         background_events: QTable,
-        theta_cut: QTable,
+        spatial_selection_table: QTable,
         gamma_spectrum: Spectra,
         extname: str = "SENSITIVITY",
     ) -> BinTableHDU:
@@ -209,7 +209,7 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
             Reconstructed signal events to be used.
         background_events: astropy.table.QTable
             Reconstructed background events to be used.
-        theta_cut: QTable
+        spatial_selection_table: QTable
             Direction cut that was applied on ``signal_events``.
         gamma_spectrum: ctapipe.irf.Spectra
             Spectra by which to scale the relative sensitivity to get the flux sensitivity.
@@ -235,7 +235,7 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
         self,
         signal_events: QTable,
         background_events: QTable,
-        theta_cut: QTable,
+        spatial_selection_table: QTable,
         gamma_spectrum: Spectra,
         extname: str = "SENSITIVITY",
     ) -> BinTableHDU:
@@ -264,7 +264,7 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
             bkg_hist = estimate_background(
                 events=background_events,
                 reco_energy_bins=self.reco_energy_bins,
-                theta_cuts=theta_cut,
+                theta_cuts=spatial_selection_table,
                 alpha=self.alpha,
                 fov_offset_min=self.fov_offset_bins[i],
                 fov_offset_max=self.fov_offset_bins[i + 1],
