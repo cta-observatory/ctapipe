@@ -998,8 +998,8 @@ class SimTelEventSource(EventSource):
         low_gain_stored = selected_gain_channel == GainChannel.LOW
 
         # set gain bits
-        pixel_status[high_gain_stored] |= PixelStatus.HIGH_GAIN_STORED
-        pixel_status[low_gain_stored] |= PixelStatus.LOW_GAIN_STORED
+        pixel_status[high_gain_stored] |= np.uint8(PixelStatus.HIGH_GAIN_STORED)
+        pixel_status[low_gain_stored] |= np.uint8(PixelStatus.LOW_GAIN_STORED)
 
         # reset gain bits for completely disabled pixels
         disabled = tel_desc["disabled_pixels"]["HV_disabled"]
