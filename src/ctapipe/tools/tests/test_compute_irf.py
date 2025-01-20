@@ -241,16 +241,18 @@ def test_irf_tool_wrong_cuts(
     with config_path.open("w") as f:
         json.dump(
             {
-                "EventPreProcessor": {
+                "EventPreprocessor": {
                     "energy_reconstructor": "ExtraTreesRegressor",
                     "geometry_reconstructor": "HillasReconstructor",
                     "gammaness_classifier": "ExtraTreesClassifier",
-                    "quality_criteria": [
-                        # No criteria for minimum event multiplicity
-                        ("valid classifier", "ExtraTreesClassifier_is_valid"),
-                        ("valid geom reco", "HillasReconstructor_is_valid"),
-                        ("valid energy reco", "ExtraTreesRegressor_is_valid"),
-                    ],
+                    "EventQualityQuery": {
+                        "quality_criteria": [
+                            # No criteria for minimum event multiplicity
+                            ("valid classifier", "ExtraTreesClassifier_is_valid"),
+                            ("valid geom reco", "HillasReconstructor_is_valid"),
+                            ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+                        ],
+                    },
                 }
             },
             f,

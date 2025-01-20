@@ -205,15 +205,15 @@ class EventSelectionOptimizer(Tool):
                 % (len(self.signal_events), len(self.background_events)),
             )
 
-        result = self.optimizer(
+        self.result = self.optimizer(
             signal=self.signal_events,
             background=self.background_events
             if self.optimization_algorithm != "PercentileCuts"
             else None,
-            precuts=self.particles[0].epp,  # identical precuts for all particle types
+            # identical precuts for all particle types
+            precuts=self.particles[0].epp.quality_query,
             clf_prefix=self.particles[0].epp.gammaness_classifier,
         )
-        self.result = result
 
     def finish(self):
         """

@@ -21,7 +21,6 @@ from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
     EventLoader,
-    EventPreProcessor,
     OptimizationResult,
     Spectra,
     check_bins_in_range,
@@ -37,6 +36,7 @@ from ..irf.irfs import (
     EnergyDispersionMakerBase,
     PsfMakerBase,
 )
+from ..irf.preprocessing import EventQualityQuery
 
 __all__ = ["IrfTool"]
 
@@ -475,24 +475,31 @@ class IrfTool(Tool):
                     )
                 )
 
-            if sel.epp.quality_criteria != self.opt_result.precuts.quality_criteria:
+            if (
+                sel.epp.quality_query.quality_criteria
+                != self.opt_result.precuts.quality_criteria
+            ):
                 self.log.warning(
                     "Precuts are different from precuts used for calculating "
                     "g/h / theta cuts. Provided precuts:\n%s. "
                     "\nUsing the same precuts as g/h / theta cuts:\n%s. "
                     % (
-                        sel.epp.to_table(functions=True)["criteria", "func"],
+                        sel.epp.quality_query.to_table(functions=True)[
+                            "criteria", "func"
+                        ],
                         self.opt_result.precuts.to_table(functions=True)[
                             "criteria", "func"
                         ],
                     )
                 )
-                sel.epp = EventPreProcessor(
+                sel.epp.quality_query = EventQualityQuery(
                     parent=sel,
                     quality_criteria=self.opt_result.precuts.quality_criteria,
                 )
 
-            self.log.debug("%s Precuts: %s" % (sel.kind, sel.epp.quality_criteria))
+            self.log.debug(
+                "%s Precuts: %s" % (sel.kind, sel.epp.quality_query.quality_criteria)
+            )
             evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:

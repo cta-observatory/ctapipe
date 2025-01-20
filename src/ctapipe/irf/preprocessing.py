@@ -24,11 +24,33 @@ from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
 from .spectra import SPECTRA, Spectra
 
-__all__ = ["EventLoader", "EventPreProcessor"]
+__all__ = ["EventLoader", "EventPreprocessor"]
 
 
-class EventPreProcessor(QualityQuery):
-    """Defines preselection cuts and the necessary renaming of columns."""
+class EventQualityQuery(QualityQuery):
+    """
+    Event pre-selection quality criteria for IRF computation with different defaults.
+    """
+
+    quality_criteria = List(
+        Tuple(Unicode(), Unicode()),
+        default_value=[
+            (
+                "multiplicity 4",
+                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
+            ),
+            ("valid classifier", "RandomForestClassifier_is_valid"),
+            ("valid geom reco", "HillasReconstructor_is_valid"),
+            ("valid energy reco", "RandomForestRegressor_is_valid"),
+        ],
+        help=QualityQuery.quality_criteria.help,
+    ).tag(config=True)
+
+
+class EventPreprocessor(Component):
+    """Defines pre-selection cuts and the necessary renaming of columns."""
+
+    classes = [EventQualityQuery]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -45,19 +67,9 @@ class EventPreProcessor(QualityQuery):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-    quality_criteria = List(
-        Tuple(Unicode(), Unicode()),
-        default_value=[
-            (
-                "multiplicity 4",
-                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-            ),
-            ("valid classifier", "RandomForestClassifier_is_valid"),
-            ("valid geom reco", "HillasReconstructor_is_valid"),
-            ("valid energy reco", "RandomForestRegressor_is_valid"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.quality_query = EventQualityQuery(parent=self)
 
     def normalise_column_names(self, events: Table) -> QTable:
         if events["subarray_pointing_lat"].std() > 1e-3:
@@ -192,12 +204,12 @@ class EventLoader(Component):
     and derive some additional columns needed for irf calculation.
     """
 
-    classes = [EventPreProcessor]
+    classes = [EventPreprocessor]
 
     def __init__(self, kind: str, file: Path, target_spectrum: Spectra, **kwargs):
         super().__init__(**kwargs)
 
-        self.epp = EventPreProcessor(parent=self)
+        self.epp = EventPreprocessor(parent=self)
         self.target_spectrum = SPECTRA[target_spectrum]
         self.kind = kind
         self.file = file
@@ -213,7 +225,7 @@ class EventLoader(Component):
             bits = [header]
             n_raw_events = 0
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
-                selected = events[self.epp.get_table_mask(events)]
+                selected = events[self.epp.quality_query.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 selected = self.make_derived_columns(selected)
                 bits.append(selected)

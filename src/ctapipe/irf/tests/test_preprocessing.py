@@ -28,9 +28,9 @@ def dummy_table():
 
 
 def test_normalise_column_names(dummy_table):
-    from ctapipe.irf import EventPreProcessor
+    from ctapipe.irf import EventPreprocessor
 
-    epp = EventPreProcessor(
+    epp = EventPreprocessor(
         energy_reconstructor="dummy",
         geometry_reconstructor="geom",
         gammaness_classifier="classifier",
@@ -55,7 +55,7 @@ def test_normalise_column_names(dummy_table):
 
     with pytest.raises(ValueError, match="Required column geom_alt is missing."):
         dummy_table.rename_column("geom_alt", "alt_geom")
-        epp = EventPreProcessor(
+        epp = EventPreprocessor(
             energy_reconstructor="dummy",
             geometry_reconstructor="geom",
             gammaness_classifier="classifier",

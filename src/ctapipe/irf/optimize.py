@@ -14,7 +14,7 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer, Path
 from .binning import ResultValidRange, make_bins_per_decade
-from .preprocessing import EventPreProcessor
+from .preprocessing import EventQualityQuery
 
 __all__ = [
     "CutOptimizerBase",
@@ -186,7 +186,7 @@ class CutOptimizerBase(Component):
         self,
         signal: QTable,
         background: QTable,
-        precuts: EventPreProcessor,
+        precuts: EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         """
@@ -199,7 +199,7 @@ class CutOptimizerBase(Component):
             Table containing signal events
         background: astropy.table.QTable
             Table containing background events
-        precuts: ctapipe.irf.EventPreProcessor
+        precuts: ctapipe.irf.EventPreprocessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events
         clf_prefix: str
@@ -325,7 +325,7 @@ class PercentileCuts(CutOptimizerBase):
         self,
         signal: QTable,
         background: QTable,
-        precuts: EventPreProcessor,
+        precuts: EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         reco_energy_bins = make_bins_per_decade(
@@ -398,7 +398,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         self,
         signal: QTable,
         background: QTable,
-        precuts: EventPreProcessor,
+        precuts: EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
         reco_energy_bins = make_bins_per_decade(

@@ -779,19 +779,21 @@ def irf_event_loader_test_config():
 
     return Config(
         {
-            "EventPreProcessor": {
+            "EventPreprocessor": {
                 "energy_reconstructor": "ExtraTreesRegressor",
                 "geometry_reconstructor": "HillasReconstructor",
                 "gammaness_classifier": "ExtraTreesClassifier",
-                "quality_criteria": [
-                    (
-                        "multiplicity 4",
-                        "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-                    ),
-                    ("valid classifier", "ExtraTreesClassifier_is_valid"),
-                    ("valid geom reco", "HillasReconstructor_is_valid"),
-                    ("valid energy reco", "ExtraTreesRegressor_is_valid"),
-                ],
+                "EventQualityQuery": {
+                    "quality_criteria": [
+                        (
+                            "multiplicity 4",
+                            "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
+                        ),
+                        ("valid classifier", "ExtraTreesClassifier_is_valid"),
+                        ("valid geom reco", "HillasReconstructor_is_valid"),
+                        ("valid energy reco", "ExtraTreesRegressor_is_valid"),
+                    ],
+                },
             }
         }
     )
@@ -808,12 +810,12 @@ def event_loader_config_path(irf_event_loader_test_config, irf_tmp_path):
 
 @pytest.fixture(scope="session")
 def irf_events_table():
-    from ctapipe.irf import EventPreProcessor
+    from ctapipe.irf import EventPreprocessor
 
     N1 = 1000
     N2 = 100
     N = N1 + N2
-    epp = EventPreProcessor()
+    epp = EventPreprocessor()
     tab = epp.make_empty_table()
 
     ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]

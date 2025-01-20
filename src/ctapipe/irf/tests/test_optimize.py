@@ -9,19 +9,19 @@ from ctapipe.irf.optimize import CutOptimizerBase
 
 def test_optimization_result(tmp_path, irf_event_loader_test_config):
     from ctapipe.irf import (
-        EventPreProcessor,
+        EventPreprocessor,
         OptimizationResult,
         ResultValidRange,
     )
 
     result_path = tmp_path / "result.h5"
-    epp = EventPreProcessor(irf_event_loader_test_config)
+    epp = EventPreprocessor(irf_event_loader_test_config)
     gh_cuts = QTable(
         data=[[0.2, 0.8, 1.5] * u.TeV, [0.8, 1.5, 10] * u.TeV, [0.82, 0.91, 0.88]],
         names=["low", "high", "cut"],
     )
     result = OptimizationResult(
-        precuts=epp,
+        precuts=epp.quality_query,
         gh_cuts=gh_cuts,
         clf_prefix="ExtraTreesClassifier",
         valid_energy_min=0.2 * u.TeV,
@@ -114,7 +114,7 @@ def test_cut_optimizer(
     result = optimizer(
         signal=gamma_events,
         background=proton_events,
-        precuts=gamma_loader.epp,  # identical precuts for all particle types
+        precuts=gamma_loader.epp.quality_query,  # identical precuts for all particle types
         clf_prefix="ExtraTreesClassifier",
     )
     assert isinstance(result, OptimizationResult)
