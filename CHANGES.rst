@@ -1,3 +1,12 @@
+ctapipe v0.23.2 (2025-01-21)
+============================
+
+Maintenance
+-----------
+
+- Add compatibility with numpy>=2.1. [`#2682 <https://github.com/cta-observatory/ctapipe/pull/2682>`__]
+
+
 ctapipe v0.23.1 (2024-12-04)
 ============================
 
