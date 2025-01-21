@@ -177,6 +177,7 @@ class EventSelectionOptimizer(Tool):
             self.log.debug("Loaded %d gammas" % reduced_events["gammas_count"])
             self.log.debug("Keeping %d gammas" % len(reduced_events["gammas"]))
             self.log.info("Optimizing cuts using %d signal" % len(self.signal_events))
+            self.background_events = None
         else:
             if "electrons" not in reduced_events.keys():
                 reduced_events["electrons"] = []

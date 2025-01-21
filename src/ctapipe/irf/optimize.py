@@ -146,31 +146,13 @@ class OptimizationResult:
 class CutOptimizerBase(DefaultRecoEnergyBins):
     """Base class for cut optimization algorithms."""
 
-    min_bkg_fov_offset = AstroQuantity(
-        help=(
-            "Minimum distance from the fov center for background events "
-            "to be taken into account"
-        ),
-        default_value=u.Quantity(0, u.deg),
-        physical_type=u.physical.angle,
-    ).tag(config=True)
-
-    max_bkg_fov_offset = AstroQuantity(
-        help=(
-            "Maximum distance from the fov center for background events "
-            "to be taken into account"
-        ),
-        default_value=u.Quantity(5, u.deg),
-        physical_type=u.physical.angle,
-    ).tag(config=True)
-
     @abstractmethod
     def __call__(
         self,
         signal: QTable,
-        background: QTable,
         precuts: EventQualityQuery,
         clf_prefix: str,
+        background: QTable | None = None,
     ) -> OptimizationResult:
         """
         Optimize G/H (and optionally theta) cuts
@@ -179,15 +161,15 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
         Parameters
         ----------
         signal: astropy.table.QTable
-            Table containing signal events
-        background: astropy.table.QTable
-            Table containing background events
+            Table containing signal events.
         precuts: ctapipe.irf.EventPreprocessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
-            criteria for events
+            criteria for events.
         clf_prefix: str
             Prefix of the output from the G/H classifier for which the
-            cut will be optimized
+            cut will be optimized.
+        background: astropy.table.QTable | None
+            Table containing background events (Not needed for percentile cuts).
         """
 
 
@@ -307,9 +289,9 @@ class PercentileCuts(CutOptimizerBase):
     def __call__(
         self,
         signal: QTable,
-        background: QTable,
         precuts: EventQualityQuery,
         clf_prefix: str,
+        background: QTable | None = None,
     ) -> OptimizationResult:
         gh_cuts = self.gh_cut_calculator(
             signal["gh_score"],
@@ -368,6 +350,24 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         help="Size ratio of on region / off region.",
     ).tag(config=True)
 
+    min_bkg_fov_offset = AstroQuantity(
+        help=(
+            "Minimum distance from the fov center for background events "
+            "to be taken into account"
+        ),
+        default_value=u.Quantity(0, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
+    max_bkg_fov_offset = AstroQuantity(
+        help=(
+            "Maximum distance from the fov center for background events "
+            "to be taken into account"
+        ),
+        default_value=u.Quantity(5, u.deg),
+        physical_type=u.physical.angle,
+    ).tag(config=True)
+
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.theta_cut_calculator = ThetaPercentileCutCalculator(parent=self)
@@ -375,10 +375,16 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
     def __call__(
         self,
         signal: QTable,
-        background: QTable,
         precuts: EventQualityQuery,
         clf_prefix: str,
+        background: QTable | None = None,
     ) -> OptimizationResult:
+        if background is None:
+            raise ValueError(
+                "Optimizing G/H cuts for maximum point-source sensitivity "
+                "requires background events, but none were given."
+            )
+
         initial_gh_cuts = calculate_percentile_cut(
             signal["gh_score"],
             signal["reco_energy"],
