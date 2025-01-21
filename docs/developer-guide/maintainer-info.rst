@@ -37,30 +37,31 @@ The docs are automatically built and deployed using readthedocs.
 How To Make a Release?
 ======================
 
-1. Open a new pull request to prepare the release.
+#. Open a new pull request to prepare the release.
    This should be the last pull request to be merged before making the actual release.
 
-   Run ``towncrier`` in to render the changelog:
+   #. Run ``towncrier`` to render the changelog:
 
-   .. code-block:: console
+      .. code-block:: console
 
-      $ git fetch
-      $ git switch -c prepare_<VERSION NUMBER> origin/main
-      $ towncrier build --version=<VERSION NUMBER>
+         $ git fetch
+         $ git switch -c prepare_<VERSION NUMBER> origin/main
+         $ towncrier build --version=<VERSION NUMBER>
 
-   Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be
-   available from the version dropdown once the documentation is built.
+   #. Add the planned new version to the ``docs/_static/switcher.json`` file, so it will be
+      available from the version dropdown once the documentation is built.
 
-   Update the ``AUTHORS`` file using the following command:
+   #. Update the ``AUTHORS`` file using the following command:
 
-   .. code-block:: console
+      .. code-block:: console
 
-      $ bash -c "git shortlog -sne | grep -v dependabot | sed -E 's/^\s+[0-9]+\s+//' > AUTHORS"
+         $ bash -c "git shortlog -sne | grep -v dependabot | sed -E 's/^\s+[0-9]+\s+//' > AUTHORS"
 
-2. Create a new github release, a good starting point should already be made by the
-   release drafter plugin.
+#. Create a new GitHub release.
+   A good starting point should already be made by the release drafter plugin.
 
-3. The PyPI upload will be done automatically by Github Actions.
+#. The PyPI upload will be done automatically by GitHub Actions.
 
-4. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/
+#. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/
    A pull request to update the recipe should be opened automatically by a conda-forge bot when a new version is published to PyPi. This can take a couple of hours.
+   You can make it manually to speed things up.
