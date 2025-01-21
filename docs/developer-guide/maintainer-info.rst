@@ -62,6 +62,6 @@ How To Make a Release?
 
 #. The PyPI upload will be done automatically by GitHub Actions.
 
-#. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/
-   A pull request to update the recipe should be opened automatically by a conda-forge bot when a new version is published to PyPi. This can take a couple of hours.
+#. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/.
+   A pull request to update the recipe should be opened automatically by a conda-forge bot when a new version is published to PyPI. This can take a couple of hours.
    You can make it manually to speed things up.
