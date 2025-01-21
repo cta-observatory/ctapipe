@@ -10,7 +10,7 @@ from pyirf.benchmarks import angular_resolution, energy_bias_resolution
 from pyirf.binning import calculate_bin_indices, create_histogram_table, split_bin_lo_hi
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
-from ..core.traits import Bool, Float
+from ..core.traits import Bool, Float, List
 from .binning import DefaultFoVOffsetBins, DefaultRecoEnergyBins, DefaultTrueEnergyBins
 from .spectra import ENERGY_FLUX_UNIT, FLUX_UNIT, SPECTRA, Spectra
 
@@ -113,6 +113,12 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
         help="Use true energy instead of reconstructed energy for energy binning.",
     ).tag(config=True)
 
+    quantiles = List(
+        Float(),
+        default_value=[0.25, 0.5, 0.68, 0.95],
+        help="Quantiles for which the containment radius should be calculated.",
+    ).tag(config=True)
+
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -161,18 +167,23 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
             fov_bins=self.fov_offset_bins,
         )
         result["N_EVENTS"] = np.zeros(mat_shape)[np.newaxis, ...]
-        result["ANGULAR_RESOLUTION"] = u.Quantity(
-            np.full(mat_shape, np.nan)[np.newaxis, ...], events["theta"].unit
-        )
+        for q in self.quantiles:
+            result[f"ANGULAR_RESOLUTION_{q * 100:.0f}"] = u.Quantity(
+                np.full(mat_shape, np.nan)[np.newaxis, ...], events["theta"].unit
+            )
 
         for i in range(len(self.fov_offset_bins) - 1):
             ang_res = angular_resolution(
                 events=events[fov_bin_idx == i],
                 energy_bins=e_bins,
                 energy_type=energy_type,
+                quantile=self.quantiles,
             )
             result["N_EVENTS"][:, i, :] = ang_res["n_events"]
-            result["ANGULAR_RESOLUTION"][:, i, :] = ang_res["angular_resolution_68"]
+            for q in self.quantiles:
+                result[f"ANGULAR_RESOLUTION_{q * 100:.0f}"][:, i, :] = ang_res[
+                    f"angular_resolution_{q * 100:.0f}"
+                ]
 
         header = Header()
         header["E_TYPE"] = energy_type.upper()

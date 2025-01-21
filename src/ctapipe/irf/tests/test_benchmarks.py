@@ -42,11 +42,17 @@ def test_make_2d_ang_res(irf_events_table):
     )
 
     ang_res_hdu = ang_res_maker(events=irf_events_table)
-    assert (
-        ang_res_hdu.data["N_EVENTS"].shape
-        == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
-        == (1, 3, 23)
-    )
+    cols = [
+        "N_EVENTS",
+        "ANGULAR_RESOLUTION_25",
+        "ANGULAR_RESOLUTION_50",
+        "ANGULAR_RESOLUTION_68",
+        "ANGULAR_RESOLUTION_95",
+    ]
+    for c in cols:
+        assert c in ang_res_hdu.data.names
+        assert ang_res_hdu.data[c].shape == (1, 3, 23)
+
     _check_boundaries_in_hdu(
         ang_res_hdu,
         lo_vals=[0 * u.deg, 0.03 * u.TeV],
@@ -54,12 +60,17 @@ def test_make_2d_ang_res(irf_events_table):
     )
 
     ang_res_maker.use_true_energy = True
+    ang_res_maker.quantiles = [0.4, 0.7]
     ang_res_hdu = ang_res_maker(events=irf_events_table)
-    assert (
-        ang_res_hdu.data["N_EVENTS"].shape
-        == ang_res_hdu.data["ANGULAR_RESOLUTION"].shape
-        == (1, 3, 29)
-    )
+    cols = [
+        "N_EVENTS",
+        "ANGULAR_RESOLUTION_40",
+        "ANGULAR_RESOLUTION_70",
+    ]
+    for c in cols:
+        assert c in ang_res_hdu.data.names
+        assert ang_res_hdu.data[c].shape == (1, 3, 29)
+
     _check_boundaries_in_hdu(
         ang_res_hdu,
         lo_vals=[0 * u.deg, 0.015 * u.TeV],
