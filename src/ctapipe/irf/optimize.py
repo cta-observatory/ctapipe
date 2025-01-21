@@ -13,7 +13,7 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer, Path
-from .binning import ResultValidRange, make_bins_per_decade
+from .binning import DefaultRecoEnergyBins, ResultValidRange
 from .preprocessing import EventQualityQuery
 
 __all__ = [
@@ -143,25 +143,8 @@ class OptimizationResult:
         )
 
 
-class CutOptimizerBase(Component):
+class CutOptimizerBase(DefaultRecoEnergyBins):
     """Base class for cut optimization algorithms."""
-
-    reco_energy_min = AstroQuantity(
-        help="Minimum value for Reco Energy bins",
-        default_value=u.Quantity(0.015, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    reco_energy_max = AstroQuantity(
-        help="Maximum value for Reco Energy bins",
-        default_value=u.Quantity(150, u.TeV),
-        physical_type=u.physical.energy,
-    ).tag(config=True)
-
-    reco_energy_n_bins_per_decade = Integer(
-        help="Number of bins per decade for Reco Energy bins",
-        default_value=5,
-    ).tag(config=True)
 
     min_bkg_fov_offset = AstroQuantity(
         help=(
@@ -328,15 +311,10 @@ class PercentileCuts(CutOptimizerBase):
         precuts: EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
-        reco_energy_bins = make_bins_per_decade(
-            self.reco_energy_min.to(u.TeV),
-            self.reco_energy_max.to(u.TeV),
-            self.reco_energy_n_bins_per_decade,
-        )
         gh_cuts = self.gh_cut_calculator(
             signal["gh_score"],
             signal["reco_energy"],
-            reco_energy_bins,
+            self.reco_energy_bins,
         )
         gh_mask = evaluate_binned_cut(
             signal["gh_score"],
@@ -347,7 +325,7 @@ class PercentileCuts(CutOptimizerBase):
         spatial_selection_table = self.theta_cut_calculator(
             signal["theta"][gh_mask],
             signal["reco_energy"][gh_mask],
-            reco_energy_bins,
+            self.reco_energy_bins,
         )
 
         result = OptimizationResult(
@@ -401,16 +379,10 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         precuts: EventQualityQuery,
         clf_prefix: str,
     ) -> OptimizationResult:
-        reco_energy_bins = make_bins_per_decade(
-            self.reco_energy_min.to(u.TeV),
-            self.reco_energy_max.to(u.TeV),
-            self.reco_energy_n_bins_per_decade,
-        )
-
         initial_gh_cuts = calculate_percentile_cut(
             signal["gh_score"],
             signal["reco_energy"],
-            bins=reco_energy_bins,
+            bins=self.reco_energy_bins,
             fill_value=0.0,
             percentile=100 * (1 - self.initial_gh_cut_efficency),
             min_events=10,
@@ -426,7 +398,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         spatial_selection_table = self.theta_cut_calculator(
             signal["theta"][initial_gh_mask],
             signal["reco_energy"][initial_gh_mask],
-            reco_energy_bins,
+            self.reco_energy_bins,
         )
         self.log.info("Optimizing G/H separation cut for best sensitivity")
 
@@ -438,7 +410,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         opt_sens, gh_cuts = optimize_gh_cut(
             signal,
             background,
-            reco_energy_bins=reco_energy_bins,
+            reco_energy_bins=self.reco_energy_bins,
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
             theta_cuts=spatial_selection_table,
@@ -458,7 +430,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         spatial_selection_table_opt = self.theta_cut_calculator(
             signal[signal["selected_gh"]]["theta"],
             signal[signal["selected_gh"]]["reco_energy"],
-            reco_energy_bins,
+            self.reco_energy_bins,
         )
 
         result = OptimizationResult(
