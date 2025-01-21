@@ -1,6 +1,12 @@
 ctapipe v0.23.2 (2025-01-21)
 ============================
 
+Bug Fixes
+---------
+
+- Fill ``ctapipe.containers.SimulatedCameraContainer.true_image_sum`` in
+  ``HDF5EventSource``. Always returned default value of -1 before the fix. [`#2680 <https://github.com/cta-observatory/ctapipe/pull/2680>`__]
+
 Maintenance
 -----------
 
