@@ -53,6 +53,8 @@ class PsfMakerBase(DefaultTrueEnergyBins):
         ----------
         events: astropy.table.QTable
             Reconstructed events to be used.
+        spatial_selection_applied: bool
+            If a direction cut was applied on ``events``, pass ``True``, else ``False``.
         extname: str
             Name for the BinTableHDU.
 
