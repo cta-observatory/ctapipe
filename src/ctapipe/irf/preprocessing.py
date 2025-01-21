@@ -24,7 +24,7 @@ from ..core.traits import List, Tuple, Unicode
 from ..io import TableLoader
 from .spectra import SPECTRA, Spectra
 
-__all__ = ["EventLoader", "EventPreprocessor"]
+__all__ = ["EventLoader", "EventPreprocessor", "EventQualityQuery"]
 
 
 class EventQualityQuery(QualityQuery):
