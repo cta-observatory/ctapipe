@@ -381,6 +381,8 @@ class Provenance(metaclass=Singleton):
             if isinstance(obj, Path):
                 return str(obj)
 
+            raise TypeError(f"{obj!r} cannot be serialized to json")
+
         return json.dumps(self.provenance, default=set_default, **kwargs)
 
     @property
