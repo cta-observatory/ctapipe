@@ -371,15 +371,28 @@ class Provenance(metaclass=Singleton):
     def as_json(self, **kwargs):
         """return all finished provenance as JSON.  Kwargs for `json.dumps`
         may be included, e.g. ``indent=4``"""
+        from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
 
         def set_default(obj):
             """handle sets (not part of JSON) by converting to list"""
-            if isinstance(obj, set):
+            if isinstance(obj, (set, UserList)):
                 return list(obj)
-            if isinstance(obj, UserList):
-                return list(obj)
+
             if isinstance(obj, Path):
                 return str(obj)
+
+            if isinstance(obj, Reference):
+                print(type(obj), obj.to_dict())
+                return obj.to_dict()
+
+            if isinstance(
+                obj,
+                (
+                    Contact,
+                    Instrument,
+                ),
+            ):
+                return _to_dict(obj)
 
             raise TypeError(f"{obj!r} cannot be serialized to json")
 
