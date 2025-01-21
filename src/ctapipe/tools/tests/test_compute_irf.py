@@ -74,10 +74,9 @@ def test_irf_tool(
     with fits.open(output_path) as hdul:
         assert isinstance(hdul["ENERGY DISPERSION"], fits.BinTableHDU)
         assert isinstance(hdul["EFFECTIVE AREA"], fits.BinTableHDU)
+        assert isinstance(hdul["PSF"], fits.BinTableHDU)
         if spatial_selection_applied:
             assert isinstance(hdul["RAD_MAX"], fits.BinTableHDU)
-        else:
-            assert isinstance(hdul["PSF"], fits.BinTableHDU)
 
         if include_bkg:
             assert isinstance(hdul["BACKGROUND"], fits.BinTableHDU)

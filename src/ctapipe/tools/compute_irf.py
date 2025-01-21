@@ -186,7 +186,6 @@ class IrfTool(Tool):
         False,
         help=(
             "Compute an IRF after applying a direction cut (``SpatialSelection=RAD_MAX``) "
-            "which makes calculating a point spread function unnecessary."
         ),
     ).tag(config=True)
 
@@ -296,9 +295,7 @@ class IrfTool(Tool):
         self.aeff_maker = EffectiveAreaMakerBase.from_name(
             self.aeff_maker_name, parent=self
         )
-
-        if not self.spatial_selection_applied:
-            self.psf_maker = PsfMakerBase.from_name(self.psf_maker_name, parent=self)
+        self.psf_maker = PsfMakerBase.from_name(self.psf_maker_name, parent=self)
 
         if self.benchmarks_output_path is not None:
             self.angular_resolution_maker = AngularResolutionMakerBase.from_name(
@@ -402,13 +399,13 @@ class IrfTool(Tool):
                 spatial_selection_applied=self.spatial_selection_applied,
             )
         )
-        if not self.spatial_selection_applied:
-            hdus.append(
-                self.psf_maker(
-                    events=self.signal_events[self.signal_events["selected"]]
-                )
+        hdus.append(
+            self.psf_maker(
+                events=self.signal_events[self.signal_events["selected"]],
+                spatial_selection_applied=self.spatial_selection_applied,
             )
-        else:
+        )
+        if self.spatial_selection_applied:
             # TODO: Support fov binning
             self.log.debug(
                 "Currently multiple fov bins is not supported for RAD_MAX. "
