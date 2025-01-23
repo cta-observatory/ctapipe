@@ -280,7 +280,7 @@ class PSFModel(TelescopeComponent):
 
     @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
     @abstractmethod
-    def pdf(self, x, y, x0, y0, *args):
+    def pdf(self, x, y, x0, y0) -> np.ndarray:
         """
         Calculates the value of the psf at a given location
 
@@ -381,19 +381,15 @@ class ComaModel(PSFModel):
         super().__init__(subarray=subarray, **kwargs)
 
     def k_func(self, x):
-        return (
-            1
-            - self.asymmetry_params[0] * np.tanh(self.asymmetry_params[1] * x)
-            - self.asymmetry_params[2] * x
-        )
+        c1, c2, c3 = self.asymmetry_params
+        return 1 - c1 * np.tanh(c2 * x) + c3 * x
 
     def sr_func(self, x):
-        return np.polyval(self.radial_scale_params, x)
+        return np.polyval(self.radial_scale_params[::-1], x)
 
     def sf_func(self, x):
-        return self.az_scale_params[0] * np.exp(
-            -self.az_scale_params[1] * x
-        ) + self.az_scale_params[2] / (self.az_scale_params[2] + x)
+        a1, a2, a3 = self.az_scale_params
+        return a1 * np.exp(-a2 * x) + a3 / (a3 + x)
 
     @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
     def pdf(self, x, y, x0, y0):
