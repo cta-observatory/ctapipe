@@ -9,15 +9,14 @@ from enum import Enum, auto, unique
 import astropy.units as u
 import numpy as np
 from astropy.table import QTable
-from erfa.ufunc import p2s as cartesian_to_spherical
 from scipy.stats import laplace, laplace_asymmetric
 from traitlets import validate
 
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import List, TraitError
-
 from ..compat import StrEnum
+from ..core import TelescopeComponent
+from ..core.traits import List, TraitError
 from ..utils import get_table_dataset
+from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
 
 logger = logging.getLogger(__name__)
@@ -279,6 +278,7 @@ class PSFModel(TelescopeComponent):
     Base component to describe image distortion due to the optics of the different cameras.
     """
 
+    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
     @abstractmethod
     def pdf(self, x, y, x0, y0, *args):
         """
@@ -286,21 +286,27 @@ class PSFModel(TelescopeComponent):
 
         Parameters
         ----------
-        x : float
+        x : u.Quantity[length]
             x-coordinate of the point on the focal plane where the psf is evaluated
-        y : float
+        y : u.Quantity[length]
             y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : float
+        x0 : u.Quantity[length]
             x-coordinate of the point source on the focal plane
-        y0 : float
+        y0 : u.Quantity[length]
             y-coordinate of the point source on the focal plane
         Returns
         ----------
-        psf : float
+        psf : np.ndarray
             value of the PSF at the specified location with the specified position of the point source
         """
 
         pass
+
+
+def _cartesian_to_polar(x, y):
+    r = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return r, phi
 
 
 class ComaModel(PSFModel):
@@ -389,36 +395,20 @@ class ComaModel(PSFModel):
             -self.az_scale_params[1] * x
         ) + self.az_scale_params[2] / (self.az_scale_params[2] + x)
 
+    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
     def pdf(self, x, y, x0, y0):
-        """
-        Calculates the value of the psf at a given location
+        x, y, x0, y0 = all_to_value(x, y, x0, y0, unit=u.m)
+        r, f = _cartesian_to_polar(x, y)
+        r0, f0 = _cartesian_to_polar(x0, y0)
 
-        Parameters
-        ----------
-        x : float
-            x-coordinate of the point on the focal plane where the psf is evaluated
-        y : float
-            y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : float
-            x-coordinate of the point source on the focal plane
-        y0 : float
-            y-coordinate of the point source on the focal plane
-        Returns
-        ----------
-        psf : float
-            value of the PSF at the specified location with the specified position of the point source
-        """
-        f, _, r = cartesian_to_spherical((x, y, 0.0))
-        f0, _, r0 = cartesian_to_spherical((x0, y0, 0.0))
         k = self.k_func(r0)
         sr = self.sr_func(r0)
         sf = self.sf_func(r0)
-        self.radial_pdf_params = (k, r0, sr)
-        self.azimuthal_pdf_params = (f0, sf)
 
-        return laplace_asymmetric.pdf(r, *self.radial_pdf_params) * laplace.pdf(
-            f, *self.azimuthal_pdf_params
-        )
+        radial_pdf = laplace_asymmetric.pdf(r, k, r0, sr)
+        polar_pdf = laplace.pdf(f, f0, sf)
+
+        return radial_pdf * polar_pdf
 
     @validate("asymmetry_params")
     def _check_asymmetry_params(self, proposal):
