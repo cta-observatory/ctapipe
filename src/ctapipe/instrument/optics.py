@@ -380,29 +380,29 @@ class ComaModel(PSFModel):
         """
         super().__init__(subarray=subarray, **kwargs)
 
-    def k_func(self, x):
+    def _k(self, r):
         c1, c2, c3 = self.asymmetry_params
-        return 1 - c1 * np.tanh(c2 * x) + c3 * x
+        return 1 - c1 * np.tanh(c2 * r) + c3 * r
 
-    def sr_func(self, x):
-        return np.polyval(self.radial_scale_params[::-1], x)
+    def _s_r(self, r):
+        return np.polyval(self.radial_scale_params[::-1], r)
 
-    def sf_func(self, x):
+    def _s_phi(self, r):
         a1, a2, a3 = self.az_scale_params
-        return a1 * np.exp(-a2 * x) + a3 / (a3 + x)
+        return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
     @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
     def pdf(self, x, y, x0, y0):
         x, y, x0, y0 = all_to_value(x, y, x0, y0, unit=u.m)
-        r, f = _cartesian_to_polar(x, y)
-        r0, f0 = _cartesian_to_polar(x0, y0)
+        r, phi = _cartesian_to_polar(x, y)
+        r0, phi0 = _cartesian_to_polar(x0, y0)
 
-        k = self.k_func(r0)
-        sr = self.sr_func(r0)
-        sf = self.sf_func(r0)
+        k = self._k(r0)
+        s_r = self._s_r(r0)
+        s_phi = self._s_phi(r0)
 
-        radial_pdf = laplace_asymmetric.pdf(r, k, r0, sr)
-        polar_pdf = laplace.pdf(f, f0, sf)
+        radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
+        polar_pdf = laplace.pdf(phi, phi0, s_phi)
 
         return radial_pdf * polar_pdf
 
