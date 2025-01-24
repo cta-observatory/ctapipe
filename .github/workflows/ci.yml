@@ -18,7 +18,7 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,33 +41,33 @@ jobs:
       matrix:
         include:
           - name: Linux (3.10, mamba)
-            os: ubuntu-latest
+            os: ubuntu-24.04
             python-version: "3.10"
             install-method: mamba
             extras: tests,all
 
-          - name: Linux (3.10, pip)
-            os: ubuntu-latest
-            python-version: "3.10"
-            install-method: pip
-            extras: tests,all
-
           - name: Linux (3.11, pip, minimal-dependencies)
-            os: ubuntu-latest
+            os: ubuntu-24.04
             python-version: "3.11"
             install-method: pip
             extras: tests
 
-          - name: Linux (3.12, mamba, coverage)
-            os: ubuntu-latest
+          - name: Linux (3.12, pip, coverage)
+            os: ubuntu-24.04
             python-version: "3.12"
-            install-method: mamba
+            install-method: pip
             extra-args: ["codecov"]
             extras: tests,all
 
-          - name: Linux (3.12, pip)
-            os: ubuntu-latest
+          - name: Linux (3.12, mamba)
+            os: ubuntu-24.04
             python-version: "3.12"
+            install-method: mamba
+            extras: tests,all
+
+          - name: Linux (3.13, pip)
+            os: ubuntu-24.04
+            python-version: "3.13"
             install-method: pip
             extras: tests,all
 
@@ -187,7 +187,7 @@ jobs:
             sonar_env
 
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
