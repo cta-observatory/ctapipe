@@ -201,15 +201,16 @@ def test_roundtrip(tmpdir: Path):
 
     # make sure it is readable by the event source and matches the images
 
-    for event in EventSource(output_path):
-        for tel_id, dl1 in event.dl1.tel.items():
-            original_image = events[event.count].dl1.tel[tel_id].image
-            read_image = dl1.image
-            assert np.allclose(original_image, read_image, atol=0.1)
+    with EventSource(output_path) as source:
+        for event in source:
+            for tel_id, dl1 in event.dl1.tel.items():
+                original_image = events[event.count].dl1.tel[tel_id].image
+                read_image = dl1.image
+                assert np.allclose(original_image, read_image, atol=0.1)
 
-            original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
-            read_peaktime = dl1.peak_time
-            assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
+                original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
+                read_peaktime = dl1.peak_time
+                assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
 
 
 def test_dl1writer_no_events(tmpdir: Path):
