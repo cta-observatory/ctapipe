@@ -236,12 +236,14 @@ class Tool(Application):
         ``context_manager.__enter__`` and return its result.
 
         This will guarantee that ``context_manager.__exit__`` is called when
-        `~ctapipe.core.Tool.run` finishes, even when an error occurs.
+        `~ctapipe.core.tool.Tool.run` finishes, even when an error occurs.
         """
         return self._exit_stack.enter_context(context_manager)
 
     def initialize(self, argv=None):
-        """handle config and any other low-level setup"""
+        """
+        Handle config and any other low-level setup.
+        """
         self.parse_command_line(argv)
         self.update_logging_config()
 
@@ -381,7 +383,7 @@ class Tool(Application):
         """
         Main function of the tool.
 
-        This is automatically called after `Tool.initialize` when `Tool.run` is called.
+        This is automatically called after `~ctapipe.core.tool.Tool.initialize` when `~ctapipe.core.tool.Tool.run` is called.
         """
 
     @abstractmethod
@@ -389,14 +391,14 @@ class Tool(Application):
         """
         Finish up.
 
-        This is called automatically after `Tool.start` when `Tool.run` is called.
+        This is called automatically after `~ctapipe.core.tool.Tool.start` when `~ctapipe.core.tool.Tool.run` is called.
         """
         self.log.info("Goodbye")
 
     def run(self, argv=None, raises=False):
         """Run the tool.
 
-        This automatically calls `Tool.initialize`, `Tool.start` and `Tool.finish`
+        This automatically calls `~ctapipe.core.tool.Tool.initialize`, `~ctapipe.core.tool.Tool.start` and `~ctapipe.core.tool.Tool.finish`
 
         Parameters
         ----------
