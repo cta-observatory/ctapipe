@@ -3,7 +3,7 @@ Classes and functions related to telescope Optics
 """
 
 import logging
-from enum import Enum, auto, unique
+from enum import IntEnum, auto, unique
 
 import astropy.units as u
 import numpy as np
@@ -22,7 +22,7 @@ __all__ = [
 
 
 @unique
-class FocalLengthKind(Enum):
+class FocalLengthKind(IntEnum):
     """
     Enumeration for the different kinds of focal lengths.
     """
@@ -55,7 +55,7 @@ class SizeType(StrEnum):
 
 
 @unique
-class ReflectorShape(Enum):
+class ReflectorShape(StrEnum):
     """
     Enumeration of the different reflector shapes
     """
