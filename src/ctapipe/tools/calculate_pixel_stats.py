@@ -22,6 +22,8 @@ from ctapipe.io import write_table
 from ctapipe.io.tableloader import TableLoader
 from ctapipe.monitoring.calculator import PixelStatisticsCalculator
 
+__all__ = ["PixelStatisticsCalculatorTool"]
+
 
 class PixelStatisticsCalculatorTool(Tool):
     """

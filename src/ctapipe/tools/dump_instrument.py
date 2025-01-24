@@ -4,12 +4,15 @@ FITS files that can be loaded independently (e.g. with
 CameraGeometry.from_table()).  The name of the output files are
 automatically generated.
 """
+
 import os
 import pathlib
 
 from ctapipe.core import Provenance, Tool
 from ctapipe.core.traits import Enum, Path, Unicode
 from ctapipe.io import EventSource
+
+__all__ = ["DumpInstrumentTool"]
 
 
 class DumpInstrumentTool(Tool):

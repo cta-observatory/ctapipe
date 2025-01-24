@@ -1,6 +1,7 @@
 """
 Merge multiple ctapipe HDF5 files into one
 """
+
 import sys
 from argparse import ArgumentParser
 from collections import Counter
@@ -16,6 +17,8 @@ from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Unicode, flag
 from ..io import HDF5Merger
 from ..io import metadata as meta
+
+__all__ = ["MergeTool"]
 
 
 class MergeTool(Tool):
