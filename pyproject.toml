@@ -30,7 +30,7 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "astropy >=6.0,<8.0.0a0",
+    "astropy >=6.1,<8.0.0a0",
     "docutils",
     "joblib",
     "numba >=0.57",
