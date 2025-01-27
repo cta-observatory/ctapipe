@@ -13,4 +13,3 @@ containers.py
 Caution:
 These uncertainties are calculated using the the information of pixel area and the charges in the pixels.
 In order to obtain the accurate uncertainties, the charges in the image should be counted above the NSB noise fluctuation or the boundary threshold for the image cleaning.
-
