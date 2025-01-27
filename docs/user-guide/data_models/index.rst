@@ -4,10 +4,8 @@
 Data Models
 ***********
 
-The DL1 files are HDF5 format files, with the following data set hierarchy.
-The tables should be written with `pytables <https://www.pytables.org>`_ (not ``h5py``),
-ideally with the :py:class:`~ctapipe.io.HDF5TableWriter`, which ensures the unit
-and other descriptive metadata are attached to the output.
+The ``ctapipe`` output files are HDF5 format files, with the following data set hierarchy.
+The tables are written with `pytables <https://www.pytables.org>`_ (not ``h5py``).
 Containers marked with a ``+`` should be written without their prefix (all others should use column prefixes).
 
 The following describes the contents of data level 1 (DL1) output files
