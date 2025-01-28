@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-from functools import partial
 from typing import Any
 
 import astropy.units as u
@@ -89,13 +88,6 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
                         f"{col} must have units compatible with '{self.expected_units[col].name}'"
                     )
 
-    def _check_interpolators(self, tel_id: int) -> None:
-        if tel_id not in self._interpolators:
-            if self.h5file is not None:
-                self._read_parameter_table(tel_id)  # might need to be removed
-            else:
-                raise KeyError(f"No table available for tel_id {tel_id}")
-
     def _read_parameter_table(self, tel_id: int) -> None:
         # prevent circular import between io and monitoring
         from ..io import read_table
@@ -140,6 +132,13 @@ class LinearInterpolator(MonitoringInterpolator):
         else:
             self.interp_options["bounds_error"] = False
             self.interp_options["fill_value"] = np.nan
+
+    def _check_interpolators(self, tel_id: int) -> None:
+        if tel_id not in self._interpolators:
+            if self.h5file is not None:
+                self._read_parameter_table(tel_id)  # might need to be removed
+            else:
+                raise KeyError(f"No table available for tel_id {tel_id}")
 
 
 class PointingInterpolator(LinearInterpolator):
@@ -249,12 +248,13 @@ class ChunkInterpolator(MonitoringInterpolator):
             Interpolated data for the specified column(s).
         """
 
-        self._check_interpolators(tel_id)
+        if tel_id not in self.values:
+            self._read_parameter_table(tel_id)
 
         result = {}
         mjd = time.to_value("mjd")
         for column in self.columns:
-            result[column] = self._interpolators[tel_id](column, mjd)
+            result[column] = self._interpolate_chunk(tel_id, column, mjd)
 
         if len(result) == 1:
             return result[self.columns[0]]
@@ -280,12 +280,9 @@ class ChunkInterpolator(MonitoringInterpolator):
         input_table = input_table.copy()
         input_table.sort("start_time")
 
-        if tel_id not in self._interpolators:
-            self._interpolators[tel_id] = {}
-            self.values[tel_id] = {}
-            self.start_time[tel_id] = input_table["start_time"].to_value("mjd")
-            self.end_time[tel_id] = input_table["end_time"].to_value("mjd")
-            self._interpolators[tel_id] = partial(self._interpolate_chunk, tel_id)
+        self.values[tel_id] = {}
+        self.start_time[tel_id] = input_table["start_time"].to_value("mjd")
+        self.end_time[tel_id] = input_table["end_time"].to_value("mjd")
 
         for column in self.columns:
             self.values[tel_id][column] = input_table[column]
