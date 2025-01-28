@@ -92,6 +92,12 @@ class PixelStatisticsCalculatorTool(Tool):
             raise ToolConfigurationError(
                 "Input and output files are same. Fix your configuration / cli arguments."
             )
+        if "dl1_images" in self.input_data.config.TableLoader:
+            if not self.input_data.dl1_images:
+                raise ToolConfigurationError(
+                    "The TableLoader must read dl1 images. Set 'dl1_images' to True."
+                )
+        self.input_data.dl1_images = True
         # Load the subarray description from the input file
         subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
         # Get the telescope ids from the input data or use the allowed_tels configuration
@@ -111,15 +117,6 @@ class PixelStatisticsCalculatorTool(Tool):
                 telescopes=[
                     tel_id,
                 ],
-                dl1_images=True,
-                dl1_parameters=False,
-                dl1_muons=False,
-                dl2=False,
-                simulated=False,
-                true_images=False,
-                true_parameters=False,
-                instrument=False,
-                pointing=False,
             )[tel_id]
             # Check if the chunk size does not exceed the table length of the input data
             if self.stats_calculator.stats_aggregators[
