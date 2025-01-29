@@ -12,6 +12,7 @@ __all__ = ["QuickStartTool"]
 
 CONFIGS_TO_WRITE = [
     "base_config.yaml",
+    "calculate_pixel_stats.yaml",
     "stage1_config.yaml",
     "stage2_config.yaml",
     "ml_preprocessing_config.yaml",
