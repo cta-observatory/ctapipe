@@ -2,7 +2,14 @@
 Module for handling monitoring data.
 """
 from .aggregator import PlainAggregator, SigmaClippingAggregator, StatisticsAggregator
-from .interpolation import Interpolator, PointingInterpolator
+from .interpolation import (
+    ChunkInterpolator,
+    FlatFieldInterpolator,
+    LinearInterpolator,
+    MonitoringInterpolator,
+    PedestalInterpolator,
+    PointingInterpolator,
+)
 from .outlier import (
     MedianOutlierDetector,
     OutlierDetector,
@@ -18,6 +25,10 @@ __all__ = [
     "RangeOutlierDetector",
     "MedianOutlierDetector",
     "StdOutlierDetector",
-    "Interpolator",
+    "MonitoringInterpolator",
+    "LinearInterpolator",
     "PointingInterpolator",
+    "ChunkInterpolator",
+    "FlatFieldInterpolator",
+    "PedestalInterpolator",
 ]
