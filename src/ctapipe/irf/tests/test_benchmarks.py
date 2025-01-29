@@ -86,7 +86,6 @@ def test_make_2d_sensitivity(
 
     gamma_loader = EventLoader(
         config=irf_event_loader_test_config,
-        kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
     )
@@ -96,7 +95,6 @@ def test_make_2d_sensitivity(
     )
     proton_loader = EventLoader(
         config=irf_event_loader_test_config,
-        kind="protons",
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,
     )

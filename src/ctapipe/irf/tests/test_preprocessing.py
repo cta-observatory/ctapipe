@@ -68,7 +68,6 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
 
     loader = EventLoader(
         config=irf_event_loader_test_config,
-        kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
     )
@@ -101,5 +100,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
     assert isinstance(meta["sim_info"], SimulatedEventsInfo)
     assert isinstance(meta["spectrum"], PowerLaw)
 
-    events = loader.make_event_weights(events, meta["spectrum"], (0 * u.deg, 1 * u.deg))
+    events = loader.make_event_weights(
+        events, meta["spectrum"], "gammas", (0 * u.deg, 1 * u.deg)
+    )
     assert "weight" in events.colnames

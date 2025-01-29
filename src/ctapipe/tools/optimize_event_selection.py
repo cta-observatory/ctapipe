@@ -111,14 +111,13 @@ class EventSelectionOptimizer(Tool):
         self.optimizer = CutOptimizerBase.from_name(
             self.optimization_algorithm, parent=self
         )
-        self.particles = [
-            EventLoader(
+        self.event_loaders = {
+            "gammas": EventLoader(
                 parent=self,
-                kind="gammas",
                 file=self.gamma_file,
                 target_spectrum=self.gamma_target_spectrum,
             )
-        ]
+        }
         if not isinstance(self.optimizer, PercentileCuts):
             if not self.proton_file or (
                 self.proton_file and not self.proton_file.exists()
@@ -128,22 +127,16 @@ class EventSelectionOptimizer(Tool):
                     f"using {self.optimization_algorithm}."
                 )
 
-            self.particles.append(
-                EventLoader(
-                    parent=self,
-                    kind="protons",
-                    file=self.proton_file,
-                    target_spectrum=self.proton_target_spectrum,
-                )
+            self.event_loaders["protons"] = EventLoader(
+                parent=self,
+                file=self.proton_file,
+                target_spectrum=self.proton_target_spectrum,
             )
             if self.electron_file and self.electron_file.exists():
-                self.particles.append(
-                    EventLoader(
-                        parent=self,
-                        kind="electrons",
-                        file=self.electron_file,
-                        target_spectrum=self.electron_target_spectrum,
-                    )
+                self.event_loaders["electrons"] = EventLoader(
+                    parent=self,
+                    file=self.electron_file,
+                    target_spectrum=self.electron_target_spectrum,
                 )
             else:
                 self.log.warning("Optimizing cuts without electron file.")
@@ -153,21 +146,24 @@ class EventSelectionOptimizer(Tool):
         Load events and optimize g/h (and theta) cuts.
         """
         reduced_events = dict()
-        for sel in self.particles:
-            evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
+        for particle_type, loader in self.event_loaders.items():
+            evs, cnt, meta = loader.load_preselected_events(
+                self.chunk_size, self.obs_time
+            )
             if isinstance(self.optimizer, PointSourceSensitivityOptimizer):
-                evs = sel.make_event_weights(
+                evs = loader.make_event_weights(
                     evs,
                     meta["spectrum"],
+                    particle_type,
                     (
                         self.optimizer.min_bkg_fov_offset,
                         self.optimizer.max_bkg_fov_offset,
                     ),
                 )
 
-            reduced_events[sel.kind] = evs
-            reduced_events[f"{sel.kind}_count"] = cnt
-            if sel.kind == "gammas":
+            reduced_events[particle_type] = evs
+            reduced_events[f"{particle_type}_count"] = cnt
+            if particle_type == "gammas":
                 self.sim_info = meta["sim_info"]
                 self.gamma_spectrum = meta["spectrum"]
 
@@ -211,9 +207,9 @@ class EventSelectionOptimizer(Tool):
             background=self.background_events
             if self.optimization_algorithm != "PercentileCuts"
             else None,
-            # identical precuts for all particle types
-            precuts=self.particles[0].epp.quality_query,
-            clf_prefix=self.particles[0].epp.gammaness_classifier,
+            # identical quality_query for all particle types
+            quality_query=self.event_loaders["gammas"].epp.quality_query,
+            clf_prefix=self.event_loaders["gammas"].epp.gammaness_classifier,
         )
 
     def finish(self):

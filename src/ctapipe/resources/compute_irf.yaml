@@ -12,7 +12,7 @@ IrfTool:
   obs_time: 50 hour
   edisp_maker_name: "EnergyDispersion2dMaker"
   aeff_maker_name: "EffectiveArea2dMaker"
-  psf_maker_name: "Psf3dMaker"
+  psf_maker_name: "PSF3DMaker"
   bkg_maker_name: "BackgroundRate2dMaker"
   angular_resolution_maker_name: "AngularResolution2dMaker"
   energy_bias_resolution_maker_name: "EnergyBiasResolution2dMaker"
@@ -62,7 +62,7 @@ EnergyDispersion2dMaker:
   # fov_offset_max: 5 deg
   # fov_offset_n_bins: 3
 
-Psf3dMaker:
+PSF3DMaker:
   # true_energy_min: 0.015 TeV
   # true_energy_max: 150 TeV
   # true_energy_n_bins_per_decade: 10

@@ -34,7 +34,7 @@ from ..irf.irfs import (
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
     EnergyDispersionMakerBase,
-    PsfMakerBase,
+    PSFMakerBase,
 )
 from ..irf.preprocessing import EventQualityQuery
 
@@ -150,8 +150,8 @@ class IrfTool(Tool):
     ).tag(config=True)
 
     psf_maker_name = traits.ComponentName(
-        PsfMakerBase,
-        default_value="Psf3dMaker",
+        PSFMakerBase,
+        default_value="PSF3DMaker",
         help="The parameterization of the point spread function to be used.",
     ).tag(config=True)
 
@@ -221,7 +221,7 @@ class IrfTool(Tool):
         + classes_with_traits(BackgroundRateMakerBase)
         + classes_with_traits(EffectiveAreaMakerBase)
         + classes_with_traits(EnergyDispersionMakerBase)
-        + classes_with_traits(PsfMakerBase)
+        + classes_with_traits(PSFMakerBase)
         + classes_with_traits(AngularResolutionMakerBase)
         + classes_with_traits(EnergyBiasResolutionMakerBase)
         + classes_with_traits(SensitivityMakerBase)
@@ -246,14 +246,13 @@ class IrfTool(Tool):
             valid_range=self.opt_result.valid_energy,
             raise_error=self.range_check_error,
         )
-        self.particles = [
-            EventLoader(
+        self.event_loaders = {
+            "gammas": EventLoader(
                 parent=self,
-                kind="gammas",
                 file=self.gamma_file,
                 target_spectrum=self.gamma_target_spectrum,
             ),
-        ]
+        }
         if self.do_background:
             if not self.proton_file or (
                 self.proton_file and not self.proton_file.exists()
@@ -262,22 +261,16 @@ class IrfTool(Tool):
                     "At least a proton file required when specifying `do_background`."
                 )
 
-            self.particles.append(
-                EventLoader(
-                    parent=self,
-                    kind="protons",
-                    file=self.proton_file,
-                    target_spectrum=self.proton_target_spectrum,
-                )
+            self.event_loaders["protons"] = EventLoader(
+                parent=self,
+                file=self.proton_file,
+                target_spectrum=self.proton_target_spectrum,
             )
             if self.electron_file and self.electron_file.exists():
-                self.particles.append(
-                    EventLoader(
-                        parent=self,
-                        kind="electrons",
-                        file=self.electron_file,
-                        target_spectrum=self.electron_target_spectrum,
-                    )
+                self.event_loaders["electrons"] = EventLoader(
+                    parent=self,
+                    file=self.electron_file,
+                    target_spectrum=self.electron_target_spectrum,
                 )
             else:
                 self.log.warning("Estimating background without electron file.")
@@ -295,7 +288,7 @@ class IrfTool(Tool):
         self.aeff_maker = EffectiveAreaMakerBase.from_name(
             self.aeff_maker_name, parent=self
         )
-        self.psf_maker = PsfMakerBase.from_name(self.psf_maker_name, parent=self)
+        self.psf_maker = PSFMakerBase.from_name(self.psf_maker_name, parent=self)
 
         if self.benchmarks_output_path is not None:
             self.angular_resolution_maker = AngularResolutionMakerBase.from_name(
@@ -465,64 +458,73 @@ class IrfTool(Tool):
         Load events and calculate the irf (and the benchmarks).
         """
         reduced_events = dict()
-        for sel in self.particles:
-            if sel.epp.gammaness_classifier != self.opt_result.clf_prefix:
+        for particle_type, loader in self.event_loaders.items():
+            if loader.epp.gammaness_classifier != self.opt_result.clf_prefix:
                 raise RuntimeError(
                     "G/H cuts are only valid for gammaness scores predicted by "
                     "the same classifier model. Requested model: %s. "
                     "Model used for g/h cuts: %s."
                     % (
-                        sel.epp.gammaness_classifier,
+                        loader.epp.gammaness_classifier,
                         self.opt_result.clf_prefix,
                     )
                 )
 
             if (
-                sel.epp.quality_query.quality_criteria
-                != self.opt_result.precuts.quality_criteria
+                loader.epp.quality_query.quality_criteria
+                != self.opt_result.quality_query.quality_criteria
             ):
                 self.log.warning(
-                    "Precuts are different from precuts used for calculating "
-                    "g/h / theta cuts. Provided precuts:\n%s. "
-                    "\nUsing the same precuts as g/h / theta cuts:\n%s. "
+                    "Quality criteria are different from quality criteria used for "
+                    "calculating g/h / theta cuts. Provided quality criteria:\n%s. "
+                    "\nUsing the same quality criteria as g/h / theta cuts:\n%s. "
                     % (
-                        sel.epp.quality_query.to_table(functions=True)[
+                        loader.epp.quality_query.to_table(functions=True)[
                             "criteria", "func"
                         ],
-                        self.opt_result.precuts.to_table(functions=True)[
+                        self.opt_result.quality_query.to_table(functions=True)[
                             "criteria", "func"
                         ],
                     )
                 )
-                sel.epp.quality_query = EventQualityQuery(
-                    parent=sel,
-                    quality_criteria=self.opt_result.precuts.quality_criteria,
+                loader.epp.quality_query = EventQualityQuery(
+                    parent=loader,
+                    quality_criteria=self.opt_result.quality_query.quality_criteria,
                 )
 
             self.log.debug(
-                "%s Precuts: %s" % (sel.kind, sel.epp.quality_query.quality_criteria)
+                "%s Quality criteria: %s"
+                % (particle_type, loader.epp.quality_query.quality_criteria)
             )
-            evs, cnt, meta = sel.load_preselected_events(self.chunk_size, self.obs_time)
+            evs, cnt, meta = loader.load_preselected_events(
+                self.chunk_size, self.obs_time
+            )
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:
                 # Sensitivity is only calculated, if do_background is true
                 # and benchmarks_output_path is given.
                 if self.benchmarks_output_path is not None:
-                    evs = sel.make_event_weights(
-                        evs, meta["spectrum"], self.sensitivity_maker.fov_offset_bins
+                    evs = loader.make_event_weights(
+                        evs,
+                        meta["spectrum"],
+                        particle_type,
+                        self.sensitivity_maker.fov_offset_bins,
                     )
                 # If only background should be calculated,
                 # only calculate weights for protons and electrons.
-                elif sel.kind in ("protons", "electrons"):
-                    evs = sel.make_event_weights(evs, meta["spectrum"])
+                elif particle_type in ("protons", "electrons"):
+                    evs = loader.make_event_weights(
+                        evs, meta["spectrum"], particle_type
+                    )
 
-            reduced_events[sel.kind] = evs
-            reduced_events[f"{sel.kind}_count"] = cnt
-            reduced_events[f"{sel.kind}_meta"] = meta
+            reduced_events[particle_type] = evs
+            reduced_events[f"{particle_type}_count"] = cnt
+            reduced_events[f"{particle_type}_meta"] = meta
             self.log.debug(
-                "Loaded %d %s events" % (reduced_events[f"{sel.kind}_count"], sel.kind)
+                "Loaded %d %s events"
+                % (reduced_events[f"{particle_type}_count"], particle_type)
             )
-            if sel.kind == "gammas":
+            if particle_type == "gammas":
                 self.signal_is_point_like = (
                     meta["sim_info"].viewcone_max - meta["sim_info"].viewcone_min
                 ).value == 0

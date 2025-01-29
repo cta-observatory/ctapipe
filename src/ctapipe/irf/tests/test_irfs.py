@@ -106,9 +106,9 @@ def test_make_2d_eff_area(irf_events_table):
 
 
 def test_make_3d_psf(irf_events_table):
-    from ctapipe.irf import Psf3dMaker
+    from ctapipe.irf import PSF3DMaker
 
-    psf_maker = Psf3dMaker(
+    psf_maker = PSF3DMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         true_energy_n_bins_per_decade=7,

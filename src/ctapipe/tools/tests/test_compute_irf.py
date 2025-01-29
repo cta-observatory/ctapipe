@@ -279,6 +279,6 @@ def test_irf_tool_wrong_cuts(
     assert output_path.exists()
     assert output_benchmarks_path.exists()
     assert (
-        "Precuts are different from precuts used for calculating g/h / theta cuts."
-        in logpath.read_text()
+        "Quality criteria are different from quality criteria "
+        "used for calculating g/h / theta cuts." in logpath.read_text()
     )

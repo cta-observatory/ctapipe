@@ -206,12 +206,11 @@ class EventLoader(Component):
 
     classes = [EventPreprocessor]
 
-    def __init__(self, kind: str, file: Path, target_spectrum: Spectra, **kwargs):
+    def __init__(self, file: Path, target_spectrum: Spectra, **kwargs):
         super().__init__(**kwargs)
 
         self.epp = EventPreprocessor(parent=self)
         self.target_spectrum = SPECTRA[target_spectrum]
-        self.kind = kind
         self.file = file
 
     def load_preselected_events(
@@ -299,10 +298,11 @@ class EventLoader(Component):
         self,
         events: QTable,
         spectrum: PowerLaw,
+        kind: str,
         fov_offset_bins: u.Quantity | None = None,
     ) -> QTable:
         if (
-            self.kind == "gammas"
+            kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
                 POINT_SOURCE_FLUX_UNIT
             )

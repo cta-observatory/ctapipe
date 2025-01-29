@@ -31,12 +31,12 @@ __all__ = [
     "EffectiveArea2dMaker",
     "EnergyDispersionMakerBase",
     "EnergyDispersion2dMaker",
-    "PsfMakerBase",
-    "Psf3dMaker",
+    "PSFMakerBase",
+    "PSF3DMaker",
 ]
 
 
-class PsfMakerBase(DefaultTrueEnergyBins):
+class PSFMakerBase(DefaultTrueEnergyBins):
     """Base class for calculating the point spread function."""
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -298,7 +298,7 @@ class BackgroundRate2dMaker(BackgroundRateMakerBase, DefaultFoVOffsetBins):
         )
 
 
-class Psf3dMaker(PsfMakerBase, DefaultFoVOffsetBins):
+class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
     """
     Creates a radially symmetric point spread function calculated in equidistant bins
     of source offset, logarithmic true energy, and field of view offset.

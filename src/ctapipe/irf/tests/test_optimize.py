@@ -21,7 +21,7 @@ def test_optimization_result(tmp_path, irf_event_loader_test_config):
         names=["low", "high", "cut"],
     )
     result = OptimizationResult(
-        precuts=epp.quality_query,
+        quality_query=epp.quality_query,
         gh_cuts=gh_cuts,
         clf_prefix="ExtraTreesClassifier",
         valid_energy_min=0.2 * u.TeV,
@@ -35,7 +35,7 @@ def test_optimization_result(tmp_path, irf_event_loader_test_config):
 
     loaded = OptimizationResult.read(result_path)
     assert isinstance(loaded, OptimizationResult)
-    assert isinstance(loaded.precuts, QualityQuery)
+    assert isinstance(loaded.quality_query, QualityQuery)
     assert isinstance(loaded.valid_energy, ResultValidRange)
     assert isinstance(loaded.valid_offset, ResultValidRange)
     assert isinstance(loaded.gh_cuts, QTable)
@@ -91,7 +91,6 @@ def test_cut_optimizer(
 
     gamma_loader = EventLoader(
         config=irf_event_loader_test_config,
-        kind="gammas",
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
     )
@@ -101,7 +100,6 @@ def test_cut_optimizer(
     )
     proton_loader = EventLoader(
         config=irf_event_loader_test_config,
-        kind="protons",
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,
     )
@@ -114,7 +112,7 @@ def test_cut_optimizer(
     result = optimizer(
         signal=gamma_events,
         background=proton_events,
-        precuts=gamma_loader.epp.quality_query,  # identical precuts for all particle types
+        quality_query=gamma_loader.epp.quality_query,  # identical qualityquery for all particle types
         clf_prefix="ExtraTreesClassifier",
     )
     assert isinstance(result, OptimizationResult)

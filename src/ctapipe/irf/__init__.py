@@ -22,7 +22,7 @@ from .irfs import (
     BackgroundRate2dMaker,
     EffectiveArea2dMaker,
     EnergyDispersion2dMaker,
-    Psf3dMaker,
+    PSF3DMaker,
 )
 from .optimize import (
     GhPercentileCutCalculator,
@@ -38,7 +38,7 @@ __all__ = [
     "AngularResolution2dMaker",
     "EnergyBiasResolution2dMaker",
     "Sensitivity2dMaker",
-    "Psf3dMaker",
+    "PSF3DMaker",
     "BackgroundRate2dMaker",
     "EnergyDispersion2dMaker",
     "EffectiveArea2dMaker",

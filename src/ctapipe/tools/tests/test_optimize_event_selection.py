@@ -36,7 +36,7 @@ def test_cuts_optimization(
 
     result = OptimizationResult.read(output_path)
     assert isinstance(result, OptimizationResult)
-    assert isinstance(result.precuts, QualityQuery)
+    assert isinstance(result.quality_query, QualityQuery)
     assert isinstance(result.valid_energy, ResultValidRange)
     assert isinstance(result.valid_offset, ResultValidRange)
     assert isinstance(result.gh_cuts, QTable)
