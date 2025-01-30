@@ -19,29 +19,31 @@ def _check_boundaries_in_hdu(
         )
 
 
-def test_make_2d_bkg(irf_events_table):
+def test_make_2d_background(irf_events_table):
     from ctapipe.irf import BackgroundRate2dMaker
 
-    bkg_maker = BackgroundRate2dMaker(
+    background_maker = BackgroundRate2dMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         reco_energy_n_bins_per_decade=7,
         reco_energy_max=155 * u.TeV,
     )
 
-    bkg_hdu = bkg_maker(events=irf_events_table, obs_time=1 * u.s)
+    background_hdu = background_maker(events=irf_events_table, obs_time=1 * u.s)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
-    assert bkg_hdu.data["BKG"].shape == (1, 3, 29)
+    assert background_hdu.data["BKG"].shape == (1, 3, 29)
 
     _check_boundaries_in_hdu(
-        bkg_hdu, lo_vals=[0 * u.deg, 0.015 * u.TeV], hi_vals=[3 * u.deg, 155 * u.TeV]
+        background_hdu,
+        lo_vals=[0 * u.deg, 0.015 * u.TeV],
+        hi_vals=[3 * u.deg, 155 * u.TeV],
     )
 
 
 def test_make_2d_energy_migration(irf_events_table):
     from ctapipe.irf import EnergyDispersion2dMaker
 
-    edisp_maker = EnergyDispersion2dMaker(
+    energy_dispersion_maker = EnergyDispersion2dMaker(
         fov_offset_n_bins=3,
         fov_offset_max=3 * u.deg,
         true_energy_n_bins_per_decade=7,
@@ -50,12 +52,14 @@ def test_make_2d_energy_migration(irf_events_table):
         energy_migration_min=0.1,
         energy_migration_max=10,
     )
-    edisp_hdu = edisp_maker(events=irf_events_table, spatial_selection_applied=False)
+    energy_dispersion_hdu = energy_dispersion_maker(
+        events=irf_events_table, spatial_selection_applied=False
+    )
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
-    assert edisp_hdu.data["MATRIX"].shape == (1, 3, 20, 29)
+    assert energy_dispersion_hdu.data["MATRIX"].shape == (1, 3, 20, 29)
 
     _check_boundaries_in_hdu(
-        edisp_hdu,
+        energy_dispersion_hdu,
         lo_vals=[0 * u.deg, 0.015 * u.TeV, 0.1],
         hi_vals=[3 * u.deg, 155 * u.TeV, 10],
         colnames=["THETA", "ENERG", "MIGRA"],

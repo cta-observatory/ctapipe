@@ -217,15 +217,15 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
         # For point-like gammas the effective area can only be calculated
         # at one point in the FoV.
         if signal_is_point_like:
-            aeff = effective_area_per_energy(
+            effective_area = effective_area_per_energy(
                 selected_events=events,
                 simulation_info=sim_info,
                 true_energy_bins=self.true_energy_bins,
             )
             # +1 dimension for FOV offset
-            aeff = aeff[..., np.newaxis]
+            effective_area = effective_area[..., np.newaxis]
         else:
-            aeff = effective_area_per_energy_and_fov(
+            effective_area = effective_area_per_energy_and_fov(
                 selected_events=events,
                 simulation_info=sim_info,
                 true_energy_bins=self.true_energy_bins,
@@ -233,7 +233,7 @@ class EffectiveArea2dMaker(EffectiveAreaMakerBase, DefaultFoVOffsetBins):
             )
 
         return create_aeff2d_hdu(
-            effective_area=aeff,
+            effective_area=effective_area,
             true_energy_bins=self.true_energy_bins,
             fov_offset_bins=self.fov_offset_bins,
             point_like=spatial_selection_applied,

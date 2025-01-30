@@ -33,7 +33,7 @@ def dummy_cuts_file(
     return output_path
 
 
-@pytest.mark.parametrize("include_bkg", (False, True))
+@pytest.mark.parametrize("include_background", (False, True))
 @pytest.mark.parametrize("spatial_selection_applied", (True, False))
 def test_irf_tool(
     gamma_diffuse_full_reco_file,
@@ -41,7 +41,7 @@ def test_irf_tool(
     event_loader_config_path,
     dummy_cuts_file,
     tmp_path,
-    include_bkg,
+    include_background,
     spatial_selection_applied,
 ):
     from ctapipe.tools.compute_irf import IrfTool
@@ -58,7 +58,7 @@ def test_irf_tool(
     if spatial_selection_applied:
         argv.append("--spatial-selection-applied")
 
-    if include_bkg:
+    if include_background:
         argv.append(f"--proton-file={proton_full_reco_file}")
         # Use diffuse gammas weighted to electron spectrum as stand-in
         argv.append(f"--electron-file={gamma_diffuse_full_reco_file}")
@@ -78,7 +78,7 @@ def test_irf_tool(
         if spatial_selection_applied:
             assert isinstance(hdul["RAD_MAX"], fits.BinTableHDU)
 
-        if include_bkg:
+        if include_background:
             assert isinstance(hdul["BACKGROUND"], fits.BinTableHDU)
 
     output_path.unlink()  # Delete output file
@@ -93,7 +93,7 @@ def test_irf_tool(
     with fits.open(output_benchmarks_path) as hdul:
         assert isinstance(hdul["ENERGY BIAS RESOLUTION"], fits.BinTableHDU)
         assert isinstance(hdul["ANGULAR RESOLUTION"], fits.BinTableHDU)
-        if include_bkg:
+        if include_background:
             assert isinstance(hdul["SENSITIVITY"], fits.BinTableHDU)
 
 

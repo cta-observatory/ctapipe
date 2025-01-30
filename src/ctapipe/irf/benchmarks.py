@@ -272,7 +272,7 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
             signal_hist = create_histogram_table(
                 events=signal_events[fov_bin_idx == i], bins=self.reco_energy_bins
             )
-            bkg_hist = estimate_background(
+            background_hist = estimate_background(
                 events=background_events,
                 reco_energy_bins=self.reco_energy_bins,
                 theta_cuts=spatial_selection_table,
@@ -281,7 +281,9 @@ class Sensitivity2dMaker(SensitivityMakerBase, DefaultFoVOffsetBins):
                 fov_offset_max=self.fov_offset_bins[i + 1],
             )
             sens = calculate_sensitivity(
-                signal_hist=signal_hist, background_hist=bkg_hist, alpha=self.alpha
+                signal_hist=signal_hist,
+                background_hist=background_hist,
+                alpha=self.alpha,
             )
             result["N_SIGNAL"][:, i, :] = sens["n_signal"]
             result["N_SIGNAL_WEIGHTED"][:, i, :] = sens["n_signal_weighted"]

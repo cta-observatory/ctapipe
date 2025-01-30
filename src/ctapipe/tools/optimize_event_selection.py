@@ -147,22 +147,22 @@ class EventSelectionOptimizer(Tool):
         """
         reduced_events = dict()
         for particle_type, loader in self.event_loaders.items():
-            evs, cnt, meta = loader.load_preselected_events(
+            events, count, meta = loader.load_preselected_events(
                 self.chunk_size, self.obs_time
             )
             if isinstance(self.optimizer, PointSourceSensitivityOptimizer):
-                evs = loader.make_event_weights(
-                    evs,
+                events = loader.make_event_weights(
+                    events,
                     meta["spectrum"],
                     particle_type,
                     (
-                        self.optimizer.min_bkg_fov_offset,
-                        self.optimizer.max_bkg_fov_offset,
+                        self.optimizer.min_background_fov_offset,
+                        self.optimizer.max_background_fov_offset,
                     ),
                 )
 
-            reduced_events[particle_type] = evs
-            reduced_events[f"{particle_type}_count"] = cnt
+            reduced_events[particle_type] = events
+            reduced_events[f"{particle_type}_count"] = count
             if particle_type == "gammas":
                 self.sim_info = meta["sim_info"]
                 self.gamma_spectrum = meta["spectrum"]

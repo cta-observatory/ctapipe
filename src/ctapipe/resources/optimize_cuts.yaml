@@ -43,8 +43,8 @@ GhPercentileCutCalculator:
   smoothing:
 
 PointSourceSensitivityOptimizer:
-  min_bkg_fov_offset: 0.0 deg
-  max_bkg_fov_offset: 5.0 deg
+  min_background_fov_offset: 0.0 deg
+  max_background_fov_offset: 5.0 deg
   initial_gh_cut_efficency: 0.4
   max_gh_cut_efficiency: 0.8
   gh_cut_efficiency_step: 0.1

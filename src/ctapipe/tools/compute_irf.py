@@ -137,13 +137,13 @@ class IrfTool(Tool):
         ),
     ).tag(config=True)
 
-    edisp_maker_name = traits.ComponentName(
+    energy_dispersion_maker_name = traits.ComponentName(
         EnergyDispersionMakerBase,
         default_value="EnergyDispersion2dMaker",
         help="The parameterization of the energy dispersion to be used.",
     ).tag(config=True)
 
-    aeff_maker_name = traits.ComponentName(
+    effective_area_maker_name = traits.ComponentName(
         EffectiveAreaMakerBase,
         default_value="EffectiveArea2dMaker",
         help="The parameterization of the effective area to be used.",
@@ -155,7 +155,7 @@ class IrfTool(Tool):
         help="The parameterization of the point spread function to be used.",
     ).tag(config=True)
 
-    bkg_maker_name = traits.ComponentName(
+    background_maker_name = traits.ComponentName(
         BackgroundRateMakerBase,
         default_value="BackgroundRate2dMaker",
         help="The parameterization of the background rate to be used.",
@@ -275,18 +275,19 @@ class IrfTool(Tool):
             else:
                 self.log.warning("Estimating background without electron file.")
 
-            self.bkg_maker = BackgroundRateMakerBase.from_name(
-                self.bkg_maker_name, parent=self
+            self.background_maker = BackgroundRateMakerBase.from_name(
+                self.background_maker_name, parent=self
             )
             check_e_bins(
-                bins=self.bkg_maker.reco_energy_bins, source="background reco energy"
+                bins=self.background_maker.reco_energy_bins,
+                source="background reco energy",
             )
 
-        self.edisp_maker = EnergyDispersionMakerBase.from_name(
-            self.edisp_maker_name, parent=self
+        self.energy_dispersion_maker = EnergyDispersionMakerBase.from_name(
+            self.energy_dispersion_maker_name, parent=self
         )
-        self.aeff_maker = EffectiveAreaMakerBase.from_name(
-            self.aeff_maker_name, parent=self
+        self.effective_area_maker = EffectiveAreaMakerBase.from_name(
+            self.effective_area_maker_name, parent=self
         )
         self.psf_maker = PSFMakerBase.from_name(self.psf_maker_name, parent=self)
 
@@ -349,17 +350,19 @@ class IrfTool(Tool):
             ]
 
         if self.do_background:
-            bkgs = ["protons", "electrons"] if self.electron_file else ["protons"]
+            backgrounds = (
+                ["protons", "electrons"] if self.electron_file else ["protons"]
+            )
             n_sel = {"protons": 0, "electrons": 0}
-            for bg_type in bkgs:
-                reduced_events[bg_type]["selected_gh"] = evaluate_binned_cut(
-                    reduced_events[bg_type]["gh_score"],
-                    reduced_events[bg_type]["reco_energy"],
+            for bkg_type in backgrounds:
+                reduced_events[bkg_type]["selected_gh"] = evaluate_binned_cut(
+                    reduced_events[bkg_type]["gh_score"],
+                    reduced_events[bkg_type]["reco_energy"],
                     self.opt_result.gh_cuts,
                     operator.ge,
                 )
-                n_sel[bg_type] = np.count_nonzero(
-                    reduced_events[bg_type]["selected_gh"]
+                n_sel[bkg_type] = np.count_nonzero(
+                    reduced_events[bkg_type]["selected_gh"]
                 )
 
             self.log.info(
@@ -379,7 +382,7 @@ class IrfTool(Tool):
 
     def _make_signal_irf_hdus(self, hdus, sim_info):
         hdus.append(
-            self.aeff_maker(
+            self.effective_area_maker(
                 events=self.signal_events[self.signal_events["selected"]],
                 spatial_selection_applied=self.spatial_selection_applied,
                 signal_is_point_like=self.signal_is_point_like,
@@ -387,7 +390,7 @@ class IrfTool(Tool):
             )
         )
         hdus.append(
-            self.edisp_maker(
+            self.energy_dispersion_maker(
                 events=self.signal_events[self.signal_events["selected"]],
                 spatial_selection_applied=self.spatial_selection_applied,
             )
@@ -496,7 +499,7 @@ class IrfTool(Tool):
                 "%s Quality criteria: %s"
                 % (particle_type, loader.epp.quality_query.quality_criteria)
             )
-            evs, cnt, meta = loader.load_preselected_events(
+            events, count, meta = loader.load_preselected_events(
                 self.chunk_size, self.obs_time
             )
             # Only calculate event weights if background or sensitivity should be calculated.
@@ -504,8 +507,8 @@ class IrfTool(Tool):
                 # Sensitivity is only calculated, if do_background is true
                 # and benchmarks_output_path is given.
                 if self.benchmarks_output_path is not None:
-                    evs = loader.make_event_weights(
-                        evs,
+                    events = loader.make_event_weights(
+                        events,
                         meta["spectrum"],
                         particle_type,
                         self.sensitivity_maker.fov_offset_bins,
@@ -513,12 +516,12 @@ class IrfTool(Tool):
                 # If only background should be calculated,
                 # only calculate weights for protons and electrons.
                 elif particle_type in ("protons", "electrons"):
-                    evs = loader.make_event_weights(
-                        evs, meta["spectrum"], particle_type
+                    events = loader.make_event_weights(
+                        events, meta["spectrum"], particle_type
                     )
 
-            reduced_events[particle_type] = evs
-            reduced_events[f"{particle_type}_count"] = cnt
+            reduced_events[particle_type] = events
+            reduced_events[f"{particle_type}_count"] = count
             reduced_events[f"{particle_type}_meta"] = meta
             self.log.debug(
                 "Loaded %d %s events"
@@ -535,8 +538,8 @@ class IrfTool(Tool):
                 in the FoV, but `fov_offset_n_bins > 1`."""
 
             if (
-                self.edisp_maker.fov_offset_n_bins > 1
-                or self.aeff_maker.fov_offset_n_bins > 1
+                self.energy_dispersion_maker.fov_offset_n_bins > 1
+                or self.effective_area_maker.fov_offset_n_bins > 1
             ):
                 raise ToolConfigurationError(errormessage)
 
@@ -546,7 +549,7 @@ class IrfTool(Tool):
             ):
                 raise ToolConfigurationError(errormessage)
 
-            if self.do_background and self.bkg_maker.fov_offset_n_bins > 1:
+            if self.do_background and self.background_maker.fov_offset_n_bins > 1:
                 raise ToolConfigurationError(errormessage)
 
             if self.benchmarks_output_path is not None and (
@@ -573,14 +576,14 @@ class IrfTool(Tool):
         )
         if self.do_background:
             hdus.append(
-                self.bkg_maker(
+                self.background_maker(
                     self.background_events[self.background_events["selected_gh"]],
                     self.obs_time,
                 )
             )
             if "protons" in reduced_events.keys():
                 hdus.append(
-                    self.aeff_maker(
+                    self.effective_area_maker(
                         events=reduced_events["protons"][
                             reduced_events["protons"]["selected_gh"]
                         ],
@@ -592,7 +595,7 @@ class IrfTool(Tool):
                 )
             if "electrons" in reduced_events.keys():
                 hdus.append(
-                    self.aeff_maker(
+                    self.effective_area_maker(
                         events=reduced_events["electrons"][
                             reduced_events["electrons"]["selected_gh"]
                         ],

@@ -350,7 +350,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         help="Size ratio of on region / off region.",
     ).tag(config=True)
 
-    min_bkg_fov_offset = AstroQuantity(
+    min_background_fov_offset = AstroQuantity(
         help=(
             "Minimum distance from the fov center for background events "
             "to be taken into account"
@@ -359,7 +359,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         physical_type=u.physical.angle,
     ).tag(config=True)
 
-    max_bkg_fov_offset = AstroQuantity(
+    max_background_fov_offset = AstroQuantity(
         help=(
             "Maximum distance from the fov center for background events "
             "to be taken into account"
@@ -421,8 +421,8 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             op=operator.ge,
             theta_cuts=spatial_selection_table,
             alpha=self.alpha,
-            fov_offset_max=self.max_bkg_fov_offset,
-            fov_offset_min=self.min_bkg_fov_offset,
+            fov_offset_max=self.max_background_fov_offset,
+            fov_offset_min=self.min_background_fov_offset,
         )
         valid_energy = self._get_valid_energy_range(opt_sens)
 
@@ -446,8 +446,8 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             valid_energy_min=valid_energy[0],
             valid_energy_max=valid_energy[1],
             # A single set of cuts is calculated for the whole fov atm
-            valid_offset_min=self.min_bkg_fov_offset,
-            valid_offset_max=self.max_bkg_fov_offset,
+            valid_offset_min=self.min_background_fov_offset,
+            valid_offset_max=self.max_background_fov_offset,
             spatial_selection_table=spatial_selection_table_opt,
         )
         return result

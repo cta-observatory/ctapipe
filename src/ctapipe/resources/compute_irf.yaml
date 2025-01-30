@@ -10,10 +10,10 @@ IrfTool:
   proton_target_spectrum: IRFDOC_PROTON_SPECTRUM
   electron_target_spectrum: IRFDOC_ELECTRON_SPECTRUM
   obs_time: 50 hour
-  edisp_maker_name: "EnergyDispersion2dMaker"
-  aeff_maker_name: "EffectiveArea2dMaker"
+  energy_dispersion_maker_name: "EnergyDispersion2dMaker"
+  effective_area_maker_name: "EffectiveArea2dMaker"
   psf_maker_name: "PSF3DMaker"
-  bkg_maker_name: "BackgroundRate2dMaker"
+  background_maker_name: "BackgroundRate2dMaker"
   angular_resolution_maker_name: "AngularResolution2dMaker"
   energy_bias_resolution_maker_name: "EnergyBiasResolution2dMaker"
   sensitivity_maker_name: "Sensitivity2dMaker"
