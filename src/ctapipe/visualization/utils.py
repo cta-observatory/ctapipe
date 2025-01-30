@@ -31,11 +31,12 @@ def build_hillas_overlay(hillas, unit, with_label=True, n_sigma=1):
     psi_deg = Angle(hillas.psi).wrap_at(180 * u.deg).to_value(u.deg)
 
     ret = dict(
-        cog_x=cog_x,
-        cog_y=cog_y,
-        width=width,
-        length=length,
-        psi_rad=psi_rad,
+        cog_x=float(cog_x),
+        cog_y=float(cog_y),
+        width=float(width),
+        length=float(length),
+        psi_rad=float(psi_rad),
+        psi_uncert_rad=float(hillas.psi_uncertainty.to_value(u.rad)),
     )
 
     if not with_label:
@@ -67,9 +68,9 @@ def build_hillas_overlay(hillas, unit, with_label=True, n_sigma=1):
         label_y = cog_y - r * np.sin(psi_rad)
         rotation = psi_deg + 90
 
-    ret["rotation"] = rotation
-    ret["label_x"] = label_x
-    ret["label_y"] = label_y
+    ret["rotation"] = float(rotation)
+    ret["label_x"] = float(label_x)
+    ret["label_y"] = float(label_y)
 
     if unit == u.deg:
         sep = ""
