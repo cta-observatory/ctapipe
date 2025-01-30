@@ -85,6 +85,10 @@ jobs:
             install-method: mamba
             extras: tests,all
 
+          - os: windows-latest
+            python-version: "3.10"
+            install-method: conda
+
     defaults:
       run:
         # We need login shells (-l) for micromamba to work.
