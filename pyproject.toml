@@ -30,17 +30,17 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "astropy >=5.3,<8.0.0a0",
+    "astropy >=6.1,<8.0.0a0",
     "docutils",
     "joblib",
-    "numba >=0.56",
-    "numpy >=1.23,<3.0.0a0",
+    "numba >=0.57",
+    "numpy >=1.24,<3.0.0a0",
     "packaging",
     "psutil",
     "pyyaml >=5.1",
     "requests",
     "scikit-learn !=1.4.0", # 1.4.0 breaks with astropy tables, before and after works
-    "scipy ~=1.2",
+    "scipy ~=1.10",
     "tables ~=3.4",
     "tqdm >=4.32",
     "traitlets ~=5.6",

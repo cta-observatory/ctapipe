@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.11
   - pip
-  - astropy>=5.3,<8
+  - astropy>=6.1,<8
   - black
   - bokeh=3
   - nbsphinx
@@ -19,7 +19,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba>=0.56
-  - numpy>=1.22
+  - numpy>=1.24
   - numpydoc
   - pandas
   - pypandoc
