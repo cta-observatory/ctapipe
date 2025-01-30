@@ -23,7 +23,7 @@ All functions, classes, and modules should contain appropriate API
 documentation in their *docstrings*.  The *docstrings* should be
 written in ReStructuredText format (same as the Sphinx high-level
 documentation), and should follow the `NumPy Docstring Standards
-<https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt#docstring-standard>`_
+<https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`_
 
 Documentation for all algorithms should contain citations to external
 works, which should be collected in ``bibliography.rst``. An example of

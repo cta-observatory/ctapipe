@@ -1,6 +1,7 @@
 """
 Tool to apply machine learning models in bulk (as opposed to event by event).
 """
+
 import numpy as np
 import tables
 from astropy.table import Table, join, vstack
@@ -9,9 +10,8 @@ from tqdm.auto import tqdm
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Integer, List, Path, classes_with_traits, flag
 from ctapipe.io import HDF5Merger, TableLoader, write_table
-from ctapipe.io.astropy_helpers import read_table
+from ctapipe.io.astropy_helpers import join_allow_empty, read_table
 from ctapipe.io.tableio import TelListToMaskTransform
-from ctapipe.io.tableloader import _join_subarray_events
 from ctapipe.reco import Reconstructor
 
 __all__ = [
@@ -218,6 +218,23 @@ class ApplyModels(Tool):
     def _combine(self, reconstructor, tel_tables, start, stop):
         stereo_table = vstack(list(tel_tables.values()))
 
+        # stacking the single telescope tables and joining
+        # potentially changes the order of the subarray events.
+        # to ensure events are stored in the correct order,
+        # we resort to trigger table order
+        trigger = read_table(
+            self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
+        )[["obs_id", "event_id"]]
+        trigger["__sort_index__"] = np.arange(len(trigger))
+
+        stereo_table = join_allow_empty(
+            stereo_table,
+            trigger,
+            keys=["obs_id", "event_id"],
+            join_type="left",
+        )
+        stereo_table.sort("__sort_index__")
+
         combiner = reconstructor.stereo_combiner
         stereo_predictions = combiner.predict_table(stereo_table)
         del stereo_table
@@ -229,19 +246,6 @@ class ApplyModels(Tool):
         ):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
             stereo_predictions[c.name].description = c.description
-
-        # stacking the single telescope tables and joining
-        # potentially changes the order of the subarray events.
-        # to ensure events are stored in the correct order,
-        # we resort to trigger table order
-        trigger = read_table(
-            self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
-        )[["obs_id", "event_id"]]
-        trigger["__sort_index__"] = np.arange(len(trigger))
-
-        stereo_predictions = _join_subarray_events(trigger, stereo_predictions)
-        stereo_predictions.sort("__sort_index__")
-        del stereo_predictions["__sort_index__"]
 
         write_table(
             stereo_predictions,

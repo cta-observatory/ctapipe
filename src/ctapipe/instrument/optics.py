@@ -9,15 +9,14 @@ from enum import Enum, auto, unique
 import astropy.units as u
 import numpy as np
 from astropy.table import QTable
-from erfa.ufunc import p2s as cartesian_to_spherical
 from scipy.stats import laplace, laplace_asymmetric
 from traitlets import validate
 
-from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import List, TraitError
-
 from ..compat import StrEnum
+from ..core import TelescopeComponent
+from ..core.traits import Float, List, TraitError
 from ..utils import get_table_dataset
+from ..utils.quantities import all_to_value
 from .warnings import warn_from_name
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ __all__ = [
     "OpticsDescription",
     "FocalLengthKind",
     "PSFModel",
-    "ComaModel",
+    "ComaPSFModel",
 ]
 
 
@@ -279,77 +278,101 @@ class PSFModel(TelescopeComponent):
     Base component to describe image distortion due to the optics of the different cameras.
     """
 
+    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
     @abstractmethod
-    def pdf(self, x, y, x0, y0, *args):
+    def pdf(self, x, y, x0, y0) -> np.ndarray:
         """
         Calculates the value of the psf at a given location
 
         Parameters
         ----------
-        x : float
+        x : u.Quantity[length]
             x-coordinate of the point on the focal plane where the psf is evaluated
-        y : float
+        y : u.Quantity[length]
             y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : float
+        x0 : u.Quantity[length]
             x-coordinate of the point source on the focal plane
-        y0 : float
+        y0 : u.Quantity[length]
             y-coordinate of the point source on the focal plane
         Returns
         ----------
-        psf : float
+        psf : np.ndarray
             value of the PSF at the specified location with the specified position of the point source
         """
 
         pass
 
 
-class ComaModel(PSFModel):
+def _cartesian_to_polar(x, y):
+    r = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return r, phi
+
+
+class ComaPSFModel(PSFModel):
     r"""
-    PSF model, describing pure coma aberrations PSF effect
-    asymmetry_params describe the dependency of the psf on the distance to the center of the camera
-    Used to calculate a pdf asymmetry parameter K of the asymmetric radial laplacian of the psf as
-    a function of the distance r to the optical axis
+    PSF model describing pure coma aberrations PSF effect.
 
-    .. math:: K(r) = 1 - asym_0 \tanh(asym_1 r) - asym_2 r
+    The PSF is described by a combination of an asymmetric Laplacian for the radial part and a symmetric Laplacian in the polar direction.
 
-    radial_scale_params describes the dependency of the radial scale on the distance to the center of the camera
-    Used to calculate width Sr of the asymmetric radial laplacian in the PSF as a of function the distance r to the optical axis
+    Attributes
+    ----------
+    asymmetry_params : list
+        Describes the dependency of the PSF on the distance to the center of the camera.
+        Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
+        of the PSF as a function of the distance r to the optical axis.
+        .. math:: K(r) = 1 - \text{asym}_0 \tanh(\text{asym}_1 r) - \text{asym}_2 r
 
-    .. math:: S_{R}(r) & = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
+    radial_scale_params : list
+        Describes the dependency of the radial scale on the distance to the center of the camera.
+        Used to calculate width Sr of the asymmetric radial Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+        .. math:: S_{R}(r) = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
-    az_scale_params Describes the dependency of the azimuthal scale on the distance to the center of the camera
-    Used to calculate the width Sf of the azimuthal laplacian in the PSF as a function of the angle :math:`phi`
+    phi_scale_params : list
+        Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the center of the camera.
+        Used to calculate the width Sf of the polar Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+        .. math:: S_{\phi}(r) = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
 
-    .. math:: S_{\phi}(r) & = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
+    Parameters
+    ----------
+    subarray : ctapipe.instrument.SubarrayDescription
+        Description of the subarray.
 
-    for reference see :cite:p:`startracker`
+    References
+    ----------
+    For reference, see :cite:p:`startracker`
     """
 
     asymmetry_params = List(
         help=(
-            "Describes the dependency of the psf on the distance"
-            "to the center of the camera. Used to calculate a pdf"
-            "asymmetry parameter K of the asymmetric radial laplacian"
-            "of the psf as a function of the distance r to the optical axis"
+            "Describes the dependency of the PSF on the distance"
+            "to the center of the camera. Used to calculate a PDF"
+            "asymmetry parameter K of the asymmetric radial Laplacian"
+            "of the PSF as a function of the distance r to the optical axis"
         )
     ).tag(config=True)
 
     radial_scale_params = List(
         help=(
             "Describes the dependency of the radial scale on the"
-            "distance to the center of the camera Used to calculate"
-            "width Sr of the asymmetric radial laplacian in the PSF"
-            "as a of function the distance r to the optical axis"
+            "distance to the center of the camera. Used to calculate"
+            "width Sr of the asymmetric radial Laplacian in the PSF"
+            "as a function of the distance r to the optical axis"
         )
     ).tag(config=True)
 
-    az_scale_params = List(
+    phi_scale_params = List(
         help=(
-            "Describes the dependency of the azimuthal scale on the"
+            "Describes the dependency of the polar scale on the"
             "distance to the center of the camera. Used to calculate"
-            "the the width Sf of the azimuthal laplacian in the PSF"
-            "as a function of the angle phi"
+            "the width Sf of the polar Laplacian in the PSF"
+            "as a function of the distance r to the optical axis"
         )
+    ).tag(config=True)
+
+    pixel_width = Float(
+        default_value=0.05,
+        help="Width of a pixel in the camera in meters",
     ).tag(config=True)
 
     def __init__(
@@ -358,67 +381,57 @@ class ComaModel(PSFModel):
         **kwargs,
     ):
         r"""
-         PSF model, describing purely the effect of coma aberration on the PSF
-        uses an asymmetric laplacian for the radial part
+        PSF model, describing purely the effect of coma aberration on the PSF
+        uses an asymmetric Laplacian for the radial part
 
         .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
 
-        and a symmetric laplacian in azimuthal direction
+        and a symmetric Laplacian in azimuthal direction
 
         .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
         Parameters
         ----------
-        subarray: ctapipe.instrument.SubarrayDescription
+        subarray : ctapipe.instrument.SubarrayDescription
             Description of the subarray.
         """
         super().__init__(subarray=subarray, **kwargs)
 
-    def k_func(self, x):
-        return (
-            1
-            - self.asymmetry_params[0] * np.tanh(self.asymmetry_params[1] * x)
-            - self.asymmetry_params[2] * x
-        )
+    def _k(self, r):
+        c1, c2, c3 = self.asymmetry_params
+        return 1 - c1 * np.tanh(c2 * r) - c3 * r
 
-    def sr_func(self, x):
-        return np.polyval(self.radial_scale_params, x)
+    def _s_r(self, r):
+        return np.polyval(self.radial_scale_params[::-1], r)
 
-    def sf_func(self, x):
-        return self.az_scale_params[0] * np.exp(
-            -self.az_scale_params[1] * x
-        ) + self.az_scale_params[2] / (self.az_scale_params[2] + x)
+    def _s_phi(self, r):
+        a1, a2, a3 = self.phi_scale_params
+        return a1 * np.exp(-a2 * r) + a3 / (a3 + r)
 
-    def pdf(self, x, y, x0, y0):
-        """
-        Calculates the value of the psf at a given location
+    @u.quantity_input(x=u.m, y=u.m, x0=u.m, y0=u.m)
+    def pdf(self, x, y, x0, y0) -> np.ndarray:
+        x, y, x0, y0 = all_to_value(x, y, x0, y0, unit=u.m)
+        r, phi = _cartesian_to_polar(x, y)
+        r0, phi0 = _cartesian_to_polar(x0, y0)
 
-        Parameters
-        ----------
-        x : float
-            x-coordinate of the point on the focal plane where the psf is evaluated
-        y : float
-            y-coordinate of the point on the focal plane where the psf is evaluated
-        x0 : float
-            x-coordinate of the point source on the focal plane
-        y0 : float
-            y-coordinate of the point source on the focal plane
-        Returns
-        ----------
-        psf : float
-            value of the PSF at the specified location with the specified position of the point source
-        """
-        f, _, r = cartesian_to_spherical((x, y, 0.0))
-        f0, _, r0 = cartesian_to_spherical((x0, y0, 0.0))
-        k = self.k_func(r0)
-        sr = self.sr_func(r0)
-        sf = self.sf_func(r0)
-        self.radial_pdf_params = (k, r0, sr)
-        self.azimuthal_pdf_params = (f0, sf)
+        k = self._k(r0)
+        s_r = self._s_r(r0)
+        s_phi = self._s_phi(r0)
 
-        return laplace_asymmetric.pdf(r, *self.radial_pdf_params) * laplace.pdf(
-            f, *self.azimuthal_pdf_params
-        )
+        radial_pdf = laplace_asymmetric.pdf(r, k, r0, s_r)
+        polar_pdf = laplace.pdf(phi, phi0, s_phi)
+
+        # Phi is not defined at the center
+        at_center = np.isclose(r0, 0, atol=self.pixel_width)
+        polar_pdf = np.where(at_center, 1 / (2 * s_phi), polar_pdf)
+        # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
+        # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
+        chord_length = min(6 * self.pixel_width, 0.5 * r0)
+        dphi = np.arcsin(chord_length / (2 * r0))
+        polar_pdf[phi < phi0 - dphi] = 0
+        polar_pdf[phi > phi0 + dphi] = 0
+
+        return radial_pdf * polar_pdf
 
     @validate("asymmetry_params")
     def _check_asymmetry_params(self, proposal):
@@ -432,8 +445,8 @@ class ComaModel(PSFModel):
             raise TraitError("radial_scale_params needs to have length 4")
         return proposal["value"]
 
-    @validate("az_scale_params")
-    def _check_az_scale_params(self, proposal):
+    @validate("phi_scale_params")
+    def _check_phi_scale_params(self, proposal):
         if not len(proposal["value"]) == 3:
-            raise TraitError("az_scale_params needs to have length 3")
+            raise TraitError("phi_scale_params needs to have length 3")
         return proposal["value"]

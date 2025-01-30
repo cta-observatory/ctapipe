@@ -84,8 +84,18 @@ def test_predict_mean_energy(weights, mono_table):
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
     if weights == "intensity":
         assert_array_equal(stereo["dummy_energy"], [7, 0.5, np.nan] * u.TeV)
+        assert_allclose(
+            stereo["dummy_energy_uncert"].quantity,
+            [4.242641, 0, np.nan] * u.TeV,
+            atol=1e-7,
+        )
     elif weights == "none":
         assert_array_equal(stereo["dummy_energy"], [5, 0.5, np.nan] * u.TeV)
+        assert_allclose(
+            stereo["dummy_energy_uncert"].quantity,
+            [3.741657, 0, np.nan] * u.TeV,
+            atol=1e-7,
+        )
 
     assert_array_equal(stereo["dummy_telescopes"][0], np.array([1, 2, 3]))
     assert_array_equal(stereo["dummy_telescopes"][1], 5)

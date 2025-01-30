@@ -75,7 +75,7 @@ def test_shower_impact_distance(reference_location):
     assert np.allclose(impact_distances, [0, 1, 2] * u.m)
 
     # alt=0  az=0 should be aligned to x-axis (north in ground frame)
-    # therefore the distances should also be just the y-offset of the telecope
+    # therefore the distances should also be just the y-offset of the telescope
     shower_geom = ReconstructedGeometryContainer(
         core_x=0 * u.m, core_y=0 * u.m, alt=0 * u.deg, az=0 * u.deg
     )
@@ -83,7 +83,7 @@ def test_shower_impact_distance(reference_location):
     assert np.allclose(impact_distances, [0, 1, 2] * u.m)
 
     # alt=0  az=90 should be aligned to y-axis (east in ground frame)
-    # therefore the distances should also be just the x-offset of the telecope
+    # therefore the distances should also be just the x-offset of the telescope
     shower_geom = ReconstructedGeometryContainer(
         core_x=0 * u.m, core_y=0 * u.m, alt=0 * u.deg, az=90 * u.deg
     )

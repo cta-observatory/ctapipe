@@ -3,6 +3,7 @@
 Test ctapipe-process on a few different use cases
 """
 
+import json
 from subprocess import CalledProcessError
 
 import astropy.units as u
@@ -160,17 +161,20 @@ def test_stage1_datalevels(tmp_path):
     assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_stage_2_from_simtel(tmp_path):
+def test_stage_2_from_simtel(tmp_path, provenance):
     """check we can go to DL2 geometry from simtel file"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
+    provenance_log = tmp_path / "provenance.log"
+    input_path = get_dataset_path("gamma_prod5.simtel.zst")
     run_tool(
         ProcessorTool(),
         argv=[
             f"--config={config}",
-            "--input=dataset://gamma_prod5.simtel.zst",
+            f"--input={input_path}",
             f"--output={output}",
+            f"--provenance-log={provenance_log}",
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -189,6 +193,18 @@ def test_stage_2_from_simtel(tmp_path):
         assert "HillasReconstructor_telescopes" in dl2.colnames
         assert dl2["HillasReconstructor_telescopes"].dtype == np.bool_
         assert dl2["HillasReconstructor_telescopes"].shape[1] == len(subarray)
+
+    activities = json.loads(provenance_log.read_text())
+    assert len(activities) == 1
+
+    activity = activities[0]
+    assert activity["status"] == "completed"
+    assert len(activity["input"]) == 2
+    assert activity["input"][0]["url"] == str(config)
+    assert activity["input"][1]["url"] == str(input_path)
+
+    assert len(activity["output"]) == 1
+    assert activity["output"][0]["url"] == str(output)
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
@@ -535,3 +551,36 @@ def test_on_old_file(input_url, args, tmp_path):
         np.testing.assert_array_equal(
             finite_reco, events["HillasReconstructor_is_valid"]
         )
+
+
+def test_prod6_issues(tmp_path):
+    """Test behavior of source on file from prod6, see issues #2344 and #2660"""
+    input_url = "dataset://prod6_issues.simtel.zst"
+    output_path = tmp_path / "test.dl1.h5"
+
+    run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--input={input_url}",
+            f"--output={output_path}",
+            "--write-images",
+            "--write-showers",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+
+    with TableLoader(output_path) as loader:
+        tel_events = loader.read_telescope_events()
+        subarray_events = loader.read_subarray_events()
+
+        trigger_counts = np.count_nonzero(subarray_events["tels_with_trigger"], axis=0)
+        _, tel_event_counts = np.unique(tel_events["tel_id"], return_counts=True)
+
+        mask = trigger_counts > 0
+        np.testing.assert_equal(trigger_counts[mask], tel_event_counts)
+
+        images = loader.read_telescope_events([32], true_images=True)
+        images.add_index("event_id")
+        np.testing.assert_array_equal(images.loc[1664106]["true_image"], -1)
