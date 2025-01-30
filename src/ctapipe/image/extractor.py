@@ -1130,7 +1130,11 @@ class TwoPassWindowSum(ImageExtractor):
 
         # get projected distances along main image axis
         longitude, _ = camera_to_shower_coordinates(
-            camera_geometry.pix_x, camera_geometry.pix_y, hillas.x, hillas.y, hillas.psi
+            camera_geometry.pix_x,
+            camera_geometry.pix_y,
+            hillas.fov_lon,
+            hillas.fov_lon,
+            hillas.psi,
         )
 
         # get the predicted times as a linear relation
