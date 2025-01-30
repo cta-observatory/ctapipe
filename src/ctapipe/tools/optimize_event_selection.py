@@ -5,7 +5,7 @@ from astropy.table import vstack
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Integer, classes_with_traits
-from ..irf import EventLoader, PercentileCuts, PointSourceSensitivityOptimizer, Spectra
+from ..irf import EventLoader, Spectra
 from ..irf.optimize import CutOptimizerBase
 
 __all__ = ["EventSelectionOptimizer"]
@@ -118,7 +118,7 @@ class EventSelectionOptimizer(Tool):
                 target_spectrum=self.gamma_target_spectrum,
             )
         }
-        if not isinstance(self.optimizer, PercentileCuts):
+        if self.optimizer.needs_background:
             if not self.proton_file or (
                 self.proton_file and not self.proton_file.exists()
             ):
@@ -150,7 +150,7 @@ class EventSelectionOptimizer(Tool):
             events, count, meta = loader.load_preselected_events(
                 self.chunk_size, self.obs_time
             )
-            if isinstance(self.optimizer, PointSourceSensitivityOptimizer):
+            if self.optimizer.needs_background:
                 events = loader.make_event_weights(
                     events,
                     meta["spectrum"],
@@ -169,7 +169,7 @@ class EventSelectionOptimizer(Tool):
 
         self.signal_events = reduced_events["gammas"]
 
-        if isinstance(self.optimizer, PercentileCuts):
+        if not self.optimizer.needs_background:
             self.log.debug("Loaded %d gammas" % reduced_events["gammas_count"])
             self.log.debug("Keeping %d gammas" % len(reduced_events["gammas"]))
             self.log.info("Optimizing cuts using %d signal" % len(self.signal_events))
@@ -203,10 +203,7 @@ class EventSelectionOptimizer(Tool):
             )
 
         self.result = self.optimizer(
-            signal=self.signal_events,
-            background=self.background_events
-            if self.optimization_algorithm != "PercentileCuts"
-            else None,
+            events={"signal": self.signal_events, "background": self.background_events},
             # identical quality_query for all particle types
             quality_query=self.event_loaders["gammas"].epp.quality_query,
             clf_prefix=self.event_loaders["gammas"].epp.gammaness_classifier,

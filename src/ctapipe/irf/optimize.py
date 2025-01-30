@@ -146,30 +146,46 @@ class OptimizationResult:
 class CutOptimizerBase(DefaultRecoEnergyBins):
     """Base class for cut optimization algorithms."""
 
+    needs_background = False
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+
+    def _check_events(self, events: dict[str, QTable]):
+        if "signal" not in events.keys():
+            raise ValueError(
+                "Calculating G/H and/or spatial selection cuts requires 'signal' "
+                f"events, but none are given. Provided events: {events.keys()}"
+            )
+        if self.needs_background and "background" not in events.keys():
+            raise ValueError(
+                "Optimizing G/H cuts for maximum point-source sensitivity "
+                "requires 'background' events, but none were given. "
+                f"Provided events: {events.keys()}"
+            )
+
     @abstractmethod
     def __call__(
         self,
-        signal: QTable,
+        events: dict[str, QTable],
         quality_query: EventQualityQuery,
         clf_prefix: str,
-        background: QTable | None = None,
     ) -> OptimizationResult:
         """
-        Optimize G/H (and optionally theta) cuts
+        Optimize G/H (and optionally spatial selection) cuts
         and fill them in an ``OptimizationResult``.
 
         Parameters
         ----------
-        signal: astropy.table.QTable
-            Table containing signal events.
+        events: dict[str, astropy.table.QTable]
+            Dictionary containing tables of events used for calculating cuts.
+            This has to include "signal" events and can include "background" events.
         quality_query: ctapipe.irf.EventPreprocessor
             ``ctapipe.core.QualityQuery`` subclass containing preselection
             criteria for events.
         clf_prefix: str
             Prefix of the output from the G/H classifier for which the
             cut will be optimized.
-        background: astropy.table.QTable | None
-            Table containing background events (Not needed for percentile cuts).
         """
 
 
@@ -288,25 +304,26 @@ class PercentileCuts(CutOptimizerBase):
 
     def __call__(
         self,
-        signal: QTable,
+        events: dict[str, QTable],
         quality_query: EventQualityQuery,
         clf_prefix: str,
-        background: QTable | None = None,
     ) -> OptimizationResult:
+        self._check_events(events)
+
         gh_cuts = self.gh_cut_calculator(
-            signal["gh_score"],
-            signal["reco_energy"],
+            events["signal"]["gh_score"],
+            events["signal"]["reco_energy"],
             self.reco_energy_bins,
         )
         gh_mask = evaluate_binned_cut(
-            signal["gh_score"],
-            signal["reco_energy"],
+            events["signal"]["gh_score"],
+            events["signal"]["reco_energy"],
             gh_cuts,
             op=operator.ge,
         )
         spatial_selection_table = self.theta_cut_calculator(
-            signal["theta"][gh_mask],
-            signal["reco_energy"][gh_mask],
+            events["signal"]["theta"][gh_mask],
+            events["signal"]["reco_energy"][gh_mask],
             self.reco_energy_bins,
         )
 
@@ -330,6 +347,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
     calculates a percentile cut on theta.
     """
 
+    needs_background = True
     classes = [ThetaPercentileCutCalculator]
 
     initial_gh_cut_efficency = Float(
@@ -374,20 +392,15 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
 
     def __call__(
         self,
-        signal: QTable,
+        events: dict[str, QTable],
         quality_query: EventQualityQuery,
         clf_prefix: str,
-        background: QTable | None = None,
     ) -> OptimizationResult:
-        if background is None:
-            raise ValueError(
-                "Optimizing G/H cuts for maximum point-source sensitivity "
-                "requires background events, but none were given."
-            )
+        self._check_events(events)
 
         initial_gh_cuts = calculate_percentile_cut(
-            signal["gh_score"],
-            signal["reco_energy"],
+            events["signal"]["gh_score"],
+            events["signal"]["reco_energy"],
             bins=self.reco_energy_bins,
             fill_value=0.0,
             percentile=100 * (1 - self.initial_gh_cut_efficency),
@@ -395,15 +408,15 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             smoothing=1,
         )
         initial_gh_mask = evaluate_binned_cut(
-            signal["gh_score"],
-            signal["reco_energy"],
+            events["signal"]["gh_score"],
+            events["signal"]["reco_energy"],
             initial_gh_cuts,
             op=operator.gt,
         )
 
         spatial_selection_table = self.theta_cut_calculator(
-            signal["theta"][initial_gh_mask],
-            signal["reco_energy"][initial_gh_mask],
+            events["signal"]["theta"][initial_gh_mask],
+            events["signal"]["reco_energy"][initial_gh_mask],
             self.reco_energy_bins,
         )
         self.log.info("Optimizing G/H separation cut for best sensitivity")
@@ -413,9 +426,9 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             self.max_gh_cut_efficiency + self.gh_cut_efficiency_step / 2,
             self.gh_cut_efficiency_step,
         )
-        opt_sens, gh_cuts = optimize_gh_cut(
-            signal,
-            background,
+        opt_sensitivity, gh_cuts = optimize_gh_cut(
+            events["signal"],
+            events["background"],
             reco_energy_bins=self.reco_energy_bins,
             gh_cut_efficiencies=gh_cut_efficiencies,
             op=operator.ge,
@@ -424,18 +437,19 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
             fov_offset_max=self.max_background_fov_offset,
             fov_offset_min=self.min_background_fov_offset,
         )
-        valid_energy = self._get_valid_energy_range(opt_sens)
+        valid_energy = self._get_valid_energy_range(opt_sensitivity)
 
         # Re-calculate theta cut with optimized g/h cut
-        signal["selected_gh"] = evaluate_binned_cut(
-            signal["gh_score"],
-            signal["reco_energy"],
+        gh_mask = evaluate_binned_cut(
+            events["signal"]["gh_score"],
+            events["signal"]["reco_energy"],
             gh_cuts,
             operator.ge,
         )
+        events["signal"]["selected_gh"] = gh_mask
         spatial_selection_table_opt = self.theta_cut_calculator(
-            signal[signal["selected_gh"]]["theta"],
-            signal[signal["selected_gh"]]["reco_energy"],
+            events["signal"][gh_mask]["theta"],
+            events["signal"][gh_mask]["reco_energy"],
             self.reco_energy_bins,
         )
 
@@ -452,14 +466,14 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
         )
         return result
 
-    def _get_valid_energy_range(self, opt_sens):
-        keep_mask = np.isfinite(opt_sens["significance"])
+    def _get_valid_energy_range(self, opt_sensitivity):
+        keep_mask = np.isfinite(opt_sensitivity["significance"])
 
         count = np.arange(start=0, stop=len(keep_mask), step=1)
         if all(np.diff(count[keep_mask]) == 1):
             return [
-                opt_sens["reco_energy_low"][keep_mask][0],
-                opt_sens["reco_energy_high"][keep_mask][-1],
+                opt_sensitivity["reco_energy_low"][keep_mask][0],
+                opt_sensitivity["reco_energy_high"][keep_mask][-1],
             ]
         else:
             raise ValueError("Optimal significance curve has internal NaN bins")

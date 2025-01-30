@@ -110,8 +110,7 @@ def test_cut_optimizer(
 
     optimizer = Optimizer()
     result = optimizer(
-        signal=gamma_events,
-        background=proton_events,
+        events={"signal": gamma_events, "background": proton_events},
         quality_query=gamma_loader.epp.quality_query,  # identical qualityquery for all particle types
         clf_prefix="ExtraTreesClassifier",
     )
