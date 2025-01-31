@@ -107,10 +107,9 @@ class AngularResolutionMakerBase(DefaultTrueEnergyBins, DefaultRecoEnergyBins):
     Base class for calculating the angular resolution.
     """
 
-    # Use reconstructed energy by default for the sake of current pipeline comparisons
-    use_true_energy = Bool(
+    use_reco_energy = Bool(
         False,
-        help="Use true energy instead of reconstructed energy for energy binning.",
+        help="Use reconstructed energy instead of true energy for energy binning.",
     ).tag(config=True)
 
     quantiles = List(
@@ -154,7 +153,7 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
     def __call__(
         self, events: QTable, extname: str = "ANGULAR RESOLUTION"
     ) -> BinTableHDU:
-        if self.use_true_energy:
+        if not self.use_reco_energy:
             e_bins = self.true_energy_bins
             energy_type = "true"
         else:

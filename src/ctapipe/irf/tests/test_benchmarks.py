@@ -51,15 +51,15 @@ def test_make_2d_ang_res(irf_events_table):
     ]
     for c in cols:
         assert c in ang_res_hdu.data.names
-        assert ang_res_hdu.data[c].shape == (1, 3, 23)
+        assert ang_res_hdu.data[c].shape == (1, 3, 29)
 
     _check_boundaries_in_hdu(
         ang_res_hdu,
-        lo_vals=[0 * u.deg, 0.03 * u.TeV],
-        hi_vals=[3 * u.deg, 150 * u.TeV],
+        lo_vals=[0 * u.deg, 0.015 * u.TeV],
+        hi_vals=[3 * u.deg, 155 * u.TeV],
     )
 
-    ang_res_maker.use_true_energy = True
+    ang_res_maker.use_reco_energy = True
     ang_res_maker.quantiles = [0.4, 0.7]
     ang_res_hdu = ang_res_maker(events=irf_events_table)
     cols = [
@@ -69,12 +69,12 @@ def test_make_2d_ang_res(irf_events_table):
     ]
     for c in cols:
         assert c in ang_res_hdu.data.names
-        assert ang_res_hdu.data[c].shape == (1, 3, 29)
+        assert ang_res_hdu.data[c].shape == (1, 3, 23)
 
     _check_boundaries_in_hdu(
         ang_res_hdu,
-        lo_vals=[0 * u.deg, 0.015 * u.TeV],
-        hi_vals=[3 * u.deg, 155 * u.TeV],
+        lo_vals=[0 * u.deg, 0.03 * u.TeV],
+        hi_vals=[3 * u.deg, 150 * u.TeV],
     )
 
 

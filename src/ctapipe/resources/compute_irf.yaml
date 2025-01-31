@@ -90,7 +90,7 @@ PSF3DMaker:
 #   fov_offset_n_bins: 3
 
 AngularResolution2dMaker:
-  use_true_energy: False
+  use_reco_energy: False
   quantiles: [0.25, 0.5, 0.68, 0.95]
   # reco_energy_min: 0.015 TeV
   # reco_energy_max: 150 TeV

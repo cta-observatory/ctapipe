@@ -295,7 +295,7 @@ class IrfTool(Tool):
             self.angular_resolution_maker = AngularResolutionMakerBase.from_name(
                 self.angular_resolution_maker_name, parent=self
             )
-            if not self.angular_resolution_maker.use_true_energy:
+            if self.angular_resolution_maker.use_reco_energy:
                 check_e_bins(
                     bins=self.angular_resolution_maker.reco_energy_bins,
                     source="Angular resolution energy",
