@@ -7,7 +7,12 @@ import numpy as np
 from astropy.io.fits import BinTableHDU, Header
 from astropy.table import QTable
 from pyirf.benchmarks import angular_resolution, energy_bias_resolution
-from pyirf.binning import calculate_bin_indices, create_histogram_table, split_bin_lo_hi
+from pyirf.binning import (
+    calculate_bin_indices,
+    create_bins_per_decade,
+    create_histogram_table,
+    split_bin_lo_hi,
+)
 from pyirf.sensitivity import calculate_sensitivity, estimate_background
 
 from ..core.traits import Bool, Float, List
@@ -190,7 +195,16 @@ class AngularResolution2dMaker(AngularResolutionMakerBase, DefaultFoVOffsetBins)
 
 
 class SensitivityMakerBase(DefaultRecoEnergyBins):
-    """Base class for calculating the point source sensitivity."""
+    """
+    Base class for calculating the point source sensitivity.
+
+    This uses `pyirf.binning.create_bins_per_decade` to create an energy binning
+    with exactly ``reco_energy_n_bins_per_decade`` bins per decade, to comply
+    with CTAO requirements.
+    All other benchmarks/ IRF components prioritize respecting the lower and upper
+    bounds for the energy binning over creating exactly ``n_bins_per_decade`` bins
+    per decade.
+    """
 
     alpha = Float(
         default_value=0.2,
@@ -199,6 +213,16 @@ class SensitivityMakerBase(DefaultRecoEnergyBins):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
+        # We overwrite reco_energy_bins here to conform with CTAO requirements.
+        # This class still inherits from DefaultRecoEnergyBins to be able to use
+        # the config values set for DefaultRecoEnergyBins and not force an individual
+        # configuration of the bounds for only the sensitivity, while all other
+        # benchmarks/ IRF components can use the values set for DefaultRecoEnergyBins.
+        self.reco_energy_bins = create_bins_per_decade(
+            self.reco_energy_min,
+            self.reco_energy_max,
+            self.reco_energy_n_bins_per_decade,
+        )
 
     @abstractmethod
     def __call__(

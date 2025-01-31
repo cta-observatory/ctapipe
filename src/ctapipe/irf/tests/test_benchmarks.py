@@ -1,5 +1,7 @@
 import astropy.units as u
+import numpy as np
 from astropy.table import QTable
+from pyirf.binning import join_bin_lo_hi
 
 
 def test_make_2d_energy_bias_res(irf_events_table):
@@ -131,10 +133,20 @@ def test_make_2d_sensitivity(
         == sens_hdu.data["SIGNIFICANCE"].shape
         == sens_hdu.data["RELATIVE_SENSITIVITY"].shape
         == sens_hdu.data["FLUX_SENSITIVITY"].shape
-        == (1, 3, 29)
+        == (1, 3, 28)
     )
     _check_boundaries_in_hdu(
         sens_hdu,
         lo_vals=[0 * u.deg, 0.015 * u.TeV],
-        hi_vals=[3 * u.deg, 155 * u.TeV],
+        hi_vals=[3 * u.deg, (155 * 1.00002) * u.TeV],
+        colnames=["THETA"],
+    )
+    print(sens_hdu.data["ENERG_LO"].flatten().shape)
+    np.testing.assert_allclose(
+        np.diff(
+            np.log10(
+                join_bin_lo_hi(sens_hdu.data["ENERG_LO"], sens_hdu.data["ENERG_HI"])
+            )
+        ),
+        1 / 7,
     )

@@ -62,7 +62,11 @@ def check_bins_in_range(bins, valid_range, source="result", raise_error=True):
 @u.quantity_input(e_min=u.TeV, e_max=u.TeV)
 def make_bins_per_decade(e_min, e_max, n_bins_per_decade=5):
     """
-    Create energy bins with at least ``n_bins_per_decade`` bins per decade.
+    Create energy bins with at least ``n_bins_per_decade`` bins per decade,
+    while using the exact lower (``e_min``) and upper (``e_max``) limits.
+    If you want to get exactly ``n_bins_per_decade`` use
+    `pyirf.binning.create_bins_per_decade`.
+
     The number of bins is calculated as
     ``n_bins = ceil((log10(e_max) - log10(e_min)) * n_bins_per_decade)``.
 
