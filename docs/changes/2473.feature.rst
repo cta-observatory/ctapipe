@@ -1,0 +1,17 @@
+Add a ``ctapipe-optimize-event-selection`` tool to produce cut-selection files,
+based on a gamma, and optionally a proton and an electron DL2 file.
+Two components for calculating G/H and optionally theta cuts are added:
+``PercentileCuts`` keeps a certain percentage of gamma events in each bin and
+``PointSourceSensitivityOptimizer`` optimizes G/H cuts for maximum point source sensitivity and
+optionally calculates percentile theta cuts.
+
+Add a ``ctapipe-compute-irf`` tool to produce irfs given a cut-selection file, a gamma,
+and optionally a proton, and an electron DL2 input file.
+Given only a gamma file, the energy dispersion, effective area, and point spread function are calculated.
+Optionally, the bias and resolution of the energy reconstruction and the angular resolution can be calculated
+and saved in a separate output file.
+If a proton or a proton and an electron file is also given, a background model can be calculated,
+as well as the point source sensitivity.
+
+Irfs can be calculated with and without applying a direction cut.
+Only radially symmetric parameterizations of the irf components are implemented so far.

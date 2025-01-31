@@ -2,6 +2,7 @@
 Create a working directory for ctapipe-process containing standard
 configuration files.
 """
+
 from importlib.resources import files
 from pathlib import Path
 
@@ -19,6 +20,8 @@ CONFIGS_TO_WRITE = [
     "train_energy_regressor.yaml",
     "train_particle_classifier.yaml",
     "train_disp_reconstructor.yaml",
+    "optimize_cuts.yaml",
+    "compute_irf.yaml",
 ]
 
 README_TEXT = f"""
@@ -68,6 +71,16 @@ and will not result in well performing models.
 - `train_particle_classifier.yaml`: configuration of particle classification model
 - `train_disp_reconstructor.yaml`: configuration of disp reconstruction models
 
+## ctapipe-optimize-event-selection / ctapipe-compute-irf configs
+
+There are also configuration files for the calculation of G/H and direction ('theta') cuts and
+the calculation of IRF.
+
+- `optimize_cuts.yaml`: configuration for cut calculation
+- `compute_irf.yaml`: configuration for IRF calculation
+
+These files contain the default values for all configuration options and are meant to make it easier
+for you to create your own configuration files for these tools.
 
 This file was generated using ctapipe version {VERSION}
 """
