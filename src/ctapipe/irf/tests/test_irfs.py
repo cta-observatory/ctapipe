@@ -120,7 +120,7 @@ def test_make_3d_psf(irf_events_table):
         source_offset_n_bins=110,
         source_offset_max=2 * u.deg,
     )
-    psf_hdu = psf_maker(events=irf_events_table, spatial_selection_applied=False)
+    psf_hdu = psf_maker(events=irf_events_table)
     # min 7 bins per decade between 0.015 TeV and 155 TeV -> 7 * 4 + 1 = 29 bins
     assert psf_hdu.data["RPSF"].shape == (1, 110, 3, 29)
 

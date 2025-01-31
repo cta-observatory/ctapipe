@@ -396,10 +396,7 @@ class IrfTool(Tool):
             )
         )
         hdus.append(
-            self.psf_maker(
-                events=self.signal_events[self.signal_events["selected"]],
-                spatial_selection_applied=self.spatial_selection_applied,
-            )
+            self.psf_maker(events=self.signal_events[self.signal_events["selected_gh"]])
         )
         if self.spatial_selection_applied:
             # TODO: Support fov binning

@@ -43,9 +43,7 @@ class PSFMakerBase(DefaultTrueEnergyBins):
         super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
-    def __call__(
-        self, events: QTable, spatial_selection_applied: bool, extname: str = "PSF"
-    ) -> BinTableHDU:
+    def __call__(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         """
         Calculate the psf and create a fits binary table HDU in GADF format.
 
@@ -53,8 +51,6 @@ class PSFMakerBase(DefaultTrueEnergyBins):
         ----------
         events: astropy.table.QTable
             Reconstructed events to be used.
-        spatial_selection_applied: bool
-            If a direction cut was applied on ``events``, pass ``True``, else ``False``.
         extname: str
             Name for the BinTableHDU.
 
@@ -332,9 +328,7 @@ class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
             u.deg,
         )
 
-    def __call__(
-        self, events: QTable, spatial_selection_applied: bool, extname: str = "PSF"
-    ) -> BinTableHDU:
+    def __call__(self, events: QTable, extname: str = "PSF") -> BinTableHDU:
         psf = psf_table(
             events=events,
             true_energy_bins=self.true_energy_bins,
@@ -348,10 +342,5 @@ class PSF3DMaker(PSFMakerBase, DefaultFoVOffsetBins):
             source_offset_bins=self.source_offset_bins,
             extname=extname,
         )
-        # We also calculate a psf for IRFs including a spatial selection
-        # ("point-like IRF") to enable RAD_MAX cross-checks downstream.
-        # In that case, we have to change the header accordingly.
-        if spatial_selection_applied:
-            hdu.header["HDUCLAS3"] = "POINT-LIKE"
 
         return hdu
