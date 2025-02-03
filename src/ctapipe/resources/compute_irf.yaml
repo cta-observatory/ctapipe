@@ -1,0 +1,120 @@
+# ==============================================================================
+# ctapipe-compute-irf config file
+# version: VERSION
+#
+# Configuration for calculating IRF with or without applying a spatial selection
+# ==============================================================================
+
+IrfTool:
+  gamma_target_spectrum: CRAB_HEGRA
+  proton_target_spectrum: IRFDOC_PROTON_SPECTRUM
+  electron_target_spectrum: IRFDOC_ELECTRON_SPECTRUM
+  obs_time: 50 hour
+  energy_dispersion_maker_name: "EnergyDispersion2dMaker"
+  effective_area_maker_name: "EffectiveArea2dMaker"
+  psf_maker_name: "PSF3DMaker"
+  background_maker_name: "BackgroundRate2dMaker"
+  angular_resolution_maker_name: "AngularResolution2dMaker"
+  energy_bias_resolution_maker_name: "EnergyBiasResolution2dMaker"
+  sensitivity_maker_name: "Sensitivity2dMaker"
+
+EventPreprocessor:
+  energy_reconstructor: "RandomForestRegressor"
+  geometry_reconstructor: "HillasReconstructor"
+  gammaness_classifier: "RandomForestClassifier"
+
+  EventQualityQuery:
+    quality_criteria:
+      - ["multiplicity 4", "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4"]
+      - ["valid classifier", "RandomForestClassifier_is_valid"]
+      - ["valid geom reco", "HillasReconstructor_is_valid"]
+      - ["valid energy reco", "RandomForestRegressor_is_valid"]
+
+
+# Using the following three components, default values for the reconstruced/true energy
+# and fov bins can be configured for all irf components and benchmarks.
+# These values are used, if the corresponding configuration options are not overwritten
+# in the configuration of the individual components/benchmarks themselves.
+
+DefaultRecoEnergyBins:
+  reco_energy_min: 0.015 TeV
+  reco_energy_max: 150 TeV
+  reco_energy_n_bins_per_decade: 5
+
+DefaultTrueEnergyBins:
+  true_energy_min: 0.015 TeV
+  true_energy_max: 150 TeV
+  true_energy_n_bins_per_decade: 10
+
+DefaultFoVOffsetBins:
+  fov_offset_min: 0 deg
+  fov_offset_max: 5 deg
+  fov_offset_n_bins: 3
+
+EnergyDispersion2dMaker:
+  # true_energy_min: 0.015 TeV
+  # true_energy_max: 150 TeV
+  # true_energy_n_bins_per_decade: 10
+  energy_migration_min: 0.2
+  energy_migration_max: 5
+  energy_migration_n_bins: 30
+  # fov_offset_min: 0 deg
+  # fov_offset_max: 5 deg
+  # fov_offset_n_bins: 3
+
+PSF3DMaker:
+  # true_energy_min: 0.015 TeV
+  # true_energy_max: 150 TeV
+  # true_energy_n_bins_per_decade: 10
+  source_offset_min: 0.0 deg
+  source_offset_max: 1.0 deg
+  source_offset_n_bins: 100
+  # fov_offset_min: 0 deg
+  # fov_offset_max: 5 deg
+  # fov_offset_n_bins: 3
+
+# EffectiveArea2dMaker:
+#   true_energy_min: 0.015 TeV
+#   true_energy_max: 150 TeV
+#   true_energy_n_bins_per_decade: 10
+#   fov_offset_min: 0 deg
+#   fov_offset_max: 5 deg
+#   fov_offset_n_bins: 3
+
+# BackgroundRate2dMaker:
+#   reco_energy_min: 0.015 TeV
+#   reco_energy_max: 150 TeV
+#   reco_energy_n_bins_per_decade: 5
+#   fov_offset_min: 0 deg
+#   fov_offset_max: 5 deg
+#   fov_offset_n_bins: 3
+
+AngularResolution2dMaker:
+  use_reco_energy: False
+  quantiles: [0.25, 0.5, 0.68, 0.95]
+  # reco_energy_min: 0.015 TeV
+  # reco_energy_max: 150 TeV
+  # reco_energy_n_bins_per_decade: 5
+  # true_energy_min: 0.015 TeV
+  # true_energy_max: 150 TeV
+  # true_energy_n_bins_per_decade: 10
+  # fov_offset_min: 0 deg
+  # fov_offset_max: 5 deg
+  # fov_offset_n_bins: 3
+
+# EnergyBiasResolution2dMaker:
+#   true_energy_min: 0.015 TeV
+#   true_energy_max: 150 TeV
+#   true_energy_n_bins_per_decade: 10
+#   fov_offset_min: 0 deg
+#   fov_offset_max: 5 deg
+#   fov_offset_n_bins: 3
+
+Sensitivity2dMaker:
+  alpha: 0.2
+  # reco_energy_min: 0.015 TeV
+  # reco_energy_max: 150 TeV
+  # reco_energy_n_bins_per_decade: 5
+  # fov_offset_min: 0 deg
+  # fov_offset_max: 5 deg
+  # fov_offset_n_bins: 3

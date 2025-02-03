@@ -25,6 +25,7 @@ dependencies:
   - pypandoc
   - pre-commit
   - psutil
+  - pyirf
   - pytables
   - pytest
   - pytest-cov
