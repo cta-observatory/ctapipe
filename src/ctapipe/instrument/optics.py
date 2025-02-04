@@ -314,6 +314,14 @@ class ComaPSFModel(PSFModel):
     PSF model describing pure coma aberrations PSF effect.
 
     The PSF is described by a combination of an asymmetric Laplacian for the radial part and a symmetric Laplacian in the polar direction.
+    It uses an asymmetric Laplacian for the radial part
+
+    .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
+
+    and a symmetric Laplacian in polar direction
+
+    .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
+
 
     Attributes
     ----------
@@ -377,28 +385,6 @@ class ComaPSFModel(PSFModel):
         default_value=0.05,
         help="Width of a pixel of the camera in meters",
     ).tag(config=True)
-
-    def __init__(
-        self,
-        subarray,
-        **kwargs,
-    ):
-        r"""
-        PSF model, describing purely the effect of coma aberration on the PSF
-        uses an asymmetric Laplacian for the radial part
-
-        .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
-
-        and a symmetric Laplacian in polar direction
-
-        .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
-
-        Parameters
-        ----------
-        subarray : ctapipe.instrument.SubarrayDescription
-            Description of the subarray.
-        """
-        super().__init__(subarray=subarray, **kwargs)
 
     def _k(self, r):
         c1, c2, c3 = self.asymmetry_params
