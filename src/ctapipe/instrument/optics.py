@@ -321,16 +321,19 @@ class ComaPSFModel(PSFModel):
         Describes the dependency of the PSF on the distance to the center of the camera.
         Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
         of the PSF as a function of the distance r to the optical axis.
+
         .. math:: K(r) = 1 - \text{asym}_0 \tanh(\text{asym}_1 r) - \text{asym}_2 r
 
     radial_scale_params : list
         Describes the dependency of the radial scale on the distance to the center of the camera.
         Used to calculate width Sr of the asymmetric radial Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+
         .. math:: S_{R}(r) = b_1 + b_2\,r + b_3\,r^2 + b_4\,r^3
 
     phi_scale_params : list
         Describes the dependency of the polar angle (:math:`\phi`) scale on the distance to the center of the camera.
         Used to calculate the width Sf of the polar Laplacian in the PSF as a function of the distance :math:`r` to the optical axis.
+
         .. math:: S_{\phi}(r) = a_1\,\exp{(-a_2\,r)}+\frac{a_3}{a_3+r}
 
     Parameters
@@ -345,34 +348,34 @@ class ComaPSFModel(PSFModel):
 
     asymmetry_params = List(
         help=(
-            "Describes the dependency of the PSF on the distance"
-            "to the center of the camera. Used to calculate a PDF"
-            "asymmetry parameter K of the asymmetric radial Laplacian"
+            "Describes the dependency of the PSF on the distance "
+            "to the center of the camera. Used to calculate a PDF "
+            "asymmetry parameter :math:`K` of the asymmetric radial Laplacian "
             "of the PSF as a function of the distance r to the optical axis"
         )
     ).tag(config=True)
 
     radial_scale_params = List(
         help=(
-            "Describes the dependency of the radial scale on the"
-            "distance to the center of the camera. Used to calculate"
-            "width Sr of the asymmetric radial Laplacian in the PSF"
+            "Describes the dependency of the radial scale on the "
+            "distance to the center of the camera. Used to calculate "
+            "width :math:`S_R` of the asymmetric radial Laplacian in the PSF "
             "as a function of the distance r to the optical axis"
         )
     ).tag(config=True)
 
     phi_scale_params = List(
         help=(
-            "Describes the dependency of the polar scale on the"
-            "distance to the center of the camera. Used to calculate"
-            "the width Sf of the polar Laplacian in the PSF"
+            "Describes the dependency of the polar scale on the "
+            "distance to the center of the camera. Used to calculate "
+            "the width :math:`S_\phi` of the polar Laplacian in the PSF "
             "as a function of the distance r to the optical axis"
         )
     ).tag(config=True)
 
     pixel_width = Float(
         default_value=0.05,
-        help="Width of a pixel in the camera in meters",
+        help="Width of a pixel of the camera in meters",
     ).tag(config=True)
 
     def __init__(
@@ -386,7 +389,7 @@ class ComaPSFModel(PSFModel):
 
         .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
 
-        and a symmetric Laplacian in azimuthal direction
+        and a symmetric Laplacian in polar direction
 
         .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
