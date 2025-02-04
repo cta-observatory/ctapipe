@@ -427,9 +427,10 @@ class ComaPSFModel(PSFModel):
         # Polar PDF is valid under approximation that the polar axis is orthogonal to the radial axis
         # Thus, we limit the PDF to a chord of 6 pixels or covering ~30deg around the radial axis, whichever is smaller
         chord_length = min(6 * self.pixel_width, 0.5 * r0)
-        dphi = np.arcsin(chord_length / (2 * r0))
-        polar_pdf[phi < phi0 - dphi] = 0
-        polar_pdf[phi > phi0 + dphi] = 0
+        if r0 != 0:
+            dphi = np.arcsin(chord_length / (2 * r0))
+            polar_pdf[phi < phi0 - dphi] = 0
+            polar_pdf[phi > phi0 + dphi] = 0
 
         return radial_pdf * polar_pdf
 
