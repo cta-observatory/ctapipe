@@ -122,6 +122,7 @@ def time_clustering(
     time_scale_ns=4.0,
     space_scale_m=0.25,
     hard_cut_pe=4,
+    image_add_pe=4,
 ):
     """
     Clean an image by selecting pixels which pass a time clustering algorithm using DBSCAN.
@@ -158,23 +159,29 @@ def time_clustering(
     A boolean mask of *clean* pixels.
     """
     precut_mask = image > hard_cut_pe
-
     arr = np.zeros(len(image), dtype=float)
     arr[~precut_mask] = -1
 
     pix_x = geom.pix_x.value[precut_mask] / space_scale_m
     pix_y = geom.pix_y.value[precut_mask] / space_scale_m
 
-    X = np.column_stack((time[precut_mask] / time_scale_ns, pix_x, pix_y))
+    if len(time[precut_mask]) == 0:
+        mask = np.zeros(len(time)) != 0
+    else:
+        X = np.column_stack((time[precut_mask] / time_scale_ns, pix_x, pix_y))
+        labels = DBSCAN(eps=eps, min_samples=minpts).fit_predict(X)
 
-    labels = DBSCAN(eps=eps, min_samples=minpts).fit_predict(X)
+        y = np.array(arr[(arr == 0)])
+        y[(labels == -1)] = -1
+        arr[arr == 0] = y
+        mask = arr == 0  # we keep these events
 
-    # no_clusters = len(np.unique(labels))-1  # Could be used for gh separation
+    high_charge = image_add_pe
+    neighs = 1
+    number_of_neighbors = geom.neighbor_matrix_sparse.dot((image >= high_charge))
 
-    y = np.array(arr[(arr == 0)])
-    y[(labels == -1)] = -1
-    arr[arr == 0] = y
-    mask = arr == 0  # we keep these events
+    mask = mask | ((image >= high_charge) & (number_of_neighbors >= neighs))
+
     return mask
 
 
@@ -619,6 +626,9 @@ class TimeCleaner(ImageCleaner):
     hard_cut_pe = FloatTelescopeParameter(
         default_value=2.5, help="Hard cut in the number of pe"
     ).tag(config=True)
+    image_add_pe = FloatTelescopeParameter(
+        default_value=4, help="Hard cut in the number of pe"
+    ).tag(config=True)
 
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
@@ -633,6 +643,7 @@ class TimeCleaner(ImageCleaner):
             time_scale_ns=self.time_scale_ns.tel[tel_id],
             minpts=self.minpts.tel[tel_id],
             hard_cut_pe=self.hard_cut_pe.tel[tel_id],
+            image_add_pe=self.image_add_pe.tel[tel_id],
         )
 
 
