@@ -25,9 +25,9 @@ Data Processing Tools
   Train the ML models for the `ctapipe.reco.EnergyRegressor` (energy estimation)
 * `ctapipe-train-particle-classifier <ctapipe.tools.train_particle_classifier.TrainParticleClassifier>`:
   Train the ML models for the  `ctapipe.reco.ParticleClassifier` (gamma-hadron separation)
-* `ctapipe-optimize-event-selection <ctapipe.tools.optimize_event_selection.EventSelectionOptimizer>`: 
+* `ctapipe-optimize-event-selection <ctapipe.tools.optimize_event_selection.EventSelectionOptimizer>`:
   Calculate gamma/hadron and direction cuts (e.g. for IRF calculation).
-* `ctapipe-compute-irf <ctapipe.tools.compute_irf.IrfTool>`: Calculate an IRF with or without applying a direction cut 
+* `ctapipe-compute-irf <ctapipe.tools.compute_irf.IrfTool>`: Calculate an IRF with or without applying a direction cut
   and optionally benchmarks.
 
 File Management Tools:
