@@ -141,6 +141,8 @@ def time_clustering(
     DBSCAN runs with the reconstructed times and pixel positions after scaling. Scaling is needed because eps
     is not dimension dependent. If scaling is performed properly, eps can be set to 1. DBSCAN returns the
     cluster IDs of each point. Pixels associated to cluster ID -1 are classified as noise.
+    At the end, all pixels above image_add_pe cut (even those that did not pass dbscan) pass also the cleaning
+    if they have at least one neighbour above the same threshold.
     Parameters
     ----------
     geom: `ctapipe.instrument.CameraGeometry`
@@ -157,9 +159,10 @@ def time_clustering(
         Time scale in ns
     space_scale: float
         Space scale in m
-
     hard_cut_pe: float
         Hard cut in the number of signal pe
+    image_add_pe: float
+        Cut in pe above which a pixel will pass even if dbscan did not find it.
     Returns
     -------
     A boolean mask of *clean* pixels.
@@ -818,7 +821,8 @@ class TimeCleaner(ImageCleaner):
         default_value=2.5, help="Hard cut in the number of pe"
     ).tag(config=True)
     image_add_pe = FloatTelescopeParameter(
-        default_value=4, help="Hard cut in the number of pe"
+        default_value=4,
+        help="Add all pixels with signal above this cut and with at least one neighbour above the same threshold",
     ).tag(config=True)
 
     def __call__(

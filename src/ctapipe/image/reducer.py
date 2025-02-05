@@ -229,9 +229,6 @@ class TimeDataVolumeReducer(DataVolumeReducer):
         Name of the image_extractor to be used.
     n_end_dilates: IntTelescopeParameter
         Number of how many times to dilate at the end.
-    do_boundary_dilation: BoolTelescopeParameter
-        If set to 'False', the iteration steps in 2) are skipped and
-        normal TailcutCleaning is used.
     """
 
     image_extractor_type = TelescopeParameter(
@@ -241,11 +238,6 @@ class TimeDataVolumeReducer(DataVolumeReducer):
     ).tag(config=True)
     n_end_dilates = IntTelescopeParameter(
         default_value=0, help="Number of how many times to dilate at the end."
-    ).tag(config=True)
-    do_boundary_dilation = BoolTelescopeParameter(
-        default_value=False,
-        help="If set to 'False', the iteration steps in 2) are skipped and"
-        "normal TailcutCleaning is used.",
     ).tag(config=True)
 
     def __init__(
@@ -303,6 +295,7 @@ class TimeDataVolumeReducer(DataVolumeReducer):
         mask = self.cleaner(tel_id, dl1.image, dl1.peak_time)
 
         for _ in range(self.n_end_dilates.tel[tel_id]):
+            mask = dilate(camera_geom, mask)
             mask = dilate(camera_geom, mask)
 
         return mask
