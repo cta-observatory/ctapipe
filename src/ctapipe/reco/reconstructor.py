@@ -1,6 +1,6 @@
 import weakref
 from abc import abstractmethod
-from enum import Flag, auto
+from enum import IntEnum, auto
 
 import astropy.units as u
 import joblib
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-class ReconstructionProperty(Flag):
+class ReconstructionProperty(IntEnum):
     """
     Primary particle properties estimated by a `Reconstructor`
 
