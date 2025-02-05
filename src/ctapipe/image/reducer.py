@@ -15,7 +15,7 @@ from ctapipe.core.traits import (
     TelescopeParameter,
 )
 from ctapipe.image import TailcutsImageCleaner
-from ctapipe.image.cleaning import dilate, TimeCleaner
+from ctapipe.image.cleaning import TimeCleaner, dilate
 from ctapipe.image.extractor import ImageExtractor
 
 __all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeReducer"]
