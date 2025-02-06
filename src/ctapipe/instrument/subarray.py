@@ -37,7 +37,7 @@ def _group_consecutives(sequence):
     from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
     """
     sequence = sorted(sequence)
-    for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
+    for _, g in groupby(enumerate(sequence), lambda i_x: int(i_x[0]) - int(i_x[1])):
         r = [x for _, x in g]
         if len(r) > 2:
             yield f"{r[0]}-{r[-1]}"
