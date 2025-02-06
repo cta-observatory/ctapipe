@@ -427,18 +427,18 @@ class ComaPSFModel(PSFModel):
 
     @validate("asymmetry_params")
     def _check_asymmetry_params(self, proposal):
-        if not len(proposal["value"]) == 3:
+        if len(proposal["value"]) != 3:
             raise TraitError("asymmetry_params needs to have length 3")
         return proposal["value"]
 
     @validate("radial_scale_params")
     def _check_radial_scale_params(self, proposal):
-        if not len(proposal["value"]) == 4:
+        if len(proposal["value"]) != 4:
             raise TraitError("radial_scale_params needs to have length 4")
         return proposal["value"]
 
     @validate("phi_scale_params")
     def _check_phi_scale_params(self, proposal):
-        if not len(proposal["value"]) == 3:
+        if len(proposal["value"]) != 3:
             raise TraitError("phi_scale_params needs to have length 3")
         return proposal["value"]
