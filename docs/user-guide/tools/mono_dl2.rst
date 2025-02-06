@@ -8,8 +8,9 @@ This guide explains how to use the machine learning capabilities of ``ctapipe``
 to process files containing image parameters (data level 1b/ DL1b) to data level 2 (DL2).
 
 .. NOTE::
-   * This guide only shows how to perform mono reconstruction, but stereo reconstruction
-     is also supported by ``ctapipe``.
+   * This guide can also be used for a stereo analysis, if the disp algorithm should
+     be used for direction reconstruction (Compared to the geometric reconstruction,
+     `~ctapipe.reco.hillas_reconstructor.HillasReconstructor`, which is used by default).
    * This guide assumes you have a directory containing gamma, proton, and electron files
      already containing image parameters.
    * The provided commands also assume you are trying to process files in a ``bash`` shell
