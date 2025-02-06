@@ -20,11 +20,11 @@ Data Processing Tools
 * `ctapipe-calculate-pixel-statistics <ctapipe.tools.calculate_pixel_stats.PixelStatisticsCalculatorTool>`: Tool to aggregate statistics
   and detect outliers from pixel-wise image data.
 * `ctapipe-train-disp-reconstructor <ctapipe.tools.train_disp_reconstructor.TrainDispReconstructor>` :
-  Train the ML models for the  `ctapipe.reco.DispReconstructor` (monoscopic reconstruction)
+  Train the ML models for the  `~ctapipe.reco.DispReconstructor` (monoscopic reconstruction)
 * `ctapipe-train-energy-regressor <ctapipe.tools.train_energy_regressor.TrainEnergyRegressor>`:
-  Train the ML models for the `ctapipe.reco.EnergyRegressor` (energy estimation)
+  Train the ML models for the `~ctapipe.reco.EnergyRegressor` (energy estimation)
 * `ctapipe-train-particle-classifier <ctapipe.tools.train_particle_classifier.TrainParticleClassifier>`:
-  Train the ML models for the  `ctapipe.reco.ParticleClassifier` (gamma-hadron separation)
+  Train the ML models for the  `~ctapipe.reco.ParticleClassifier` (gamma-hadron separation)
 * `ctapipe-optimize-event-selection <ctapipe.tools.optimize_event_selection.EventSelectionOptimizer>`:
   Calculate gamma/hadron and direction cuts (e.g. for IRF calculation).
 * `ctapipe-compute-irf <ctapipe.tools.compute_irf.IrfTool>`: Calculate an IRF with or without applying a direction cut
