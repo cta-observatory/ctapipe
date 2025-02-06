@@ -313,15 +313,17 @@ class ComaPSFModel(PSFModel):
     r"""
     PSF model describing pure coma aberrations PSF effect.
 
-    The PSF is described by a combination of an asymmetric Laplacian for the radial part and a symmetric Laplacian in the polar direction.
-    It uses an asymmetric Laplacian for the radial part
+    The PSF is described by a product of an asymmetric Laplacian for the radial part and a symmetric Laplacian in the polar direction.
+    Explicitly, the radial part is given by
 
-    .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-L}{S_{R}}}, r\ge L\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-L}{KS_{R}}}, r < L\end{cases}
+    .. math:: f_{R}(r, K) = \begin{cases}\frac{1}{S_{R}(K+K^{-1})}e^{-K\frac{r-r_0}{S_{R}}}, r\ge r_0\\ \frac{1}{S_{R}(K+K^{-1})}e^{\frac{r-r_0}{KS_{R}}}, r < r_0\end{cases}
 
-    and a symmetric Laplacian in polar direction
+    and the polar part is given by
 
     .. math:: f_{\Phi}(\phi) = \frac{1}{2S_\phi}e^{-|\frac{\phi-\phi_0}{S_\phi}|}
 
+    The parameters :math:`K`, :math:`S_{R}`, and :math:`S_{\phi}` are functions of the distance :math:`r` to the optical axis.
+    Their detailed description is provided in the attributes section.
 
     Attributes
     ----------
@@ -330,7 +332,7 @@ class ComaPSFModel(PSFModel):
         Used to calculate a PDF asymmetry parameter K of the asymmetric radial Laplacian
         of the PSF as a function of the distance r to the optical axis.
 
-        .. math:: K(r) = 1 - \text{asym}_0 \tanh(\text{asym}_1 r) - \text{asym}_2 r
+        .. math:: K(r) = 1 - c_0 \tanh(c_1 r) - c_2 r
 
     radial_scale_params : list
         Describes the dependency of the radial scale on the distance to the center of the camera.
