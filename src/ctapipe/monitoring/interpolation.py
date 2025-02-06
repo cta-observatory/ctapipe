@@ -54,9 +54,10 @@ class MonitoringInterpolator(Component, metaclass=ABCMeta):
     def add_table(self, tel_id: int, input_table: Table) -> None:
         """
         Add a table to this interpolator.
-        This method reads input tables and creates instances of the needed interpolators
-        to be added to _interpolators. The first index of _interpolators needs to be
-        tel_id, the second needs to be the name of the parameter that is to be interpolated.
+
+        This method reads input tables and creates instances of the needed interpolators.
+        The first index of _interpolators needs to be tel_id, the second needs to be
+        the name of the parameter that is to be interpolated.
 
         Parameters
         ----------
@@ -223,7 +224,6 @@ class ChunkInterpolator(MonitoringInterpolator):
 
     def __init__(self, h5file: None | tables.File = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self._interpolators = {}
         self.start_time = {}
         self.end_time = {}
         self.values = {}
