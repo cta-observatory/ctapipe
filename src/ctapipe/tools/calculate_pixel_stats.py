@@ -99,14 +99,14 @@ class PixelStatisticsCalculatorTool(Tool):
                 )
         self.input_data.dl1_images = True
         # Load the subarray description from the input file
-        subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
+        self.subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
         # Get the telescope ids from the input data or use the allowed_tels configuration
         self.tel_ids = (
-            subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
+            self.subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
         )
         # Initialization of the statistics calculator
         self.stats_calculator = PixelStatisticsCalculator(
-            parent=self, subarray=subarray
+            parent=self, subarray=self.subarray
         )
 
     def start(self):
@@ -171,13 +171,21 @@ class PixelStatisticsCalculatorTool(Tool):
                 f"/dl1/monitoring/telescope/{self.output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
-
-    def finish(self):
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
             f"/dl1/monitoring/telescope/{self.output_table_name}",
         )
+
+    def finish(self):
+        # Store the subarray description in the output file
+        self.subarray.to_hdf(self.output_path, overwrite=self.overwrite)
+        self.log.info(
+            "Subarray description was stored in '%s'",
+            self.output_path,
+        )
+        # Close the file in the TableLoader
+        self.input_data.close()
         self.log.info("Tool is shutting down")
 
 
