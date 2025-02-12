@@ -15,7 +15,8 @@ env:
   MPLBACKEND: Agg
   PYTEST_ADDOPTS: --color=yes
   GITHUB_PR_NUMBER: ${{ github.event.number }}
-
+  COVERAGE_CORE: sysmon
+  
 jobs:
   lint:
     runs-on: ubuntu-24.04
