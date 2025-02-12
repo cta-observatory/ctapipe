@@ -99,10 +99,12 @@ class PixelStatisticsCalculatorTool(Tool):
                 )
         self.input_data.dl1_images = True
         # Load the subarray description from the input file
-        self.subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
-        # Get the telescope ids from the input data or use the allowed_tels configuration
-        self.tel_ids = (
-            self.subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
+        subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
+        # Select a new subarray if the allowed_tels configuration is used
+        self.subarray = (
+            subarray
+            if self.allowed_tels is None
+            else subarray.select_subarray(self.allowed_tels, "Subarray")
         )
         # Initialization of the statistics calculator
         self.stats_calculator = PixelStatisticsCalculator(
@@ -111,7 +113,7 @@ class PixelStatisticsCalculatorTool(Tool):
 
     def start(self):
         # Iterate over the telescope ids and calculate the statistics
-        for tel_id in self.tel_ids:
+        for tel_id in self.subarray.tel_ids:
             # Read the whole dl1 images for one particular telescope
             dl1_table = self.input_data.read_telescope_events_by_id(
                 telescopes=[
