@@ -1,1 +1,1 @@
-Store also the SubarrayDescription in the camera monitoring data produced by the stats tool 
+Store also the SubarrayDescription in the camera monitoring data produced by the stats tool
