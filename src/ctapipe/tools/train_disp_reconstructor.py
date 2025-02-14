@@ -1,6 +1,7 @@
 """
 Tool for training the DispReconstructor
 """
+
 import astropy.units as u
 import numpy as np
 
@@ -12,9 +13,7 @@ from ctapipe.reco.preprocessing import horizontal_to_telescope
 
 from .utils import read_training_events
 
-__all__ = [
-    "TrainDispReconstructor",
-]
+__all__ = ["TrainDispReconstructor"]
 
 
 class TrainDispReconstructor(Tool):
