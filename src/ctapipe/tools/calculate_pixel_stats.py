@@ -84,8 +84,10 @@ class PixelStatisticsCalculatorTool(Tool):
 
     def setup(self):
         # Read the input data with the 'TableLoader'
-        self.input_data = TableLoader(
-            parent=self,
+        self.input_data = self.enter_context(
+            TableLoader(
+                parent=self,
+            )
         )
         # Check that the input and output files are not the same
         if self.input_data.input_url == self.output_path:
@@ -104,7 +106,7 @@ class PixelStatisticsCalculatorTool(Tool):
         self.subarray = (
             subarray
             if self.allowed_tels is None
-            else subarray.select_subarray(self.allowed_tels, "Subarray")
+            else subarray.select_subarray(self.allowed_tels)
         )
         # Initialization of the statistics calculator
         self.stats_calculator = PixelStatisticsCalculator(
@@ -186,8 +188,6 @@ class PixelStatisticsCalculatorTool(Tool):
             "Subarray description was stored in '%s'",
             self.output_path,
         )
-        # Close the file in the TableLoader
-        self.input_data.close()
         self.log.info("Tool is shutting down")
 
 
