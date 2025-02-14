@@ -58,7 +58,7 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         )["mean"]
         is not None
     )
-    # Read subarray description frm the created monitoring file
+    # Read subarray description from the created monitoring file
     subarray = SubarrayDescription.from_hdf(monitoring_file)
     # Check for the selected telescope
     assert subarray.tel_ids[0] == tel_id
