@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import PowerNorm
 
-from ctapipe.coordinates import CameraFrame, EngineeringCameraFrame, TelescopeFrame
+from ctapipe.coordinates import EngineeringCameraFrame, TelescopeFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean, toymodel
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import EventSource
@@ -101,7 +101,7 @@ CameraDisplay(geom.transform_to(TelescopeFrame()), image=image, ax=ax[2])
 #
 
 geom_camframe = geom
-geom = geom_camframe.transform_to(EngineeringCameraFrame())
+geom = geom_camframe.transform_to(TelescopeFrame())
 
 
 ######################################################################
@@ -198,9 +198,8 @@ disp = CameraDisplay(
 )
 disp.highlight_pixels(mask, alpha=1, linewidth=3, color="green")
 
-ax[1].set_ylim(-0.5, 0.5)
-ax[1].set_xlim(-0.5, 0.5)
-
+ax[1].set_ylim(-2, 2)
+ax[1].set_xlim(-2, 2)
 
 ######################################################################
 # Drawing a Hillas-parameter ellipse
@@ -228,7 +227,7 @@ disp.overlay_moments(hillas, color="red", linewidth=3, with_label=False)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # This depends on the coordinate frame of the ``CameraGeometry``. Here we
-# will specify the coordinate the ``EngineerngCameraFrame``, but if you
+# will specify the coordinate in the ``CameraFrame``, but if you
 # have enough information to do the coordinate transform, you could use
 # ``ICRS`` coordinates and overlay star positions. ``CameraDisplay`` will
 # convert the coordinate you pass in to the ``Frame`` of the display
@@ -243,12 +242,8 @@ disp.overlay_moments(hillas, color="red", linewidth=3, with_label=False)
 plt.figure(figsize=(6, 6))
 disp = CameraDisplay(geom, image=image, cmap="gray_r")
 
-coord = c.SkyCoord(x=0.5 * u.m, y=0.7 * u.m, frame=geom.frame)
-coord_in_another_frame = c.SkyCoord(x=0.5 * u.m, y=0.7 * u.m, frame=CameraFrame())
+coord = c.SkyCoord(x=0.5 * u.m, y=0.7 * u.m, frame=geom_camframe.frame)
 disp.overlay_coordinate(coord, markersize=20, marker="*")
-disp.overlay_coordinate(
-    coord_in_another_frame, markersize=20, marker="*", keep_old=True
-)
 
 
 ######################################################################
@@ -261,11 +256,11 @@ disp.overlay_coordinate(
 
 
 subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
-geom = subarray.tel[1].camera.geometry
+geom = subarray.tel[1].camera.geometry.transform_to(TelescopeFrame())
 
-fov = 1.0
-maxwid = 0.05
-maxlen = 0.1
+fov = 2.0
+maxwid = 0.1
+maxlen = 0.5
 
 fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 disp = CameraDisplay(geom, ax=ax)  # we only need one display (it can be re-used)
@@ -282,10 +277,10 @@ def update(frame):
     intens = width * length * (5e4 + 1e5 * np.random.exponential(2))
 
     model = toymodel.Gaussian(
-        x=x * u.m,
-        y=y * u.m,
-        width=width * u.m,
-        length=length * u.m,
+        x=x * u.deg,
+        y=y * u.deg,
+        width=width * u.deg,
+        length=length * u.deg,
         psi=angle * u.deg,
     )
     image, _, _ = model.generate_image(
@@ -344,7 +339,7 @@ with EventSource(
     event = next(iter(source))
 
 tel_id = list(event.r0.tel.keys())[0]
-geom = source.subarray.tel[tel_id].camera.geometry
+geom = source.subarray.tel[tel_id].camera.geometry.transform_to(TelescopeFrame())
 waveform = event.r0.tel[tel_id].waveform
 n_chan, n_pix, n_samp = waveform.shape
 
