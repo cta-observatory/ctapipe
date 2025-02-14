@@ -53,9 +53,6 @@ def get_installed_tools():
     """Get list of installed scripts via ``pkg-resources``.
 
     See https://setuptools.pypa.io/en/latest/pkg_resources.html#convenience-api
-
-    TODO: not sure if this will be useful ... maybe to check if the list
-    of installed packages matches the available scripts somehow?
     """
     console_tools = {
         ep.name: ep.value
