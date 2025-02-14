@@ -15,8 +15,10 @@ from ctapipe.core.traits import FloatTelescopeParameter, List, Tuple, Unicode
 from .features import (
     intensity_ratio_inside_ring,
     mean_squared_error,
+    radial_light_distribution,
     ring_completeness,
     ring_containment,
+    ring_size_parameters,
 )
 from .intensity_fitter import MuonIntensityFitter
 from .ring_fitter import MuonRingFitter
@@ -93,6 +95,22 @@ class MuonProcessor(TelescopeComponent):
 
     pedestal = FloatTelescopeParameter(
         help="Pedestal noise rms", default_value=1.1
+    ).tag(config=True)
+
+    ring_integration_width = FloatTelescopeParameter(
+        default_value=0.25,
+        help=(
+            "Width of the ring in units of the ring radius, "
+            "used for computing the ring size in charge units."
+        ),
+    ).tag(config=True)
+
+    outer_ring_width = FloatTelescopeParameter(
+        default_value=0.2,
+        help=(
+            "Width of the outer ring in units of the ring radius, "
+            "used for computing the charge outside the ring."
+        ),
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
@@ -268,9 +286,41 @@ class MuonProcessor(TelescopeComponent):
             ring.center_fov_lat,
         )
 
+        (
+            ring_intensity,
+            intensity_outside_ring,
+            n_pixels_in_ring,
+            mean_intensity_outside_ring,
+        ) = ring_size_parameters(
+            ring.radius,
+            ring.center_fov_lon,
+            ring.center_fov_lat,
+            fov_lon,
+            fov_lat,
+            self.ring_integration_width.tel[tel_id],
+            self.outer_ring_width.tel[tel_id],
+            image,
+            clean_mask,
+        )
+
+        standard_dev, skewness, excess_kurtosis = radial_light_distribution(
+            ring.center_fov_lon,
+            ring.center_fov_lat,
+            fov_lon,
+            fov_lat,
+            image,
+        )
+
         return MuonParametersContainer(
             containment=containment,
             completeness=completeness,
             intensity_ratio=intensity_ratio,
             mean_squared_error=mse,
+            ring_intensity=ring_intensity,
+            intensity_outside_ring=intensity_outside_ring,
+            n_pixels_in_ring=n_pixels_in_ring,
+            mean_intensity_outside_ring=mean_intensity_outside_ring,
+            standard_dev=standard_dev,
+            skewness=skewness,
+            excess_kurtosis=excess_kurtosis,
         )
