@@ -5,7 +5,7 @@
 # Configuration for calculating G/H and spatial selection ("theta") cuts
 # ======================================================================
 
-IrfEventSelector:
+EventSelectionOptimizer:
   gamma_target_spectrum: CRAB_HEGRA
   proton_target_spectrum: IRFDOC_PROTON_SPECTRUM
   electron_target_spectrum: IRFDOC_ELECTRON_SPECTRUM
