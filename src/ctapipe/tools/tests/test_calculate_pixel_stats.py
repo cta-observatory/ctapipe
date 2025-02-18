@@ -8,6 +8,7 @@ from traitlets.config.loader import Config
 
 from ctapipe.core import run_tool
 from ctapipe.core.tool import ToolConfigurationError
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import read_table
 from ctapipe.tools.calculate_pixel_stats import PixelStatisticsCalculatorTool
 
@@ -57,6 +58,10 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
         )["mean"]
         is not None
     )
+    # Read subarray description from the created monitoring file
+    subarray = SubarrayDescription.from_hdf(monitoring_file)
+    # Check for the selected telescope
+    assert subarray.tel_ids[0] == tel_id
 
 
 def test_tool_config_error(tmp_path, dl1_image_file):

@@ -84,8 +84,10 @@ class PixelStatisticsCalculatorTool(Tool):
 
     def setup(self):
         # Read the input data with the 'TableLoader'
-        self.input_data = TableLoader(
-            parent=self,
+        self.input_data = self.enter_context(
+            TableLoader(
+                parent=self,
+            )
         )
         # Check that the input and output files are not the same
         if self.input_data.input_url == self.output_path:
@@ -100,18 +102,20 @@ class PixelStatisticsCalculatorTool(Tool):
         self.input_data.dl1_images = True
         # Load the subarray description from the input file
         subarray = SubarrayDescription.from_hdf(self.input_data.input_url)
-        # Get the telescope ids from the input data or use the allowed_tels configuration
-        self.tel_ids = (
-            subarray.tel_ids if self.allowed_tels is None else self.allowed_tels
+        # Select a new subarray if the allowed_tels configuration is used
+        self.subarray = (
+            subarray
+            if self.allowed_tels is None
+            else subarray.select_subarray(self.allowed_tels)
         )
         # Initialization of the statistics calculator
         self.stats_calculator = PixelStatisticsCalculator(
-            parent=self, subarray=subarray
+            parent=self, subarray=self.subarray
         )
 
     def start(self):
         # Iterate over the telescope ids and calculate the statistics
-        for tel_id in self.tel_ids:
+        for tel_id in self.subarray.tel_ids:
             # Read the whole dl1 images for one particular telescope
             dl1_table = self.input_data.read_telescope_events_by_id(
                 telescopes=[
@@ -171,12 +175,18 @@ class PixelStatisticsCalculatorTool(Tool):
                 f"/dl1/monitoring/telescope/{self.output_table_name}/tel_{tel_id:03d}",
                 overwrite=self.overwrite,
             )
-
-    def finish(self):
         self.log.info(
             "DL1 monitoring data was stored in '%s' under '%s'",
             self.output_path,
             f"/dl1/monitoring/telescope/{self.output_table_name}",
+        )
+
+    def finish(self):
+        # Store the subarray description in the output file
+        self.subarray.to_hdf(self.output_path, overwrite=self.overwrite)
+        self.log.info(
+            "Subarray description was stored in '%s'",
+            self.output_path,
         )
         self.log.info("Tool is shutting down")
 
