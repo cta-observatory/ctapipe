@@ -1189,6 +1189,26 @@ class MuonParametersContainer(Container):
         nan * u.deg**2,
         "MSE of the deviation of all pixels after cleaning from the ring fit",
     )
+    ring_intensity = Field(
+        nan, "Sum of the pixel charges inside the integration area around a ring"
+    )
+    intensity_outside_ring = Field(nan, "Sum of the pixel charges outside the ring")
+    n_pixels_in_ring = Field(
+        -1,
+        "Number of pixels inside the ring integration area that passed the cleaning",
+    )
+    mean_intensity_outside_ring = Field(
+        nan,
+        "Mean intensity of pixels inside the region limited by ring integration width and outer ring width.",
+    )
+    standard_dev = Field(
+        nan * u.deg,
+        "Standard deviation of the radial light distribution.",
+    )
+    skewness = Field(nan, "Skewness of the light distribution along the ring radius.")
+    excess_kurtosis = Field(
+        nan, "Excess kurtosis of the light distribution along the ring radius."
+    )
 
 
 class MuonTelescopeContainer(Container):
