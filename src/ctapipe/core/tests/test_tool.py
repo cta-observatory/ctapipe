@@ -79,6 +79,23 @@ def test_provenance_log_help(tmpdir):
         assert not tool.provenance_log.exists()
 
 
+def test_show_config(tmpdir, capsys):
+    """check --show-config and --show-config-json work"""
+    from ctapipe.core.tool import run_tool
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+
+    for o in ["--show-config", "--show-config-json"]:
+        assert run_tool(tool, [o, "--MyTool.userparam=3.1415926"], cwd=tmpdir) == 0
+        captured = capsys.readouterr()
+        assert "userparam" in captured.out
+        assert "3.1415926" in captured.out
+
+
 def test_export_config_to_yaml():
     """test that we can export a Tool's config to YAML"""
     import yaml
