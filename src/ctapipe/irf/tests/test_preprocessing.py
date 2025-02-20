@@ -73,8 +73,7 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
     )
     events = loader.load_preselected_events(chunk_size=10000)
     count = len(events)
-    sim_info, spectrum = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
-    meta = {"sim_info": sim_info, "spectrum": spectrum}
+    meta = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
 
     columns = [
         "obs_id",

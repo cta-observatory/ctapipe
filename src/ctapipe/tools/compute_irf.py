@@ -498,10 +498,7 @@ class IrfTool(Tool):
             )
             events = loader.load_preselected_events(self.chunk_size)
             count = len(events)
-            sim_info, spectrum = loader.get_simulation_information(
-                obs_time=u.Quantity(50, u.h)
-            )
-            meta = {"sim_info": sim_info, "spectrum": spectrum}
+            meta = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:
                 # Sensitivity is only calculated, if do_background is true

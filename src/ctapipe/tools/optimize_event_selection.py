@@ -149,10 +149,7 @@ class EventSelectionOptimizer(Tool):
         for particle_type, loader in self.event_loaders.items():
             events = loader.load_preselected_events(self.chunk_size)
             count = len(events)
-            sim_info, spectrum = loader.get_simulation_information(
-                obs_time=u.Quantity(50, u.h)
-            )
-            meta = {"sim_info": sim_info, "spectrum": spectrum}
+            meta = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
             if self.optimizer.needs_background:
                 events = loader.make_event_weights(
                     events,

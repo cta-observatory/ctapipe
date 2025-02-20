@@ -237,7 +237,11 @@ class EventLoader(Component):
                 viewcone_min=sim["min_viewcone_radius"].quantity[0],
             )
 
-        return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)
+        meta = {
+            "sim_info": sim_info,
+            "spectrum": PowerLaw.from_simulation(sim_info, obstime=obs_time),
+        }
+        return meta
 
     def make_derived_columns(self, events: QTable) -> QTable:
         events["weight"] = (
