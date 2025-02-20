@@ -22,7 +22,7 @@ from ..coordinates import NominalFrame
 from ..core import Component
 from ..core.traits import Unicode
 from ..io import TableLoader
-from .cuts import EventQualitySelection
+from .cuts import EventQualitySelection, EventSelection
 from .spectra import SPECTRA, Spectra
 
 __all__ = ["EventLoader", "EventPreprocessor"]
@@ -31,7 +31,7 @@ __all__ = ["EventLoader", "EventPreprocessor"]
 class EventPreprocessor(Component):
     """Defines pre-selection cuts and the necessary renaming of columns."""
 
-    classes = [EventQualitySelection]
+    classes = [EventQualitySelection, EventSelection]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -48,9 +48,14 @@ class EventPreprocessor(Component):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(
+        self, quality_selection_only: bool = True, config=None, parent=None, **kwargs
+    ):
         super().__init__(config=config, parent=parent, **kwargs)
-        self.quality_query = EventQualitySelection(parent=self)
+        if quality_selection_only:
+            self.event_selection = EventQualitySelection(parent=self)
+        else:
+            self.event_selection = EventSelection(parent=self)
 
     def normalise_column_names(self, events: Table) -> QTable:
         if events["subarray_pointing_lat"].std() > 1e-3:
@@ -200,7 +205,8 @@ class EventLoader(Component):
             header = self.epp.make_empty_table()
             bits = [header]
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
-                selected = events[self.epp.quality_query.get_table_mask(events)]
+                events = self.epp.event_selection.calculate_selection(events)
+                selected = events[events["selected"]]
                 selected = self.epp.normalise_column_names(selected)
                 selected = self.make_derived_columns(selected)
                 bits.append(selected)

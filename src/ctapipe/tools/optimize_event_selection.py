@@ -206,7 +206,7 @@ class EventSelectionOptimizer(Tool):
         self.result = self.optimizer(
             events={"signal": self.signal_events, "background": self.background_events},
             # identical quality_query for all particle types
-            quality_query=self.event_loaders["gammas"].epp.quality_query,
+            quality_query=self.event_loaders["gammas"].epp.event_selection,
             clf_prefix=self.event_loaders["gammas"].epp.gammaness_classifier,
         )
 

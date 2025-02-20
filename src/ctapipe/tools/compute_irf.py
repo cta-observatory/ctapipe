@@ -471,7 +471,7 @@ class IrfTool(Tool):
                 )
 
             if (
-                loader.epp.quality_query.quality_criteria
+                loader.epp.event_selection.quality_criteria
                 != self.opt_result.quality_query.quality_criteria
             ):
                 self.log.warning(
@@ -479,22 +479,22 @@ class IrfTool(Tool):
                     "calculating g/h / theta cuts. Provided quality criteria:\n%s. "
                     "\nUsing the same quality criteria as g/h / theta cuts:\n%s. "
                     % (
-                        loader.epp.quality_query.to_table(functions=True)[
+                        loader.epp.event_selection.to_table(functions=True)[
                             "criteria", "func"
                         ],
-                        self.opt_result.quality_query.to_table(functions=True)[
+                        self.opt_result.event_selection.to_table(functions=True)[
                             "criteria", "func"
                         ],
                     )
                 )
-                loader.epp.quality_query = EventQualitySelection(
+                loader.epp.event_selection = EventQualitySelection(
                     parent=loader,
-                    quality_criteria=self.opt_result.quality_query.quality_criteria,
+                    quality_criteria=self.opt_result.event_selection.quality_criteria,
                 )
 
             self.log.debug(
                 "%s Quality criteria: %s"
-                % (particle_type, loader.epp.quality_query.quality_criteria)
+                % (particle_type, loader.epp.event_selection.quality_criteria)
             )
             events = loader.load_preselected_events(self.chunk_size)
             count = len(events)

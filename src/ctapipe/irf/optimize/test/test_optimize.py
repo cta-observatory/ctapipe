@@ -15,13 +15,13 @@ def test_optimization_result(tmp_path, irf_event_loader_test_config):
     )
 
     result_path = tmp_path / "result.h5"
-    epp = EventPreprocessor(irf_event_loader_test_config)
+    epp = EventPreprocessor(config=irf_event_loader_test_config)
     gh_cuts = QTable(
         data=[[0.2, 0.8, 1.5] * u.TeV, [0.8, 1.5, 10] * u.TeV, [0.82, 0.91, 0.88]],
         names=["low", "high", "cut"],
     )
     result = OptimizationResult(
-        quality_query=epp.quality_query,
+        quality_query=epp.event_selection,
         gh_cuts=gh_cuts,
         clf_prefix="ExtraTreesClassifier",
         valid_energy_min=0.2 * u.TeV,
@@ -105,7 +105,7 @@ def test_cut_optimizer(
     optimizer = Optimizer()
     result = optimizer(
         events={"signal": gamma_events, "background": proton_events},
-        quality_query=gamma_loader.epp.quality_query,  # identical qualityquery for all particle types
+        quality_query=gamma_loader.epp.event_selection,  # identical qualityquery for all particle types
         clf_prefix="ExtraTreesClassifier",
     )
     assert isinstance(result, OptimizationResult)
