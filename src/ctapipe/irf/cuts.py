@@ -3,14 +3,14 @@ import operator
 from astropy.table import Table
 from pyirf.cuts import evaluate_binned_cut
 
-from ctapipe.core import Component, QualityQuery
+from ctapipe.core import QualityQuery
 from ctapipe.core.traits import List, Path, Tuple, Unicode
 from ctapipe.irf import OptimizationResult
 
-__all__ = ["EventQualityQuery", "EventSelection"]
+__all__ = ["EventQualitySelection", "EventSelection"]
 
 
-class EventQualityQuery(QualityQuery):
+class EventQualitySelection(QualityQuery):
     """
     Event pre-selection quality criteria for IRF computation with different defaults.
     """
@@ -29,21 +29,26 @@ class EventQualityQuery(QualityQuery):
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
+    def calculate_selection(self, events):
+        return self.calculate_quality_selection(events)
 
-class EventSelection(Component):
+    def calculate_quality_selection(self, events):
+        events["selected_quality"] = self.get_table_mask(events)
+        events["selected"] = events["selected_quality"]
+        return events
+
+
+class EventSelection(EventQualitySelection):
     """
     Event selection
     """
 
-    quality_query = EventQualityQuery()
     cuts_file = Path(
         default_value=None,
         allow_none=False,
         directory_ok=False,
         help="Path to the cuts file to apply to the observation.",
     ).tag(config=True)
-
-    classes = [EventQualityQuery]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -53,11 +58,6 @@ class EventSelection(Component):
         events = self.calculate_quality_selection(events)
         events = self.calculate_gamma_selection(events)
         events["selected"] = events["selected_quality"] & events["selected_gamma"]
-        return events
-
-    def calculate_quality_selection(self, events):
-        events["selected_quality"] = self.quality_query.get_table_mask(events)
-        events["selected"] = events["selected_quality"]
         return events
 
     def calculate_gamma_selection(
