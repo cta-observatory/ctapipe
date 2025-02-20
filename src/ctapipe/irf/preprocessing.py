@@ -192,10 +192,18 @@ class EventLoader(Component):
 
     classes = [EventPreprocessor]
 
-    def __init__(self, file: Path, target_spectrum: Spectra, **kwargs):
+    def __init__(
+        self,
+        file: Path,
+        target_spectrum: Spectra,
+        quality_selection_only: bool = True,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
-        self.epp = EventPreprocessor(parent=self)
+        self.epp = EventPreprocessor(
+            quality_selection_only=quality_selection_only, parent=self
+        )
         self.target_spectrum = SPECTRA[target_spectrum]
         self.file = file
 

@@ -90,15 +90,15 @@ def test_cut_optimizer(
     from ctapipe.irf import EventLoader, OptimizationResult, Spectra
 
     gamma_loader = EventLoader(
-        config=irf_event_loader_test_config,
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
+        config=irf_event_loader_test_config,
     )
     gamma_events = gamma_loader.load_preselected_events(chunk_size=10000)
     proton_loader = EventLoader(
-        config=irf_event_loader_test_config,
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,
+        config=irf_event_loader_test_config,
     )
     proton_events = proton_loader.load_preselected_events(chunk_size=10000)
 
