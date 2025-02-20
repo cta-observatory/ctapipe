@@ -2,7 +2,9 @@
 """
 Functions to help adapt internal ctapipe data to astropy formats and conventions
 """
+
 import os
+import warnings
 from contextlib import ExitStack
 from uuid import uuid4
 
@@ -211,7 +213,9 @@ def write_table(
             h5_table.append(table.as_array())
 
         for key, val in table.meta.items():
-            h5_table.attrs[key] = val
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", tables.NaturalNameWarning)
+                h5_table.attrs[key] = val
 
         for key, val in attrs.items():
             h5_table.attrs[key] = val

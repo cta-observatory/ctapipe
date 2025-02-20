@@ -292,11 +292,9 @@ class SubarrayDescription:
         if kind == "subarray":
             if self.reference_location is not None:
                 itrs = self.reference_location.itrs
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", tables.NaturalNameWarning)
-                    meta["OBSGEO-X"] = itrs.x.to_value(u.m)
-                    meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
-                    meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
+                meta["OBSGEO-X"] = itrs.x.to_value(u.m)
+                meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
+                meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
 
             unique_optics = self.optics_types
 
