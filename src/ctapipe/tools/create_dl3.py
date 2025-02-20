@@ -24,6 +24,7 @@ class DL3Tool(Tool):
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        exists=True,
         help="DL2 input filename and path.",
     ).tag(config=True)
 
@@ -31,6 +32,7 @@ class DL3Tool(Tool):
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        exists=True,
         help="Output file",
     ).tag(config=True)
 
@@ -38,6 +40,7 @@ class DL3Tool(Tool):
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        exists=True,
         help="Path to the cuts file to apply to the observation.",
     ).tag(config=True)
 
@@ -45,6 +48,7 @@ class DL3Tool(Tool):
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        exists=True,
         help="Path to the IRFs describing the observation",
     ).tag(config=True)
 

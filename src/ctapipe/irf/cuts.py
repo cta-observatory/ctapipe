@@ -73,6 +73,7 @@ class EventSelection(EventQualitySelection):
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        exists=True,
         help="Path to the cuts file to apply to the observation.",
     ).tag(config=True)
 
