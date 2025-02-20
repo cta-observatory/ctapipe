@@ -12,7 +12,7 @@ __all__ = ["EventQualitySelection", "EventSelection"]
 
 class EventQualitySelection(QualityQuery):
     """
-    Event pre-selection quality criteria for IRF computation with different defaults.
+    Event pre-selection quality criteria for IRF and DL3 computation with different defaults.
     """
 
     quality_criteria = List(
@@ -29,10 +29,36 @@ class EventQualitySelection(QualityQuery):
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
-    def calculate_selection(self, events):
+    def calculate_selection(self, events: Table):
+        """
+        Add the selection columns to the events, will only compute quality selection
+
+        Parameters
+        ----------
+        events: Table
+            The table containing the events on which selection need to be applied
+
+        Returns
+        -------
+        Table
+            events with selection columns added.
+        """
         return self.calculate_quality_selection(events)
 
-    def calculate_quality_selection(self, events):
+    def calculate_quality_selection(self, events: Table):
+        """
+        Add the selection columns to the events, will only compute quality selection
+
+        Parameters
+        ----------
+        events: Table
+            The table containing the events on which selection need to be applied
+
+        Returns
+        -------
+        Table
+            events with selection columns added.
+        """
         events["selected_quality"] = self.get_table_mask(events)
         events["selected"] = events["selected_quality"]
         return events
@@ -40,7 +66,7 @@ class EventQualitySelection(QualityQuery):
 
 class EventSelection(EventQualitySelection):
     """
-    Event selection
+    Event selection quality and gammaness criteria for IRF and DL3
     """
 
     cuts_file = Path(
@@ -50,19 +76,11 @@ class EventSelection(EventQualitySelection):
         help="Path to the cuts file to apply to the observation.",
     ).tag(config=True)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.cuts = OptimizationResult.read(self.cuts_file)
 
-    def calculate_selection(self, events):
-        events = self.calculate_quality_selection(events)
-        events = self.calculate_gamma_selection(events)
-        events["selected"] = events["selected_quality"] & events["selected_gamma"]
-        return events
-
-    def calculate_gamma_selection(
-        self, events: Table, apply_spatial_selection: bool = False
-    ) -> Table:
+    def calculate_selection(self, events: Table, apply_spatial_selection: bool = False):
         """
         Add the selection columns to the events
 
@@ -70,8 +88,29 @@ class EventSelection(EventQualitySelection):
         ----------
         events: Table
             The table containing the events on which selection need to be applied
-        cuts: OptimizationResult
-            The cuts that need to be applied on the events
+        apply_spatial_selection: bool
+            True if the theta cuts should be applied
+
+        Returns
+        -------
+        Table
+            events with selection columns added.
+        """
+        events = self.calculate_quality_selection(events)
+        events = self.calculate_gamma_selection(events, apply_spatial_selection)
+        events["selected"] = events["selected_quality"] & events["selected_gamma"]
+        return events
+
+    def calculate_gamma_selection(
+        self, events: Table, apply_spatial_selection: bool = False
+    ) -> Table:
+        """
+        Add the selection columns to the events, will compute only gamma criteria
+
+        Parameters
+        ----------
+        events: Table
+            The table containing the events on which selection need to be applied
         apply_spatial_selection: bool
             True if the theta cuts should be applied
 
