@@ -3,10 +3,11 @@
 import astropy.units as u
 from astropy.table import vstack
 
+from ctapipe.irf.optimize.algorithm import CutOptimizerBase
+
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Integer, classes_with_traits
 from ..irf import EventLoader, Spectra
-from ..irf.optimize import CutOptimizerBase
 
 __all__ = ["EventSelectionOptimizer"]
 

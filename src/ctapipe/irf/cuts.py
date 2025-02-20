@@ -3,9 +3,9 @@ import operator
 from astropy.table import Table
 from pyirf.cuts import evaluate_binned_cut
 
-from ctapipe.core import QualityQuery
-from ctapipe.core.traits import List, Path, Tuple, Unicode
-from ctapipe.irf import OptimizationResult
+from ..core import QualityQuery
+from ..core.traits import List, Path, Tuple, Unicode
+from .optimize.results import OptimizationResult
 
 __all__ = ["EventQualitySelection", "EventSelection"]
 

@@ -4,7 +4,7 @@ import pytest
 from astropy.table import QTable
 
 from ctapipe.core import QualityQuery, non_abstract_children
-from ctapipe.irf.optimize import CutOptimizerBase
+from ctapipe.irf.optimize.algorithm import CutOptimizerBase
 
 
 def test_optimization_result(tmp_path, irf_event_loader_test_config):
