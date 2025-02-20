@@ -19,38 +19,19 @@ from tables import NoSuchNodeError
 from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
-from ..core import Component, QualityQuery
-from ..core.traits import List, Tuple, Unicode
+from ..core import Component
+from ..core.traits import Unicode
 from ..io import TableLoader
+from .cuts import EventQualitySelection
 from .spectra import SPECTRA, Spectra
 
-__all__ = ["EventLoader", "EventPreprocessor", "EventQualityQuery"]
-
-
-class EventQualityQuery(QualityQuery):
-    """
-    Event pre-selection quality criteria for IRF computation with different defaults.
-    """
-
-    quality_criteria = List(
-        Tuple(Unicode(), Unicode()),
-        default_value=[
-            (
-                "multiplicity 4",
-                "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4",
-            ),
-            ("valid classifier", "RandomForestClassifier_is_valid"),
-            ("valid geom reco", "HillasReconstructor_is_valid"),
-            ("valid energy reco", "RandomForestRegressor_is_valid"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+__all__ = ["EventLoader", "EventPreprocessor"]
 
 
 class EventPreprocessor(Component):
     """Defines pre-selection cuts and the necessary renaming of columns."""
 
-    classes = [EventQualityQuery]
+    classes = [EventQualitySelection]
 
     energy_reconstructor = Unicode(
         default_value="RandomForestRegressor",
@@ -69,7 +50,7 @@ class EventPreprocessor(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
-        self.quality_query = EventQualityQuery(parent=self)
+        self.quality_query = EventQualitySelection(parent=self)
 
     def normalise_column_names(self, events: Table) -> QTable:
         if events["subarray_pointing_lat"].std() > 1e-3:
@@ -213,52 +194,48 @@ class EventLoader(Component):
         self.target_spectrum = SPECTRA[target_spectrum]
         self.file = file
 
-    def load_preselected_events(
-        self, chunk_size: int, obs_time: u.Quantity
-    ) -> tuple[QTable, int, dict]:
+    def load_preselected_events(self, chunk_size: int) -> tuple[QTable, int, dict]:
         opts = dict(dl2=True, simulated=True, observation_info=True)
         with TableLoader(self.file, parent=self, **opts) as load:
             header = self.epp.make_empty_table()
-            sim_info, spectrum = self.get_simulation_information(load, obs_time)
-            meta = {"sim_info": sim_info, "spectrum": spectrum}
             bits = [header]
-            n_raw_events = 0
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 selected = events[self.epp.quality_query.get_table_mask(events)]
                 selected = self.epp.normalise_column_names(selected)
                 selected = self.make_derived_columns(selected)
                 bits.append(selected)
-                n_raw_events += len(events)
 
             bits.append(header)  # Putting it last ensures the correct metadata is used
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
-            return table, n_raw_events, meta
+            return table
 
     def get_simulation_information(
-        self, loader: TableLoader, obs_time: u.Quantity
+        self, obs_time: u.Quantity
     ) -> tuple[SimulatedEventsInfo, PowerLaw]:
-        sim = loader.read_simulation_configuration()
-        try:
-            show = loader.read_shower_distribution()
-        except NoSuchNodeError:
-            # Fall back to using the run header
-            show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
+        opts = dict(dl2=True, simulated=True, observation_info=True)
+        with TableLoader(self.file, parent=self, **opts) as load:
+            sim = load.read_simulation_configuration()
+            try:
+                show = load.read_shower_distribution()
+            except NoSuchNodeError:
+                # Fall back to using the run header
+                show = Table([sim["n_showers"]], names=["n_entries"], dtype=[np.int64])
 
-        for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
-            if len(np.unique(sim[itm])) > 1:
-                raise NotImplementedError(
-                    f"Unsupported: '{itm}' differs across simulation runs"
-                )
+            for itm in ["spectral_index", "energy_range_min", "energy_range_max"]:
+                if len(np.unique(sim[itm])) > 1:
+                    raise NotImplementedError(
+                        f"Unsupported: '{itm}' differs across simulation runs"
+                    )
 
-        sim_info = SimulatedEventsInfo(
-            n_showers=show["n_entries"].sum(),
-            energy_min=sim["energy_range_min"].quantity[0],
-            energy_max=sim["energy_range_max"].quantity[0],
-            max_impact=sim["max_scatter_range"].quantity[0],
-            spectral_index=sim["spectral_index"][0],
-            viewcone_max=sim["max_viewcone_radius"].quantity[0],
-            viewcone_min=sim["min_viewcone_radius"].quantity[0],
-        )
+            sim_info = SimulatedEventsInfo(
+                n_showers=show["n_entries"].sum(),
+                energy_min=sim["energy_range_min"].quantity[0],
+                energy_max=sim["energy_range_max"].quantity[0],
+                max_impact=sim["max_scatter_range"].quantity[0],
+                spectral_index=sim["spectral_index"][0],
+                viewcone_max=sim["max_viewcone_radius"].quantity[0],
+                viewcone_min=sim["min_viewcone_radius"].quantity[0],
+            )
 
         return sim_info, PowerLaw.from_simulation(sim_info, obstime=obs_time)
 

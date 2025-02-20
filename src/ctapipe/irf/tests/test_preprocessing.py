@@ -71,10 +71,10 @@ def test_event_loader(gamma_diffuse_full_reco_file, irf_event_loader_test_config
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
     )
-    events, count, meta = loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
+    events = loader.load_preselected_events(chunk_size=10000)
+    count = len(events)
+    sim_info, spectrum = loader.get_simulation_information(obs_time=u.Quantity(50, u.h))
+    meta = {"sim_info": sim_info, "spectrum": spectrum}
 
     columns = [
         "obs_id",

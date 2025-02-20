@@ -91,19 +91,13 @@ def test_make_2d_sensitivity(
         file=gamma_diffuse_full_reco_file,
         target_spectrum=Spectra.CRAB_HEGRA,
     )
-    gamma_events, _, _ = gamma_loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
+    gamma_events = gamma_loader.load_preselected_events(chunk_size=10000)
     proton_loader = EventLoader(
         config=irf_event_loader_test_config,
         file=proton_full_reco_file,
         target_spectrum=Spectra.IRFDOC_PROTON_SPECTRUM,
     )
-    proton_events, _, _ = proton_loader.load_preselected_events(
-        chunk_size=10000,
-        obs_time=u.Quantity(50, u.h),
-    )
+    proton_events = proton_loader.load_preselected_events(chunk_size=10000)
 
     sens_maker = Sensitivity2dMaker(
         fov_offset_n_bins=3,

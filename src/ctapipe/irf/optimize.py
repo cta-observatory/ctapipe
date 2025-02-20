@@ -14,7 +14,7 @@ from pyirf.cuts import calculate_percentile_cut, evaluate_binned_cut
 from ..core import Component, QualityQuery
 from ..core.traits import AstroQuantity, Float, Integer, Path
 from .binning import DefaultRecoEnergyBins, ResultValidRange
-from .preprocessing import EventQualityQuery
+from .cuts import EventQualitySelection
 
 __all__ = [
     "CutOptimizerBase",
@@ -168,7 +168,7 @@ class CutOptimizerBase(DefaultRecoEnergyBins):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: EventQualitySelection,
         clf_prefix: str,
     ) -> OptimizationResult:
         """
@@ -305,7 +305,7 @@ class PercentileCuts(CutOptimizerBase):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: EventQualitySelection,
         clf_prefix: str,
     ) -> OptimizationResult:
         self._check_events(events)
@@ -393,7 +393,7 @@ class PointSourceSensitivityOptimizer(CutOptimizerBase):
     def __call__(
         self,
         events: dict[str, QTable],
-        quality_query: EventQualityQuery,
+        quality_query: EventQualitySelection,
         clf_prefix: str,
     ) -> OptimizationResult:
         self._check_events(events)

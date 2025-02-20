@@ -30,13 +30,13 @@ from ..irf.benchmarks import (
     EnergyBiasResolutionMakerBase,
     SensitivityMakerBase,
 )
+from ..irf.cuts import EventQualitySelection
 from ..irf.irfs import (
     BackgroundRateMakerBase,
     EffectiveAreaMakerBase,
     EnergyDispersionMakerBase,
     PSFMakerBase,
 )
-from ..irf.preprocessing import EventQualityQuery
 
 __all__ = ["IrfTool"]
 
@@ -487,7 +487,7 @@ class IrfTool(Tool):
                         ],
                     )
                 )
-                loader.epp.quality_query = EventQualityQuery(
+                loader.epp.quality_query = EventQualitySelection(
                     parent=loader,
                     quality_criteria=self.opt_result.quality_query.quality_criteria,
                 )
@@ -496,9 +496,12 @@ class IrfTool(Tool):
                 "%s Quality criteria: %s"
                 % (particle_type, loader.epp.quality_query.quality_criteria)
             )
-            events, count, meta = loader.load_preselected_events(
-                self.chunk_size, self.obs_time
+            events = loader.load_preselected_events(self.chunk_size)
+            count = len(events)
+            sim_info, spectrum = loader.get_simulation_information(
+                obs_time=u.Quantity(50, u.h)
             )
+            meta = {"sim_info": sim_info, "spectrum": spectrum}
             # Only calculate event weights if background or sensitivity should be calculated.
             if self.do_background:
                 # Sensitivity is only calculated, if do_background is true
