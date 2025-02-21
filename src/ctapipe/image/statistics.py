@@ -6,6 +6,7 @@ from numba import float32, float64, guvectorize, int64, njit
 from ..containers import ImageStatisticsContainer
 
 __all__ = [
+    "argmin",
     "arg_n_largest",
     "arg_n_largest_gu",
     "n_largest",
@@ -139,3 +140,15 @@ def arg_n_largest(n, array):
     dummy = np.zeros(n, dtype=np.int64)
     idx = arg_n_largest_gu(dummy, array)
     return idx
+
+
+@njit
+def argmin(array):
+    """Returns the index of the minimum value of an array"""
+    min_index = 0
+    min_value = array[0]
+    for i in range(1, len(array)):
+        if array[i] < min_value:
+            min_value = array[i]
+            min_index = i
+    return min_index
