@@ -1,5 +1,7 @@
+from astropy.io import fits
+
 from ctapipe.core import Tool, traits
-from ctapipe.core.traits import Integer, classes_with_traits
+from ctapipe.core.traits import Bool, Integer, classes_with_traits
 
 from ..irf import EventLoader
 
@@ -19,7 +21,7 @@ class DL3Tool(Tool):
         help="DL2 input filename and path.",
     ).tag(config=True)
 
-    output_path = traits.Path(
+    output_file = traits.Path(
         allow_none=False,
         directory_ok=False,
         help="Output file",
@@ -38,6 +40,11 @@ class DL3Tool(Tool):
         help="How many subarray events to load at once while selecting.",
     ).tag(config=True)
 
+    overwrite = Bool(
+        default_value=False,
+        help="If true, allow to overwrite already existing output file",
+    ).tag(config=True)
+
     # Which classes are registered for configuration
     classes = [
         EventLoader,
@@ -47,25 +54,37 @@ class DL3Tool(Tool):
         "cuts": "EventSelection.cuts_file",
         "dl2-file": "DL3Tool.dl2_file",
         "irfs-file": "DL3Tool.irfs_file",
-        "output": "DL3Tool.output_path",
+        "output": "DL3Tool.output_file",
         "chunk-size": "DL3Tool.chunk_size",
+        "overwrite": "DL3Tool.overwrite",
     }
 
     def setup(self):
         """
         Initialize components from config and load g/h (and theta) cuts.
         """
-        self.log.info("Loading events from DL2")
-        self.event_loader = EventLoader(
-            parent=self, file=self.dl2_file, quality_selection_only=True
-        )
-        print(self.event_loader.load_preselected_events(self.chunk_size))
-
-    def start(self):
         pass
 
+    def start(self):
+        self.log.info("Loading events from DL2")
+        self.event_loader = EventLoader(
+            parent=self, file=self.dl2_file, quality_selection_only=False
+        )
+        events = self.event_loader.load_preselected_events(self.chunk_size)
+
+        hdu_dl3 = fits.HDUList([fits.PrimaryHDU()])
+        hdu_dl3.append(fits.BinTableHDU(data=events, name="EVENTS"))
+
+        self.log.info("Loading IRFs")
+        hdu_irfs = fits.open(self.irfs_file, checksum=True)
+        for i in range(1, len(hdu_irfs)):
+            hdu_dl3.append(hdu_irfs[i])
+
+        self.log.info("Writing DL3 File")
+        hdu_dl3.writeto(self.output_file, checksum=True, overwrite=self.overwrite)
+
     def finish(self):
-        self.log.warning("Shutting down.")
+        pass
 
 
 def main():
