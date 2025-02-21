@@ -10,7 +10,7 @@ from numba import njit, uint64
 
 from ctapipe.core.env import CTAPIPE_DISABLE_NUMBA_CACHE
 
-__all__ = ["get_subarray_index", "weighted_mean_std_ufunc"]
+__all__ = ["get_subarray_index", "weighted_mean_std_ufunc", "get_combinations"]
 
 
 SubarrayIndex = namedtuple(
@@ -174,4 +174,4 @@ def weighted_mean_std_ufunc(
 
 @lru_cache(maxsize=4096)
 def get_combinations(array, size):
-    return list(combinations(array, size))
+    return np.array(list(combinations(array, size)))
