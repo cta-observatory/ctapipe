@@ -1,7 +1,14 @@
 from .atmosphere import get_atmosphere_profile_functions
 from .camera import CameraDescription, CameraGeometry, CameraReadout, PixelShape
 from .guess import guess_telescope
-from .optics import FocalLengthKind, OpticsDescription, ReflectorShape, SizeType
+from .optics import (
+    ComaPSFModel,
+    FocalLengthKind,
+    OpticsDescription,
+    PSFModel,
+    ReflectorShape,
+    SizeType,
+)
 from .subarray import SubarrayDescription, UnknownTelescopeID
 from .telescope import TelescopeDescription
 from .trigger import SoftwareTrigger
@@ -23,4 +30,6 @@ __all__ = [
     "SizeType",
     "SoftwareTrigger",
     "FromNameWarning",
+    "PSFModel",
+    "ComaPSFModel",
 ]

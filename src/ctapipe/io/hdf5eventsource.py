@@ -708,6 +708,7 @@ class HDF5EventSource(EventSource):
                     if self.has_simulated_dl1:
                         simulated_image_row = next(simulated_image_iterators[key])
                         simulated.true_image = simulated_image_row["true_image"]
+                        simulated.true_image_sum = simulated_image_row["true_image_sum"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     # Is there a smarter way to unpack this?

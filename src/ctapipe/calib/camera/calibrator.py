@@ -204,7 +204,7 @@ class CameraCalibrator(TelescopeComponent):
 
         dl0_pixel_status = r1.pixel_status.copy()
         # set dvr pixel bit in pixel_status for pixels kept by DVR
-        dl0_pixel_status[signal_pixels] |= PixelStatus.DVR_STORED_AS_SIGNAL
+        dl0_pixel_status[signal_pixels] |= np.uint8(PixelStatus.DVR_STORED_AS_SIGNAL)
         # unset dvr bits for removed pixels
         dl0_pixel_status[~signal_pixels] &= ~np.uint8(PixelStatus.DVR_STATUS)
 

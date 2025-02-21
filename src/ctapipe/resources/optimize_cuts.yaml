@@ -1,0 +1,51 @@
+# ======================================================================
+# ctapipe-optimize-event-selection config file
+# version: VERSION
+#
+# Configuration for calculating G/H and spatial selection ("theta") cuts
+# ======================================================================
+
+EventSelectionOptimizer:
+  gamma_target_spectrum: CRAB_HEGRA
+  proton_target_spectrum: IRFDOC_PROTON_SPECTRUM
+  electron_target_spectrum: IRFDOC_ELECTRON_SPECTRUM
+  obs_time: 50 hour
+  optimization_algorithm: "PointSourceSensitivityOptimizer"  # Alternative: "PercentileCuts"
+
+EventPreprocessor:
+  energy_reconstructor: "RandomForestRegressor"
+  geometry_reconstructor: "HillasReconstructor"
+  gammaness_classifier: "RandomForestClassifier"
+
+  EventQualityQuery:
+    quality_criteria:
+      - ["multiplicity 4", "np.count_nonzero(HillasReconstructor_telescopes,axis=1) >= 4"]
+      - ["valid classifier", "RandomForestClassifier_is_valid"]
+      - ["valid geom reco", "HillasReconstructor_is_valid"]
+      - ["valid energy reco", "RandomForestRegressor_is_valid"]
+
+DefaultRecoEnergyBins:
+  reco_energy_min: 0.015 TeV
+  reco_energy_max: 150 TeV
+  reco_energy_n_bins_per_decade: 5
+
+ThetaPercentileCutCalculator:
+  theta_min_angle: -1 deg
+  theta_max_angle: 0.32 deg
+  theta_fill_value: 0.32 deg
+  smoothing:
+  target_percentile: 68
+  min_counts: 10
+
+GhPercentileCutCalculator:
+  target_percentile: 68
+  min_counts: 10
+  smoothing:
+
+PointSourceSensitivityOptimizer:
+  min_background_fov_offset: 0.0 deg
+  max_background_fov_offset: 5.0 deg
+  initial_gh_cut_efficency: 0.4
+  max_gh_cut_efficiency: 0.8
+  gh_cut_efficiency_step: 0.1
+  alpha: 0.2
