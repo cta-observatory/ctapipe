@@ -70,7 +70,6 @@ class EventSelection(EventQualitySelection):
     """
 
     cuts_file = Path(
-        default_value=None,
         allow_none=False,
         directory_ok=False,
         exists=True,

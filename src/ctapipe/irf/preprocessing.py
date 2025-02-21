@@ -98,9 +98,31 @@ class EventPreprocessor(Component):
                     f"Required column {c} is missing."
                 )
 
-        events = QTable(events[keep_columns], copy=COPY_IF_NEEDED)
-        events.rename_columns(rename_from, rename_to)
-        return events
+        renamed_events = QTable(events, copy=COPY_IF_NEEDED)
+        renamed_events.rename_columns(rename_from, rename_to)
+        return renamed_events
+
+    def keep_nescessary_columns_only(self, events: Table) -> QTable:
+        keep_columns = [
+            "obs_id",
+            "event_id",
+            "true_energy",
+            "true_az",
+            "true_alt",
+            "reco_energy",
+            "reco_az",
+            "reco_alt",
+            "reco_fov_lat",
+            "reco_fov_lon",
+            "pointing_az",
+            "pointing_alt",
+            "theta",
+            "true_source_fov_offset",
+            "reco_source_fov_offset",
+            "gh_score",
+            "weight",
+        ]
+        return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
 
     def make_empty_table(self) -> QTable:
         """
@@ -195,7 +217,7 @@ class EventLoader(Component):
     def __init__(
         self,
         file: Path,
-        target_spectrum: Spectra,
+        target_spectrum: Spectra = None,
         quality_selection_only: bool = True,
         **kwargs,
     ):
@@ -204,7 +226,10 @@ class EventLoader(Component):
         self.epp = EventPreprocessor(
             quality_selection_only=quality_selection_only, parent=self
         )
-        self.target_spectrum = SPECTRA[target_spectrum]
+        if target_spectrum is not None:
+            self.target_spectrum = SPECTRA[target_spectrum]
+        else:
+            self.target_spectrum = None
         self.file = file
 
     def load_preselected_events(self, chunk_size: int) -> tuple[QTable, int, dict]:
@@ -213,10 +238,11 @@ class EventLoader(Component):
             header = self.epp.make_empty_table()
             bits = [header]
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
+                events = self.epp.normalise_column_names(events)
+                events = self.make_derived_columns(events)
                 events = self.epp.event_selection.calculate_selection(events)
                 selected = events[events["selected"]]
-                selected = self.epp.normalise_column_names(selected)
-                selected = self.make_derived_columns(selected)
+                selected = self.epp.keep_nescessary_columns_only(selected)
                 bits.append(selected)
 
             bits.append(header)  # Putting it last ensures the correct metadata is used
@@ -296,6 +322,11 @@ class EventLoader(Component):
         kind: str,
         fov_offset_bins: u.Quantity | None = None,
     ) -> QTable:
+        if self.target_spectrum is None:
+            raise Exception(
+                "No spectrum is defined, need a spectrum for events weighting"
+            )
+
         if (
             kind == "gammas"
             and self.target_spectrum.normalization.unit.is_equivalent(
