@@ -1,14 +1,15 @@
 from abc import abstractmethod
-from itertools import product
 
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
+from numba import njit
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
 from ctapipe.core.traits import Bool, CaselessStrEnum, Int, Unicode
+from ctapipe.image.statistics import argmin
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -20,6 +21,7 @@ from ..containers import (
 )
 from .preprocessing import horizontal_to_telescope, telescope_to_horizontal
 from .telescope_event_handling import (
+    get_combinations,
     get_subarray_index,
     weighted_mean_std_ufunc,
 )
@@ -432,8 +434,6 @@ class StereoDispCombiner(StereoCombiner):
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
-        self.sign_combinations = list(product(range(self.n_tel_combinations), repeat=2))
-
     def _calculate_weights(self, data):
         """"""
         if isinstance(data, Container):
@@ -458,6 +458,57 @@ class StereoDispCombiner(StereoCombiner):
             "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
         )
 
+    @njit
+    def _calculate_min_distances(
+        index_combs_tel_ids, sign_combs, fov_lon_values, fov_lat_values, weights
+    ):
+        """
+        Returns the weighted average fov lon/lat for every telescope combination
+        in tel_combs and the sum of their weights.
+        """
+        combined_weights = []
+        fov_lons = []
+        fov_lats = []
+        sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+        for tel_1, tel_2 in index_combs_tel_ids:
+            combined_weights.append(weights[tel_1] + weights[tel_2])
+            distances = []
+            for sign_comb in sign_combs:
+                # Calculate distances per telescope combination for all 4 sign combinations
+                distance = np.sqrt(
+                    (
+                        fov_lon_values[tel_1][sign_comb[0]]
+                        - fov_lon_values[tel_2][sign_comb[1]]
+                    )
+                    ** 2
+                    + (
+                        fov_lat_values[tel_1][sign_comb[0]]
+                        - fov_lat_values[tel_2][sign_comb[1]]
+                    )
+                    ** 2
+                )
+                distances.append(distance)
+            argmin_distance = argmin(distances)
+            fov_lons.append(
+                np.average(
+                    [
+                        fov_lon_values[tel_1][sign_combs[argmin_distance][0]],
+                        fov_lon_values[tel_2][sign_combs[argmin_distance][1]],
+                    ],
+                    weights=[weights[tel_1], weights[tel_2]],
+                )
+            )
+            fov_lats.append(
+                np.average(
+                    [
+                        fov_lat_values[tel_1][sign_combs[argmin_distance][0]],
+                        fov_lat_values[tel_2][sign_combs[argmin_distance][1]],
+                    ],
+                    weights=[weights[tel_1], weights[tel_2]],
+                )
+            )
+        return fov_lons, fov_lats, combined_weights
+
     def __call__(self, event: ArrayEventContainer) -> None:
         """
         Calculate the mean prediction for a single array event.
@@ -467,6 +518,7 @@ class StereoDispCombiner(StereoCombiner):
         fov_lat_values = []
         weights = []
         signs = np.array([-1, 1])
+
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.geometry[self.prefix]
             if mono.is_valid:
@@ -476,22 +528,28 @@ class StereoDispCombiner(StereoCombiner):
                 hillas_psi = dl1.hillas.psi.to_value(u.rad)
                 disp = dl2.disp.parameter
 
-                # guvec?
                 fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
                 fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
                 fov_lon_values.append(fov_lons)
                 fov_lat_values.append(fov_lats)
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
-        if (
-            len(fov_lon_values) > 0
-        ):  # by construction len(fov_lon_values) == len(fov_lat_values)
-            # index_combs = get_combinations(range(len(ids)), self.n_tel_combinations)
-            fov_lon_mean = np.average(fov_lon_values, weights=weights)
-            fov_lat_mean = np.average(fov_lat_values, weights=weights)
+
+        if len(fov_lon_values) > 0:
+            index_combs_tel_ids = get_combinations(
+                range(len(ids)), self.n_tel_combinations
+            )
+            fov_lons, fov_lats, comb_weights = self._calculate_min_distances(
+                index_combs_tel_ids,
+                fov_lon_values,
+                fov_lat_values,
+                weights,
+            )
+            fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
+            fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
             alt, az = telescope_to_horizontal(
-                lon=fov_lon_mean,
-                lat=fov_lat_mean,
+                lon=fov_lon_weighted_average,
+                lat=fov_lat_weighted_average,
                 pointing_alt=event.pointing.array_altitude,
                 pointing_az=event.pointing.array_azimuth,
             )
