@@ -57,7 +57,7 @@ def get_subarray_index(tel_table):
     in a table of telescope events, their multiplicity and an array
     giving the index of the subarray event for each telescope event.
 
-    This requires the telescope events of one subarray event to be come
+    This requires the telescope events of one subarray event to be
     in a single block.
 
     Parameters
@@ -139,16 +139,19 @@ def weighted_mean_std_ufunc(
     valid = sum_of_weights > 0
     mean[valid] = sum_prediction[valid] / sum_of_weights[valid]
 
-    sum_sq_residulas = _grouped_add(
+    sum_sq_residuals = _grouped_add(
         (tel_values - np.repeat(mean, multiplicity)[valid_tel]) ** 2 * weights,
         n_array_events,
         indices,
     )
     variance = np.full(n_array_events, np.nan)
-    variance[valid] = sum_sq_residulas[valid] / sum_of_weights[valid]
+    variance[valid] = sum_sq_residuals[valid] / sum_of_weights[valid]
     return mean, np.sqrt(variance)
 
 
 @lru_cache(maxsize=4096)
 def get_combinations(array, size):
+    """
+    Return all combinations of elements of a given size from an array.
+    """
     return np.array(list(combinations(array, size)))
