@@ -1,27 +1,18 @@
 from ctapipe.core import Tool, traits
-from ctapipe.core.traits import (
-    Integer,
-)
+from ctapipe.core.traits import Integer, classes_with_traits
 
-from ..irf import (
-    EventLoader,
-    OptimizationResult,
-)
+from ..irf import EventLoader
 
 __all__ = ["DL3Tool"]
 
+from ..irf.cuts import EventSelection
+
 
 class DL3Tool(Tool):
-    name = "mytool"
-    description = "do some things and stuff"
-    aliases = dict(
-        infile="AdvancedComponent.infile",
-        outfile="AdvancedComponent.outfile",
-        iterations="MyTool.iterations",
-    )
+    name = "ctapipe-create-dl3"
+    description = "Create DL3 file from DL2 observation file"
 
     dl2_file = traits.Path(
-        default_value=None,
         allow_none=False,
         directory_ok=False,
         exists=True,
@@ -29,23 +20,12 @@ class DL3Tool(Tool):
     ).tag(config=True)
 
     output_path = traits.Path(
-        default_value=None,
         allow_none=False,
         directory_ok=False,
-        exists=True,
         help="Output file",
     ).tag(config=True)
 
-    cuts_file = traits.Path(
-        default_value=None,
-        allow_none=False,
-        directory_ok=False,
-        exists=True,
-        help="Path to the cuts file to apply to the observation.",
-    ).tag(config=True)
-
     irfs_file = traits.Path(
-        default_value=None,
         allow_none=False,
         directory_ok=False,
         exists=True,
@@ -61,19 +41,25 @@ class DL3Tool(Tool):
     # Which classes are registered for configuration
     classes = [
         EventLoader,
-    ]
+    ] + classes_with_traits(EventSelection)
+
+    aliases = {
+        "cuts": "EventSelection.cuts_file",
+        "dl2-file": "DL3Tool.dl2_file",
+        "irfs-file": "DL3Tool.irfs_file",
+        "output": "DL3Tool.output_path",
+        "chunk-size": "DL3Tool.chunk_size",
+    }
 
     def setup(self):
         """
         Initialize components from config and load g/h (and theta) cuts.
         """
-        self.log.info("Loading cuts")
-        self.opt_result = OptimizationResult.read(self.cuts_file)
         self.log.info("Loading events from DL2")
         self.event_loader = EventLoader(
-            parent=self,
-            file=self.dl2_file,
+            parent=self, file=self.dl2_file, quality_selection_only=True
         )
+        print(self.event_loader.load_preselected_events(self.chunk_size))
 
     def start(self):
         pass
