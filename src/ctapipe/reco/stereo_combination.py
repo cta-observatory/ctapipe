@@ -460,7 +460,7 @@ class StereoDispCombiner(StereoCombiner):
 
     @njit
     def _calculate_min_distances(
-        index_combs_tel_ids, sign_combs, fov_lon_values, fov_lat_values, weights
+        self, index_combs_tel_ids, fov_lon_values, fov_lat_values, weights
     ):
         """
         Returns the weighted average fov lon/lat for every telescope combination
