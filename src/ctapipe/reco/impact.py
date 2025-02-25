@@ -176,6 +176,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self.prediction = dict()
         self.time_prediction = dict()
 
+        self.set_up_templates()
+
         self.array_direction = None
         self.nominal_frame = None
 
@@ -264,13 +266,13 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         self._store_impact_parameter(event)
 
-    def set_up_templates(self, tel_ids):
+    def set_up_templates(self):
         template_sort_dict = {}
         time_template_sort_dict = {}
 
         self.use_time_gradient = True
 
-        for tel_id in tel_ids:
+        for tel_id in self.subarray.tel_ids:
             if self.image_template_path.tel[tel_id] not in template_sort_dict.keys():
                 template_sort_dict[self.image_template_path.tel[tel_id]] = [tel_id]
             else:
@@ -498,31 +500,32 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         # Loop over all telescope types and get prediction
 
         for tel_ids, template in self.prediction.items():
-            template_mask = np.array([id in tel_ids for id in self.tel_id])
-
-            prediction[template_mask] = template(
-                np.rad2deg(zenith),
-                azimuth,
-                energy * np.ones_like(impact[template_mask]),
-                impact[template_mask],
-                x_max_diff * np.ones_like(impact[template_mask]),
-                np.rad2deg(pix_x_rot[template_mask]),
-                np.rad2deg(pix_y_rot[template_mask]),
-            )
+            template_mask = self.template_masks[tel_ids]
+            if np.any(template_mask):
+                prediction[template_mask] = template(
+                    np.rad2deg(zenith),
+                    azimuth,
+                    energy * np.ones_like(impact[template_mask]),
+                    impact[template_mask],
+                    x_max_diff * np.ones_like(impact[template_mask]),
+                    np.rad2deg(pix_x_rot[template_mask]),
+                    np.rad2deg(pix_y_rot[template_mask]),
+                )
 
         if self.use_time_gradient:
             for tel_ids, time_template in self.time_prediction.items():
-                time_template_mask = np.array([id in tel_ids for id in self.tel_id])
-                time_pred = time_template(
-                    np.rad2deg(zenith),
-                    azimuth,
-                    energy * np.ones_like(impact[time_template_mask]),
-                    impact[time_template_mask],
-                    x_max_diff * np.ones_like(impact[time_template_mask]),
-                )
+                time_template_mask = self.time_template_masks[tel_ids]
+                if np.any(time_template_mask):
+                    time_pred = time_template(
+                        np.rad2deg(zenith),
+                        azimuth,
+                        energy * np.ones_like(impact[time_template_mask]),
+                        impact[time_template_mask],
+                        x_max_diff * np.ones_like(impact[time_template_mask]),
+                    )
 
-                time_gradients[time_template_mask] = time_pred.T[0]
-                time_gradients_uncertainty[time_template_mask] = time_pred.T[1]
+                    time_gradients[time_template_mask] = time_pred.T[0]
+                    time_gradients_uncertainty[time_template_mask] = time_pred.T[1]
 
             time_gradients_uncertainty[time_gradients_uncertainty == 0] = 1e-6
 
@@ -720,9 +723,17 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self.image[mask] = ma.masked
         self.time[mask] = ma.masked
 
+        self.template_masks = {
+            tels_key: np.isin(list(hillas_dict.keys()), tels_key)
+            for tels_key in self.prediction.keys()
+        }
+        if self.use_time_gradient:
+            self.time_template_masks = {
+                tels_key: np.isin(list(hillas_dict.keys()), tels_key)
+                for tels_key in self.time_prediction.keys()
+            }
         # Finally run some functions to get ready for the event
         self.get_hillas_mean()
-        self.set_up_templates(hillas_dict.keys())
 
     def predict(
         self,
