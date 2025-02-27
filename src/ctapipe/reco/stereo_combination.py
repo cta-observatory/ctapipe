@@ -466,47 +466,47 @@ class StereoDispCombiner(StereoCombiner):
         Returns the weighted average fov lon/lat for every telescope combination
         in tel_combs and the sum of their weights.
         """
-        combined_weights = []
-        fov_lons = []
-        fov_lats = []
+        num_combs = len(index_combs_tel_ids)
+
+        combined_weights = np.empty(num_combs, dtype=np.float64)
+        fov_lons = np.empty(num_combs, dtype=np.float64)
+        fov_lats = np.empty(num_combs, dtype=np.float64)
+
         sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-        for tel_1, tel_2 in index_combs_tel_ids:
-            combined_weights.append(weights[tel_1] + weights[tel_2])
-            distances = []
-            for sign_comb in sign_combs:
-                # Calculate distances per telescope combination for all 4 sign combinations
-                distance = np.sqrt(
-                    (
-                        fov_lon_values[tel_1][sign_comb[0]]
-                        - fov_lon_values[tel_2][sign_comb[1]]
-                    )
-                    ** 2
-                    + (
-                        fov_lat_values[tel_1][sign_comb[0]]
-                        - fov_lat_values[tel_2][sign_comb[1]]
-                    )
-                    ** 2
-                )
-                distances.append(distance)
+
+        for i in range(num_combs):
+            tel_1, tel_2 = index_combs_tel_ids[i]
+
+            # Calculate weights
+            w1, w2 = weights[tel_1], weights[tel_2]
+            combined_weights[i] = w1 + w2
+
+            # Calculate all 4 possible distances
+            lon_diffs = (
+                fov_lon_values[tel_1, sign_combs[:, 0]]
+                - fov_lon_values[tel_2, sign_combs[:, 1]]
+            )
+            lat_diffs = (
+                fov_lat_values[tel_1, sign_combs[:, 0]]
+                - fov_lat_values[tel_2, sign_combs[:, 1]]
+            )
+            distances = np.hypot(lon_diffs, lat_diffs)
+
+            # Weighted mean for minimum distances
             argmin_distance = argmin(distances)
-            fov_lons.append(
-                np.average(
-                    [
-                        fov_lon_values[tel_1][sign_combs[argmin_distance][0]],
-                        fov_lon_values[tel_2][sign_combs[argmin_distance][1]],
-                    ],
-                    weights=[weights[tel_1], weights[tel_2]],
-                )
-            )
-            fov_lats.append(
-                np.average(
-                    [
-                        fov_lat_values[tel_1][sign_combs[argmin_distance][0]],
-                        fov_lat_values[tel_2][sign_combs[argmin_distance][1]],
-                    ],
-                    weights=[weights[tel_1], weights[tel_2]],
-                )
-            )
+            lon_vals = [
+                fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
+                fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
+            ]
+
+            lat_vals = [
+                fov_lat_values[tel_1, sign_combs[argmin_distance, 0]],
+                fov_lat_values[tel_2, sign_combs[argmin_distance, 1]],
+            ]
+
+            fov_lons[i] = np.average(lon_vals, weights=[w1, w2])
+            fov_lats[i] = np.average(lat_vals, weights=[w1, w2])
+
         return fov_lons, fov_lats, combined_weights
 
     def __call__(self, event: ArrayEventContainer) -> None:
