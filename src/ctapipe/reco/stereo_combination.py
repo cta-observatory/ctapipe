@@ -459,7 +459,7 @@ class StereoDispCombiner(StereoCombiner):
         )
 
     @njit
-    def _calculate_min_distances(
+    def _calc_combs_min_distances(
         self, index_combs_tel_ids, fov_lon_values, fov_lat_values, weights
     ):
         """
@@ -539,7 +539,7 @@ class StereoDispCombiner(StereoCombiner):
             index_combs_tel_ids = get_combinations(
                 range(len(ids)), self.n_tel_combinations
             )
-            fov_lons, fov_lats, comb_weights = self._calculate_min_distances(
+            fov_lons, fov_lats, comb_weights = self._calc_combs_min_distances(
                 index_combs_tel_ids,
                 fov_lon_values,
                 fov_lat_values,
