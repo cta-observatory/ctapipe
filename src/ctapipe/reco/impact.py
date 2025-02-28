@@ -77,7 +77,6 @@ BACKUP_PED_TABLE = {
     "SST_SST_SST-Camera": 0.5,
     "SST_SST_CHEC": 0.5,
     "SST_ASTRI_ASTRICam": 0.5,
-    "dummy": 0.01,
     "UNKNOWN-960PX": 1.0,
 }
 
@@ -88,7 +87,6 @@ BACKUP_SPE_TABLE = {
     "SST_SST_SST-Camera": 0.6,
     "SST_SST_CHEC": 0.6,
     "SST_ASTRI_ASTRICam": 0.6,
-    "dummy": 0.6,
     "UNKNOWN-960PX": 0.6,
 }
 
@@ -120,9 +118,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         The telescope subarray to use for reconstruction
     atmosphere_profile : ctapipe.atmosphere.AtmosphereDensityProfile
         Density vs. altitude profile of the local atmosphere
-    dummy_reconstructor : bool, optional
-        Option to use a set of dummy templates. This can be used for testing the algorithm,
-        but for any actual reconstruction should be set to its default False
 
     References
     ----------
@@ -162,9 +157,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
     property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
 
-    def __init__(
-        self, subarray, atmosphere_profile, dummy_reconstructor=False, **kwargs
-    ):
+    def __init__(self, subarray, atmosphere_profile, **kwargs):
         if Minuit is None:
             raise OptionalDependencyMissing("iminuit") from None
 
@@ -203,8 +196,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
 
         self.array_direction = None
         self.nominal_frame = None
-
-        self.dummy_reconstructor = dummy_reconstructor
 
     def __call__(self, event):
         """
