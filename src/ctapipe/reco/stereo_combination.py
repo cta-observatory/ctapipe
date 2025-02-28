@@ -419,6 +419,9 @@ class StereoDispCombiner(StereoCombiner):
     weights = CaselessStrEnum(
         ["none", "intensity", "konrad"],
         default_value="none",
+        help=(
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+        ),
     ).tag(config=True)
 
     n_tel_combinations = Int(
@@ -428,30 +431,33 @@ class StereoDispCombiner(StereoCombiner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        supported = {ReconstructionProperty.GEOMETRY}
-        if self.property not in supported:
+        self.supported = ReconstructionProperty.GEOMETRY
+        if self.property not in self.supported:
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
 
     def _calculate_weights(self, data):
-        """"""
         if isinstance(data, Container):
             if self.weights == "intensity":
                 return data.hillas.intensity
+
             if self.weights == "konrad":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
+
             return 1
 
         if isinstance(data, Table):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
+
             if self.weights == "konrad":
                 return (
                     data["hillas_intensity"]
                     * data["hillas_length"]
                     / data["hillas_width"]
                 )
+
             return np.ones(len(data))
 
         raise TypeError(
@@ -464,7 +470,7 @@ class StereoDispCombiner(StereoCombiner):
     ):
         """
         Returns the weighted average fov lon/lat for every telescope combination
-        in tel_combs and the sum of their weights.
+        in tel_combs additional to the sum of their weights.
         """
         num_combs = len(index_combs_tel_ids)
 
@@ -490,6 +496,7 @@ class StereoDispCombiner(StereoCombiner):
                 fov_lat_values[tel_1, sign_combs[:, 0]]
                 - fov_lat_values[tel_2, sign_combs[:, 1]]
             )
+
             distances = np.hypot(lon_diffs, lat_diffs)
 
             # Weighted mean for minimum distances
@@ -509,10 +516,7 @@ class StereoDispCombiner(StereoCombiner):
 
         return fov_lons, fov_lats, combined_weights
 
-    def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Calculate the mean prediction for a single array event.
-        """
+    def _combine_altaz(self, event):
         ids = []
         fov_lon_values = []
         fov_lat_values = []
@@ -541,9 +545,9 @@ class StereoDispCombiner(StereoCombiner):
             )
             fov_lons, fov_lats, comb_weights = self._calc_combs_min_distances(
                 index_combs_tel_ids,
-                fov_lon_values,
-                fov_lat_values,
-                weights,
+                np.array(fov_lon_values),
+                np.array(fov_lat_values),
+                np.array(weights),
             )
             fov_lon_weighted_average = np.average(fov_lons, weights=comb_weights)
             fov_lat_weighted_average = np.average(fov_lats, weights=comb_weights)
@@ -558,6 +562,7 @@ class StereoDispCombiner(StereoCombiner):
             alt = az = u.Quantity(np.nan, u.deg, copy=False)
             valid = False
 
+        # ang dist uncert?
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
             alt=alt,
             az=az,
@@ -565,6 +570,20 @@ class StereoDispCombiner(StereoCombiner):
             is_valid=valid,
             prefix=self.prefix,
         )
+
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Calculate the mean prediction for a single array event.
+        """
+
+        properties = [
+            self.property & itm
+            for itm in self.supported
+            if self.property & itm in ReconstructionProperty
+        ]
+        for prop in properties:
+            if prop is ReconstructionProperty.GEOMETRY:
+                self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
@@ -576,66 +595,72 @@ class StereoDispCombiner(StereoCombiner):
         prefix = f"{self.prefix}_tel"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
-        valid_predictions = mono_predictions[valid]
-        array_events, indices, multiplicity = np.unique(
-            mono_predictions[
-                [
-                    "obs_id",
-                    "event_id",
-                    "subarray_pointing_lon",
-                    "subarray_pointing_lat",
-                ]
-            ],
-            return_inverse=True,
-            return_counts=True,
+
+        obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
+            mono_predictions
         )
-        stereo_table = Table(array_events[["obs_id", "event_id"]])
+        n_array_events = len(obs_ids)
+        stereo_table = Table({"obs_id": obs_ids, "event_id": event_ids})
         # copy metadata
         for colname in ("obs_id", "event_id"):
             stereo_table[colname].description = mono_predictions[colname].description
-        n_array_events = len(array_events)
-        weights = self._calculate_weights(valid_predictions)
-        if len(valid_predictions) > 0:
-            fov_lons, fov_lats = horizontal_to_telescope(
-                alt=valid_predictions[f"{prefix}_alt"],
-                az=valid_predictions[f"{prefix}_az"],
-                pointing_alt=valid_predictions["subarray_pointing_lat"],
-                pointing_az=valid_predictions["subarray_pointing_lon"],
+
+        weights = self._calculate_weights(mono_predictions[valid])
+
+        if self.property is ReconstructionProperty.GEOMETRY:
+            if np.count_nonzero(valid) > 0:
+                fov_lons, fov_lats = horizontal_to_telescope(
+                    alt=valid[f"{prefix}_alt"],
+                    az=valid[f"{prefix}_az"],
+                    pointing_alt=valid["subarray_pointing_lat"],
+                    pointing_az=valid["subarray_pointing_lon"],
+                )
+                fov_lon_mean = weighted_mean_std_ufunc(
+                    fov_lons.to_value(u.deg),
+                    valid,
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
+                )
+                fov_lat_mean = weighted_mean_std_ufunc(
+                    fov_lats.to_value(u.deg),
+                    valid,
+                    tel_to_array_indices,
+                    multiplicity,
+                    weights=weights,
+                )
+                alt, az = telescope_to_horizontal(
+                    lon=u.Quantity(fov_lon_mean, u.deg, copy=False),
+                    lat=u.Quantity(fov_lat_mean, u.deg, copy=False),
+                    pointing_alt=u.Quantity(
+                        stereo_table["subarray_pointing_lat"], u.deg, copy=False
+                    ),
+                    pointing_az=u.Quantity(
+                        stereo_table["subarray_pointing_lon"], u.deg, copy=False
+                    ),
+                )
+            else:
+                alt = az = u.Quantity(
+                    np.full(n_array_events, np.nan), u.deg, copy=False
+                )
+            stereo_table[f"{self.prefix}_alt"] = alt
+            stereo_table[f"{self.prefix}_az"] = az
+            stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(
+                np.isfinite(stereo_table[f"{self.prefix}_alt"]),
+                np.isfinite(stereo_table[f"{self.prefix}_az"]),
             )
-            fov_lon_mean = weighted_mean_std_ufunc(
-                fov_lons.to_value(u.deg),
-                weights,
-                n_array_events,
-                indices[valid],
-            )
-            fov_lat_mean = weighted_mean_std_ufunc(
-                fov_lats.to_value(u.deg),
-                weights,
-                n_array_events,
-                indices[valid],
-            )
-            alt, az = telescope_to_horizontal(
-                lon=u.Quantity(fov_lon_mean, u.deg, copy=False),
-                lat=u.Quantity(fov_lat_mean, u.deg, copy=False),
-                pointing_alt=u.Quantity(
-                    array_events["subarray_pointing_lat"], u.deg, copy=False
-                ),
-                pointing_az=u.Quantity(
-                    array_events["subarray_pointing_lon"], u.deg, copy=False
-                ),
-            )
+            stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+
         else:
-            alt = az = u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False)
-        stereo_table[f"{self.prefix}_alt"] = alt
-        stereo_table[f"{self.prefix}_az"] = az
-        stereo_table[f"{self.prefix}_is_valid"] = np.logical_and(
-            np.isfinite(stereo_table[f"{self.prefix}_alt"]),
-            np.isfinite(stereo_table[f"{self.prefix}_az"]),
-        )
-        stereo_table[f"{self.prefix}_goodness_of_fit"] = np.nan
+            raise NotImplementedError()
+
         tel_ids = [[] for _ in range(n_array_events)]
-        for index, tel_id in zip(indices[valid], valid_predictions["tel_id"]):
+
+        for index, tel_id in zip(
+            tel_to_array_indices[valid], mono_predictions["tel_id"][valid]
+        ):
             tel_ids[index].append(tel_id)
+
         stereo_table[f"{self.prefix}_telescopes"] = tel_ids
         add_defaults_and_meta(stereo_table, _containers[self.property], self.prefix)
         return stereo_table
