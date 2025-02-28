@@ -69,6 +69,29 @@ MINUIT_ERRORDEF = 0.5  # 0.5 for a log-likelihood cost function for correct erro
 MINUIT_STRATEGY = 1  # Default minimization strategy, 2 is careful, 0 is fast
 MINUIT_TOLERANCE_FACTOR = 1000  # Tolerance for convergence according to EDM criterion
 MIGRAD_ITERATE = 1  # Do not call migrad again if convergence was not reached
+
+BACKUP_PED_TABLE = {
+    "LST_LST_LSTCam": 1.4,
+    "MST_MST_NectarCam": 1.3,
+    "MST_MST_FlashCam": 1.3,
+    "SST_SST_SST-Camera": 0.5,
+    "SST_SST_CHEC": 0.5,
+    "SST_ASTRI_ASTRICam": 0.5,
+    "dummy": 0.01,
+    "UNKNOWN-960PX": 1.0,
+}
+
+BACKUP_SPE_TABLE = {
+    "LST_LST_LSTCam": 0.6,
+    "MST_MST_NectarCam": 0.6,
+    "MST_MST_FlashCam": 0.6,
+    "SST_SST_SST-Camera": 0.6,
+    "SST_SST_CHEC": 0.6,
+    "SST_ASTRI_ASTRICam": 0.6,
+    "dummy": 0.6,
+    "UNKNOWN-960PX": 0.6,
+}
+
 __all__ = ["ImPACTReconstructor"]
 
 
@@ -121,21 +144,21 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         help=("Path to the time gradient templates to be used in the reconstruction"),
     ).tag(config=True)
 
-    # For likelihood calculation we need the with of the
-    # pedestal distribution for each pixel
-    # currently this is not available from the calibration,
-    # so for now lets hard code it in a dict
-    ped_table = {
-        "LSTCam": 1.4,
-        "NectarCam": 1.3,
-        "FlashCam": 1.3,
-        "SST-Camera": 0.5,
-        "CHEC": 0.5,
-        "ASTRICam": 0.5,
-        "dummy": 0.01,
-        "UNKNOWN-960PX": 1.0,
-    }
-    spe = 0.6  # Also hard code single p.e. distribution width
+    # The SPE and pedestal width parameters are also configurable as TelescopeParameters.
+    # None is allowed and the default value. In that case, either values from the event monitoring data are used
+    # or if that is also not available, a value from a hardcoded backup dict is used.
+
+    pedestal_width = traits.FloatTelescopeParameter(
+        allow_none=True,
+        default_value=None,
+        help="Pedestal width parameter for the likelihood",
+    ).tag(config=True)
+
+    spe_width = traits.FloatTelescopeParameter(
+        allow_none=True,
+        default_value=None,
+        help="SPE width parameter for the likelihood",
+    ).tag(config=True)
 
     property = ReconstructionProperty.ENERGY | ReconstructionProperty.GEOMETRY
 
@@ -164,7 +187,7 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self.pixel_x, self.pixel_y = None, None
         self.image, self.time = None, None
 
-        self.tel_types, self.tel_id = None, None
+        self.tel_id = None
 
         # We also need telescope positions
         self.tel_pos_x, self.tel_pos_y = None, None
@@ -212,12 +235,32 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         telescope_pointings = self._get_telescope_pointings(event)
 
         # Finally get the telescope images and and the selection masks
-        mask_dict, image_dict, time_dict = {}, {}, {}
+        mask_dict, image_dict, time_dict, ped_dict, spe_dict = {}, {}, {}, {}, {}
         for tel_id in hillas_dict.keys():
             image = event.dl1.tel[tel_id].image
             image_dict[tel_id] = image
             time_dict[tel_id] = event.dl1.tel[tel_id].peak_time
             mask = event.dl1.tel[tel_id].image_mask
+            if self.pedestal_width.tel[tel_id] is None:
+                if event.mon.tel[tel_id].pedestal.charge_std is None:
+                    ped_dict[tel_id] = BACKUP_PED_TABLE[
+                        str(self.subarray.tel[tel_id])
+                    ] * np.ones(self.subarray.tel[tel_id].camera.geometry.n_pixels)
+                else:
+                    ped_dict[tel_id] = event.mon.tel[tel_id].pedestal.charge_std[0]
+            else:
+                ped_dict[tel_id] = self.pedestal_width.tel[tel_id] * np.ones(
+                    self.subarray.tel[tel_id].camera.geometry.n_pixels
+                )
+
+            if self.spe_width.tel[tel_id] is None:
+                spe_dict[tel_id] = BACKUP_SPE_TABLE[
+                    str(self.subarray.tel[tel_id])
+                ] * np.ones(self.subarray.tel[tel_id].camera.geometry.n_pixels)
+            else:
+                spe_dict[tel_id] = self.spe_width.tel[tel_id] * np.ones(
+                    self.subarray.tel[tel_id].camera.geometry.n_pixels
+                )
 
             # Dilate the images around the original cleaning to help the fit
             for _ in range(3):
@@ -260,6 +303,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             image_dict=image_dict,
             mask_dict=mask_dict,
             time_dict=time_dict,
+            ped_dict=ped_dict,
+            spe_dict=spe_dict,
         )
         event.dl2.stereo.geometry[self.__class__.__name__] = shower_result
         event.dl2.stereo.energy[self.__class__.__name__] = energy_result
@@ -591,6 +636,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         image_dict,
         time_dict,
         mask_dict,
+        ped_dict,
+        spe_dict,
         subarray,
         array_pointing,
         telescope_pointing,
@@ -630,11 +677,10 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         self.tel_pos_y = np.zeros(len(hillas_dict))
         # self.scale_factor = np.zeros(len(hillas_dict))
 
-        self.ped = np.zeros(len(hillas_dict))
-        self.tel_types, self.tel_id = list(), list()
+        self.tel_id = list()
 
         max_pix_x = 0
-        px, py, pa, pt = list(), list(), list(), list()
+        px, py, pa, pt, p_ped, p_spe = list(), list(), list(), list(), list(), list()
         self.hillas_parameters = list()
 
         # Get telescope positions in tilted frame
@@ -682,8 +728,9 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             pa.append(image_dict[tel_id][mask])
             pt.append(time_dict[tel_id][mask])
 
-            self.ped[i] = self.ped_table[type]
-            self.tel_types.append(type)
+            p_ped.append(ped_dict[tel_id][mask])
+            p_spe.append(spe_dict[tel_id][mask])
+
             self.tel_id.append(tel_id)
 
             self.tel_pos_x[i] = tilt_coord[indices[i]].x.to(u.m).value
@@ -705,7 +752,6 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             ma.zeros(shape),
             ma.zeros(shape),
         )
-        self.tel_types = np.array(self.tel_types)
 
         # Copy everything into our masked arrays
         for i in range(len(hillas_dict)):
@@ -714,8 +760,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             self.pixel_y[i][:array_len] = py[i]
             self.image[i][:array_len] = pa[i]
             self.time[i][:array_len] = pt[i]
-            self.ped[i][:] = self.ped_table[self.tel_types[i]]
-            self.spe[i][:] = 0.5
+            self.ped[i][:array_len] = p_ped[i]
+            self.spe[i][:array_len] = p_spe[i]
 
         # Set the image mask
         mask = self.image == 0.0
@@ -746,6 +792,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
         image_dict=None,
         mask_dict=None,
         time_dict=None,
+        ped_dict=None,
+        spe_dict=None,
     ):
         """Predict method for the ImPACT reconstructor.
         Used to calculate the reconstructed ImPACT shower geometry and energy.
@@ -769,6 +817,8 @@ class ImPACTReconstructor(HillasGeometryReconstructor):
             image_dict,
             time_dict,
             mask_dict,
+            ped_dict,
+            spe_dict,
             subarray,
             array_pointing,
             telescope_pointings,
