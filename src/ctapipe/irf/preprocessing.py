@@ -57,6 +57,11 @@ class EventPreprocessor(Component):
         default_value=False, help="If true add optional columns to produce file"
     ).tag(config=True)
 
+    raise_error_for_optional = Bool(
+        default_value=True,
+        help="If true will raise error in the case optional column are missing",
+    ).tag(config=True)
+
     def __init__(
         self, quality_selection_only: bool = True, config=None, parent=None, **kwargs
     ):
@@ -112,7 +117,7 @@ class EventPreprocessor(Component):
             "pointing_az",
         ]
         if self.optional_dl3_columns:
-            rename_from = [
+            rename_from_optional = [
                 f"{self.energy_reconstructor}_energy_uncert",
                 f"{self.geometry_reconstructor}_ang_distance_uncert",
                 f"{self.geometry_reconstructor}_core_x",
@@ -122,7 +127,7 @@ class EventPreprocessor(Component):
                 f"{self.geometry_reconstructor}_h_max",
                 f"{self.geometry_reconstructor}_h_max_uncert",
             ]
-            rename_to = [
+            rename_to_optional = [
                 "reco_energy_uncert",
                 "reco_dir_uncert",
                 "reco_core_x",
@@ -132,6 +137,18 @@ class EventPreprocessor(Component):
                 "reco_h_max",
                 "reco_h_max_uncert",
             ]
+            if not self.raise_error_for_optional:
+                for i, c in enumerate(rename_from_optional):
+                    if c not in events.colnames:
+                        self.log.warning(
+                            f"Optional column {c} is missing from the DL2 file."
+                        )
+                    else:
+                        rename_from.append(rename_from_optional[i])
+                        rename_to.append(rename_to_optional[i])
+            else:
+                rename_from += rename_from_optional
+                rename_to += rename_to_optional
 
         keep_columns.extend(rename_from)
         for c in keep_columns:

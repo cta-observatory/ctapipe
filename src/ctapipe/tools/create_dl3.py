@@ -73,6 +73,12 @@ class DL3Tool(Tool):
             "Add optional columns for events in the DL3 file",
             "Do not add optional column for events in the DL3 file",
         ),
+        **flag(
+            "raise-error-for-optional",
+            "EventPreprocessor.raise_error_for_optional",
+            "Raise an error if an optional column is missing",
+            "Only display a warning if an optional column is missing, it will lead to optional columns missing in the DL3 file",
+        ),
     }
 
     def setup(self):
