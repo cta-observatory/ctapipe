@@ -79,10 +79,22 @@ class EventPreprocessor(Component):
         keep_columns = [
             "obs_id",
             "event_id",
-            "true_energy",
-            "true_az",
-            "true_alt",
         ]
+        if self.irf_pre_processing:
+            keep_columns += [
+                "true_energy",
+                "true_az",
+                "true_alt",
+            ]
+        else:
+            keep_columns += [
+                "time",
+            ]
+            if self.optional_dl3_columns:
+                keep_columns += [
+                    "tels_with_trigger",
+                ]
+
         rename_from = [
             f"{self.energy_reconstructor}_energy",
             f"{self.geometry_reconstructor}_az",
@@ -99,6 +111,28 @@ class EventPreprocessor(Component):
             "pointing_alt",
             "pointing_az",
         ]
+        if self.optional_dl3_columns:
+            rename_from = [
+                f"{self.energy_reconstructor}_energy_uncert",
+                f"{self.geometry_reconstructor}_ang_distance_uncert",
+                f"{self.geometry_reconstructor}_core_x",
+                f"{self.geometry_reconstructor}_core_y",
+                f"{self.geometry_reconstructor}_core_uncert_x",
+                f"{self.geometry_reconstructor}_core_uncert_y",
+                f"{self.geometry_reconstructor}_h_max",
+                f"{self.geometry_reconstructor}_h_max_uncert",
+            ]
+            rename_to = [
+                "reco_energy_uncert",
+                "reco_dir_uncert",
+                "reco_core_x",
+                "reco_core_y",
+                "reco_core_uncert_x",
+                "reco_core_uncert_y",
+                "reco_h_max",
+                "reco_h_max_uncert",
+            ]
+
         keep_columns.extend(rename_from)
         for c in keep_columns:
             if c not in events.colnames:
