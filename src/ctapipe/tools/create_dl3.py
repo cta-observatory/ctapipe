@@ -5,7 +5,7 @@ from astropy.io import fits
 from ctapipe.core import Tool, traits
 from ctapipe.core.traits import Bool, Integer, classes_with_traits, flag
 
-from ..irf import EventLoader
+from ..irf import EventLoader, EventPreprocessor
 
 __all__ = ["DL3Tool"]
 
@@ -49,16 +49,19 @@ class DL3Tool(Tool):
     ).tag(config=True)
 
     # Which classes are registered for configuration
-    classes = [
-        EventLoader,
-    ] + classes_with_traits(EventSelection)
+    classes = (
+        [
+            EventLoader,
+        ]
+        + classes_with_traits(EventSelection)
+        + classes_with_traits(EventPreprocessor)
+    )
 
     aliases = {
         "cuts": "EventSelection.cuts_file",
         "dl2-file": "DL3Tool.dl2_file",
         "irfs-file": "DL3Tool.irfs_file",
         "output": "DL3Tool.output_file",
-        "optional-column": "EventPreprocessor.optional_dl3_columns",
         "chunk-size": "DL3Tool.chunk_size",
         "overwrite": "DL3Tool.overwrite",
     }
