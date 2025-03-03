@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from astropy.io import fits
 
 from ctapipe.core import Tool, traits
@@ -8,6 +10,7 @@ from ..irf import EventLoader
 __all__ = ["DL3Tool"]
 
 from ..irf.cuts import EventSelection
+from ..irf.dl3 import get_hdu_header_events
 
 
 class DL3Tool(Tool):
@@ -55,6 +58,7 @@ class DL3Tool(Tool):
         "dl2-file": "DL3Tool.dl2_file",
         "irfs-file": "DL3Tool.irfs_file",
         "output": "DL3Tool.output_file",
+        "optional-column": "EventPreprocessor.optional_dl3_columns",
         "chunk-size": "DL3Tool.chunk_size",
         "overwrite": "DL3Tool.overwrite",
     }
@@ -72,8 +76,16 @@ class DL3Tool(Tool):
         )
         events = self.event_loader.load_preselected_events(self.chunk_size)
 
-        hdu_dl3 = fits.HDUList([fits.PrimaryHDU()])
-        hdu_dl3.append(fits.BinTableHDU(data=events, name="EVENTS"))
+        hdu_dl3 = fits.HDUList(
+            [
+                fits.PrimaryHDU(
+                    header={"CREATED": datetime.now(tz=datetime.UTC).isoformat()}
+                )
+            ]
+        )
+        hdu_dl3.append(
+            fits.BinTableHDU(data=events, name="EVENTS", header=get_hdu_header_events())
+        )
 
         self.log.info("Loading IRFs")
         hdu_irfs = fits.open(self.irfs_file, checksum=True)

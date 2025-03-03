@@ -20,7 +20,7 @@ from ..compat import COPY_IF_NEEDED
 from ..containers import CoordinateFrameType
 from ..coordinates import NominalFrame
 from ..core import Component
-from ..core.traits import Unicode
+from ..core.traits import Bool, Unicode
 from ..io import TableLoader
 from .cuts import EventQualitySelection, EventSelection
 from .spectra import SPECTRA, Spectra
@@ -46,6 +46,10 @@ class EventPreprocessor(Component):
     gammaness_classifier = Unicode(
         default_value="RandomForestClassifier",
         help="Prefix of the classifier `_prediction` column",
+    ).tag(config=True)
+
+    optional_dl3_columns = Bool(
+        default_value=False, help="If true add optional columns to produce file"
     ).tag(config=True)
 
     def __init__(
