@@ -3,7 +3,7 @@ from datetime import datetime
 from astropy.io import fits
 
 from ctapipe.core import Tool, traits
-from ctapipe.core.traits import Bool, Integer, classes_with_traits
+from ctapipe.core.traits import Bool, Integer, classes_with_traits, flag
 
 from ..irf import EventLoader
 
@@ -61,6 +61,15 @@ class DL3Tool(Tool):
         "optional-column": "EventPreprocessor.optional_dl3_columns",
         "chunk-size": "DL3Tool.chunk_size",
         "overwrite": "DL3Tool.overwrite",
+    }
+
+    flags = {
+        **flag(
+            "optional-column",
+            "EventPreprocessor.optional_dl3_columns",
+            "Add optional columns for events in the DL3 file",
+            "Do not add optional column for events in the DL3 file",
+        ),
     }
 
     def setup(self):
