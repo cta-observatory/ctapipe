@@ -79,7 +79,9 @@ class DL3Tool(Tool):
         """
         Initialize components from config and load g/h (and theta) cuts.
         """
-        pass
+
+        # Force the preprocessing for DL3
+        EventPreprocessor.irf_pre_processing = False
 
     def start(self):
         self.log.info("Loading events from DL2")

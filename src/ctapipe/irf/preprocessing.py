@@ -48,6 +48,11 @@ class EventPreprocessor(Component):
         help="Prefix of the classifier `_prediction` column",
     ).tag(config=True)
 
+    irf_pre_processing = Bool(
+        default_value=True,
+        help="If true the pre processing assume the purpose is for IRF production, if false, for DL3 production",
+    ).tag(config=False)
+
     optional_dl3_columns = Bool(
         default_value=False, help="If true add optional columns to produce file"
     ).tag(config=True)

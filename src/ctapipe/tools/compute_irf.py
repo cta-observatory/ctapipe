@@ -21,6 +21,7 @@ from ..core import Provenance, Tool, ToolConfigurationError, traits
 from ..core.traits import AstroQuantity, Bool, Integer, classes_with_traits, flag
 from ..irf import (
     EventLoader,
+    EventPreprocessor,
     OptimizationResult,
     Spectra,
     check_bins_in_range,
@@ -231,6 +232,10 @@ class IrfTool(Tool):
         """
         Initialize components from config and load g/h (and theta) cuts.
         """
+
+        # Force the preprocessing for IRF
+        EventPreprocessor.irf_pre_processing = True
+
         self.opt_result = OptimizationResult.read(self.cuts_file)
         if (
             self.spatial_selection_applied
