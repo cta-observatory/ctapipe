@@ -72,7 +72,7 @@ class EventPreprocessor(Component):
             self.event_selection = EventSelection(parent=self)
 
     def normalise_column_names(self, events: Table) -> QTable:
-        if events["subarray_pointing_lat"].std() > 1e-3:
+        if self.irf_pre_processing and events["subarray_pointing_lat"].std() > 1e-3:
             raise NotImplementedError(
                 "No support for making irfs from varying pointings yet"
             )
