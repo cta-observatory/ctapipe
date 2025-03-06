@@ -68,7 +68,7 @@ class DL3_GADF(Component):
             for i, c in enumerate(rename_from_optional):
                 if c not in events.colnames:
                     self.log.warning(
-                        f"Optional column {c} is missing from the events_table."
+                        f"Optional column {c} is missing from the events table."
                     )
                 else:
                     rename_from.append(rename_from_optional[i])
@@ -77,8 +77,7 @@ class DL3_GADF(Component):
         for c in rename_from:
             if c not in events.colnames:
                 raise ValueError(
-                    "Input files must conform to the ctapipe DL2 data model. "
-                    f"Required column {c} is missing."
+                    f"Required column {c} is missing from the events table."
                 )
 
         renamed_events = QTable(events, copy=COPY_IF_NEEDED)
