@@ -96,10 +96,6 @@ class EventPreprocessor(Component):
             keep_columns += [
                 "time",
             ]
-            if self.optional_dl3_columns:
-                keep_columns += [
-                    "tels_with_trigger",
-                ]
 
         if already_derived:
             rename_from = []
@@ -111,7 +107,8 @@ class EventPreprocessor(Component):
                     "pointing_az",
                     "pointing_alt",
                     "reco_fov_lat",
-                    "reco_fov_lon" "theta",
+                    "reco_fov_lon",
+                    "theta",
                     "true_source_fov_offset",
                     "reco_source_fov_offset",
                     "weight",
@@ -152,6 +149,11 @@ class EventPreprocessor(Component):
                         keep_columns += keep_columns_optional
 
         else:
+            if self.optional_dl3_columns:
+                keep_columns += [
+                    "tels_with_trigger",
+                ]
+
             rename_from = [
                 f"{self.energy_reconstructor}_energy",
                 f"{self.geometry_reconstructor}_az",
