@@ -88,6 +88,14 @@ class DL3_GADF(Component):
         self._psf = psf
 
     @property
+    def edisp(self):
+        return self._edisp
+
+    @edisp.setter
+    def edisp(self, edisp: ExtensionHDU):
+        self._edisp = edisp
+
+    @property
     def bkg(self):
         return self._bkg
 
