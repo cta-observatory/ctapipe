@@ -127,8 +127,7 @@ class EventPreprocessor(Component):
                         "reco_dir_uncert",
                         "reco_core_x",
                         "reco_core_y",
-                        "reco_core_uncert_x",
-                        "reco_core_uncert_y",
+                        "reco_core_uncert",
                         "reco_h_max",
                         "reco_h_max_uncert",
                     ]
@@ -307,6 +306,11 @@ class EventPreprocessor(Component):
 
                 events["multiplicity"] = np.sum(events["tels_with_trigger"], axis=1)
 
+                events["reco_core_uncert"] = np.sqrt(
+                    events["reco_core_uncert_x"] ** 2
+                    + events["reco_core_uncert_y"] ** 2
+                )
+
         return events
 
     def make_empty_table(self, columns_to_use: list[str]) -> QTable:
@@ -441,14 +445,9 @@ class EventPreprocessor(Component):
                 description="Reconstructed position of the core of the shower, y coordinate",
             ),
             Column(
-                name="reco_core_uncert_x",
+                name="reco_core_uncert",
                 unit=u.m,
-                description="Uncertainty on the reconstructed position of the core of the shower, x coordinate",
-            ),
-            Column(
-                name="reco_core_uncert_y",
-                unit=u.m,
-                description="Uncertainty on the reconstructed position of the core of the shower, y coordinate",
+                description="Uncertainty on the reconstructed position of the core of the shower",
             ),
             Column(
                 name="reco_h_max",
