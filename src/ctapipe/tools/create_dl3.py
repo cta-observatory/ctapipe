@@ -10,7 +10,7 @@ from ..irf import EventLoader, EventPreprocessor
 __all__ = ["DL3Tool"]
 
 from ..irf.cuts import EventSelection
-from ..irf.dl3 import get_hdu_header_events, transform_events_columns_for_gadf_format
+from ..irf.dl3 import DL3_GADF
 
 
 class DL3Tool(Tool):
@@ -48,6 +48,15 @@ class DL3Tool(Tool):
         help="If true, allow to overwrite already existing output file",
     ).tag(config=True)
 
+    optional_dl3_columns = Bool(
+        default_value=False, help="If true add optional columns to produce file"
+    ).tag(config=True)
+
+    raise_error_for_optional = Bool(
+        default_value=True,
+        help="If true will raise error in the case optional column are missing",
+    ).tag(config=True)
+
     # Which classes are registered for configuration
     classes = (
         [
@@ -69,13 +78,13 @@ class DL3Tool(Tool):
     flags = {
         **flag(
             "optional-column",
-            "EventPreprocessor.optional_dl3_columns",
+            "DL3Tool.optional_dl3_columns",
             "Add optional columns for events in the DL3 file",
             "Do not add optional column for events in the DL3 file",
         ),
         **flag(
             "raise-error-for-optional",
-            "EventPreprocessor.raise_error_for_optional",
+            "DL3Tool.raise_error_for_optional",
             "Raise an error if an optional column is missing",
             "Only display a warning if an optional column is missing, it will lead to optional columns missing in the DL3 file",
         ),
@@ -86,8 +95,16 @@ class DL3Tool(Tool):
         Initialize components from config and load g/h (and theta) cuts.
         """
 
-        # Force the preprocessing for DL3
+        # Setting preprocessing for DL3
         EventPreprocessor.irf_pre_processing = False
+        EventPreprocessor.optional_dl3_columns = self.optional_dl3_columns
+        EventPreprocessor.raise_error_for_optional = self.raise_error_for_optional
+
+        # Setting the GADF format object
+        DL3_GADF.optional_dl3_columns = self.optional_dl3_columns
+        DL3_GADF.raise_error_for_optional = self.raise_error_for_optional
+
+        self.dl3_format = DL3_GADF()
 
     def start(self):
         self.log.info("Loading events from DL2")
@@ -95,7 +112,7 @@ class DL3Tool(Tool):
             parent=self, file=self.dl2_file, quality_selection_only=False
         )
         events = self.event_loader.load_preselected_events(self.chunk_size)
-        events = transform_events_columns_for_gadf_format(events)
+        events = self.dl3_format.transform_events_columns_for_gadf_format(events)
 
         hdu_dl3 = fits.HDUList(
             [
@@ -105,7 +122,11 @@ class DL3Tool(Tool):
             ]
         )
         hdu_dl3.append(
-            fits.BinTableHDU(data=events, name="EVENTS", header=get_hdu_header_events())
+            fits.BinTableHDU(
+                data=events,
+                name="EVENTS",
+                header=self.dl3_format.get_hdu_header_events(),
+            )
         )
 
         self.log.info("Loading IRFs")

@@ -60,12 +60,12 @@ class EventPreprocessor(Component):
 
     optional_dl3_columns = Bool(
         default_value=False, help="If true add optional columns to produce file"
-    ).tag(config=True)
+    ).tag(config=False)
 
     raise_error_for_optional = Bool(
         default_value=True,
         help="If true will raise error in the case optional column are missing",
-    ).tag(config=True)
+    ).tag(config=False)
 
     def __init__(
         self, quality_selection_only: bool = True, config=None, parent=None, **kwargs
