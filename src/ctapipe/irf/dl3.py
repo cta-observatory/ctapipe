@@ -27,8 +27,8 @@ def transform_events_columns_for_gadf_format(events):
         "reco_core_x",
         "reco_core_y",
         "reco_core_uncert",
-        "reco_x_max",
-        "reco_x_max_uncert",
+        "reco_h_max",
+        "reco_h_max_uncert",
     ]
     rename_to_optional = [
         "MULTIP",
@@ -46,8 +46,8 @@ def transform_events_columns_for_gadf_format(events):
         "COREX",
         "COREY",
         "CORE_ERR",
-        "XMAX",
-        "XMAX_ERR",
+        "HMAX",
+        "HMAX_ERR",
     ]
 
     for i, c in enumerate(rename_from_optional):
