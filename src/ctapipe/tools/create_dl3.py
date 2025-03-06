@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from astropy.io import fits
 
 from ctapipe.core import Tool, traits
@@ -103,6 +101,7 @@ class DL3Tool(Tool):
         # Setting the GADF format object
         DL3_GADF.optional_dl3_columns = self.optional_dl3_columns
         DL3_GADF.raise_error_for_optional = self.raise_error_for_optional
+        DL3_GADF.overwrite = self.overwrite
 
         self.dl3_format = DL3_GADF()
 
@@ -111,31 +110,25 @@ class DL3Tool(Tool):
         self.event_loader = EventLoader(
             parent=self, file=self.dl2_file, quality_selection_only=False
         )
-        events = self.event_loader.load_preselected_events(self.chunk_size)
-        events = self.dl3_format.transform_events_columns_for_gadf_format(events)
-
-        hdu_dl3 = fits.HDUList(
-            [
-                fits.PrimaryHDU(
-                    header={"CREATED": datetime.now(tz=datetime.UTC).isoformat()}
-                )
-            ]
-        )
-        hdu_dl3.append(
-            fits.BinTableHDU(
-                data=events,
-                name="EVENTS",
-                header=self.dl3_format.get_hdu_header_events(),
-            )
+        self.dl3_format.events = self.event_loader.load_preselected_events(
+            self.chunk_size
         )
 
         self.log.info("Loading IRFs")
         hdu_irfs = fits.open(self.irfs_file, checksum=True)
         for i in range(1, len(hdu_irfs)):
-            hdu_dl3.append(hdu_irfs[i])
+            if "HDUCLAS2" in hdu_irfs[i].header.keys():
+                if hdu_irfs[i].header["HDUCLAS2"] == "EFF_AREA":
+                    self.dl3_format.aeff = hdu_irfs[i]
+                elif hdu_irfs[i].header["HDUCLAS2"] == "EDISP":
+                    self.dl3_format.edisp = hdu_irfs[i]
+                elif hdu_irfs[i].header["HDUCLAS2"] == "RPSF":
+                    self.dl3_format.psf = hdu_irfs[i]
+                elif hdu_irfs[i].header["HDUCLAS2"] == "BKG":
+                    self.dl3_format.bkg = hdu_irfs[i]
 
         self.log.info("Writing DL3 File")
-        hdu_dl3.writeto(self.output_file, checksum=True, overwrite=self.overwrite)
+        self.dl3_format.write_file(self.output_file)
 
     def finish(self):
         pass

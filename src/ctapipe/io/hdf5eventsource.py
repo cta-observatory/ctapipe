@@ -340,7 +340,7 @@ class HDF5EventSource(EventSource):
         True for files with telescope-wise event information in the simulation group
         """
         if self.is_simulation:
-            if "telescope" in self.file_.root.simulation.event:
+            if "telescope" in self.file_.root.simulation.events:
                 return True
         return False
 
@@ -384,7 +384,7 @@ class HDF5EventSource(EventSource):
         return self._simulation_configs
 
     def __len__(self):
-        n_events = len(self.file_.root.dl1.event.subarray.trigger)
+        n_events = len(self.file_.root.dl1.events.subarray.trigger)
         if self.max_events is not None:
             return min(n_events, self.max_events)
         return n_events
@@ -434,7 +434,7 @@ class HDF5EventSource(EventSource):
         return scheduling_blocks, observation_blocks
 
     def _is_hillas_in_camera_frame(self):
-        parameters_group = self.file_.root.dl1.event.telescope.parameters
+        parameters_group = self.file_.root.dl1.events.telescope.parameters
         telescope_tables = parameters_group._v_children.values()
 
         # in case of no parameters, it doesn't matter, we just return False
@@ -456,7 +456,7 @@ class HDF5EventSource(EventSource):
                 table.name: self.reader.read(
                     f"/r1/event/telescope/{table.name}", R1CameraContainer
                 )
-                for table in self.file_.root.r1.event.telescope
+                for table in self.file_.root.r1.events.telescope
             }
 
         if DataLevel.DL1_IMAGES in self.datalevels:
@@ -472,14 +472,14 @@ class HDF5EventSource(EventSource):
                     DL1CameraContainer,
                     ignore_columns=ignore_columns,
                 )
-                for table in self.file_.root.dl1.event.telescope.images
+                for table in self.file_.root.dl1.events.telescope.images
             }
             if self.has_simulated_dl1:
                 simulated_image_iterators = {
-                    table.name: self.file_.root.simulation.event.telescope.images[
+                    table.name: self.file_.root.simulation.events.telescope.images[
                         table.name
                     ].iterrows()
-                    for table in self.file_.root.simulation.event.telescope.images
+                    for table in self.file_.root.simulation.events.telescope.images
                 }
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
@@ -516,7 +516,7 @@ class HDF5EventSource(EventSource):
                         "peak_time",
                     ],
                 )
-                for table in self.file_.root.dl1.event.telescope.parameters
+                for table in self.file_.root.dl1.events.telescope.parameters
             }
             if self.has_simulated_dl1:
                 simulated_param_readers = {
@@ -537,7 +537,7 @@ class HDF5EventSource(EventSource):
                             "true_intensity",
                         ],
                     )
-                    for table in self.file_.root.dl1.event.telescope.parameters
+                    for table in self.file_.root.dl1.events.telescope.parameters
                 }
 
         if self.has_muon_parameters:
@@ -550,7 +550,7 @@ class HDF5EventSource(EventSource):
                         MuonEfficiencyContainer,
                     ],
                 )
-                for table in self.file_.root.dl1.event.telescope.muon
+                for table in self.file_.root.dl1.events.telescope.muon
             }
 
         dl2_readers = {}
@@ -602,14 +602,14 @@ class HDF5EventSource(EventSource):
                 SimulatedShowerContainer,
                 prefixes="true",
             )
-            if "impact" in self.file_.root.simulation.event.telescope:
+            if "impact" in self.file_.root.simulation.events.telescope:
                 true_impact_readers = {
                     table.name: self.reader.read(
                         f"/simulation/event/telescope/impact/{table.name}",
                         containers=TelescopeImpactParameterContainer,
                         prefixes=["true_impact"],
                     )
-                    for table in self.file_.root.simulation.event.telescope.impact
+                    for table in self.file_.root.simulation.events.telescope.impact
                 }
 
         # Setup iterators for the array events

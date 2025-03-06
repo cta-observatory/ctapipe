@@ -88,8 +88,8 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     # check tables were written
     with tables.open_file(dl1b_from_dl1a_file, mode="r") as testfile:
         assert testfile.root.dl1
-        assert testfile.root.dl1.event.telescope
-        assert testfile.root.dl1.event.subarray
+        assert testfile.root.dl1.events.telescope
+        assert testfile.root.dl1.events.subarray
         assert testfile.root.configuration.instrument.subarray.layout
         assert testfile.root.configuration.instrument.telescope.optics
         assert testfile.root.configuration.instrument.telescope.camera.geometry_0
@@ -226,7 +226,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
 
     # check tables were written
     with tables.open_file(output, mode="r") as testfile:
-        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+        assert testfile.root.dl2.events.subarray.geometry.HillasReconstructor
 
 
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
@@ -249,7 +249,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
 
     # check tables were written
     with tables.open_file(output, mode="r") as testfile:
-        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+        assert testfile.root.dl2.events.subarray.geometry.HillasReconstructor
 
 
 def test_ml_preprocessing_from_simtel(tmp_path):
@@ -274,8 +274,8 @@ def test_ml_preprocessing_from_simtel(tmp_path):
 
     # check tables were written
     with tables.open_file(output, mode="r") as testfile:
-        assert testfile.root.dl1.event.telescope.parameters.tel_002
-        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+        assert testfile.root.dl1.events.telescope.parameters.tel_002
+        assert testfile.root.dl2.events.subarray.geometry.HillasReconstructor
 
 
 def test_image_modifications(tmp_path, dl1_image_file):
