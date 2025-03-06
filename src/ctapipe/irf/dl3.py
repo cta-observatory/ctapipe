@@ -89,7 +89,7 @@ class DL3_GADF(Component):
 
     @property
     def bkg(self):
-        return self._psf
+        return self._bkg
 
     @bkg.setter
     def bkg(self, bkg: ExtensionHDU):
