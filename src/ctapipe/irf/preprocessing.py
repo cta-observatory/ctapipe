@@ -77,7 +77,7 @@ class EventPreprocessor(Component):
             self.event_selection = EventSelection(parent=self)
 
     def get_columns_keep_rename_scheme(
-        self, events: Table, already_derived: bool = False
+        self, events: Table = None, already_derived: bool = False
     ):
         """
         Function to get the columns to keep, and the scheme for renaming columns
@@ -176,6 +176,10 @@ class EventPreprocessor(Component):
                     "reco_h_max_uncert",
                 ]
                 if not self.raise_error_for_optional:
+                    if events is None:
+                        raise ValueError(
+                            "Require events table to assess existence of optional columns"
+                        )
                     for i, c in enumerate(rename_from_optional):
                         if c not in events.colnames:
                             self.log.warning(
@@ -289,7 +293,7 @@ class EventPreprocessor(Component):
 
         return events
 
-    def make_empty_table(self) -> QTable:
+    def make_empty_table(self, columns_to_use: list[str]) -> QTable:
         """
         This function defines the columns later functions expect to be present
         in the event table.
@@ -318,6 +322,11 @@ class EventPreprocessor(Component):
                 description="Reconstructed energy",
             ),
             Column(
+                name="reco_energy_uncert",
+                unit=u.TeV,
+                description="Uncertainty on the reconstructed energy",
+            ),
+            Column(
                 name="reco_az",
                 unit=u.deg,
                 description="Reconstructed azimuth",
@@ -326,6 +335,31 @@ class EventPreprocessor(Component):
                 name="reco_alt",
                 unit=u.deg,
                 description="Reconstructed altitude",
+            ),
+            Column(
+                name="reco_dir_uncert",
+                unit=u.deg,
+                description="Uncertainty on the reconstructed direction",
+            ),
+            Column(
+                name="reco_ra",
+                unit=u.deg,
+                description="Reconstructed direction, Right Ascension (ICRS)",
+            ),
+            Column(
+                name="reco_dec",
+                unit=u.deg,
+                description="Reconstructed direction, Declination (ICRS)",
+            ),
+            Column(
+                name="reco_glon",
+                unit=u.deg,
+                description="Reconstructed direction, galactic longitude",
+            ),
+            Column(
+                name="reco_glat",
+                unit=u.deg,
+                description="Reconstructed direction, galactic latitude",
             ),
             Column(
                 name="reco_fov_lat",
@@ -350,9 +384,19 @@ class EventPreprocessor(Component):
                 description="Simulated angular offset from pointing direction",
             ),
             Column(
+                name="true_source_fov_position_angle",
+                unit=u.deg,
+                description="Simulated angular position angle from pointing direction",
+            ),
+            Column(
                 name="reco_source_fov_offset",
                 unit=u.deg,
                 description="Reconstructed angular offset from pointing direction",
+            ),
+            Column(
+                name="reco_source_fov_position_angle",
+                unit=u.deg,
+                description="Reconstructed angular position angle from pointing direction",
             ),
             Column(
                 name="gh_score",
@@ -366,9 +410,56 @@ class EventPreprocessor(Component):
                 unit=u.dimensionless_unscaled,
                 description="Event weight",
             ),
+            Column(
+                name="multiplicity",
+                description="Number of telescopes used for the reconstruction",
+            ),
+            Column(
+                name="reco_core_x",
+                unit=u.m,
+                description="Reconstructed position of the core of the shower, x coordinate",
+            ),
+            Column(
+                name="reco_core_y",
+                unit=u.m,
+                description="Reconstructed position of the core of the shower, y coordinate",
+            ),
+            Column(
+                name="reco_core_uncert_x",
+                unit=u.m,
+                description="Uncertainty on the reconstructed position of the core of the shower, x coordinate",
+            ),
+            Column(
+                name="reco_core_uncert_y",
+                unit=u.m,
+                description="Uncertainty on the reconstructed position of the core of the shower, y coordinate",
+            ),
+            Column(
+                name="reco_h_max",
+                unit=u.m,
+                description="Reconstructed altitude of the maximum of the shower",
+            ),
+            Column(
+                name="reco_h_max_uncert",
+                unit=u.m,
+                description="Uncertainty on the reconstructed altitude of the maximum of the shower",
+            ),
         ]
 
-        return QTable(columns)
+        # Rearrange in a dict, easier for searching after
+        columns_dict = {}
+        for i in range(len(columns)):
+            columns_dict[columns[i].name] = columns[i]
+
+        # Select only the necessary columns
+        columns_for_keep = []
+        for c in columns_to_use:
+            if c in columns_dict.keys():
+                columns_for_keep.append(columns_dict[c])
+            else:
+                raise ValueError(f"Missing columns definition for {c}")
+
+        return QTable(columns_for_keep)
 
 
 class EventLoader(Component):
@@ -400,7 +491,8 @@ class EventLoader(Component):
     def load_preselected_events(self, chunk_size: int) -> tuple[QTable, int, dict]:
         opts = dict(dl2=True, simulated=True, observation_info=True)
         with TableLoader(self.file, parent=self, **opts) as load:
-            header = self.epp.make_empty_table()
+            keep_columns, _, _ = self.epp.get_columns_keep_rename_scheme(None, True)
+            header = self.epp.make_empty_table(keep_columns)
             bits = [header]
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 events = self.epp.normalise_column_names(events)

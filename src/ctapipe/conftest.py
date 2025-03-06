@@ -816,7 +816,8 @@ def irf_events_table():
     N2 = 100
     N = N1 + N2
     epp = EventPreprocessor()
-    tab = epp.make_empty_table()
+    keep_columns, _, _ = epp.get_columns_keep_rename_scheme(None, True)
+    tab = epp.make_empty_table(keep_columns)
 
     ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
 
