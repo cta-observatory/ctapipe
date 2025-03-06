@@ -4,8 +4,9 @@ from pathlib import Path
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import ICRS, AltAz, EarthLocation, Galactic, SkyCoord
 from astropy.table import Column, QTable, Table, vstack
+from astropy.time import Time
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import (
     DIFFUSE_FLUX_UNIT,
@@ -184,36 +185,65 @@ class EventPreprocessor(Component):
         ]
         return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
 
-    def make_derived_columns(self, events: QTable) -> QTable:
-        events["weight"] = (
-            1.0 * u.dimensionless_unscaled
-        )  # defer calculation of proper weights to later
-        events["gh_score"].unit = u.dimensionless_unscaled
-        events["theta"] = calculate_theta(
-            events,
-            assumed_source_az=events["true_az"],
-            assumed_source_alt=events["true_alt"],
-        )
-        events["true_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="true"
-        )
-        events["reco_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="reco"
-        )
+    def make_derived_columns(
+        self, events: QTable, location_subarray: EarthLocation
+    ) -> QTable:
+        """
+        This function compute all the derived columns necessary either to irf production or DL3 file
+        """
 
-        altaz = AltAz()
-        pointing = SkyCoord(
-            alt=events["pointing_alt"], az=events["pointing_az"], frame=altaz
-        )
+        events["gh_score"].unit = u.dimensionless_unscaled
+
+        if self.irf_pre_processing:
+            frame_subarray = AltAz()
+        else:
+            frame_subarray = AltAz(
+                location=location_subarray, obstime=Time(events["time"])
+            )
         reco = SkyCoord(
             alt=events["reco_alt"],
             az=events["reco_az"],
-            frame=altaz,
+            frame=frame_subarray,
         )
-        nominal = NominalFrame(origin=pointing)
-        reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
-        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
+
+        if self.irf_pre_processing or self.optional_dl3_columns:
+            pointing = SkyCoord(
+                alt=events["pointing_alt"],
+                az=events["pointing_az"],
+                frame=frame_subarray,
+            )
+            nominal = NominalFrame(origin=pointing)
+            reco_nominal = reco.transform_to(nominal)
+            events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
+            events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
+
+        if self.irf_pre_processing:
+            events["weight"] = (
+                1.0 * u.dimensionless_unscaled
+            )  # defer calculation of proper weights to later
+            events["theta"] = calculate_theta(
+                events,
+                assumed_source_az=events["true_az"],
+                assumed_source_alt=events["true_alt"],
+            )
+            events["true_source_fov_offset"] = calculate_source_fov_offset(
+                events, prefix="true"
+            )
+            events["reco_source_fov_offset"] = calculate_source_fov_offset(
+                events, prefix="reco"
+            )
+
+        else:
+            reco_icrs = reco.transform_to(ICRS())
+            events["reco_ra"] = reco_icrs.ra
+            events["reco_dec"] = reco_icrs.dec
+            if self.optional_dl3_columns:
+                reco_gal = reco_icrs.transform_to(Galactic())
+                events["reco_glon"] = reco_gal.l
+                events["reco_glat"] = reco_gal.b
+
+                events["multiplicity"] = np.sum(events["tels_with_trigger"], axis=1)
+
         return events
 
     def make_empty_table(self) -> QTable:
@@ -331,7 +361,9 @@ class EventLoader(Component):
             bits = [header]
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 events = self.epp.normalise_column_names(events)
-                events = self.epp.make_derived_columns(events)
+                events = self.epp.make_derived_columns(
+                    events, load.subarray.reference_location
+                )
                 events = self.epp.event_selection.calculate_selection(events)
                 selected = events[events["selected"]]
                 selected = self.epp.keep_nescessary_columns_only(selected)
