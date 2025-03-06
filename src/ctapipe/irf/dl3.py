@@ -91,8 +91,8 @@ class DL3_GADF(Component):
     def bkg(self):
         return self._psf
 
-    @psf.setter
-    def psf(self, bkg: ExtensionHDU):
+    @bkg.setter
+    def bkg(self, bkg: ExtensionHDU):
         self._bkg = bkg
 
     def get_hdu_header_events(self):
