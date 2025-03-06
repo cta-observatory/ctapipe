@@ -106,14 +106,12 @@ class EventPreprocessor(Component):
             rename_to = []
             keep_columns += ["reco_energy", "reco_az", "reco_alt", "gh_score"]
 
-            if self.irf_pre_processing or self.optional_dl3_columns:
-                keep_columns += ["reco_fov_lat", "reco_fov_lon"]
-
             if self.irf_pre_processing:
                 keep_columns += [
                     "pointing_az",
                     "pointing_alt",
-                    "theta",
+                    "reco_fov_lat",
+                    "reco_fov_lon" "theta",
                     "true_source_fov_offset",
                     "reco_source_fov_offset",
                     "weight",
@@ -121,11 +119,12 @@ class EventPreprocessor(Component):
             else:
                 keep_columns += ["reco_ra", "reco_dec"]
                 if self.optional_dl3_columns:
-                    keep_columns += [
+                    keep_columns_optional = [
                         "multiplicity",
                         "reco_glon",
                         "reco_glat",
-                        "reco_source_fov_offset",
+                        "reco_fov_lat",
+                        "reco_fov_lon" "reco_source_fov_offset",
                         "reco_source_fov_position_angle",
                         "reco_energy_uncert",
                         "reco_dir_uncert",
@@ -136,6 +135,21 @@ class EventPreprocessor(Component):
                         "reco_h_max",
                         "reco_h_max_uncert",
                     ]
+
+                    if not self.raise_error_for_optional:
+                        if events is None:
+                            raise ValueError(
+                                "Require events table to assess existence of optional columns"
+                            )
+                        for c in keep_columns_optional:
+                            if c not in events.colnames:
+                                self.log.warning(
+                                    f"Optional column {c} is missing from the events table."
+                                )
+                            else:
+                                keep_columns.append(c)
+                    else:
+                        keep_columns += keep_columns_optional
 
         else:
             rename_from = [
