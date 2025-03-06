@@ -10,7 +10,7 @@ from ..irf import EventLoader, EventPreprocessor
 __all__ = ["DL3Tool"]
 
 from ..irf.cuts import EventSelection
-from ..irf.dl3 import get_hdu_header_events
+from ..irf.dl3 import get_hdu_header_events, transform_events_columns_for_gadf_format
 
 
 class DL3Tool(Tool):
@@ -95,6 +95,7 @@ class DL3Tool(Tool):
             parent=self, file=self.dl2_file, quality_selection_only=False
         )
         events = self.event_loader.load_preselected_events(self.chunk_size)
+        events = transform_events_columns_for_gadf_format(events)
 
         hdu_dl3 = fits.HDUList(
             [
