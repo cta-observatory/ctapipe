@@ -14,7 +14,11 @@ from pyirf.spectral import (
     PowerLaw,
     calculate_event_weights,
 )
-from pyirf.utils import calculate_source_fov_offset, calculate_theta
+from pyirf.utils import (
+    calculate_source_fov_offset,
+    calculate_source_fov_position_angle,
+    calculate_theta,
+)
 from tables import NoSuchNodeError
 
 from ..compat import COPY_IF_NEEDED
@@ -72,16 +76,12 @@ class EventPreprocessor(Component):
         else:
             self.event_selection = EventSelection(parent=self)
 
-    def normalise_column_names(self, events: Table) -> QTable:
-        if self.irf_pre_processing and events["subarray_pointing_lat"].std() > 1e-3:
-            raise NotImplementedError(
-                "No support for making irfs from varying pointings yet"
-            )
-        if any(events["subarray_pointing_frame"] != CoordinateFrameType.ALTAZ.value):
-            raise NotImplementedError(
-                "At the moment only pointing in altaz is supported."
-            )
-
+    def get_columns_keep_rename_scheme(
+        self, events: Table, already_derived: bool = False
+    ):
+        """
+        Function to get the columns to keep, and the scheme for renaming columns
+        """
         keep_columns = [
             "obs_id",
             "event_id",
@@ -101,56 +101,108 @@ class EventPreprocessor(Component):
                     "tels_with_trigger",
                 ]
 
-        rename_from = [
-            f"{self.energy_reconstructor}_energy",
-            f"{self.geometry_reconstructor}_az",
-            f"{self.geometry_reconstructor}_alt",
-            f"{self.gammaness_classifier}_prediction",
-            "subarray_pointing_lat",
-            "subarray_pointing_lon",
-        ]
-        rename_to = [
-            "reco_energy",
-            "reco_az",
-            "reco_alt",
-            "gh_score",
-            "pointing_alt",
-            "pointing_az",
-        ]
-        if self.optional_dl3_columns:
-            rename_from_optional = [
-                f"{self.energy_reconstructor}_energy_uncert",
-                f"{self.geometry_reconstructor}_ang_distance_uncert",
-                f"{self.geometry_reconstructor}_core_x",
-                f"{self.geometry_reconstructor}_core_y",
-                f"{self.geometry_reconstructor}_core_uncert_x",
-                f"{self.geometry_reconstructor}_core_uncert_y",
-                f"{self.geometry_reconstructor}_h_max",
-                f"{self.geometry_reconstructor}_h_max_uncert",
-            ]
-            rename_to_optional = [
-                "reco_energy_uncert",
-                "reco_dir_uncert",
-                "reco_core_x",
-                "reco_core_y",
-                "reco_core_uncert_x",
-                "reco_core_uncert_y",
-                "reco_h_max",
-                "reco_h_max_uncert",
-            ]
-            if not self.raise_error_for_optional:
-                for i, c in enumerate(rename_from_optional):
-                    if c not in events.colnames:
-                        self.log.warning(
-                            f"Optional column {c} is missing from the DL2 file."
-                        )
-                    else:
-                        rename_from.append(rename_from_optional[i])
-                        rename_to.append(rename_to_optional[i])
-            else:
-                rename_from += rename_from_optional
-                rename_to += rename_to_optional
+        if already_derived:
+            rename_from = []
+            rename_to = []
+            keep_columns += ["reco_energy", "reco_az", "reco_alt", "gh_score"]
 
+            if self.irf_pre_processing or self.optional_dl3_columns:
+                keep_columns += ["reco_fov_lat", "reco_fov_lon"]
+
+            if self.irf_pre_processing:
+                keep_columns += [
+                    "pointing_az",
+                    "pointing_alt",
+                    "theta",
+                    "true_source_fov_offset",
+                    "reco_source_fov_offset",
+                    "weight",
+                ]
+            else:
+                keep_columns += ["reco_ra", "reco_dec"]
+                if self.optional_dl3_columns:
+                    keep_columns += [
+                        "multiplicity",
+                        "reco_glon",
+                        "reco_glat",
+                        "reco_source_fov_offset",
+                        "reco_source_fov_position_angle",
+                        "reco_energy_uncert",
+                        "reco_dir_uncert",
+                        "reco_core_x",
+                        "reco_core_y",
+                        "reco_core_uncert_x",
+                        "reco_core_uncert_y",
+                        "reco_h_max",
+                        "reco_h_max_uncert",
+                    ]
+
+        else:
+            rename_from = [
+                f"{self.energy_reconstructor}_energy",
+                f"{self.geometry_reconstructor}_az",
+                f"{self.geometry_reconstructor}_alt",
+                f"{self.gammaness_classifier}_prediction",
+                "subarray_pointing_lat",
+                "subarray_pointing_lon",
+            ]
+            rename_to = [
+                "reco_energy",
+                "reco_az",
+                "reco_alt",
+                "gh_score",
+                "pointing_alt",
+                "pointing_az",
+            ]
+            if self.optional_dl3_columns:
+                rename_from_optional = [
+                    f"{self.energy_reconstructor}_energy_uncert",
+                    f"{self.geometry_reconstructor}_ang_distance_uncert",
+                    f"{self.geometry_reconstructor}_core_x",
+                    f"{self.geometry_reconstructor}_core_y",
+                    f"{self.geometry_reconstructor}_core_uncert_x",
+                    f"{self.geometry_reconstructor}_core_uncert_y",
+                    f"{self.geometry_reconstructor}_h_max",
+                    f"{self.geometry_reconstructor}_h_max_uncert",
+                ]
+                rename_to_optional = [
+                    "reco_energy_uncert",
+                    "reco_dir_uncert",
+                    "reco_core_x",
+                    "reco_core_y",
+                    "reco_core_uncert_x",
+                    "reco_core_uncert_y",
+                    "reco_h_max",
+                    "reco_h_max_uncert",
+                ]
+                if not self.raise_error_for_optional:
+                    for i, c in enumerate(rename_from_optional):
+                        if c not in events.colnames:
+                            self.log.warning(
+                                f"Optional column {c} is missing from the DL2 file."
+                            )
+                        else:
+                            rename_from.append(rename_from_optional[i])
+                            rename_to.append(rename_to_optional[i])
+                else:
+                    rename_from += rename_from_optional
+                    rename_to += rename_to_optional
+
+        return keep_columns, rename_from, rename_to
+
+    def normalise_column_names(self, events: Table) -> QTable:
+        if self.irf_pre_processing and events["subarray_pointing_lat"].std() > 1e-3:
+            raise NotImplementedError(
+                "No support for making irfs from varying pointings yet"
+            )
+        if any(events["subarray_pointing_frame"] != CoordinateFrameType.ALTAZ.value):
+            raise NotImplementedError(
+                "At the moment only pointing in altaz is supported."
+            )
+
+        keep_columns, rename_from, rename_to = self.get_columns_keep_rename_scheme(
+            events
+        )
         keep_columns.extend(rename_from)
         for c in keep_columns:
             if c not in events.colnames:
@@ -163,26 +215,14 @@ class EventPreprocessor(Component):
         renamed_events.rename_columns(rename_from, rename_to)
         return renamed_events
 
-    def keep_nescessary_columns_only(self, events: Table) -> QTable:
-        keep_columns = [
-            "obs_id",
-            "event_id",
-            "true_energy",
-            "true_az",
-            "true_alt",
-            "reco_energy",
-            "reco_az",
-            "reco_alt",
-            "reco_fov_lat",
-            "reco_fov_lon",
-            "pointing_az",
-            "pointing_alt",
-            "theta",
-            "true_source_fov_offset",
-            "reco_source_fov_offset",
-            "gh_score",
-            "weight",
-        ]
+    def keep_necessary_columns_only(self, events: Table) -> QTable:
+        keep_columns, _, _ = self.get_columns_keep_rename_scheme(events)
+        for c in keep_columns:
+            if c not in events.colnames:
+                raise ValueError(
+                    f"Required column {c} is missing from the events table."
+                )
+
         return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
 
     def make_derived_columns(
@@ -216,6 +256,13 @@ class EventPreprocessor(Component):
             reco_nominal = reco.transform_to(nominal)
             events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
             events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
+            events["reco_source_fov_offset"] = calculate_source_fov_offset(
+                events, prefix="reco"
+            )
+            if not self.irf_pre_processing:
+                events[
+                    "reco_source_fov_position_angle"
+                ] = calculate_source_fov_position_angle(events, prefix="reco")
 
         if self.irf_pre_processing:
             events["weight"] = (
@@ -229,10 +276,6 @@ class EventPreprocessor(Component):
             events["true_source_fov_offset"] = calculate_source_fov_offset(
                 events, prefix="true"
             )
-            events["reco_source_fov_offset"] = calculate_source_fov_offset(
-                events, prefix="reco"
-            )
-
         else:
             reco_icrs = reco.transform_to(ICRS())
             events["reco_ra"] = reco_icrs.ra
@@ -366,7 +409,7 @@ class EventLoader(Component):
                 )
                 events = self.epp.event_selection.calculate_selection(events)
                 selected = events[events["selected"]]
-                selected = self.epp.keep_nescessary_columns_only(selected)
+                selected = self.epp.keep_necessary_columns_only(selected)
                 bits.append(selected)
 
             bits.append(header)  # Putting it last ensures the correct metadata is used
