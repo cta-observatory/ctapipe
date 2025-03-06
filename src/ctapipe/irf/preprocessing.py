@@ -184,6 +184,38 @@ class EventPreprocessor(Component):
         ]
         return QTable(events[keep_columns], copy=COPY_IF_NEEDED)
 
+    def make_derived_columns(self, events: QTable) -> QTable:
+        events["weight"] = (
+            1.0 * u.dimensionless_unscaled
+        )  # defer calculation of proper weights to later
+        events["gh_score"].unit = u.dimensionless_unscaled
+        events["theta"] = calculate_theta(
+            events,
+            assumed_source_az=events["true_az"],
+            assumed_source_alt=events["true_alt"],
+        )
+        events["true_source_fov_offset"] = calculate_source_fov_offset(
+            events, prefix="true"
+        )
+        events["reco_source_fov_offset"] = calculate_source_fov_offset(
+            events, prefix="reco"
+        )
+
+        altaz = AltAz()
+        pointing = SkyCoord(
+            alt=events["pointing_alt"], az=events["pointing_az"], frame=altaz
+        )
+        reco = SkyCoord(
+            alt=events["reco_alt"],
+            az=events["reco_az"],
+            frame=altaz,
+        )
+        nominal = NominalFrame(origin=pointing)
+        reco_nominal = reco.transform_to(nominal)
+        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
+        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
+        return events
+
     def make_empty_table(self) -> QTable:
         """
         This function defines the columns later functions expect to be present
@@ -299,7 +331,7 @@ class EventLoader(Component):
             bits = [header]
             for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
                 events = self.epp.normalise_column_names(events)
-                events = self.make_derived_columns(events)
+                events = self.epp.make_derived_columns(events)
                 events = self.epp.event_selection.calculate_selection(events)
                 selected = events[events["selected"]]
                 selected = self.epp.keep_nescessary_columns_only(selected)
@@ -342,38 +374,6 @@ class EventLoader(Component):
             "spectrum": PowerLaw.from_simulation(sim_info, obstime=obs_time),
         }
         return meta
-
-    def make_derived_columns(self, events: QTable) -> QTable:
-        events["weight"] = (
-            1.0 * u.dimensionless_unscaled
-        )  # defer calculation of proper weights to later
-        events["gh_score"].unit = u.dimensionless_unscaled
-        events["theta"] = calculate_theta(
-            events,
-            assumed_source_az=events["true_az"],
-            assumed_source_alt=events["true_alt"],
-        )
-        events["true_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="true"
-        )
-        events["reco_source_fov_offset"] = calculate_source_fov_offset(
-            events, prefix="reco"
-        )
-
-        altaz = AltAz()
-        pointing = SkyCoord(
-            alt=events["pointing_alt"], az=events["pointing_az"], frame=altaz
-        )
-        reco = SkyCoord(
-            alt=events["reco_alt"],
-            az=events["reco_az"],
-            frame=altaz,
-        )
-        nominal = NominalFrame(origin=pointing)
-        reco_nominal = reco.transform_to(nominal)
-        events["reco_fov_lon"] = u.Quantity(-reco_nominal.fov_lon)  # minus for GADF
-        events["reco_fov_lat"] = u.Quantity(reco_nominal.fov_lat)
-        return events
 
     def make_event_weights(
         self,
