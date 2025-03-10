@@ -1,10 +1,12 @@
 from abc import abstractmethod
 from datetime import datetime
+from typing import List, Tuple
 
 from astropy.coordinates import EarthLocation
 from astropy.io import fits
 from astropy.io.fits.hdu.base import ExtensionHDU
 from astropy.table import QTable
+from astropy.time import Time
 
 from ctapipe.compat import COPY_IF_NEEDED
 from ctapipe.core import Component
@@ -47,7 +49,7 @@ class DL3_Format(Component):
         pass
 
     @property
-    def events(self):
+    def events(self) -> QTable:
         return self._events
 
     @events.setter
@@ -59,7 +61,7 @@ class DL3_Format(Component):
         self._events = events
 
     @property
-    def aeff(self):
+    def aeff(self) -> ExtensionHDU:
         return self._aeff
 
     @aeff.setter
@@ -71,7 +73,7 @@ class DL3_Format(Component):
         self._aeff = aeff
 
     @property
-    def psf(self):
+    def psf(self) -> ExtensionHDU:
         return self._psf
 
     @psf.setter
@@ -81,7 +83,7 @@ class DL3_Format(Component):
         self._psf = psf
 
     @property
-    def edisp(self):
+    def edisp(self) -> ExtensionHDU:
         return self._edisp
 
     @edisp.setter
@@ -93,7 +95,7 @@ class DL3_Format(Component):
         self._edisp = edisp
 
     @property
-    def bkg(self):
+    def bkg(self) -> ExtensionHDU:
         return self._bkg
 
     @bkg.setter
@@ -105,16 +107,26 @@ class DL3_Format(Component):
         self._bkg = bkg
 
     @property
-    def location(self):
+    def location(self) -> EarthLocation:
         return self._location
 
     @location.setter
     def location(self, location: EarthLocation):
         if self._location is not None:
             self.log.warning(
-                "Telescope location table for DL3 file was already set, replacing current location"
+                "Telescope location for DL3 file was already set, replacing current location"
             )
         self._location = location
+
+    @property
+    def gti(self) -> List[Tuple[Time, Time]]:
+        return self._gti
+
+    @gti.setter
+    def gti(self, gti: List[Tuple[Time, Time]]):
+        if self._gti is not None:
+            self.log.warning("GTi for DL3 file was already set, replacing current gti")
+        self._gti = gti
 
 
 class DL3_GADF(DL3_Format):

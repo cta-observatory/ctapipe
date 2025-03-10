@@ -1,6 +1,7 @@
 """Module containing classes related to event loading and preprocessing"""
 
 from pathlib import Path
+from typing import List, Tuple
 
 import astropy.units as u
 import numpy as np
@@ -502,14 +503,16 @@ class EventLoader(Component):
         else:
             self.target_spectrum = None
         self.file = file
+        self.opts_loader = dict(dl2=True, simulated=True, observation_info=True)
 
     def load_preselected_events(self, chunk_size: int) -> tuple[QTable, int, dict]:
-        opts = dict(dl2=True, simulated=True, observation_info=True)
-        with TableLoader(self.file, parent=self, **opts) as load:
+        with TableLoader(self.file, parent=self, **self.opts_loader) as load:
             keep_columns, _, _ = self.epp.get_columns_keep_rename_scheme(None, True)
             header = self.epp.make_empty_table(keep_columns)
             bits = [header]
-            for _, _, events in load.read_subarray_events_chunked(chunk_size, **opts):
+            for _, _, events in load.read_subarray_events_chunked(
+                chunk_size, **self.opts_loader
+            ):
                 events = self.epp.normalise_column_names(events)
                 events = self.epp.make_derived_columns(
                     events, load.subarray.reference_location
@@ -523,11 +526,37 @@ class EventLoader(Component):
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table
 
+    def get_observation_information(
+        self,
+    ) -> Tuple[EarthLocation, List[Tuple[Time, Time]]]:
+        with TableLoader(self.file, parent=self, **self.opts_loader) as load:
+            array_location = load.subarray.reference_location
+
+            # TODO : proper retrieval of gti information
+            start_time = None
+            stop_time = None
+            for _, _, events in load.read_subarray_events_chunked(
+                10000, **self.opts_loader
+            ):
+                start_time = (
+                    Time(np.min(events["time"]))
+                    if start_time is None
+                    else min(start_time, Time(np.min(events["time"])))
+                )
+                stop_time = (
+                    Time(np.max(events["time"]))
+                    if start_time is None
+                    else max(stop_time, Time(np.max(events["time"])))
+                )
+
+        return array_location, [
+            (start_time, stop_time),
+        ]
+
     def get_simulation_information(
         self, obs_time: u.Quantity
     ) -> tuple[SimulatedEventsInfo, PowerLaw]:
-        opts = dict(dl2=True, simulated=True, observation_info=True)
-        with TableLoader(self.file, parent=self, **opts) as load:
+        with TableLoader(self.file, parent=self, **self.opts_loader) as load:
             sim = load.read_simulation_configuration()
             try:
                 show = load.read_shower_distribution()

@@ -111,6 +111,9 @@ class DL3Tool(Tool):
         self.dl3_format.events = self.event_loader.load_preselected_events(
             self.chunk_size
         )
+        array_location, gti = self.event_loader.get_observation_information()
+        self.dl3_format.location = array_location
+        self.dl3_format.gti = gti
 
         self.log.info("Loading IRFs")
         hdu_irfs = fits.open(self.irfs_file, checksum=True)
