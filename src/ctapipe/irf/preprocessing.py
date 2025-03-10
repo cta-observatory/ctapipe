@@ -545,7 +545,7 @@ class EventLoader(Component):
                 )
                 stop_time = (
                     Time(np.max(events["time"]))
-                    if start_time is None
+                    if stop_time is None
                     else max(stop_time, Time(np.max(events["time"])))
                 )
 
