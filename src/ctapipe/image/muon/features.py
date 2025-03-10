@@ -4,13 +4,15 @@ import astropy.units as u
 import numpy as np
 from astropy.units import Quantity
 
-from ..containers import MuonRingContainer
+from ...containers import MuonRingContainer
 
 __all__ = [
     "mean_squared_error",
     "intensity_ratio_inside_ring",
     "ring_completeness",
     "ring_containment",
+    "ring_size_parameters",
+    "radial_light_distribution",
 ]
 
 
@@ -207,7 +209,7 @@ def ring_containment(ring: MuonRingContainer, camera_radius: Quantity) -> float:
     a = (ring.radius**2 - camera_radius**2 + ring.center_distance**2) / (
         2 * ring.center_distance
     )
-    return np.arccos(a / ring.radius) / np.pi
+    return np.arccos((a / ring.radius).to_value(u.dimensionless_unscaled)) / np.pi
 
 
 def ring_size_parameters(

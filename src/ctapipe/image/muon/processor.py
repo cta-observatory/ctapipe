@@ -276,9 +276,7 @@ class MuonProcessor(TelescopeComponent):
             fov_lon[clean_mask],
             fov_lat[clean_mask],
             image[clean_mask],
-            ring.radius,
-            ring.center_fov_lon,
-            ring.center_fov_lat,
+            ring,
         )
 
         (
