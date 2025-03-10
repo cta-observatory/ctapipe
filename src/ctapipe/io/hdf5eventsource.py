@@ -77,6 +77,7 @@ COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v5.0.0",
     "v5.1.0",
     "v6.0.0",
+    "v7.0.0",
 ]
 
 
@@ -314,15 +315,24 @@ class HDF5EventSource(EventSource):
 
             # we can now read both R1 and DL1
             has_muons = "/dl1/event/telescope/muon" in f.root
+            has_sim = "/simulation/event/telescope" in f.root
+            has_trigger = "/simulation/event/telescope" in f.root
+
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            datalevels = datalevels & {
-                "R1",
-                "DL1_IMAGES",
-                "DL1_PARAMETERS",
-                "DL2",
-                "DL1_MUON",
-            }
-            if not datalevels and not has_muons:
+            datalevels = (
+                len(
+                    datalevels
+                    & {
+                        "R1",
+                        "DL1_IMAGES",
+                        "DL1_PARAMETERS",
+                        "DL2",
+                        "DL1_MUON",
+                    }
+                )
+                > 0
+            )
+            if not any([datalevels, has_sim, has_trigger, has_muons]):
                 return False
 
         return True

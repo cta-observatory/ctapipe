@@ -71,10 +71,7 @@ def test_write(tmpdir: Path):
     """
 
     output_path = Path(tmpdir / "events.dl1.h5")
-    source = EventSource(
-        get_dataset_path("gamma_prod5.simtel.zst"),
-        focal_length_choice="EQUIVALENT",
-    )
+    source = EventSource(get_dataset_path("gamma_prod5.simtel.zst"))
     calibrate = CameraCalibrator(subarray=source.subarray)
 
     with DataWriter(
@@ -149,10 +146,7 @@ def test_roundtrip(tmpdir: Path):
     """
 
     output_path = Path(tmpdir / "events.DL1DL2.h5")
-    source = EventSource(
-        get_dataset_path("gamma_prod5.simtel.zst"),
-        focal_length_choice="EQUIVALENT",
-    )
+    source = EventSource(get_dataset_path("gamma_prod5.simtel.zst"))
     calibrate = CameraCalibrator(subarray=source.subarray)
 
     events = []

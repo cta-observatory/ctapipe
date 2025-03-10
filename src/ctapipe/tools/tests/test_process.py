@@ -509,6 +509,17 @@ def test_only_trigger_and_simulation(tmp_path):
         assert "tels_with_trigger" in events.colnames
         assert "true_energy" in events.colnames
 
+    # test that telescope trigger times are different from each other
+    # this needs ns resolution, which is enabled by storing them as
+    # high resolution timestamps
+    with EventSource(output) as source:
+        for e in source:
+            it = iter(e.trigger.tel.values())
+            tel1 = next(it)
+            tel2 = next(it)
+            diff = (tel1.time - tel2.time).to_value(u.ns)
+            assert diff != 0
+
 
 @pytest.mark.parametrize(
     ("input_url", "args"),
