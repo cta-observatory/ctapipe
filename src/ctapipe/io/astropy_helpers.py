@@ -146,6 +146,9 @@ def write_table(
     mode: str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
+    time_format: str
+        Format to use for storing time columns.
+        Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
     """
     copied = False
     parent, table_name = os.path.split(path)

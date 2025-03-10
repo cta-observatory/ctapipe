@@ -478,6 +478,9 @@ class HDF5TableWriter(TableWriter):
             name of table to write to
         containers: `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`
             container to write
+        time_format: str
+            Format to use for storing time columns.
+            Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
         """
         if isinstance(containers, Container):
             containers = (containers,)
