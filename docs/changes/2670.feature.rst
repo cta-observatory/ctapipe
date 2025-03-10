@@ -1,0 +1,10 @@
+Add new fields to the MuonParametersContainer and refactor the code using the existing containers.
+
+Added fields:
+- ring_intensity
+- intensity_outside_ring
+- n_pixels_in_ring
+- mean_intensity_outside_ring
+- radial_std_dev
+- skeweness
+- excess_kurtosis
