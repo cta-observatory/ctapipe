@@ -13,7 +13,7 @@ roundtrip_times = [
 
 @pytest.mark.parametrize("timestamp", roundtrip_times)
 def test_cta_high_round_trip(timestamp):
-    from ctapipe_io_zfits.time import cta_high_res_to_time, time_to_cta_high_res
+    from ctapipe.time import cta_high_res_to_time, time_to_cta_high_res
 
     # note: precision=9 only affects text conversion, not actual precision
     time = Time(timestamp, scale="tai", precision=9)
@@ -27,12 +27,13 @@ def test_cta_high_round_trip(timestamp):
 test_data = [
     (Time(0, 12.25e-9, format="unix_tai"), 0, 49),
     (Time(12345, 12.25e-9, format="unix_tai"), 12345, 49),
+    (Time(65123, 123456.25e-9, format="unix_tai"), 65123, 493825),
 ]
 
 
 @pytest.mark.parametrize(("time", "expected_s", "expected_qns"), test_data)
 def test_cta_time_to_cta_high_res(time, expected_s, expected_qns):
-    from ctapipe_io_zfits.time import time_to_cta_high_res
+    from ctapipe.time import time_to_cta_high_res
 
     seconds, quarter_nanoseconds = time_to_cta_high_res(time)
     assert seconds == expected_s
