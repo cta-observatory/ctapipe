@@ -70,49 +70,81 @@ def test_ring_size_parameters():
         center_fov_lon=0 * u.deg,
         center_fov_lat=0 * u.deg,
     )
-    pixel_x = np.linspace(-2, 2, 1855) * u.deg
-    pixel_y = np.linspace(-2, 2, 1855) * u.deg
+    pixel_fov_lon = np.linspace(-2, 2, 1855) * u.deg
+    pixel_fov_lat = np.linspace(-2, 2, 1855) * u.deg
     ring_integration_width = 0.25
     outer_ring_width = 0.2
-    image = np.random.normal(loc=100, scale=10, size=1855)
-    image_mask = np.random.choice([True, False], size=1855)
+
+    # Create a synthetic image with known properties
+    image = np.ones(1855)  # Uniform intensity
+    image_mask = np.ones(1855, dtype=bool)  # All pixels are valid
+
+    # Calculate expected values
+    dist = np.hypot(
+        pixel_fov_lon - ring.center_fov_lon, pixel_fov_lat - ring.center_fov_lat
+    )
+    dist_mask = np.abs(dist - ring.radius) < (ring.radius * ring_integration_width)
+    ring_intensity_expected = np.sum(image[dist_mask])
+    intensity_outside_ring_expected = np.sum(image[~dist_mask])
+    n_pixels_in_ring_expected = np.sum(dist_mask)
+    dist_mask_2 = np.logical_and(
+        ~dist_mask,
+        np.abs(dist - ring.radius)
+        < ring.radius * (ring_integration_width + outer_ring_width),
+    )
+    mean_intensity_outside_ring_expected = np.sum(image[dist_mask_2]) / len(
+        image[dist_mask_2]
+    )
 
     (
-        ring_size,
-        size_outside,
-        num_pixels_in_ring,
-        mean_pixel_outside_ring,
+        ring_intensity,
+        intensity_outside_ring,
+        n_pixels_in_ring,
+        mean_intensity_outside_ring,
     ) = ring_size_parameters(
         ring,
-        pixel_x,
-        pixel_y,
+        pixel_fov_lon,
+        pixel_fov_lat,
         ring_integration_width,
         outer_ring_width,
         image,
         image_mask,
     )
 
-    assert ring_size > 0
-    assert size_outside > 0
-    assert num_pixels_in_ring > 0
-    assert mean_pixel_outside_ring > 0
+    assert np.isclose(ring_intensity, ring_intensity_expected, rtol=1e-2)
+    assert np.isclose(
+        intensity_outside_ring, intensity_outside_ring_expected, rtol=1e-2
+    )
+    assert n_pixels_in_ring == n_pixels_in_ring_expected
+    assert np.isclose(
+        mean_intensity_outside_ring, mean_intensity_outside_ring_expected, rtol=1e-2
+    )
 
 
 def test_radial_light_distribution():
     center_x = 0.0 * u.deg
     center_y = 0.0 * u.deg
-    pixel_x = np.linspace(-10, 10, 1855) * u.deg
-    pixel_y = np.linspace(-10, 10, 1855) * u.deg
-    image = np.random.normal(loc=100, scale=10, size=1855)
+    pixel_x = np.linspace(-2, 2, 1855) * u.deg
+    pixel_y = np.linspace(-2, 2, 1855) * u.deg
 
-    standard_dev, skewness, excess_kurtosis = radial_light_distribution(
+    # Create a synthetic image with known properties
+    image = np.ones(1855)  # Uniform intensity
+
+    # Calculate expected values
+    expected_std_dev = (
+        np.sqrt(8) / np.sqrt(12) * u.deg
+    )  # (b - a) / sqrt(12) where b-a is a diagonal of a square with the side length 4
+    expected_skewness = 0.0  # Uniform distribution has zero skewness
+    expected_excess_kurtosis = -1.2  # Uniform distribution has excess kurtosis of -1.2
+
+    radial_std_dev, skewness, excess_kurtosis = radial_light_distribution(
         center_x, center_y, pixel_x, pixel_y, image
     )
 
-    assert standard_dev.unit == u.deg
-    assert np.isfinite(standard_dev.value)
-    assert np.isfinite(skewness)
-    assert np.isfinite(excess_kurtosis)
+    assert radial_std_dev.unit == u.deg
+    assert np.isclose(radial_std_dev, expected_std_dev, atol=1e-2)
+    assert np.isclose(skewness, expected_skewness, atol=1e-2)
+    assert np.isclose(excess_kurtosis, expected_excess_kurtosis, atol=1e-2)
 
 
 def test_radial_light_distribution_zero_image():
@@ -122,10 +154,10 @@ def test_radial_light_distribution_zero_image():
     pixel_y = np.linspace(-10, 10, 1855) * u.deg
     image = np.zeros(1855)
 
-    standard_dev, skewness, excess_kurtosis = radial_light_distribution(
+    radial_std_dev, skewness, excess_kurtosis = radial_light_distribution(
         center_x, center_y, pixel_x, pixel_y, image
     )
 
-    assert np.isnan(standard_dev)
+    assert np.isnan(radial_std_dev)
     assert np.isnan(skewness)
     assert np.isnan(excess_kurtosis)
