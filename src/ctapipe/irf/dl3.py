@@ -27,7 +27,7 @@ class DL3_GADF(Component):
     overwrite = Bool(
         default_value=False,
         help="If true, allow to overwrite already existing output file",
-    ).tag(config=False)
+    ).tag(config=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

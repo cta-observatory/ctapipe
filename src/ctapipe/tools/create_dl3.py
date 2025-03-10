@@ -41,11 +41,6 @@ class DL3Tool(Tool):
         help="How many subarray events to load at once while selecting.",
     ).tag(config=True)
 
-    overwrite = Bool(
-        default_value=False,
-        help="If true, allow to overwrite already existing output file",
-    ).tag(config=True)
-
     optional_dl3_columns = Bool(
         default_value=False, help="If true add optional columns to produce file"
     ).tag(config=True)
@@ -70,10 +65,15 @@ class DL3Tool(Tool):
         "irfs-file": "DL3Tool.irfs_file",
         "output": "DL3Tool.output_file",
         "chunk-size": "DL3Tool.chunk_size",
-        "overwrite": "DL3Tool.overwrite",
     }
 
     flags = {
+        **flag(
+            "overwrite",
+            "DL3_GADF.overwrite",
+            "Will allow to overwrite existing DL3 file",
+            "Prevent overwriting existing DL3 file",
+        ),
         **flag(
             "optional-column",
             "DL3Tool.optional_dl3_columns",
