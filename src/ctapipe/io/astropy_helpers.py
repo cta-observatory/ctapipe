@@ -120,6 +120,7 @@ def write_table(
     append=False,
     overwrite=False,
     mode="a",
+    time_format="ctao_high_res",
     filters=DEFAULT_FILTERS,
 ):
     """Write a table to an HDF5 file
@@ -173,7 +174,7 @@ def write_table(
                 attrs[f"CTAFIELD_{pos}_DESC"] = column.description
 
             if isinstance(column, Time):
-                transform = TimeColumnTransform(scale="tai", format="mjd")
+                transform = TimeColumnTransform(scale="tai", format=time_format)
                 attrs.update(transform.get_meta(pos))
 
                 if copied is False:
