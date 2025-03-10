@@ -1,5 +1,7 @@
+from abc import abstractmethod
 from datetime import datetime
 
+from astropy.coordinates import EarthLocation
 from astropy.io import fits
 from astropy.io.fits.hdu.base import ExtensionHDU
 from astropy.table import QTable
@@ -9,7 +11,12 @@ from ctapipe.core import Component
 from ctapipe.core.traits import Bool
 
 
-class DL3_GADF(Component):
+class DL3_Format(Component):
+    overwrite = Bool(
+        default_value=False,
+        help="If true, allow to overwrite already existing output file",
+    ).tag(config=True)
+
     optional_dl3_columns = Bool(
         default_value=False, help="If true add optional columns to produce file"
     ).tag(config=False)
@@ -24,11 +31,6 @@ class DL3_GADF(Component):
         help="If true will raise error if HDU are missing from the final DL3 file",
     ).tag(config=False)
 
-    overwrite = Bool(
-        default_value=False,
-        help="If true, allow to overwrite already existing output file",
-    ).tag(config=True)
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._events = None
@@ -38,6 +40,86 @@ class DL3_GADF(Component):
         self._psf = None
         self._edisp = None
         self._bkg = None
+        self._location = None
+
+    @abstractmethod
+    def write_file(self, path):
+        pass
+
+    @property
+    def events(self):
+        return self._events
+
+    @events.setter
+    def events(self, events: QTable):
+        if self._events is not None:
+            self.log.warning(
+                "Events table for DL3 file was already set, replacing current event table"
+            )
+        self._events = events
+
+    @property
+    def aeff(self):
+        return self._aeff
+
+    @aeff.setter
+    def aeff(self, aeff: ExtensionHDU):
+        if self._aeff is not None:
+            self.log.warning(
+                "Effective area for DL3 file was already set, replacing current effective area"
+            )
+        self._aeff = aeff
+
+    @property
+    def psf(self):
+        return self._psf
+
+    @psf.setter
+    def psf(self, psf: ExtensionHDU):
+        if self._psf is not None:
+            self.log.warning("PSF for DL3 file was already set, replacing current PSF")
+        self._psf = psf
+
+    @property
+    def edisp(self):
+        return self._edisp
+
+    @edisp.setter
+    def edisp(self, edisp: ExtensionHDU):
+        if self._edisp is not None:
+            self.log.warning(
+                "EDISP for DL3 file was already set, replacing current EDISP"
+            )
+        self._edisp = edisp
+
+    @property
+    def bkg(self):
+        return self._bkg
+
+    @bkg.setter
+    def bkg(self, bkg: ExtensionHDU):
+        if self._bkg is not None:
+            self.log.warning(
+                "Background for DL3 file was already set, replacing current background"
+            )
+        self._bkg = bkg
+
+    @property
+    def location(self):
+        return self._location
+
+    @location.setter
+    def location(self, location: EarthLocation):
+        if self._location is not None:
+            self.log.warning(
+                "Telescope location table for DL3 file was already set, replacing current location"
+            )
+        self._location = location
+
+
+class DL3_GADF(DL3_Format):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def write_file(self, path):
         events = self.transform_events_columns_for_gadf_format(self.events)
@@ -62,46 +144,6 @@ class DL3_GADF(Component):
         hdu_dl3.append(self.bkg)
 
         hdu_dl3.writeto(path, checksum=True, overwrite=self.overwrite)
-
-    @property
-    def events(self):
-        return self._events
-
-    @events.setter
-    def events(self, events: QTable):
-        self._events = events
-
-    @property
-    def aeff(self):
-        return self._aeff
-
-    @aeff.setter
-    def aeff(self, aeff: ExtensionHDU):
-        self._aeff = aeff
-
-    @property
-    def psf(self):
-        return self._psf
-
-    @psf.setter
-    def psf(self, psf: ExtensionHDU):
-        self._psf = psf
-
-    @property
-    def edisp(self):
-        return self._edisp
-
-    @edisp.setter
-    def edisp(self, edisp: ExtensionHDU):
-        self._edisp = edisp
-
-    @property
-    def bkg(self):
-        return self._bkg
-
-    @bkg.setter
-    def bkg(self, bkg: ExtensionHDU):
-        self._bkg = bkg
 
     def get_hdu_header_events(self):
         return {"HDUCLASS": "GADF", "HDUCLAS1": "EVENTS"}
