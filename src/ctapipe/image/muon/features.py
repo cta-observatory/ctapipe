@@ -1,7 +1,10 @@
+from typing import Sequence
+
 import astropy.units as u
 import numpy as np
+from astropy.units import Quantity
 
-from ...utils.quantities import all_to_value
+from ..containers import MuonRingContainer
 
 __all__ = [
     "mean_squared_error",
@@ -11,59 +14,88 @@ __all__ = [
 ]
 
 
-def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
+def mean_squared_error(
+    pixel_fov_lon: Quantity,
+    pixel_fov_lat: Quantity,
+    weights: Quantity | np.ndarray | Sequence[float],
+    ring: MuonRingContainer,
+) -> float:
     """
-    Calculate the weighted mean squared error for a circle
+    Calculate the weighted mean squared error for a circle.
 
     Parameters
     ----------
-    pixel_x: array-like
-        x coordinates of the camera pixels
-    pixel_y: array-like
-        y coordinates of the camera pixels
-    weights: array-like
-        weights for the camera pixels, will usually be the pe charges
-    radius: float
-        radius of the ring
-    center_x: float
-        x coordinate of the ring center
-    center_y: float
-        y coordinate of the ring center
+    pixel_fov_lon : Quantity
+        Longitudes (x-coordinates) of the camera pixels in the TelescopeFrame.
+    pixel_fov_lat : Quantity
+        Latitudes (y-coordinates) of the camera pixels in the TelescopeFrame.
+    weights : Quantity | np.ndarray | Sequence[float]
+        Weights for the camera pixels, usually the photoelectron charges.
+    ring : MuonRingContainer
+        Container with the fitted ring parameters, including center coordinates and radius.
+
+    Returns
+    -------
+    float
+        The weighted mean squared error of the pixels around the fitted ring.
+
+    Notes
+    -----
+    This function calculates the weighted mean squared error of the pixels around
+    the fitted ring by determining the radial distance of each pixel from the ring
+    center and comparing it to the ring radius. The mean squared error is weighted
+    by the pixel intensities.
     """
-    r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
-    return np.average((r - radius) ** 2, weights=weights)
+    r = np.hypot(
+        ring.center_fov_lon - pixel_fov_lon, ring.center_fov_lat - pixel_fov_lat
+    )
+    return np.average((r - ring.radius) ** 2, weights=weights)
 
 
 def intensity_ratio_inside_ring(
-    pixel_x, pixel_y, weights, radius, center_x, center_y, width
-):
+    pixel_fov_lon: Quantity,
+    pixel_fov_lat: Quantity,
+    weights: Quantity | np.ndarray | Sequence[float],
+    ring: MuonRingContainer,
+    width: Quantity,
+) -> float:
     """
     Calculate the ratio of the photons inside a given ring with
-    coordinates (center_x, center_y), radius and width.
+    coordinates (center_fov_lon, center_fov_lat), radius and width.
 
     The ring is assumed to be in [radius - 0.5 * width, radius + 0.5 * width]
 
     Parameters
     ----------
-    pixel_x: array-like
-        x coordinates of the camera pixels
-    pixel_y: array-like
-        y coordinates of the camera pixels
-    weights: array-like
-        weights for the camera pixels, will usually be the pe charges
-    radius: float
-        radius of the ring
-    center_x: float
-        x coordinate of the ring center
-    center_y: float
-        y coordinate of the ring center
-    width: float
-        width of the ring
+    pixel_fov_lon : Quantity
+        Longitudes (x-coordinates) of the camera pixels in the TelescopeFrame.
+    pixel_fov_lat : Quantity
+        Latitudes (y-coordinates) of the camera pixels in the TelescopeFrame.
+    weights : Quantity | np.ndarray | Sequence[float]
+        Weights for the camera pixels, usually the photoelectron charges.
+    ring : MuonRingContainer
+        Container with the fitted ring parameters, including center coordinates and radius.
+    width : Quantity
+        Width of the ring.
+
+    Returns
+    -------
+    float
+        The ratio of the photons inside the ring to the total photons.
+
+    Notes
+    -----
+    This function calculates the ratio of the photons inside a given ring by
+    determining the pixels that fall within the specified ring width and summing
+    their weights. The ratio is the sum of the weights inside the ring divided by
+    the total sum of the weights.
     """
 
-    pixel_r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
+    pixel_r = np.hypot(
+        ring.center_fov_lon - pixel_fov_lon, ring.center_fov_lat - pixel_fov_lat
+    )
     mask = np.logical_and(
-        pixel_r >= radius - 0.5 * width, pixel_r <= radius + 0.5 * width
+        pixel_r >= ring.radius - 0.5 * width, pixel_r <= ring.radius + 0.5 * width
     )
 
     inside = weights[mask].sum()
@@ -73,150 +105,165 @@ def intensity_ratio_inside_ring(
 
 
 def ring_completeness(
-    pixel_x, pixel_y, weights, radius, center_x, center_y, threshold=30, bins=30
-):
+    pixel_fov_lon: Quantity,
+    pixel_fov_lat: Quantity,
+    weights: Quantity | np.ndarray | Sequence[float],
+    ring: MuonRingContainer,
+    threshold: float = 30,
+    bins: int = 30,
+) -> float:
     """
-    Estimate how complete a ring is.
-    Bin the light distribution along the the ring and apply a threshold to the
-    bin content.
+    Estimate how complete a muon ring is by binning the light distribution along the ring
+    and applying a threshold to the bin content.
 
     Parameters
     ----------
-    pixel_x: array-like
-        x coordinates of the camera pixels
-    pixel_y: array-like
-        y coordinates of the camera pixels
-    weights: array-like
-        weights for the camera pixels, will usually be the pe charges
-    radius: float
-        radius of the ring
-    center_x: float
-        x coordinate of the ring center
-    center_y: float
-        y coordinate of the ring center
-    threshold: float
-        number of photons a bin must contain to be counted
-    bins: int
-        number of bins to use for the histogram
+    pixel_fov_lon : Quantity
+        Longitudes (x-coordinates) of the camera pixels in the TelescopeFrame.
+    pixel_fov_lat : Quantity
+        Latitudes (y-coordinates) of the camera pixels in the TelescopeFrame.
+    weights : array-like
+        Weights for the camera pixels, usually the photoelectron charges.
+    ring : MuonRingContainer
+        Container with the fitted ring parameters, including center coordinates and radius.
+    threshold : float, optional
+        Number of photoelectrons a bin must contain to be counted. Default is 30.
+    bins : int, optional
+        Number of bins to use for the histogram. Default is 30.
 
     Returns
     -------
-    ring_completeness: float
-        the ratio of bins above threshold
+    float
+        The ratio of bins above the threshold, representing the completeness of the ring.
+
+    Notes
+    -----
+    This function calculates the completeness of the muon ring by dividing the ring into
+    segments and counting the number of segments that have a light intensity above a given
+    threshold. The completeness is the ratio of the number of segments above the threshold
+    to the total number of segments.
     """
 
-    angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
-    if hasattr(angle, "unit"):
-        angle = angle.to_value(u.rad)
+    if hasattr(weights, "unit"):
+        weights = weights.to_value(u.dimensionless_unscaled)
+    angle = np.arctan2(
+        (pixel_fov_lat - ring.center_fov_lat).to_value(u.rad),
+        (pixel_fov_lon - ring.center_fov_lon).to_value(u.rad),
+    )
 
-    hist, _ = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
+    hist, _ = np.histogram(
+        angle,
+        bins=bins,
+        range=[-np.pi, np.pi],
+        weights=weights,
+    )
 
     bins_above_threshold = hist > threshold
 
     return np.sum(bins_above_threshold) / bins
 
 
-def ring_containment(radius, center_x, center_y, camera_radius):
+def ring_containment(ring: MuonRingContainer, camera_radius: Quantity) -> float:
     """
-    Estimate angular containment of a ring inside the camera
-    (camera center is (0,0))
+    Estimate the angular containment of a muon ring inside the camera's field of view.
 
-    Improve: include the case of an arbitrary
-    center for the camera
-
-    See https://stackoverflow.com/questions/3349125/circle-circle-intersection-points
+    This function calculates the fraction of the muon ring that is contained within
+    the camera's field of view. It uses geometric properties to determine the intersection
+    of the ring with the circular boundary of the camera.
 
     Parameters
     ----------
-    radius: float or quantity
-        radius of the muon ring
-    center_x: float or quantity
-        x coordinate of the center of the muon ring
-    center_y: float or quantity
-        y coordinate of the center of the muon ring
-    camera_radius: float or quantity
-        radius of the camera
+    ring : MuonRingContainer
+        Container with the fitted ring parameters, including center coordinates and radius.
+    camera_radius : `astropy.units.Quantity`
+        Radius of the camera's field of view (in degrees).
 
     Returns
     -------
-    ringcontainment: float
-        the ratio of ring inside the camera
-    """
-    if hasattr(radius, "unit"):
-        radius, center_x, center_y, camera_radius = all_to_value(
-            radius, center_x, center_y, camera_radius, unit=radius.unit
-        )
-    d = np.sqrt(center_x**2 + center_y**2)
+    float
+        The fraction of the ring that is inside the camera's field of view, ranging from 0.0 to 1.0.
 
+    Notes
+    -----
+    The calculation is based on the geometric intersection of two circles:
+    the muon ring and the camera's field of view. The method handles cases where:
+    - The ring is fully contained within the camera.
+    - The ring is partially contained within the camera.
+    - The ring is completely outside the camera.
+
+    References
+    ----------
+    See https://stackoverflow.com/questions/3349125/circle-circle-intersection-points
+    for the geometric approach to circle-circle intersection.
+    """
     # one circle fully contained in the other
-    if d <= np.abs(camera_radius - radius):
+    if ring.center_distance <= np.abs(camera_radius - ring.radius):
         return 1.0
 
     # no intersection
-    if d > (radius + camera_radius):
+    if ring.center_distance > (ring.radius + camera_radius):
         return 0.0
 
-    a = (radius**2 - camera_radius**2 + d**2) / (2 * d)
-    return np.arccos(a / radius) / np.pi
+    a = (ring.radius**2 - camera_radius**2 + ring.center_distance**2) / (
+        2 * ring.center_distance
+    )
+    return np.arccos(a / ring.radius) / np.pi
 
 
 def ring_size_parameters(
-    radius,
-    center_x,
-    center_y,
-    pixel_x,
-    pixel_y,
-    ring_integration_width,
-    outer_ring_width,
-    image,
-    image_mask,
-):
+    ring: MuonRingContainer,
+    pixel_fov_lon: Quantity,
+    pixel_fov_lat: Quantity,
+    ring_integration_width: float,
+    outer_ring_width: float,
+    image: np.ndarray,
+    image_mask: np.ndarray,
+) -> tuple[float, float, int, float]:
     """
     Calculate the parameters related to the size of the ring image.
 
     Parameters
     ----------
-    radius: float
-        radius of the ring
-    center_x: float
-        x coordinate of the ring center
-    center_y: float
-        y coordinate of the ring center
-    pixel_x: array-like
-        x coordinates of the camera pixels
-    pixel_y: array-like
-        y coordinates of the camera pixels
-    ring_integration_width: float
-        Width of the ring in fractions of ring radius
-    outer_ring_width: float
-        Width of the outer ring in fractions of ring radius
-    image: array-like
-        Amplitude of image pixels
-    image_mask: array-like
-        mask of the camera pixels after cleaning
+    ring : MuonRingContainer
+        Container with the fitted ring parameters, including center coordinates and radius.
+    pixel_fov_lon : Quantity
+        Longitudes (x-coordinates) of the camera pixels in the TelescopeFrame.
+    pixel_fov_lat : Quantity
+        Latitudes (y-coordinates) of the camera pixels in the TelescopeFrame.
+    ring_integration_width : float
+        Width of the ring in fractions of ring radius.
+    outer_ring_width : float
+        Width of the outer ring in fractions of ring radius.
+    image : np.ndarray
+        Amplitude of image pixels.
+    image_mask : np.ndarray
+        Mask of the camera pixels after cleaning.
 
     Returns
     -------
-    ring_intensity: float
-        Sum of the p.e. inside the integration area of the ring
-    intensity_outside_ring: float
-        Sum of the p.e. outside the ring integration area that passed the cleaning
-    n_pixels_in_ring: int
-        Number of pixels inside the ring integration area that passed the cleaning
-    mean_intensity_outside_ring: float
+    ring_intensity : float
+        Sum of the p.e. inside the integration area of the ring.
+    intensity_outside_ring : float
+        Sum of the p.e. outside the ring integration area that passed the cleaning.
+    n_pixels_in_ring : int
+        Number of pixels inside the ring integration area that passed the cleaning.
+    mean_intensity_outside_ring : float
         Mean intensity of the pixels outside the integration area of the ring,
         and restricted by the outer ring width, i.e. in the strip between
         ring integration width and outer ring width.
     """
 
-    dist = np.sqrt((pixel_x - center_x) ** 2 + (pixel_y - center_y) ** 2)
-    dist_mask = np.abs(dist - radius) < (radius * ring_integration_width)
+    dist = np.hypot(
+        pixel_fov_lon - ring.center_fov_lon, pixel_fov_lat - ring.center_fov_lat
+    )
+    dist_mask = np.abs(dist - ring.radius) < (ring.radius * ring_integration_width)
     pix_ring = image * dist_mask
     pix_outside_ring = image * ~dist_mask
 
     dist_mask_2 = np.logical_and(
         ~dist_mask,
-        np.abs(dist - radius) < radius * (ring_integration_width + outer_ring_width),
+        np.abs(dist - ring.radius)
+        < ring.radius * (ring_integration_width + outer_ring_width),
     )
     pix_ring_2 = image[dist_mask_2]
 
@@ -233,50 +280,68 @@ def ring_size_parameters(
     )
 
 
-def radial_light_distribution(center_x, center_y, pixel_x, pixel_y, image):
+def radial_light_distribution(
+    center_fov_lon, center_fov_lat, pixel_fov_lon, pixel_fov_lat, image
+):
     """
     Calculate the radial distribution of the muon ring.
 
     Parameters
     ----------
-    center_x : float
-        x coordinate of the ring center.
-    center_y : float
-        y coordinate of the ring center.
-    pixel_x : array-like
-        x coordinates of the camera pixels.
-    pixel_y : array-like
-        y coordinates of the camera pixels.
-        Amplitude of image pixels.
+    center_fov_lon : float
+        Longitude of the ring center in the TelescopeFrame (in degrees).
+    center_fov_lat : float
+        Latitude of the ring center in the TelescopeFrame (in degrees).
+    pixel_fov_lon : array-like
+        Longitudes (x-coordinates) of the camera pixels in the TelescopeFrame (in degrees).
+    pixel_fov_lat : array-like
+        Latitudes (y-coordinates) of the camera pixels in the TelescopeFrame (in degrees).
+    image : array-like
+        Amplitudes of image pixels.
 
     Returns
     -------
     standard_dev : `astropy.units.Quantity`
         Standard deviation of the light distribution in degrees.
         Spread of pixel intensities around the mean radial distance from the ring center.
-
-    skewness : float
-        Skewness of the radial light distribution.
+    skewness : `astropy.units.Quantity`
+        Skewness of the radial light distribution (dimensionless).
         Measures the asymmetry of the distribution around the mean radius.
-
-    excess_kurtosis : float
-        Excess kurtosis of the radial light distribution.
+    excess_kurtosis : `astropy.units.Quantity`
+        Excess kurtosis of the radial light distribution (dimensionless).
         Indicates the "tailedness" of the distribution compared to a normal distribution.
+
+    Notes
+    -----
+    This function calculates the statistical properties of the radial distribution
+    of light in an image with respect to the reconstructed muon ring center. It computes
+    the standard deviation, skewness, and excess kurtosis of the radial distances of the pixels
+    from the center of the ring, weighted by the pixel intensities.
     """
 
     if np.sum(image) == 0:
-        return np.nan * u.deg, np.nan, np.nan
+        return (
+            np.nan * u.deg,
+            np.nan * u.dimensionless_unscaled,
+            np.nan * u.dimensionless_unscaled,
+        )
 
-    pixel_r = np.hypot(pixel_x - center_x, pixel_y - center_y)
+    pixel_r = np.hypot(pixel_fov_lon - center_fov_lon, pixel_fov_lat - center_fov_lat)
 
     mean = np.average(pixel_r, weights=image)
     delta_r = pixel_r - mean
     standard_dev = np.sqrt(np.average(delta_r**2, weights=image))
-    skewness = np.average(delta_r**3, weights=image) / standard_dev**3
-    excess_kurtosis = np.average(delta_r**4, weights=image) / standard_dev**4 - 3.0
+    skewness = (
+        np.average(delta_r**3, weights=image)
+        / standard_dev**3
+        * u.dimensionless_unscaled
+    )
+    excess_kurtosis = (
+        np.average(delta_r**4, weights=image) / standard_dev**4 - 3.0
+    ) * u.dimensionless_unscaled
 
     return (
         standard_dev,
-        skewness.to_value(u.dimensionless_unscaled),
-        excess_kurtosis.to_value(u.dimensionless_unscaled),
+        skewness,
+        excess_kurtosis,
     )

@@ -1,6 +1,7 @@
 """
 High level muon analysis  (MuonProcessor Component)
 """
+
 import numpy as np
 
 from ctapipe.containers import (
@@ -252,17 +253,13 @@ class MuonProcessor(TelescopeComponent):
         fov_lat = geometry.pix_y
 
         # add ring containment, not filled in fit
-        containment = ring_containment(
-            ring.radius, ring.center_fov_lon, ring.center_fov_lat, fov_radius
-        )
+        containment = ring_containment(ring, fov_radius)
 
         completeness = ring_completeness(
             fov_lon,
             fov_lat,
             image,
-            ring.radius,
-            ring.center_fov_lon,
-            ring.center_fov_lat,
+            ring,
             threshold=self.completeness_threshold.tel[tel_id],
         )
 
@@ -271,9 +268,7 @@ class MuonProcessor(TelescopeComponent):
             fov_lon[clean_mask],
             fov_lat[clean_mask],
             image[clean_mask],
-            ring.radius,
-            ring.center_fov_lon,
-            ring.center_fov_lat,
+            ring,
             width=self.ratio_width.tel[tel_id] * pixel_width,
         )
 
@@ -292,9 +287,7 @@ class MuonProcessor(TelescopeComponent):
             n_pixels_in_ring,
             mean_intensity_outside_ring,
         ) = ring_size_parameters(
-            ring.radius,
-            ring.center_fov_lon,
-            ring.center_fov_lat,
+            ring,
             fov_lon,
             fov_lat,
             self.ring_integration_width.tel[tel_id],

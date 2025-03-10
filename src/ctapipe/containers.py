@@ -1159,7 +1159,7 @@ class MuonRingContainer(Container):
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
     )
     center_distance = Field(
-        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
+        nan * u.deg, "Distance from the ring center to camera center", unit=u.deg
     )
 
 
