@@ -301,7 +301,7 @@ def radial_light_distribution(
 
     Returns
     -------
-    standard_dev : `astropy.units.Quantity`
+    radial_std_dev : `astropy.units.Quantity`
         Standard deviation of the light distribution in degrees.
         Spread of pixel intensities around the mean radial distance from the ring center.
     skewness : `astropy.units.Quantity`
@@ -330,18 +330,18 @@ def radial_light_distribution(
 
     mean = np.average(pixel_r, weights=image)
     delta_r = pixel_r - mean
-    standard_dev = np.sqrt(np.average(delta_r**2, weights=image))
+    radial_std_dev = np.sqrt(np.average(delta_r**2, weights=image))
     skewness = (
         np.average(delta_r**3, weights=image)
-        / standard_dev**3
+        / radial_std_dev**3
         * u.dimensionless_unscaled
     )
     excess_kurtosis = (
-        np.average(delta_r**4, weights=image) / standard_dev**4 - 3.0
+        np.average(delta_r**4, weights=image) / radial_std_dev**4 - 3.0
     ) * u.dimensionless_unscaled
 
     return (
-        standard_dev,
+        radial_std_dev,
         skewness,
         excess_kurtosis,
     )

@@ -296,7 +296,7 @@ class MuonProcessor(TelescopeComponent):
             clean_mask,
         )
 
-        standard_dev, skewness, excess_kurtosis = radial_light_distribution(
+        radial_std_dev, skewness, excess_kurtosis = radial_light_distribution(
             ring.center_fov_lon,
             ring.center_fov_lat,
             fov_lon,
@@ -313,7 +313,7 @@ class MuonProcessor(TelescopeComponent):
             intensity_outside_ring=intensity_outside_ring,
             n_pixels_in_ring=n_pixels_in_ring,
             mean_intensity_outside_ring=mean_intensity_outside_ring,
-            standard_dev=standard_dev,
+            radial_std_dev=radial_std_dev,
             skewness=skewness,
             excess_kurtosis=excess_kurtosis,
         )
