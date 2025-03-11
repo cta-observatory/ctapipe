@@ -1,7 +1,7 @@
 """Module containing classes related to event loading and preprocessing"""
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import Any, Dict
 
 import astropy.units as u
 import numpy as np
@@ -526,32 +526,31 @@ class EventLoader(Component):
             table = vstack(bits, join_type="exact", metadata_conflicts="silent")
             return table
 
-    def get_observation_information(
-        self,
-    ) -> Tuple[EarthLocation, List[Tuple[Time, Time]]]:
+    def get_observation_information(self) -> Dict[str, Any]:
         with TableLoader(self.file, parent=self, **self.opts_loader) as load:
-            array_location = load.subarray.reference_location
+            # Extract telescope location
+            meta = {}
+            meta["location"] = load.subarray.reference_location
 
-            # TODO : proper retrieval of gti information
-            start_time = None
-            stop_time = None
-            for _, _, events in load.read_subarray_events_chunked(
-                10000, **self.opts_loader
-            ):
-                start_time = (
-                    Time(np.min(events["time"]))
-                    if start_time is None
-                    else min(start_time, Time(np.min(events["time"])))
-                )
-                stop_time = (
-                    Time(np.max(events["time"]))
-                    if stop_time is None
-                    else max(stop_time, Time(np.max(events["time"])))
-                )
+            obs_info_table = load.read_observation_information()
+            if len(obs_info_table) == 0:
+                self.log.error("No observation information available in the DL2 file")
+                raise ValueError("Missing observation information in the DL2 file")
 
-        return array_location, [
-            (start_time, stop_time),
-        ]
+            if len(np.unique(obs_info_table["obs_id"])):
+                self.log.warning(
+                    "Multiple observations included in the DL2 file, only the id of the first observation will be reported in the DL3 file, data from all observations will be included"
+                )
+                meta["obs_id"] = np.unique(obs_info_table["obs_id"])[0]
+
+            # Extract GTI
+            list_gti = []
+            for i in range(len(obs_info_table)):
+                start_time = obs_info_table["actual_start_time"][i]
+                stop_time = start_time + obs_info_table["actual_duration"][i]
+                list_gti.append((start_time, stop_time))
+
+        return meta
 
     def get_simulation_information(
         self, obs_time: u.Quantity
