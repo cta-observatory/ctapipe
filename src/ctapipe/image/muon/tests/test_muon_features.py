@@ -8,7 +8,7 @@ from ctapipe.image.muon.features import (
     radial_light_distribution,
     ring_completeness,
     ring_containment,
-    ring_size_parameters,
+    ring_intensity_parameters,
 )
 
 
@@ -64,7 +64,7 @@ def test_ring_completeness():
     assert 0.4 <= ring_comp_partial <= 0.6
 
 
-def test_ring_size_parameters():
+def test_ring_intensity_parameters():
     ring = MuonRingContainer(
         radius=1 * u.deg,
         center_fov_lon=0 * u.deg,
@@ -101,7 +101,7 @@ def test_ring_size_parameters():
         intensity_outside_ring,
         n_pixels_in_ring,
         mean_intensity_outside_ring,
-    ) = ring_size_parameters(
+    ) = ring_intensity_parameters(
         ring,
         pixel_fov_lon,
         pixel_fov_lat,

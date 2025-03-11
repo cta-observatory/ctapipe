@@ -19,7 +19,7 @@ from .features import (
     radial_light_distribution,
     ring_completeness,
     ring_containment,
-    ring_size_parameters,
+    ring_intensity_parameters,
 )
 from .intensity_fitter import MuonIntensityFitter
 from .ring_fitter import MuonRingFitter
@@ -284,7 +284,7 @@ class MuonProcessor(TelescopeComponent):
             intensity_outside_ring,
             n_pixels_in_ring,
             mean_intensity_outside_ring,
-        ) = ring_size_parameters(
+        ) = ring_intensity_parameters(
             ring,
             fov_lon,
             fov_lat,

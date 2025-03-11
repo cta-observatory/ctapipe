@@ -11,7 +11,7 @@ __all__ = [
     "intensity_ratio_inside_ring",
     "ring_completeness",
     "ring_containment",
-    "ring_size_parameters",
+    "ring_intensity_parameters",
     "radial_light_distribution",
 ]
 
@@ -212,7 +212,7 @@ def ring_containment(ring: MuonRingContainer, camera_radius: Quantity) -> float:
     return np.arccos((a / ring.radius).to_value(u.dimensionless_unscaled)) / np.pi
 
 
-def ring_size_parameters(
+def ring_intensity_parameters(
     ring: MuonRingContainer,
     pixel_fov_lon: Quantity,
     pixel_fov_lat: Quantity,
