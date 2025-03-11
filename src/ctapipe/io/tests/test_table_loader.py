@@ -369,6 +369,21 @@ def test_read_shower_distributions(dl2_merged_file):
         assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
 
 
+def test_read_scheduling_blocks(dl2_merged_file):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl2_merged_file) as table_loader:
+        scheduling = table_loader.read_scheduling_blocks()
+        assert len(scheduling) == 2
+        np.testing.assert_array_equal(scheduling["sb_id"], [4, 1])
+        np.testing.assert_array_equal(scheduling["sb_type"], [0, 0])
+        np.testing.assert_array_equal(
+            scheduling["producer_id"], ["simulation", "simulation"]
+        )
+        np.testing.assert_array_equal(scheduling["observing_mode"], [-1, -1])
+        np.testing.assert_array_equal(scheduling["pointing_mode"], [1, 1])
+
+
 def test_read_unavailable_telescope(dl2_shower_geometry_file):
     """Reading a telescope that is not part of the subarray of the file should fail."""
     from ctapipe.io import TableLoader
