@@ -2,15 +2,18 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import List, Tuple
 
+import astropy.units as u
 from astropy.coordinates import EarthLocation
 from astropy.io import fits
+from astropy.io.fits import Header
 from astropy.io.fits.hdu.base import ExtensionHDU
 from astropy.table import QTable
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 
 from ctapipe.compat import COPY_IF_NEEDED
 from ctapipe.core import Component
 from ctapipe.core.traits import Bool
+from ctapipe.version import version as ctapipe_version
 
 
 class DL3_Format(Component):
@@ -132,22 +135,21 @@ class DL3_Format(Component):
 class DL3_GADF(DL3_Format):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
 
     def write_file(self, path):
+        self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
+
         events = self.transform_events_columns_for_gadf_format(self.events)
 
         hdu_dl3 = fits.HDUList(
-            [
-                fits.PrimaryHDU(
-                    header={"CREATED": datetime.now(tz=datetime.UTC).isoformat()}
-                )
-            ]
+            [fits.PrimaryHDU(header=Header(self.get_hdu_header_base_format()))]
         )
         hdu_dl3.append(
             fits.BinTableHDU(
                 data=events,
                 name="EVENTS",
-                header=self.get_hdu_header_events(),
+                header=Header(self.get_hdu_header_events()),
             )
         )
         hdu_dl3.append(self.aeff)
@@ -157,8 +159,63 @@ class DL3_GADF(DL3_Format):
 
         hdu_dl3.writeto(path, checksum=True, overwrite=self.overwrite)
 
+    def get_hdu_header_base_format(self):
+        return {
+            "HDUCLASS": "GADF",
+            "HDUVERS": "v0.3",
+            "HDUDOC": "https://gamma-astro-data-formats.readthedocs.io/en/v0.3/index.html",
+            "CREATOR": "ctapipe " + ctapipe_version,
+            "CREATED": self.file_creation_time,
+        }
+
+    def get_hdu_header_base_time(self):
+        if self._gti is None:
+            raise ValueError("No available time information for the DL3 file")
+        start_time = None
+        stop_time = None
+        ontime = TimeDelta(0.0 * u.s)
+        for gti_interval in self._gti:
+            ontime += gti_interval[1] - gti_interval[0]
+            start_time = (
+                gti_interval[0]
+                if start_time is None
+                else min(start_time, gti_interval[0])
+            )
+            stop_time = (
+                gti_interval[1]
+                if stop_time is None
+                else max(stop_time, gti_interval[1])
+            )
+
+        reference_time = Time(datetime.fromisoformat("1970-01-01T00:00:00+00:00"))
+
+        return {
+            "MJDREFI": int(reference_time.mjd),
+            "MJDREFF": reference_time.mjd % 1,
+            "TIMEUNIT": "s",
+            "TIMEREF": "GEOCENTER",
+            "TIMESYS": "UTC",
+            "TSTART": start_time,
+            "TSTOP": stop_time,
+            "ONTIME": ontime.to_value(u.s),
+            "TELAPSE": (stop_time - start_time).to_value(u.s),
+            "DATE-OBS": start_time.fits,
+            "DATE-BEG": start_time.fits,
+            "DATE-AVG": (start_time + (stop_time - start_time) / 2.0).fits,
+            "DATE-END": stop_time.fits,
+        }
+
     def get_hdu_header_events(self):
-        return {"HDUCLASS": "GADF", "HDUCLAS1": "EVENTS"}
+        header = self.get_hdu_header_base_format()
+        header.update({"HDUCLAS1": "EVENTS"})
+        header.update(self.get_hdu_header_base_time())
+        return header
+
+    def get_hdu_header_gti(self):
+        header = self.get_hdu_header_base_format()
+        header.update({"HDUCLAS1": "GTI"})
+        header.update(self.get_hdu_header_base_time())
+        return header
 
     def transform_events_columns_for_gadf_format(self, events):
         rename_from = ["event_id", "time", "reco_ra", "reco_dec", "reco_energy"]
