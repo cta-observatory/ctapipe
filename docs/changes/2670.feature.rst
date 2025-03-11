@@ -1,4 +1,7 @@
-Add new fields to the MuonParametersContainer and refactor the code using the existing containers.
+Add new fields to the MuonParametersContainer.
+
+Implement the computation of the new features listed below
+and refactor the code using the existing containers.
 
 Added fields:
 - ring_intensity
