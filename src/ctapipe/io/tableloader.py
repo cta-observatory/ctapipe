@@ -364,7 +364,7 @@ class TableLoader(Component):
         """
         return read_table(self.h5file, OBSERVATION_TABLE)
 
-    def read_scheduling_information(self):
+    def read_scheduling_blocks(self):
         """
         Read the scheduling information
         """

@@ -369,11 +369,11 @@ def test_read_shower_distributions(dl2_merged_file):
         assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
 
 
-def test_read_scheduling_information(dl2_merged_file):
+def test_read_scheduling_blocks(dl2_merged_file):
     from ctapipe.io import TableLoader
 
     with TableLoader(dl2_merged_file) as table_loader:
-        scheduling = table_loader.read_scheduling_information()
+        scheduling = table_loader.read_scheduling_blocks()
         assert len(scheduling) == 2
         assert np.all(scheduling["sb_id"] == [4, 1])
         assert np.all(scheduling["sb_type"] == [0, 0])
