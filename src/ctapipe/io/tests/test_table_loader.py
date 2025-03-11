@@ -375,11 +375,13 @@ def test_read_scheduling_blocks(dl2_merged_file):
     with TableLoader(dl2_merged_file) as table_loader:
         scheduling = table_loader.read_scheduling_blocks()
         assert len(scheduling) == 2
-        assert np.all(scheduling["sb_id"] == [4, 1])
-        assert np.all(scheduling["sb_type"] == [0, 0])
-        assert np.all(scheduling["producer_id"] == ["simulation", "simulation"])
-        assert np.all(scheduling["observing_mode"] == [-1, -1])
-        assert np.all(scheduling["pointing_mode"] == [1, 1])
+        np.testing.assert_array_equal(scheduling["sb_id"], [4, 1])
+        np.testing.assert_array_equal(scheduling["sb_type"], [0, 0])
+        np.testing.assert_array_equal(
+            scheduling["producer_id"], ["simulation", "simulation"]
+        )
+        np.testing.assert_array_equal(scheduling["observing_mode"], [-1, -1])
+        np.testing.assert_array_equal(scheduling["pointing_mode"], [1, 1])
 
 
 def test_read_unavailable_telescope(dl2_shower_geometry_file):
