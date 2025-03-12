@@ -29,6 +29,7 @@ TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
+SCHEDULING_TABLE = "/configuration/observation/scheduling_block"
 FIXED_POINTING_GROUP = "/configuration/telescope/pointing"
 POINTING_GROUP = "/dl0/monitoring/telescope/pointing"
 
@@ -362,6 +363,12 @@ class TableLoader(Component):
         Read the observation information
         """
         return read_table(self.h5file, OBSERVATION_TABLE)
+
+    def read_scheduling_blocks(self):
+        """
+        Read the scheduling information
+        """
+        return read_table(self.h5file, SCHEDULING_TABLE)
 
     def _join_observation_info(self, table):
         obs_table = self.read_observation_information()
