@@ -28,16 +28,18 @@ def mono_table():
     """
     return Table(
         {
-            "obs_id": [1, 1, 1, 1, 1, 2],
-            "event_id": [1, 1, 1, 2, 2, 1],
-            "tel_id": [1, 2, 3, 5, 7, 1],
-            "hillas_intensity": [1, 2, 0, 1, 5, 9],
-            "hillas_width": [0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg,
-            "hillas_length": 3 * ([0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg),
-            "hillas_fov_lon": [-0.5, 0, 0.5, -1, 1, 1.5] * u.deg,
-            "hillas_fov_lat": [0.3, -0.3, 0.3, 0.5, 0.5, 0.2] * u.deg,
-            "hillas_psi": [40, 85, -40, -35, 35, 55] * u.deg,
-            "dummy_tel_energy": [1, 10, 4, 0.5, 0.7, 1] * u.TeV,
+            "obs_id": [1, 1, 1, 1, 1, 2, 2, 2, 2, 2],
+            "event_id": [1, 1, 1, 2, 2, 1, 2, 2, 2, 2],
+            "tel_id": [1, 2, 3, 5, 7, 1, 1, 3, 4, 5],
+            "hillas_intensity": [1, 2, 0, 1, 5, 9, 1, 2, 1, 2],
+            "hillas_width": [0.1, 0.2, 0.1, 0.1, 0.2, 0.1, 0.1, 0.2, 0.1, 0.2] * u.deg,
+            "hillas_length": 3
+            * ([0.1, 0.2, 0.1, 0.1, 0.2, 0.1, 0.1, 0.2, 0.1, 0.2] * u.deg),
+            "hillas_fov_lon": [-0.5, 0, 0.5, -1, 1, 1.5, -0.5, 0, 0.5, -1] * u.deg,
+            "hillas_fov_lat": [0.3, -0.3, 0.3, 0.5, 0.5, 0.2, 0.3, -0.3, 0.3, 0.5]
+            * u.deg,
+            "hillas_psi": [40, 85, -40, -35, 35, 55, 40, 85, -40, -35] * u.deg,
+            "dummy_tel_energy": [1, 10, 4, 0.5, 0.7, 1, 1, 9, 4, 0.5] * u.TeV,
             "dummy_tel_is_valid": [
                 True,
                 True,
@@ -45,8 +47,12 @@ def mono_table():
                 True,
                 False,
                 False,
+                True,
+                True,
+                True,
+                True,
             ],
-            "classifier_tel_prediction": [1, 0, 0.5, 0, 0.6, 1],
+            "classifier_tel_prediction": [1, 0, 0.5, 0, 0.6, 1, 1, 0, 0.5, 0],
             "classifier_tel_is_valid": [
                 True,
                 True,
@@ -54,9 +60,13 @@ def mono_table():
                 True,
                 True,
                 True,
+                True,
+                True,
+                True,
+                True,
             ],
-            "disp_tel_alt": [58.5, 58, 62.5, 72, 74.5, 81] * u.deg,
-            "disp_tel_az": [12.5, 15, 13, 21, 20, 14.5] * u.deg,
+            "disp_tel_alt": [58.5, 58, 62.5, 72, 74.5, 81, 58.5, 58, 62.5, 72] * u.deg,
+            "disp_tel_az": [12.5, 15, 13, 21, 20, 14.5, 12.5, 15, 13, 21] * u.deg,
             "disp_tel_is_valid": [
                 True,
                 False,
@@ -64,8 +74,13 @@ def mono_table():
                 True,
                 True,
                 True,
+                True,
+                True,
+                True,
+                True,
             ],
-            "disp_tel_parameter": [0.65, 1.1, 0.7, 0.9, 1, 0.5] * u.deg,
+            "disp_tel_parameter": [0.65, 1.1, 0.7, 0.9, 1, 0.5, 0.65, 1.1, 0.7, 0.9]
+            * u.deg,
         }
     )
 
@@ -87,25 +102,26 @@ def test_predict_mean_energy(weights, mono_table):
         "dummy_goodness_of_fit",
         "dummy_telescopes",
     ]
-    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
-    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
+    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2, 2]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     if weights == "intensity":
-        assert_array_equal(stereo["dummy_energy"], [7, 0.5, np.nan] * u.TeV)
+        assert_array_equal(stereo["dummy_energy"], [7, 0.5, np.nan, 4] * u.TeV)
         assert_allclose(
             stereo["dummy_energy_uncert"].quantity,
-            [4.242641, 0, np.nan] * u.TeV,
+            [4.242641, 0, np.nan, 3.7305049] * u.TeV,
             atol=1e-7,
         )
     elif weights == "none":
-        assert_array_equal(stereo["dummy_energy"], [5, 0.5, np.nan] * u.TeV)
+        assert_array_equal(stereo["dummy_energy"], [5, 0.5, np.nan, 3.625] * u.TeV)
         assert_allclose(
             stereo["dummy_energy_uncert"].quantity,
-            [3.741657, 0, np.nan] * u.TeV,
+            [3.741657, 0, np.nan, 3.3796265] * u.TeV,
             atol=1e-7,
         )
 
     assert_array_equal(stereo["dummy_telescopes"][0], np.array([1, 2, 3]))
     assert_array_equal(stereo["dummy_telescopes"][1], 5)
+    assert_array_equal(stereo["dummy_telescopes"][3], np.array([1, 3, 4, 5]))
 
 
 def test_predict_mean_classification(mono_table):
@@ -122,16 +138,17 @@ def test_predict_mean_classification(mono_table):
         "classifier_goodness_of_fit",
         "classifier_telescopes",
     ]
-    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
-    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
+    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2, 2]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     assert_array_equal(
         stereo["classifier_prediction"],
-        [0.5, 0.3, 1],
+        [0.5, 0.3, 1, 0.375],
     )
     tel_ids = stereo["classifier_telescopes"]
     assert_array_equal(tel_ids[0], [1, 2])
     assert_array_equal(tel_ids[1], [5, 7])
     assert_array_equal(tel_ids[2], [1])
+    assert_array_equal(tel_ids[3], [1, 3, 4, 5])
 
 
 def test_predict_mean_disp(mono_table):
@@ -149,22 +166,23 @@ def test_predict_mean_disp(mono_table):
     assert "obs_id" in stereo.colnames
     assert "event_id" in stereo.colnames
 
-    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
-    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
+    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2, 2]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     assert_allclose(
         stereo["disp_alt"].quantity,
-        [60.5002328, 73.2505989, 81] * u.deg,
+        [60.5002328, 73.2505989, 81, 62.773741] * u.deg,
         atol=1e-7,
     )
     assert_allclose(
         stereo["disp_az"].quantity,
-        [12.7345693, 20.5362510, 14.5] * u.deg,
+        [12.7345693, 20.5362510, 14.5, 14.792156] * u.deg,
         atol=1e-7,
     )
     tel_ids = stereo["disp_telescopes"]
     assert_array_equal(tel_ids[0], [1, 3])
     assert_array_equal(tel_ids[1], [5, 7])
     assert_array_equal(tel_ids[2], [1])
+    assert_array_equal(tel_ids[3], [1, 3, 4, 5])
 
 
 @pytest.mark.parametrize("weights", ["aspect-weighted-intensity", "intensity", "none"])
@@ -261,13 +279,12 @@ def test_reconstructed_container_warning():
         container.classification = ParticleClassificationContainer()
 
 
-@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
-def test_predict_disp_combiner(weights, mono_table):
-    combine = StereoDispCombiner(
+def test_predict_disp_combiner(mono_table):
+    disp_combiner = StereoDispCombiner(
         prefix="disp",
         property=ReconstructionProperty.GEOMETRY,
     )
-    stereo = combine.predict_table(mono_table)
+    stereo = disp_combiner.predict_table(mono_table)
 
     for name, field in ReconstructedGeometryContainer.fields.items():
         colname = f"disp_{name}"
@@ -277,8 +294,8 @@ def test_predict_disp_combiner(weights, mono_table):
     assert "obs_id" in stereo.colnames
     assert "event_id" in stereo.colnames
 
-    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
-    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
+    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2, 2]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     assert_allclose(
         stereo["disp_alt"].quantity,
         [60.5002328, 73.2505989, 81] * u.deg,
@@ -347,9 +364,9 @@ def test_disp_combiner_single_event(weights):
         weights=weights,
     )
     disp_combiner(event)
-    # if weights == "none":
-    #    assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 63.0738383 * u.deg)
-    #    assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 348.0716693 * u.deg)
-    # elif weights == "intensity":
-    #    assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 60.9748605 * u.deg)
-    #    assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 316.0365515 * u.deg)
+    if weights in ["intensity", "konrad"]:
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 70.76691618 * u.deg)
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.1487853 * u.deg)
+    elif weights == "none":
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].alt, 70.75451665 * u.deg)
+        assert u.isclose(event.dl2.stereo.geometry["dummy"].az, 0.05821327 * u.deg)
