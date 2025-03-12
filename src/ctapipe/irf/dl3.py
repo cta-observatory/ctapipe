@@ -285,54 +285,55 @@ class DL3_GADF(DL3_Format):
         rename_from = ["event_id", "time", "reco_ra", "reco_dec", "reco_energy"]
         rename_to = ["EVENT_ID", "TIME", "RA", "DEC", "ENERGY"]
 
-        rename_from_optional = [
-            "multiplicity",
-            "reco_glon",
-            "reco_glat",
-            "reco_alt",
-            "reco_az",
-            "reco_fov_lon",
-            "reco_fov_lat",
-            "reco_source_fov_offset",
-            "reco_source_fov_position_angle",
-            "gh_score",
-            "reco_dir_uncert",
-            "reco_energy_uncert",
-            "reco_core_x",
-            "reco_core_y",
-            "reco_core_uncert",
-            "reco_h_max",
-            "reco_h_max_uncert",
-        ]
-        rename_to_optional = [
-            "MULTIP",
-            "GLON",
-            "GLAT",
-            "ALT",
-            "AZ",
-            "DETX",
-            "DETY",
-            "THETA",
-            "PHI",
-            "GAMANESS",
-            "DIR_ERR",
-            "ENERGY_ERR",
-            "COREX",
-            "COREY",
-            "CORE_ERR",
-            "HMAX",
-            "HMAX_ERR",
-        ]
+        if self.optional_dl3_columns:
+            rename_from_optional = [
+                "multiplicity",
+                "reco_glon",
+                "reco_glat",
+                "reco_alt",
+                "reco_az",
+                "reco_fov_lon",
+                "reco_fov_lat",
+                "reco_source_fov_offset",
+                "reco_source_fov_position_angle",
+                "gh_score",
+                "reco_dir_uncert",
+                "reco_energy_uncert",
+                "reco_core_x",
+                "reco_core_y",
+                "reco_core_uncert",
+                "reco_h_max",
+                "reco_h_max_uncert",
+            ]
+            rename_to_optional = [
+                "MULTIP",
+                "GLON",
+                "GLAT",
+                "ALT",
+                "AZ",
+                "DETX",
+                "DETY",
+                "THETA",
+                "PHI",
+                "GAMANESS",
+                "DIR_ERR",
+                "ENERGY_ERR",
+                "COREX",
+                "COREY",
+                "CORE_ERR",
+                "HMAX",
+                "HMAX_ERR",
+            ]
 
-        if not self.raise_error_for_optional:
-            for i, c in enumerate(rename_from_optional):
-                if c not in events.colnames:
-                    self.log.warning(
-                        f"Optional column {c} is missing from the events table."
-                    )
-                else:
-                    rename_from.append(rename_from_optional[i])
-                    rename_to.append(rename_to_optional[i])
+            if not self.raise_error_for_optional:
+                for i, c in enumerate(rename_from_optional):
+                    if c not in events.colnames:
+                        self.log.warning(
+                            f"Optional column {c} is missing from the events table."
+                        )
+                    else:
+                        rename_from.append(rename_from_optional[i])
+                        rename_to.append(rename_to_optional[i])
 
         for c in rename_from:
             if c not in events.colnames:
