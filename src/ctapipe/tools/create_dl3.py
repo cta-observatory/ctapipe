@@ -114,6 +114,7 @@ class DL3Tool(Tool):
         meta = self.event_loader.get_observation_information()
         self.dl3_format.pointing = meta["pointing"]
         self.dl3_format.gti = meta["gti"]
+        self.dl3_format.dead_time_fraction = meta["dead_time_fraction"]
 
         self.dl3_format.location = meta["location"]
         self.dl3_format.telescope_information = meta["telescope_information"]

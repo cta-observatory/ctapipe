@@ -45,6 +45,7 @@ class DL3_Format(Component):
         self._psf = None
         self._edisp = None
         self._bkg = None
+        self._dead_time_fraction = None
         self._location = None
         self._telescope_information = None
         self._target_information = None
@@ -145,6 +146,18 @@ class DL3_Format(Component):
                 "Telescope location for DL3 file was already set, replacing current location"
             )
         self._location = location
+
+    @property
+    def dead_time_fraction(self) -> float:
+        return self._dead_time_fraction
+
+    @dead_time_fraction.setter
+    def dead_time_fraction(self, dead_time_fraction: float):
+        if self.dead_time_fraction is not None:
+            self.log.warning(
+                "Dead time fraction for DL3 file was already set, replacing current dead time fraction"
+            )
+        self._dead_time_fraction = dead_time_fraction
 
     @property
     def telescope_information(self) -> Dict[str, Any]:

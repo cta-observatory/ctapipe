@@ -569,6 +569,12 @@ class EventLoader(Component):
                 list_gti.append((start_time, stop_time))
             meta["gti"] = list_gti
 
+            # Dead time fraction
+            self.log.warning(
+                "Dead time fraction is not read from the file, a default value of 1 is used"
+            )
+            meta["dead_time_fraction"] = 1.0
+
             # Extract pointing information
             if len(np.unique(obs_all_info_table["pointing_mode"])) != 1:
                 self.log.error("Multiple pointing mode are not supported")
