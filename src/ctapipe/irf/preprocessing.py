@@ -648,7 +648,7 @@ class EventLoader(Component):
             )
             meta["target"] = {
                 "observer": "UNKNOWN",
-                "object": "UNKNOWN",
+                "object_name": "UNKNOWN",
                 "object_coordinate": ICRS(np.nan * u.deg, np.nan * u.deg),
             }
 

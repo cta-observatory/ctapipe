@@ -112,6 +112,7 @@ class DL3Tool(Tool):
             self.chunk_size
         )
         meta = self.event_loader.get_observation_information()
+        self.dl3_format.obs_id = meta["obs_id"]
         self.dl3_format.pointing = meta["pointing"]
         self.dl3_format.gti = meta["gti"]
         self.dl3_format.dead_time_fraction = meta["dead_time_fraction"]

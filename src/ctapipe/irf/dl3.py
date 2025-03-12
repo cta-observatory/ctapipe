@@ -3,7 +3,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 import astropy.units as u
-from astropy.coordinates import EarthLocation, SkyCoord
+import numpy as np
+from astropy.coordinates import ICRS, EarthLocation, SkyCoord
 from astropy.io import fits
 from astropy.io.fits import Header
 from astropy.io.fits.hdu.base import ExtensionHDU
@@ -38,6 +39,7 @@ class DL3_Format(Component):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._obs_id = None
         self._events = None
         self._pointing = None
         self._gti = None
@@ -54,6 +56,18 @@ class DL3_Format(Component):
     @abstractmethod
     def write_file(self, path):
         pass
+
+    @property
+    def obs_id(self) -> int:
+        return self._obs_id
+
+    @obs_id.setter
+    def obs_id(self, obs_id: int):
+        if self._obs_id is not None:
+            self.log.warning(
+                "Obs id for DL3 file was already set, replacing current obs id"
+            )
+        self._obs_id = obs_id
 
     @property
     def events(self) -> QTable:
@@ -204,14 +218,12 @@ class DL3_GADF(DL3_Format):
     def write_file(self, path):
         self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
 
-        events = self.transform_events_columns_for_gadf_format(self.events)
-
         hdu_dl3 = fits.HDUList(
             [fits.PrimaryHDU(header=Header(self.get_hdu_header_base_format()))]
         )
         hdu_dl3.append(
             fits.BinTableHDU(
-                data=events,
+                data=self.transform_events_columns_for_gadf_format(self.events),
                 name="EVENTS",
                 header=Header(self.get_hdu_header_events()),
             )
@@ -233,12 +245,14 @@ class DL3_GADF(DL3_Format):
         }
 
     def get_hdu_header_base_time(self):
-        if self._gti is None:
+        if self.gti is None:
             raise ValueError("No available time information for the DL3 file")
+        if self.dead_time_fraction is None:
+            raise ValueError("No available dead time fraction for the DL3 file")
         start_time = None
         stop_time = None
         ontime = TimeDelta(0.0 * u.s)
-        for gti_interval in self._gti:
+        for gti_interval in self.gti:
             ontime += gti_interval[1] - gti_interval[0]
             start_time = (
                 gti_interval[0]
@@ -262,6 +276,8 @@ class DL3_GADF(DL3_Format):
             "TSTART": start_time,
             "TSTOP": stop_time,
             "ONTIME": ontime.to_value(u.s),
+            "LIVETIME": ontime.to_value(u.s) * self.dead_time_fraction,
+            "DEADC": self.dead_time_fraction,
             "TELAPSE": (stop_time - start_time).to_value(u.s),
             "DATE-OBS": start_time.fits,
             "DATE-BEG": start_time.fits,
@@ -269,10 +285,46 @@ class DL3_GADF(DL3_Format):
             "DATE-END": stop_time.fits,
         }
 
+    def get_hdu_header_observation_information(self):
+        if self.obs_id is None:
+            raise ValueError("Observation ID is missing.")
+        header = {"OBS_ID": self.obs_id}
+        if self.target_information is not None:
+            header["OBSERVER"] = self.target_information["observer"]
+            header["OBJECT"] = self.target_information["object_name"]
+            object_coordinate = self.target_information[
+                "object_coordinate"
+            ].transform_to(ICRS())
+            header["RA_OBJ"] = object_coordinate.ra.to_value(u.deg)
+            header["DEC_OBJ"] = object_coordinate.dec.to_value(u.deg)
+
+    def get_hdu_header_subarray_information(self):
+        if self.telescope_information is None:
+            raise ValueError("Telescope information are missing.")
+        header = {
+            "ORIGIN": self.telescope_information["organisation"],
+            "TELESCOP": self.telescope_information["array"],
+            "INSTRUME": self.telescope_information["subarray"],
+            "TELLIST": self.telescope_information["telescope_list"],
+            "N_TELS": np.sum(self.telescope_information["telescope_list"]),
+        }
+        return header
+
+    def get_hdu_header_software_information(self):
+        header = {}
+        if self.software_information is not None:
+            header["DST_VER"] = self.software_information["dst_version"]
+            header["ANA_VER"] = self.software_information["analysis_version"]
+            header["CAL_VER"] = self.software_information["calibration_version"]
+        return header
+
     def get_hdu_header_events(self):
         header = self.get_hdu_header_base_format()
         header.update({"HDUCLAS1": "EVENTS"})
         header.update(self.get_hdu_header_base_time())
+        header.update(self.get_hdu_header_observation_information())
+        header.update(self.get_hdu_header_subarray_information())
+        header.update(self.get_hdu_header_software_information())
         return header
 
     def get_hdu_header_gti(self):
