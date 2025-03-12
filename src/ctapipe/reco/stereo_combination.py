@@ -7,7 +7,7 @@ from astropy.table import Table
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
-from ctapipe.core.traits import Bool, CaselessStrEnum, Int, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -17,10 +17,13 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
-from .preprocessing import horizontal_to_telescope, telescope_to_horizontal
+from .preprocessing import telescope_to_horizontal
 from .telescope_event_handling import (
     calc_combs_min_distances,
+    calc_combs_min_distances_table,
+    calc_fov_lon_lat,
     get_combinations,
+    get_index_combs,
     get_subarray_index,
     weighted_mean_std_ufunc,
 )
@@ -423,10 +426,6 @@ class StereoDispCombiner(StereoCombiner):
         ),
     ).tag(config=True)
 
-    n_tel_combinations = Int(
-        default_value=2,
-    ).tag(config=True)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -469,12 +468,13 @@ class StereoDispCombiner(StereoCombiner):
         fov_lat_values = []
         weights = []
         signs = np.array([-1, 1])
+        n_tel_combinations = 2
 
         for tel_id, dl2 in event.dl2.tel.items():
             if dl2.geometry[self.prefix].is_valid:
                 dl1 = event.dl1.tel[tel_id].parameters
-                hillas_fov_lon = dl1.hillas.fov_lon
-                hillas_fov_lat = dl1.hillas.fov_lat
+                hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
+                hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
                 hillas_psi = dl1.hillas.psi.to_value(u.rad)
                 disp = dl2.disp[self.prefix].parameter
 
@@ -486,9 +486,7 @@ class StereoDispCombiner(StereoCombiner):
                 ids.append(tel_id)
 
         if len(fov_lon_values) > 0:
-            index_combs_tel_ids = get_combinations(
-                range(len(ids)), self.n_tel_combinations
-            )
+            index_combs_tel_ids = get_combinations(range(len(ids)), n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances(
                 index_combs_tel_ids,
                 np.array(fov_lon_values),
@@ -532,12 +530,7 @@ class StereoDispCombiner(StereoCombiner):
                 self._combine_altaz(event)
 
     def predict_table(self, mono_predictions: Table) -> Table:
-        """
-        Calculates the (array-)event-wise mean.
-        Telescope events, that are nan, get discarded.
-        This means you might end up with less events if
-        all telescope predictions of a shower are invalid.
-        """
+        """ """
         prefix = f"{self.prefix}_tel"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
@@ -545,6 +538,16 @@ class StereoDispCombiner(StereoCombiner):
         obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
             mono_predictions
         )
+        hillas_fov_lon = mono_predictions["hillas_fov_lon"].quantity.to_value(u.deg)[
+            valid
+        ]
+        hillas_fov_lat = mono_predictions["hillas_fov_lat"].quantity.to_value(u.deg)[
+            valid
+        ]
+        hillas_psi = mono_predictions["hillas_psi"].quantity.to_value(u.rad)[valid]
+        disp = mono_predictions["disp_parameter"][valid]
+        signs = np.array([-1, 1])
+
         n_array_events = len(obs_ids)
         stereo_table = Table({"obs_id": obs_ids, "event_id": event_ids})
         # copy metadata
@@ -555,25 +558,34 @@ class StereoDispCombiner(StereoCombiner):
 
         if self.property is ReconstructionProperty.GEOMETRY:
             if np.count_nonzero(valid) > 0:
-                fov_lons, fov_lats = horizontal_to_telescope(
-                    alt=valid[f"{prefix}_alt"],
-                    az=valid[f"{prefix}_az"],
-                    pointing_alt=valid["subarray_pointing_lat"],
-                    pointing_az=valid["subarray_pointing_lon"],
+                fov_lon_values, fov_lat_values = calc_fov_lon_lat(
+                    hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi
                 )
-                fov_lon_mean = weighted_mean_std_ufunc(
-                    fov_lons.to_value(u.deg),
-                    valid,
-                    tel_to_array_indices,
-                    multiplicity,
-                    weights=weights,
+                index_tel_combs_map, combs_to_array_indices = get_index_combs(
+                    multiplicity, valid
                 )
-                fov_lat_mean = weighted_mean_std_ufunc(
-                    fov_lats.to_value(u.deg),
+
+                (
+                    comb_fov_lons,
+                    comb_fov_lats,
+                    comb_weights,
+                ) = calc_combs_min_distances_table(
+                    index_tel_combs_map, fov_lon_values, fov_lat_values, weights
+                )
+
+                fov_lon_mean, _ = weighted_mean_std_ufunc(
+                    comb_fov_lons,
                     valid,
-                    tel_to_array_indices,
+                    combs_to_array_indices,
                     multiplicity,
-                    weights=weights,
+                    weights=comb_weights,
+                )
+                fov_lat_mean, _ = weighted_mean_std_ufunc(
+                    comb_fov_lats,
+                    valid,
+                    combs_to_array_indices,
+                    multiplicity,
+                    weights=comb_weights,
                 )
                 alt, az = telescope_to_horizontal(
                     lon=u.Quantity(fov_lon_mean, u.deg, copy=False),
