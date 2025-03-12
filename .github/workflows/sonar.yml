@@ -19,12 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
-      - name: Show GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-
       - name: 'Download code coverage'
         uses: actions/github-script@v7
         with:
@@ -47,15 +41,12 @@ jobs:
             fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/ctapipe-coverage-report.zip`, Buffer.from(download.data));
 
       - name: 'Unzip code coverage'
-        run: unzip ctapipe-coverage-report.zip -d coverage
-
-      - name: Check artifact
-        run: ls -l coverage
+        run: unzip ctapipe-coverage-report.zip -d $HOME/coverage
 
       - name: Set environment
         run: |
-          cat coverage/sonar_env >> "$GITHUB_ENV"
-          cat coverage/sonar_env
+          cat $HOME/coverage/sonar_env >> "$GITHUB_ENV"
+          cat $HOME/coverage/sonar_env
 
       - name: Checkout branch or tag
         uses: actions/checkout@v4
@@ -72,10 +63,17 @@ jobs:
           ref: refs/pull/${{ env.PR_NUMBER }}/merge
           fetch-depth: 0
 
+      - name: Check artifact
+        run: |
+          cp -r $HOME/coverage .
+          ls -l coverage
+          cat coverage/coverage.xml
+
       - name: Git info
         run: |
           git status
           git log -n 5 --oneline
+          ls -l coverage
 
       - name: Sonarqube Scan
         uses: SonarSource/sonarqube-scan-action@v5
