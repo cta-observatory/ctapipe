@@ -215,3 +215,76 @@ def calc_combs_min_distances(
         fov_lats[i] = np.average(lat_vals, weights=[w1, w2])
 
     return fov_lons, fov_lats, combined_weights
+
+
+@njit
+def calc_combs_min_distances_table(
+    index_combs_tel_ids, fov_lon_values, fov_lat_values, weights
+):
+    """
+    Returns the weighted average fov lon/lat for every telescope combination
+    in tel_combs additional to the sum of their weights.
+    """
+    num_combs = len(index_combs_tel_ids)
+
+    combined_weights = np.empty(num_combs, dtype=np.float64)
+    fov_lons = np.empty(num_combs, dtype=np.float64)
+    fov_lats = np.empty(num_combs, dtype=np.float64)
+
+    sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+
+    for i in range(num_combs):
+        tel_1, tel_2 = index_combs_tel_ids[i]
+
+        # Calculate weights
+        w1, w2 = weights[tel_1], weights[tel_2]
+        combined_weights[i] = w1 + w2
+
+        # Calculate all 4 possible distances
+        lon_diffs = (
+            fov_lon_values[tel_1, sign_combs[:, 0]]
+            - fov_lon_values[tel_2, sign_combs[:, 1]]
+        )
+        lat_diffs = (
+            fov_lat_values[tel_1, sign_combs[:, 0]]
+            - fov_lat_values[tel_2, sign_combs[:, 1]]
+        )
+
+        distances = np.hypot(lon_diffs, lat_diffs)
+
+        # Weighted mean for minimum distances
+        argmin_distance = argmin(distances)
+        lon_vals = [
+            fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
+            fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
+        ]
+
+        lat_vals = [
+            fov_lat_values[tel_1, sign_combs[argmin_distance, 0]],
+            fov_lat_values[tel_2, sign_combs[argmin_distance, 1]],
+        ]
+
+        fov_lons[i] = np.average(lon_vals, weights=[w1, w2])
+        fov_lats[i] = np.average(lat_vals, weights=[w1, w2])
+
+    return fov_lons, fov_lats, combined_weights
+
+
+def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi):
+    cos_psi = np.cos(hillas_psi)
+    sin_psi = np.sin(hillas_psi)
+    lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]
+    lats = hillas_fov_lat[:, None] + signs * disp[:, None] * sin_psi[:, None]
+
+    return lons, lats
+
+
+def get_index_combs(multiplicity, valid):
+    combs = []
+    size = 2
+    for i in range(multiplicity.max()):
+        combs.append(list(combinations(i, size)))
+
+    index_tel_combs_map = None
+    combs_to_array_indices = None
+    return index_tel_combs_map, combs_to_array_indices
