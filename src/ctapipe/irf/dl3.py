@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import astropy.units as u
-from astropy.coordinates import EarthLocation
+from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.io import fits
 from astropy.io.fits import Header
 from astropy.io.fits.hdu.base import ExtensionHDU
@@ -46,6 +46,9 @@ class DL3_Format(Component):
         self._edisp = None
         self._bkg = None
         self._location = None
+        self._telescope_information = None
+        self._target_information = None
+        self._software_information = None
 
     @abstractmethod
     def write_file(self, path):
@@ -62,6 +65,28 @@ class DL3_Format(Component):
                 "Events table for DL3 file was already set, replacing current event table"
             )
         self._events = events
+
+    @property
+    def pointing(self) -> List[Tuple[Time, SkyCoord]]:
+        return self._pointing
+
+    @pointing.setter
+    def pointing(self, pointing: List[Tuple[Time, SkyCoord]]):
+        if self._pointing is not None:
+            self.log.warning(
+                "Pointing for DL3 file was already set, replacing current pointing"
+            )
+        self._pointing = pointing
+
+    @property
+    def gti(self) -> List[Tuple[Time, Time]]:
+        return self._gti
+
+    @gti.setter
+    def gti(self, gti: List[Tuple[Time, Time]]):
+        if self._gti is not None:
+            self.log.warning("GTI for DL3 file was already set, replacing current gti")
+        self._gti = gti
 
     @property
     def aeff(self) -> ExtensionHDU:
@@ -122,14 +147,40 @@ class DL3_Format(Component):
         self._location = location
 
     @property
-    def gti(self) -> List[Tuple[Time, Time]]:
-        return self._gti
+    def telescope_information(self) -> Dict[str, Any]:
+        return self._telescope_information
 
-    @gti.setter
-    def gti(self, gti: List[Tuple[Time, Time]]):
-        if self._gti is not None:
-            self.log.warning("GTi for DL3 file was already set, replacing current gti")
-        self._gti = gti
+    @telescope_information.setter
+    def telescope_information(self, telescope_information: Dict[str, Any]):
+        if self._telescope_information is not None:
+            self.log.warning(
+                "Telescope information for DL3 file was already set, replacing current information"
+            )
+        self._telescope_information = telescope_information
+
+    @property
+    def target_information(self) -> Dict[str, Any]:
+        return self._target_information
+
+    @target_information.setter
+    def target_information(self, target_information: Dict[str, Any]):
+        if self._target_information is not None:
+            self.log.warning(
+                "Target information for DL3 file was already set, replacing current target information"
+            )
+        self._target_information = target_information
+
+    @property
+    def software_information(self) -> Dict[str, Any]:
+        return self._software_information
+
+    @software_information.setter
+    def software_information(self, software_information: Dict[str, Any]):
+        if self._software_information is not None:
+            self.log.warning(
+                "Software information for DL3 file was already set, replacing current software information"
+            )
+        self._software_information = software_information
 
 
 class DL3_GADF(DL3_Format):

@@ -112,8 +112,13 @@ class DL3Tool(Tool):
             self.chunk_size
         )
         meta = self.event_loader.get_observation_information()
-        self.dl3_format.location = meta["location"]
+        self.dl3_format.pointing = meta["pointing"]
         self.dl3_format.gti = meta["gti"]
+
+        self.dl3_format.location = meta["location"]
+        self.dl3_format.telescope_information = meta["telescope_information"]
+        self.dl3_format.target_information = meta["target"]
+        self.dl3_format.software_information = meta["software_version"]
 
         self.log.info("Loading IRFs")
         hdu_irfs = fits.open(self.irfs_file, checksum=True)

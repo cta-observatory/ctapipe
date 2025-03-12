@@ -648,7 +648,7 @@ class EventLoader(Component):
 
             # Software information
             self.log.warning("Software version are unknown")
-            meta["software version"] = {
+            meta["software_version"] = {
                 "analysis_version": "ctapipe " + ctapipe_version,
                 "calibration_version": "UNKNOWN",
                 "dst_version": "UNKNOWN",
