@@ -19,25 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
-      - name: Checkout branch or tag
-        uses: actions/checkout@v4
-        if: github.event.workflow_run.event != 'pull_request'
-        with:
-          repository: ${{ github.event.workflow_run.head_repository.full_name }}
-          ref: ${{ github.event.workflow_run.head_branch }}
-          fetch-depth: 0
-
-      - name: Checkout Pull Request merge result
-        uses: actions/checkout@v4
-        if: github.event.workflow_run.event == 'pull_request'
-        with:
-          ref: refs/pull/${{ github.event.workflow_run.pull_requests[0].number }}/merge
-          fetch-depth: 0
-
-      - name: Git info
+      - name: Show GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
         run: |
-          git status
-          git log -n 5 --oneline
+          echo "$GITHUB_CONTEXT"
 
       - name: 'Download code coverage'
         uses: actions/github-script@v7
@@ -70,6 +56,26 @@ jobs:
         run: |
           cat coverage/sonar_env >> "$GITHUB_ENV"
           cat coverage/sonar_env
+
+      - name: Checkout branch or tag
+        uses: actions/checkout@v4
+        if: github.event.workflow_run.event != 'pull_request'
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Checkout Pull Request merge result
+        uses: actions/checkout@v4
+        if: github.event.workflow_run.event == 'pull_request'
+        with:
+          ref: refs/pull/${{ env.PR_NUMBER }}/merge
+          fetch-depth: 0
+
+      - name: Git info
+        run: |
+          git status
+          git log -n 5 --oneline
 
       - name: Sonarqube Scan
         uses: SonarSource/sonarqube-scan-action@v5
