@@ -214,6 +214,7 @@ class DL3_GADF(DL3_Format):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
+        self.reference_time = Time(datetime.fromisoformat("1970-01-01T00:00:00+00:00"))
 
     def write_file(self, path):
         self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
@@ -226,6 +227,13 @@ class DL3_GADF(DL3_Format):
                 data=self.transform_events_columns_for_gadf_format(self.events),
                 name="EVENTS",
                 header=Header(self.get_hdu_header_events()),
+            )
+        )
+        hdu_dl3.append(
+            fits.BinTableHDU(
+                data=self.create_gti_table(),
+                name="GTI",
+                header=Header(self.get_hdu_header_gti()),
             )
         )
         hdu_dl3.append(self.aeff)
@@ -265,11 +273,9 @@ class DL3_GADF(DL3_Format):
                 else max(stop_time, gti_interval[1])
             )
 
-        reference_time = Time(datetime.fromisoformat("1970-01-01T00:00:00+00:00"))
-
         return {
-            "MJDREFI": int(reference_time.mjd),
-            "MJDREFF": reference_time.mjd % 1,
+            "MJDREFI": int(self.reference_time.mjd),
+            "MJDREFF": self.reference_time.mjd % 1,
             "TIMEUNIT": "s",
             "TIMEREF": "GEOCENTER",
             "TIMESYS": "UTC",
@@ -285,11 +291,11 @@ class DL3_GADF(DL3_Format):
             "DATE-END": stop_time.fits,
         }
 
-    def get_hdu_header_observation_information(self):
+    def get_hdu_header_observation_information(self, obs_id_only=False):
         if self.obs_id is None:
             raise ValueError("Observation ID is missing.")
         header = {"OBS_ID": self.obs_id}
-        if self.target_information is not None:
+        if self.target_information is not None and not obs_id_only:
             header["OBSERVER"] = self.target_information["observer"]
             header["OBJECT"] = self.target_information["object_name"]
             object_coordinate = self.target_information[
@@ -297,6 +303,7 @@ class DL3_GADF(DL3_Format):
             ].transform_to(ICRS())
             header["RA_OBJ"] = object_coordinate.ra.to_value(u.deg)
             header["DEC_OBJ"] = object_coordinate.dec.to_value(u.deg)
+        return header
 
     def get_hdu_header_subarray_information(self):
         if self.telescope_information is None:
@@ -331,6 +338,7 @@ class DL3_GADF(DL3_Format):
         header = self.get_hdu_header_base_format()
         header.update({"HDUCLAS1": "GTI"})
         header.update(self.get_hdu_header_base_time())
+        header.update(self.get_hdu_header_observation_information(obs_id_only=True))
         return header
 
     def transform_events_columns_for_gadf_format(self, events):
@@ -397,3 +405,21 @@ class DL3_GADF(DL3_Format):
         renamed_events.rename_columns(rename_from, rename_to)
         renamed_events = renamed_events[rename_to]
         return renamed_events
+
+    def create_gti_table(self) -> QTable:
+        table_structure = {"START": [], "STOP": []}
+        for gti_interval in self.gti:
+            table_structure["START"].append(
+                (gti_interval[0] - self.reference_time).to(u.s)
+            )
+            table_structure["STOP"].append(
+                (gti_interval[1] - self.reference_time).to(u.s)
+            )
+
+        table = QTable(table_structure).sort("START")
+        for i in range(len(QTable) - 1):
+            if table_structure["STOP"][i] > table_structure["START"][i + 1]:
+                self.log.warning("Overlapping GTI intervals")
+                break
+
+        return table
