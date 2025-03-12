@@ -366,12 +366,12 @@ class DL3_GADF(DL3_Format):
                 ra=np.interp(
                     time_evaluation,
                     xp=pointing_table["TIME"],
-                    yp=pointing_table["RA_PNT"],
+                    fp=pointing_table["RA_PNT"],
                 ),
                 dec=np.interp(
                     time_evaluation,
                     xp=pointing_table["TIME"],
-                    yp=pointing_table["DEC_PNT"],
+                    fp=pointing_table["DEC_PNT"],
                 ),
             )
             altaz_coordinate = icrs_coordinate.transform_to(
@@ -383,12 +383,12 @@ class DL3_GADF(DL3_Format):
                 alt=np.interp(
                     time_evaluation,
                     xp=pointing_table["TIME"],
-                    yp=pointing_table["ALT_PNT"],
+                    fp=pointing_table["ALT_PNT"],
                 ),
                 az=np.interp(
                     time_evaluation,
                     xp=pointing_table["TIME"],
-                    yp=pointing_table["AZ_PNT"],
+                    fp=pointing_table["AZ_PNT"],
                 ),
                 location=self.location,
                 obstime=time_evaluation,
