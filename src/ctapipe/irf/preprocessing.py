@@ -7,7 +7,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import ICRS, AltAz, EarthLocation, Galactic, SkyCoord
 from astropy.table import Column, QTable, Table, vstack
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 from pyirf.simulations import SimulatedEventsInfo
 from pyirf.spectral import (
     DIFFUSE_FLUX_UNIT,
@@ -23,15 +23,18 @@ from pyirf.utils import (
 from tables import NoSuchNodeError
 
 from ..compat import COPY_IF_NEEDED
-from ..containers import CoordinateFrameType
+from ..containers import CoordinateFrameType, PointingMode
 from ..coordinates import NominalFrame
 from ..core import Component
 from ..core.traits import Bool, Unicode
 from ..io import TableLoader
+from ..version import version as ctapipe_version
 from .cuts import EventQualitySelection, EventSelection
 from .spectra import SPECTRA, Spectra
 
 __all__ = ["EventLoader", "EventPreprocessor"]
+
+from ..io.astropy_helpers import join_allow_empty
 
 
 class EventPreprocessor(Component):
@@ -532,23 +535,124 @@ class EventLoader(Component):
             meta = {}
             meta["location"] = load.subarray.reference_location
 
+            # Read observation information
             obs_info_table = load.read_observation_information()
-            if len(obs_info_table) == 0:
+            schedule_info_table = load.read_scheduling_blocks()
+            obs_all_info_table = join_allow_empty(
+                obs_info_table, schedule_info_table, "sb_id", "inner"
+            )
+            if len(obs_all_info_table) == 0:
                 self.log.error("No observation information available in the DL2 file")
                 raise ValueError("Missing observation information in the DL2 file")
+            elif len(obs_all_info_table) != len(obs_info_table):
+                self.log.error(
+                    "Scheduling blocks are missing for some observation block"
+                )
+                raise ValueError(
+                    "Scheduling blocks are missing for some observation block"
+                )
 
-            if len(np.unique(obs_info_table["obs_id"])):
+            # Check for obs ids
+            if len(np.unique(obs_all_info_table["obs_id"])):
                 self.log.warning(
                     "Multiple observations included in the DL2 file, only the id of the first observation will be reported in the DL3 file, data from all observations will be included"
                 )
-                meta["obs_id"] = np.unique(obs_info_table["obs_id"])[0]
+            meta["obs_id"] = np.unique(obs_all_info_table["obs_id"])[0]
 
             # Extract GTI
             list_gti = []
-            for i in range(len(obs_info_table)):
-                start_time = obs_info_table["actual_start_time"][i]
-                stop_time = start_time + obs_info_table["actual_duration"][i]
+            for i in range(len(obs_all_info_table)):
+                start_time = Time(obs_all_info_table["actual_start_time"][i])
+                stop_time = start_time + TimeDelta(
+                    obs_all_info_table["actual_duration"][i]
+                )
                 list_gti.append((start_time, stop_time))
+            meta["gti"] = list_gti
+
+            # Extract pointing information
+            if len(np.unique(obs_all_info_table["pointing_mode"])) != 1:
+                self.log.error("Multiple pointing mode are not supported")
+                raise ValueError("Multiple pointing mode are not supported")
+            meta["pointing"] = {}
+            meta["pointing"]["pointing_mode"] = PointingMode(
+                obs_all_info_table["pointing_mode"][0]
+            ).name
+            list_pointing = []
+            for i in range(len(obs_all_info_table)):
+                if (
+                    CoordinateFrameType(
+                        obs_all_info_table["subarray_pointing_frame"][i]
+                    ).name
+                    == "ALTAZ"
+                ):
+                    pointing_start = AltAz(
+                        alt=obs_all_info_table["subarray_pointing_lat"][i],
+                        az=obs_all_info_table["subarray_pointing_lon"][i],
+                        location=meta["location"],
+                        obstime=meta["gti"][i][0],
+                    )
+                    pointing_stop = AltAz(
+                        alt=obs_all_info_table["subarray_pointing_lat"][i],
+                        az=obs_all_info_table["subarray_pointing_lon"][i],
+                        location=meta["location"],
+                        obstime=meta["gti"][i][1],
+                    )
+                elif (
+                    CoordinateFrameType(
+                        obs_all_info_table["subarray_pointing_frame"][i]
+                    ).name
+                    == "ICRS"
+                ):
+                    pointing_start = ICRS(
+                        dec=obs_all_info_table["subarray_pointing_lat"][i],
+                        ra=obs_all_info_table["subarray_pointing_lon"][i],
+                    )
+                    pointing_stop = pointing_start
+                elif (
+                    CoordinateFrameType(
+                        obs_all_info_table["subarray_pointing_frame"][i]
+                    ).name
+                    == "GALACTIC"
+                ):
+                    pointing_start = Galactic(
+                        b=obs_all_info_table["subarray_pointing_lat"][i],
+                        l=obs_all_info_table["subarray_pointing_lon"][i],
+                    )
+                    pointing_stop = pointing_start
+                list_pointing.append((meta["gti"][i][0], pointing_start))
+                list_pointing.append((meta["gti"][i][1], pointing_stop))
+            meta["pointing"]["pointing_list"] = list_pointing
+
+            # Telescope information
+            self.log.warning(
+                "Name of organisation, array and subarray are not read from the file and are default value"
+            )
+            meta["telescope_information"] = {
+                "organisation": "UNKNOWN",
+                "array": "UNKNOWN",
+                "subarray": "UNKNOWN",
+                "telescope_list": np.array(
+                    load.subarray.get_tel_ids(load.subarray.tel)
+                ),
+            }
+
+            # Target information
+            self.log.warning(
+                "Name of the target, coordinates and observer are not read from the file and are default value"
+            )
+            meta["target"] = {
+                "observer": "UNKNOWN",
+                "object": "UNKNOWN",
+                "object_coordinate": ICRS(np.nan * u.deg, np.nan * u.deg),
+            }
+
+            # Software information
+            self.log.warning("Software version are unknown")
+            meta["software version"] = {
+                "analysis_version": "ctapipe " + ctapipe_version,
+                "calibration_version": "UNKNOWN",
+                "dst_version": "UNKNOWN",
+            }
 
         return meta
 
