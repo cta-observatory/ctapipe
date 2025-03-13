@@ -536,16 +536,12 @@ class StereoDispCombiner(StereoCombiner):
         valid = mono_predictions[f"{prefix}_is_valid"]
 
         obs_ids, event_ids, multiplicity, tel_to_array_indices = get_subarray_index(
-            mono_predictions
+            mono_predictions[valid]
         )
-        hillas_fov_lon = mono_predictions["hillas_fov_lon"].quantity.to_value(u.deg)[
-            valid
-        ]
-        hillas_fov_lat = mono_predictions["hillas_fov_lat"].quantity.to_value(u.deg)[
-            valid
-        ]
-        hillas_psi = mono_predictions["hillas_psi"].quantity.to_value(u.rad)[valid]
-        disp = mono_predictions["disp_parameter"][valid]
+        hillas_fov_lon = mono_predictions["hillas_fov_lon"].quantity.to_value(u.deg)
+        hillas_fov_lat = mono_predictions["hillas_fov_lat"].quantity.to_value(u.deg)
+        hillas_psi = mono_predictions["hillas_psi"].quantity.to_value(u.rad)
+        disp = mono_predictions["disp_parameter"]
         signs = np.array([-1, 1])
 
         n_array_events = len(obs_ids)
@@ -559,10 +555,12 @@ class StereoDispCombiner(StereoCombiner):
         if self.property is ReconstructionProperty.GEOMETRY:
             if np.count_nonzero(valid) > 0:
                 fov_lon_values, fov_lat_values = calc_fov_lon_lat(
-                    hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi
+                    hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid
                 )
-                index_tel_combs_map, combs_to_array_indices = get_index_combs(
-                    multiplicity, valid
+                index_tel_combs_map, num_combs = get_index_combs(multiplicity)
+                # start with 1 or 0?
+                combs_to_array_indices = np.repeat(
+                    np.arange(1, len(multiplicity) + 1), num_combs
                 )
 
                 (
@@ -570,7 +568,11 @@ class StereoDispCombiner(StereoCombiner):
                     comb_fov_lats,
                     comb_weights,
                 ) = calc_combs_min_distances_table(
-                    index_tel_combs_map, fov_lon_values, fov_lat_values, weights
+                    index_tel_combs_map,
+                    num_combs,
+                    fov_lon_values,
+                    fov_lat_values,
+                    weights,
                 )
 
                 fov_lon_mean, _ = weighted_mean_std_ufunc(

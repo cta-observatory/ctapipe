@@ -5,6 +5,7 @@ from itertools import combinations
 
 import numpy as np
 from numba import njit, uint64
+from scipy.special import binom
 
 from ctapipe.image.statistics import argmin
 
@@ -270,21 +271,33 @@ def calc_combs_min_distances_table(
     return fov_lons, fov_lats, combined_weights
 
 
-def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi):
-    cos_psi = np.cos(hillas_psi)
-    sin_psi = np.sin(hillas_psi)
-    lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]
-    lats = hillas_fov_lat[:, None] + signs * disp[:, None] * sin_psi[:, None]
+def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid):
+    cos_psi = np.cos(hillas_psi[valid])
+    sin_psi = np.sin(hillas_psi[valid])
+    lons = hillas_fov_lon[valid, None] + signs * disp[valid, None] * cos_psi[:, None]
+    lats = hillas_fov_lat[valid, None] + signs * disp[valid, None] * sin_psi[:, None]
 
     return lons, lats
 
 
-def get_index_combs(multiplicity, valid):
-    combs = []
-    size = 2
-    for i in range(multiplicity.max()):
-        combs.append(list(combinations(i, size)))
+@lru_cache(maxsize=None)
+def binomial(n, k):
+    return binom(n, k)
 
-    index_tel_combs_map = None
-    combs_to_array_indices = None
-    return index_tel_combs_map, combs_to_array_indices
+
+@njit
+def get_index_combs(multiplicity):
+    k = 2
+    num_combs = np.empty(multiplicity, dtype=np.int64)
+    index_tel_combs_map = np.array([])
+    for i in range(len(multiplicity)):
+        num_combs[i] = binomial(multiplicity[i], k)
+
+    for i in range(len(multiplicity)):
+        index_tel_combs_map = np.concatenate(
+            [index_tel_combs_map, get_combinations(range(multiplicity[i]), k)]
+        )
+
+    index_tel_combs_map *= np.concatenate([[0], multiplicity[:-1]])
+
+    return index_tel_combs_map, num_combs
