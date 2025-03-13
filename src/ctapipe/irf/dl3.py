@@ -19,6 +19,10 @@ from ctapipe.version import version as ctapipe_version
 
 
 class DL3_Format(Component):
+    """
+    Base class for writing a DL3 file
+    """
+
     overwrite = Bool(
         default_value=False,
         help="If true, allow to overwrite already existing output file",
@@ -33,16 +37,12 @@ class DL3_Format(Component):
         help="If true will raise error in the case optional column are missing",
     ).tag(config=False)
 
-    raise_error_for_missing_hdu = Bool(
-        default_value=True,
-        help="If true will raise error if HDU are missing from the final DL3 file",
-    ).tag(config=False)
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._obs_id = None
         self._events = None
         self._pointing = None
+        self._pointing_mode = None
         self._gti = None
         self._aeff = None
         self._psf = None
@@ -64,6 +64,12 @@ class DL3_Format(Component):
 
     @obs_id.setter
     def obs_id(self, obs_id: int):
+        """
+        Parameters
+        ----------
+        obs_id : int
+            Observation ID
+        """
         if self._obs_id is not None:
             self.log.warning(
                 "Obs id for DL3 file was already set, replacing current obs id"
@@ -76,6 +82,12 @@ class DL3_Format(Component):
 
     @events.setter
     def events(self, events: QTable):
+        """
+        Parameters
+        ----------
+        events : QTable
+            A table with a line for each event
+        """
         if self._events is not None:
             self.log.warning(
                 "Events table for DL3 file was already set, replacing current event table"
@@ -88,6 +100,12 @@ class DL3_Format(Component):
 
     @pointing.setter
     def pointing(self, pointing: List[Tuple[Time, SkyCoord]]):
+        """
+        Parameters
+        ----------
+        pointing : QTable
+            A list with for each entry containing the time at which the coordinate where evaluated and the associated coordinates
+        """
         if self._pointing is not None:
             self.log.warning(
                 "Pointing for DL3 file was already set, replacing current pointing"
@@ -95,11 +113,35 @@ class DL3_Format(Component):
         self._pointing = pointing
 
     @property
+    def pointing_mode(self) -> str:
+        return self._pointing_mode
+
+    @pointing_mode.setter
+    def pointing_mode(self, pointing_mode: str):
+        """
+        Parameters
+        ----------
+        pointing_mode : str
+            The name of the pointing mode used for the observation
+        """
+        if self._pointing_mode is not None:
+            self.log.warning(
+                "Pointing for DL3 file was already set, replacing current pointing"
+            )
+        self._pointing_mode = pointing_mode
+
+    @property
     def gti(self) -> List[Tuple[Time, Time]]:
         return self._gti
 
     @gti.setter
     def gti(self, gti: List[Tuple[Time, Time]]):
+        """
+        Parameters
+        ----------
+        gti : QTable
+            A list with for each entry containing the time at which the coordinate where evaluated and
+        """
         if self._gti is not None:
             self.log.warning("GTI for DL3 file was already set, replacing current gti")
         self._gti = gti
@@ -110,6 +152,12 @@ class DL3_Format(Component):
 
     @aeff.setter
     def aeff(self, aeff: ExtensionHDU):
+        """
+        Parameters
+        ----------
+        aeff : ExtensionHDU
+            The effective area HDU read from the fits file containing IRFs
+        """
         if self._aeff is not None:
             self.log.warning(
                 "Effective area for DL3 file was already set, replacing current effective area"
@@ -122,6 +170,12 @@ class DL3_Format(Component):
 
     @psf.setter
     def psf(self, psf: ExtensionHDU):
+        """
+        Parameters
+        ----------
+        psf : ExtensionHDU
+            The PSF HDU read from the fits file containing IRFs
+        """
         if self._psf is not None:
             self.log.warning("PSF for DL3 file was already set, replacing current PSF")
         self._psf = psf
@@ -132,6 +186,12 @@ class DL3_Format(Component):
 
     @edisp.setter
     def edisp(self, edisp: ExtensionHDU):
+        """
+        Parameters
+        ----------
+        edisp : ExtensionHDU
+            The EDISP HDU read from the fits file containing IRFs
+        """
         if self._edisp is not None:
             self.log.warning(
                 "EDISP for DL3 file was already set, replacing current EDISP"
@@ -144,6 +204,12 @@ class DL3_Format(Component):
 
     @bkg.setter
     def bkg(self, bkg: ExtensionHDU):
+        """
+        Parameters
+        ----------
+        bkg : ExtensionHDU
+            The background HDU read from the fits file containing IRFs
+        """
         if self._bkg is not None:
             self.log.warning(
                 "Background for DL3 file was already set, replacing current background"
@@ -156,6 +222,12 @@ class DL3_Format(Component):
 
     @location.setter
     def location(self, location: EarthLocation):
+        """
+        Parameters
+        ----------
+        location : EarthLocation
+            The location of the telescope
+        """
         if self._location is not None:
             self.log.warning(
                 "Telescope location for DL3 file was already set, replacing current location"
@@ -168,6 +240,12 @@ class DL3_Format(Component):
 
     @dead_time_fraction.setter
     def dead_time_fraction(self, dead_time_fraction: float):
+        """
+        Parameters
+        ----------
+        dead_time_fraction : float
+            The location of the telescope
+        """
         if self.dead_time_fraction is not None:
             self.log.warning(
                 "Dead time fraction for DL3 file was already set, replacing current dead time fraction"
@@ -180,6 +258,12 @@ class DL3_Format(Component):
 
     @telescope_information.setter
     def telescope_information(self, telescope_information: Dict[str, Any]):
+        """
+        Parameters
+        ----------
+        telescope_information : dict[str, any]
+            A dictionary containing general information about telescope with as key : organisation, array, subarray, telescope_list
+        """
         if self._telescope_information is not None:
             self.log.warning(
                 "Telescope information for DL3 file was already set, replacing current information"
@@ -192,6 +276,12 @@ class DL3_Format(Component):
 
     @target_information.setter
     def target_information(self, target_information: Dict[str, Any]):
+        """
+        Parameters
+        ----------
+        target_information : dict[str, any]
+            A dictionary containing general information about the targeted source with as key : observer, object_name, object_coordinate
+        """
         if self._target_information is not None:
             self.log.warning(
                 "Target information for DL3 file was already set, replacing current target information"
@@ -204,6 +294,12 @@ class DL3_Format(Component):
 
     @software_information.setter
     def software_information(self, software_information: Dict[str, Any]):
+        """
+        Parameters
+        ----------
+        software_information : dict[str, any]
+            A dictionary containing general information about the software used to produce the file with as key : analysis_version, calibration_version, dst_version
+        """
         if self._software_information is not None:
             self.log.warning(
                 "Software information for DL3 file was already set, replacing current software information"
@@ -212,12 +308,25 @@ class DL3_Format(Component):
 
 
 class DL3_GADF(DL3_Format):
+    """
+    Class to write DL3 in GADF format, subclass of DL3_Format
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
         self.reference_time = Time(datetime.fromisoformat("1970-01-01T00:00:00+00:00"))
 
     def write_file(self, path):
+        """
+        This function will write the new DL3 file
+        All the content associated with the file should have been specified previously, otherwise error will be raised
+
+        Parameters
+        ----------
+        path : str
+            The full path and filename of the new file to write
+        """
         self.file_creation_time = datetime.now(tz=datetime.UTC).isoformat()
 
         hdu_dl3 = fits.HDUList(
@@ -263,7 +372,10 @@ class DL3_GADF(DL3_Format):
 
         hdu_dl3.writeto(path, checksum=True, overwrite=self.overwrite)
 
-    def get_hdu_header_base_format(self):
+    def get_hdu_header_base_format(self) -> Dict[str, Any]:
+        """
+        Return the base information that should be included in all HDU of the final fits file
+        """
         return {
             "HDUCLASS": "GADF",
             "HDUVERS": "v0.3",
@@ -272,7 +384,10 @@ class DL3_GADF(DL3_Format):
             "CREATED": self.file_creation_time,
         }
 
-    def get_hdu_header_base_time(self):
+    def get_hdu_header_base_time(self) -> Dict[str, Any]:
+        """
+        Return the information about time parameters used in several HDU
+        """
         if self.gti is None:
             raise ValueError("No available time information for the DL3 file")
         if self.dead_time_fraction is None:
@@ -311,7 +426,17 @@ class DL3_GADF(DL3_Format):
             "DATE-END": stop_time.fits,
         }
 
-    def get_hdu_header_base_observation_information(self, obs_id_only=False):
+    def get_hdu_header_base_observation_information(
+        self, obs_id_only: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Return generic information on the observation setting (id, target, ...)
+
+        Parameters
+        ----------
+        obs_id_only : bool
+            If true, will return a dict with as only information the obs_id
+        """
         if self.obs_id is None:
             raise ValueError("Observation ID is missing.")
         header = {"OBS_ID": self.obs_id}
@@ -325,7 +450,10 @@ class DL3_GADF(DL3_Format):
             header["DEC_OBJ"] = object_coordinate.dec.to_value(u.deg)
         return header
 
-    def get_hdu_header_base_subarray_information(self):
+    def get_hdu_header_base_subarray_information(self) -> Dict[str, Any]:
+        """
+        Return generic information on the array used for observations
+        """
         if self.telescope_information is None:
             raise ValueError("Telescope information are missing.")
         header = {
@@ -337,7 +465,10 @@ class DL3_GADF(DL3_Format):
         }
         return header
 
-    def get_hdu_header_base_software_information(self):
+    def get_hdu_header_base_software_information(self) -> Dict[str, Any]:
+        """
+        Return information about the software versions used to process the observation
+        """
         header = {}
         if self.software_information is not None:
             header["DST_VER"] = self.software_information["dst_version"]
@@ -345,9 +476,14 @@ class DL3_GADF(DL3_Format):
             header["CAL_VER"] = self.software_information["calibration_version"]
         return header
 
-    def get_hdu_header_base_pointing(self):
+    def get_hdu_header_base_pointing(self) -> Dict[str, Any]:
+        """
+        Return information on the pointing during the observation
+        """
         if self.pointing is None:
             raise ValueError("Pointing information are missing")
+        if self.pointing_mode is None:
+            raise ValueError("Pointing mode is missing")
         if self.location is None:
             raise ValueError("Telescope location information are missing")
 
@@ -360,7 +496,7 @@ class DL3_GADF(DL3_Format):
         time_evaluation = self.reference_time + TimeDelta(time_evaluation)
 
         pointing_table = self.create_pointing_table()
-        if self.pointing["pointing_mode"] == "TRACK":
+        if self.pointing_mode == "TRACK":
             obs_mode = "POINTING"
             icrs_coordinate = SkyCoord(
                 ra=np.interp(
@@ -377,7 +513,7 @@ class DL3_GADF(DL3_Format):
             altaz_coordinate = icrs_coordinate.transform_to(
                 AltAz(location=self.location, obstime=time_evaluation)
             )
-        elif self.pointing["pointing_mode"] == "DRIFT":
+        elif self.pointing_mode == "DRIFT":
             obs_mode = "DRIFT"
             altaz_coordinate = AltAz(
                 alt=np.interp(
@@ -414,7 +550,10 @@ class DL3_GADF(DL3_Format):
         }
         return header
 
-    def get_hdu_header_events(self):
+    def get_hdu_header_events(self) -> Dict[str, Any]:
+        """
+        The output dictionary contain all the necessary information that should be added to the header of the events HDU
+        """
         header = self.get_hdu_header_base_format()
         header.update({"HDUCLAS1": "EVENTS"})
         header.update(self.get_hdu_header_base_time())
@@ -424,7 +563,10 @@ class DL3_GADF(DL3_Format):
         header.update(self.get_hdu_header_base_software_information())
         return header
 
-    def get_hdu_header_gti(self):
+    def get_hdu_header_gti(self) -> Dict[str, Any]:
+        """
+        The output dictionary contain all the necessary information that should be added to the header of the GTI HDU
+        """
         header = self.get_hdu_header_base_format()
         header.update({"HDUCLAS1": "GTI"})
         header.update(self.get_hdu_header_base_time())
@@ -433,7 +575,10 @@ class DL3_GADF(DL3_Format):
         )
         return header
 
-    def get_hdu_header_pointing(self):
+    def get_hdu_header_pointing(self) -> Dict[str, Any]:
+        """
+        The output dictionary contain all the necessary information that should be added to the header of the pointing HDU
+        """
         header = self.get_hdu_header_base_format()
         header.update({"HDUCLAS1": "POINTING"})
         header.update(self.get_hdu_header_base_pointing())
@@ -442,7 +587,16 @@ class DL3_GADF(DL3_Format):
         )
         return header
 
-    def transform_events_columns_for_gadf_format(self, events):
+    def transform_events_columns_for_gadf_format(self, events: QTable) -> QTable:
+        """
+        Return an event table containing only the columns that should be added to the EVENTS HDU
+        It also rename all the columns to match the name expected in the GADF format
+
+        Parameters
+        ----------
+        events : QTable
+            The base events table to process
+        """
         rename_from = ["event_id", "time", "reco_ra", "reco_dec", "reco_energy"]
         rename_to = ["EVENT_ID", "TIME", "RA", "DEC", "ENERGY"]
 
@@ -508,6 +662,9 @@ class DL3_GADF(DL3_Format):
         return renamed_events
 
     def create_gti_table(self) -> QTable:
+        """
+        Build a table that contains GTI information with the GADF names and format, to be concerted directly as a TableHDU
+        """
         table_structure = {"START": [], "STOP": []}
         for gti_interval in self.gti:
             table_structure["START"].append(
@@ -526,6 +683,9 @@ class DL3_GADF(DL3_Format):
         return table
 
     def create_pointing_table(self) -> QTable:
+        """
+        Build a table that contains pointing information with the GADF names and format, to be concerted directly as a TableHDU
+        """
         if self.pointing is None:
             raise ValueError("Pointing information are missing")
         if self.location is None:
@@ -539,7 +699,7 @@ class DL3_GADF(DL3_Format):
             "AZ_PNT": [],
         }
 
-        for pointing in self.pointing["pointing_list"]:
+        for pointing in self.pointing:
             time = pointing[0]
             pointing_icrs = pointing[1].transform_to(ICRS())
             pointing_altaz = pointing[1].transform_to(
