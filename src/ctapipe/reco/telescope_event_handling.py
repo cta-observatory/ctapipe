@@ -5,7 +5,6 @@ from itertools import combinations
 
 import numpy as np
 from numba import njit, uint64
-from scipy.special import binom
 
 from ctapipe.image.statistics import argmin
 
@@ -157,14 +156,6 @@ def weighted_mean_std_ufunc(
     return mean, np.sqrt(variance)
 
 
-@lru_cache(maxsize=4096)
-def get_combinations(array, size):
-    """
-    Return all combinations of elements of a given size from an array.
-    """
-    return np.array(list(combinations(array, size)))
-
-
 @njit
 def calc_combs_min_distances(
     index_combs_tel_ids, fov_lon_values, fov_lat_values, weights
@@ -218,57 +209,50 @@ def calc_combs_min_distances(
     return fov_lons, fov_lats, combined_weights
 
 
+@lru_cache(maxsize=4096)
+def get_combinations(array, size):
+    """
+    Return all combinations of elements of a given size from an array.
+    """
+    return np.array(list(combinations(array, size)))
+
+
 @njit
-def calc_combs_min_distances_table(
-    index_combs_tel_ids, fov_lon_values, fov_lat_values, weights
+def binomial(n, k):
+    if k > n or k < 0:
+        return 0
+    k = min(k, n - k)
+    c = 1
+    for i in range(k):
+        c = c * (n - i) // (i + 1)
+    return c
+
+
+@njit
+def calc_num_combs(multiplicity, k):
+    num_combs = np.empty(len(multiplicity), dtype=np.int64)
+    for i in range(len(multiplicity)):
+        num_combs[i] = binomial(multiplicity[i], k)
+
+    return num_combs
+
+
+@njit
+def calc_fov_lon_lat_njit(
+    hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid
 ):
-    """
-    Returns the weighted average fov lon/lat for every telescope combination
-    in tel_combs additional to the sum of their weights.
-    """
-    num_combs = len(index_combs_tel_ids)
+    result_lons = np.empty((np.sum(valid), len(signs)))
+    result_lats = np.empty((np.sum(valid), len(signs)))
 
-    combined_weights = np.empty(num_combs, dtype=np.float64)
-    fov_lons = np.empty(num_combs, dtype=np.float64)
-    fov_lats = np.empty(num_combs, dtype=np.float64)
+    for i, idx in enumerate(np.where(valid)[0]):
+        cos_psi = np.cos(hillas_psi[idx])
+        sin_psi = np.sin(hillas_psi[idx])
 
-    sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+        for j in range(len(signs)):
+            result_lons[i, j] = hillas_fov_lon[idx] + signs[j] * disp[idx] * cos_psi
+            result_lats[i, j] = hillas_fov_lat[idx] + signs[j] * disp[idx] * sin_psi
 
-    for i in range(num_combs):
-        tel_1, tel_2 = index_combs_tel_ids[i]
-
-        # Calculate weights
-        w1, w2 = weights[tel_1], weights[tel_2]
-        combined_weights[i] = w1 + w2
-
-        # Calculate all 4 possible distances
-        lon_diffs = (
-            fov_lon_values[tel_1, sign_combs[:, 0]]
-            - fov_lon_values[tel_2, sign_combs[:, 1]]
-        )
-        lat_diffs = (
-            fov_lat_values[tel_1, sign_combs[:, 0]]
-            - fov_lat_values[tel_2, sign_combs[:, 1]]
-        )
-
-        distances = np.hypot(lon_diffs, lat_diffs)
-
-        # Weighted mean for minimum distances
-        argmin_distance = argmin(distances)
-        lon_vals = [
-            fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
-            fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
-        ]
-
-        lat_vals = [
-            fov_lat_values[tel_1, sign_combs[argmin_distance, 0]],
-            fov_lat_values[tel_2, sign_combs[argmin_distance, 1]],
-        ]
-
-        fov_lons[i] = np.average(lon_vals, weights=[w1, w2])
-        fov_lats[i] = np.average(lat_vals, weights=[w1, w2])
-
-    return fov_lons, fov_lats, combined_weights
+    return result_lons, result_lats
 
 
 def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid):
@@ -280,24 +264,76 @@ def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, va
     return lons, lats
 
 
-@lru_cache(maxsize=None)
-def binomial(n, k):
-    return binom(n, k)
+def create_combs_array(max_multi, k):
+    combs_map = get_combinations(range(2), k)
+    for i in range(3, max_multi + 1):
+        combs = get_combinations(range(i), k)
+        combs_map = np.concatenate([combs_map, combs])
+
+    num_combs = calc_num_combs(np.arange(2, max_multi + 1), k)
+    combs_to_multi_indices = np.repeat(np.arange(2, max_multi + 1), num_combs)
+
+    return combs_map, combs_to_multi_indices
 
 
 @njit
-def get_index_combs(multiplicity):
-    k = 2
-    num_combs = np.empty(multiplicity, dtype=np.int64)
-    index_tel_combs_map = np.array([])
-    for i in range(len(multiplicity)):
-        num_combs[i] = binomial(multiplicity[i], k)
+def get_index_combs(multiplicity, combs_map, combs_to_multi_indices, k):
+    num_combs = calc_num_combs(multiplicity, k)
+    total_combs = np.sum(num_combs)
+    index_tel_combs_map = np.empty((total_combs, k), dtype=np.int64)
+    cum_multiplicity = 0
+    row_idx = 0
 
     for i in range(len(multiplicity)):
-        index_tel_combs_map = np.concatenate(
-            [index_tel_combs_map, get_combinations(range(multiplicity[i]), k)]
-        )
-
-    index_tel_combs_map *= np.concatenate([[0], multiplicity[:-1]])
+        mask = combs_to_multi_indices == multiplicity[i]
+        selected_combs = combs_map[mask] + cum_multiplicity
+        index_tel_combs_map[row_idx : row_idx + len(selected_combs)] = selected_combs
+        row_idx += len(selected_combs)
+        cum_multiplicity += multiplicity[i]
 
     return index_tel_combs_map, num_combs
+
+
+def calc_combs_min_distances_table(
+    index_combs_tel_ids,
+    fov_lon_values,
+    fov_lat_values,
+    weights,
+):
+    """
+    Returns the weighted average fov lon/lat for every telescope combination
+    in tel_combs additional to the sum of their weights.
+    """
+    # Adding weights for each telescope combination
+    mapped_weights = weights[index_combs_tel_ids]
+    combined_weights = np.add(mapped_weights[:, 0], mapped_weights[:, 1])
+
+    sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+
+    lon_combs = fov_lon_values[index_combs_tel_ids]
+    lon_diffs = lon_combs[:, 0, sign_combs[:, 0]] - lon_combs[:, 1, sign_combs[:, 1]]
+
+    lat_combs = fov_lat_values[index_combs_tel_ids]
+    lat_diffs = lat_combs[:, 0, sign_combs[:, 0]] - lat_combs[:, 1, sign_combs[:, 1]]
+
+    distances = np.hypot(lon_diffs, lat_diffs)
+    argmin_distance = np.argmin(distances, axis=1)
+
+    lon_values = np.array(
+        [
+            fov_lon_values[index_combs_tel_ids[:, 0], sign_combs[argmin_distance, 0]],
+            fov_lon_values[index_combs_tel_ids[:, 1], sign_combs[argmin_distance, 1]],
+        ]
+    )
+
+    lat_values = np.array(
+        [
+            fov_lat_values[index_combs_tel_ids[:, 0], sign_combs[argmin_distance, 0]],
+            fov_lat_values[index_combs_tel_ids[:, 1], sign_combs[argmin_distance, 1]],
+        ]
+    )
+
+    weighted_lons = np.average(lon_values, weights=mapped_weights.T, axis=0)
+    weighted_lats = np.average(lat_values, weights=mapped_weights.T, axis=0)
+
+    return weighted_lons, weighted_lats, combined_weights

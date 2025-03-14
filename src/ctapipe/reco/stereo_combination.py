@@ -22,6 +22,7 @@ from .telescope_event_handling import (
     calc_combs_min_distances,
     calc_combs_min_distances_table,
     calc_fov_lon_lat,
+    create_combs_array,
     get_combinations,
     get_index_combs,
     get_subarray_index,
@@ -543,6 +544,7 @@ class StereoDispCombiner(StereoCombiner):
         hillas_psi = mono_predictions["hillas_psi"].quantity.to_value(u.rad)
         disp = mono_predictions["disp_parameter"]
         signs = np.array([-1, 1])
+        n_tel_combinations = 2
 
         n_array_events = len(obs_ids)
         stereo_table = Table({"obs_id": obs_ids, "event_id": event_ids})
@@ -557,10 +559,15 @@ class StereoDispCombiner(StereoCombiner):
                 fov_lon_values, fov_lat_values = calc_fov_lon_lat(
                     hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid
                 )
-                index_tel_combs_map, num_combs = get_index_combs(multiplicity)
+                combs_map, combs_to_multi_indices = create_combs_array(
+                    multiplicity.max(), n_tel_combinations
+                )
+                index_tel_combs_map, num_combs = get_index_combs(
+                    multiplicity, combs_map, combs_to_multi_indices, n_tel_combinations
+                )
                 # start with 1 or 0?
                 combs_to_array_indices = np.repeat(
-                    np.arange(1, len(multiplicity) + 1), num_combs
+                    np.arange(len(multiplicity)), num_combs
                 )
 
                 (
@@ -569,7 +576,6 @@ class StereoDispCombiner(StereoCombiner):
                     comb_weights,
                 ) = calc_combs_min_distances_table(
                     index_tel_combs_map,
-                    num_combs,
                     fov_lon_values,
                     fov_lat_values,
                     weights,
