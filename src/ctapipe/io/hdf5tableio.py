@@ -257,7 +257,9 @@ class HDF5TableWriter(TableWriter):
     def close(self):
         self.h5file.close()
 
-    def _add_column_to_schema(self, table_name, schema, meta, field, name, value):
+    def _add_column_to_schema(
+        self, table_name, schema, meta, field, name, value, time_format
+    ):
         typename = ""
         shape = 1
 
@@ -302,9 +304,13 @@ class HDF5TableWriter(TableWriter):
             schema.columns[name] = coltype(shape=shape, pos=pos)
 
         elif isinstance(value, Time):
-            # TODO: really should use MET, but need a func for that
-            schema.columns[name] = tables.Float64Col(pos=pos)
-            tr = TimeColumnTransform(scale="tai", format="mjd")
+            tr = TimeColumnTransform(scale="tai", format=time_format)
+            value = tr(value)
+
+            typename = value.dtype.name
+            coltype = PYTABLES_TYPE_MAP[typename]
+            shape = value.shape
+            schema.columns[name] = coltype(shape=shape, pos=pos)
             self.add_column_transform(table_name, name, tr)
 
         elif type(value).__name__ in PYTABLES_TYPE_MAP:
@@ -341,7 +347,7 @@ class HDF5TableWriter(TableWriter):
 
         return True
 
-    def _create_hdf5_table_schema(self, table_name, containers):
+    def _create_hdf5_table_schema(self, table_name, containers, time_format):
         """
         Creates a pytables description class for the given containers
         and registers it in the Writer
@@ -384,6 +390,7 @@ class HDF5TableWriter(TableWriter):
                         field=field,
                         name=col_name,
                         value=value,
+                        time_format=time_format,
                     )
                 except ValueError:
                     self.log.warning(
@@ -396,11 +403,13 @@ class HDF5TableWriter(TableWriter):
         meta["CTAPIPE_VERSION"] = ctapipe.__version__
         return meta
 
-    def _setup_new_table(self, table_name, containers):
+    def _setup_new_table(self, table_name, containers, time_format):
         """set up the table. This is called the first time `write()`
         is called on a new table"""
         self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
-        meta = self._create_hdf5_table_schema(table_name, containers)
+        meta = self._create_hdf5_table_schema(
+            table_name, containers, time_format=time_format
+        )
 
         if table_name.startswith("/"):
             raise ValueError("Table name must not start with '/'")
@@ -455,7 +464,7 @@ class HDF5TableWriter(TableWriter):
                     raise
         row.append()
 
-    def write(self, table_name, containers):
+    def write(self, table_name, containers, time_format="ctao_high_res"):
         """
         Write the contents of the given container or containers to a table.
         The first call to write  will create a schema and initialize the table
@@ -469,12 +478,15 @@ class HDF5TableWriter(TableWriter):
             name of table to write to
         containers: `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`
             container to write
+        time_format: str
+            Format to use for storing time columns.
+            Either 'ctao_high_res' (the default) or a format supported by `astropy.time.Time`.
         """
         if isinstance(containers, Container):
             containers = (containers,)
 
         if table_name not in self._schemas:
-            self._setup_new_table(table_name, containers)
+            self._setup_new_table(table_name, containers, time_format=time_format)
 
         self._append_row(table_name, containers)
 
