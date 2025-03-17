@@ -5,8 +5,10 @@ from abc import ABCMeta, abstractmethod
 from subprocess import CalledProcessError
 from unittest import mock
 
+import astropy.units as u
 import pytest
 from traitlets import CaselessStrEnum, HasTraits, Int
+from traitlets.config import Config, json
 
 from ctapipe.core import Component, Tool, run_tool
 from ctapipe.core.traits import (
@@ -335,6 +337,39 @@ def test_quantity():
             energy = AstroQuantity(
                 default_value=5 * u.m, physical_type=u.physical.energy
             )
+
+
+def test_quantity_from_config(tmp_path):
+    from ctapipe.core import Component, Tool
+    from ctapipe.core.traits import AstroQuantity
+
+    class QuantityComponent(Component):
+        distance = AstroQuantity(u.cm, default_value=1 * u.m).tag(config=True)
+
+    config = Config()
+    config.QuantityComponent.distance = "5 cm"
+    q = QuantityComponent(config=config)
+    assert q.distance.value == 5.0
+    assert q.distance.unit == u.cm
+
+    config = Config()
+    config.QuantityComponent.distance = dict(value=10, unit="m")
+    q = QuantityComponent(config=config)
+    assert q.distance.value == 10.0
+    assert q.distance.unit == u.m
+
+    class QTool(Tool):
+        distance = AstroQuantity(u.cm, default_value=1 * u.m).tag(config=True)
+
+    config_file = tmp_path / "config.json"
+    config_file.write_text(
+        json.dumps({"QTool": {"distance": {"value": 10.0, "unit": "cm"}}})
+    )
+    tool = QTool()
+    tool.config_files = [config_file]
+    tool.initialize([])
+    assert tool.distance.value == 10
+    assert tool.distance.unit == u.cm
 
 
 def test_quantity_tool(capsys):
