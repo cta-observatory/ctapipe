@@ -21,6 +21,7 @@ from os.path import abspath
 from pathlib import Path
 from types import ModuleType
 
+import astropy.units as u
 import psutil
 from astropy.time import Time
 
@@ -384,6 +385,12 @@ class Provenance(metaclass=Singleton):
             if isinstance(obj, Reference):
                 print(type(obj), obj.to_dict())
                 return obj.to_dict()
+
+            if isinstance(obj, u.Quantity):
+                return {
+                    "value": obj.value.tolist(),
+                    "unit": obj.unit.to_string("vounit"),
+                }
 
             if isinstance(
                 obj,
