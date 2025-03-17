@@ -141,10 +141,7 @@ class PixelStatisticsCalculatorTool(Tool):
                 )
             # Check if the dl1 data is gain selected and add an extra dimension for n_channels
             for col_name in self.DL1_COLUMN_NAMES:
-                if (
-                    col_name in dl1_table.colnames
-                    and len(dl1_table[col_name].shape) == 2
-                ):
+                if col_name in dl1_table.colnames and dl1_table[col_name].ndim == 2:
                     dl1_table[col_name] = dl1_table[col_name][:, np.newaxis]
             # Perform the first pass of the statistics calculation
             aggregated_stats = self.stats_calculator.first_pass(

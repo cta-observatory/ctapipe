@@ -66,7 +66,7 @@ class RangeOutlierDetector(OutlierDetector):
 
     def __call__(self, column):
         # Validate that the shape of the statistic values has three dimensions
-        if len(column.shape) != 3:
+        if column.ndim != 3:
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
                 "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
@@ -100,7 +100,7 @@ class MedianOutlierDetector(OutlierDetector):
 
     def __call__(self, column):
         # Validate that the shape of the statistic values has three dimensions
-        if len(column.shape) != 3:
+        if column.ndim != 3:
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
                 "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
@@ -137,7 +137,7 @@ class StdOutlierDetector(OutlierDetector):
 
     def __call__(self, column):
         # Validate that the shape of the statistic values has three dimensions
-        if len(column.shape) != 3:
+        if column.ndim != 3:
             raise ValueError(
                 f"Invalid shape of the column '{column.name}': '{column.shape}'. "
                 "Expected the statistic values of shape (n_entries, n_channels, n_pixels)."
