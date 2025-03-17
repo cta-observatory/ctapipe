@@ -81,6 +81,8 @@ def mono_table():
             ],
             "disp_tel_parameter": [0.65, 1.1, 0.7, 0.9, 1, 0.5, 0.65, 1.1, 0.7, 0.9]
             * u.deg,
+            "subarray_pointing_lat": 10 * [70] * u.deg,
+            "subarray_pointing_lon": 10 * [0] * u.deg,
         }
     )
 
@@ -294,6 +296,7 @@ def test_predict_disp_combiner(mono_table):
     assert "obs_id" in stereo.colnames
     assert "event_id" in stereo.colnames
 
+    breakpoint()
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     assert_allclose(
