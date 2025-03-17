@@ -819,7 +819,14 @@ def irf_events_table():
     keep_columns, _, _ = epp.get_columns_keep_rename_scheme(None, True)
     tab = epp.make_empty_table(keep_columns)
 
-    ids, bulk, unitless = tab.colnames[:2], tab.colnames[2:-2], tab.colnames[-2:]
+    ids, bulk, unitless = [], [], []
+    for c in tab.columns:
+        if "id" in c:
+            ids.append(c)
+        elif tab[c].unit == u.dimensionless_unscaled:
+            unitless.append(c)
+        else:
+            bulk.append(c)
 
     id_tab = QTable(
         data=np.zeros((N, len(ids)), dtype=np.uint64),

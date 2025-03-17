@@ -7,7 +7,7 @@ from ctapipe.irf.optimize.algorithm import CutOptimizerBase
 
 from ..core import Provenance, Tool, traits
 from ..core.traits import AstroQuantity, Integer, classes_with_traits
-from ..irf import EventLoader, Spectra
+from ..irf import EventLoader, EventPreprocessor, Spectra
 
 __all__ = ["EventSelectionOptimizer"]
 
@@ -109,6 +109,10 @@ class EventSelectionOptimizer(Tool):
         """
         Initialize components from config.
         """
+
+        # Force the preprocessing for IRF
+        EventPreprocessor.irf_pre_processing = True
+
         self.optimizer = CutOptimizerBase.from_name(
             self.optimization_algorithm, parent=self
         )

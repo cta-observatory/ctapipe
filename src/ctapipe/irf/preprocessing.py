@@ -239,7 +239,7 @@ class EventPreprocessor(Component):
         return renamed_events
 
     def keep_necessary_columns_only(self, events: Table) -> QTable:
-        keep_columns, _, _ = self.get_columns_keep_rename_scheme(events)
+        keep_columns, _, _ = self.get_columns_keep_rename_scheme(events, True)
         for c in keep_columns:
             if c not in events.colnames:
                 raise ValueError(
