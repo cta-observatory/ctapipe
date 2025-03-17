@@ -29,6 +29,13 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
                 "stats_aggregator_type": [
                     ("id", tel_id, "PlainAggregator"),
                 ],
+                "outlier_detector_list": [
+                    {
+                        "apply_to": "mean",
+                        "name": "MedianOutlierDetector",
+                        "config": {"median_range_factors": [-2.0, 2.0]},
+                    }
+                ],
             },
             "PlainAggregator": {
                 "chunk_size": 1,
@@ -50,13 +57,13 @@ def test_calculate_pixel_stats_tool(tmp_path, dl1_image_file):
     )
     # Check that the output file has been created
     assert monitoring_file.exists()
-    # Check that the output file is not empty
+    # Check if the shape of the aggregated statistic values has three dimension
     assert (
         read_table(
             monitoring_file,
             path=f"/dl1/monitoring/telescope/statistics/tel_{tel_id:03d}",
-        )["mean"]
-        is not None
+        )["mean"].ndim
+        == 3
     )
     # Read subarray description from the created monitoring file
     subarray = SubarrayDescription.from_hdf(monitoring_file)
