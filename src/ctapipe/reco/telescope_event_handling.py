@@ -238,28 +238,11 @@ def calc_num_combs(multiplicity, k):
 
 
 @njit
-def calc_fov_lon_lat_njit(
-    hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid
-):
-    result_lons = np.empty((np.sum(valid), len(signs)))
-    result_lats = np.empty((np.sum(valid), len(signs)))
-
-    for i, idx in enumerate(np.where(valid)[0]):
-        cos_psi = np.cos(hillas_psi[idx])
-        sin_psi = np.sin(hillas_psi[idx])
-
-        for j in range(len(signs)):
-            result_lons[i, j] = hillas_fov_lon[idx] + signs[j] * disp[idx] * cos_psi
-            result_lats[i, j] = hillas_fov_lat[idx] + signs[j] * disp[idx] * sin_psi
-
-    return result_lons, result_lats
-
-
-def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi, valid):
-    cos_psi = np.cos(hillas_psi[valid])
-    sin_psi = np.sin(hillas_psi[valid])
-    lons = hillas_fov_lon[valid, None] + signs * disp[valid, None] * cos_psi[:, None]
-    lats = hillas_fov_lat[valid, None] + signs * disp[valid, None] * sin_psi[:, None]
+def calc_fov_lon_lat(hillas_fov_lon, hillas_fov_lat, signs, disp, hillas_psi):
+    cos_psi = np.cos(hillas_psi)
+    sin_psi = np.sin(hillas_psi)
+    lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]
+    lats = hillas_fov_lat[:, None] + signs * disp[:, None] * sin_psi[:, None]
 
     return lons, lats
 
@@ -310,6 +293,7 @@ def calc_combs_min_distances_table(
 
     sign_combs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 
+    # Calculate all 4 possible distances
     lon_combs = fov_lon_values[index_combs_tel_ids]
     lon_diffs = lon_combs[:, 0, sign_combs[:, 0]] - lon_combs[:, 1, sign_combs[:, 1]]
 
@@ -319,6 +303,7 @@ def calc_combs_min_distances_table(
     distances = np.hypot(lon_diffs, lat_diffs)
     argmin_distance = np.argmin(distances, axis=1)
 
+    # Weighted mean for minimum distances
     lon_values = np.array(
         [
             fov_lon_values[index_combs_tel_ids[:, 0], sign_combs[argmin_distance, 0]],
