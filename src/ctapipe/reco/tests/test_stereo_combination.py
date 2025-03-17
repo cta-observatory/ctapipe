@@ -296,23 +296,23 @@ def test_predict_disp_combiner(mono_table):
     assert "obs_id" in stereo.colnames
     assert "event_id" in stereo.colnames
 
-    breakpoint()
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1, 2]))
     assert_allclose(
         stereo["disp_alt"].quantity,
-        [60.5002328, 73.2505989, 81] * u.deg,
+        [70.7338725, 69.9550623, 81, 70.4917615] * u.deg,
         atol=1e-7,
     )
     assert_allclose(
         stereo["disp_az"].quantity,
-        [12.7345693, 20.5362510, 14.5] * u.deg,
+        [359.9419634, 359.8805054, 14.5, 359.5978866] * u.deg,
         atol=1e-7,
     )
     tel_ids = stereo["disp_telescopes"]
     assert_array_equal(tel_ids[0], [1, 3])
     assert_array_equal(tel_ids[1], [5, 7])
     assert_array_equal(tel_ids[2], [1])
+    assert_array_equal(tel_ids[3], [1, 3, 4, 5])
 
 
 @pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
