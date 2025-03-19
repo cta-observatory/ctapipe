@@ -1,6 +1,7 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
+
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
