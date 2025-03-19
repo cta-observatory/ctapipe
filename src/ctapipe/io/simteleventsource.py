@@ -1,7 +1,7 @@
 import enum
 import warnings
 from contextlib import nullcontext
-from enum import auto, unique
+from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
@@ -122,7 +122,7 @@ def _clip_altitude_if_close(altitude):
 
 
 @enum.unique
-class MirrorClass(enum.IntEnum):
+class MirrorClass(enum.Enum):
     """Enum for the sim_telarray MIRROR_CLASS values"""
 
     SINGLE_SEGMENTED_MIRROR = 0
@@ -312,7 +312,7 @@ def apply_simtel_r1_calibration(
 
 
 @unique
-class AtmosphereProfileKind(enum.IntEnum):
+class AtmosphereProfileKind(Enum):
     """
     choice for which kind of atmosphere density profile to load if more than
     one is present"""
