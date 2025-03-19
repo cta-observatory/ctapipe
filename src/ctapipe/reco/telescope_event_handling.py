@@ -265,13 +265,13 @@ def get_index_combs(multiplicity, combs_map, combs_to_multi_indices, k):
     total_combs = np.sum(num_combs)
     index_tel_combs_map = np.empty((total_combs, k), dtype=np.int64)
     cum_multiplicity = 0
-    row_idx = 0
+    idx = 0
 
     for i in range(len(multiplicity)):
         mask = combs_to_multi_indices == multiplicity[i]
         selected_combs = combs_map[mask] + cum_multiplicity
-        index_tel_combs_map[row_idx : row_idx + len(selected_combs)] = selected_combs
-        row_idx += len(selected_combs)
+        index_tel_combs_map[idx : idx + len(selected_combs)] = selected_combs
+        idx += len(selected_combs)
         cum_multiplicity += multiplicity[i]
 
     return index_tel_combs_map, num_combs
