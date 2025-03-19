@@ -20,7 +20,9 @@ from importlib.metadata import Distribution, distributions
 from os.path import abspath
 from pathlib import Path
 from types import ModuleType
+from enum import Enum
 
+import astropy.units as u
 import psutil
 from astropy.time import Time
 
@@ -371,15 +373,39 @@ class Provenance(metaclass=Singleton):
     def as_json(self, **kwargs):
         """return all finished provenance as JSON.  Kwargs for `json.dumps`
         may be included, e.g. ``indent=4``"""
+        from ctapipe.io.metadata import Contact, Instrument, Reference, _to_dict
 
         def set_default(obj):
             """handle sets (not part of JSON) by converting to list"""
-            if isinstance(obj, set):
+            if isinstance(obj, (set, UserList)):
                 return list(obj)
-            if isinstance(obj, UserList):
-                return list(obj)
+
+            if isinstance(obj, Enum):
+                return obj.value
+
             if isinstance(obj, Path):
                 return str(obj)
+
+            if isinstance(obj, Reference):
+                print(type(obj), obj.to_dict())
+                return obj.to_dict()
+
+            if isinstance(obj, u.Quantity):
+                return {
+                    "value": obj.value.tolist(),
+                    "unit": obj.unit.to_string("vounit"),
+                }
+
+            if isinstance(
+                obj,
+                (
+                    Contact,
+                    Instrument,
+                ),
+            ):
+                return _to_dict(obj)
+
+            raise TypeError(f"{obj!r} cannot be serialized to json")
 
         return json.dumps(self.provenance, default=set_default, **kwargs)
 
