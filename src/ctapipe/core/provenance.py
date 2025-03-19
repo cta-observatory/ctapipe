@@ -20,6 +20,7 @@ from importlib.metadata import Distribution, distributions
 from os.path import abspath
 from pathlib import Path
 from types import ModuleType
+from enum import Enum
 
 import astropy.units as u
 import psutil
@@ -378,6 +379,9 @@ class Provenance(metaclass=Singleton):
             """handle sets (not part of JSON) by converting to list"""
             if isinstance(obj, (set, UserList)):
                 return list(obj)
+
+            if isinstance(obj, Enum):
+                return obj.value
 
             if isinstance(obj, Path):
                 return str(obj)
