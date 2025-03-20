@@ -1,6 +1,7 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
+
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
@@ -255,7 +256,7 @@ class SubarrayDescription:
         pos_y = self.tel_coords.y
         return (np.hypot(pos_x, pos_y).max() ** 2 * np.pi).to("km^2")
 
-    def to_table(self, kind="subarray"):
+    def to_table(self, kind="subarray", meta_convention="hdf"):
         """
         export SubarrayDescription information as an `astropy.table.Table`
 
@@ -264,6 +265,11 @@ class SubarrayDescription:
         kind: str
             which table to generate (subarray or optics)
         """
+
+        if meta_convention not in ["hdf", "fits"]:
+            raise ValueError(
+                f"meta_convention must be 'hdf' or 'fits', not {meta_convention}"
+            )
 
         if kind == "joined":
             table = self.to_table()
@@ -291,9 +297,14 @@ class SubarrayDescription:
         if kind == "subarray":
             if self.reference_location is not None:
                 itrs = self.reference_location.itrs
-                meta["OBSGEO-X"] = itrs.x.to_value(u.m)
-                meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
-                meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
+                if meta_convention == "hdf":
+                    meta["reference_itrs_x"] = itrs.x.to_value(u.m)
+                    meta["reference_itrs_y"] = itrs.y.to_value(u.m)
+                    meta["reference_itrs_z"] = itrs.z.to_value(u.m)
+                else:
+                    meta["OBSGEO-X"] = itrs.x.to_value(u.m)
+                    meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
+                    meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
 
             unique_optics = self.optics_types
 
@@ -613,15 +624,8 @@ class SubarrayDescription:
                     "File already contains a SubarrayDescription and overwrite=False"
                 )
 
-            subarray_table = self.to_table(kind="subarray")
+            subarray_table = self.to_table(kind="subarray", meta_convention="hdf")
             subarray_table.meta["name"] = self.name
-
-            if self.reference_location is not None:
-                # change FITS convention to something better fitting HDF
-                for direction in ("X", "Y", "Z"):
-                    fits_key = f"OBSGEO-{direction}"
-                    hdf_key = "reference_itrs_" + direction.lower()
-                    subarray_table.meta[hdf_key] = subarray_table.meta.pop(fits_key)
 
             write_table(
                 subarray_table,
