@@ -266,7 +266,7 @@ class SubarrayDescription:
             which table to generate (subarray or optics)
         """
 
-        if meta_convention not in ["hdf", "fits"]:
+        if meta_convention not in {"hdf", "fits"}:
             raise ValueError(
                 f"meta_convention must be 'hdf' or 'fits', not {meta_convention}"
             )
